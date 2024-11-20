@@ -1,0 +1,29 @@
+{% extends base_template_path %}
+{% load partials %}
+{% load nominopolitan %}
+
+{% block content %}
+    {% partial content %}
+{% endblock %}
+
+{% partialdef content %}
+    <title id="header_title">{{header_title}}</title>
+    <div class="is-flex is-flex-direction-column m-2 p-2">
+        <h1 class="is-flex-grow-1 title is-4">{{ object_verbose_name_plural|capfirst }}</h1>
+        {% if create_view_url %}
+            <div class="mt-2">
+                <a class="button is-primary" href="{{ create_view_url }}">
+                    Add a new {{ object_verbose_name }}
+                </a>
+            </div>
+        {% endif %}
+        {% if object_list %}
+            {% object_list object_list view %}
+        {% else %}
+            <p class="mt-4">There are no {{ object_verbose_name_plural }}. Create one now?</p>
+        {% endif %}
+    </div>
+
+
+    <hr>
+{% endpartialdef content %}

@@ -1,0 +1,25 @@
+{% extends base_template_path %}
+{% load nominopolitan %}
+{% load partials %}
+
+{% load crispy_forms_tags %}
+
+{% block content %}
+    {% partial content %}
+{% endblock %}
+
+{% partialdef content %}
+<div class="is-flex is-flex-direction-column m-2 p-2">
+    <h1 class="title is-4">{% if object %}Edit {{object_verbose_name}}{% else %}Create {{object_verbose_name}}{% endif %}
+    </h1>
+
+    <div class="box">
+        <form method="POST" {% if form.is_multipart %}enctype="multipart/form-data" {% endif %}
+            action="{% if object %}{{ update_view_url }}{% else %}{{ create_view_url }}{% endif %}">
+            {% csrf_token %}
+            {{ form|crispy }}
+            <button type="submit" class="button is-primary mt-4">Save</button>
+        </form>
+    </div>
+</div>
+{% endpartialdef content %}

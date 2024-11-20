@@ -1,0 +1,25 @@
+name: Publish Package
+
+on:
+  push:
+    branches: [ main ]
+    # Only trigger on release commits
+    paths:
+      - 'pyproject.toml'
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+      - name: Install Poetry
+        run: pip install poetry
+      - name: Build and publish
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          poetry build
+          poetry publish --repository pypi

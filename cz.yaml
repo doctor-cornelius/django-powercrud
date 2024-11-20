@@ -1,0 +1,114 @@
+commitizen:
+  # tell commitizen to use customised parameters as below
+  name: cz_customize  # otherwise use "cz_conventional_commits"
+  # Format for git tags to use the version number directly
+
+  # version management
+  version_scheme: pep440
+  version_provider: poetry
+  tag_format: "$version"  #without leading "v"
+  update_changelog_on_bump: true
+  major_version_zero: true
+
+  customize:
+    # Template for commit messages
+    message_template: "{{change_type}}{% if scope %}({{ scope }}){% endif %}: {{subject}}{% if body %}\n\n{{body}}{% endif %}{% if footer %}\n\n{% if is_breaking_change %}BREAKING CHANGE: {% endif %}{{footer}}{% endif %}"
+    # Schema for commits
+    schema: "<type>(<scope>): <subject>\n<BLANK LINE>\n<body>\n<BLANK LINE>\n(BREAKING CHANGE: )<footer>"
+    # Regex pattern to validate commit messages
+    schema_pattern: "(feat|fix|style|refactor|perf|docs|test|build|ci|chore):(\\s.*)"
+
+    # Pattern to determine how versions are bumped
+    bump_pattern: "^(major|minor|patch)"
+    # Mapping of terms to semantic versioning
+    bump_map:
+      major: "MAJOR"
+      minor: "MINOR"
+      patch: "PATCH"
+
+    # Path to additional customized information
+    # # Customized information content
+    info: |
+      See cz.yaml for customised configuration of commitizen
+    # The commit parser is a regex statement used to extract commits to **potentially** include in changelogs.
+    #   Scope and message will be included only if present; message is constructed based on message_template above 
+    # The extract is supposed to be subsequently restricted by changelog_pattern and ordered by change_type_order
+    #   But neither of these seem to work. So just configure to restrict what you don't want
+    #   Full list: feat|fix|style|refactor|perf|docs|test|build|ci|chore|wip
+    commit_parser: "^(?P<change_type>feat|fix|style|refactor|perf|docs|test|build|ci)(?P<scope>.*)?:(?P<message>.*)?"
+
+    # changelog_pattern is supposed to further restrict the commits to be included in the changelog, but doesn't seem to work
+    # changelog_pattern: "^(feat|fix|style|refactor|perf|docs|test|build|ci)?(!)?"
+
+    # change_type_order is supposed to order the change types in the changelog, but doesn't seem to work
+    # change_type_order: ["BREAKING CHANGE", "feat", "fix", "style", "refactor", "perf", "test", "build", "ci", "docs", "chore"]
+    # change_type_order:
+    #   - "BREAKING CHANGE"
+    #   - "feat"
+    #   - "fix"
+    #   - "style"
+    #   - "refactor"
+    #   - "perf"
+    #   - "test"
+    #   - "build"
+    #   - "ci"
+    #   - "docs"
+    #   - "chore"
+    # Mapping of change types to more descriptive names
+    change_type_map:
+      feat: "Feature"
+      fix: "Fix"
+      style: "Style"
+      refactor: "Refactor"
+      perf: "Performance"
+      docs: "Documentation"
+      test: "Tests"
+      build: "Build"
+      ci: "Continuous Integration"
+      chore: "Chore"
+    # Questions to guide the user in crafting a commit message
+    questions:
+      - type: list
+        name: change_type
+        choices:
+          - value: feat
+            name: "feature: A new feature."
+          - value: fix
+            name: "fix: A bug fix."
+          - value: style
+            name: "style: Changes that do not affect the meaning of the code (white-space, formatting, missing semi-colons, etc)."
+          - value: refactor
+            name: "refactor: A code change that neither fixes a bug nor adds a feature."
+          - value: perf
+            name: "perf: A code change that improves performance."
+          - value: docs
+            name: "docs: Documentation only changes."
+          - value: test
+            name: "test: Adding missing tests or correcting existing tests."
+          - value: build
+            name: "build: Changes that affect the build system or external dependencies (eg docker)"
+          - value: ci
+            name: "ci: Changes to our CI configuration files and scripts (eg commitizen, gitlab-ci)."
+          - value: chore
+            name: "chore: Changes to the build process or auxiliary tools and libraries."
+          - value: wip
+            name: "wip: Work in progress (shouldn't really be on main branch, but they do happen)"
+          # - value: release
+          #   name: "Create new release with scope = (patch|minor|major). Automated as part of ./new_release.sh"
+        message: "Select the type of change you are committing\n"
+      - type: input
+        name: scope
+        message: "What is the scope of this change? (class or file name): (press [enter] to skip)\n"
+      - type: input
+        name: subject
+        message: "Write a short and imperative summary of the code changes: (lower case and no period)\n"
+      - type: input
+        name: body
+        message: "Provide additional contextual information about the code changes: (press [enter] to skip)\n"
+      - type: confirm
+        name: is_breaking_change
+        message: "Is this a BREAKING CHANGE? Correlates with MAJOR in SemVer\n"
+        default: false
+      - type: input
+        name: footer
+        message: "Footer. Information about Breaking Changes and\nreference issues that this commit closes: (press [enter] to skip)\n"

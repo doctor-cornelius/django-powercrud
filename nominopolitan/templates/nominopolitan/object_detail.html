@@ -1,0 +1,14 @@
+{% extends base_template_path %}
+{% load nominopolitan %}
+{% load partials %}
+
+{% block content %}
+{% partial content %}
+{% endblock %}
+
+{% partialdef content %}
+    <div class="is-flex is-flex-direction-column m-2 p-2">
+        <h1 class="is-flex-grow-1 title is-4">{{ object }}</h1>
+        {% object_detail object view.fields %}
+    </div>
+{% endpartialdef content %}

@@ -1,0 +1,30 @@
+<div class="mt-4">
+    <div class="table-container">
+        <table class="table is-fullwidth is-striped is-hoverable">
+            <thead>
+                <tr>
+                    {% for header in headers %}
+                    <th class="has-text-left has-background-primary has-text-white">{{ header|capfirst }}</th>
+                    {% endfor %}
+                    <th class="has-text-right">
+                        <span class="is-sr-only">Actions</span>
+                    </th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for object in object_list %}
+                <tr>
+                    {% for field in object.fields %}
+                    <td class="{% if forloop.first %}has-text-weight-medium{% endif %}">
+                        {{ field }}
+                    </td>
+                    {% endfor %}
+                    <td class="has-text-right">
+                        {{ object.actions }}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>

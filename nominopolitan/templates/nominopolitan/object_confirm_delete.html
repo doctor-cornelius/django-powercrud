@@ -1,0 +1,24 @@
+{% extends base_template_path %}
+{% load nominopolitan %}
+{% load partials %}
+
+{% block content %}
+    {% partial content %}
+
+{% endblock %}
+
+{% partialdef content %}
+    <div class="is-flex is-flex-direction-column m-2 p-2">
+        <h1 class="title is-4">Are you sure you want to delete the following {{ object_verbose_name }}?</h1>
+        <p class="mt-4">{{ object }}</p>
+
+        <div class="box mt-4">
+            <form method="POST" action="{{ delete_view_url }}">
+                {% csrf_token %}
+                {{ form }}
+                <button type="submit" class="button is-danger">Delete</button>
+                <a href="{{ cancel_view_url }}" class="button is-light">Cancel</a>
+            </form>
+        </div>
+    </div>
+{% endpartialdef content %}

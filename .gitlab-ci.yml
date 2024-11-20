@@ -1,0 +1,46 @@
+# gitlab-ci.yml
+image: python:3.12 ## MkDocs requires python.
+
+stages:
+  - release
+  - publish
+  - deploy_docs
+
+release:
+  stage: release
+  rules:
+    # Only run on commits to main branch that contain the term "release(" (in parentheses)
+    - if: '$CI_COMMIT_MESSAGE =~ /release\(/ && $CI_COMMIT_REF_NAME == "main"'
+  before_script:
+    # Install poetry
+    - pip install poetry
+    - poetry install
+    - source `poetry env info --path`/bin/activate
+  script:
+    - echo PROD_BRANCH = "$PROD_BRANCH" # CI Variable
+    - echo CI_COMMIT_MESSAGE = "$CI_COMMIT_MESSAGE"
+    - echo CI_COMMIT_TAG = $CI_COMMIT_TAG
+    - cz changelog $(poetry version -s) --dry-run > RELEASE_NOTES.md
+    - 'curl --header "JOB-TOKEN: $CI_JOB_TOKEN" --data "name=Release $(poetry version -s)&tag_name=$(poetry version -s)&description=$(cat RELEASE_NOTES.md)" "https://gitlab.com/api/v4/projects/$CI_PROJECT_ID/releases"'
+  artifacts:
+    paths:
+      - pyproject.toml
+
+publish-package:
+  stage: publish
+  rules:
+    # Only run on commits to main branch that contain the term "release(" (in parentheses)
+    - if: '$CI_COMMIT_MESSAGE =~ /release\(/ && $CI_COMMIT_REF_NAME == "main"'
+      when: on_success
+  needs: ["release"]
+  before_script:
+    - pip install poetry
+    - poetry install
+    - source `poetry env info --path`/bin/activate
+  script:
+    - echo "Publishing package"
+    - echo "URL = ${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/pypi"
+    - export POETRY_REPOSITORIES_NOMINOPOLITAN_URL="${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/pypi"
+    - export POETRY_HTTP_BASIC_NOMINOPOLITAN_USERNAME="gitlab-ci-token"
+    - export POETRY_HTTP_BASIC_NOMINOPOLITAN_PASSWORD="${CI_JOB_TOKEN}"
+    - poetry publish --build --repository nominopolitan
