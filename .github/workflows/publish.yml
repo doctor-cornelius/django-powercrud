@@ -1,14 +1,39 @@
-name: Publish Package
+name: Release and Publish
 
 on:
   push:
     branches: [ main ]
-    # Only trigger on release commits
-    paths:
-      - 'pyproject.toml'
 
 jobs:
+  release:
+    if: contains(github.event.head_commit.message, 'release(')
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.get_version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+      - name: Install Dependencies
+        run: |
+          pip install poetry commitizen
+          poetry install
+      - name: Get Version
+        id: get_version
+        run: echo "version=$(poetry version -s)" >> $GITHUB_OUTPUT
+      - name: Create GitHub Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.get_version.outputs.version }}
+          release_name: Release ${{ steps.get_version.outputs.version }}
+          body: ${{ github.event.head_commit.message }}
+
   publish:
+    needs: release
+    if: contains(github.event.head_commit.message, 'release(')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -21,5 +46,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          poetry config repositories.github https://github.com/doctor-cornelius/django-nominopolitan
           poetry build
           poetry publish --repository github
