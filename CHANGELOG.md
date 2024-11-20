@@ -1,35 +1,18 @@
-## 0.0.1 (2024-11-20)
-
-## 0.7.0 (2024-11-20)
+## 0.0.2 (2024-11-20)
 
 ### Feature
 
-- **(nominopolitan)**:  allow parameterisation of use_crispy
+- **(NominopolitanMixin)**:  add logic for use of crispy forms depending on whether installed or overridden via use_crispy
 
-## 0.6.0 (2024-11-20)
-
-## 0.5.0 (2024-11-20)
+## 0.0.1 (2024-11-20)
 
 ### Build
 
 - **(ci)**:  change pypi token name
-
-## 0.4.0 (2024-11-20)
-
-### Build
-
 - **(ci)**:  set up for pypi
-
-## 0.3.0 (2024-11-20)
-
-## 0.2.0 (2024-11-20)
-
-## 0.1.0 (2024-11-20)
-
-### Build
-
 - **(ci)**:  add release action to github actions
 
 ### Feature
 
+- **(nominopolitan)**:  allow parameterisation of use_crispy
 - **(nominopolitan)**:  Initial Commit
