@@ -11,8 +11,8 @@ jobs:
     outputs:
       version: ${{ steps.get_version.outputs.version }}
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
       - name: Install Dependencies
@@ -21,23 +21,22 @@ jobs:
           poetry install
       - name: Get Version
         id: get_version
-        run: echo "version=$(poetry version -s)" >> $GITHUB_OUTPUT
+        run: echo "version=$(poetry version -s)" >> "$GITHUB_OUTPUT"
       - name: Create GitHub Release
-        uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ steps.get_version.outputs.version }}
-          release_name: Release ${{ steps.get_version.outputs.version }}
-          body: ${{ github.event.head_commit.message }}
+        run: |
+          gh release create ${{ steps.get_version.outputs.version }} \
+            --title "Release ${{ steps.get_version.outputs.version }}" \
+            --notes "${{ github.event.head_commit.message }}"
 
   publish:
     needs: release
     if: contains(github.event.head_commit.message, 'release(')
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
       - name: Install Poetry
@@ -46,6 +45,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          poetry config repositories.github https://github.com/doctor-cornelius/django-nominopolitan
+          poetry config repositories.github https://maven.pkg.github.com/doctor-cornelius/django-nominopolitan
+          poetry config http-basic.github __token__ ${{ secrets.GITHUB_TOKEN }}
           poetry build
           poetry publish --repository github
