@@ -1,6 +1,12 @@
 {% extends './base.html' %}
 
 {% block content %}
-    <h1 class="title">Nominopolitan Start Page</h1>
+    <h1 class="title">Nominopolitan Test Home Page</h1>
     <br>
+    <button class="button is-primary" hx-get="{% url 'sample:book-list' %}" hx-target="#nominopolitan" hx-swap="innerHTML"
+        hx-replace-url="true" hx-push-url="true">
+        Book List
+    </button>
+    <div id="nominopolitan">
+    </div>
 {% endblock %}

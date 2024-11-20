@@ -14,11 +14,15 @@ log = logging.getLogger("nominopolitan")
 class NominopolitanMixin:
     namespace = None
     create_form_class = None
-    template_path = "nominopolitan"
-    base_template_path = "nominopolitan/base.html"
-    use_htmx_partials = True
+    templates_path = "nominopolitan" # path to overridden set of templates
+    base_template_path = "nominopolitan/base.html" # location of base template
 
+    use_htmx = None
     use_crispy = None
+
+    def get_use_htmx(self):
+        # return True if it was set to be True, and False otherwise
+        return self.use_htmx is True
 
     def get_use_crispy(self):
         # check if attribute was set
@@ -97,7 +101,7 @@ class NominopolitanMixin:
                 f"{self.model._meta.app_label}/"
                 f"{self.model._meta.object_name.lower()}"
                 f"{self.template_name_suffix}.html",
-                f"{self.template_path}/object{self.template_name_suffix}.html",
+                f"{self.templates_path}/object{self.template_name_suffix}.html",
             ]
             return names
         msg = (
@@ -119,8 +123,11 @@ class NominopolitanMixin:
         # set base_template_path
         context["base_template_path"] = self.base_template_path
 
-        context["use_htmx_partials"] = self.use_htmx_partials
+        # set use_crispy for templates
         context["use_crispy"] = self.get_use_crispy()
+
+        # set use_htmx for templates
+        context["use_htmx"] = self.get_use_htmx()
 
         # Add related fields for list view
         if self.role == Role.LIST and hasattr(self, "object_list"):
@@ -167,8 +174,6 @@ class NominopolitanMixin:
         """Handle both HTMX and regular requests"""
         template_names = self.get_template_names()
 
-        # context["base_template_path"] = self.base_template_path
-
         if self.template_name:
             # an override template was provided, so use it
             template_name = template_names[0]
@@ -177,9 +182,7 @@ class NominopolitanMixin:
             template_name = template_names[1]
 
         if self.request.htmx:
-            partial_name = f"{template_name}"
-            if self.use_htmx_partials:
-                partial_name += "#content"
+            partial_name = f"{template_name}#content"
 
             return render(
                 request=self.request,
