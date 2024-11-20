@@ -43,7 +43,7 @@ jobs:
         run: pip install poetry
       - name: Build and publish
         env:
-          PYPI_TOKEN: ${{ secrets.PYPI_TOKEN_CI }}
+          PYPI_TOKEN_CI: ${{ secrets.PYPI_TOKEN_CI }}
         run: |
           poetry config pypi-token.pypi $PYPI_TOKEN_CI
           poetry build
