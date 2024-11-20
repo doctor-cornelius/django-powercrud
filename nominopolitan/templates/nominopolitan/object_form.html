@@ -2,7 +2,10 @@
 {% load nominopolitan %}
 {% load partials %}
 
-{% if use_crispy %}{% load crispy_forms_tags %}{% endif %}
+{% if use_crispy %}
+    {% include "./crispy_partials.html#load_tags" %}
+{% endif %}
+
 
 {% block content %}
     {% partial content %}
@@ -19,11 +22,10 @@
             {% csrf_token %}
             
             {% if use_crispy %}
-                {{ form|crispy }}
+                {% include "./crispy_partials.html#crispy_form" %}
             {% else %}
                 {{ form }}
             {% endif %}
-
 
             <button type="submit" class="button is-primary mt-4">Save</button>
         </form>

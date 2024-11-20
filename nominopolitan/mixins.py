@@ -1,12 +1,15 @@
-from neapolitan.views import CRUDView, Role
+from neapolitan.views import Role
 from django.urls import NoReverseMatch, path, reverse
 from django.utils.decorators import classonlymethod
 from django.core.exceptions import ImproperlyConfigured
 from django.shortcuts import render
 from django.template.response import TemplateResponse
 
+from django.conf import settings
+
 import logging
-log = logging.getLogger(__name__)
+log = logging.getLogger("nominopolitan")
+
 
 class NominopolitanMixin:
     namespace = None
@@ -14,8 +17,22 @@ class NominopolitanMixin:
     template_path = "nominopolitan"
     base_template_path = "nominopolitan/base.html"
     use_htmx_partials = True
-    use_crispy = False
 
+    use_crispy = None
+
+    def get_use_crispy(self):
+        # check if attribute was set
+        use_crispy_set = self.use_crispy is not None
+        # check if crispy_forms is installed
+        crispy_installed = "crispy_forms" in settings.INSTALLED_APPS
+
+        if use_crispy_set:
+            if self.use_crispy is True and not crispy_installed:
+                log.warning("use_crispy is set to True, but crispy_forms is not installed. Forcing to False.")
+                return False
+            return self.use_crispy
+        # user did not set attribute. Return True if crispy_forms is installed else False
+        return crispy_installed
 
     @staticmethod
     def get_url(role, view_cls):
@@ -103,7 +120,7 @@ class NominopolitanMixin:
         context["base_template_path"] = self.base_template_path
 
         context["use_htmx_partials"] = self.use_htmx_partials
-        context["use_crispy"] = self.use_crispy
+        context["use_crispy"] = self.get_use_crispy()
 
         # Add related fields for list view
         if self.role == Role.LIST and hasattr(self, "object_list"):
@@ -173,4 +190,3 @@ class NominopolitanMixin:
             return TemplateResponse(
                 request=self.request, template=template_name, context=context
             )
-

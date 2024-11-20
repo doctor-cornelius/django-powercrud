@@ -29,6 +29,27 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "standard": {"format": "%(levelname)s %(name)s %(message)s"},
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "standard",
+        },
+    },
+    "loggers": {
+        "nominopolitan": {
+            "handlers": ["console"],
+            "level": "WARNING",
+        },
+    },
+}
+
+
 # Application definition
 
 INSTALLED_APPS = [

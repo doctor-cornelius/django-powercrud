@@ -1,0 +1,10 @@
+{% load partials %}
+
+{% partialdef load_tags %}
+{% load crispy_forms_tags %}
+{% endpartialdef load_tags %}
+
+{%  partialdef crispy_form %}
+{{ form|crispy }}
+{% endpartialdef crispy_form %}
+
