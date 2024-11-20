@@ -1,3 +1,9 @@
+## 0.5.0 (2024-11-20)
+
+### Build
+
+- **(ci)**:  change pypi token name
+
 ## 0.4.0 (2024-11-20)
 
 ### Build
