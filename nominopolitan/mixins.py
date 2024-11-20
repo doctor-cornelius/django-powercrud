@@ -11,10 +11,10 @@ log = logging.getLogger(__name__)
 class NominopolitanMixin:
     namespace = None
     create_form_class = None
-
     template_path = "nominopolitan"
     base_template_path = "nominopolitan/base.html"
     use_htmx_partials = True
+    use_crispy = False
 
 
     @staticmethod
@@ -101,6 +101,9 @@ class NominopolitanMixin:
 
         # set base_template_path
         context["base_template_path"] = self.base_template_path
+
+        context["use_htmx_partials"] = self.use_htmx_partials
+        context["use_crispy"] = self.use_crispy
 
         # Add related fields for list view
         if self.role == Role.LIST and hasattr(self, "object_list"):

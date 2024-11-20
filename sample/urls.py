@@ -7,3 +7,4 @@ from . import views
 app_name = "sample"
 
 urlpatterns = views.BookCRUDView.get_urls()
+urlpatterns += views.AuthorCRUDView.get_urls()
