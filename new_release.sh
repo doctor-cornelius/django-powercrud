@@ -37,7 +37,7 @@ cz changelog --unreleased-version=$(poetry version -s)
 
 # Note scope (release) is what will trigger the release job
 git add -A
-git commit -m "release($BUMP_TYPE): create release $(poetry version -s)"
+git commit -m "release($BUMP_TYPE): Release $(poetry version -s)"
 
 # create a tag to reflect the release number
 git tag -a $(poetry version -s) -m "Release $(poetry version -s)"
