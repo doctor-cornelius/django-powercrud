@@ -1,3 +1,9 @@
+## 0.7.0 (2024-11-20)
+
+### Feature
+
+- **(nominopolitan)**:  allow parameterisation of use_crispy
+
 ## 0.6.0 (2024-11-20)
 
 ## 0.5.0 (2024-11-20)
