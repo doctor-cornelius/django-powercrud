@@ -43,9 +43,9 @@ jobs:
         run: pip install poetry
       - name: Build and publish
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
         run: |
-          poetry config repositories.github https://pypi.pkg.github.com/doctor-cornelius/django-nominopolitan
-          poetry config http-basic.github __token__ ${{ secrets.GITHUB_TOKEN }}
+          poetry config pypi-token.pypi $PYPI_TOKEN
           poetry build
-          poetry publish --repository github
+          poetry publish
+
