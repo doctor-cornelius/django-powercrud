@@ -1,3 +1,9 @@
+## 0.0.4 (2024-11-21)
+
+### Refactor
+
+- **(nominpolitan)**:  remove debug statement
+
 ## 0.0.3 (2024-11-20)
 
 ### Fix
