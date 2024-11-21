@@ -10,7 +10,6 @@ def action_links(view, object):
     prefix = view.get_prefix()
     use_htmx = getattr(view, "use_htmx", False)
     htmx_target = view.request.htmx.target if use_htmx and view.request.htmx else None
-    print(f"DEBUG: use_htmx: {use_htmx}; htmx_target: {htmx_target}")
 
     actions = [
         (url, name)
