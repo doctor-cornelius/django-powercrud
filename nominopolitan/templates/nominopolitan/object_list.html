@@ -33,8 +33,43 @@
     </div>
     <hr>
     <div id="crud_target"></div>
+    {% partial crud_modal %}
 {% endpartialdef content %}
 
-{% partialdef crud_target %}
-    <div id="crud_target"></div>
-{% endpartialdef crud_target %}
+{% partialdef crud_modal %}
+<div class="modal" id="baseModal" :class="{ 'is-active': modalOpen }">
+    <!-- Dynamically adds 'is-active' class to show/hide modal based on modalOpen state -->
+
+    <!-- Closes the modal when the background is clicked -->
+    <div class="modal-background" @click="modalOpen = false">
+    </div>
+
+    <div class="modal-card is-wide">
+        <header class="modal-card-head has-background-primary">
+            <p class="modal-card-title is-wrappable has-text-white" id="modalTitle">
+                <!-- Placeholder for modal title; can be overridden in child templates -->
+                {% block modal_title %}{% endblock modal_title %}
+            </p>
+            <button class="delete" aria-label="close" @click="modalOpen = false"></button>
+            <!-- Closes the modal when clicked -->
+        </header>
+
+        <section class="modal-card-body">
+            <div class="content" id="modalContent">
+                {% block modal_content %}{% endblock modal_content %}
+            </div>
+        </section>
+
+        <footer class="modal-card-foot">
+            <div class="buttons" id="modalButtons">
+                {% block modal_buttons %}
+                {# will be overridden when used. Example shows how to close the modal #}
+                <button class="button is-link" @click="modalOpen = false">
+                    Close
+                </button>
+                {% endblock modal_buttons %}
+            </div>
+        </footer>
+    </div>
+</div>
+{% endpartialdef crud_modal %}
