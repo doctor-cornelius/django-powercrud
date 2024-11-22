@@ -78,6 +78,11 @@ class ProjectCRUDView(NominopolitanMixin, CRUDView):
         # you must have `htmx` installed in your base template
         # Will only work if use_htmx is True AND you call the list view using htmx
         # in which case these templates will be returned to the same hx-target as used for the list view
+
+    htmx_crud_target = "crudModal" # if you want to use a different htmx target for the crud forms
+        # different (or the same) as the target used for the list view
+        # eg you may want to target a modal for the create, read, update and delete forms
+        # required use_htmx = True 
 ```
 
 ## Status
