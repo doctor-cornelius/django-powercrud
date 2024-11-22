@@ -1,3 +1,9 @@
+## 0.0.5 (2024-11-22)
+
+### Fix
+
+- **(action_links)**:  set links conditionally on whether htmx_target exists
+
 ## 0.0.4 (2024-11-21)
 
 ### Refactor
