@@ -1,3 +1,13 @@
+## 0.0.7 (2024-11-22)
+
+### Documentation
+
+- **(README)**:  minimally document nm_mktemplate command
+
+### Feature
+
+- **(nm_mktemplate)**:  nm_mktemplate to make copy of nominopolitan templates using same syntax as mktemplate
+
 ## 0.0.6 (2024-11-22)
 
 ### Refactor
