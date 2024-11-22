@@ -17,12 +17,19 @@ class NominopolitanMixin:
     templates_path = "nominopolitan" # path to overridden set of templates
     base_template_path = "nominopolitan/base.html" # location of template
 
+    use_crispy = None # True = use crispy-forms if installed; False otherwise.
+
     use_htmx = None
-    use_crispy = None
+    htmx_actions_target = None # if specified, allows separate htmx target for CRUD (eg modal)
 
     def get_use_htmx(self):
         # return True if it was set to be True, and False otherwise
         return self.use_htmx is True
+    
+    def get_htmx_target(self):
+        if self.get_use_htmx():
+            return self.request.htmx.target
+        return None
 
     def get_use_crispy(self):
         # check if attribute was set
@@ -129,6 +136,9 @@ class NominopolitanMixin:
         # set use_htmx for templates
         context["use_htmx"] = self.get_use_htmx()
 
+        if self.request.htmx:
+            context["htmx_target"] = self.get_htmx_target()
+
         # Add related fields for list view
         if self.role == Role.LIST and hasattr(self, "object_list"):
             context["related_fields"] = {
@@ -182,7 +192,7 @@ class NominopolitanMixin:
             template_name = template_names[1]
 
         if self.request.htmx:
-            context['htmx_target'] = self.request.htmx.target
+            # context['htmx_target'] = self.request.htmx.target
             partial_name = f"{template_name}#content"
 
             return render(

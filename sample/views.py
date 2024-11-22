@@ -36,7 +36,7 @@ class BookCRUDView(NominopolitanMixin, CRUDView):
 class AuthorCRUDView(NominopolitanMixin, CRUDView):
     model = models.Author
     namespace = "sample"
-    use_htmx = True
+    # use_htmx = True
     base_template_path = "django_nominopolitan/base.html"
     fields = [
         "name",
