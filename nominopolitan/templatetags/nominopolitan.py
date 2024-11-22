@@ -9,7 +9,7 @@ register = template.Library()
 def action_links(view, object):
     prefix = view.get_prefix()
     use_htmx = getattr(view, "use_htmx", False)
-    htmx_target = view.request.htmx.target if use_htmx and view.request.htmx else None
+    htmx_target = view.get_htmx_target()
     log.debug(f"htmx_target: {htmx_target}")
 
     actions = [

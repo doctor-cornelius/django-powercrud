@@ -11,6 +11,7 @@ class BookForm(forms.ModelForm):
     class Meta:
         model = models.Book
         fields = [
+            "title",
             "author",
             "published_date",
             "isbn",
@@ -28,8 +29,9 @@ class BookCRUDView(NominopolitanMixin, CRUDView):
     base_template_path = "django_nominopolitan/base.html"
     form_class = BookForm
     use_htmx = True
+    htmx_crud_target = "crud_target"
     fields = [
-        "author", "published_date", "isbn", "pages",
+        "title", "author", "published_date", "isbn", "pages",
     ]
 
 

@@ -20,16 +20,25 @@ class NominopolitanMixin:
     use_crispy = None # True = use crispy-forms if installed; False otherwise.
 
     use_htmx = None
-    htmx_actions_target = None # if specified, allows separate htmx target for CRUD (eg modal)
+    htmx_crud_target = None # if specified, allows separate htmx target for CRUD (eg modal)
 
     def get_use_htmx(self):
         # return True if it was set to be True, and False otherwise
         return self.use_htmx is True
-    
+
     def get_htmx_target(self):
-        if self.get_use_htmx():
-            return self.request.htmx.target
-        return None
+        if not self.get_use_htmx():
+            htmx_target = None
+
+        if self.htmx_crud_target:
+            # return the specified target
+            htmx_target = self.htmx_crud_target
+        else:
+            # return whatever htmx target was set for the incoming request
+            htmx_target = self.request.htmx.target
+        
+        log.debug(f"htmx_target: {htmx_target}")
+        return htmx_target
 
     def get_use_crispy(self):
         # check if attribute was set
@@ -192,12 +201,9 @@ class NominopolitanMixin:
             template_name = template_names[1]
 
         if self.request.htmx:
-            # context['htmx_target'] = self.request.htmx.target
-            partial_name = f"{template_name}#content"
-
             return render(
                 request=self.request,
-                template_name=partial_name,
+                template_name=f"{template_name}#content",
                 context=context,
             )
         else:
