@@ -1,3 +1,18 @@
+## 0.0.6 (2024-11-22)
+
+### Refactor
+
+- **(NominopolitanMixin)**:  set context for htmx_target in get_context_data
+
+### Documentation
+
+- **(README)**:  update minimal docs re htmx_crud_target
+
+### Feature
+
+- **(NominoPolitanMixin)**:  support new attribute htmx_crud_target to allow separate target from object list
+- **(NominoPolitanMixin)**:  get create form working with htmx if use_htmx and htmx_target exists
+
 ## 0.0.5 (2024-11-22)
 
 ### Fix
