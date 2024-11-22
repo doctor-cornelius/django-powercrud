@@ -85,6 +85,14 @@ class ProjectCRUDView(NominopolitanMixin, CRUDView):
         # required use_htmx = True 
 ```
 
+### nm_mktemplate management command
+
+This is the same as `neapolitan`'s `mktemplate` command except it copies from the `nominopolitan` templates instead of the `neapolitan` templates.
+
+It's the same syntax as `neapolitan`'s `mktemplate` command:
+
+`python manage.py nm_mktemplate <app_name>.<model_name> --<suffix>`
+
 ## Status
 
 Extremely early alpha. No tests. Limited docs. Suggest at this stage just use it as a reference and take what you need. It works for me.
