@@ -10,6 +10,7 @@ def action_links(view, object):
     prefix = view.get_prefix()
     use_htmx = getattr(view, "use_htmx", False)
     htmx_target = view.request.htmx.target if use_htmx and view.request.htmx else None
+    log.debug(f"htmx_target: {htmx_target}")
 
     actions = [
         (url, name)
@@ -29,13 +30,15 @@ def action_links(view, object):
         ]
         if url is not None
     ]
-    # links = [f"<a href='{url}'>{anchor_text}</a>" for url, anchor_text in actions]
-    links = [
-        (f"<a href='{url}' {f'hx-get={url} hx-target=#{htmx_target} hx-replace-url="true" hx-push-url="true"' 
-                            if use_htmx 
-                            else ''}>{anchor_text}</a>")
-        for url, anchor_text in actions
-    ]
+    if htmx_target:
+        links = [
+            (f"<a href='{url}' {f'hx-get={url} hx-target=#{htmx_target} hx-replace-url="true" hx-push-url="true"' 
+                                if use_htmx 
+                                else ''}>{anchor_text}</a>")
+            for url, anchor_text in actions
+        ]
+    else:
+        links = [f"<a href='{url}'>{anchor_text}</a>" for url, anchor_text in actions]
 
     return mark_safe(" | ".join(links))
 

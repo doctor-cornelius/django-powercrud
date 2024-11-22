@@ -15,7 +15,7 @@ class NominopolitanMixin:
     namespace = None
     create_form_class = None
     templates_path = "nominopolitan" # path to overridden set of templates
-    base_template_path = "nominopolitan/base.html" # location of base template
+    base_template_path = "nominopolitan/base.html" # location of template
 
     use_htmx = None
     use_crispy = None

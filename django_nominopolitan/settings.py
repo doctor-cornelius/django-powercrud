@@ -44,7 +44,7 @@ LOGGING = {
     "loggers": {
         "nominopolitan": {
             "handlers": ["console"],
-            "level": "WARNING",
+            "level": "DEBUG",
         },
     },
 }
