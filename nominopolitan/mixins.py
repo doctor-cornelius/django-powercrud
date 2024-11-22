@@ -182,6 +182,7 @@ class NominopolitanMixin:
             template_name = template_names[1]
 
         if self.request.htmx:
+            context['htmx_target'] = self.request.htmx.target
             partial_name = f"{template_name}#content"
 
             return render(

@@ -12,9 +12,17 @@
         <h1 class="is-flex-grow-1 title is-4">{{ object_verbose_name_plural|capfirst }}</h1>
         {% if create_view_url %}
             <div class="mt-2">
+                {% if use_htmx and htmx_target %}
+                <a class="button is-primary" href="{{ create_view_url }}"
+                hx-get="{{ create_view_url }}" hx-target="#{{htmx_target}}" hx-replace-url="true" hx-push-url="true"
+                >
+                    Add a new {{ object_verbose_name }}
+                </a>
+                {% else %}
                 <a class="button is-primary" href="{{ create_view_url }}">
                     Add a new {{ object_verbose_name }}
                 </a>
+                {% endif %}
             </div>
         {% endif %}
         {% if object_list %}
