@@ -1,3 +1,18 @@
+## 0.0.8 (2024-11-26)
+
+### Refactor
+
+- **(nominopolitan)**:  remove debug statement
+
+### Feature
+
+- **(nominopolitan)**:  style action links as small buttons and allow extra_buttons to be specified
+- **(NominoPolitanMixin)**:  Allow specification of new actions
+
+### Style
+
+- **(modal)**:  add modal partial to object_list with no trigger yet to open
+
 ## 0.0.7 (2024-11-22)
 
 ### Documentation
