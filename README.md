@@ -84,7 +84,9 @@ class ProjectCRUDView(NominopolitanMixin, CRUDView):
         # eg you may want to target a modal for the create, read, update and delete forms
         # required use_htmx = True
 
-    use_modal = True #If you want to use the modal specified in object_list.html for all action links
+    use_modal = True #If you want to use the modal specified in object_list.html for all action links.
+        # This will target the modal (id="modalContent") specified in object_list.html
+        # And uses Alpine and htmx to set openModal = true
 
     extra_actions = [ # adds additional actions for each record in the list
         {
