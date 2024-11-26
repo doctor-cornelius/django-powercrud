@@ -6,13 +6,23 @@ log = logging.getLogger("nominopolitan")
 
 register = template.Library()
 
+
 def action_links(view, object):
     prefix = view.get_prefix()
     use_htmx = getattr(view, "use_htmx", False)
     htmx_target = view.get_htmx_target()
 
+    # Standard actions with Bulma button classes
     actions = [
-        (url, name)
+        (
+            (url, name, "is-info")  # View button
+            if name == "View"
+            else (
+                (url, name, "is-link")  # Edit button
+                if name == "Edit"
+                else (url, name, "is-danger")
+            )
+        )  # Delete button
         for url, name in [
             (
                 view.safe_reverse(f"{prefix}-detail", kwargs={"pk": object.pk}),
@@ -32,28 +42,34 @@ def action_links(view, object):
 
     # Add extra actions if defined
     extra_actions = getattr(view, "extra_actions", [])
-    log.debug(f"extra_actions: {extra_actions}")
     for action in extra_actions:
         url = view.safe_reverse(
             action["url_name"],
             kwargs={"pk": object.pk} if action.get("needs_pk", True) else None,
         )
         if url is not None:
-            actions.append((url, action["text"]))
-        else:
-            log.warning(f"Extra action {action} could not be added because it's URL is None")
+            # Default to 'is-link' for extra actions unless specified
+            button_class = action.get("button_class", "is-link")
+            actions.append((url, action["text"], button_class))
 
     if htmx_target:
         links = [
-            (f"<a href='{url}' {f'hx-get={url} hx-target=#{htmx_target} hx-replace-url="true" hx-push-url="true"' 
+            (
+                f"<a href='{url}' class='button is-small {button_class}' {f'hx-get={url} hx-target=#{htmx_target} hx-replace-url="true" hx-push-url="true"' 
                                 if use_htmx 
-                                else ''}>{anchor_text}</a>")
-            for url, anchor_text in actions
+                                else ''}>{anchor_text}</a>"
+            )
+            for url, anchor_text, button_class in actions
         ]
     else:
-        links = [f"<a href='{url}'>{anchor_text}</a>" for url, anchor_text in actions]
+        links = [
+            f"<a href='{url}' class='button is-small {button_class}'>{anchor_text}</a>"
+            for url, anchor_text, button_class in actions
+        ]
 
-    return mark_safe(" | ".join(links))
+    return mark_safe(
+        " ".join(links)
+    )  # Changed from " | " to " " for better button spacing
 
 
 @register.inclusion_tag(f"nominopolitan/partial/detail.html")

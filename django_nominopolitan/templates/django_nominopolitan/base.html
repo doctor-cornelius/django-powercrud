@@ -32,21 +32,23 @@
 
     {% block app_content %}{% endblock app_content %}
 
-    <div id="content" class="container m-5 p-5">
+    <div class="container m-5 p-5">
         <p mb-2>These buttons being served from base.html</p>
         <a class="button is-primary" href="{% url 'home' %}">
             Home
         </a>
-        <button class="button is-link" hx-get="{% url 'sample:book-list' %}" hx-target="#nominopolitan" hx-swap="innerHTML"
+        <button class="button is-link" hx-get="{% url 'sample:book-list' %}" hx-target="#content" hx-swap="innerHTML"
             hx-replace-url="true" hx-push-url="true">
             Book List
         </button>
-        <button class="button is-link" hx-get="{% url 'sample:author-list' %}" hx-target="#nominopolitan" hx-swap="innerHTML"
+        <button class="button is-link" hx-get="{% url 'sample:author-list' %}" hx-target="#content" hx-swap="innerHTML"
             hx-replace-url="true" hx-push-url="true">
             Author List
         </button>
+        <div id="content" >
         {% block content %}{% endblock content %}
         <div id="nominopolitan"></div>
+        </div>
     </div>
 </body>
 
