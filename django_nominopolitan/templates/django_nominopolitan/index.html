@@ -1,7 +1,11 @@
 {% extends './base.html' %}
 
 {% block content %}
+    {% partial content %}
+{% endblock content %}
+
+{% partialdef content %}
     <h1 class="title my-2">Nominopolitan Test Home Page</h1>
     <p>This header and text being served from index.html</p>
     <br>
-{% endblock %}
+{% endpartialdef content %}

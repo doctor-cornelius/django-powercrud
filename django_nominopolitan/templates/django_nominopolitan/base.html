@@ -30,10 +30,6 @@
 </head>
 
 <body hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
-    <div x-data="{test: true}" x-init="console.log('Testing Alpine')">
-        <span x-text="test ? 'Alpine works!' : ''"></span>
-    </div>
-
     {% block app_content %}{% endblock app_content %}
 
     <div class="container m-5 p-5">

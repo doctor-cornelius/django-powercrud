@@ -17,4 +17,7 @@ logging.basicConfig(level=logging.DEBUG)
 log = logging.getLogger(__name__)
 
 def home(request):
+    if request.htmx:
+        return render(request, "django_nominopolitan/index.html#content")
     return render(request, "django_nominopolitan/index.html")
+    

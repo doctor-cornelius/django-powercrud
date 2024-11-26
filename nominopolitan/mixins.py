@@ -41,6 +41,7 @@ class NominopolitanMixin:
             htmx_target = "#modalContent"
         else:
             # return whatever htmx target was set for the incoming request
+            log.debug(f"request.htmx.target: {self.request.htmx.target}")
             htmx_target = f"#{self.request.htmx.target}"
         
         return htmx_target

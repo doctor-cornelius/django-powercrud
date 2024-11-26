@@ -101,6 +101,12 @@ TEMPLATES = [
                 "django.template.loaders.filesystem.Loader",
                 "django.template.loaders.app_directories.Loader",
             ],
+            "builtins": [
+                "django.templatetags.i18n",  # {% load i18n %}
+                "django.templatetags.static",  # {% load static %}
+                "django_htmx.templatetags.django_htmx",  # {% load django_htmx %}
+                "template_partials.templatetags.partials",  # {% load partials %}
+            ],
         },
     },
 ]
