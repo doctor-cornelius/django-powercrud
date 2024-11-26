@@ -1,3 +1,25 @@
+## 0.0.9 (2024-11-27)
+
+### Fix
+
+- **(nominopolitan)**:  get_success_url now correctly targets original hx-target of the list view if used
+- **(nominopolitan)**:  get update_view_url correctly into context
+- **(sample)**:  correct date widgets in forms
+- **(nominopolitan)**:  fix up when to prepend # to htmx_target
+
+### Documentation
+
+- **(nominopolitan)**:  update docs with minimal detail on use_modal
+
+### Feature
+
+- **(nominopolitan)**:  implement use_modal functionality for CRUD and other actions
+
+### Style
+
+- **(nominopolitan)**:  style modal close X
+- **(sample)**:  load template builtins to save having to load tags each time
+
 ## 0.0.8 (2024-11-26)
 
 ### Refactor
