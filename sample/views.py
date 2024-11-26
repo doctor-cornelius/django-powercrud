@@ -29,6 +29,7 @@ class AuthorCRUDView(NominopolitanMixin, CRUDView):
         "bio",
         "birth_date",
     ]
+    form_class = forms.AuthorForm
     namespace = "sample"
     use_htmx = True
     use_modal = True

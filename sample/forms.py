@@ -13,5 +13,18 @@ class BookForm(forms.ModelForm):
             "description",
         ]
         widgets = {
-            "submission_date": forms.DateInput(attrs={"type": "date"}),
+            "published_date": forms.DateInput(attrs={"type": "date"}),
+        }
+
+
+class AuthorForm(forms.ModelForm):
+    class Meta:
+        model = models.Author
+        fields = [
+            "name",
+            "bio",
+            "birth_date",
+        ]
+        widgets = {
+            "birth_date": forms.DateInput(attrs={"type": "date"}),
         }

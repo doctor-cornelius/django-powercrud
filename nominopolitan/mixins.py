@@ -31,17 +31,19 @@ class NominopolitanMixin:
         return self.use_modal is True
 
     def get_htmx_target(self):
+
+        # only if using htmx
         if not self.get_use_htmx():
             htmx_target = None
 
         if self.htmx_crud_target:
             # return the specified target
-            htmx_target = self.htmx_crud_target
+            htmx_target = f"#{self.htmx_crud_target}"
+        
         elif self.use_modal:
             htmx_target = "#modalContent"
         else:
             # return whatever htmx target was set for the incoming request
-            log.debug(f"request.htmx.target: {self.request.htmx.target}")
             htmx_target = f"#{self.request.htmx.target}"
         
         return htmx_target
