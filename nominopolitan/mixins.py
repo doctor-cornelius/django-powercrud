@@ -21,10 +21,14 @@ class NominopolitanMixin:
 
     use_htmx = None
     htmx_crud_target = None # if specified, allows separate htmx target for CRUD (eg modal)
+    use_modal = None
 
     def get_use_htmx(self):
         # return True if it was set to be True, and False otherwise
         return self.use_htmx is True
+    
+    def get_use_modal(self):
+        return self.use_modal is True
 
     def get_htmx_target(self):
         if not self.get_use_htmx():
@@ -33,11 +37,12 @@ class NominopolitanMixin:
         if self.htmx_crud_target:
             # return the specified target
             htmx_target = self.htmx_crud_target
+        elif self.use_modal:
+            htmx_target = "#modalContent"
         else:
             # return whatever htmx target was set for the incoming request
-            htmx_target = self.request.htmx.target
+            htmx_target = f"#{self.request.htmx.target}"
         
-        log.debug(f"htmx_target: {htmx_target}")
         return htmx_target
 
     def get_use_crispy(self):
@@ -144,6 +149,8 @@ class NominopolitanMixin:
 
         # set use_htmx for templates
         context["use_htmx"] = self.get_use_htmx()
+
+        context['use_modal'] = self.get_use_modal()
 
         if self.request.htmx:
             context["htmx_target"] = self.get_htmx_target()

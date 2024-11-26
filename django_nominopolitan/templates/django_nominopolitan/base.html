@@ -13,13 +13,14 @@
     <script src="https://unpkg.com/htmx.org@2.0.3"></script>
     <script> src = "https://unpkg.com/htmx.org/dist/ext/multi-swap.js"</script>
 
+
     <!-- Install alpine -->
-    <!-- <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script>
         document.addEventListener('alpine:init', () => {
             Alpine.store('pageTitle', '{{header_title}}')
         })
-    </script> -->
+    </script>
 
     {% block header_title %}
     <title id="header_title">{{header_title}}</title>
@@ -29,6 +30,9 @@
 </head>
 
 <body hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+    <div x-data="{test: true}" x-init="console.log('Testing Alpine')">
+        <span x-text="test ? 'Alpine works!' : ''"></span>
+    </div>
 
     {% block app_content %}{% endblock app_content %}
 

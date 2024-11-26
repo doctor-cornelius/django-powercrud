@@ -9,8 +9,8 @@ register = template.Library()
 
 def action_links(view, object):
     prefix = view.get_prefix()
-    use_htmx = getattr(view, "use_htmx", False)
-    htmx_target = view.get_htmx_target()
+    # below takes account of use_htmx, use_modal and htmx_crud_target
+    htmx_target = view.get_htmx_target() 
 
     # Standard actions with Bulma button classes
     actions = [
@@ -55,9 +55,10 @@ def action_links(view, object):
     if htmx_target:
         links = [
             (
-                f"<a href='{url}' class='button is-small {button_class}' {f'hx-get={url} hx-target=#{htmx_target} hx-replace-url="true" hx-push-url="true"' 
-                                if use_htmx 
-                                else ''}>{anchor_text}</a>"
+                f"<a href='{url}' class='button is-small {button_class}' "
+                f"hx-get='{url}' hx-target='{htmx_target}' "
+                f"hx-replace-url='true' hx-push-url='true'>"
+                f"{anchor_text}</a>"
             )
             for url, anchor_text, button_class in actions
         ]
@@ -130,6 +131,7 @@ def object_list(objects, view):
     ]
 
     log.debug(f"object_list: {object_list}")
+
     return {
         "headers": headers,
         "object_list": object_list,

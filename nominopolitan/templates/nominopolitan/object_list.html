@@ -10,6 +10,7 @@
     <title id="header_title">{{header_title}}</title>
     <div class="is-flex is-flex-direction-column m-2 p-2">
         <h1 class="is-flex-grow-1 title is-4">{{ object_verbose_name_plural|capfirst }}</h1>
+        <p>use_modal = {{ use_modal }}</p>
         {% if create_view_url %}
             <div class="mt-2">
                 {% if use_htmx and htmx_target %}
@@ -37,39 +38,33 @@
 {% endpartialdef content %}
 
 {% partialdef crud_modal %}
-<div class="modal" id="baseModal" :class="{ 'is-active': modalOpen }">
-    <!-- Dynamically adds 'is-active' class to show/hide modal based on modalOpen state -->
-
-    <!-- Closes the modal when the background is clicked -->
-    <div class="modal-background" @click="modalOpen = false">
-    </div>
-
-    <div class="modal-card is-wide">
-        <header class="modal-card-head has-background-primary">
-            <p class="modal-card-title is-wrappable has-text-white" id="modalTitle">
-                <!-- Placeholder for modal title; can be overridden in child templates -->
-                {% block modal_title %}{% endblock modal_title %}
-            </p>
-            <button class="delete" aria-label="close" @click="modalOpen = false"></button>
-            <!-- Closes the modal when clicked -->
-        </header>
-
-        <section class="modal-card-body">
-            <div class="content" id="modalContent">
-                {% block modal_content %}{% endblock modal_content %}
-            </div>
-        </section>
-
-        <footer class="modal-card-foot">
-            <div class="buttons" id="modalButtons">
-                {% block modal_buttons %}
-                {# will be overridden when used. Example shows how to close the modal #}
-                <button class="button is-link" @click="modalOpen = false">
-                    Close
-                </button>
-                {% endblock modal_buttons %}
-            </div>
-        </footer>
+<div x-data="{ modalOpen: false }" id="baseModal" 
+    {% if use_modal %}@show-modal.window="modalOpen = true" {% endif %}>
+    <div class="modal" :class="{ 'is-active': modalOpen }">
+        <div class="modal-background" @click="modalOpen = false"></div>
+        <div class="modal-card">
+            <section class="modal-card-body">
+                <div class="content" id="modalContent" {% if use_modal %} hx-trigger="htmx:afterSwap"
+                    hx-on::after-swap="window.dispatchEvent(new Event('show-modal'))" {% endif %}>
+                </div>
+            </section>
+        </div>
     </div>
 </div>
 {% endpartialdef crud_modal %}
+
+
+
+{% partialdef crud_modal2 %}
+<div x-data="{ modalOpen: false }" id="baseModal" @show-modal.window="modalOpen = true">
+    <div class="modal" :class="{ 'is-active': modalOpen }">
+        <div class="modal-background" @click="modalOpen = false"></div>
+            <div class="modal-content" id="modalContent" hx-trigger="htmx:afterSwap"
+                hx-on::after-swap="window.dispatchEvent(new Event('show-modal'))">
+            </div>
+            <button class="modal-close is-large" aria-label="close"></button>
+        </div>
+    </div>
+</div>
+{% endpartialdef crud_modal2 %}
+

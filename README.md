@@ -82,7 +82,18 @@ class ProjectCRUDView(NominopolitanMixin, CRUDView):
     htmx_crud_target = "crudModal" # if you want to use a different htmx target for the crud forms
         # different (or the same) as the target used for the list view
         # eg you may want to target a modal for the create, read, update and delete forms
-        # required use_htmx = True 
+        # required use_htmx = True
+
+    use_modal = True #If you want to use the modal specified in object_list.html for all action links
+
+    extra_actions = [ # adds additional actions for each record in the list
+        {
+            "url_name": "fstp:do_something",  # namespace:url_pattern
+            "text": "Do Something",
+            "needs_pk": False,  # if the URL needs the object's primary key
+            "button_class": "is-primary", # semantic colour for button
+        },
+    ]
 ```
 
 ### nm_mktemplate management command
