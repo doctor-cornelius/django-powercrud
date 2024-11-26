@@ -41,6 +41,10 @@
             hx-replace-url="true" hx-push-url="true">
             Book List
         </button>
+        <button class="button is-link" hx-get="{% url 'sample:author-list' %}" hx-target="#nominopolitan" hx-swap="innerHTML"
+            hx-replace-url="true" hx-push-url="true">
+            Author List
+        </button>
         {% block content %}{% endblock content %}
         <div id="nominopolitan"></div>
     </div>

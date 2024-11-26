@@ -5,43 +5,43 @@ from nominopolitan.mixins import NominopolitanMixin
 
 from django import forms
 from . import models
-
-
-class BookForm(forms.ModelForm):
-    class Meta:
-        model = models.Book
-        fields = [
-            "title",
-            "author",
-            "published_date",
-            "isbn",
-            "pages",
-            "description",
-        ]
-        widgets = {
-            "submission_date": forms.DateInput(attrs={"type": "date"}),
-        }
-
+from . import forms
 
 class BookCRUDView(NominopolitanMixin, CRUDView):
     model = models.Book
+    fields = [
+        "title",
+        "author",
+        "published_date",
+        "isbn",
+        "pages",
+    ]
     namespace = "sample"
     base_template_path = "django_nominopolitan/base.html"
-    form_class = BookForm
+    form_class = forms.BookForm
     use_htmx = True
     htmx_crud_target = "crud_target"
-    fields = [
-        "title", "author", "published_date", "isbn", "pages",
-    ]
 
 
 class AuthorCRUDView(NominopolitanMixin, CRUDView):
     model = models.Author
-    namespace = "sample"
-    # use_htmx = True
-    base_template_path = "django_nominopolitan/base.html"
     fields = [
         "name",
         "bio",
         "birth_date",
+    ]
+    namespace = "sample"
+    use_htmx = True
+    base_template_path = "django_nominopolitan/base.html"
+    extra_actions = [
+        {
+            "url_name": "home",  # namespace:url_pattern
+            "text": "Home",
+            "needs_pk": False,  # if the URL needs the object's primary key
+        },
+        {
+            "url_name": "sample:author-detail",
+            "text": "View Again",
+            "needs_pk": True,  # if the URL doesn't need the object's primary key
+        },
     ]

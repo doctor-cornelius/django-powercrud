@@ -29,6 +29,20 @@ def action_links(view, object):
         ]
         if url is not None
     ]
+
+    # Add extra actions if defined
+    extra_actions = getattr(view, "extra_actions", [])
+    log.debug(f"extra_actions: {extra_actions}")
+    for action in extra_actions:
+        url = view.safe_reverse(
+            action["url_name"],
+            kwargs={"pk": object.pk} if action.get("needs_pk", True) else None,
+        )
+        if url is not None:
+            actions.append((url, action["text"]))
+        else:
+            log.warning(f"Extra action {action} could not be added because it's URL is None")
+
     if htmx_target:
         links = [
             (f"<a href='{url}' {f'hx-get={url} hx-target=#{htmx_target} hx-replace-url="true" hx-push-url="true"' 
@@ -98,6 +112,8 @@ def object_list(objects, view):
         }
         for object in objects
     ]
+
+    log.debug(f"object_list: {object_list}")
     return {
         "headers": headers,
         "object_list": object_list,
