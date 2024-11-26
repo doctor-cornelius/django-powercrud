@@ -23,6 +23,10 @@ class NominopolitanMixin:
     htmx_crud_target = None # if specified, allows separate htmx target for CRUD (eg modal)
     use_modal = None
 
+    @classonlymethod
+    def get_session_prefix(cls):
+        return "nominopolitan_list_target_"
+
     def get_use_htmx(self):
         # return True if it was set to be True, and False otherwise
         return self.use_htmx is True
@@ -159,6 +163,9 @@ class NominopolitanMixin:
 
         context['use_modal'] = self.get_use_modal()
 
+        session_key = f"{self.__class__.get_session_prefix()}{self.url_base}"
+        context["original_target"] = self.request.session.get(session_key)
+
         if self.request.htmx:
             context["htmx_target"] = self.get_htmx_target()
 
@@ -181,24 +188,34 @@ class NominopolitanMixin:
         return context
 
     def get_success_url(self):
+        # Verify that a model is defined for this view
+        # This is required to construct the URL patterns
         assert self.model is not None, (
             "'%s' must define 'model' or override 'get_success_url()'"
             % self.__class__.__name__
         )
 
+        # Construct the list URL name, using namespace if provided
+        # Example: "sample:author-list" or just "author-list"
         url_name = (
             f"{self.namespace}:{self.url_base}-list"
             if self.namespace
             else f"{self.url_base}-list"
         )
-        if self.role is Role.DELETE:
+
+        # Different behavior based on the role
+        if self.role in (Role.DELETE, Role.UPDATE, Role.CREATE):
+            # After deletion, go to the list view
             success_url = reverse(url_name)
         else:
+            # For create/update, construct detail URL
+            # Example: "sample:author-detail" or "author-detail"
             detail_url = (
                 f"{self.namespace}:{self.url_base}-detail"
                 if self.namespace
                 else f"{self.url_base}-detail"
             )
+            # Reverse the detail URL with the object's primary key
             success_url = reverse(detail_url, kwargs={"pk": self.object.pk})
 
         return success_url
@@ -206,15 +223,15 @@ class NominopolitanMixin:
     def render_to_response(self, context={}):
         """Handle both HTMX and regular requests"""
         template_names = self.get_template_names()
-
-        if self.template_name:
-            # an override template was provided, so use it
-            template_name = template_names[0]
-        else:
-            # revert to using the default template
-            template_name = template_names[1]
+        template_name = template_names[0] if self.template_name else template_names[1]
 
         if self.request.htmx:
+            # Store original target when first receiving list view
+            if self.role == Role.LIST:
+                session_key = f"{self.__class__.get_session_prefix()}{self.url_base}"
+                context["session_key"] = session_key
+                self.request.session[session_key] = f"#{self.request.htmx.target}"
+                context["original_target"] = f"#{self.request.htmx.target}"
             return render(
                 request=self.request,
                 template_name=f"{template_name}#content",
