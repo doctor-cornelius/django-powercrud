@@ -26,7 +26,7 @@ class NominopolitanMixin:
     def get_use_htmx(self):
         # return True if it was set to be True, and False otherwise
         return self.use_htmx is True
-    
+
     def get_use_modal(self):
         return self.use_modal is True
 
@@ -39,13 +39,13 @@ class NominopolitanMixin:
         if self.htmx_crud_target:
             # return the specified target
             htmx_target = f"#{self.htmx_crud_target}"
-        
+
         elif self.use_modal:
             htmx_target = "#modalContent"
         else:
             # return whatever htmx target was set for the incoming request
             htmx_target = f"#{self.request.htmx.target}"
-        
+
         return htmx_target
 
     def get_use_crispy(self):
@@ -140,6 +140,10 @@ class NominopolitanMixin:
         # Override the create_view_url to use our namespaced reverse
         view_name = f"{self.get_prefix()}-create"
         context["create_view_url"] = self.safe_reverse(view_name)
+
+        if self.object:
+            update_view_name = f"{self.get_prefix()}-update"
+            context["update_view_url"] = self.safe_reverse(update_view_name, kwargs={"pk": self.object.pk})
 
         # to be used in partials to update the header title
         context["header_title"] = f"{self.url_base.title()}-{self.role.value.title()}"
