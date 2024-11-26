@@ -1,3 +1,9 @@
+## 0.0.10 (2024-11-27)
+
+### Style
+
+- **(nominopolitan)**:  remove stray > from object_form template
+
 ## 0.0.9 (2024-11-27)
 
 ### Fix
