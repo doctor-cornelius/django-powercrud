@@ -37,33 +37,19 @@
 {% endpartialdef content %}
 
 {% partialdef crud_modal %}
-<div x-data="{ modalOpen: false }" id="baseModal" 
-    {% if use_modal %}@show-modal.window="modalOpen = true" {% endif %}>
+<div x-data="{ modalOpen: false }" id="baseModal" {% if use_modal %}@show-modal.window="modalOpen = true" {% endif %}>
     <div class="modal" :class="{ 'is-active': modalOpen }">
         <div class="modal-background" @click="modalOpen = false"></div>
-        <div class="modal-card">
-            <section class="modal-card-body">
-                <div class="content" id="modalContent" {% if use_modal %} hx-trigger="htmx:afterSwap"
+        <div class="modal-content">
+            <div class="box" style="position: relative;">
+                <button class="delete is-large" aria-label="close" @click="modalOpen = false"
+                    style="position: absolute; top: 0.5rem; right: 0.5rem;"></button>
+                <div id="modalContent" {% if use_modal %} hx-trigger="htmx:afterSwap"
                     hx-on::after-swap="window.dispatchEvent(new Event('show-modal'))" {% endif %}>
                 </div>
-            </section>
+            </div>
         </div>
     </div>
 </div>
 {% endpartialdef crud_modal %}
-
-
-
-{% partialdef crud_modal2 %}
-<div x-data="{ modalOpen: false }" id="baseModal" @show-modal.window="modalOpen = true">
-    <div class="modal" :class="{ 'is-active': modalOpen }">
-        <div class="modal-background" @click="modalOpen = false"></div>
-            <div class="modal-content" id="modalContent" hx-trigger="htmx:afterSwap"
-                hx-on::after-swap="window.dispatchEvent(new Event('show-modal'))">
-            </div>
-            <button class="modal-close is-large" aria-label="close"></button>
-        </div>
-    </div>
-</div>
-{% endpartialdef crud_modal2 %}
 
