@@ -50,8 +50,10 @@ def action_links(view, object):
         if url is not None:
             # Use action's htmx_target if specified, otherwise use default
             htmx_target = action.get("htmx_target", default_target)
+            if not htmx_target.startswith("#"):
+                htmx_target = f"#{htmx_target}"
             button_class = action.get("button_class", "is-link")
-            actions.append((url, action["text"], button_class, f"#{htmx_target}"))
+            actions.append((url, action["text"], button_class, htmx_target))
 
     if default_target:
         links = [
