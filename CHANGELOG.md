@@ -1,3 +1,9 @@
+## 0.0.12 (2024-11-27)
+
+### Fix
+
+- **(nominopolitan)**:  use elif in get_htmx_target to ensure non-htmx target is None not "#None"
+
 ## 0.0.11 (2024-11-27)
 
 ### Refactor
