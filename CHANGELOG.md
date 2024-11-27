@@ -1,3 +1,9 @@
+## 0.0.11 (2024-11-27)
+
+### Refactor
+
+- **(nominopolitan)**:  put object_list modal inside #content partial
+
 ## 0.0.10 (2024-11-27)
 
 ### Style
