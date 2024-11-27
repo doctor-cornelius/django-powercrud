@@ -75,18 +75,16 @@ class ProjectCRUDView(NominopolitanMixin, CRUDView):
     templates_path = "neapolitan" # if you want to override all the templates in another app
 
     use_htmx = True # if you want the View, Detail, Delete and Create forms to use htmx
-        # you must have `htmx` installed in your base template
-        # Will only work if use_htmx is True AND you call the list view using htmx
-        # in which case these templates will be returned to the same hx-target as used for the list view
-
-    htmx_crud_target = "crudModal" # if you want to use a different htmx target for the crud forms
-        # different (or the same) as the target used for the list view
-        # eg you may want to target a modal for the create, read, update and delete forms
-        # required use_htmx = True
+        # if you do not set use_modal = True, the CRUD templates will be rendered to 
+        # Requires:
+            # htmx installed in your base template
 
     use_modal = True #If you want to use the modal specified in object_list.html for all action links.
         # This will target the modal (id="modalContent") specified in object_list.html
-        # And uses Alpine and htmx to set openModal = true
+        # Requires:
+            # use_htmx = True
+            # htmx installed in your base template
+            # Alpine installed in your base template
 
     extra_actions = [ # adds additional actions for each record in the list
         {
@@ -94,6 +92,8 @@ class ProjectCRUDView(NominopolitanMixin, CRUDView):
             "text": "Do Something",
             "needs_pk": False,  # if the URL needs the object's primary key
             "button_class": "is-primary", # semantic colour for button
+            "htmx_target": "content", # htmx target for the extra action response (if use_htmx is True)
+            "hx_post": True, # if the action should be a POST request instead of the default GET
         },
     ]
 ```

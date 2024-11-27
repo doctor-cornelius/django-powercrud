@@ -20,35 +20,34 @@ class NominopolitanMixin:
     use_crispy = None # True = use crispy-forms if installed; False otherwise.
 
     use_htmx = None
-    htmx_crud_target = None # if specified, allows separate htmx target for CRUD (eg modal)
     use_modal = None
 
-    @classonlymethod
-    def get_session_prefix(cls):
-        return "nominopolitan_list_target_"
+    def get_session_key(self):
+        return f"nominopolitan_list_target_{self.url_base}"
+
+    def get_original_target(self):
+        return self.request.session.get(self.get_session_key(), None)
 
     def get_use_htmx(self):
         # return True if it was set to be True, and False otherwise
         return self.use_htmx is True
 
     def get_use_modal(self):
-        return self.use_modal is True
+        # must be using htmx for this to work
+        return self.use_modal is True and self.get_use_htmx()
 
     def get_htmx_target(self):
 
         # only if using htmx
         if not self.get_use_htmx():
             htmx_target = None
-
-        elif self.htmx_crud_target:
-            # return the specified target
-            htmx_target = f"#{self.htmx_crud_target}"
-
         elif self.use_modal:
             htmx_target = "#modalContent"
-        else:
-            # return whatever htmx target was set for the incoming request
+        elif hasattr(self.request, 'htmx') and self.request.htmx.target:
+            # return the target of the original list request
             htmx_target = f"#{self.request.htmx.target}"
+        else:
+            htmx_target = None  # Default target for non-HTMX requests
 
         return htmx_target
 
@@ -161,10 +160,10 @@ class NominopolitanMixin:
         # set use_htmx for templates
         context["use_htmx"] = self.get_use_htmx()
 
+        # set use_modal for templates
         context['use_modal'] = self.get_use_modal()
 
-        session_key = f"{self.__class__.get_session_prefix()}{self.url_base}"
-        context["original_target"] = self.request.session.get(session_key)
+        context["original_target"] = self.get_original_target()
 
         if self.request.htmx:
             context["htmx_target"] = self.get_htmx_target()
@@ -228,10 +227,9 @@ class NominopolitanMixin:
         if self.request.htmx:
             # Store original target when first receiving list view
             if self.role == Role.LIST:
-                session_key = f"{self.__class__.get_session_prefix()}{self.url_base}"
-                context["session_key"] = session_key
-                self.request.session[session_key] = f"#{self.request.htmx.target}"
-                context["original_target"] = f"#{self.request.htmx.target}"
+                self.request.session[self.get_session_key()] = f"#{self.request.htmx.target}"
+                # context["original_target"] = f"#{self.request.htmx.target}"
+                context["original_target"] = self.get_original_target()
             return render(
                 request=self.request,
                 template_name=f"{template_name}#content",

@@ -9,7 +9,7 @@ register = template.Library()
 
 def action_links(view, object):
     prefix = view.get_prefix()
-    # below takes account of use_htmx, use_modal and htmx_crud_target
+    # below takes account of use_htmx, use_modal
     default_target = view.get_htmx_target() # this will be prepended with a #
 
     # Standard actions with Bulma button classes
