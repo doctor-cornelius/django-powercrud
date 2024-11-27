@@ -50,8 +50,6 @@ class NominopolitanMixin:
             # return whatever htmx target was set for the incoming request
             htmx_target = f"#{self.request.htmx.target}"
 
-        log.debug(f"get_htmx_target - htmx_target: {htmx_target}")
-
         return htmx_target
 
     def get_use_crispy(self):
