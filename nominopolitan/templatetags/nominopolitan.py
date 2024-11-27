@@ -15,12 +15,12 @@ def action_links(view, object):
     # Standard actions with Bulma button classes
     actions = [
         (
-            (url, name, "is-info", default_target)  # View button
+            (url, name, "is-info", default_target, False)  # View button
             if name == "View"
             else (
-                (url, name, "is-link", default_target)  # Edit button
+                (url, name, "is-link", default_target, False)  # Edit button
                 if name == "Edit"
-                else (url, name, "is-danger", default_target)  # Delete button
+                else (url, name, "is-danger", default_target, False)  # Delete button
             )
         )
         for url, name in [
@@ -53,23 +53,24 @@ def action_links(view, object):
             if htmx_target and not htmx_target.startswith("#"):
                 htmx_target = f"#{htmx_target}"
             button_class = action.get("button_class", "is-link")
-            actions.append((url, action["text"], button_class, htmx_target))
+            actions.append((url, action["text"], button_class, htmx_target, action.get("hx_post", False)))
 
     if default_target:
         links = [
             (
                 f"<a href='{url}' class='button is-small {button_class}' "
-                f"hx-get='{url}' hx-target='{target}' "
+                f"{f'hx-post=\'{url}\'' if hx_post else f'hx-get=\'{url}\''} "
+                f"hx-target='{target}' "
                 f"{f'hx-replace-url=\"true\" hx-push-url=\"true\"' if not view.get_use_modal() else ''}"
                 f">"
                 f"{anchor_text}</a>"
             )
-            for url, anchor_text, button_class, target in actions
+            for url, anchor_text, button_class, target, hx_post in actions
         ]
     else:
         links = [
             f"<a href='{url}' class='button is-small {button_class}'>{anchor_text}</a>"
-            for url, anchor_text, button_class, _ in actions
+            for url, anchor_text, button_class, target, hx_post in actions
         ]
 
     return mark_safe(" ".join(links))
