@@ -35,16 +35,22 @@
     <div class="container m-5 p-5">
         <p mb-2>These buttons being served from base.html</p>
         <a class="button is-primary" href="{% url 'home' %}">
-            Home
+            Home (Reload)
         </a>
         <button class="button is-link" hx-get="{% url 'sample:book-list' %}" hx-target="#content" hx-swap="innerHTML"
             hx-replace-url="true" hx-push-url="true">
-            Book List
+            Book List (htmx)
         </button>
+        <a class="button is-info" href="{% url 'sample:book-list' %}">
+            Book List (reload)
+        </a>
         <button class="button is-link" hx-get="{% url 'sample:author-list' %}" hx-target="#content" hx-swap="innerHTML"
             hx-replace-url="true" hx-push-url="true">
-            Author List
+            Author List (htmx)
         </button>
+        <a class="button is-info" href="{% url 'sample:author-list' %}">
+            Author List (reload)
+        </a>
         <div id="content" >
         {% block content %}{% endblock content %}
         <div id="nominopolitan"></div>

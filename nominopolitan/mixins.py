@@ -40,7 +40,7 @@ class NominopolitanMixin:
         if not self.get_use_htmx():
             htmx_target = None
 
-        if self.htmx_crud_target:
+        elif self.htmx_crud_target:
             # return the specified target
             htmx_target = f"#{self.htmx_crud_target}"
 
@@ -49,6 +49,8 @@ class NominopolitanMixin:
         else:
             # return whatever htmx target was set for the incoming request
             htmx_target = f"#{self.request.htmx.target}"
+
+        log.debug(f"get_htmx_target - htmx_target: {htmx_target}")
 
         return htmx_target
 
