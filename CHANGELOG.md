@@ -1,3 +1,17 @@
+## 0.0.13 (2024-11-27)
+
+### Fix
+
+- **(nominopolitan)**:  fix problem where non-htmx call initiated list for view where use_htmx is True
+
+### Refactor
+
+- **(nominopolitan)**:  remove debug statement
+
+### Feature
+
+- **(nominopolitan)**:  Allow hx-post parameter on extra_actions
+
 ## 0.0.12 (2024-11-27)
 
 ### Fix
