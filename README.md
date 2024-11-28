@@ -8,11 +8,14 @@ This is an opinionated extension package for the excellent [`neapolitan`](https:
 - Separate create form class if specified
 - Support for `crispy-forms` if installed in project
 - Support for rendering templates using `htmx`
-- Header title context for partial updates (so the title is updated without a page reload)
+- Support for modal display of CRUD view actions (requires `htmx` and Alpine)
 - Allow specification of `base_template_path` (to your `base.html` template)
 - Allow override of all `nominopolitan` templates by specifying `templates_path`
+- Support for `extra_actions` to add additional actions to list views
+- Header title context for partial updates (so the title is updated without a page reload)
+- Management command `nm_mktemplate` to copy required `nominopolitan` template (analagous to `neapolitan`'s `mktemplate`) 
 
-At the moment the templates are styled using Bulma. I aim to also support the native `neapolitan` templates in a future release. FYI it uses `django-template-partials` under the hood. 
+At the moment the templates are styled using Bulma. FYI it uses `django-template-partials` under the hood. 
 
 This is a **very early alpha** release; expect many breaking changes. You might prefer to just fork or copy and use whatever you need. Hopefully some or all of these features may make their way into `neapolitan` over time.
 
@@ -91,9 +94,11 @@ class ProjectCRUDView(NominopolitanMixin, CRUDView):
             "url_name": "fstp:do_something",  # namespace:url_pattern
             "text": "Do Something",
             "needs_pk": False,  # if the URL needs the object's primary key
+            "hx_post": True, # if the action should be a POST request instead of the default GET
             "button_class": "is-primary", # semantic colour for button
             "htmx_target": "content", # htmx target for the extra action response (if use_htmx is True)
-            "hx_post": True, # if the action should be a POST request instead of the default GET
+                # NB if you have use_modal = True and do NOT specify htmx_target, then response
+                # will be directed to the modal 
         },
     ]
 ```
