@@ -42,7 +42,7 @@ class NominopolitanMixin:
         if not self.get_use_htmx():
             htmx_target = None
         elif self.use_modal:
-            htmx_target = "#modalContent"
+            htmx_target = "#nominopolitanModalContent"
         elif hasattr(self.request, 'htmx') and self.request.htmx.target:
             # return the target of the original list request
             htmx_target = f"#{self.request.htmx.target}"

@@ -17,7 +17,9 @@ logging.basicConfig(level=logging.DEBUG)
 log = logging.getLogger(__name__)
 
 def home(request):
+    template_name = "django_nominopolitan/index.html"
+    context = {'header_title': "Home"}
     if request.htmx:
-        return render(request, "django_nominopolitan/index.html#content")
-    return render(request, "django_nominopolitan/index.html")
+        return render(request, f"{template_name}#content", context)
+    return render(request, template_name, context)
     

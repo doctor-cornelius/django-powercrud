@@ -35,39 +35,20 @@
     <div id="crud_target"></div>
 
     {# in-built modal with target modalContent. Partial inclusion does not seem to work when imported #}
-    <div x-data="{ modalOpen: false }" id="baseModal" {% if use_modal %}@show-modal.window="modalOpen = true" {% endif %}>
-        <div class="modal" :class="{ 'is-active': modalOpen }">
-            <div class="modal-background" @click="modalOpen = false"></div>
+    <div x-data="{ nominopolitanModalOpen: false }" id="nominopolitanBaseModal" 
+        {% if use_modal%}@show-nominopolitan-modal.window="nominopolitanModalOpen = true"{% endif %}>
+        <div class="modal" :class="{ 'is-active': nominopolitanModalOpen }">
+            <div class="modal-background" @click="nominopolitanModalOpen = false"></div>
             <div class="modal-content">
                 <div class="box" style="position: relative;">
-                    <button class="delete is-large" aria-label="close" @click="modalOpen = false"
+                    <button class="delete is-large" aria-label="close" @click="nominopolitanModalOpen = false"
                         style="position: absolute; top: 0.5rem; right: 0.5rem;"></button>
-                    <div id="modalContent" {% if use_modal %} hx-trigger="htmx:afterSwap"
-                        hx-on::after-swap="window.dispatchEvent(new Event('show-modal'))" {% endif %}>
+                    <div id="nominopolitanModalContent" {% if use_modal %} hx-trigger="htmx:afterSwap"
+                        hx-on::after-swap="window.dispatchEvent(new Event('show-nominopolitan-modal'))" {% endif %}>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 {% endpartialdef content %}
-
-{% partialdef crud_modal %}
-<div x-data="{ modalOpen: false }" id="baseModal" {% if use_modal %}@show-modal.window="modalOpen = true" {% endif %}>
-    <div class="modal" :class="{ 'is-active': modalOpen }">
-        <div class="modal-background" @click="modalOpen = false"></div>
-        <div class="modal-content">
-            <div class="box" style="position: relative;">
-                <button class="delete is-large" aria-label="close" @click="modalOpen = false"
-                    style="position: absolute; top: 0.5rem; right: 0.5rem;"></button>
-                <div id="modalContent" 
-                    {% if use_modal %} 
-                        hx-trigger="htmx:afterSwap"
-                        hx-on::after-swap="window.dispatchEvent(new Event('show-modal'))" 
-                    {% endif %}>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-{% endpartialdef crud_modal %}
 
