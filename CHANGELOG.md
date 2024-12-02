@@ -1,3 +1,18 @@
+## 0.0.14 (2024-12-02)
+
+### Refactor
+
+- **(django-nominopolitan)**:  prefix all modal names with nominopolitan
+
+### Build
+
+- **(tornado)**:  poetry update tornado
+
+### Documentation
+
+- **(README)**:  update and correct instructions
+- **(update README with all current features)**: 
+
 ## 0.0.13 (2024-11-27)
 
 ### Fix
