@@ -12,7 +12,6 @@
         <div class="box">
             <p class="">Are you sure you want to delete the following {{ object_verbose_name }}?</p>
             <h1 class="title is-5 mb-2">{{ object }}</h1>
-            <p>delete_view_url = {{ delete_view_url }}</p>
         
             <form method="POST" action="{{ delete_view_url }}">
                 {% csrf_token %}
