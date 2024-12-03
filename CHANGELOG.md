@@ -1,3 +1,9 @@
+## 0.0.19 (2024-12-04)
+
+### Style
+
+- **(nominopolitan)**:  use template tag get_proper_elided_page_range for pagination list
+
 ## 0.0.18 (2024-12-04)
 
 ### Feature
