@@ -142,8 +142,6 @@ def object_list(objects, view):
         for object in objects
     ]
 
-    # log.debug(f"object_list: {object_list}")
-
     return {
         "headers": headers,
         "object_list": object_list,

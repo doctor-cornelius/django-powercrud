@@ -45,24 +45,22 @@ class NominopolitanMixin:
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        if not self.fields or self.fields == 'all':
+        if not self.fields or self.fields == '__all__':
             # set to all fields in model
             self.fields = self._get_all_fields()
         elif type(self.fields) == list:
             # check all are valid fields
             all_fields = self._get_all_fields()
-            log.debug(f"All fields: {all_fields}")
             for field in self.fields:
-                log.debug(f"Checking field {field}")
                 if field not in all_fields:
                     raise ValueError(f"Field {field} not defined in {self.model.__name__}")
         elif type(self.fields) != list:
             raise TypeError("fields must be a list")        
         else:
-            raise ValueError("fields must be 'all', a list of valid fields or not defined")
+            raise ValueError("fields must be '__all__', a list of valid fields or not defined")
         
         if self.properties:
-            if self.properties == 'all':
+            if self.properties == '__all__':
                 # Set self.properties to a list of every property in self.model
                 self.properties = self._get_all_properties()
             elif type(self.properties) == list:
@@ -72,13 +70,13 @@ class NominopolitanMixin:
                     if prop not in all_properties:
                         raise ValueError(f"Property {prop} not defined in {self.model.__name__}")
             elif type(self.properties) != list:
-                raise TypeError("properties must be a list")
+                raise TypeError("properties must be a list or '__all__'")
             
         if self.detail_properties:
-            if self.detail_properties == 'all':
+            if self.detail_properties == '__all__':
                 # Set self.detail_properties to a list of every property in self.model
                 self.detail_properties = self._get_all_properties()
-            elif self.detail_properties == 'properties':
+            elif self.detail_properties == '__properties__':
                 # Set self.detail_properties to a list of every property in self.model
                 self.detail_properties = self.properties
             elif type(self.detail_properties) == list:
@@ -88,13 +86,13 @@ class NominopolitanMixin:
                     if prop not in all_properties:
                         raise ValueError(f"Property {prop} not defined in {self.model.__name__}")
             elif type(self.detail_properties) != list:
-                raise TypeError("detail_properties must be a list or 'all' or 'properties'")
+                raise TypeError("detail_properties must be a list or '__all__' or '__properties__'")
 
 
-        if self.detail_fields == 'all':
+        if self.detail_fields == '__all__':
             # Set self.detail_fields to a list of every field in self.model
             self.detail_fields = self._get_all_fields()        
-        elif not self.detail_fields or self.detail_fields == 'fields':
+        elif not self.detail_fields or self.detail_fields == '__fields__':
             # Set self.detail_fields to self.fields
             self.detail_fields = self.fields
         elif type(self.detail_fields) == list:
@@ -104,7 +102,7 @@ class NominopolitanMixin:
                 if field not in all_fields:
                     raise ValueError(f"detail_field {field} not defined in {self.model.__name__}")
         elif type(self.detail_fields) != list:
-            raise TypeError("detail_fields must be a list or 'all' or 'fields' or a list of fields")
+            raise TypeError("detail_fields must be a list or '__all__' or '__fields__' or a list of fields")
         
     def get_session_key(self):
         return f"nominopolitan_list_target_{self.url_base}"

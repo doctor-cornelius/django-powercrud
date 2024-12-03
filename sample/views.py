@@ -10,10 +10,10 @@ from . import forms
 class BookCRUDView(NominopolitanMixin, CRUDView):
     model = models.Book
     fields = ["author","title","published_date",]
-    # fields =  "all"
-    # properties = 'all'
-    detail_fields = 'all'
-    detail_properties = 'all'
+    # fields =  "__all__"
+    # properties = '__all__'
+    detail_fields = '__all__'
+    detail_properties = '__all__'
 
     namespace = "sample"
     base_template_path = "django_nominopolitan/base.html"
@@ -24,9 +24,9 @@ class BookCRUDView(NominopolitanMixin, CRUDView):
 class AuthorCRUDView(NominopolitanMixin, CRUDView):
     model = models.Author
     fields = ["name","bio","birth_date",]
-    # fields = "all"
-    detail_fields = 'all'
-    detail_properties = 'all'
+    # fields = "__all__"
+    detail_fields = '__all__'
+    detail_properties = '__all__'
 
     form_class = forms.AuthorForm
     namespace = "sample"
