@@ -1,3 +1,9 @@
+## 0.0.16 (2024-12-03)
+
+### Refactor
+
+- **(nominopolitan)**:  change parameters for fields, properties, detail_fields, detail_properties
+
 ## 0.0.15 (2024-12-03)
 
 ### Feature
