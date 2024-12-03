@@ -6,6 +6,10 @@ class Author(models.Model):
     bio = models.TextField(blank=True)
     birth_date = models.DateField(null=True, blank=True)
 
+    @property
+    def has_bio(self):
+        return bool(self.bio)
+
     def __str__(self):
         return self.name
 

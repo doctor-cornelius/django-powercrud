@@ -66,7 +66,7 @@ class ProjectCRUDView(NominopolitanMixin, CRUDView):
     # Standard neapolitan attributes
     model = models.Project
     fields = [
-        "name", "project_owner", "project_manager", "due_date", "description",
+        "name", "project_owner", "project_manager", "due_date",
         ]
 
     form_class = forms.ProjectForm # standard neapolitan setting if needed
@@ -74,13 +74,27 @@ class ProjectCRUDView(NominopolitanMixin, CRUDView):
     # ******************************************************************
     # nominopolitan attributes
 
+    fields = 'all' # if you want to include all fields
+    fields = None # you can omit the fields attribute, in which case it will default to all fields
+
+    properties = ["is_overdue",] # if you want to include @property fields in the list view
+        # properties = 'all' if you want to include all @property fields
+
+    # sometimes you want additional fields in the detail view
+    detail_fields = ["name", "project_owner", "project_manager", "due_date", "description",]
+        # or 'all' to use all model fields, or 'fields' to use the fields attribute
+        # if you leave detail_fields to None, it will default to the same as in the fields attribute
+
+    detail_properties = 'all' # if you want to include all @property fields
+        # or a list of valid properties
+        # or 'properties' to use the properties attribute
+
     namespace = "my_app_name" # specify the namespace 
         # if your urls.py has app_name = "my_app_name"
 
     create_form_class = forms.ProjectCreateForm # if you want a separate create form
         # the update form always uses form_class
 
-    properties = ["is_overdue",] # if you want to include @property fields in the list view
 
     use_crispy = True # will default to True if you have `crispy-forms` installed
         # if you set it to True without crispy-forms installed, it will resolve to False

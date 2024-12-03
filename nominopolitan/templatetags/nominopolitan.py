@@ -1,5 +1,7 @@
 from django import template
 from django.utils.safestring import mark_safe
+from django.core.exceptions import FieldDoesNotExist
+
 
 import logging
 log = logging.getLogger("nominopolitan")
@@ -76,24 +78,29 @@ def action_links(view, object):
     return mark_safe(" ".join(links))
 
 
-@register.inclusion_tag(f"nominopolitan/partial/detail.html")
-def object_detail(object, fields):
+@register.inclusion_tag("nominopolitan/partial/detail.html")
+def object_detail(object, view):
     """
-    Override default to set value = str()
-    instead of value_to_string(). This allows related fields
-    to be displayed correctly (not just the id)
+    Display both fields and properties for an object detail view
     """
     def iter():
-        for f in fields:
+        # Handle regular fields
+        for f in view.detail_fields:
             field = object._meta.get_field(f)
             if field.is_relation:
-                # override default to set value = str()
                 value = str(getattr(object, f))
             else:
                 value = field.value_to_string(object)
             yield (field.verbose_name, value)
 
+        # Handle properties
+        for prop in view.detail_properties:
+            value = str(getattr(object, prop))
+            name = prop.replace('_', ' ').title()
+            yield (name, value)
+
     return {"object": iter()}
+
 
 
 @register.inclusion_tag("nominopolitan/partial/list.html")

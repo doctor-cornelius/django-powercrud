@@ -20,69 +20,92 @@ class NominopolitanMixin:
 
     use_crispy = None # True = use crispy-forms if installed; False otherwise.
 
-    properties = None
-    detail_fields = None
+    properties = []
+    detail_fields = []
+    detail_properties = []
 
     use_htmx = None
     use_modal = None
+
+    def _get_all_fields(self):
+        fields = [field.name for field in self.model._meta.get_fields()]
+            
+        # Exclude reverse relations
+        fields = [
+            field.name for field in self.model._meta.get_fields()
+            if not isinstance(field, ManyToOneRel)
+        ]
+        return fields
+    
+    def _get_all_properties(self):
+        return [name for name in dir(self.model)
+                    if isinstance(getattr(self.model, name), property) and name != 'pk'
+                ]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         if not self.fields or self.fields == 'all':
             # set to all fields in model
-            self.fields = [field.name for field in self.model._meta.get_fields()]
-            
-            # Create list_fields that excludes reverse relations
-            self.fields = [
-                field.name for field in self.model._meta.get_fields()
-                if not isinstance(field, ManyToOneRel)
-            ]
-        log.debug(f"fields: {self.fields}")
-
+            self.fields = self._get_all_fields()
+        elif type(self.fields) == list:
+            # check all are valid fields
+            all_fields = self._get_all_fields()
+            log.debug(f"All fields: {all_fields}")
+            for field in self.fields:
+                log.debug(f"Checking field {field}")
+                if field not in all_fields:
+                    raise ValueError(f"Field {field} not defined in {self.model.__name__}")
+        elif type(self.fields) != list:
+            raise TypeError("fields must be a list")        
+        else:
+            raise ValueError("fields must be 'all', a list of valid fields or not defined")
+        
         if self.properties:
             if self.properties == 'all':
                 # Set self.properties to a list of every property in self.model
-                self.properties = [name for name in dir(self.model)
-                    if isinstance(getattr(self.model, name), property) and name != 'pk'
-                ]
+                self.properties = self._get_all_properties()
+            elif type(self.properties) == list:
+                # check all are valid properties
+                all_properties = self._get_all_properties()
+                for prop in self.properties:
+                    if prop not in all_properties:
+                        raise ValueError(f"Property {prop} not defined in {self.model.__name__}")
             elif type(self.properties) != list:
                 raise TypeError("properties must be a list")
-            else:
-                # Check that all properties are defined in self.model
-                for prop in self.properties:
-                    if not hasattr(self.model, prop):
-                        raise AttributeError(f"Property {prop} not defined in {self.model.__name__}")
+            
+        if self.detail_properties:
+            if self.detail_properties == 'all':
+                # Set self.detail_properties to a list of every property in self.model
+                self.detail_properties = self._get_all_properties()
+            elif self.detail_properties == 'properties':
+                # Set self.detail_properties to a list of every property in self.model
+                self.detail_properties = self.properties
+            elif type(self.detail_properties) == list:
+                # check all are valid properties
+                all_properties = self._get_all_properties()
+                for prop in self.detail_properties:
+                    if prop not in all_properties:
+                        raise ValueError(f"Property {prop} not defined in {self.model.__name__}")
+            elif type(self.detail_properties) != list:
+                raise TypeError("detail_properties must be a list or 'all' or 'properties'")
 
-        # if self.detail_fields == 'all':
-        #     # Set self.detail_fields to a list of every field in self.model
-        #     self.detail_fields = [field.name for field in self.model._meta.get_fields()]
+
+        if self.detail_fields == 'all':
+            # Set self.detail_fields to a list of every field in self.model
+            self.detail_fields = self._get_all_fields()        
+        elif not self.detail_fields or self.detail_fields == 'fields':
+            # Set self.detail_fields to self.fields
+            self.detail_fields = self.fields
+        elif type(self.detail_fields) == list:
+            # check all are valid fields
+            all_fields = self._get_all_fields()
+            for field in self.detail_fields:
+                if field not in all_fields:
+                    raise ValueError(f"detail_field {field} not defined in {self.model.__name__}")
+        elif type(self.detail_fields) != list:
+            raise TypeError("detail_fields must be a list or 'all' or 'fields' or a list of fields")
         
-        # elif self.detail_fields == 'all_with_properties':
-        #     # Set self.detail_fields to every field and every property self.properties
-        #     # Get all fields
-        #     fields = [field.name for field in self.model._meta.get_fields()]
-        #     # Get all properties (assuming properties are defined using @property decorator)
-        #     self.detail_fields = fields
-
-        #     if self.properties and type(self.properties) == list:
-        #         self.detail_fields += self.properties
-
-        # elif self.detail_fields == 'all_with_all_properties':
-        #     # Set self.detail_fields to every field and every property in self.model
-        #     # Get all fields
-        #     fields = [field.name for field in self.model._meta.get_fields()]
-        #     # Get all properties (assuming properties are defined using @property decorator)
-        #     properties = [name for name in dir(self.model) 
-        #                   if isinstance(getattr(self.model, name), property)]
-        #     self.detail_fields = fields + properties
-        
-        # elif not self.detail_fields:
-        #     # Set self.detail_fields to self.fields
-        #     self.detail_fields = self.fields
-
-        # log.debug(f"detail_fields: {self.detail_fields}")
-
     def get_session_key(self):
         return f"nominopolitan_list_target_{self.url_base}"
 
