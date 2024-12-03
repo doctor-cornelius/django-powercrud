@@ -1,3 +1,9 @@
+## 0.0.18 (2024-12-04)
+
+### Feature
+
+- **(nominopolitan)**:  add htmx pagination for object list template
+
 ## 0.0.17 (2024-12-04)
 
 ### Fix
