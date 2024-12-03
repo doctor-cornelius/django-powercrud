@@ -9,13 +9,11 @@ from . import forms
 
 class BookCRUDView(NominopolitanMixin, CRUDView):
     model = models.Book
-    fields = [
-        "title",
-        "author",
-        "published_date",
-        "isbn",
-        "pages",
-    ]
+    # fields = ["title","author","published_date",]
+    fields =  "all"
+    properties = 'all'
+    # detail_fields = "all"
+
     namespace = "sample"
     base_template_path = "django_nominopolitan/base.html"
     form_class = forms.BookForm
@@ -24,11 +22,8 @@ class BookCRUDView(NominopolitanMixin, CRUDView):
 
 class AuthorCRUDView(NominopolitanMixin, CRUDView):
     model = models.Author
-    fields = [
-        "name",
-        "bio",
-        "birth_date",
-    ]
+    # fields = ["name","bio","birth_date",]
+    fields = "all"
     form_class = forms.AuthorForm
     namespace = "sample"
     use_htmx = True

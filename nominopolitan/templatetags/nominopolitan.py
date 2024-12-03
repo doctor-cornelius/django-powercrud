@@ -104,10 +104,12 @@ def object_list(objects, view):
     to be displayed correctly (not just the id)
     """
     fields = view.fields
-    properties = getattr(view, "properties", [])
+    properties = getattr(view, "properties", []) or []
 
-    # Headers for fields
-    field_headers = [objects[0]._meta.get_field(f).verbose_name for f in fields]
+    # Headers for fields - get the related model's verbose_name for relation fields
+    field_headers = []
+    for f in fields:
+        field_headers.append(f.replace('_', ' ').title())
 
     # Headers for properties with proper capitalization
     property_headers = [prop.replace("_", " ").title() for prop in properties]

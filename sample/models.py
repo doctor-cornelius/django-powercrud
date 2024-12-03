@@ -18,5 +18,9 @@ class Book(models.Model):
     pages = models.IntegerField()
     description = models.TextField(blank=True)
 
+    @property
+    def many_pages(self):
+        return self.pages > 10
+
     def __str__(self):
         return self.title
