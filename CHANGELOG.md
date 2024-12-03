@@ -1,3 +1,10 @@
+## 0.0.15 (2024-12-03)
+
+### Feature
+
+- **(nominopolitan)**:  Support fields or properties = 'all'; support detail_fields, detail_properties
+- **(support fields = 'all' and properties = 'all')**: 
+
 ## 0.0.14 (2024-12-02)
 
 ### Refactor
