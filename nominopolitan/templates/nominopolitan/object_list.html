@@ -27,6 +27,7 @@
         {% endif %}
         {% if object_list %}
             {% object_list object_list view %}
+            {% partial pagination %}
         {% else %}
             <p class="mt-4">There are no {{ object_verbose_name_plural }}. Create one now?</p>
         {% endif %}
@@ -52,3 +53,42 @@
     </div>
 {% endpartialdef content %}
 
+{% partialdef pagination %}
+    {% if is_paginated %}
+    <nav class="pagination is-centered mt-4" role="navigation" aria-label="pagination">
+        {% if page_obj.has_previous %}
+        <a class="pagination-previous" href="?page={{ page_obj.previous_page_number }}"
+        {% if use_htmx and original_target %}
+            hx-get="?page={{ page_obj.previous_page_number }}" hx-target="{{original_target}}" 
+            hx-replace-url="true" hx-push-url="true"
+        {% endif %}
+        >Previous</a>
+        {% endif %}
+    
+        {% if page_obj.has_next %}
+        <a class="pagination-next" href="?page={{ page_obj.next_page_number }}"
+        {% if use_htmx and original_target %}
+            hx-get="?page={{ page_obj.next_page_number }}" hx-target="{{original_target}}" 
+            hx-replace-url="true" hx-push-url="true"
+        {% endif %}
+        >Next
+        </a>
+        {% endif %}
+    
+        <ul class="pagination-list">
+            {% for i in paginator.page_range %}
+            <li>
+                <a class="pagination-link {% if page_obj.number == i %}is-current{% endif %}" 
+                    href="?page={{ i }}"
+                    aria-label="Page {{ i }}"
+                    {% if use_htmx and original_target %}
+                        hx-get="?page={{ i }}" hx-target="{{original_target}}" 
+                        hx-replace-url="true" hx-push-url="true"
+                    {% endif %}                    >{{ i }}
+                </a>
+            </li>
+            {% endfor %}
+        </ul>
+    </nav>
+    {% endif %}
+{% endpartialdef pagination %}

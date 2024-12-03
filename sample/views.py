@@ -24,6 +24,7 @@ class BookCRUDView(NominopolitanMixin, CRUDView):
 
 class AuthorCRUDView(NominopolitanMixin, CRUDView):
     model = models.Author
+    paginate_by = 1
     # fields = ["name","bio","birth_date",]
     fields = "__all__"
     properties = '__all__'
