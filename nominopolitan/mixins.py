@@ -223,12 +223,14 @@ class NominopolitanMixin:
         context = super().get_context_data(**kwargs)
 
         # Override the create_view_url to use our namespaced reverse
-        view_name = f"{self.get_prefix()}-create"
+        view_name = f"{self.get_prefix()}-{Role.CREATE.value}"
         context["create_view_url"] = self.safe_reverse(view_name)
 
         if self.object:
-            update_view_name = f"{self.get_prefix()}-update"
+            update_view_name = f"{self.get_prefix()}-{Role.UPDATE.value}"
             context["update_view_url"] = self.safe_reverse(update_view_name, kwargs={"pk": self.object.pk})
+            delete_view_name = f"{self.get_prefix()}-{Role.DELETE.value}"
+            context["delete_view_url"] = self.safe_reverse(delete_view_name, kwargs={"pk": self.object.pk})
 
         # to be used in partials to update the header title
         context["header_title"] = f"{self.url_base.title()}-{self.role.value.title()}"

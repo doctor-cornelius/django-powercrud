@@ -19,14 +19,16 @@ class BookCRUDView(NominopolitanMixin, CRUDView):
     base_template_path = "django_nominopolitan/base.html"
     form_class = forms.BookForm
     use_htmx = True
+    # use_modal = True
 
 
 class AuthorCRUDView(NominopolitanMixin, CRUDView):
     model = models.Author
-    fields = ["name","bio","birth_date",]
-    # fields = "__all__"
-    detail_fields = '__all__'
-    detail_properties = '__all__'
+    # fields = ["name","bio","birth_date",]
+    fields = "__all__"
+    properties = '__all__'
+    detail_fields = '__fields__'
+    detail_properties = '__properties__'
 
     form_class = forms.AuthorForm
     namespace = "sample"
