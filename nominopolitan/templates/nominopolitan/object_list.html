@@ -55,7 +55,7 @@
 
 {% partialdef pagination %}
     {% if is_paginated %}
-    <nav class="pagination is-centered mt-4" role="navigation" aria-label="pagination">
+    <nav class="pagination is-centered is-small is-rounded mt-4" role="navigation" aria-label="pagination">
         {% if page_obj.has_previous %}
         <a class="pagination-previous" href="?page={{ page_obj.previous_page_number }}"
         {% if use_htmx and original_target %}
@@ -74,19 +74,19 @@
         >Next
         </a>
         {% endif %}
-    
         <ul class="pagination-list">
-            {% for i in paginator.page_range %}
+            {% get_proper_elided_page_range paginator page_obj.number as page_range %}
+            {% for i in page_range %}
+            {% if i == "..." %}
+            <li><span class="pagination-ellipsis">&hellip;</span></li>
+            {% else %}
             <li>
-                <a class="pagination-link {% if page_obj.number == i %}is-current{% endif %}" 
-                    href="?page={{ i }}"
-                    aria-label="Page {{ i }}"
-                    {% if use_htmx and original_target %}
-                        hx-get="?page={{ i }}" hx-target="{{original_target}}" 
-                        hx-replace-url="true" hx-push-url="true"
-                    {% endif %}                    >{{ i }}
+                <a class="pagination-link {% if page_obj.number == i %}is-current{% endif %}" href="?page={{ i }}"
+                    aria-label="Page {{ i }}" {% if use_htmx and original_target %} hx-get="?page={{ i }}"
+                    hx-target="{{original_target}}" hx-replace-url="true" hx-push-url="true" {% endif %}>{{ i }}
                 </a>
             </li>
+            {% endif %}
             {% endfor %}
         </ul>
     </nav>

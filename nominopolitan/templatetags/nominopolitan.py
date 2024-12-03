@@ -146,3 +146,16 @@ def object_list(objects, view):
         "headers": headers,
         "object_list": object_list,
     }
+
+@register.simple_tag
+def get_proper_elided_page_range(paginator, number, on_each_side=1, on_ends=1):
+    """Return a list of page numbers with proper elision"""
+    page_range = paginator.get_elided_page_range(
+        number=number,
+        on_each_side=1,
+        on_ends=1
+    )
+    return page_range
+
+
+

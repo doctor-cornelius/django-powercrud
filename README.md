@@ -13,6 +13,7 @@ This is an opinionated extension package for the excellent [`neapolitan`](https:
 - Allow override of all `nominopolitan` templates by specifying `templates_path`
 - Support for `extra_actions` to add additional actions to list views
 - Styled using `bulma` (I know, it would be better with `tailwind` - let me know if you want to help)
+- htmx supported pagination (requires `use_htmx = True`)
 - Header title context for partial updates (so the title is updated without a page reload)
 - Management command `nm_mktemplate` to copy required `nominopolitan` template (analagous to `neapolitan`'s `mktemplate`)
 - FYI it uses `django-template-partials` under the hood.
