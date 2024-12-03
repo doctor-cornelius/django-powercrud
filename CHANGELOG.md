@@ -1,3 +1,14 @@
+## 0.0.17 (2024-12-04)
+
+### Fix
+
+- **(nominopolitan)**:  add htmx directives to object_confirm_delete template form
+- **(nominopolitan)**:  add delete_view_url context variable and fix modal delete not working
+
+### Style
+
+- **(nominopolitan)**:  remove debug paragraph in object_confirm_delete.html
+
 ## 0.0.16 (2024-12-03)
 
 ### Refactor
