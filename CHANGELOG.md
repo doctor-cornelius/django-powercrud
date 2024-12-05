@@ -1,3 +1,9 @@
+## 0.0.21 (2024-12-05)
+
+### Feature
+
+- **(nominopolitan)**:  exclude non-editable fields from forms if no form_class is specified
+
 ## 0.0.20 (2024-12-05)
 
 ### Feature
