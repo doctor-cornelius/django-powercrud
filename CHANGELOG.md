@@ -1,3 +1,9 @@
+## 0.0.20 (2024-12-05)
+
+### Feature
+
+- **(nominopolitan)**:  add parameters exclude, properties_exclude, detail_exclude, detail_properties_exclude
+
 ## 0.0.19 (2024-12-04)
 
 ### Style
