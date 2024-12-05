@@ -20,9 +20,14 @@ class NominopolitanMixin:
 
     use_crispy = None # True = use crispy-forms if installed; False otherwise.
 
-    properties = []
-    detail_fields = []
-    detail_properties = []
+    exclude = [] # fields to exclude from the list
+    properties = [] # properties to include in the list
+    properties_exclude = [] # properties to exclude from the list
+
+    detail_fields = [] # fields to include in the detail view
+    detail_exclude = [] # fields to exclude from the detail view
+    detail_properties = [] # properties to include in the detail view
+    detail_properties_exclude = [] # properties to exclude from the detail view
 
     use_htmx = None
     use_modal = None
@@ -45,6 +50,7 @@ class NominopolitanMixin:
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+        # determine the starting list of fields (before exclusions)
         if not self.fields or self.fields == '__all__':
             # set to all fields in model
             self.fields = self._get_all_fields()
@@ -58,7 +64,13 @@ class NominopolitanMixin:
             raise TypeError("fields must be a list")        
         else:
             raise ValueError("fields must be '__all__', a list of valid fields or not defined")
-        
+
+        # exclude fields
+        if type(self.exclude) == list:
+            self.fields = [field for field in self.fields if field not in self.exclude]
+        else:
+            raise TypeError("exclude must be a list")
+
         if self.properties:
             if self.properties == '__all__':
                 # Set self.properties to a list of every property in self.model
@@ -72,6 +84,36 @@ class NominopolitanMixin:
             elif type(self.properties) != list:
                 raise TypeError("properties must be a list or '__all__'")
             
+        # exclude properties
+        if type(self.properties_exclude) == list:
+            self.properties = [prop for prop in self.properties if prop not in self.properties_exclude]
+        else:
+            raise TypeError("properties_exclude must be a list")
+
+        # determine the starting list of detail_fields (before exclusions)
+        if self.detail_fields == '__all__':
+            # Set self.detail_fields to a list of every field in self.model
+            self.detail_fields = self._get_all_fields()        
+        elif not self.detail_fields or self.detail_fields == '__fields__':
+            # Set self.detail_fields to self.fields
+            self.detail_fields = self.fields
+        elif type(self.detail_fields) == list:
+            # check all are valid fields
+            all_fields = self._get_all_fields()
+            for field in self.detail_fields:
+                if field not in all_fields:
+                    raise ValueError(f"detail_field {field} not defined in {self.model.__name__}")
+        elif type(self.detail_fields) != list:
+            raise TypeError("detail_fields must be a list or '__all__' or '__fields__' or a list of fields")
+
+        # exclude detail_fields
+        if type(self.detail_exclude) == list:
+            self.detail_fields = [field for field in self.detail_fields 
+                                  if field not in self.detail_exclude]
+        else:
+            raise TypeError("detail_fields_exclude must be a list")
+
+        # add specified detail_properties            
         if self.detail_properties:
             if self.detail_properties == '__all__':
                 # Set self.detail_properties to a list of every property in self.model
@@ -88,21 +130,12 @@ class NominopolitanMixin:
             elif type(self.detail_properties) != list:
                 raise TypeError("detail_properties must be a list or '__all__' or '__properties__'")
 
-
-        if self.detail_fields == '__all__':
-            # Set self.detail_fields to a list of every field in self.model
-            self.detail_fields = self._get_all_fields()        
-        elif not self.detail_fields or self.detail_fields == '__fields__':
-            # Set self.detail_fields to self.fields
-            self.detail_fields = self.fields
-        elif type(self.detail_fields) == list:
-            # check all are valid fields
-            all_fields = self._get_all_fields()
-            for field in self.detail_fields:
-                if field not in all_fields:
-                    raise ValueError(f"detail_field {field} not defined in {self.model.__name__}")
-        elif type(self.detail_fields) != list:
-            raise TypeError("detail_fields must be a list or '__all__' or '__fields__' or a list of fields")
+        # exclude detail_properties
+        if type(self.detail_properties_exclude) == list:
+            self.detail_properties = [prop for prop in self.detail_properties 
+                                  if prop not in self.detail_properties_exclude]
+        else:
+            raise TypeError("detail_properties_exclude must be a list")
         
     def get_session_key(self):
         return f"nominopolitan_list_target_{self.url_base}"

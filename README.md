@@ -78,8 +78,12 @@ class ProjectCRUDView(NominopolitanMixin, CRUDView):
     fields = '__all__' # if you want to include all fields
         # you can omit the fields attribute, in which case it will default to '__all__'
 
+    exclude = ["description",] # list of fields to exclude from list
+
     properties = ["is_overdue",] # if you want to include @property fields in the list view
         # properties = '__all__' if you want to include all @property fields
+
+    properties_exclude = ["is_overdue",] # if you want to exclude @property fields from the list view
 
     # sometimes you want additional fields in the detail view
     detail_fields = ["name", "project_owner", "project_manager", "due_date", "description",]
@@ -87,9 +91,13 @@ class ProjectCRUDView(NominopolitanMixin, CRUDView):
         # or '__fields__' to use the fields attribute
         # if you leave detail_fields to None, it will default be treated as '__fields__'
 
+    detail_exclude = ["description",] # list of fields to exclude from detail view
+
     detail_properties = '__all__' # if you want to include all @property fields
         # or a list of valid properties
         # or '__properties__' to use the properties attribute
+
+    detail_properties_exclude = ["is_overdue",] # if you want to exclude @property fields from the detail view
 
     namespace = "my_app_name" # specify the namespace 
         # if your urls.py has app_name = "my_app_name"
