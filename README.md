@@ -2,21 +2,31 @@
 
 This is an opinionated extension package for the excellent [`neapolitan`](https://github.com/carltongibson/neapolitan/tree/main) package. It adds these features:
 
-- Namespaced URL handling
-- Display related field name (using `str()`) in lists and details (instead of numeric id)
-- Support `@property` values in list view
-- Separate create form if `create_form_class` specified
-- Support for `crispy-forms` if installed in project
-- Support for rendering templates using `htmx`
-- Support for modal display of CRUD view actions (requires `htmx` and Alpine)
+**Namespacing**
+- Namespaced URL handling `namespace="my_app_name"`
+**Templates**
 - Allow specification of `base_template_path` (to your `base.html` template)
 - Allow override of all `nominopolitan` templates by specifying `templates_path`
-- Support for `extra_actions` to add additional actions to list views
-- Styled using `bulma` (I know, it would be better with `tailwind` - let me know if you want to help)
-- htmx supported pagination (requires `use_htmx = True`)
-- Header title context for partial updates (so the title is updated without a page reload)
 - Management command `nm_mktemplate` to copy required `nominopolitan` template (analagous to `neapolitan`'s `mktemplate`)
-- FYI it uses `django-template-partials` under the hood.
+**Display**
+- Display related field name (using `str()`) in lists and details (instead of numeric id)
+- Header title context for partial updates (so the title is updated without a page reload)
+**Extended `fields` and `properties` attributes**
+- `fields=<'__all__' | [..]>` to specify which fields to include in list view
+- `properties=<'__all__' | [..]>` to specify which properties to include in list view
+- `detail_fields` and `detail_properties` to specify which to include in detail view
+- Support exclusions via `exclude`, `exclude_properties`, `detail_exclude`, `detail_exclude_properties`
+- Support for `extra_actions` to add additional actions to list views
+**Forms**
+- Separate create form if `create_form_class` specified (probably not worth having)
+- Support for `crispy-forms` if installed in project
+- if `form_class` is not specified, then non-editable fields are excluded from forms
+**`htmx` and modals**
+- Support for rendering templates using `htmx`
+- Support for modal display of CRUD view actions (requires `htmx` and Alpine)
+**Styled Templates**
+- Styled using `bulma` (I know, it would be better with `tailwind` - let me know if you want to help)
+- htmx supported pagination (requires `use_htmx = True`) for reactive loading
 
 This is a **very early alpha** release; expect many breaking changes. You might prefer to just fork or copy and use whatever you need. Hopefully some or all of these features may make their way into `neapolitan` over time.
 

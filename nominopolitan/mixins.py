@@ -218,10 +218,28 @@ class NominopolitanMixin:
             return self.reverse(view, object)
         except NoReverseMatch:
             return None
-
+    
     def get_form_class(self):
+        """
+        Override NominopolitanMixin.get_form_class (which overrides CRUDView's) 
+        to remove any non-editable fields in the case where a form_class was 
+        not specified. This is because the form class gets
+        constructed in CRUDView.get_form(data, files, **kwargs) from 
+        model_forms.modelform_factory(self.model, fields=self.fields)
+        """
+
+        # if fields were specified, but form_class was not, remove non-editable fields
+        if self.fields and not self.form_class:
+            non_editable_fields = [
+                    field.name for field in self.model._meta.fields 
+                    if not field.editable
+                ]
+            self.fields = [field for field in self.fields if field not in non_editable_fields]
+
+        # if create_form_class parameter was specified, use it
         if self.create_form_class and self.role is Role.CREATE:
             return self.create_form_class
+
         return super().get_form_class()
 
     def get_prefix(self):

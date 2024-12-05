@@ -9,21 +9,28 @@ from . import forms
 
 class BookCRUDView(NominopolitanMixin, CRUDView):
     model = models.Book
-    fields = ["author","title","published_date",]
+    namespace = "sample"
+    base_template_path = "django_nominopolitan/base.html"
+    use_htmx = True
+    # use_modal = True
+
+    # fields = ["author","title","published_date",]
     # fields =  "__all__"
+    exclude = ['isbn','pages','description']
     # properties = '__all__'
     detail_fields = '__all__'
     detail_properties = '__all__'
 
-    namespace = "sample"
-    base_template_path = "django_nominopolitan/base.html"
-    form_class = forms.BookForm
-    use_htmx = True
-    # use_modal = True
+    # form_class = forms.BookForm
 
 
 class AuthorCRUDView(NominopolitanMixin, CRUDView):
     model = models.Author
+    namespace = "sample"
+    base_template_path = "django_nominopolitan/base.html"
+    use_htmx = True
+    use_modal = True
+
     paginate_by = 5
     # fields = ["name","bio","birth_date",]
     fields = "__all__"
@@ -34,10 +41,6 @@ class AuthorCRUDView(NominopolitanMixin, CRUDView):
     detail_properties = '__properties__'
 
     form_class = forms.AuthorForm
-    namespace = "sample"
-    use_htmx = True
-    use_modal = True
-    base_template_path = "django_nominopolitan/base.html"
     extra_actions = [
         {
             "url_name": "home",  # namespace:url_pattern
