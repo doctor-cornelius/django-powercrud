@@ -18,6 +18,7 @@ jobs:
       - name: Install Dependencies
         run: |
           pip install poetry commitizen
+          poetry lock
           poetry install
       - name: Get Version
         id: get_version
