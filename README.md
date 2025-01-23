@@ -20,13 +20,16 @@ This is an opinionated extension package for the excellent [`neapolitan`](https:
 **Forms**
 - Separate create form if `create_form_class` specified (probably not worth having)
 - Support for `crispy-forms` if installed in project
+    - make sure you have `crispy_bulma` or `crispy_bootstrap5` also installed if you want
 - if `form_class` is not specified, then non-editable fields are excluded from forms
 **`htmx` and modals**
 - Support for rendering templates using `htmx`
-- Support for modal display of CRUD view actions (requires `htmx` and Alpine)
-**Styled Templates**
-- Styled using `bulma` (I know, it would be better with `tailwind` - let me know if you want to help)
+- Support for modal display of CRUD view actions (requires `htmx` -- and Alpine for bulma)
 - htmx supported pagination (requires `use_htmx = True`) for reactive loading
+**Styled Templates**
+- Supports `bootstrap5` (default) or `bulma`
+- In `settings.py` set `NOMINOPOLITAN_CSS_FRAMEWORK = 'bootstrap5'  # or 'bulma'`
+- If you override the templates to use a different framework, you will also need to override the `FRAMEWORK_STYLES` dictionary in `nominopolitan.py`
 
 This is a **very early alpha** release; expect many breaking changes. You might prefer to just fork or copy and use whatever you need. Hopefully some or all of these features may make their way into `neapolitan` over time.
 
@@ -121,8 +124,8 @@ class ProjectCRUDView(NominopolitanMixin, CRUDView):
         # if you set it to False with crispy-forms installed, it will resolve to False
 
     base_template_path = "core/base.html" # defaults to inbuilt "nominopolitan/base.html"
-    templates_path = "neapolitan" # if you want to override all the templates in another app
-        # including one of your own apps; eg templates_path = "my_app_name/nominopolitan" 
+    templates_path = "myapp" # if you want to override all the templates in another app
+        # or include one of your own apps; eg templates_path = "my_app_name/nominopolitan" 
         # and then place in my_app_name/templates/my_app_name/nominopolitan
 
     use_htmx = True # if you want the View, Detail, Delete and Create forms to use htmx
