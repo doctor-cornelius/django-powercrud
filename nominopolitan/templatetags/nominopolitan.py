@@ -1,6 +1,7 @@
 from django import template
 from django.utils.safestring import mark_safe
 from django.core.exceptions import FieldDoesNotExist
+from django.conf import settings
 
 
 import logging
@@ -8,6 +9,30 @@ log = logging.getLogger("nominopolitan")
 
 register = template.Library()
 
+FRAMEWORK_STYLES = {
+    'bulma': {
+        'base': 'button is-small',
+        'actions': {
+            'View': 'is-info',
+            'Edit': 'is-link',
+            'Delete': 'is-danger'
+        },
+        'extra_default': 'is-link'
+    },
+    'bootstrap': {
+        'base': 'btn btn-sm',
+        'actions': {
+            'View': 'btn-info',
+            'Edit': 'btn-primary',
+            'Delete': 'btn-danger'
+        },
+        'extra_default': 'btn-primary'
+    }
+}
+
+
+framework = getattr(settings, 'NOMINOPOLITAN_CSS_FRAMEWORK', 'bulma')
+styles = FRAMEWORK_STYLES[framework]
 
 def action_links(view, object):
     prefix = view.get_prefix()
@@ -16,15 +41,7 @@ def action_links(view, object):
 
     # Standard actions with Bulma button classes
     actions = [
-        (
-            (url, name, "is-info", default_target, False)  # View button
-            if name == "View"
-            else (
-                (url, name, "is-link", default_target, False)  # Edit button
-                if name == "Edit"
-                else (url, name, "is-danger", default_target, False)  # Delete button
-            )
-        )
+        (url, name, styles['actions'][name], default_target, False)  # View button
         for url, name in [
             (
                 view.safe_reverse(f"{prefix}-detail", kwargs={"pk": object.pk}),
@@ -54,13 +71,12 @@ def action_links(view, object):
             htmx_target = action.get("htmx_target", default_target)
             if htmx_target and not htmx_target.startswith("#"):
                 htmx_target = f"#{htmx_target}"
-            button_class = action.get("button_class", "is-link")
+            button_class = action.get("button_class", styles['extra_default'])
             actions.append((url, action["text"], button_class, htmx_target, action.get("hx_post", False)))
 
-    if default_target:
         links = [
             (
-                f"<a href='{url}' class='button is-small {button_class}' "
+                f"<a href='{url}' class='{styles['base']} {button_class}' "
                 f"{f'hx-post=\'{url}\'' if hx_post else f'hx-get=\'{url}\''} "
                 f"hx-target='{target}' "
                 f"{f'hx-replace-url=\"true\" hx-push-url=\"true\"' if not view.get_use_modal() else ''}"
@@ -71,14 +87,14 @@ def action_links(view, object):
         ]
     else:
         links = [
-            f"<a href='{url}' class='button is-small {button_class}'>{anchor_text}</a>"
+            f"<a href='{url}' class='{styles['base']} {button_class}'>{anchor_text}</a>"
             for url, anchor_text, button_class, target, hx_post in actions
         ]
 
     return mark_safe(" ".join(links))
 
 
-@register.inclusion_tag("nominopolitan/partial/detail.html")
+@register.inclusion_tag("nominopolitan/bulma/partial/detail.html")
 def object_detail(object, view):
     """
     Display both fields and properties for an object detail view
@@ -103,7 +119,7 @@ def object_detail(object, view):
 
 
 
-@register.inclusion_tag("nominopolitan/partial/list.html")
+@register.inclusion_tag("nominopolitan/bulma/partial/list.html")
 def object_list(objects, view):
     """
     Override default to set value = str()

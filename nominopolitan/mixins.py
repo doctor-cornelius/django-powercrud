@@ -15,8 +15,11 @@ log = logging.getLogger("nominopolitan")
 class NominopolitanMixin:
     namespace = None
     create_form_class = None
-    templates_path = "nominopolitan" # path to overridden set of templates
-    base_template_path = "nominopolitan/base.html" # location of template
+    # templates_path = "nominopolitan" # path to overridden set of templates
+    templates_path = f"nominopolitan/{getattr(
+        settings, 'NOMINOPOLITAN_CSS_FRAMEWORK', 'bulma'
+        )}"
+    base_template_path = f"{templates_path}/base.html" # location of template
 
     use_crispy = None # True = use crispy-forms if installed; False otherwise.
 
@@ -221,11 +224,9 @@ class NominopolitanMixin:
     
     def get_form_class(self):
         """
-        Override NominopolitanMixin.get_form_class (which overrides CRUDView's) 
-        to remove any non-editable fields in the case where a form_class was 
-        not specified. This is because the form class gets
-        constructed in CRUDView.get_form(data, files, **kwargs) from 
-        model_forms.modelform_factory(self.model, fields=self.fields)
+        Override get_form_classto remove any non-editable fields 
+        where a form_class was not specified. This is because the form class gets
+        constructed from model_forms.modelform_factory(self.model, fields=self.fields)
         """
 
         # if fields were specified, but form_class was not, remove non-editable fields

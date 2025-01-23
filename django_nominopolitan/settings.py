@@ -67,6 +67,8 @@ INSTALLED_APPS = [
     "crispy_bulma",
 ]
 
+NOMINOPOLITAN_CSS_FRAMEWORK = 'bulma'  # or 'bulma'
+
 CRISPY_ALLOWED_TEMPLATE_PACKS = ("bulma",)
 CRISPY_TEMPLATE_PACK = "bulma"
 
