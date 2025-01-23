@@ -1,3 +1,17 @@
+## 0.0.23 (2025-01-23)
+
+### Build
+
+- **(poetry.locl)**:  run poetry lock
+
+### Continuous Integration
+
+- **(github)**:  add poetry lock command to github actions
+
+### Documentation
+
+- **(README)**:  write up changes in readme
+
 ## 0.0.22 (2025-01-23)
 
 ### Fix
