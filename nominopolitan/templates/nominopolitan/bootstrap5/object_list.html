@@ -10,12 +10,13 @@
     <title id="header_title">{{header_title}}</title>
     <div class="d-flex flex-column m-2 p-2">
         <h1 class="flex-grow-1 fw-bold h4">{{ object_verbose_name_plural|capfirst }}</h1>
-        <p>use_modal = {{ use_modal }}</p>
+
         {% if create_view_url %}
         <div class="mt-2">
             {% if use_htmx and htmx_target %}
             <a class="btn btn-primary" href="{{ create_view_url }}" hx-get="{{ create_view_url }}"
-                hx-target="{{htmx_target}}" hx-replace-url="true" hx-push-url="true">
+                hx-target="{{htmx_target}}" hx-replace-url="true" hx-push-url="true"
+                {% if use_modal %}data-bs-toggle="modal" data-bs-target="#nominopolitanBaseModal"{% endif %}>
                 Add a new {{ object_verbose_name }}
             </a>
             {% else %}

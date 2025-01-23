@@ -301,7 +301,7 @@ class NominopolitanMixin:
 
         context["original_target"] = self.get_original_target()
 
-        if self.request.htmx:
+        if self.get_use_htmx():
             context["htmx_target"] = self.get_htmx_target()
 
         # Add related fields for list view

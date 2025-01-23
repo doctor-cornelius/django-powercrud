@@ -10,7 +10,6 @@
     <title id="header_title">{{header_title}}</title>
     <div class="is-flex is-flex-direction-column m-2 p-2">
         <h1 class="is-flex-grow-1 title is-4">{{ object_verbose_name_plural|capfirst }}</h1>
-        <p>use_modal = {{ use_modal }}</p>
         {% if create_view_url %}
             <div class="mt-2">
                 {% if use_htmx and htmx_target %}
