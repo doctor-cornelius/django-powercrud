@@ -1,3 +1,19 @@
+## 0.0.22 (2025-01-23)
+
+### Fix
+
+- **(bootstrap)**:  get bootstrap modal working
+-  get modal working ok for bulma
+
+### Refactor
+
+- **(object_list)**:  add z-index to make modal work properly
+
+### Style
+
+- **(bootstrap)**:  add in bootstrap5 option as default
+- **(styling)**:  put in framework in templatetags for flexible css framework for fragments
+
 ## 0.0.21 (2024-12-05)
 
 ### Feature
