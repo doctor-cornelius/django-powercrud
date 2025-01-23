@@ -12,7 +12,7 @@ class BookCRUDView(NominopolitanMixin, CRUDView):
     namespace = "sample"
     base_template_path = "django_nominopolitan/base.html"
     use_htmx = True
-    use_modal = False
+    use_modal = True
 
     # fields = ["author","title","published_date",]
     # fields =  "__all__"

@@ -37,15 +37,21 @@
     <div id="crud_target"></div>
 
 {# Bootstrap modal #}
-<div class="modal fade" id="nominopolitanBaseModal" tabindex="-1" aria-labelledby="modalTitle" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-body position-relative">
-                <button type="button" class="btn-close position-absolute top-0 end-0 m-2" data-bs-dismiss="modal"
+<div class="modal fade" id="nominopolitanBaseModal" tabindex="-1" aria-labelledby="modalTitle" aria-hidden="true"
+    style="z-index: 1055">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content" style="z-index: 1056">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="modalTitle">{{ header_title }}</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
                     aria-label="Close"></button>
-                <div id="nominopolitanModalContent" {% if use_modal %} hx-trigger="htmx:afterSwap"
-                    _="on htmx:afterSwap call new bootstrap.Modal(closest '.modal').show()" {% endif %}>
+            </div>
+            <div class="modal-body">
+                <div id="nominopolitanModalContent">
                 </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Close</button>
             </div>
         </div>
     </div>

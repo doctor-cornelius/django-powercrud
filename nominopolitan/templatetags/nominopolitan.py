@@ -17,7 +17,8 @@ FRAMEWORK_STYLES = {
             'Edit': 'is-link',
             'Delete': 'is-danger'
         },
-        'extra_default': 'is-link'
+        'extra_default': 'is-link',
+        'modal_attrs': '',  # Bulma uses Alpine.js so no additional attributes needed
     },
     'bootstrap5': {
         'base': 'btn btn-sm',
@@ -26,7 +27,8 @@ FRAMEWORK_STYLES = {
             'Edit': 'btn-primary',
             'Delete': 'btn-danger'
         },
-        'extra_default': 'btn-primary'
+        'extra_default': 'btn-primary',
+        'modal_attrs': 'data-bs-toggle="modal" data-bs-target="#nominopolitanBaseModal"',
     }
 }
 
@@ -81,6 +83,7 @@ def action_links(view, object):
             f"{f'hx-post=\'{url}\'' if hx_post else f'hx-get=\'{url}\''} "
             f"hx-target='{target}' "
             f"{f'hx-replace-url=\"true\" hx-push-url=\"true\"' if not view.get_use_modal() else ''}"
+            f'{f" {styles["modal_attrs"]}" if view.get_use_modal() else ""}'
             f">"
             f"{anchor_text}</a>"
         )

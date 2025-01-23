@@ -39,8 +39,7 @@
     {# in-built modal with target modalContent. Partial inclusion does not seem to work when imported #}
     <div x-data="{ nominopolitanModalOpen: false }" id="nominopolitanBaseModal" 
         {% if use_modal %}
-            x-init="console.log('Modal initialized with use_modal=true')"
-            @show-nominopolitan-modal.window="nominopolitanModalOpen = true; console.log('Modal event received')"
+            @show-nominopolitan-modal.window="nominopolitanModalOpen = true"
         {% endif %}>
         <div class="modal" :class="{ 'is-active': nominopolitanModalOpen }">
             <div class="modal-background" @click="nominopolitanModalOpen = false"></div>
@@ -51,7 +50,7 @@
                     <div id="nominopolitanModalContent" 
                     {% if use_modal %} 
                         hx-trigger="htmx:afterSwap"
-                        hx-on::after-swap="console.log('Swap complete'); window.dispatchEvent(new Event('show-nominopolitan-modal'))" 
+                        hx-on::after-swap="window.dispatchEvent(new Event('show-nominopolitan-modal'))" 
                     {% endif %}>
                     </div>
                 </div>
