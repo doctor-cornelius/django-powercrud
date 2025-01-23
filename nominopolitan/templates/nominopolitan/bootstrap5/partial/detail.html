@@ -1,0 +1,8 @@
+<dl class="box">
+    {% for field, val in object %}
+    <div class="columns is-mobile is-vcentered my-1">
+        <dt class="column is-one-third has-text-weight-semibold">{{ field|capfirst }}:</dt>
+        <dd class="column">{{ val }}</dd>
+    </div>
+    {% endfor %}
+</dl>

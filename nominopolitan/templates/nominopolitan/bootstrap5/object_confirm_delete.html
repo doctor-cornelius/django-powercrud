@@ -1,0 +1,29 @@
+{% extends base_template_path %}
+{% load nominopolitan %}
+{% load partials %}
+
+{% block content %}
+    {% partial content %}
+
+{% endblock %}
+
+{% partialdef content %}
+    <div class="is-flex is-flex-direction-column m-2 p-2">
+        <div class="box">
+            <p class="">Are you sure you want to delete the following {{ object_verbose_name }}?</p>
+            <h1 class="title is-5 mb-2">{{ object }}</h1>
+        
+            <form method="POST" action="{{ delete_view_url }}"
+                {% if use_htmx and original_target %}
+                hx-post="{{ delete_view_url }}"
+                hx-target="{{ original_target }}"
+                hx-push-url="true"
+                {% endif %}
+            >
+                {% csrf_token %}
+                {{ form }}
+                <button type="submit" class="button is-danger">Delete</button>
+            </form>
+        </div>
+    </div>
+{% endpartialdef content %}

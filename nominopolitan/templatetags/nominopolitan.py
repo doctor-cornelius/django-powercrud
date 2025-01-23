@@ -19,7 +19,7 @@ FRAMEWORK_STYLES = {
         },
         'extra_default': 'is-link'
     },
-    'bootstrap': {
+    'bootstrap5': {
         'base': 'btn btn-sm',
         'actions': {
             'View': 'btn-info',
@@ -94,7 +94,7 @@ def action_links(view, object):
     return mark_safe(" ".join(links))
 
 
-@register.inclusion_tag("nominopolitan/bulma/partial/detail.html")
+@register.inclusion_tag(f"nominopolitan/{getattr(settings, 'NOMINOPOLITAN_CSS_FRAMEWORK', 'bootstrap')}/partial/detail.html")
 def object_detail(object, view):
     """
     Display both fields and properties for an object detail view
@@ -115,11 +115,13 @@ def object_detail(object, view):
             name = prop.replace('_', ' ').title()
             yield (name, value)
 
-    return {"object": iter()}
+    return {
+        "object": iter(),
+    }
 
 
 
-@register.inclusion_tag("nominopolitan/bulma/partial/list.html")
+@register.inclusion_tag(f"nominopolitan/{getattr(settings, 'NOMINOPOLITAN_CSS_FRAMEWORK', 'bootstrap')}/partial/list.html")
 def object_list(objects, view):
     """
     Override default to set value = str()

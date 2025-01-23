@@ -387,6 +387,24 @@ files = [
 toml = ["tomli"]
 
 [[package]]
+name = "crispy-bootstrap5"
+version = "2024.10"
+description = "Bootstrap5 template pack for django-crispy-forms"
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "crispy_bootstrap5-2024.10-py3-none-any.whl", hash = "sha256:59e91dac5e45a8c954af3fbcaa6804cd5aef4402f027af2f99a352b096c4016f"},
+    {file = "crispy_bootstrap5-2024.10.tar.gz", hash = "sha256:55b442fe675dd95ad280123c7fe464f454186e90b8e5642e751f436c87627c44"},
+]
+
+[package.dependencies]
+django = ">=4.2"
+django-crispy-forms = ">=2.3"
+
+[package.extras]
+test = ["pytest", "pytest-django"]
+
+[[package]]
 name = "crispy-bulma"
 version = "0.11.0"
 description = "Bulma template pack for django-crispy-forms"
@@ -1543,4 +1561,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.12.3"
-content-hash = "d364fddd72662c2f62dd8f3638190d3bc09aaf9122509a5c709eb07e7b57095c"
+content-hash = "2146b7487a8829babc48ca9056682257dfceb4f14ff75bd8b169c79db8888c67"

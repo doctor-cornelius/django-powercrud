@@ -65,12 +65,13 @@ INSTALLED_APPS = [
     "neapolitan",
     "crispy_forms",
     "crispy_bulma",
+    "crispy_bootstrap5",
 ]
 
-NOMINOPOLITAN_CSS_FRAMEWORK = 'bulma'  # or 'bulma'
+NOMINOPOLITAN_CSS_FRAMEWORK = 'bootstrap5'  # or 'bulma'
 
-CRISPY_ALLOWED_TEMPLATE_PACKS = ("bulma",)
-CRISPY_TEMPLATE_PACK = "bulma"
+CRISPY_ALLOWED_TEMPLATE_PACKS = (NOMINOPOLITAN_CSS_FRAMEWORK,)
+CRISPY_TEMPLATE_PACK = NOMINOPOLITAN_CSS_FRAMEWORK
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",

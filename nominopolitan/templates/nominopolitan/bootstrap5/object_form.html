@@ -1,0 +1,39 @@
+{% extends base_template_path %}
+{% load nominopolitan %}
+{% load partials %}
+
+{% if use_crispy %}
+    {% include "./crispy_partials.html#load_tags" %}
+{% endif %}
+
+
+{% block content %}
+    {% partial content %}
+{% endblock %}
+
+{% partialdef content %}
+<div class="is-flex is-flex-direction-column m-2 p-2">
+    <h1 class="title is-4">{% if object %}Edit {{object_verbose_name}}{% else %}Create {{object_verbose_name}}{% endif %}
+    </h1>
+
+    <div class="box">
+        <form method="POST" {% if form.is_multipart %}enctype="multipart/form-data" {% endif %}
+            action="{% if object %}{{ update_view_url }}{% else %}{{ create_view_url }}{% endif %}"
+            {% if use_htmx and original_target %}
+            hx-post="{% if object %}{{ update_view_url }}{% else %}{{ create_view_url }}{% endif %}"
+            hx-target="{{ original_target }}"
+            hx-push-url="true"
+            {% endif %}>
+            {% csrf_token %}
+            
+            {% if use_crispy %}
+                {% include "./crispy_partials.html#crispy_form" %}
+            {% else %}
+                {{ form }}
+            {% endif %}
+
+            <button type="submit" class="button is-primary mt-4">Save</button>
+        </form>
+    </div>
+</div>
+{% endpartialdef content %}
