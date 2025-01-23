@@ -1,3 +1,9 @@
+## 0.0.24 (2025-01-23)
+
+### Fix
+
+- **(create form)**:  get bootstrap modal working
+
 ## 0.0.23 (2025-01-23)
 
 ### Build
