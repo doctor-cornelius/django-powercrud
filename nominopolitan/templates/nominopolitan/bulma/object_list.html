@@ -10,6 +10,7 @@
     <title id="header_title">{{header_title}}</title>
     <div class="is-flex is-flex-direction-column m-2 p-2">
         <h1 class="is-flex-grow-1 title is-4">{{ object_verbose_name_plural|capfirst }}</h1>
+        <p>use_modal = {{ use_modal }}</p>
         {% if create_view_url %}
             <div class="mt-2">
                 {% if use_htmx and htmx_target %}
@@ -37,15 +38,21 @@
 
     {# in-built modal with target modalContent. Partial inclusion does not seem to work when imported #}
     <div x-data="{ nominopolitanModalOpen: false }" id="nominopolitanBaseModal" 
-        {% if use_modal%}@show-nominopolitan-modal.window="nominopolitanModalOpen = true"{% endif %}>
+        {% if use_modal %}
+            x-init="console.log('Modal initialized with use_modal=true')"
+            @show-nominopolitan-modal.window="nominopolitanModalOpen = true; console.log('Modal event received')"
+        {% endif %}>
         <div class="modal" :class="{ 'is-active': nominopolitanModalOpen }">
             <div class="modal-background" @click="nominopolitanModalOpen = false"></div>
             <div class="modal-content">
                 <div class="box" style="position: relative;">
                     <button class="delete is-large" aria-label="close" @click="nominopolitanModalOpen = false"
                         style="position: absolute; top: 0.5rem; right: 0.5rem;"></button>
-                    <div id="nominopolitanModalContent" {% if use_modal %} hx-trigger="htmx:afterSwap"
-                        hx-on::after-swap="window.dispatchEvent(new Event('show-nominopolitan-modal'))" {% endif %}>
+                    <div id="nominopolitanModalContent" 
+                    {% if use_modal %} 
+                        hx-trigger="htmx:afterSwap"
+                        hx-on::after-swap="console.log('Swap complete'); window.dispatchEvent(new Event('show-nominopolitan-modal'))" 
+                    {% endif %}>
                     </div>
                 </div>
             </div>

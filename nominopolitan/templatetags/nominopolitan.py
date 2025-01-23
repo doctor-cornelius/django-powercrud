@@ -74,22 +74,18 @@ def action_links(view, object):
             button_class = action.get("button_class", styles['extra_default'])
             actions.append((url, action["text"], button_class, htmx_target, action.get("hx_post", False)))
 
-        links = [
-            (
-                f"<a href='{url}' class='{styles['base']} {button_class}' "
-                f"{f'hx-post=\'{url}\'' if hx_post else f'hx-get=\'{url}\''} "
-                f"hx-target='{target}' "
-                f"{f'hx-replace-url=\"true\" hx-push-url=\"true\"' if not view.get_use_modal() else ''}"
-                f">"
-                f"{anchor_text}</a>"
-            )
-            for url, anchor_text, button_class, target, hx_post in actions
-        ]
-    else:
-        links = [
-            f"<a href='{url}' class='{styles['base']} {button_class}'>{anchor_text}</a>"
-            for url, anchor_text, button_class, target, hx_post in actions
-        ]
+    # set up links for all actions (regular and extra)
+    links = [
+        (
+            f"<a href='{url}' class='{styles['base']} {button_class}' "
+            f"{f'hx-post=\'{url}\'' if hx_post else f'hx-get=\'{url}\''} "
+            f"hx-target='{target}' "
+            f"{f'hx-replace-url=\"true\" hx-push-url=\"true\"' if not view.get_use_modal() else ''}"
+            f">"
+            f"{anchor_text}</a>"
+        )
+        for url, anchor_text, button_class, target, hx_post in actions
+    ]
 
     return mark_safe(" ".join(links))
 

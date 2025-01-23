@@ -10,6 +10,7 @@
     <title id="header_title">{{header_title}}</title>
     <div class="d-flex flex-column m-2 p-2">
         <h1 class="flex-grow-1 fw-bold h4">{{ object_verbose_name_plural|capfirst }}</h1>
+        <p>use_modal = {{ use_modal }}</p>
         {% if create_view_url %}
         <div class="mt-2">
             {% if use_htmx and htmx_target %}
@@ -35,23 +36,21 @@
     <hr>
     <div id="crud_target"></div>
 
-    {# Bootstrap modal #}
-    <div class="modal fade" id="nominopolitanBaseModal" tabindex="-1" aria-labelledby="modalTitle" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-body position-relative">
-                    <button type="button" class="btn-close position-absolute top-0 end-0 m-2" data-bs-dismiss="modal"
-                        aria-label="Close"></button>
-                    <div id="nominopolitanModalContent" 
-                        {% if use_modal %} 
-                            hx-trigger="htmx:afterSwap"
-                            hx-on::after-swap="new bootstrap.Modal(document.getElementById('nominopolitanBaseModal')).show()" 
-                        {% endif %}>
-                    </div>
+{# Bootstrap modal #}
+<div class="modal fade" id="nominopolitanBaseModal" tabindex="-1" aria-labelledby="modalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-body position-relative">
+                <button type="button" class="btn-close position-absolute top-0 end-0 m-2" data-bs-dismiss="modal"
+                    aria-label="Close"></button>
+                <div id="nominopolitanModalContent" {% if use_modal %} hx-trigger="htmx:afterSwap"
+                    _="on htmx:afterSwap call new bootstrap.Modal(closest '.modal').show()" {% endif %}>
                 </div>
             </div>
         </div>
     </div>
+</div>
+
 
 {% endpartialdef content %}
 
