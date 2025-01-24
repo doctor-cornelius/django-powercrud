@@ -1,3 +1,13 @@
+## 0.0.25 (2025-01-24)
+
+### Fix
+
+- **(modal)**:  remove modal backdrop because it would not close after modal closed
+
+### Style
+
+- **(modal)**:  keep buttons in modal content not mixed across content and footer
+
 ## 0.0.24 (2025-01-23)
 
 ### Fix
