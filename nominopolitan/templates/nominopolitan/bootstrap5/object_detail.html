@@ -7,8 +7,9 @@
 {% endblock %}
 
 {% partialdef content %}
-    <div class="is-flex is-flex-direction-column m-2 p-2">
-        <h1 class="is-flex-grow-1 title is-4">{{ object }}</h1>
+    <div class="m-2 p-2">
+        <h1 class="title is-4">{{ object }}</h1>
         {% object_detail object view %}
+        <button type="button" class="btn btn-secondary mt-4" data-bs-dismiss="modal">Close</button>
     </div>
 {% endpartialdef content %}
