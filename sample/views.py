@@ -46,7 +46,7 @@ class AuthorCRUDView(NominopolitanMixin, CRUDView):
             "url_name": "home",  # namespace:url_pattern
             "text": "Home",
             "needs_pk": False,  # if the URL needs the object's primary key
-            "button_class": "is-primary",
+            "button_class": "btn-warning",
             "htmx_target": "content",
         },
         {
