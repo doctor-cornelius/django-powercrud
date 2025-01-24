@@ -21,7 +21,7 @@ class BookCRUDView(NominopolitanMixin, CRUDView):
     detail_fields = '__all__'
     detail_properties = '__all__'
 
-    # form_class = forms.BookForm
+    form_class = forms.BookForm
 
 
 class AuthorCRUDView(NominopolitanMixin, CRUDView):
