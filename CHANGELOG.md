@@ -1,3 +1,10 @@
+## 0.0.26 (2025-01-25)
+
+### Style
+
+- **(actions)**:  group buttons so they don't stack vertically on smaller displays
+- **(AuthorCRUDView)**:  use bootstrap instead of bulma style for extra_action
+
 ## 0.0.25 (2025-01-24)
 
 ### Fix
