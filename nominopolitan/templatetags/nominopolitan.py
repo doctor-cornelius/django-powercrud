@@ -43,7 +43,7 @@ def action_links(view, object):
 
     # Standard actions with Bulma button classes
     actions = [
-        (url, name, styles['actions'][name], default_target, False)  # View button
+        (url, name, styles['actions'][name], default_target, False, styles["modal_attrs"])  # View button
         for url, name in [
             (
                 view.safe_reverse(f"{prefix}-detail", kwargs={"pk": object.pk}),
@@ -69,12 +69,23 @@ def action_links(view, object):
             kwargs={"pk": object.pk} if action.get("needs_pk", True) else None,
         )
         if url is not None:
-            # Use action's htmx_target if specified, otherwise use default
             htmx_target = action.get("htmx_target", default_target)
             if htmx_target and not htmx_target.startswith("#"):
                 htmx_target = f"#{htmx_target}"
             button_class = action.get("button_class", styles['extra_default'])
-            actions.append((url, action["text"], button_class, htmx_target, action.get("hx_post", False)))
+            
+            # Add display_modal check
+            show_modal = action.get("display_modal", view.get_use_modal())
+            modal_attrs = styles["modal_attrs"] if show_modal else ""
+            
+            actions.append((
+                url, 
+                action["text"], 
+                button_class, 
+                htmx_target, 
+                action.get("hx_post", False),
+                modal_attrs
+            ))
 
     # set up links for all actions (regular and extra)
     links = [
@@ -84,12 +95,13 @@ def action_links(view, object):
             f"{f'hx-post=\'{url}\'' if hx_post else f'hx-get=\'{url}\''} "
             f"hx-target='{target}' "
             f"{f'hx-replace-url=\"true\" hx-push-url=\"true\"' if not view.get_use_modal() else ''}"
-            f'{f" {styles["modal_attrs"]}" if view.get_use_modal() else ""}'
+            f"{modal_attrs}"  # Use the modal_attrs from the tuple
             f">{anchor_text}</a>"
-            for url, anchor_text, button_class, target, hx_post in actions
+            for url, anchor_text, button_class, target, hx_post, modal_attrs in actions
         ]) + 
         "</div>"
     ]
+
 
     return mark_safe(" ".join(links))
 

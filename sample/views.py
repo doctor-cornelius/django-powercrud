@@ -48,6 +48,7 @@ class AuthorCRUDView(NominopolitanMixin, CRUDView):
             "needs_pk": False,  # if the URL needs the object's primary key
             "button_class": "btn-warning",
             "htmx_target": "content",
+            "display_modal": False,
         },
         {
             "url_name": "sample:author-detail",
