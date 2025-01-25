@@ -1,3 +1,9 @@
+## 0.0.27 (2025-01-25)
+
+### Style
+
+- **(modal)**:  include modal backdrop and js code in object_list.html to remove backdrop on submit
+
 ## 0.0.26 (2025-01-25)
 
 ### Style
