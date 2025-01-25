@@ -41,7 +41,7 @@
 <div class="modal fade" id="nominopolitanBaseModal" 
     tabindex="-1" style="z-index: 1055"
     aria-labelledby="modalTitle" aria-hidden="true"
-    data-bs-backdrop="false">
+    data-bs-backdrop="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content" style="z-index: 1056">
             <div class="modal-header bg-primary text-white">
@@ -57,6 +57,19 @@
     </div>
 </div>
 
+<script>
+    document.addEventListener('submit', function (event) {
+        if (event.target.closest('#nominopolitanBaseModal')) {
+            const modalElement = document.getElementById('nominopolitanBaseModal');
+            const modal = bootstrap.Modal.getInstance(modalElement);
+            console.log("closeModal event triggered");
+            if (modal) {
+                console.log("found modal");
+                modal.hide();
+            }
+        }
+    });
+</script>
 
 {% endpartialdef content %}
 

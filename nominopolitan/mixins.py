@@ -366,11 +366,13 @@ class NominopolitanMixin:
                 self.request.session[self.get_session_key()] = f"#{self.request.htmx.target}"
                 # context["original_target"] = f"#{self.request.htmx.target}"
                 context["original_target"] = self.get_original_target()
-            return render(
+            response = render(
                 request=self.request,
                 template_name=f"{template_name}#content",
                 context=context,
             )
+
+            return response
         else:
             return TemplateResponse(
                 request=self.request, template=template_name, context=context
