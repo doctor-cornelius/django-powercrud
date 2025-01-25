@@ -154,6 +154,9 @@ class ProjectCRUDView(NominopolitanMixin, CRUDView):
                 # (if use_htmx is True)
                 # NB if you have use_modal = True and do NOT specify htmx_target, then response
                 # will be directed to the modal 
+            "display_modal": False, # when use_modal is True but for this action you do not
+                # want to use the modal for whatever is returned from the view, set this to False
+                # the default if empty is True
         },
     ]
 ```
