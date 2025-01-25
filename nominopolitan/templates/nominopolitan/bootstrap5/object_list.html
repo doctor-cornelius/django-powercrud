@@ -62,9 +62,7 @@
         if (event.target.closest('#nominopolitanBaseModal')) {
             const modalElement = document.getElementById('nominopolitanBaseModal');
             const modal = bootstrap.Modal.getInstance(modalElement);
-            console.log("closeModal event triggered");
             if (modal) {
-                console.log("found modal");
                 modal.hide();
             }
         }
