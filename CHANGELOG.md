@@ -1,3 +1,9 @@
+## 0.0.28 (2025-01-25)
+
+### Feature
+
+- **(modal): allow extra_actions to specify display_modal**:  False
+
 ## 0.0.27 (2025-01-25)
 
 ### Style
