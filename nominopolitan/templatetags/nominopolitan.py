@@ -78,16 +78,17 @@ def action_links(view, object):
 
     # set up links for all actions (regular and extra)
     links = [
-        (
+        f"<div class='btn-group btn-group-sm'>" + 
+        " ".join([
             f"<a href='{url}' class='{styles['base']} {button_class}' "
             f"{f'hx-post=\'{url}\'' if hx_post else f'hx-get=\'{url}\''} "
             f"hx-target='{target}' "
             f"{f'hx-replace-url=\"true\" hx-push-url=\"true\"' if not view.get_use_modal() else ''}"
             f'{f" {styles["modal_attrs"]}" if view.get_use_modal() else ""}'
-            f">"
-            f"{anchor_text}</a>"
-        )
-        for url, anchor_text, button_class, target, hx_post in actions
+            f">{anchor_text}</a>"
+            for url, anchor_text, button_class, target, hx_post in actions
+        ]) + 
+        "</div>"
     ]
 
     return mark_safe(" ".join(links))
