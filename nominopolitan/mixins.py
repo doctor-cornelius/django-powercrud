@@ -371,7 +371,7 @@ class NominopolitanMixin:
                 template_name=f"{template_name}#content",
                 context=context,
             )
-
+            response['HX-Trigger'] = 'messagesChanged' # to trigger showing messages
             return response
         else:
             return TemplateResponse(
