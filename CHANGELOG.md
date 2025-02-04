@@ -1,3 +1,13 @@
+## 0.0.29 (2025-02-04)
+
+### Documentation
+
+- **(README)**:  update with details of display_modal for extra_actions
+
+### Feature
+
+- **(render_to_response)**:  add hx-trigger messagesChanged to allow trigger of message display in base.html
+
 ## 0.0.28 (2025-01-25)
 
 ### Feature
