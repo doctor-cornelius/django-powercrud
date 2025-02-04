@@ -4,29 +4,35 @@ This is an opinionated extension package for the excellent [`neapolitan`](https:
 
 **Namespacing**
 - Namespaced URL handling `namespace="my_app_name"`
+
 **Templates**
 - Allow specification of `base_template_path` (to your `base.html` template)
 - Allow override of all `nominopolitan` templates by specifying `templates_path`
 - Management command `nm_mktemplate` to copy required `nominopolitan` template (analagous to `neapolitan`'s `mktemplate`)
+
 **Display**
 - Display related field name (using `str()`) in lists and details (instead of numeric id)
 - Header title context for partial updates (so the title is updated without a page reload)
+
 **Extended `fields` and `properties` attributes**
 - `fields=<'__all__' | [..]>` to specify which fields to include in list view
 - `properties=<'__all__' | [..]>` to specify which properties to include in list view
 - `detail_fields` and `detail_properties` to specify which to include in detail view
 - Support exclusions via `exclude`, `exclude_properties`, `detail_exclude`, `detail_exclude_properties`
 - Support for `extra_actions` to add additional actions to list views
+
 **Forms**
 - Separate create form if `create_form_class` specified (probably not worth having)
 - Support for `crispy-forms` if installed in project
     - make sure you have `crispy_bulma` or `crispy_bootstrap5` also installed if you want
 - if `form_class` is not specified, then non-editable fields are excluded from forms
+
 **`htmx` and modals**
 - Support for rendering templates using `htmx`
 - Support for modal display of CRUD view actions (requires `htmx` -- and Alpine for bulma)
 - htmx supported pagination (requires `use_htmx = True`) for reactive loading
 - Support to specify `hx_trigger` and set `response['HX-Trigger']` for every response
+
 **Styled Templates**
 - Supports `bootstrap5` (default) or `bulma`
 - In `settings.py` set `NOMINOPOLITAN_CSS_FRAMEWORK = 'bootstrap5'  # or 'bulma'`
