@@ -26,6 +26,7 @@ This is an opinionated extension package for the excellent [`neapolitan`](https:
 - Support for rendering templates using `htmx`
 - Support for modal display of CRUD view actions (requires `htmx` -- and Alpine for bulma)
 - htmx supported pagination (requires `use_htmx = True`) for reactive loading
+- Support to specify `hx_trigger` and set `response['HX-Trigger']` for every response
 **Styled Templates**
 - Supports `bootstrap5` (default) or `bulma`
 - In `settings.py` set `NOMINOPOLITAN_CSS_FRAMEWORK = 'bootstrap5'  # or 'bulma'`
@@ -134,6 +135,19 @@ class ProjectCRUDView(NominopolitanMixin, CRUDView):
         # Requires:
             # htmx installed in your base template
             # django_htmx installed and configured in your settings
+
+    hx_trigger = 'changedMessages'  # Single event trigger (strings, numbers converted to strings)
+        # Or trigger multiple events with a dict:
+            # hx_trigger = {
+            #     'changedMessages': None,    # Event without data
+            #     'showAlert': 'Success!',    # Event with string data
+            #     'updateCount': 42           # Event with numeric data
+            # }
+        # hx_trigger finds its way into every response as:
+            # request['HX-Trigger'] = self.get_hx_trigger() in self.render_to_response()
+        # valid types are (str, int, float, dict)
+            # but dict must be of form {k:v, k:v, ...} where k is a string and v can be any valid type
+
 
     use_modal = True #If you want to use the modal specified in object_list.html for all action links.
         # This will target the modal (id="modalContent") specified in object_list.html

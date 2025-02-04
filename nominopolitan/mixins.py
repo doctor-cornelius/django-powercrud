@@ -8,6 +8,7 @@ from django.template.response import TemplateResponse
 from django.conf import settings
 from django.db.models.fields.reverse_related import ManyToOneRel
 
+import json
 import logging
 log = logging.getLogger("nominopolitan")
 
@@ -33,6 +34,8 @@ class NominopolitanMixin:
     detail_properties_exclude = [] # properties to exclude from the detail view
 
     use_htmx = None
+    hx_trigger = None
+
     use_modal = None
 
     def _get_all_fields(self):
@@ -153,6 +156,21 @@ class NominopolitanMixin:
     def get_use_modal(self):
         # must be using htmx for this to work
         return self.use_modal is True and self.get_use_htmx()
+    
+    def get_hx_trigger(self):
+        if not self.get_use_htmx() or not self.hx_trigger:
+            return None
+            
+        if isinstance(self.hx_trigger, (str, int, float)):
+            return str(self.hx_trigger)
+        elif isinstance(self.hx_trigger, dict):
+            # Validate all keys are strings
+            if not all(isinstance(k, str) for k in self.hx_trigger.keys()):
+                raise TypeError("HX-Trigger dict keys must be strings")
+            return json.dumps(self.hx_trigger)
+        else:
+            raise TypeError("hx_trigger must be either a string or dict with string keys")
+
 
     def get_htmx_target(self):
 
@@ -371,7 +389,8 @@ class NominopolitanMixin:
                 template_name=f"{template_name}#content",
                 context=context,
             )
-            response['HX-Trigger'] = 'messagesChanged' # to trigger showing messages
+            # Add a HX-Trigger header to refresh the target element
+            response['HX-Trigger'] = self.get_hx_trigger()
             return response
         else:
             return TemplateResponse(
