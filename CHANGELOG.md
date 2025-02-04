@@ -1,3 +1,9 @@
+## 0.0.30 (2025-02-04)
+
+### Feature
+
+- **(Nominopolitan)**:  support hx_trigger as value to pass as response['HX-Trigger'] with every response
+
 ## 0.0.29 (2025-02-04)
 
 ### Documentation
