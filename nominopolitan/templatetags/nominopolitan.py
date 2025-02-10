@@ -92,6 +92,7 @@ def action_links(view, object):
             ))
 
     # set up links for all actions (regular and extra)
+    # note for future - could simplify by just conditionally adding hx-disable if not use_htmx
     links = [
         f"<div class='btn-group btn-group-sm'>" +
         " ".join([
