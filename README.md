@@ -156,12 +156,17 @@ class ProjectCRUDView(NominopolitanMixin, CRUDView):
 
 
     use_modal = True #If you want to use the modal specified in object_list.html for all action links.
-        # This will target the modal (id="modalContent") specified in object_list.html
+        # This will target the modal (id="nominopolitanModalContent") specified in object_list.html
         # Requires:
             # use_htmx = True
             # Alpine installed in your base template
             # htmx installed in your base template
             # django_htmx installed and configured in your settings
+
+    modal_target = "myCustomModalContent" # Allows override of the default modal target
+        # which is #nominopolitanModalContent. Useful if for example
+        # the project has a modal with a different id available
+        # eg in the base template. This is where the modal content will be rendered.
 
     extra_actions = [ # adds additional actions for each record in the list
         {

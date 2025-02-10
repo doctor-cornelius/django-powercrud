@@ -37,6 +37,10 @@ class NominopolitanMixin:
     hx_trigger = None
 
     use_modal = None
+    modal_target = None # Allows override of the default modal target
+        # which is #nominopolitanModalContent. Useful if for example
+        # the project has a modal with a different id available
+        # eg in the base template.
 
     def _get_all_fields(self):
         fields = [field.name for field in self.model._meta.get_fields()]
@@ -157,6 +161,11 @@ class NominopolitanMixin:
         # must be using htmx for this to work
         return self.use_modal is True and self.get_use_htmx()
     
+    def get_modal_target(self):
+        # use default if modal_target not set
+        modal_target = self.modal_target or 'nominopolitanModalContent'
+        return f'#{modal_target}'
+    
     def get_hx_trigger(self):
         if not self.get_use_htmx() or not self.hx_trigger:
             return None
@@ -178,7 +187,7 @@ class NominopolitanMixin:
         if not self.get_use_htmx():
             htmx_target = None
         elif self.use_modal:
-            htmx_target = "#nominopolitanModalContent"
+            htmx_target = self.get_modal_target()
         elif hasattr(self.request, 'htmx') and self.request.htmx.target:
             # return the target of the original list request
             htmx_target = f"#{self.request.htmx.target}"
