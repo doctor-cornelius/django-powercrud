@@ -1,3 +1,13 @@
+## 0.0.33 (2025-02-11)
+
+### Documentation
+
+- **(action_links)**:  comment future option to use hx-disable for simplified logic
+
+### Feature
+
+- **(modal_id)**:  allow override of default modal_id 'nominopolitanBaseModal'
+
 ## 0.0.32 (2025-02-10)
 
 ### Fix
