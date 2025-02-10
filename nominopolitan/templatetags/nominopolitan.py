@@ -9,34 +9,34 @@ log = logging.getLogger("nominopolitan")
 
 register = template.Library()
 
-FRAMEWORK_STYLES = {
-    'bulma': {
-        'base': 'button is-small',
-        'actions': {
-            'View': 'is-info',
-            'Edit': 'is-link',
-            'Delete': 'is-danger'
-        },
-        'extra_default': 'is-link',
-        'modal_attrs': '',  # Bulma uses Alpine.js so no additional attributes needed
-    },
-    'bootstrap5': {
-        'base': 'btn btn-sm',
-        'actions': {
-            'View': 'btn-info',
-            'Edit': 'btn-primary',
-            'Delete': 'btn-danger'
-        },
-        'extra_default': 'btn-primary',
-        'modal_attrs': 'data-bs-toggle="modal" data-bs-target="#nominopolitanBaseModal"',
-    }
-}
-
-
-framework = getattr(settings, 'NOMINOPOLITAN_CSS_FRAMEWORK', 'bulma')
-styles = FRAMEWORK_STYLES[framework]
-
 def action_links(view, object):
+
+    FRAMEWORK_STYLES = {
+        'bulma': {
+            'base': 'button is-small',
+            'actions': {
+                'View': 'is-info',
+                'Edit': 'is-link',
+                'Delete': 'is-danger'
+            },
+            'extra_default': 'is-link',
+            'modal_attrs': '',  # Bulma uses Alpine.js so no additional attributes needed
+        },
+        'bootstrap5': {
+            'base': 'btn btn-sm',
+            'actions': {
+                'View': 'btn-info',
+                'Edit': 'btn-primary',
+                'Delete': 'btn-danger'
+            },
+            'extra_default': 'btn-primary',
+            'modal_attrs': f'data-bs-toggle="modal" data-bs-target="{view.get_modal_id()}"',
+        }
+    }
+
+    framework = getattr(settings, 'NOMINOPOLITAN_CSS_FRAMEWORK', 'bulma')
+    styles = FRAMEWORK_STYLES[framework]
+
     prefix = view.get_prefix()
     # below takes account of use_htmx, use_modal
     use_htmx = view.get_use_htmx()

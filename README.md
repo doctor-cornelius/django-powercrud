@@ -163,6 +163,8 @@ class ProjectCRUDView(NominopolitanMixin, CRUDView):
             # htmx installed in your base template
             # django_htmx installed and configured in your settings
 
+    modal_id = "myCustomModalId" # Allows override of the default modal id "nominopolitanBaseModal"
+
     modal_target = "myCustomModalContent" # Allows override of the default modal target
         # which is #nominopolitanModalContent. Useful if for example
         # the project has a modal with a different id available

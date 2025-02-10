@@ -37,6 +37,7 @@ class NominopolitanMixin:
     hx_trigger = None
 
     use_modal = None
+    modal_id = None # Allows override of the default modal id (#nominopolitanModalContent)
     modal_target = None # Allows override of the default modal target
         # which is #nominopolitanModalContent. Useful if for example
         # the project has a modal with a different id available
@@ -161,6 +162,11 @@ class NominopolitanMixin:
         # must be using htmx for this to work
         result = self.use_modal is True and self.get_use_htmx()
         return result
+    
+    def get_modal_id(self):
+        # use default if modal_id not set
+        modal_id = self.modal_id or 'nominopolitanBaseModal'
+        return f'#{modal_id}'
     
     def get_modal_target(self):
         # use default if modal_target not set
