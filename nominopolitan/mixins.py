@@ -159,7 +159,8 @@ class NominopolitanMixin:
 
     def get_use_modal(self):
         # must be using htmx for this to work
-        return self.use_modal is True and self.get_use_htmx()
+        result = self.use_modal is True and self.get_use_htmx()
+        return result
     
     def get_modal_target(self):
         # use default if modal_target not set
@@ -192,7 +193,7 @@ class NominopolitanMixin:
             # return the target of the original list request
             htmx_target = f"#{self.request.htmx.target}"
         else:
-            htmx_target = None  # Default target for non-HTMX requests
+            htmx_target = "#content"  # Default target for non-HTMX requests
 
         return htmx_target
 

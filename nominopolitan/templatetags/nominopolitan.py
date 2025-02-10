@@ -39,6 +39,10 @@ styles = FRAMEWORK_STYLES[framework]
 def action_links(view, object):
     prefix = view.get_prefix()
     # below takes account of use_htmx, use_modal
+    use_htmx = view.get_use_htmx()
+    use_modal = view.get_use_modal()
+    log.debug(f"use_htmx: {use_htmx}, use_modal: {use_modal}")
+
     default_target = view.get_htmx_target() # this will be prepended with a #
 
     # Standard actions with Bulma button classes
@@ -76,7 +80,7 @@ def action_links(view, object):
             
             # Add display_modal check
             show_modal = action.get("display_modal", view.get_use_modal())
-            modal_attrs = styles["modal_attrs"] if show_modal else ""
+            modal_attrs = styles["modal_attrs"] if show_modal else " "
             
             actions.append((
                 url, 
@@ -89,19 +93,20 @@ def action_links(view, object):
 
     # set up links for all actions (regular and extra)
     links = [
-        f"<div class='btn-group btn-group-sm'>" + 
+        f"<div class='btn-group btn-group-sm'>" +
         " ".join([
             f"<a href='{url}' class='{styles['base']} {button_class}' "
-            f"{f'hx-post=\'{url}\'' if hx_post else f'hx-get=\'{url}\''} "
-            f"hx-target='{target}' "
-            f"{f'hx-replace-url=\"true\" hx-push-url=\"true\"' if not view.get_use_modal() else ''}"
-            f"{modal_attrs}"  # Use the modal_attrs from the tuple
-            f">{anchor_text}</a>"
+            + (f"hx-{'post' if hx_post else 'get'}='{url}' " if use_htmx else "")
+            + (f"hx-target='{target}' " if use_htmx else "")
+            + (f"hx-replace-url='true' hx-push-url='true' " if use_htmx and not view.get_use_modal() else "")
+            + (f"{modal_attrs} " if use_modal else "")
+            + f">{anchor_text}</a>"
             for url, anchor_text, button_class, target, hx_post, modal_attrs in actions
-        ]) + 
+        ]) +
         "</div>"
     ]
 
+    log.debug(f"links: {links}")
 
     return mark_safe(" ".join(links))
 

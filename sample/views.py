@@ -29,7 +29,7 @@ class AuthorCRUDView(NominopolitanMixin, CRUDView):
     namespace = "sample"
     base_template_path = "django_nominopolitan/base.html"
     use_htmx = True
-    use_modal = True
+    use_modal = False
 
     paginate_by = 5
     # fields = ["name","bio","birth_date",]
