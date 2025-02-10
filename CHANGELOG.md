@@ -1,3 +1,13 @@
+## 0.0.31 (2025-02-10)
+
+### Feature
+
+- **(modal_target)**:  allow custom modal_target
+
+### Style
+
+- **(README)**:  format sub-headings in README
+
 ## 0.0.30 (2025-02-04)
 
 ### Feature
