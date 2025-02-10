@@ -1,3 +1,9 @@
+## 0.0.32 (2025-02-10)
+
+### Fix
+
+- **(use_htmx)**:  make logic work for use_htmx and/or use_modal being False
+
 ## 0.0.31 (2025-02-10)
 
 ### Feature
