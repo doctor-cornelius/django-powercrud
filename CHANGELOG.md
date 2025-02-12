@@ -1,3 +1,9 @@
+## 0.0.35 (2025-02-12)
+
+### Style
+
+- **(list.html)**:  add actions header and make table only as wide as needed
+
 ## 0.0.34 (2025-02-12)
 
 ### Style
