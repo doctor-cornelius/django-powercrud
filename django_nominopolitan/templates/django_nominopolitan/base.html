@@ -12,7 +12,7 @@
     <script defer src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
     <!-- bulma -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.1/css/bulma.min.css">
+    <!-- <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.1/css/bulma.min.css"> -->
 
     <!--Install htmx-->
     <script src="https://unpkg.com/htmx.org@2.0.3"></script>
@@ -34,21 +34,21 @@
 
     <div class="container m-5 p-5">
         <p mb-2>These buttons being served from base.html</p>
-        <a class="button is-primary" href="{% url 'home' %}">
+        <a class="btn btn-primary" href="{% url 'home' %}">
             Home (Reload)
         </a>
-        <button class="button is-link" hx-get="{% url 'sample:book-list' %}" hx-target="#content" hx-swap="innerHTML"
+        <button class="btn btn-secondary" hx-get="{% url 'sample:book-list' %}" hx-target="#content" hx-swap="innerHTML"
             hx-replace-url="true" hx-push-url="true">
             Book List (htmx)
         </button>
-        <a class="button is-info" href="{% url 'sample:book-list' %}">
+        <a class="btn btn-info" href="{% url 'sample:book-list' %}">
             Book List (reload)
         </a>
-        <button class="button is-link" hx-get="{% url 'sample:author-list' %}" hx-target="#content" hx-swap="innerHTML"
+        <button class="btn btn-secondary" hx-get="{% url 'sample:author-list' %}" hx-target="#content" hx-swap="innerHTML"
             hx-replace-url="true" hx-push-url="true">
             Author List (htmx)
         </button>
-        <a class="button is-info" href="{% url 'sample:author-list' %}">
+        <a class="btn btn-info" href="{% url 'sample:author-list' %}">
             Author List (reload)
         </a>
         <div id="content" >

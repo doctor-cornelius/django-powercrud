@@ -41,7 +41,6 @@ def action_links(view, object):
     # below takes account of use_htmx, use_modal
     use_htmx = view.get_use_htmx()
     use_modal = view.get_use_modal()
-    log.debug(f"use_htmx: {use_htmx}, use_modal: {use_modal}")
 
     default_target = view.get_htmx_target() # this will be prepended with a #
 
@@ -106,8 +105,6 @@ def action_links(view, object):
         ]) +
         "</div>"
     ]
-
-    log.debug(f"links: {links}")
 
     return mark_safe(" ".join(links))
 
