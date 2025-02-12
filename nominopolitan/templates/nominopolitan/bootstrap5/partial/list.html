@@ -1,13 +1,13 @@
 <div class="table-responsive mt-4">
     <div class="table-responsive">
-        <table class="table table-sm table-striped table-hover">
+        <table class="table table-sm table-striped table-hover w-auto">
             <thead>
                 <tr>
                     {% for header in headers %}
                     <th class="text-start bg-primary text-white">{{ header|capfirst }}</th>
                     {% endfor %}
-                    <th class="text-end">
-                        <span class="visually-hidden">Actions</span>
+                    <th class="text-center bg-secondary text-white">
+                        <span >Actions</span>
                     </th>
                 </tr>
             </thead>
