@@ -1,3 +1,9 @@
+## 0.0.34 (2025-02-12)
+
+### Style
+
+- **(list.html)**:  style to more compact tables
+
 ## 0.0.33 (2025-02-11)
 
 ### Documentation
