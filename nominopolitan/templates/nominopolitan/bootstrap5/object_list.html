@@ -15,18 +15,22 @@
     <div class="d-flex flex-column m-2 p-2">
         <h1 class="flex-grow-1 fw-bold h4">{{ object_verbose_name_plural|capfirst }}</h1>
 
-
         {% if filterset %}
         <div class="mb-4">
             <form method="get" class="d-flex align-items-center row g-3">
                 <div class="col-auto">
                     <button type="submit" class="btn btn-primary">Filter</button>
                 </div>
-                {% for field in filterset.form %}
-                <div class="col-auto">
-                    {{ field.label_tag }} {{ field }}
-                </div>
-                {% endfor %}
+
+                    {% for field in filterset.form %}
+                        <div class="col-auto">
+                        {% if use_crispy %}
+                            {{ field|as_crispy_field }}
+                        {% else %}
+                            {{ field.label_tag }} {{ field }}
+                        {% endif %}
+                        </div>
+                    {% endfor %}
             </form>
         </div>
         {% endif %}
