@@ -17,20 +17,18 @@
 
         {% if filterset %}
         <div class="mb-4">
-            <form method="get" class="d-flex align-items-center row g-3">
-                <div class="col-auto">
-                    <button type="submit" class="btn btn-primary">Filter</button>
-                </div>
-
-                    {% for field in filterset.form %}
-                        <div class="col-auto">
-                        {% if use_crispy %}
-                            {{ field|as_crispy_field }}
-                        {% else %}
-                            {{ field.label_tag }} {{ field }}
-                        {% endif %}
-                        </div>
-                    {% endfor %}
+            <form method="get" class="row g-3" 
+                hx-get="" hx-trigger="change" hx-target="#content"
+                >
+                {% for field in filterset.form %}
+                    <div class="col-auto">
+                    {% if use_crispy %}
+                        {{ field|as_crispy_field }}
+                    {% else %}
+                        {{ field.label_tag }} {{ field }}
+                    {% endif %}
+                    </div>
+                {% endfor %}
             </form>
         </div>
         {% endif %}
