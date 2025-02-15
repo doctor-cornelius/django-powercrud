@@ -17,9 +17,7 @@
 
         {% if filterset %}
         <div class="mb-4">
-            <form method="get" class="row g-3" 
-                
-                >
+            <form method="get" class="row g-3">
                 {% for field in filterset.form %}
                     <div class="col-auto">
                     {% if use_crispy %}

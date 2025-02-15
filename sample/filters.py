@@ -1,5 +1,5 @@
 from django import forms
-from django_filters import FilterSet, CharFilter
+from django_filters import FilterSet, CharFilter, DateFilter
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Field, Row, Column
 
@@ -9,29 +9,40 @@ from crispy_forms import bootstrap, layout
 from .models import Book
 
 class BookFilterSet(FilterSet):
-    title = CharFilter(lookup_expr='icontains') 
+    title = CharFilter(lookup_expr='icontains')
+    published_date = DateFilter(
+        widget=forms.DateInput(attrs={'type': 'date'})
+    )
     class Meta:
         model = Book
         fields = ['author', 'title', 'published_date']
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        print("DEBUG: Fields after super:", hasattr(self, 'fields'))
-        
-        # Now we can access self.fields
+
+        hx_get = ''
+        hx_target = '#content'
+
+        HTMX_ATTRS = {
+            'hx-get': '',
+            'hx-target': '#content'
+        }
+
+        FIELD_TRIGGERS = {
+            forms.DateInput: 'change',
+            forms.TextInput: 'keyup changed delay:300ms',
+            'default': 'change'
+        }
+
+        def _update_field_attrs(self, field, trigger):
+            attrs = {**HTMX_ATTRS, 'hx-trigger': trigger}
+            field.widget.attrs.update(attrs)
+
         for field in self.form.fields.values():
-            if isinstance(field.widget, forms.TextInput):
-                field.widget.attrs.update({
-                    'hx-get': '',
-                    'hx-trigger': 'keyup changed delay:300ms',
-                    'hx-target': '#content'
-                })
-            else:
-                field.widget.attrs.update({
-                    'hx-get': '',
-                    'hx-trigger': 'change',
-                    'hx-target': '#content'
-                })
+            widget_class = type(field.widget)
+            trigger = FIELD_TRIGGERS.get(widget_class, FIELD_TRIGGERS['default'])
+            _update_field_attrs(self, field, trigger)
+
 
         # Set up crispy form helper after field modifications
         self.helper = FormHelper()
