@@ -1,4 +1,10 @@
-<div class="table-responsive mt-4">
+{% load partials %}
+
+{% if use_crispy %}
+    {% load crispy_forms_tags %}
+{% endif %}
+
+<div class="table-responsive">
     <div class="table-responsive">
         <table class="table table-sm table-striped table-hover w-auto">
             <thead>

@@ -6,6 +6,7 @@ from nominopolitan.mixins import NominopolitanMixin
 from django import forms
 from . import models
 from . import forms
+from . import filters
 
 class BookCRUDView(NominopolitanMixin, CRUDView):
     model = models.Book
@@ -20,6 +21,9 @@ class BookCRUDView(NominopolitanMixin, CRUDView):
     # properties = '__all__'
     detail_fields = '__all__'
     detail_properties = '__all__'
+
+    filterset_fields = ['author', 'title',]
+    # filterset_class = filters.BookFilterSet
 
     form_class = forms.BookForm
 

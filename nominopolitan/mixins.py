@@ -43,6 +43,43 @@ class NominopolitanMixin:
         # the project has a modal with a different id available
         # eg in the base template.
 
+
+    from django.http import Http404
+    def list(self, request, *args, **kwargs):
+        """GET handler for the list view."""
+
+        queryset = self.get_queryset()
+        filterset = self.get_filterset(queryset)
+        if filterset is not None:
+            queryset = filterset.qs
+
+        if not self.allow_empty and not queryset.exists():
+            raise Http404
+
+        paginate_by = self.get_paginate_by()
+        if paginate_by is None:
+            # Unpaginated response
+            self.object_list = queryset
+            context = self.get_context_data(
+                test_variable="Testing",
+                page_obj=None,
+                is_paginated=False,
+                paginator=None,
+                filterset=filterset,
+            )
+        else:
+            # Paginated response
+            page = self.paginate_queryset(queryset, paginate_by)
+            self.object_list = page.object_list
+            context = self.get_context_data(
+                test_variable="Testing",
+                page_obj=page,
+                is_paginated=page.has_other_pages(),
+                paginator=page.paginator,
+                filterset=filterset,
+            )
+
+        return self.render_to_response(context)
     def _get_all_fields(self):
         fields = [field.name for field in self.model._meta.get_fields()]
             
@@ -52,6 +89,7 @@ class NominopolitanMixin:
             if not isinstance(field, ManyToOneRel)
         ]
         return fields
+
     
     def _get_all_properties(self):
         return [name for name in dir(self.model)

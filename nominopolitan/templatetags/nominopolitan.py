@@ -136,8 +136,11 @@ def object_detail(object, view):
 
 
 
-@register.inclusion_tag(f"nominopolitan/{getattr(settings, 'NOMINOPOLITAN_CSS_FRAMEWORK', 'bootstrap')}/partial/list.html")
-def object_list(objects, view):
+@register.inclusion_tag(
+        f"nominopolitan/{getattr(settings, 'NOMINOPOLITAN_CSS_FRAMEWORK', 'bootstrap')}/partial/list.html", 
+        takes_context=True
+        )
+def object_list(context, objects, view):
     """
     Override default to set value = str()
     instead of value_to_string(). This allows related fields
