@@ -1,3 +1,13 @@
+## 0.0.36 (2025-02-15)
+
+### Feature
+
+- **(object_list.html)**:  add code to display filterset if exists
+
+### Style
+
+- **(object_list.html)**:  move filter above create button
+
 ## 0.0.35 (2025-02-12)
 
 ### Style
