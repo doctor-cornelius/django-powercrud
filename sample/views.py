@@ -22,8 +22,8 @@ class BookCRUDView(NominopolitanMixin, CRUDView):
     detail_fields = '__all__'
     detail_properties = '__all__'
 
-    filterset_fields = ['author', 'title',]
-    # filterset_class = filters.BookFilterSet
+    # filterset_fields = ['author', 'title',]
+    filterset_class = filters.BookFilterSet
 
     form_class = forms.BookForm
 
