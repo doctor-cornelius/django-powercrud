@@ -45,8 +45,8 @@ class AuthorCRUDView(NominopolitanMixin, CRUDView):
     detail_fields = '__fields__'
     detail_properties = '__properties__'
 
-    # filterset_class = filters.AuthorFilterSet
-    filterset_fields = ['name', 'birth_date']
+    filterset_class = filters.AuthorFilterSet
+    # filterset_fields = ['name', 'birth_date']
 
     form_class = forms.AuthorForm
     extra_actions = [
