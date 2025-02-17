@@ -81,6 +81,38 @@ class NominopolitanMixin:
         # the project has a modal with a different id available
         # eg in the base template.
 
+    def get_framework_styles(self):
+        return {
+            'bulma': {
+                'base': 'button is-small',
+                'actions': {
+                    'View': 'is-info',
+                    'Edit': 'is-link',
+                    'Delete': 'is-danger'
+                },
+                'extra_default': 'is-link',
+                'modal_attrs': '',
+                'filter_attrs': {
+                    'class': 'input is-small',
+                    'style': 'font-size: 0.875rem;'
+                }
+            },
+            'bootstrap5': {
+                'base': 'btn btn-sm',
+                'actions': {
+                    'View': 'btn-info',
+                    'Edit': 'btn-primary',
+                    'Delete': 'btn-danger'
+                },
+                'extra_default': 'btn-primary',
+                'modal_attrs': f'data-bs-toggle="modal" data-bs-target="{self.get_modal_id()}"',
+                'filter_attrs': {
+                    'class': 'form-control-xs small py-1',
+                    'style': 'font-size: 0.875rem;'
+                }
+            }
+        }
+
 
     def list(self, request, *args, **kwargs):
         """GET handler for the list view."""
@@ -128,10 +160,8 @@ class NominopolitanMixin:
             use_crispy = self.get_use_crispy()
 
             class DynamicFilterSet(HTMXFilterSetMixin, FilterSet):
-                BASE_ATTRS = {
-                    'class': 'form-control-xs small py-1',
-                    'style': 'font-size: 0.875rem;'
-                }
+                framework = getattr(settings, 'NOMINOPOLITAN_CSS_FRAMEWORK', 'bulma')
+                BASE_ATTRS = self.get_framework_styles()[framework]['filter_attrs']
 
                 # Define filters here, before Meta
                 for field_name in filterset_fields:
