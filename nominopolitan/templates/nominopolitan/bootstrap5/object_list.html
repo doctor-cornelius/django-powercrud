@@ -10,45 +10,49 @@
 {% partial content %}
 {% endblock %}
 
+
 {% partialdef content %}
     <title id="header_title">{{header_title}}</title>
     <div class="d-flex flex-column m-2 p-2">
         <h1 class="flex-grow-1 fw-bold h4">{{ object_verbose_name_plural|capfirst }}</h1>
-
+    
+        <div class="d-flex gap-2 my-2">
+            {% if not use_htmx %}
+                <button onclick="document.getElementById('filter-form').submit()" class="btn btn-primary">Filter</button>
+            {% endif %}
+            {% if filterset %}
+            <a href="." class="btn btn-outline-secondary">Reset Filters</a>
+            {% endif %}
+            {% if create_view_url %}
+                {% if use_htmx and htmx_target %}
+                <a class="btn btn-primary" href="{{ create_view_url }}" hx-get="{{ create_view_url }}"
+                    hx-target="{{htmx_target}}" {% if use_modal %}data-bs-toggle="modal"
+                    data-bs-target="#nominopolitanBaseModal" {% endif %}>
+                    Create {{ object_verbose_name }}
+                </a>
+                {% else %}
+                <a class="btn btn-primary" href="{{ create_view_url }}">
+                    Create {{ object_verbose_name }}
+                </a>
+                {% endif %}
+            {% endif %}
+        </div>
+    
         {% if filterset %}
         <div>
-            <form id="filter-form" method="get" class="row g-3"
-                hx-target="#content"
-            >
+            <form id="filter-form" method="get" class="row g-3" hx-target="#content">
                 {% for field in filterset.form %}
-                    <div class="col-auto">
+                <div class="col-auto">
                     {% if use_crispy %}
                         {{ field|as_crispy_field }}
                     {% else %}
                         {{ field.label_tag }} {{ field }}
                     {% endif %}
-                    </div>
+                </div>
                 {% endfor %}
             </form>
         </div>
         {% endif %}
-
-        {% if create_view_url %}
-        <div class="my-2">
-            {% if use_htmx and htmx_target %}
-            <a class="btn btn-primary" href="{{ create_view_url }}" hx-get="{{ create_view_url }}"
-                hx-target="{{htmx_target}}"
-                {% if use_modal %}data-bs-toggle="modal" data-bs-target="#nominopolitanBaseModal"{% endif %}>
-                Add a new {{ object_verbose_name }}
-            </a>
-            {% else %}
-            <a class="btn btn-primary" href="{{ create_view_url }}">
-                Add a new {{ object_verbose_name }}
-            </a>
-            {% endif %}
-        </div>
-        {% endif %}
-
         {% if object_list %}
             {% object_list object_list view %}
             {% partial pagination %}

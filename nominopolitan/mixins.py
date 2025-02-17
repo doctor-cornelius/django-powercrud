@@ -121,33 +121,33 @@ class NominopolitanMixin:
         filterset_fields = getattr(self, "filterset_fields", None)
 
         if filterset_class is None and filterset_fields:
-            if self.get_use_htmx():
-                class DynamicFilterSet(HTMXFilterSetMixin, FilterSet):
-                    # Define filters here, before Meta
-                    for field_name in filterset_fields:
-                        model_field = self.model._meta.get_field(field_name)
-                        if isinstance(model_field, models.CharField):
-                            locals()[field_name] = CharFilter(lookup_expr='icontains')
-                        elif isinstance(model_field, models.DateField):
-                            locals()[field_name] = DateFilter(
-                                widget=forms.DateInput(attrs={'type': 'date'})
-                            )
-                        elif isinstance(model_field, (models.IntegerField, models.DecimalField, models.FloatField)):
-                            locals()[field_name] = NumberFilter(
-                                widget=forms.NumberInput(attrs={'step': 'any'})
-                            )
+            use_htmx = self.get_use_htmx()
 
-                    class Meta:
-                        model = self.model
-                        fields = filterset_fields
-                    
-                    def __init__(self, *args, **kwargs):
-                        super().__init__(*args, **kwargs)
+            class DynamicFilterSet(HTMXFilterSetMixin, FilterSet):
+                # Define filters here, before Meta
+                for field_name in filterset_fields:
+                    model_field = self.model._meta.get_field(field_name)
+                    if isinstance(model_field, models.CharField):
+                        locals()[field_name] = CharFilter(lookup_expr='icontains')
+                    elif isinstance(model_field, models.DateField):
+                        locals()[field_name] = DateFilter(
+                            widget=forms.DateInput(attrs={'type': 'date'})
+                        )
+                    elif isinstance(model_field, (models.IntegerField, models.DecimalField, models.FloatField)):
+                        locals()[field_name] = NumberFilter(
+                            widget=forms.NumberInput(attrs={'step': 'any'})
+                        )
+
+                class Meta:
+                    model = self.model
+                    fields = filterset_fields
+                
+                def __init__(self, *args, **kwargs):
+                    super().__init__(*args, **kwargs)
+                    if use_htmx:
                         self.setup_htmx_attrs()
 
-                filterset_class = DynamicFilterSet
-            else:
-                filterset_class = filterset_factory(self.model, fields=filterset_fields)
+            filterset_class = DynamicFilterSet
 
         if filterset_class is None:
             return None
