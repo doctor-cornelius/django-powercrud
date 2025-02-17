@@ -1,3 +1,18 @@
+## 0.0.37 (2025-02-17)
+
+### Fix
+
+- **(filters)**:  filters working with htmx only but no non-htmx option. also fonts too large
+
+### Feature
+
+- **(filterset)**:  support filterset_fields with styling or filterset_class, both with htmx attrs as needed
+- **(filter)**:  300ms delay works for text filter
+
+### Style
+
+- **(filters)**:  get filter fields in same inline row
+
 ## 0.0.36 (2025-02-15)
 
 ### Feature
