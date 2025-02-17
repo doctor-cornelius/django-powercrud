@@ -34,26 +34,7 @@ class HTMXFilterSetMixin:
         forms.NumberInput: 'keyup changed delay:300ms',
         'default': 'change'
     }
-
-    @classmethod
-    def setup_dynamic_filters(cls, model, filterset_fields):
-        # Initialize declared_filters if not present
-        if not hasattr(cls, 'declared_filters'):
-            cls.declared_filters = {}
-            
-        for field_name in filterset_fields:
-            model_field = model._meta.get_field(field_name)
-            if isinstance(model_field, models.CharField):
-                cls.declared_filters[field_name] = CharFilter(lookup_expr='icontains')
-            elif isinstance(model_field, models.DateField):
-                cls.declared_filters[field_name] = DateFilter(
-                    widget=forms.DateInput(attrs={'type': 'date'})
-                )
-            elif isinstance(model_field, (models.IntegerField, models.DecimalField, models.FloatField)):
-                cls.declared_filters[field_name] = NumberFilter(
-                    widget=forms.NumberInput(attrs={'step': 'any'})
-                )
-
+    
     def setup_htmx_attrs(self):
         for field in self.form.fields.values():
             widget_class = type(field.widget)
@@ -141,7 +122,6 @@ class NominopolitanMixin:
 
         if filterset_class is None and filterset_fields:
             if self.get_use_htmx():
-                # Create a dynamic FilterSet class with HTMX attributes
                 class DynamicFilterSet(HTMXFilterSetMixin, FilterSet):
                     # Define filters here, before Meta
                     for field_name in filterset_fields:

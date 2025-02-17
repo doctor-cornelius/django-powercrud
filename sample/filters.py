@@ -25,7 +25,8 @@ class BookFilterSet(FilterSet):
 
         HTMX_ATTRS = {
             'hx-get': '',
-            'hx-target': '#content'
+            'hx-target': '#content',
+            'hx-include': '[name]'  # This will include all named form fields
         }
 
         FIELD_TRIGGERS = {
