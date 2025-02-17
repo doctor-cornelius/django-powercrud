@@ -21,6 +21,11 @@ This is an opinionated extension package for the excellent [`neapolitan`](https:
 - Support exclusions via `exclude`, `exclude_properties`, `detail_exclude`, `detail_exclude_properties`
 - Support for `extra_actions` to add additional actions to list views
 
+**Filtersets**
+- `object_list.html` styled for bootstrap to show filters.
+- if `filterset_fields` is specified, style with crispy_forms if present and set htmx attributes if applicable
+- if `filterset_class` is provided, then option to subclass `HTMXFilterSetMixin` and use `self.setup_htmx_attrs()` in `__init__()`
+
 **Forms**
 - Separate create form if `create_form_class` specified (probably not worth having)
 - Support for `crispy-forms` if installed in project
@@ -34,9 +39,9 @@ This is an opinionated extension package for the excellent [`neapolitan`](https:
 - Support to specify `hx_trigger` and set `response['HX-Trigger']` for every response
 
 **Styled Templates**
-- Supports `bootstrap5` (default) or `bulma`
+- Supports `bootstrap5` (default) or `bulma` (deprecated and will be dropped soon)
 - In `settings.py` set `NOMINOPOLITAN_CSS_FRAMEWORK = 'bootstrap5'  # or 'bulma'`
-- If you override the templates to use a different framework, you will also need to override the `FRAMEWORK_STYLES` dictionary in `nominopolitan.py`
+- If you override the templates to use a different framework, you will also need to override the `NominopolitanMixin.get_framework_styles()` method.
 
 This is a **very early alpha** release; expect many breaking changes. You might prefer to just fork or copy and use whatever you need. Hopefully some or all of these features may make their way into `neapolitan` over time.
 
