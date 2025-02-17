@@ -21,6 +21,52 @@ from django_filters import FilterSet, CharFilter, DateFilter, NumberFilter
 from django_filters.filterset import filterset_factory
 from neapolitan.views import Role
 
+class HTMXFilterSetMixin:
+    HTMX_ATTRS = {
+        'hx-get': '',
+        'hx-target': '#content',
+        'hx-include': '[name]'  # This will include all named form fields
+    }
+
+    FIELD_TRIGGERS = {
+        forms.DateInput: 'change',
+        forms.TextInput: 'keyup changed delay:300ms',
+        forms.NumberInput: 'keyup changed delay:300ms',
+        'default': 'change'
+    }
+
+    @classmethod
+    def setup_dynamic_filters(cls, model, filterset_fields):
+        # Initialize declared_filters if not present
+        if not hasattr(cls, 'declared_filters'):
+            cls.declared_filters = {}
+            
+        for field_name in filterset_fields:
+            model_field = model._meta.get_field(field_name)
+            if isinstance(model_field, models.CharField):
+                cls.declared_filters[field_name] = CharFilter(lookup_expr='icontains')
+            elif isinstance(model_field, models.DateField):
+                cls.declared_filters[field_name] = DateFilter(
+                    widget=forms.DateInput(attrs={'type': 'date'})
+                )
+            elif isinstance(model_field, (models.IntegerField, models.DecimalField, models.FloatField)):
+                cls.declared_filters[field_name] = NumberFilter(
+                    widget=forms.NumberInput(attrs={'step': 'any'})
+                )
+
+    def setup_htmx_attrs(self):
+        for field in self.form.fields.values():
+            widget_class = type(field.widget)
+            trigger = self.FIELD_TRIGGERS.get(widget_class, self.FIELD_TRIGGERS['default'])
+            attrs = {**self.HTMX_ATTRS, 'hx-trigger': trigger}
+            field.widget.attrs.update(attrs)
+
+        self.helper = FormHelper()
+        self.helper.form_tag = False
+        self.helper.disable_csrf = True
+        self.helper.wrapper_class = 'col-auto'
+        self.helper.template = 'bootstrap5/layout/inline_field.html'
+
 class NominopolitanMixin:
     namespace = None
     create_form_class = None
@@ -88,6 +134,7 @@ class NominopolitanMixin:
 
         return self.render_to_response(context)
 
+
     def get_filterset(self, queryset=None):
         filterset_class = getattr(self, "filterset_class", None)
         filterset_fields = getattr(self, "filterset_fields", None)
@@ -95,7 +142,7 @@ class NominopolitanMixin:
         if filterset_class is None and filterset_fields:
             if self.get_use_htmx():
                 # Create a dynamic FilterSet class with HTMX attributes
-                class DynamicFilterSet(FilterSet):
+                class DynamicFilterSet(HTMXFilterSetMixin, FilterSet):
                     # Define filters here, before Meta
                     for field_name in filterset_fields:
                         model_field = self.model._meta.get_field(field_name)
@@ -116,30 +163,7 @@ class NominopolitanMixin:
                     
                     def __init__(self, *args, **kwargs):
                         super().__init__(*args, **kwargs)
-
-                        HTMX_ATTRS = {
-                            'hx-get': '',
-                            'hx-target': '#content'
-                        }
-
-                        FIELD_TRIGGERS = {
-                            forms.DateInput: 'change',
-                            forms.TextInput: 'keyup changed delay:300ms',
-                            forms.NumberInput: 'keyup changed delay:300ms',
-                            'default': 'change'
-                        }
-
-                        for field in self.form.fields.values():
-                            widget_class = type(field.widget)
-                            trigger = FIELD_TRIGGERS.get(widget_class, FIELD_TRIGGERS['default'])
-                            attrs = {**HTMX_ATTRS, 'hx-trigger': trigger}
-                            field.widget.attrs.update(attrs)
-
-                        self.helper = FormHelper()
-                        self.helper.form_tag = False
-                        self.helper.disable_csrf = True
-                        self.helper.wrapper_class = 'col-auto'
-                        self.helper.template = 'bootstrap5/layout/inline_field.html'
+                        self.setup_htmx_attrs()
 
                 filterset_class = DynamicFilterSet
             else:
