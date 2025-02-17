@@ -6,7 +6,26 @@ from crispy_forms.layout import Layout, Field, Row, Column
 from crispy_forms.bootstrap import Div
 from crispy_forms import bootstrap, layout
 
-from .models import Book
+from .models import Book, Author
+from nominopolitan.mixins import HTMXFilterSetMixin
+
+class AuthorFilterSet(HTMXFilterSetMixin, FilterSet):
+    """Filterset class used for the Author model.
+        It uses the Nominopolitan.HTMXFilterSetMixin to add HTMX attributes
+        to the form fields.
+    """
+    name = CharFilter(lookup_expr='icontains')
+    birth_date = DateFilter(
+        widget=forms.DateInput(attrs={'type': 'date'})
+    )
+    class Meta:
+        model = Author
+        fields = ['name', 'birth_date']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # setup htmx attributes by using helper class from Nominoopolitan
+        self.setup_htmx_attrs()
 
 class BookFilterSet(FilterSet):
     title = CharFilter(lookup_expr='icontains')
@@ -25,7 +44,8 @@ class BookFilterSet(FilterSet):
 
         HTMX_ATTRS = {
             'hx-get': '',
-            'hx-target': '#content'
+            'hx-target': '#content',
+            'hx-include': '[name]',  # This will include all named form fields
         }
 
         FIELD_TRIGGERS = {

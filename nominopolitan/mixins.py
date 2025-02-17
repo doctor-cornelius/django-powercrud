@@ -1,4 +1,7 @@
-from neapolitan.views import Role
+from django import forms
+from django.db import models
+
+from django.http import Http404
 from django.urls import NoReverseMatch, path, reverse
 from django.utils.decorators import classonlymethod
 from django.core.exceptions import ImproperlyConfigured
@@ -12,6 +15,41 @@ import json
 import logging
 log = logging.getLogger("nominopolitan")
 
+from crispy_forms.helper import FormHelper
+from django import forms
+from django_filters import (
+    FilterSet, CharFilter, DateFilter, NumberFilter, 
+    BooleanFilter, ModelChoiceFilter, TimeFilter,
+    )
+from django_filters.filterset import filterset_factory
+from neapolitan.views import Role
+
+class HTMXFilterSetMixin:
+    HTMX_ATTRS = {
+        'hx-get': '',
+        # 'hx-target': '#content',
+        'hx-include': '[name]',  # This will include all named form fields
+    }
+
+    FIELD_TRIGGERS = {
+        forms.DateInput: 'change',
+        forms.TextInput: 'keyup changed delay:300ms',
+        forms.NumberInput: 'keyup changed delay:300ms',
+        'default': 'change'
+    }
+
+    def setup_htmx_attrs(self):
+        for field in self.form.fields.values():
+            widget_class = type(field.widget)
+            trigger = self.FIELD_TRIGGERS.get(widget_class, self.FIELD_TRIGGERS['default'])
+            attrs = {**self.HTMX_ATTRS, 'hx-trigger': trigger, }
+            field.widget.attrs.update(attrs)
+
+        self.helper = FormHelper()
+        self.helper.form_tag = False
+        self.helper.disable_csrf = True
+        self.helper.wrapper_class = 'col-auto'
+        self.helper.template = 'bootstrap5/layout/inline_field.html'
 
 class NominopolitanMixin:
     namespace = None
@@ -44,7 +82,6 @@ class NominopolitanMixin:
         # eg in the base template.
 
 
-    from django.http import Http404
     def list(self, request, *args, **kwargs):
         """GET handler for the list view."""
 
@@ -80,6 +117,82 @@ class NominopolitanMixin:
             )
 
         return self.render_to_response(context)
+
+
+    def get_filterset(self, queryset=None):
+        filterset_class = getattr(self, "filterset_class", None)
+        filterset_fields = getattr(self, "filterset_fields", None)
+
+        if filterset_class is None and filterset_fields:
+            use_htmx = self.get_use_htmx()
+            use_crispy = self.get_use_crispy()
+
+            class DynamicFilterSet(HTMXFilterSetMixin, FilterSet):
+                BASE_ATTRS = {
+                    'class': 'form-control-xs small py-1',
+                    'style': 'font-size: 0.875rem;'
+                }
+
+                # Define filters here, before Meta
+                for field_name in filterset_fields:
+                    model_field = self.model._meta.get_field(field_name)
+                    field_attrs = BASE_ATTRS.copy()
+                    if isinstance(model_field, models.CharField):
+                        locals()[field_name] = CharFilter(
+                            lookup_expr='icontains',
+                            widget=forms.TextInput(attrs=field_attrs)
+                        )
+                    elif isinstance(model_field, models.DateField):
+                        attrs = field_attrs
+                        field_attrs['type'] = 'date'
+                        locals()[field_name] = DateFilter(
+                            widget=forms.DateInput(attrs=attrs)
+                        )
+                    elif isinstance(model_field, (models.IntegerField, models.DecimalField, models.FloatField)):
+                        attrs = field_attrs
+                        field_attrs['step'] = 'any'
+                        locals()[field_name] = NumberFilter(
+                            widget=forms.NumberInput(attrs=attrs)
+                        )
+                    elif isinstance(model_field, models.BooleanField):
+                        locals()[field_name] = BooleanFilter(
+                            widget=forms.Select(attrs=field_attrs, choices=((None, '---------'), (True, 'Yes'), (False, 'No')))
+                        )
+                    elif isinstance(model_field, models.ForeignKey):
+                        locals()[field_name] = ModelChoiceFilter(
+                            queryset=model_field.related_model.objects.all(),
+                            widget=forms.Select(attrs=field_attrs)
+                        )
+                    elif isinstance(model_field, models.TimeField):
+                        field_attrs.update({'type': 'time'})
+                        locals()[field_name] = TimeFilter(
+                            widget=forms.TimeInput(attrs=field_attrs)
+                        )
+                    else:
+                        locals()[field_name] = CharFilter(
+                            widget=forms.TextInput(attrs=field_attrs)
+                        )
+
+                class Meta:
+                    model = self.model
+                    fields = filterset_fields
+               
+                def __init__(self, *args, **kwargs):
+                    super().__init__(*args, **kwargs)
+                    if use_htmx:
+                        self.setup_htmx_attrs()
+                        
+            filterset_class = DynamicFilterSet
+
+        if filterset_class is None:
+            return None
+
+        return filterset_class(
+            self.request.GET,
+            queryset=queryset,
+            request=self.request,
+        )
+    
     def _get_all_fields(self):
         fields = [field.name for field in self.model._meta.get_fields()]
             
@@ -436,7 +549,6 @@ class NominopolitanMixin:
             # Store original target when first receiving list view
             if self.role == Role.LIST:
                 self.request.session[self.get_session_key()] = f"#{self.request.htmx.target}"
-                # context["original_target"] = f"#{self.request.htmx.target}"
                 context["original_target"] = self.get_original_target()
             response = render(
                 request=self.request,
