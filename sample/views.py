@@ -14,6 +14,7 @@ class BookCRUDView(NominopolitanMixin, CRUDView):
     base_template_path = "django_nominopolitan/base.html"
     use_htmx = False
     use_modal = True
+    # use_crispy = False
 
     # fields = ["author","title","published_date",]
     # fields =  "__all__"

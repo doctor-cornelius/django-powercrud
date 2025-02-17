@@ -17,7 +17,10 @@ log = logging.getLogger("nominopolitan")
 
 from crispy_forms.helper import FormHelper
 from django import forms
-from django_filters import FilterSet, CharFilter, DateFilter, NumberFilter
+from django_filters import (
+    FilterSet, CharFilter, DateFilter, NumberFilter, 
+    BooleanFilter, ModelChoiceFilter, TimeFilter,
+    )
 from django_filters.filterset import filterset_factory
 from neapolitan.views import Role
 
@@ -39,7 +42,7 @@ class HTMXFilterSetMixin:
         for field in self.form.fields.values():
             widget_class = type(field.widget)
             trigger = self.FIELD_TRIGGERS.get(widget_class, self.FIELD_TRIGGERS['default'])
-            attrs = {**self.HTMX_ATTRS, 'hx-trigger': trigger}
+            attrs = {**self.HTMX_ATTRS, 'hx-trigger': trigger, }
             field.widget.attrs.update(attrs)
 
         self.helper = FormHelper()
@@ -122,31 +125,63 @@ class NominopolitanMixin:
 
         if filterset_class is None and filterset_fields:
             use_htmx = self.get_use_htmx()
+            use_crispy = self.get_use_crispy()
 
             class DynamicFilterSet(HTMXFilterSetMixin, FilterSet):
+                BASE_ATTRS = {
+                    'class': 'form-control-xs small py-1',
+                    'style': 'font-size: 0.875rem;'
+                }
+
                 # Define filters here, before Meta
                 for field_name in filterset_fields:
                     model_field = self.model._meta.get_field(field_name)
+                    field_attrs = BASE_ATTRS.copy()
                     if isinstance(model_field, models.CharField):
-                        locals()[field_name] = CharFilter(lookup_expr='icontains')
+                        locals()[field_name] = CharFilter(
+                            lookup_expr='icontains',
+                            widget=forms.TextInput(attrs=field_attrs)
+                        )
                     elif isinstance(model_field, models.DateField):
+                        attrs = field_attrs
+                        field_attrs['type'] = 'date'
                         locals()[field_name] = DateFilter(
-                            widget=forms.DateInput(attrs={'type': 'date'})
+                            widget=forms.DateInput(attrs=attrs)
                         )
                     elif isinstance(model_field, (models.IntegerField, models.DecimalField, models.FloatField)):
+                        attrs = field_attrs
+                        field_attrs['step'] = 'any'
                         locals()[field_name] = NumberFilter(
-                            widget=forms.NumberInput(attrs={'step': 'any'})
+                            widget=forms.NumberInput(attrs=attrs)
+                        )
+                    elif isinstance(model_field, models.BooleanField):
+                        locals()[field_name] = BooleanFilter(
+                            widget=forms.Select(attrs=field_attrs, choices=((None, '---------'), (True, 'Yes'), (False, 'No')))
+                        )
+                    elif isinstance(model_field, models.ForeignKey):
+                        locals()[field_name] = ModelChoiceFilter(
+                            queryset=model_field.related_model.objects.all(),
+                            widget=forms.Select(attrs=field_attrs)
+                        )
+                    elif isinstance(model_field, models.TimeField):
+                        field_attrs.update({'type': 'time'})
+                        locals()[field_name] = TimeFilter(
+                            widget=forms.TimeInput(attrs=field_attrs)
+                        )
+                    else:
+                        locals()[field_name] = CharFilter(
+                            widget=forms.TextInput(attrs=field_attrs)
                         )
 
                 class Meta:
                     model = self.model
                     fields = filterset_fields
-                
+               
                 def __init__(self, *args, **kwargs):
                     super().__init__(*args, **kwargs)
                     if use_htmx:
                         self.setup_htmx_attrs()
-
+                        
             filterset_class = DynamicFilterSet
 
         if filterset_class is None:
