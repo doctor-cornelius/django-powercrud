@@ -44,6 +44,8 @@ class AuthorCRUDView(NominopolitanMixin, CRUDView):
     detail_fields = '__fields__'
     detail_properties = '__properties__'
 
+    filterset_class = filters.AuthorFilterSet
+
     form_class = forms.AuthorForm
     extra_actions = [
         {

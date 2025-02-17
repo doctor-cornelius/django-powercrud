@@ -24,8 +24,8 @@ from neapolitan.views import Role
 class HTMXFilterSetMixin:
     HTMX_ATTRS = {
         'hx-get': '',
-        'hx-target': '#content',
-        'hx-include': '[name]'  # This will include all named form fields
+        # 'hx-target': '#content',
+        'hx-include': '[name]',  # This will include all named form fields
     }
 
     FIELD_TRIGGERS = {
@@ -34,7 +34,7 @@ class HTMXFilterSetMixin:
         forms.NumberInput: 'keyup changed delay:300ms',
         'default': 'change'
     }
-    
+
     def setup_htmx_attrs(self):
         for field in self.form.fields.values():
             widget_class = type(field.widget)
@@ -514,7 +514,6 @@ class NominopolitanMixin:
             # Store original target when first receiving list view
             if self.role == Role.LIST:
                 self.request.session[self.get_session_key()] = f"#{self.request.htmx.target}"
-                # context["original_target"] = f"#{self.request.htmx.target}"
                 context["original_target"] = self.get_original_target()
             response = render(
                 request=self.request,
