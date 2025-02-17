@@ -16,7 +16,7 @@
         <h1 class="flex-grow-1 fw-bold h4">{{ object_verbose_name_plural|capfirst }}</h1>
 
         {% if filterset %}
-        <div class="mb-4">
+        <div>
             <form method="get" class="row g-3">
                 {% for field in filterset.form %}
                     <div class="col-auto">

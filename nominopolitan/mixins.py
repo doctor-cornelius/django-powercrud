@@ -1,4 +1,7 @@
-from neapolitan.views import Role
+from django import forms
+from django.db import models
+
+from django.http import Http404
 from django.urls import NoReverseMatch, path, reverse
 from django.utils.decorators import classonlymethod
 from django.core.exceptions import ImproperlyConfigured
@@ -12,6 +15,11 @@ import json
 import logging
 log = logging.getLogger("nominopolitan")
 
+from crispy_forms.helper import FormHelper
+from django import forms
+from django_filters import FilterSet, CharFilter, DateFilter, NumberFilter
+from django_filters.filterset import filterset_factory
+from neapolitan.views import Role
 
 class NominopolitanMixin:
     namespace = None
@@ -44,7 +52,6 @@ class NominopolitanMixin:
         # eg in the base template.
 
 
-    from django.http import Http404
     def list(self, request, *args, **kwargs):
         """GET handler for the list view."""
 
@@ -80,6 +87,73 @@ class NominopolitanMixin:
             )
 
         return self.render_to_response(context)
+
+    def get_filterset(self, queryset=None):
+        filterset_class = getattr(self, "filterset_class", None)
+        filterset_fields = getattr(self, "filterset_fields", None)
+
+        if filterset_class is None and filterset_fields:
+            if self.get_use_htmx():
+                # Create a dynamic FilterSet class with HTMX attributes
+                class DynamicFilterSet(FilterSet):
+                    # Define filters here, before Meta
+                    for field_name in filterset_fields:
+                        model_field = self.model._meta.get_field(field_name)
+                        if isinstance(model_field, models.CharField):
+                            locals()[field_name] = CharFilter(lookup_expr='icontains')
+                        elif isinstance(model_field, models.DateField):
+                            locals()[field_name] = DateFilter(
+                                widget=forms.DateInput(attrs={'type': 'date'})
+                            )
+                        elif isinstance(model_field, (models.IntegerField, models.DecimalField, models.FloatField)):
+                            locals()[field_name] = NumberFilter(
+                                widget=forms.NumberInput(attrs={'step': 'any'})
+                            )
+
+                    class Meta:
+                        model = self.model
+                        fields = filterset_fields
+                    
+                    def __init__(self, *args, **kwargs):
+                        super().__init__(*args, **kwargs)
+
+                        HTMX_ATTRS = {
+                            'hx-get': '',
+                            'hx-target': '#content'
+                        }
+
+                        FIELD_TRIGGERS = {
+                            forms.DateInput: 'change',
+                            forms.TextInput: 'keyup changed delay:300ms',
+                            forms.NumberInput: 'keyup changed delay:300ms',
+                            'default': 'change'
+                        }
+
+                        for field in self.form.fields.values():
+                            widget_class = type(field.widget)
+                            trigger = FIELD_TRIGGERS.get(widget_class, FIELD_TRIGGERS['default'])
+                            attrs = {**HTMX_ATTRS, 'hx-trigger': trigger}
+                            field.widget.attrs.update(attrs)
+
+                        self.helper = FormHelper()
+                        self.helper.form_tag = False
+                        self.helper.disable_csrf = True
+                        self.helper.wrapper_class = 'col-auto'
+                        self.helper.template = 'bootstrap5/layout/inline_field.html'
+
+                filterset_class = DynamicFilterSet
+            else:
+                filterset_class = filterset_factory(self.model, fields=filterset_fields)
+
+        if filterset_class is None:
+            return None
+
+        return filterset_class(
+            self.request.GET,
+            queryset=queryset,
+            request=self.request,
+        )
+    
     def _get_all_fields(self):
         fields = [field.name for field in self.model._meta.get_fields()]
             
