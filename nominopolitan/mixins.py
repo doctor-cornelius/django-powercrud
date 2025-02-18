@@ -178,34 +178,38 @@ class NominopolitanMixin:
                 for field_name in filterset_fields:
                     model_field = self.model._meta.get_field(field_name)
                     field_attrs = BASE_ATTRS.copy()
-                    log.debug(f"field_attrs: {field_attrs}")
 
-                    if isinstance(model_field, models.CharField):
+                    # Handle GeneratedField special case first
+                    if isinstance(model_field, models.GeneratedField):
+                        field_to_check = model_field.output_field
+                    else:
+                        field_to_check = model_field                    
+
+                    if isinstance(field_to_check, models.CharField):
                         locals()[field_name] = CharFilter(
                             lookup_expr='icontains',
                             widget=forms.TextInput(attrs=field_attrs)
                         )
-                    elif isinstance(model_field, models.DateField):
+                    elif isinstance(field_to_check, models.DateField):
                         field_attrs['type'] = 'date'
                         locals()[field_name] = DateFilter(
                             widget=forms.DateInput(attrs=field_attrs)
                         )
-                        log.debug(f"Widget attrs after creation: {locals()[field_name].field.widget.attrs}")
-                    elif isinstance(model_field, (models.IntegerField, models.DecimalField, models.FloatField)):
+                    elif isinstance(field_to_check, (models.IntegerField, models.DecimalField, models.FloatField)):
                         field_attrs['step'] = 'any'
                         locals()[field_name] = NumberFilter(
                             widget=forms.NumberInput(attrs=field_attrs)
                         )
-                    elif isinstance(model_field, models.BooleanField):
+                    elif isinstance(field_to_check, models.BooleanField):
                         locals()[field_name] = BooleanFilter(
-                            widget=forms.Select(attrs=field_attrs, choices=((None, '---------'), (True, 'Yes'), (False, 'No')))
+                            widget=forms.Select(attrs=field_attrs, choices=((None, '---------'), (True, True), (False, False)))
                         )
-                    elif isinstance(model_field, models.ForeignKey):
+                    elif isinstance(field_to_check, models.ForeignKey):
                         locals()[field_name] = ModelChoiceFilter(
                             queryset=model_field.related_model.objects.all(),
                             widget=forms.Select(attrs=field_attrs)
                         )
-                    elif isinstance(model_field, models.TimeField):
+                    elif isinstance(field_to_check, models.TimeField):
                         field_attrs.update({'type': 'time'})
                         locals()[field_name] = TimeFilter(
                             widget=forms.TimeInput(attrs=field_attrs)
@@ -529,7 +533,7 @@ class NominopolitanMixin:
         context["original_target"] = self.get_original_target()
 
         # for table font sie used in list.html
-        context['table_font_size'] = f"{self.get_table_font_size()}rem;"
+        context['table_font_size'] = f"{self.get_table_font_size()}rem"
 
 
         if self.get_use_htmx():
@@ -596,7 +600,7 @@ class NominopolitanMixin:
             if self.role == Role.LIST:
                 self.request.session[self.get_session_key()] = f"#{self.request.htmx.target}"
                 context["original_target"] = self.get_original_target()
-                context['table_font_size'] = f"{self.get_table_font_size()}rem;"
+                context['table_font_size'] = f"{self.get_table_font_size()}rem"
 
             response = render(
                 request=self.request,
