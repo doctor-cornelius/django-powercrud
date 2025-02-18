@@ -1,3 +1,9 @@
+## 0.0.39 (2025-02-18)
+
+### Feature
+
+- **(get_filterset)**:  accommodate GeneratedField types for filter widget determination
+
 ## 0.0.38 (2025-02-18)
 
 ### Fix
