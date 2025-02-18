@@ -1,3 +1,26 @@
+## 0.0.38 (2025-02-18)
+
+### Fix
+
+- **(get_filterset)**:  make all filter field args be applied to filtering
+
+### Refactor
+
+- **(AuthorCRUDView)**:  use filterset class for sample purposes
+- **(HTMXFilterSetMixin)**:  apply htmx mixin to sample AuthorFilterSet class
+-  update main before merge
+- **(get_framework_styles)**:  define css framework styles as method in NominoPolitanMixin
+
+### Feature
+
+- **(object_list)**:  drive font size of table using attribute table_font_size
+- **(object_list)**:  place buttons conditionally inline
+- **(get_filterset)**:  create dynamic filterset class based on filterset_fields to set htmx triggers
+
+### Style
+
+- **(object_list)**:  style filter and create buttons inline above filter fields
+
 ## 0.0.37 (2025-02-17)
 
 ### Fix
