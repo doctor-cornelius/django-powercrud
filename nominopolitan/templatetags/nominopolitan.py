@@ -11,37 +11,6 @@ register = template.Library()
 
 def action_links(view, object):
 
-    # FRAMEWORK_STYLES = {
-    #     'bulma': {
-    #         'base': 'button is-small',
-    #         'actions': {
-    #             'View': 'is-info',
-    #             'Edit': 'is-link',
-    #             'Delete': 'is-danger'
-    #         },
-    #         'extra_default': 'is-link',
-    #         'modal_attrs': '',  # Bulma uses Alpine.js so no additional attributes needed
-    #     'filter_attrs': {
-    #         'class': 'input is-small',
-    #         'style': 'font-size: 0.875rem;'
-    #     }
-    #     },
-    #     'bootstrap5': {
-    #         'base': 'btn btn-sm',
-    #         'actions': {
-    #             'View': 'btn-info',
-    #             'Edit': 'btn-primary',
-    #             'Delete': 'btn-danger'
-    #         },
-    #         'extra_default': 'btn-primary',
-    #         'modal_attrs': f'data-bs-toggle="modal" data-bs-target="{view.get_modal_id()}"',
-    #         'filter_attrs': {
-    #             'class': 'form-control-xs small py-1',
-    #             'style': 'font-size: 0.875rem;'
-    #         }
-    #     }
-    # }
-
     framework = getattr(settings, 'NOMINOPOLITAN_CSS_FRAMEWORK', 'bulma')
     styles = view.get_framework_styles()[framework]
 
@@ -103,7 +72,7 @@ def action_links(view, object):
     links = [
         f"<div class='btn-group btn-group-sm'>" +
         " ".join([
-            f"<a href='{url}' class='{styles['base']} {button_class}' "
+            f"<a href='{url}' class='{styles['base']} {button_class}' style='{styles['button_style']}' "
             + (f"hx-{'post' if hx_post else 'get'}='{url}' " if use_htmx else "")
             + (f"hx-target='{target}' " if use_htmx else "")
             + (f"hx-replace-url='true' hx-push-url='true' " if use_htmx and not view.get_use_modal() else "")

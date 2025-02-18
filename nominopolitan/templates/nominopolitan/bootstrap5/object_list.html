@@ -14,33 +14,36 @@
     <style>
         #filter-form label {
             font-weight: bold;
-            font-size: 0.875rem;
+            font-size: {{ table_font_size }}
             text-align: center;
             display: block;
+        }
+        .table-font-size {
+            font-size: {{ table_font_size }}
         }
     </style>
 
     <title id="header_title">{{header_title}}</title>
-    <div class="d-flex flex-column m-2 p-2">
+    <div class="d-flex flex-column">
         <h1 class="flex-grow-1 fw-bold h4">{{ object_verbose_name_plural|capfirst }}</h1>
     
         <div class="d-flex gap-2 my-2">
             {% if not use_htmx %}
                 <button onclick="document.getElementById('filter-form').submit()" 
-                    class="btn btn-sm btn-secondary">Filter</button>
+                    class="btn btn-sm btn-secondary table-font-size">Filter</button>
             {% endif %}
             {% if filterset %}
-            <a href="." class="btn btn-sm btn-outline-secondary">Reset</a>
+            <a href="." class="btn btn-sm btn-outline-secondary table-font-size">Reset</a>
             {% endif %}
             {% if create_view_url %}
                 {% if use_htmx and htmx_target %}
-                <a class="btn btn-sm btn-primary" href="{{ create_view_url }}" hx-get="{{ create_view_url }}"
+                <a class="btn btn-sm btn-primary table-font-size" href="{{ create_view_url }}" hx-get="{{ create_view_url }}"
                     hx-target="{{htmx_target}}" {% if use_modal %}data-bs-toggle="modal"
                     data-bs-target="#nominopolitanBaseModal" {% endif %}>
                     Create {{ object_verbose_name }}
                 </a>
                 {% else %}
-                <a class="btn btn-sm btn-primary" href="{{ create_view_url }}">
+                <a class="btn btn-sm btn-primary table-font-size" href="{{ create_view_url }}">
                     Create {{ object_verbose_name }}
                 </a>
                 {% endif %}
@@ -63,12 +66,12 @@
                     <!-- This is a fallback for browsers that don't support JavaScript -->
                     {% if not use_htmx %}
                     <div class="col-auto">
-                        <button type="submit" class="btn btn-sm btn-secondary">Filter</button>
+                        <button type="submit" class="btn btn-sm btn-secondary table-font-size">Filter</button>
                     </div>
                     {% endif %}
                 </noscript>
             </form>
-        </div>
+        </div>        </div>
         {% endif %}
         {% if object_list %}
             {% object_list object_list view %}

@@ -81,10 +81,19 @@ class NominopolitanMixin:
         # the project has a modal with a different id available
         # eg in the base template.
 
+    table_font_size = None
+    def get_table_font_size(self):
+        # The font size for the table (buttons, filters, column headers, rows) in object_list.html
+        return self.table_font_size or '0.875'
+
     def get_framework_styles(self):
+        
+        table_font_size = self.get_table_font_size()
+
         return {
             'bulma': {
                 'base': 'button is-small',
+                'button_style': 'font-size: 0.875rem;' ,
                 'actions': {
                     'View': 'is-info',
                     'Edit': 'is-link',
@@ -98,7 +107,13 @@ class NominopolitanMixin:
                 }
             },
             'bootstrap5': {
-                'base': 'btn btn-sm',
+                'font-size': f'{table_font_size}rem;',
+                'base': 'btn btn-sm py-0',
+                'button_style': f'font-size: {table_font_size}rem;' ,
+                'filter_attrs': {
+                    'class': 'form-control-xs small py-1',
+                    'style': f'font-size: {table_font_size}rem;'
+                },
                 'actions': {
                     'View': 'btn-info',
                     'Edit': 'btn-primary',
@@ -106,10 +121,6 @@ class NominopolitanMixin:
                 },
                 'extra_default': 'btn-primary',
                 'modal_attrs': f'data-bs-toggle="modal" data-bs-target="{self.get_modal_id()}"',
-                'filter_attrs': {
-                    'class': 'form-control-xs small py-1',
-                    'style': 'font-size: 0.875rem;'
-                }
             }
         }
 
@@ -167,22 +178,23 @@ class NominopolitanMixin:
                 for field_name in filterset_fields:
                     model_field = self.model._meta.get_field(field_name)
                     field_attrs = BASE_ATTRS.copy()
+                    log.debug(f"field_attrs: {field_attrs}")
+
                     if isinstance(model_field, models.CharField):
                         locals()[field_name] = CharFilter(
                             lookup_expr='icontains',
                             widget=forms.TextInput(attrs=field_attrs)
                         )
                     elif isinstance(model_field, models.DateField):
-                        attrs = field_attrs
                         field_attrs['type'] = 'date'
                         locals()[field_name] = DateFilter(
-                            widget=forms.DateInput(attrs=attrs)
+                            widget=forms.DateInput(attrs=field_attrs)
                         )
+                        log.debug(f"Widget attrs after creation: {locals()[field_name].field.widget.attrs}")
                     elif isinstance(model_field, (models.IntegerField, models.DecimalField, models.FloatField)):
-                        attrs = field_attrs
                         field_attrs['step'] = 'any'
                         locals()[field_name] = NumberFilter(
-                            widget=forms.NumberInput(attrs=attrs)
+                            widget=forms.NumberInput(attrs=field_attrs)
                         )
                     elif isinstance(model_field, models.BooleanField):
                         locals()[field_name] = BooleanFilter(
@@ -516,6 +528,10 @@ class NominopolitanMixin:
 
         context["original_target"] = self.get_original_target()
 
+        # for table font sie used in list.html
+        context['table_font_size'] = f"{self.get_table_font_size()}rem;"
+
+
         if self.get_use_htmx():
             context["htmx_target"] = self.get_htmx_target()
 
@@ -580,6 +596,8 @@ class NominopolitanMixin:
             if self.role == Role.LIST:
                 self.request.session[self.get_session_key()] = f"#{self.request.htmx.target}"
                 context["original_target"] = self.get_original_target()
+                context['table_font_size'] = f"{self.get_table_font_size()}rem;"
+
             response = render(
                 request=self.request,
                 template_name=f"{template_name}#content",

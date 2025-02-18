@@ -27,6 +27,7 @@ class BookCRUDView(NominopolitanMixin, CRUDView):
     # filterset_class = filters.BookFilterSet
 
     form_class = forms.BookForm
+    table_font_size = '1.2'
 
 
 class AuthorCRUDView(NominopolitanMixin, CRUDView):
@@ -35,6 +36,8 @@ class AuthorCRUDView(NominopolitanMixin, CRUDView):
     base_template_path = "django_nominopolitan/base.html"
     use_htmx = True
     use_modal = False
+
+    table_font_size = '0.675'
 
     paginate_by = 5
     # fields = ["name","bio","birth_date",]
@@ -45,8 +48,8 @@ class AuthorCRUDView(NominopolitanMixin, CRUDView):
     detail_fields = '__fields__'
     detail_properties = '__properties__'
 
-    filterset_class = filters.AuthorFilterSet
-    # filterset_fields = ['name', 'birth_date']
+    # filterset_class = filters.AuthorFilterSet
+    filterset_fields = ['name', 'birth_date']
 
     form_class = forms.AuthorForm
     extra_actions = [

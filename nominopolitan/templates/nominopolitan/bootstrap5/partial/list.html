@@ -5,8 +5,7 @@
 {% endif %}
 
 <div class="table-responsive">
-    <div class="table-responsive">
-        <table class="table table-sm table-striped table-hover w-auto">
+        <table class="table table-sm table-striped table-hover w-auto table-font-size">
             <thead>
                 <tr>
                     {% for header in headers %}
@@ -21,16 +20,15 @@
                 {% for object in object_list %}
                 <tr>
                     {% for field in object.fields %}
-                    <td class="{% if forloop.first %}fw-medium{% endif %}">
+                    <td class="{% if forloop.first %}fw-medium{% endif %} py-0 align-middle">
                         {{ field }}
                     </td>
                     {% endfor %}
-                    <td class="text-end">
+                    <td class="text-end py-1 align-middle">
                         {{ object.actions }}
                     </td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
-    </div>
 </div>
