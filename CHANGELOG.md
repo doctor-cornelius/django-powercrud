@@ -1,3 +1,9 @@
+## 0.0.40 (2025-02-19)
+
+### Feature
+
+- **(list)**:  truncate columns based on table_max_col_width and provide tooltips
+
 ## 0.0.39 (2025-02-18)
 
 ### Feature
