@@ -12,19 +12,19 @@ class BookCRUDView(NominopolitanMixin, CRUDView):
     model = models.Book
     namespace = "sample"
     base_template_path = "django_nominopolitan/base.html"
-    use_htmx = True
+    use_htmx = False
     use_modal = True
     # use_crispy = False
 
     # fields = ["author","title","published_date",]
-    # fields =  "__all__"
-    exclude = ['pages','description']
+    fields =  "__all__"
+    # exclude = ['pages','description']
     # properties = '__all__'
     detail_fields = '__all__'
     detail_properties = '__all__'
 
-    # filterset_fields = ['author', 'title', 'published_date','isbn', 'isbn_empty',]
-    filterset_class = filters.BookFilterSet
+    filterset_fields = ['author', 'title', 'published_date','isbn', 'isbn_empty','pages', 'description', 'uneditable_field']
+    # filterset_class = filters.BookFilterSet
 
     form_class = forms.BookForm
     table_font_size = '1.2'

@@ -195,6 +195,11 @@ class NominopolitanMixin:
                             lookup_expr='icontains',
                             widget=forms.TextInput(attrs=field_attrs)
                         )
+                    # if isinstance(field_to_check, models.TextField):
+                    #     locals()[field_name] = CharFilter(
+                    #         lookup_expr='icontains',
+                    #         widget=forms.TextInput(attrs=field_attrs)
+                    #     )
                     elif isinstance(field_to_check, models.DateField):
                         field_attrs['type'] = 'date'
                         locals()[field_name] = DateFilter(
@@ -600,6 +605,7 @@ class NominopolitanMixin:
         """Handle both HTMX and regular requests"""
         template_names = self.get_template_names()
         template_name = template_names[0] if self.template_name else template_names[1]
+        log.debug(f"inside render_to_response. template_name: {template_name}")
 
         if self.request.htmx:
             # Store original target when first receiving list view
@@ -609,10 +615,16 @@ class NominopolitanMixin:
                 context['table_font_size'] = f"{self.get_table_font_size()}rem"
                 context['table_max_col_width'] = f"{self.get_table_max_col_width()}ch"
 
+            if self.request.headers.get('X-Filter-Request'):
+                template_name=f"{template_name}#filtered_results"
+            else:
+                template_name=f"{template_name}#content"
+
+            log.debug(f"X-Filter-Request': {self.request.headers.get('X-Filter-Request')}; template_name: {template_name}")
 
             response = render(
                 request=self.request,
-                template_name=f"{template_name}#content",
+                template_name=f"{template_name}",
                 context=context,
             )
             # Add a HX-Trigger header to refresh the target element
