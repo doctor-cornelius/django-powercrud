@@ -21,6 +21,22 @@
         .table-font-size {
             font-size: {{ table_font_size }};
         }
+        .table-column-width {
+            width: min-content;
+            word-wrap: break-word;
+            max-width: {{ table_max_col_width }};
+        }
+        th.table-column-width {
+            width: min-content;
+            white-space: normal;
+            hyphens: auto;
+        }
+        /* Custom tooltip styles */
+        .custom-tooltip {
+        --bs-tooltip-bg: var(--bs-dark);
+        --bs-tooltip-color: var(--bs-white);
+        }
+
     </style>
 
     <title id="header_title">{{header_title}}</title>
@@ -104,6 +120,7 @@
 </div>
 
 <script>
+    // modal code
     document.addEventListener('submit', function (event) {
         if (event.target.closest('#nominopolitanBaseModal')) {
             const modalElement = document.getElementById('nominopolitanBaseModal');
@@ -113,6 +130,52 @@
             }
         }
     });
+
+    // tooltip code
+
+    function initializeTooltips() {
+        console.log('initializeTooltips called');
+        const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+
+        const measureSpan = document.createElement('span');
+        measureSpan.style.visibility = 'hidden';
+        measureSpan.style.position = 'absolute';
+        measureSpan.style.whiteSpace = 'nowrap';
+        document.body.appendChild(measureSpan);
+
+        const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => {
+            const text = tooltipTriggerEl.textContent.trim();
+            const computedStyle = window.getComputedStyle(tooltipTriggerEl);
+
+            measureSpan.style.fontSize = computedStyle.fontSize;
+            measureSpan.style.fontFamily = computedStyle.fontFamily;
+            measureSpan.textContent = text;
+
+            const textWidth = measureSpan.offsetWidth;
+            const maxWidth = parseFloat(computedStyle.maxWidth);
+            const paddingLeft = parseFloat(computedStyle.paddingLeft);
+            const paddingRight = parseFloat(computedStyle.paddingRight);
+            const availableWidth = maxWidth - paddingLeft - paddingRight;
+
+            if (textWidth > availableWidth) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            }
+            return null;
+        }).filter(Boolean);
+
+        document.body.removeChild(measureSpan);
+    }
+
+    // Run on initial page load
+    document.addEventListener('DOMContentLoaded', () => {
+        initializeTooltips();
+    });
+
+    // Add HTMX event listener
+    document.body.addEventListener('htmx:afterSwap', () => {
+        initializeTooltips();
+    });
+
 </script>
 
 {% endpartialdef content %}

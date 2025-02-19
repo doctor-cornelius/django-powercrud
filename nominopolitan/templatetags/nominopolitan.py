@@ -137,13 +137,18 @@ def object_list(context, objects, view):
     # Combine headers
     headers = field_headers + property_headers
 
+
+    import locale
+
     object_list = [
         {
             "object": object,
             "fields": [
                 (
                     # override default to set value = str()
-                    str(getattr(object, f))
+                    str(getattr(object, f).strftime('%d/%m/%Y'))
+                    if object._meta.get_field(f).get_internal_type() == 'DateField' and getattr(object, f) is not None
+                    else str(getattr(object, f))
                     if object._meta.get_field(f).is_relation
                     else object._meta.get_field(f).value_to_string(object)
                 )

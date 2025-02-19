@@ -43,6 +43,13 @@ This is an opinionated extension package for the excellent [`neapolitan`](https:
 - In `settings.py` set `NOMINOPOLITAN_CSS_FRAMEWORK = 'bootstrap5'  # or 'bulma'`
 - If you override the templates to use a different framework, you will also need to override the `NominopolitanMixin.get_framework_styles()` method.
 
+**Styled Table Options**
+- set `table_font_size` as a parameter, measured in `rem`. eg `table_font_size = 0.875`. This will be applied to buttons, filters and the table data itself using the custom style in `object_list.html`: `.table-font-size {font-size: {{ table_font_size }};}`.
+- set `table_max_col_width` as a parameter, measured in `ch` (ie number of `0` characters in the current font). eg `table_max_col_width = 10`: 
+    - limit the width of the column to these characters and truncate the data text if needed.
+    - if a field is truncated, a popover will be shown with the full text (**requires `popper.js` be installed**)
+    - column headers will be wrapped to the width of the column (as determined by width of data items) 
+
 This is a **very early alpha** release; expect many breaking changes. You might prefer to just fork or copy and use whatever you need. Hopefully some or all of these features may make their way into `neapolitan` over time.
 
 ## Installation

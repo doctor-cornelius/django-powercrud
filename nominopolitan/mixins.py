@@ -82,9 +82,14 @@ class NominopolitanMixin:
         # eg in the base template.
 
     table_font_size = None
+    table_max_col_width = None
     def get_table_font_size(self):
         # The font size for the table (buttons, filters, column headers, rows) in object_list.html
-        return self.table_font_size or '0.875'
+        return self.table_font_size or '0.875' #rem
+    
+    def get_table_max_col_width(self):
+        # The max width for the table columns in object_list.html - in characters
+        return self.table_max_col_width or '25' #ch
 
     def get_framework_styles(self):
         
@@ -534,6 +539,7 @@ class NominopolitanMixin:
 
         # for table font sie used in list.html
         context['table_font_size'] = f"{self.get_table_font_size()}rem"
+        context['table_max_col_width'] = f"{self.get_table_max_col_width()}ch"
 
 
         if self.get_use_htmx():
@@ -601,6 +607,8 @@ class NominopolitanMixin:
                 self.request.session[self.get_session_key()] = f"#{self.request.htmx.target}"
                 context["original_target"] = self.get_original_target()
                 context['table_font_size'] = f"{self.get_table_font_size()}rem"
+                context['table_max_col_width'] = f"{self.get_table_max_col_width()}ch"
+
 
             response = render(
                 request=self.request,

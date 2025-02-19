@@ -30,11 +30,11 @@ class AuthorFilterSet(HTMXFilterSetMixin, FilterSet):
 class BookFilterSet(FilterSet):
     title = CharFilter(lookup_expr='icontains')
     published_date = DateFilter(
-        widget=forms.DateInput(attrs={'type': 'date'})
+        widget=forms.DateInput(attrs={'type': 'date', })
     )
     class Meta:
         model = Book
-        fields = ['author', 'title', 'published_date']
+        fields = ['author', 'title', 'published_date',]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
