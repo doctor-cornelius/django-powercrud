@@ -1,3 +1,9 @@
+## 0.0.41 (2025-02-19)
+
+### Feature
+
+- **(filter)**:  toggle display of filter fields
+
 ## 0.0.40 (2025-02-19)
 
 ### Feature
