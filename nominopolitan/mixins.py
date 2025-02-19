@@ -605,7 +605,6 @@ class NominopolitanMixin:
         """Handle both HTMX and regular requests"""
         template_names = self.get_template_names()
         template_name = template_names[0] if self.template_name else template_names[1]
-        log.debug(f"inside render_to_response. template_name: {template_name}")
 
         if self.request.htmx:
             # Store original target when first receiving list view
@@ -619,8 +618,6 @@ class NominopolitanMixin:
                 template_name=f"{template_name}#filtered_results"
             else:
                 template_name=f"{template_name}#content"
-
-            log.debug(f"X-Filter-Request': {self.request.headers.get('X-Filter-Request')}; template_name: {template_name}")
 
             response = render(
                 request=self.request,
