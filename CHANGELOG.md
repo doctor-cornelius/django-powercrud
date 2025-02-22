@@ -1,3 +1,9 @@
+## 0.0.43 (2025-02-22)
+
+### Documentation
+
+-  add docstrings and type hints
+
 ## 0.0.42 (2025-02-19)
 
 ### Refactor
