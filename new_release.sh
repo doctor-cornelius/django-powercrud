@@ -31,18 +31,27 @@ BUMP_TYPE=$1
 
 # increment version number
 poetry version $BUMP_TYPE
+NEW_VERSION=$(poetry version -s)
+
+# Check if tag already exists
+if git rev-parse "refs/tags/$NEW_VERSION" >/dev/null 2>&1; then
+    echo "Tag $NEW_VERSION already exists. Please delete it first:"
+    echo "git tag -d $NEW_VERSION"
+    echo "git push origin :refs/tags/$NEW_VERSION"
+    exit 1
+fi
 
 # create new changelog
-cz changelog --unreleased-version=$(poetry version -s)
+cz changelog --unreleased-version=$NEW_VERSION
 
 # Note scope (release) is what will trigger the release job
 git add -A
-git commit -m "release($BUMP_TYPE): Release $(poetry version -s)"
+git commit -m "release($BUMP_TYPE): Release $NEW_VERSION"
 
 # create a tag to reflect the release number
-git tag -a $(poetry version -s) -m "Release $(poetry version -s)"
+git tag -a $NEW_VERSION -m "Release $NEW_VERSION"
 
 # push the commit and tag to origin
 git push origin main --tags
 
-echo "Creation of new $BUMP_TYPE release triggered in CI: $(poetry version -s)"
+echo "Creation of new $BUMP_TYPE release triggered in CI: $NEW_VERSION"
