@@ -1,3 +1,20 @@
+"""
+This module contains custom template tags for the Nominopolitan package.
+
+It includes functions for generating action links, displaying object details,
+and rendering object lists with customized formatting.
+
+Key components:
+- action_links: Generates HTML for action buttons (View, Edit, Delete, etc.)
+- object_detail: Renders details of an object, including fields and properties
+- object_list: Creates a list view of objects with customized field display
+- get_proper_elided_page_range: Generates a properly elided page range for pagination
+
+The module adapts to different CSS frameworks and supports HTMX and modal functionality.
+"""
+
+from typing import Any, Dict, List, Optional, Tuple
+
 from django import template
 from django.utils.safestring import mark_safe
 from django.core.exceptions import FieldDoesNotExist
@@ -9,54 +26,52 @@ log = logging.getLogger("nominopolitan")
 
 register = template.Library()
 
-def action_links(view, object):
+def action_links(view: Any, object: Any) -> str:
+    """
+    Generate HTML for action links (buttons) for a given object.
 
-    framework = getattr(settings, 'NOMINOPOLITAN_CSS_FRAMEWORK', 'bulma')
-    styles = view.get_framework_styles()[framework]
+    Args:
+        view: The view instance
+        object: The object for which actions are being generated
 
-    prefix = view.get_prefix()
-    # below takes account of use_htmx, use_modal
-    use_htmx = view.get_use_htmx()
-    use_modal = view.get_use_modal()
+    Returns:
+        str: HTML string of action buttons
+    """
+    framework: str = getattr(settings, 'NOMINOPOLITAN_CSS_FRAMEWORK', 'bulma')
+    styles: Dict[str, Any] = view.get_framework_styles()[framework]
 
-    default_target = view.get_htmx_target() # this will be prepended with a #
+    prefix: str = view.get_prefix()
+    use_htmx: bool = view.get_use_htmx()
+    use_modal: bool = view.get_use_modal()
 
-    # Standard actions with Bulma button classes
-    actions = [
-        (url, name, styles['actions'][name], default_target, False, styles["modal_attrs"])  # View button
+    default_target: str = view.get_htmx_target() # this will be prepended with a #
+
+    # Standard actions with framework-specific button classes
+    actions: List[Tuple[str, str, str, str, bool, str]] = [
+        (url, name, styles['actions'][name], default_target, False, styles["modal_attrs"])
         for url, name in [
-            (
-                view.safe_reverse(f"{prefix}-detail", kwargs={"pk": object.pk}),
-                "View",
-            ),
-            (
-                view.safe_reverse(f"{prefix}-update", kwargs={"pk": object.pk}),
-                "Edit",
-            ),
-            (
-                view.safe_reverse(f"{prefix}-delete", kwargs={"pk": object.pk}),
-                "Delete",
-            ),
+            (view.safe_reverse(f"{prefix}-detail", kwargs={"pk": object.pk}), "View"),
+            (view.safe_reverse(f"{prefix}-update", kwargs={"pk": object.pk}), "Edit"),
+            (view.safe_reverse(f"{prefix}-delete", kwargs={"pk": object.pk}), "Delete"),
         ]
         if url is not None
     ]
 
     # Add extra actions if defined
-    extra_actions = getattr(view, "extra_actions", [])
+    extra_actions: List[Dict[str, Any]] = getattr(view, "extra_actions", [])
     for action in extra_actions:
-        url = view.safe_reverse(
+        url: Optional[str] = view.safe_reverse(
             action["url_name"],
             kwargs={"pk": object.pk} if action.get("needs_pk", True) else None,
         )
         if url is not None:
-            htmx_target = action.get("htmx_target", default_target)
+            htmx_target: str = action.get("htmx_target", default_target)
             if htmx_target and not htmx_target.startswith("#"):
                 htmx_target = f"#{htmx_target}"
-            button_class = action.get("button_class", styles['extra_default'])
+            button_class: str = action.get("button_class", styles['extra_default'])
             
-            # Add display_modal check
-            show_modal = action.get("display_modal", view.get_use_modal())
-            modal_attrs = styles["modal_attrs"] if show_modal else " "
+            show_modal: bool = action.get("display_modal", view.get_use_modal())
+            modal_attrs: str = styles["modal_attrs"] if show_modal else " "
             
             actions.append((
                 url, 
@@ -69,7 +84,7 @@ def action_links(view, object):
 
     # set up links for all actions (regular and extra)
     # note for future - could simplify by just conditionally adding hx-disable if not use_htmx
-    links = [
+    links: List[str] = [
         f"<div class='btn-group btn-group-sm'>" +
         " ".join([
             f"<a href='{url}' class='{styles['base']} {button_class}' style='{styles['button_style']}' "
@@ -89,7 +104,14 @@ def action_links(view, object):
 @register.inclusion_tag(f"nominopolitan/{getattr(settings, 'NOMINOPOLITAN_CSS_FRAMEWORK', 'bootstrap')}/partial/detail.html")
 def object_detail(object, view):
     """
-    Display both fields and properties for an object detail view
+    Display both fields and properties for an object detail view.
+
+    Args:
+        object: The object to display
+        view: The view instance
+
+    Returns:
+        dict: Context for rendering the detail template
     """
     def iter():
         # Handle regular fields
@@ -112,7 +134,6 @@ def object_detail(object, view):
     }
 
 
-
 @register.inclusion_tag(
         f"nominopolitan/{getattr(settings, 'NOMINOPOLITAN_CSS_FRAMEWORK', 'bootstrap')}/partial/list.html", 
         takes_context=True
@@ -133,10 +154,7 @@ def object_list(context, objects, view):
 
     # Headers for properties with proper capitalization
     property_headers = [prop.replace("_", " ").title() for prop in properties]
-
-    # Combine headers
     headers = field_headers + property_headers
-
 
     import locale
 
@@ -145,7 +163,6 @@ def object_list(context, objects, view):
             "object": object,
             "fields": [
                 (
-                    # override default to set value = str()
                     str(getattr(object, f).strftime('%d/%m/%Y'))
                     if object._meta.get_field(f).get_internal_type() == 'DateField' and getattr(object, f) is not None
                     else str(getattr(object, f))
@@ -167,7 +184,18 @@ def object_list(context, objects, view):
 
 @register.simple_tag
 def get_proper_elided_page_range(paginator, number, on_each_side=1, on_ends=1):
-    """Return a list of page numbers with proper elision"""
+    """
+    Return a list of page numbers with proper elision for pagination.
+
+    Args:
+        paginator: The Django Paginator instance
+        number: The current page number
+        on_each_side: Number of pages to show on each side of the current page
+        on_ends: Number of pages to show at the beginning and end of the range
+
+    Returns:
+        list: A list of page numbers and ellipsis characters
+    """
     page_range = paginator.get_elided_page_range(
         number=number,
         on_each_side=1,

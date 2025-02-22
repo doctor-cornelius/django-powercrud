@@ -2,7 +2,7 @@
 name = "django-nominopolitan"
 version = "0.0.42"
 description = "Neapolitan with namespaces - Django CRUD views"
-authors = ["Michael Foulds <mfoulds@navigatus.net>"]
+authors = ["doctor-cornelius"]
 readme = "README.md"
 packages = [{include = "nominopolitan"}]
 repository = "https://github.com/doctor-cornelius/django-nominopolitan"

@@ -1,3 +1,12 @@
+"""
+This module provides mixins for Django views that enhance CRUD operations with HTMX support,
+filtering capabilities, and modal interactions.
+
+Key Components:
+- HTMXFilterSetMixin: Adds HTMX attributes to filter forms for dynamic updates
+- NominopolitanMixin: Main mixin that provides CRUD view enhancements with HTMX and modal support
+"""
+
 from django import forms
 from django.db import models
 
@@ -25,24 +34,32 @@ from django_filters.filterset import filterset_factory
 from neapolitan.views import Role
 
 class HTMXFilterSetMixin:
-    HTMX_ATTRS = {
+    """
+    Mixin that adds HTMX attributes to filter forms for dynamic updates.
+    
+    Attributes:
+        HTMX_ATTRS (dict): Base HTMX attributes for form fields
+        FIELD_TRIGGERS (dict): Mapping of form field types to HTMX trigger events
+    """
+
+    HTMX_ATTRS: dict[str, str] = {
         'hx-get': '',
-        # 'hx-target': '#content',
-        'hx-include': '[name]',  # This will include all named form fields
+        'hx-include': '[name]',  # Include all named form fields
     }
 
-    FIELD_TRIGGERS = {
+    FIELD_TRIGGERS: dict[type[forms.Widget] | str, str] = {
         forms.DateInput: 'change',
         forms.TextInput: 'keyup changed delay:300ms',
         forms.NumberInput: 'keyup changed delay:300ms',
         'default': 'change'
     }
 
-    def setup_htmx_attrs(self):
+    def setup_htmx_attrs(self) -> None:
+        """Configure HTMX attributes for form fields and setup crispy form helper."""
         for field in self.form.fields.values():
-            widget_class = type(field.widget)
-            trigger = self.FIELD_TRIGGERS.get(widget_class, self.FIELD_TRIGGERS['default'])
-            attrs = {**self.HTMX_ATTRS, 'hx-trigger': trigger, }
+            widget_class: type[forms.Widget] = type(field.widget)
+            trigger: str = self.FIELD_TRIGGERS.get(widget_class, self.FIELD_TRIGGERS['default'])
+            attrs: dict[str, str] = {**self.HTMX_ATTRS, 'hx-trigger': trigger}
             field.widget.attrs.update(attrs)
 
         self.helper = FormHelper()
@@ -52,37 +69,54 @@ class HTMXFilterSetMixin:
         self.helper.template = 'bootstrap5/layout/inline_field.html'
 
 class NominopolitanMixin:
-    namespace = None
-    create_form_class = None
-    # templates_path = "nominopolitan" # path to overridden set of templates
-    templates_path = f"nominopolitan/{getattr(
-        settings, 'NOMINOPOLITAN_CSS_FRAMEWORK', 'bulma'
-        )}"
-    base_template_path = f"{templates_path}/base.html" # location of template
+    """
+    Main mixin that enhances Django CRUD views with HTMX support, filtering, and modal functionality.
+    
+    Attributes:
+        namespace (str | None): URL namespace for the view
+        templates_path (str): Path to template directory
+        base_template_path (str): Path to base template
+        use_crispy (bool | None): Enable crispy-forms if installed
+        exclude (list[str]): Fields to exclude from list view
+        properties (list[str]): Model properties to include in list view
+        use_htmx (bool | None): Enable HTMX functionality
 
-    use_crispy = None # True = use crispy-forms if installed; False otherwise.
+        use_modal (bool | None): Enable modal dialogs
+        modal_id (str | None): Custom modal element ID
+        modal_target (str | None): Allows override of the default modal target
+            which is #nominopolitanModalContent. Useful if for example
+            the project has a modal with a different id available
+            in the base template.
 
-    exclude = [] # fields to exclude from the list
-    properties = [] # properties to include in the list
-    properties_exclude = [] # properties to exclude from the list
+        table_font_size (str | None): Table font size in rem
+        table_max_col_width (str | None): Maximum column width in characters
+    """
 
-    detail_fields = [] # fields to include in the detail view
-    detail_exclude = [] # fields to exclude from the detail view
-    detail_properties = [] # properties to include in the detail view
-    detail_properties_exclude = [] # properties to exclude from the detail view
+    namespace: str | None = None
+    create_form_class: type[forms.ModelForm] | None = None
+    templates_path: str = f"nominopolitan/{getattr(settings, 'NOMINOPOLITAN_CSS_FRAMEWORK', 'bulma')}"
+    base_template_path: str = f"{templates_path}/base.html"
 
-    use_htmx = None
-    hx_trigger = None
+    use_crispy: bool | None = None
 
-    use_modal = None
-    modal_id = None # Allows override of the default modal id (#nominopolitanModalContent)
-    modal_target = None # Allows override of the default modal target
-        # which is #nominopolitanModalContent. Useful if for example
-        # the project has a modal with a different id available
-        # eg in the base template.
+    exclude: list[str] = []
+    properties: list[str] = []
+    properties_exclude: list[str] = []
 
-    table_font_size = None
-    table_max_col_width = None
+    detail_fields: list[str] = []
+    detail_exclude: list[str] = []
+    detail_properties: list[str] = []
+    detail_properties_exclude: list[str] = []
+
+    use_htmx: bool | None = None
+    hx_trigger: str | dict[str, str] | None = None
+
+    use_modal: bool | None = None
+    modal_id: str | None = None
+    modal_target: str | None = None
+
+    table_font_size: str | None = None
+    table_max_col_width: str | None = None
     def get_table_font_size(self):
         # The font size for the table (buttons, filters, column headers, rows) in object_list.html
         return self.table_font_size or '0.875' #rem
@@ -92,6 +126,12 @@ class NominopolitanMixin:
         return self.table_max_col_width or '25' #ch
 
     def get_framework_styles(self):
+        """
+        Get framework-specific styles for Bulma or Bootstrap 5.
+        
+        Returns:
+            dict: Framework-specific style configurations
+        """
         
         table_font_size = self.get_table_font_size()
 
@@ -131,8 +171,12 @@ class NominopolitanMixin:
 
 
     def list(self, request, *args, **kwargs):
-        """GET handler for the list view."""
-
+        """
+        Handle GET requests for list view, including filtering and pagination.
+        
+        Returns:
+            TemplateResponse: Rendered list view
+        """
         queryset = self.get_queryset()
         filterset = self.get_filterset(queryset)
         if filterset is not None:
@@ -168,72 +212,69 @@ class NominopolitanMixin:
 
 
     def get_filterset(self, queryset=None):
+        """
+        Create a dynamic FilterSet class based on provided parameters:
+            - filterset_class (in which case the provided class is used); or
+            - filterset_fields (in which case a dynamic class is created)
+        
+        Args:
+            queryset: Optional queryset to filter
+            
+        Returns:
+            FilterSet: Configured filter set instance or None
+        """
         filterset_class = getattr(self, "filterset_class", None)
         filterset_fields = getattr(self, "filterset_fields", None)
 
-        if filterset_class is None and filterset_fields:
+        if filterset_class is None and filterset_fields is not None:
             use_htmx = self.get_use_htmx()
             use_crispy = self.get_use_crispy()
 
             class DynamicFilterSet(HTMXFilterSetMixin, FilterSet):
+                """
+                Dynamically create a FilterSet class based on the model fields.
+
+                This class inherits from HTMXFilterSetMixin to add HTMX functionality
+                and FilterSet for Django filtering capabilities.
+                """
                 framework = getattr(settings, 'NOMINOPOLITAN_CSS_FRAMEWORK', 'bulma')
                 BASE_ATTRS = self.get_framework_styles()[framework]['filter_attrs']
 
-                # Define filters here, before Meta
+                # Dynamically create filter fields based on the model's fields
                 for field_name in filterset_fields:
                     model_field = self.model._meta.get_field(field_name)
                     field_attrs = BASE_ATTRS.copy()
 
-                    # Handle GeneratedField special case first
-                    if isinstance(model_field, models.GeneratedField):
-                        field_to_check = model_field.output_field
-                    else:
-                        field_to_check = model_field                    
+                    # Handle GeneratedField special case
+                    field_to_check = model_field.output_field if isinstance(model_field, models.GeneratedField) else model_field
 
-                    if isinstance(field_to_check, models.CharField):
-                        locals()[field_name] = CharFilter(
-                            lookup_expr='icontains',
-                            widget=forms.TextInput(attrs=field_attrs)
-                        )
-                    # if isinstance(field_to_check, models.TextField):
-                    #     locals()[field_name] = CharFilter(
-                    #         lookup_expr='icontains',
-                    #         widget=forms.TextInput(attrs=field_attrs)
-                    #     )
+                    # Create appropriate filter based on field type
+                    if isinstance(field_to_check, (models.CharField, models.TextField)):
+                        locals()[field_name] = CharFilter(lookup_expr='icontains', widget=forms.TextInput(attrs=field_attrs))
                     elif isinstance(field_to_check, models.DateField):
                         field_attrs['type'] = 'date'
-                        locals()[field_name] = DateFilter(
-                            widget=forms.DateInput(attrs=field_attrs)
-                        )
+                        locals()[field_name] = DateFilter(widget=forms.DateInput(attrs=field_attrs))
                     elif isinstance(field_to_check, (models.IntegerField, models.DecimalField, models.FloatField)):
                         field_attrs['step'] = 'any'
-                        locals()[field_name] = NumberFilter(
-                            widget=forms.NumberInput(attrs=field_attrs)
-                        )
+                        locals()[field_name] = NumberFilter(widget=forms.NumberInput(attrs=field_attrs))
                     elif isinstance(field_to_check, models.BooleanField):
-                        locals()[field_name] = BooleanFilter(
-                            widget=forms.Select(attrs=field_attrs, choices=((None, '---------'), (True, True), (False, False)))
-                        )
+                        locals()[field_name] = BooleanFilter(widget=forms.Select(
+                            attrs=field_attrs, choices=((None, '---------'), (True, True), (False, False))))
                     elif isinstance(field_to_check, models.ForeignKey):
-                        locals()[field_name] = ModelChoiceFilter(
-                            queryset=model_field.related_model.objects.all(),
-                            widget=forms.Select(attrs=field_attrs)
-                        )
+                        locals()[field_name] = ModelChoiceFilter(queryset=model_field.related_model.objects.all(), 
+                                                                 widget=forms.Select(attrs=field_attrs))
                     elif isinstance(field_to_check, models.TimeField):
-                        field_attrs.update({'type': 'time'})
-                        locals()[field_name] = TimeFilter(
-                            widget=forms.TimeInput(attrs=field_attrs)
-                        )
+                        field_attrs['type'] = 'time'
+                        locals()[field_name] = TimeFilter(widget=forms.TimeInput(attrs=field_attrs))
                     else:
-                        locals()[field_name] = CharFilter(
-                            widget=forms.TextInput(attrs=field_attrs)
-                        )
+                        locals()[field_name] = CharFilter(widget=forms.TextInput(attrs=field_attrs))
 
                 class Meta:
                     model = self.model
                     fields = filterset_fields
                
                 def __init__(self, *args, **kwargs):
+                    """Initialize the FilterSet and set up HTMX attributes if needed."""
                     super().__init__(*args, **kwargs)
                     if use_htmx:
                         self.setup_htmx_attrs()
@@ -356,31 +397,93 @@ class NominopolitanMixin:
             raise TypeError("detail_properties_exclude must be a list")
         
     def get_session_key(self):
+        """
+        Generate a unique session key for storing the original HTMX target.
+
+        This method is called from the render_to_response method when handling HTMX requests
+        for the list view. It creates a unique key based on the view's url_base to store
+        the original HTMX target in the session.
+
+        Returns:
+            str: A unique session key in the format "nominopolitan_list_target_{url_base}"
+        """
         return f"nominopolitan_list_target_{self.url_base}"
 
     def get_original_target(self):
+        """
+        Retrieve the original HTMX target from the session.
+
+        This method is called in get_context_data() to provide the original target
+        in the context for templates.
+
+        Returns:
+            str or None: The original HTMX target or None if not set
+        """
         return self.request.session.get(self.get_session_key(), None)
 
     def get_use_htmx(self):
-        # return True if it was set to be True, and False otherwise
+        """
+        Determine if HTMX should be used.
+
+        This method is called in multiple places, including get_context_data(),
+        get_htmx_target(), and get_use_modal(), to check if HTMX functionality
+        should be enabled.
+
+        Returns:
+            bool: True if HTMX should be used, False otherwise
+        """
         return self.use_htmx is True
 
     def get_use_modal(self):
-        # must be using htmx for this to work
+        """
+        Determine if modal functionality should be used.
+
+        This method is called in get_context_data() to set the 'use_modal' context
+        variable for templates. It requires HTMX to be enabled.
+
+        Returns:
+            bool: True if modal should be used and HTMX is enabled, False otherwise
+        """
         result = self.use_modal is True and self.get_use_htmx()
         return result
     
     def get_modal_id(self):
-        # use default if modal_id not set
+        """
+        Get the ID for the modal element.
+
+        This method is called in get_framework_styles() to set the modal attributes
+        for Bootstrap 5.
+
+        Returns:
+            str: The modal ID with a '#' prefix
+        """
         modal_id = self.modal_id or 'nominopolitanBaseModal'
         return f'#{modal_id}'
     
     def get_modal_target(self):
-        # use default if modal_target not set
+        """
+        Get the target element ID for the modal content.
+
+        This method is called in get_htmx_target() when use_modal is True to
+        determine where to render the modal content.
+
+        Returns:
+            str: The modal target ID with a '#' prefix
+        """
         modal_target = self.modal_target or 'nominopolitanModalContent'
         return f'#{modal_target}'
     
     def get_hx_trigger(self):
+        """
+        Get the HX-Trigger value for HTMX responses.
+
+        This method is called in render_to_response() to set the HX-Trigger header
+        for HTMX responses. It handles string, numeric, and dictionary values for
+        the hx_trigger attribute.
+
+        Returns:
+            str or None: The HX-Trigger value as a string, or None if not applicable
+        """
         if not self.get_use_htmx() or not self.hx_trigger:
             return None
             
@@ -394,9 +497,17 @@ class NominopolitanMixin:
         else:
             raise TypeError("hx_trigger must be either a string or dict with string keys")
 
-
     def get_htmx_target(self):
+        """
+        Determine the HTMX target for rendering responses.
 
+        This method is called in get_context_data() to set the htmx_target context
+        variable for templates. It handles different scenarios based on whether
+        HTMX and modal functionality are enabled.
+
+        Returns:
+            str or None: The HTMX target as a string with '#' prefix, or None if not applicable
+        """
         # only if using htmx
         if not self.get_use_htmx():
             htmx_target = None
@@ -411,9 +522,23 @@ class NominopolitanMixin:
         return htmx_target
 
     def get_use_crispy(self):
-        # check if attribute was set
+        """
+        Determine if crispy forms should be used.
+
+        This method is called in get_context_data() to set the 'use_crispy' context
+        variable for templates. It checks if the crispy_forms app is installed and
+        if the use_crispy attribute is explicitly set.
+
+        Returns:
+            bool: True if crispy forms should be used, False otherwise
+
+        Note:
+            - If use_crispy is explicitly set to True but crispy_forms is not installed,
+              it logs a warning and returns False.
+            - If use_crispy is not set, it returns True if crispy_forms is installed,
+              False otherwise.
+        """
         use_crispy_set = self.use_crispy is not None
-        # check if crispy_forms is installed
         crispy_installed = "crispy_forms" in settings.INSTALLED_APPS
 
         if use_crispy_set:
@@ -421,11 +546,22 @@ class NominopolitanMixin:
                 log.warning("use_crispy is set to True, but crispy_forms is not installed. Forcing to False.")
                 return False
             return self.use_crispy
-        # user did not set attribute. Return True if crispy_forms is installed else False
         return crispy_installed
 
     @staticmethod
     def get_url(role, view_cls):
+        """
+        Generate a URL pattern for a specific role and view class.
+
+        This method is used internally by the get_urls method to create individual URL patterns.
+
+        Args:
+            role (Role): The role for which to generate the URL.
+            view_cls (class): The view class for which to generate the URL.
+
+        Returns:
+            path: A Django URL pattern for the specified role and view class.
+        """
         return path(
             role.url_pattern(view_cls),
             view_cls.as_view(role=role),
@@ -434,11 +570,40 @@ class NominopolitanMixin:
 
     @classonlymethod
     def get_urls(cls, roles=None):
+        """
+        Generate a list of URL patterns for all roles or specified roles.
+
+        This method is typically called from the urls.py file of a Django app to generate
+        URL patterns for all CRUD views associated with a model.
+
+        Args:
+            roles (iterable, optional): An iterable of Role objects. If None, all roles are used.
+
+        Returns:
+            list: A list of URL patterns for the specified roles.
+        """
         if roles is None:
             roles = iter(Role)
         return [NominopolitanMixin.get_url(role, cls) for role in roles]
 
     def reverse(self, role, view, object=None):
+        """
+        Override of neapolitan's reverse method.
+        
+        Generates a URL for a given role, view, and optional object.
+        Handles namespaced and non-namespaced URLs.
+
+        Args:
+            role (Role): The role for which to generate the URL.
+            view (View): The view class for which to generate the URL.
+            object (Model, optional): The model instance for detail, update, and delete URLs.
+
+        Returns:
+            str: The generated URL.
+
+        Raises:
+            ValueError: If object is None for detail, update, and delete URLs.
+        """
         url_name = (
             f"{view.namespace}:{view.url_base}-{role.url_name_component}"
             if view.namespace
@@ -458,6 +623,18 @@ class NominopolitanMixin:
                 )
 
     def maybe_reverse(self, view, object=None):
+        """
+        Override of neapolitan's maybe_reverse method.
+        
+        Attempts to reverse a URL, returning None if it fails.
+
+        Args:
+            view (View): The view class for which to generate the URL.
+            object (Model, optional): The model instance for detail, update, and delete URLs.
+
+        Returns:
+            str or None: The generated URL if successful, None otherwise.
+        """
         try:
             return self.reverse(view, object)
         except NoReverseMatch:
@@ -465,12 +642,15 @@ class NominopolitanMixin:
     
     def get_form_class(self):
         """
-        Override get_form_classto remove any non-editable fields 
-        where a form_class was not specified. This is because the form class gets
-        constructed from model_forms.modelform_factory(self.model, fields=self.fields)
-        """
+        Override get_form_class to remove any non-editable fields where a form_class was not specified.
+        
+        This method is called by Django's form processing to determine which form class to use.
+        It removes non-editable fields from self.fields if a form_class is not explicitly set,
+        and uses create_form_class for CREATE operations if specified.
 
-        # if fields were specified, but form_class was not, remove non-editable fields
+        Returns:
+            Form class to be used for the current view.
+        """
         if self.fields and not self.form_class:
             non_editable_fields = [
                     field.name for field in self.model._meta.fields 
@@ -478,23 +658,53 @@ class NominopolitanMixin:
                 ]
             self.fields = [field for field in self.fields if field not in non_editable_fields]
 
-        # if create_form_class parameter was specified, use it
         if self.create_form_class and self.role is Role.CREATE:
             return self.create_form_class
 
         return super().get_form_class()
 
     def get_prefix(self):
+        """
+        Generate a prefix for URL names.
+
+        This method is used in get_context_data to create namespaced URL names.
+
+        Returns:
+            str: A prefix string for URL names, including namespace if set.
+        """
         return f"{self.namespace}:{self.url_base}" if self.namespace else self.url_base
 
     def safe_reverse(self, viewname, kwargs=None):
-        """Attempt to reverse a URL, returning None if it fails."""
+        """
+        Safely attempt to reverse a URL, returning None if it fails.
+
+        This method is used in get_context_data to generate URLs for various views.
+
+        Args:
+            viewname (str): The name of the view to reverse.
+            kwargs (dict, optional): Additional keyword arguments for URL reversing.
+
+        Returns:
+            str or None: The reversed URL if successful, None otherwise.
+        """
         try:
             return reverse(viewname, kwargs=kwargs)
         except NoReverseMatch:
             return None
 
     def get_template_names(self):
+        """
+        Determine the appropriate template names for the current view.
+
+        This method is called by Django's template rendering system to find the correct template.
+        It overrides the default behavior to include custom template paths.
+
+        Returns:
+            list: A list of template names to be used for rendering.
+
+        Raises:
+            ImproperlyConfigured: If neither template_name nor model and template_name_suffix are defined.
+        """
         if self.template_name is not None:
             return [self.template_name]
 
@@ -513,9 +723,21 @@ class NominopolitanMixin:
         raise ImproperlyConfigured(msg % self.__class__.__name__)
 
     def get_context_data(self, **kwargs):
+        """
+        Prepare and return the context data for template rendering.
+
+        This method extends the base context with additional data specific to the view,
+        including URLs for CRUD operations, HTMX-related settings, and related object information.
+
+        Args:
+            **kwargs: Additional keyword arguments passed to the method.
+
+        Returns:
+            dict: The context dictionary containing all the data for template rendering.
+        """
         context = super().get_context_data(**kwargs)
 
-        # Override the create_view_url to use our namespaced reverse
+        # Generate and add URLs for create, update, and delete operations
         view_name = f"{self.get_prefix()}-{Role.CREATE.value}"
         context["create_view_url"] = self.safe_reverse(view_name)
 
@@ -525,32 +747,25 @@ class NominopolitanMixin:
             delete_view_name = f"{self.get_prefix()}-{Role.DELETE.value}"
             context["delete_view_url"] = self.safe_reverse(delete_view_name, kwargs={"pk": self.object.pk})
 
-        # to be used in partials to update the header title
+        # Set header title for partial updates
         context["header_title"] = f"{self.url_base.title()}-{self.role.value.title()}"
 
-        # set base_template_path
+        # Add template and feature configuration
         context["base_template_path"] = self.base_template_path
-
-        # set use_crispy for templates
         context["use_crispy"] = self.get_use_crispy()
-
-        # set use_htmx for templates
         context["use_htmx"] = self.get_use_htmx()
-
-        # set use_modal for templates
         context['use_modal'] = self.get_use_modal()
-
         context["original_target"] = self.get_original_target()
 
-        # for table font sie used in list.html
+        # Set table styling parameters
         context['table_font_size'] = f"{self.get_table_font_size()}rem"
         context['table_max_col_width'] = f"{self.get_table_max_col_width()}ch"
 
-
+        # Add HTMX-specific context if enabled
         if self.get_use_htmx():
             context["htmx_target"] = self.get_htmx_target()
 
-        # Add related fields for list view
+        # Add related fields information for list view
         if self.role == Role.LIST and hasattr(self, "object_list"):
             context["related_fields"] = {
                 field.name: field.related_model._meta.verbose_name
@@ -558,7 +773,7 @@ class NominopolitanMixin:
                 if field.is_relation
             }
 
-        # Add related objects for detail view
+        # Add related objects information for detail view
         if self.role == Role.DETAIL and hasattr(self, "object"):
             context["related_objects"] = {
                 field.name: str(getattr(self.object, field.name))
@@ -569,45 +784,60 @@ class NominopolitanMixin:
         return context
 
     def get_success_url(self):
-        # Verify that a model is defined for this view
-        # This is required to construct the URL patterns
+        """
+        Determine the URL to redirect to after a successful form submission.
+
+        This method constructs the appropriate success URL based on the current role
+        (CREATE, UPDATE, DELETE) and the view's configuration. It uses the namespace
+        and url_base attributes to generate the correct URL patterns.
+
+        Returns:
+            str: The URL to redirect to after a successful form submission.
+
+        Raises:
+            AssertionError: If the model is not defined for this view.
+        """
         assert self.model is not None, (
             "'%s' must define 'model' or override 'get_success_url()'"
             % self.__class__.__name__
         )
 
-        # Construct the list URL name, using namespace if provided
-        # Example: "sample:author-list" or just "author-list"
         url_name = (
             f"{self.namespace}:{self.url_base}-list"
             if self.namespace
             else f"{self.url_base}-list"
         )
 
-        # Different behavior based on the role
         if self.role in (Role.DELETE, Role.UPDATE, Role.CREATE):
-            # After deletion, go to the list view
             success_url = reverse(url_name)
         else:
-            # For create/update, construct detail URL
-            # Example: "sample:author-detail" or "author-detail"
             detail_url = (
                 f"{self.namespace}:{self.url_base}-detail"
                 if self.namespace
                 else f"{self.url_base}-detail"
             )
-            # Reverse the detail URL with the object's primary key
             success_url = reverse(detail_url, kwargs={"pk": self.object.pk})
 
         return success_url
 
     def render_to_response(self, context={}):
-        """Handle both HTMX and regular requests"""
+        """
+        Render the response, handling both HTMX and regular requests.
+
+        This method determines the appropriate template and rendering method based on
+        whether the request is an HTMX request or a regular request. For HTMX requests,
+        it handles partial content updates and sets appropriate HTMX-specific headers.
+
+        Args:
+            context (dict): The context dictionary for template rendering.
+
+        Returns:
+            HttpResponse: The rendered response, either as a full page or partial content.
+        """
         template_names = self.get_template_names()
         template_name = template_names[0] if self.template_name else template_names[1]
 
         if self.request.htmx:
-            # Store original target when first receiving list view
             if self.role == Role.LIST:
                 self.request.session[self.get_session_key()] = f"#{self.request.htmx.target}"
                 context["original_target"] = self.get_original_target()
@@ -624,7 +854,6 @@ class NominopolitanMixin:
                 template_name=f"{template_name}",
                 context=context,
             )
-            # Add a HX-Trigger header to refresh the target element
             response['HX-Trigger'] = self.get_hx_trigger()
             return response
         else:
