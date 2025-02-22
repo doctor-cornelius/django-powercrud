@@ -94,7 +94,7 @@ class NominopolitanMixin:
 
     namespace: str | None = None
     create_form_class: type[forms.ModelForm] | None = None
-    templates_path: str = f"nominopolitan/{getattr(settings, 'NOMINOPOLITAN_CSS_FRAMEWORK', 'bulma')}"
+    templates_path: str = f"nominopolitan/{getattr(settings, 'NOMINOPOLITAN_CSS_FRAMEWORK', 'bootstrap5')}"
     base_template_path: str = f"{templates_path}/base.html"
 
     use_crispy: bool | None = None
@@ -127,7 +127,8 @@ class NominopolitanMixin:
 
     def get_framework_styles(self):
         """
-        Get framework-specific styles for Bulma or Bootstrap 5.
+        Get framework-specific styles. Override this method and add 
+        the new framework name as a key to the returned dictionary.
         
         Returns:
             dict: Framework-specific style configurations
@@ -136,35 +137,27 @@ class NominopolitanMixin:
         table_font_size = self.get_table_font_size()
 
         return {
-            'bulma': {
-                'base': 'button is-small',
-                'button_style': 'font-size: 0.875rem;' ,
-                'actions': {
-                    'View': 'is-info',
-                    'Edit': 'is-link',
-                    'Delete': 'is-danger'
-                },
-                'extra_default': 'is-link',
-                'modal_attrs': '',
-                'filter_attrs': {
-                    'class': 'input is-small',
-                    'style': 'font-size: 0.875rem;'
-                }
-            },
             'bootstrap5': {
+                # to make table styling for font size work
                 'font-size': f'{table_font_size}rem;',
+                # base class for buttons
                 'base': 'btn btn-sm py-0',
+                # style for buttons
                 'button_style': f'font-size: {table_font_size}rem;' ,
+                # attributes for filter form fields
                 'filter_attrs': {
                     'class': 'form-control-xs small py-1',
                     'style': f'font-size: {table_font_size}rem;'
                 },
+                # set colours for the action buttons
                 'actions': {
                     'View': 'btn-info',
                     'Edit': 'btn-primary',
                     'Delete': 'btn-danger'
                 },
+                # default colour for extra action buttons
                 'extra_default': 'btn-primary',
+                # modal class attributes
                 'modal_attrs': f'data-bs-toggle="modal" data-bs-target="{self.get_modal_id()}"',
             }
         }
@@ -237,7 +230,7 @@ class NominopolitanMixin:
                 This class inherits from HTMXFilterSetMixin to add HTMX functionality
                 and FilterSet for Django filtering capabilities.
                 """
-                framework = getattr(settings, 'NOMINOPOLITAN_CSS_FRAMEWORK', 'bulma')
+                framework = getattr(settings, 'NOMINOPOLITAN_CSS_FRAMEWORK', 'bootstrap5')
                 BASE_ATTRS = self.get_framework_styles()[framework]['filter_attrs']
 
                 # Dynamically create filter fields based on the model's fields

@@ -37,7 +37,7 @@ def action_links(view: Any, object: Any) -> str:
     Returns:
         str: HTML string of action buttons
     """
-    framework: str = getattr(settings, 'NOMINOPOLITAN_CSS_FRAMEWORK', 'bulma')
+    framework: str = getattr(settings, 'NOMINOPOLITAN_CSS_FRAMEWORK', 'bootstrap5')
     styles: Dict[str, Any] = view.get_framework_styles()[framework]
 
     prefix: str = view.get_prefix()

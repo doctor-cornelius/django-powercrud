@@ -26,12 +26,6 @@ This is an opinionated extension package for the excellent [`neapolitan`](https:
 - if `filterset_fields` is specified, style with crispy_forms if present and set htmx attributes if applicable
 - if `filterset_class` is provided, then option to subclass `HTMXFilterSetMixin` and use `self.setup_htmx_attrs()` in `__init__()`
 
-**Forms**
-- Separate create form if `create_form_class` specified (probably not worth having)
-- Support for `crispy-forms` if installed in project
-    - make sure you have `crispy_bulma` or `crispy_bootstrap5` also installed if you want
-- if `form_class` is not specified, then non-editable fields are excluded from forms
-
 **`htmx` and modals**
 - Support for rendering templates using `htmx`
 - Support for modal display of CRUD view actions (requires `htmx` -- and Alpine for bulma)
@@ -39,9 +33,21 @@ This is an opinionated extension package for the excellent [`neapolitan`](https:
 - Support to specify `hx_trigger` and set `response['HX-Trigger']` for every response
 
 **Styled Templates**
-- Supports `bootstrap5` (default) or `bulma` (deprecated and will be dropped soon)
-- In `settings.py` set `NOMINOPOLITAN_CSS_FRAMEWORK = 'bootstrap5'  # or 'bulma'`
-- If you override the templates to use a different framework, you will also need to override the `NominopolitanMixin.get_framework_styles()` method.
+- Supports `bootstrap5` (default framework). To use a different CSS framework:
+    - Set `NOMINOPOLITAN_CSS_FRAMEWORK = '<framework_name>'` in `settings.py`
+    - Create corresponding templates in your `templates_path` directory
+    - Override `NominopolitanMixin.get_framework_styles()` in your view to add your framework's styles,  
+      set the `framework` key to the name of your framework and add the required values.
+
+**Forms**
+- if `form_class` is not specified, then non-editable fields are automatically excluded from forms
+- Optional `create_form_class` for create operations:
+    - Allows a separate form class specifically for create views
+    - Useful when create and update forms need different: Field sets, Validation logic, Base classes
+    - Falls back to `form_class` if not specified
+- Support for `crispy-forms` if installed in project and `use_crispy` parameter is not `False`
+    - make sure you have `crispy_bootstrap5` also installed if you want
+    - if you have set up a different library use the correct crispy package (eg `crispy_bulma`, `crispy_tailwind`)
 
 **Styled Table Options**
 - set `table_font_size` as a parameter, measured in `rem`. eg `table_font_size = 0.875`. This will be applied to buttons, filters and the table data itself using the custom style in `object_list.html`: `.table-font-size {font-size: {{ table_font_size }};}`.

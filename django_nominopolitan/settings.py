@@ -64,11 +64,10 @@ INSTALLED_APPS = [
     "nominopolitan",
     "neapolitan",
     "crispy_forms",
-    "crispy_bulma",
     "crispy_bootstrap5",
 ]
 
-NOMINOPOLITAN_CSS_FRAMEWORK = 'bootstrap5'  # or 'bulma'
+NOMINOPOLITAN_CSS_FRAMEWORK = 'bootstrap5'
 
 CRISPY_ALLOWED_TEMPLATE_PACKS = (NOMINOPOLITAN_CSS_FRAMEWORK,)
 CRISPY_TEMPLATE_PACK = NOMINOPOLITAN_CSS_FRAMEWORK
