@@ -1,3 +1,9 @@
+## 0.1.0 (2025-02-22)
+
+### Feature
+
+- **(bulma)**:  Remove support for bulma in base package
+
 ## 0.0.43 (2025-02-22)
 
 ### Documentation
