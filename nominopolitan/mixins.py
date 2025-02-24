@@ -119,7 +119,7 @@ class NominopolitanMixin:
     table_max_col_width: str | None = None
     def get_table_font_size(self):
         # The font size for the table (buttons, filters, column headers, rows) in object_list.html
-        return self.table_font_size or '0.875' #rem
+        return self.table_font_size or '1' #rem
     
     def get_table_max_col_width(self):
         # The max width for the table columns in object_list.html - in characters
