@@ -1,3 +1,18 @@
+## 0.1.1 (2025-03-01)
+
+### Refactor
+
+- **(DynamicFilterSet)**:  use icontains for 'else' CharFilter
+- **(get_table_font_size)**:  set default to 1rem instead of 0.875rem
+
+### Documentation
+
+- **(README)**:  update docs re ability to override get_filter_queryset_for_field
+
+### Feature
+
+- **(get_filterset_for_field)**:  separate out method for easier override to restrict foreign key fields if needed
+
 ## 0.1.0 (2025-02-22)
 
 ### Feature
