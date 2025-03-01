@@ -204,6 +204,20 @@ class NominopolitanMixin:
         return self.render_to_response(context)
 
 
+    def get_filter_queryset_for_field(self, field_name, model_field):
+        """Get the queryset to use for a ModelChoiceFilter.
+        
+        Override this method to customize filter querysets for foreign keys.
+        
+        Args:
+            field_name (str): Name of the field being filtered
+            model_field: The model field instance
+            
+        Returns:
+            QuerySet: The queryset to use for the filter choices
+        """
+        return model_field.related_model.objects.all()
+
     def get_filterset(self, queryset=None):
         """
         Create a dynamic FilterSet class based on provided parameters:
@@ -254,8 +268,10 @@ class NominopolitanMixin:
                         locals()[field_name] = BooleanFilter(widget=forms.Select(
                             attrs=field_attrs, choices=((None, '---------'), (True, True), (False, False))))
                     elif isinstance(field_to_check, models.ForeignKey):
-                        locals()[field_name] = ModelChoiceFilter(queryset=model_field.related_model.objects.all(), 
-                                                                 widget=forms.Select(attrs=field_attrs))
+                        locals()[field_name] = ModelChoiceFilter(
+                            queryset=self.get_filter_queryset_for_field(field_name, model_field),
+                            widget=forms.Select(attrs=field_attrs)
+                        )
                     elif isinstance(field_to_check, models.TimeField):
                         field_attrs['type'] = 'time'
                         locals()[field_name] = TimeFilter(widget=forms.TimeInput(attrs=field_attrs))

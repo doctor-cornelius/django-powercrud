@@ -30,6 +30,14 @@ class BookCRUDView(NominopolitanMixin, CRUDView):
     table_font_size = '1.2'
     table_max_col_width = '15' # characters
 
+    # def get_filter_queryset_for_field(self, field_name, model_field):
+    #     """Override to restrict the available options if the field is author.
+    #     """
+    #     qs = super().get_filter_queryset_for_field(field_name, model_field)
+    #     print(field_name)
+    #     if field_name == 'author':
+    #         qs = qs.filter(id=20)
+    #     return qs
 
 class AuthorCRUDView(NominopolitanMixin, CRUDView):
     model = models.Author
