@@ -210,8 +210,10 @@ class NominopolitanMixin:
         Override this method to customize filter querysets for foreign keys.
         
         Args:
-            field_name (str): Name of the field being filtered
-            model_field: The model field instance
+            field_name (str): Name of the field being filtered 
+                                (makes it easier to override)
+            model_field: The actual Django model field instance 
+                                (e.g., ForeignKey, CharField)
             
         Returns:
             QuerySet: The queryset to use for the filter choices

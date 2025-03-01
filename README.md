@@ -25,6 +25,28 @@ This is an opinionated extension package for the excellent [`neapolitan`](https:
 - `object_list.html` styled for bootstrap to show filters.
 - if `filterset_fields` is specified, style with crispy_forms if present and set htmx attributes if applicable
 - if `filterset_class` is provided, then option to subclass `HTMXFilterSetMixin` and use `self.setup_htmx_attrs()` in `__init__()`
+- You can now override the method `get_filter_queryset_for_field(self, field_name, model_field)` to restrict the available options for a filter field.
+    - `field_name`: The name of the field being filtered (str)
+    - `model_field`: The actual Django model field instance (e.g., ForeignKey, CharField)
+    - For example, if you're already restricting the returned objects by overriding `get_queryset()`, then you want the filter options for foreign key fields to also be subject to this restriction.
+    - So you can override `get_filter_queryset_for_field()` to return the queryset for the field, but filtered by the same restriction as your overridden `get_queryset()` method.
+  
+        ```python
+        # Example of overrides of get_queryset and get_filter_queryset_for_field
+        # def get_queryset(self):
+        #     qs = super().get_queryset()
+        #     qs = qs.filter(author__id=20)
+        #     return qs.select_related('author')
+
+        # def get_filter_queryset_for_field(self, field_name, model_field):
+        #     """Override to restrict the available options if the field is author.
+        #     """
+        #     qs = super().get_filter_queryset_for_field(field_name, model_field)
+        #     print(field_name)
+        #     if field_name == 'author':
+        #         qs = qs.filter(id=20)
+        #     return qs
+        ```
 
 **`htmx` and modals**
 - Support for rendering templates using `htmx`

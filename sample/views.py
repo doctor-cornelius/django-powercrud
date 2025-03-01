@@ -30,6 +30,13 @@ class BookCRUDView(NominopolitanMixin, CRUDView):
     table_font_size = '1.2'
     table_max_col_width = '15' # characters
 
+
+    # Example of overrides of get_queryset and get_filter_queryset_for_field
+    # def get_queryset(self):
+    #     qs = super().get_queryset()
+    #     qs = qs.filter(author__id=20)
+    #     return qs.select_related('author')
+
     # def get_filter_queryset_for_field(self, field_name, model_field):
     #     """Override to restrict the available options if the field is author.
     #     """
