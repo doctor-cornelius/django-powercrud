@@ -278,7 +278,7 @@ class NominopolitanMixin:
                         field_attrs['type'] = 'time'
                         locals()[field_name] = TimeFilter(widget=forms.TimeInput(attrs=field_attrs))
                     else:
-                        locals()[field_name] = CharFilter(widget=forms.TextInput(attrs=field_attrs))
+                        locals()[field_name] = CharFilter(lookup_expr='icontains', widget=forms.TextInput(attrs=field_attrs))
 
                 class Meta:
                     model = self.model
