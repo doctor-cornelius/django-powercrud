@@ -734,26 +734,43 @@ class NominopolitanMixin:
     def get_queryset(self):
         """
         Get the queryset for the view, applying sorting if specified.
+        Always includes a secondary sort by primary key for stable pagination.
         """
         queryset = super().get_queryset()
         sort_param = self.request.GET.get('sort')
         
         if sort_param:
             # Handle descending sort (prefixed with '-')
-            if sort_param.startswith('-'):
-                field_name = sort_param[1:]
-            else:
-                field_name = sort_param
+            descending = sort_param.startswith('-')
+            field_name = sort_param[1:] if descending else sort_param
             
-            # Convert header name to field name (replace spaces with underscores and lowercase)
-            field_name = field_name.lower().replace(' ', '_')
+            # Get all valid field names and properties
+            valid_fields = {f.name: f.name for f in self.model._meta.fields}
+            # Add any properties that are sortable
+            valid_fields.update({p: p for p in getattr(self, 'properties', [])})
             
-            # Verify the field exists to prevent injection
-            valid_fields = [f.name for f in self.model._meta.fields] + getattr(self, 'properties', [])
-            
+            # Try to match the sort parameter to a valid field
+            # First try exact match
             if field_name in valid_fields:
-                queryset = queryset.order_by(sort_param)
-        
+                sort_field = valid_fields[field_name]
+            else:
+                # Try case-insensitive match
+                matches = {k.lower(): v for k, v in valid_fields.items()}
+                sort_field = matches.get(field_name.lower())
+                
+            if sort_field:
+                # Re-add the minus sign if it was descending
+                if descending:
+                    sort_field = f'-{sort_field}'
+                    # Add secondary sort by -pk for descending
+                    queryset = queryset.order_by(sort_field, '-pk')
+                else:
+                    # Add secondary sort by pk for ascending
+                    queryset = queryset.order_by(sort_field, 'pk')
+        else:
+            # If no sort specified, sort by pk as default
+            queryset = queryset.order_by('pk')
+            
         return queryset
 
     def get_context_data(self, **kwargs):

@@ -14,6 +14,7 @@ The module adapts to different CSS frameworks and supports HTMX and modal functi
 """
 
 from typing import Any, Dict, List, Optional, Tuple
+import re  # Add this import at the top with other imports
 
 from django import template
 from django.utils.safestring import mark_safe
@@ -147,14 +148,17 @@ def object_list(context, objects, view):
     fields = view.fields
     properties = getattr(view, "properties", []) or []
 
-    # Headers for fields - get the related model's verbose_name for relation fields
-    field_headers = []
+    # Create tuples of (display_name, field_name) for each field
+    headers = []
     for f in fields:
-        field_headers.append(f.replace('_', ' ').title())
+        field = view.model._meta.get_field(f)
+        display_name = field.verbose_name.title() if field.verbose_name else f.replace('_', ' ').title()
+        headers.append((display_name, f))
 
-    # Headers for properties with proper capitalization
-    property_headers = [prop.replace("_", " ").title() for prop in properties]
-    headers = field_headers + property_headers
+    # Add properties with proper display names
+    for prop in properties:
+        display_name = prop.replace('_', ' ').title()
+        headers.append((display_name, prop))
 
     object_list = [
         {
@@ -175,19 +179,18 @@ def object_list(context, objects, view):
         for object in objects
     ]
 
-    # Get sort from request context
     request = context.get('request')
     current_sort = request.GET.get('sort', '') if request else ''
-    use_htmx = context.get('use_htmx', view.get_use_htmx())  # Get from parent context first
-    original_target = context.get('original_target', view.get_original_target()) 
+    use_htmx = context.get('use_htmx', view.get_use_htmx())
+    original_target = context.get('original_target', view.get_original_target())
 
     return {
-        "headers": headers,
+        "headers": headers,  # Now contains tuples of (display_name, field_name)
         "object_list": object_list,
-        "sort": current_sort,  # Add sort to the template context
+        "current_sort": current_sort,
         "use_htmx": use_htmx,
         "original_target": original_target,
-        "request": request,    # Pass request to maintain access to GET parameters
+        "request": request,
     }
 
 @register.simple_tag
@@ -210,6 +213,4 @@ def get_proper_elided_page_range(paginator, number, on_each_side=1, on_ends=1):
         on_ends=1
     )
     return page_range
-
-
 

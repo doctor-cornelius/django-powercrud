@@ -80,8 +80,9 @@ This is an opinionated extension package for the excellent [`neapolitan`](https:
 
 **Table Sorting**
 - click table header to toggle sorting direction (columns start off unsorted)
+- the method always includes a secondary sort by primary key for stable pagination
 - will use `htmx` if `use_htmx is True`
-- current `list.html` template will display bootstrap icons for sorting direction:
+- current `list.html` template will display bootstrap icons (if installed) for sorting direction:
     - you must [install bootstrap icons](https://getbootstrap.com/docs/5.3/getting-started/introduction/#cdn-links) to use this feature
 
 This is a **very early alpha** release; expect many breaking changes. You might prefer to just fork or copy and use whatever you need. Hopefully some or all of these features may make their way into `neapolitan` over time.
