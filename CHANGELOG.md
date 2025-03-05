@@ -1,3 +1,9 @@
+## 0.1.3 (2025-03-05)
+
+### Fix
+
+- **(get sorting working with underscored fields and include secondary sort by id for stable pagination)**: 
+
 ## 0.1.2 (2025-03-05)
 
 ### Feature
