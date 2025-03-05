@@ -1,3 +1,9 @@
+## 0.1.2 (2025-03-05)
+
+### Feature
+
+- **(django_nominopolitan)**:  enable sort toggle on object list
+
 ## 0.1.1 (2025-03-01)
 
 ### Refactor
