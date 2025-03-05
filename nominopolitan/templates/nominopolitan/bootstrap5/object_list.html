@@ -234,10 +234,10 @@
 
 {% partialdef filtered_results %}
     {% if object_list %}
-    {% object_list object_list view %}
-    {% partial pagination %}
+        {% object_list object_list view %}
+        {% partial pagination %}
     {% else %}
-    <p class="mt-4">There are no {{ object_verbose_name_plural }}. Create one now?</p>
+        <p class="mt-4">There are no {{ object_verbose_name_plural }}. Create one now?</p>
     {% endif %}
 {% endpartialdef filtered_results %}
 

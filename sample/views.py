@@ -12,7 +12,7 @@ class BookCRUDView(NominopolitanMixin, CRUDView):
     model = models.Book
     namespace = "sample"
     base_template_path = "django_nominopolitan/base.html"
-    use_htmx = True
+    use_htmx = False
     use_modal = True
     # use_crispy = False
 

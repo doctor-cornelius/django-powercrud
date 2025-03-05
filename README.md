@@ -76,7 +76,13 @@ This is an opinionated extension package for the excellent [`neapolitan`](https:
 - set `table_max_col_width` as a parameter, measured in `ch` (ie number of `0` characters in the current font). eg `table_max_col_width = 10`: 
     - limit the width of the column to these characters and truncate the data text if needed.
     - if a field is truncated, a popover will be shown with the full text (**requires `popper.js` be installed**)
-    - column headers will be wrapped to the width of the column (as determined by width of data items) 
+    - column headers will be wrapped to the width of the column (as determined by width of data items)
+
+**Table Sorting**
+- click table header to toggle sorting direction (columns start off unsorted)
+- will use `htmx` if `use_htmx is True`
+- current `list.html` template will display bootstrap icons for sorting direction:
+    - you must [install bootstrap icons](https://getbootstrap.com/docs/5.3/getting-started/introduction/#cdn-links) to use this feature
 
 This is a **very early alpha** release; expect many breaking changes. You might prefer to just fork or copy and use whatever you need. Hopefully some or all of these features may make their way into `neapolitan` over time.
 

@@ -156,8 +156,6 @@ def object_list(context, objects, view):
     property_headers = [prop.replace("_", " ").title() for prop in properties]
     headers = field_headers + property_headers
 
-    import locale
-
     object_list = [
         {
             "object": object,
@@ -177,9 +175,19 @@ def object_list(context, objects, view):
         for object in objects
     ]
 
+    # Get sort from request context
+    request = context.get('request')
+    current_sort = request.GET.get('sort', '') if request else ''
+    use_htmx = context.get('use_htmx', view.get_use_htmx())  # Get from parent context first
+    original_target = context.get('original_target', view.get_original_target()) 
+
     return {
         "headers": headers,
         "object_list": object_list,
+        "sort": current_sort,  # Add sort to the template context
+        "use_htmx": use_htmx,
+        "original_target": original_target,
+        "request": request,    # Pass request to maintain access to GET parameters
     }
 
 @register.simple_tag

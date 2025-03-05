@@ -166,9 +166,6 @@ class NominopolitanMixin:
     def list(self, request, *args, **kwargs):
         """
         Handle GET requests for list view, including filtering and pagination.
-        
-        Returns:
-            TemplateResponse: Rendered list view
         """
         queryset = self.get_queryset()
         filterset = self.get_filterset(queryset)
@@ -183,26 +180,27 @@ class NominopolitanMixin:
             # Unpaginated response
             self.object_list = queryset
             context = self.get_context_data(
-                test_variable="Testing",
                 page_obj=None,
                 is_paginated=False,
                 paginator=None,
                 filterset=filterset,
+                sort=request.GET.get('sort', ''),  # Add sort to context
+                use_htmx=self.get_use_htmx(),
             )
         else:
             # Paginated response
             page = self.paginate_queryset(queryset, paginate_by)
             self.object_list = page.object_list
             context = self.get_context_data(
-                test_variable="Testing",
                 page_obj=page,
                 is_paginated=page.has_other_pages(),
                 paginator=page.paginator,
                 filterset=filterset,
+                sort=request.GET.get('sort', ''),  # Add sort to context
+                use_htmx=self.get_use_htmx(),
             )
 
         return self.render_to_response(context)
-
 
     def get_filter_queryset_for_field(self, field_name, model_field):
         """Get the queryset to use for a ModelChoiceFilter.
@@ -733,6 +731,31 @@ class NominopolitanMixin:
         )
         raise ImproperlyConfigured(msg % self.__class__.__name__)
 
+    def get_queryset(self):
+        """
+        Get the queryset for the view, applying sorting if specified.
+        """
+        queryset = super().get_queryset()
+        sort_param = self.request.GET.get('sort')
+        
+        if sort_param:
+            # Handle descending sort (prefixed with '-')
+            if sort_param.startswith('-'):
+                field_name = sort_param[1:]
+            else:
+                field_name = sort_param
+            
+            # Convert header name to field name (replace spaces with underscores and lowercase)
+            field_name = field_name.lower().replace(' ', '_')
+            
+            # Verify the field exists to prevent injection
+            valid_fields = [f.name for f in self.model._meta.fields] + getattr(self, 'properties', [])
+            
+            if field_name in valid_fields:
+                queryset = queryset.order_by(sort_param)
+        
+        return queryset
+
     def get_context_data(self, **kwargs):
         """
         Prepare and return the context data for template rendering.
@@ -791,6 +814,9 @@ class NominopolitanMixin:
                 for field in self.model._meta.fields
                 if field.is_relation and getattr(self.object, field.name)
             }
+
+        # Add sort parameter to context
+        context['sort'] = self.request.GET.get('sort', '')
 
         return context
 
@@ -858,7 +884,7 @@ class NominopolitanMixin:
             if self.request.headers.get('X-Filter-Request'):
                 template_name=f"{template_name}#filtered_results"
             else:
-                template_name=f"{template_name}#content"
+                template_name=f"{template_name}{self.get_original_target()}"
 
             response = render(
                 request=self.request,

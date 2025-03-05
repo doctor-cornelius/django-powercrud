@@ -8,17 +8,34 @@
         <table class="table table-sm table-striped table-hover w-auto table-font-size"
             style="border-collapse: separate; border-spacing: 0.15rem 0;"
         >
-            <thead>
-                <tr>
-                    {% for header in headers %}
-                    <th class="bg-primary text-center text-white text-wrap align-middle text-truncate table-column-width"
-                        >{{ header|capfirst }}</th>
-                    {% endfor %}
-                    <th class="bg-secondary text-center text-white align-middle">
-                        <span >Actions</span>
-                    </th>
-                </tr>
-            </thead>
+        <thead>
+            <tr>
+                {% for header in headers %}
+                {% with header_lower=header|lower|cut:" " current_sort=request.GET.sort %}
+                <th class="bg-primary text-center text-white text-wrap align-middle text-truncate table-column-width"
+                    {% if use_htmx %}
+                        hx-get="?sort={% if current_sort == header_lower %}-{% endif %}{{ header_lower }}"
+                        hx-target="{{original_target}}"
+                        hx-push-url="true"
+                        hx-trigger="click"
+                    {% else %}
+                        onclick="window.location.href='?sort={% if current_sort == header_lower %}-{% endif %}{{ header_lower }}'"
+                    {% endif %}
+                    style="cursor: pointer;">
+                    {{ header|capfirst }}
+                    {% if current_sort == header_lower %}
+                        <i class="bi bi-sort-down"></i>
+                    {% elif current_sort == '-'|add:header_lower %}
+                        <i class="bi bi-sort-up"></i>
+                    {% endif %}
+                </th>
+                {% endwith %}
+                {% endfor %}
+                <th class="bg-secondary text-center text-white align-middle">
+                    <span>Actions</span>
+                </th>
+            </tr>
+        </thead>
             <tbody>
                 {% for object in object_list %}
                 <tr class="text-center">
