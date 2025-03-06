@@ -1,3 +1,13 @@
+## 0.1.6 (2025-03-06)
+
+### Documentation
+
+- **(README)**:  update docs re nm_clear_session_keys
+
+### Feature
+
+- **(nm_clear_session_keys)**:   add management command to clear nominopolitan session keys
+
 ## 0.1.5 (2025-03-06)
 
 ### Fix
