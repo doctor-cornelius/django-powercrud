@@ -251,7 +251,6 @@ class ProjectCRUDView(NominopolitanMixin, CRUDView):
 #### `nm_clear_session_keys` management command
 
 - Used to clear all user session keys related to nominopolitan 
-- Only works in development mode (ie when `DEBUG=True`).
 
 ## Status
 
