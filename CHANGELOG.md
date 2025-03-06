@@ -1,3 +1,13 @@
+## 0.1.5 (2025-03-06)
+
+### Fix
+
+- **(list.html)**:  use original_target for htmx for header sort when clicked
+
+### Refactor
+
+- **(object_list)**:  remove debug statement
+
 ## 0.1.4 (2025-03-06)
 
 ### Fix
