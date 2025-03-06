@@ -77,6 +77,22 @@ This is an opinionated extension package for the excellent [`neapolitan`](https:
     - limit the width of the column to these characters and truncate the data text if needed.
     - if a field is truncated, a popover will be shown with the full text (**requires `popper.js` be installed**)
     - column headers will be wrapped to the width of the column (as determined by width of data items)
+- to calculate the maximum height of the `object_list` table, we allow setting of 2 parameters:
+    - `table_pixel_height_other_page_elements` (default = 150), expressed in pixels.
+    - `table_max_height`: (default = 80), expressed as vh units (ie percentage) of the remaining blank space after subtracting `table_pixel_height_other_page_elements`
+    - In the partial `list.html` these parameters are used to calculate `table-max-height` as below:
+    
+    ```css
+    <style>
+        .table-max-height {
+            /* max-height: {{ table_max_height }}; */
+            max-height: calc((100vh - {{ table_pixel_height_other_page_elements }}) * {{ table_max_height }} / 100);
+        }
+    </style>
+    ```
+
+    - You can tune these parameters depending on the page that the table is appearing on to get the right table height. 
+    - crazy right? But it works.
 
 **Table Sorting**
 - click table header to toggle sorting direction (columns start off unsorted)
@@ -146,6 +162,7 @@ class ProjectCRUDView(NominopolitanMixin, CRUDView):
     # ******************************************************************
     # nominopolitan attributes
 
+    # which fields and properties to include in the list view
     fields = '__all__' # if you want to include all fields
         # you can omit the fields attribute, in which case it will default to '__all__'
 
@@ -173,19 +190,32 @@ class ProjectCRUDView(NominopolitanMixin, CRUDView):
     namespace = "my_app_name" # specify the namespace 
         # if your urls.py has app_name = "my_app_name"
 
-    create_form_class = forms.ProjectCreateForm # if you want a separate create form
-        # the update form always uses form_class
+    # filtersets
+    filterset_fields = ["name", "project_owner", "project_manager", "due_date",]
+        # this is a standard neapolitan parameter, but nominopolitan converts this 
+        # to a more elaborate filterset class
 
-
+    # Forms
     use_crispy = True # will default to True if you have `crispy-forms` installed
         # if you set it to True without crispy-forms installed, it will resolve to False
         # if you set it to False with crispy-forms installed, it will resolve to False
 
+    create_form_class = forms.ProjectCreateForm # if you want a separate create form
+        # the update form always uses form_class
+    
+    # Templates
     base_template_path = "core/base.html" # defaults to inbuilt "nominopolitan/base.html"
     templates_path = "myapp" # if you want to override all the templates in another app
         # or include one of your own apps; eg templates_path = "my_app_name/nominopolitan" 
         # and then place in my_app_name/templates/my_app_name/nominopolitan
 
+    # table display parameters
+    table_pixel_height_other_page_elements = 100 # this will be expressed in pixels
+    table_max_height = 80 # as a percentage of remaining viewport height
+    table_font_size = '1.05' # expressed as rem
+    table_max_col_width = '25' # expressed as `ch` (characters wide)
+
+    # htmx & modals
     use_htmx = True # if you want the View, Detail, Delete and Create forms to use htmx
         # if you do not set use_modal = True, the CRUD templates will be rendered to the
         # hx-target used for the list view
@@ -221,6 +251,7 @@ class ProjectCRUDView(NominopolitanMixin, CRUDView):
         # the project has a modal with a different id available
         # eg in the base template. This is where the modal content will be rendered.
 
+    # extra actions (extra buttons for each record in the list)
     extra_actions = [ # adds additional actions for each record in the list
         {
             "url_name": "fstp:do_something",  # namespace:url_pattern

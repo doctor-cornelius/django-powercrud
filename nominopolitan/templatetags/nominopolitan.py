@@ -191,6 +191,8 @@ def object_list(context, objects, view):
         "current_sort": current_sort,
         "use_htmx": use_htmx,
         "original_target": original_target,
+        "table_pixel_height_other_page_elements": view.get_table_pixel_height_other_page_elements(),
+        "table_max_height": view.get_table_max_height(),
         "htmx_target": htmx_target,
         "request": request,
     }

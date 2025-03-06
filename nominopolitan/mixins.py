@@ -92,13 +92,18 @@ class NominopolitanMixin:
         table_max_col_width (str | None): Maximum column width in characters
     """
 
+    # namespace if appropriate
     namespace: str | None = None
-    create_form_class: type[forms.ModelForm] | None = None
+
+    # template parameters
     templates_path: str = f"nominopolitan/{getattr(settings, 'NOMINOPOLITAN_CSS_FRAMEWORK', 'bootstrap5')}"
     base_template_path: str = f"{templates_path}/base.html"
 
+    # forms
     use_crispy: bool | None = None
+    create_form_class: type[forms.ModelForm] | None = None
 
+    # field and property inclusion scope
     exclude: list[str] = []
     properties: list[str] = []
     properties_exclude: list[str] = []
@@ -108,16 +113,23 @@ class NominopolitanMixin:
     detail_properties: list[str] = []
     detail_properties_exclude: list[str] = []
 
+    # htmx
     use_htmx: bool | None = None
     default_htmx_target: str = '#content'
     hx_trigger: str | dict[str, str] | None = None
 
+    # modals (if htmx is active)
     use_modal: bool | None = None
     modal_id: str | None = None
     modal_target: str | None = None
 
-    table_font_size: str | None = None
-    table_max_col_width: str | None = None
+    # table display parameters
+    table_pixel_height_other_page_elements: int | float | None = 150  # Default pixel height to 
+        # subtract from the table height
+    table_max_height: int | None = 80 # expressed as vh units (ie percentage) of the remaining blank space 
+        # after subtracting table_pixel_height_other_page_elements
+    table_font_size: str | None = '25' # will be expressed in rem units
+    table_max_col_width: str | None = '1' # will be expressed in ch units
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -248,13 +260,30 @@ class NominopolitanMixin:
 
         return self.render_to_response(context)
 
+    def get_table_pixel_height_other_page_elements(self) -> str:
+        """ Returns the height of other elements on the page that the table is
+        displayed on. After subtracting this (in pixels) from the page height,
+        the table height will be calculated (in a css style in list.html) as
+        {{ get_table_max_height }}% of the remaining viewport height.
+        """
+        return f"{self.table_pixel_height_other_page_elements or 100}px" #px
+
+    def get_table_max_height(self) -> int:
+        """Returns the proportion of visible space on the viewport after subtracting
+        the height of other elements on the page that the table is displayed on, 
+        as represented by get_table_pixel_height_other_page_elements().
+
+        The table height is calculated in a css style for max-table-height in list.html.
+        """
+        return self.table_max_height or 80
+
     def get_table_font_size(self):
         # The font size for the table (buttons, filters, column headers, rows) in object_list.html
-        return self.table_font_size or '1' #rem
+        return f"{self.table_font_size or '1'}rem" #rem
     
     def get_table_max_col_width(self):
         # The max width for the table columns in object_list.html - in characters
-        return self.table_max_col_width or '25' #ch
+        return f"{self.table_max_col_width or '25'}ch" #ch
 
     def get_framework_styles(self):
         """
@@ -270,15 +299,15 @@ class NominopolitanMixin:
         return {
             'bootstrap5': {
                 # to make table styling for font size work
-                'font-size': f'{table_font_size}rem;',
+                'font-size': f'{table_font_size};',
                 # base class for buttons
                 'base': 'btn btn-sm py-0',
                 # style for buttons
-                'button_style': f'font-size: {table_font_size}rem;' ,
+                'button_style': f'font-size: {table_font_size};',
                 # attributes for filter form fields
                 'filter_attrs': {
                     'class': 'form-control-xs small py-1',
-                    'style': f'font-size: {table_font_size}rem;'
+                    'style': f'font-size: {table_font_size};'
                 },
                 # set colours for the action buttons
                 'actions': {
@@ -411,7 +440,6 @@ class NominopolitanMixin:
         app_name = self.model._meta.app_label
         model_name = self.model._meta.object_name.lower()
         session_key = f"nominopolitan_{app_name}_{self.url_base}"
-        log.debug(f"Session key: {session_key}")
         return session_key
     
     def get_session_data(self) -> dict|None:
@@ -826,8 +854,10 @@ class NominopolitanMixin:
         context["original_target"] = self.get_original_target()
 
         # Set table styling parameters
-        context['table_font_size'] = f"{self.get_table_font_size()}rem"
-        context['table_max_col_width'] = f"{self.get_table_max_col_width()}ch"
+        context['table_pixel_height_other_page_elements'] = self.get_table_pixel_height_other_page_elements()
+        context['get_table_max_height'] = self.get_table_max_height()
+        context['table_font_size'] = f"{self.get_table_font_size()}"
+        context['table_max_col_width'] = f"{self.get_table_max_col_width()}"
 
         # Add HTMX-specific context if enabled
         if self.get_use_htmx():
@@ -914,9 +944,10 @@ class NominopolitanMixin:
                     # this must be the first time rendering the object_list template
                     # set original_target to the current htmx target
                     self.set_session_data_key({'original_target': f"#{self.request.htmx.target}"})
-                context["original_target"] = self.get_original_target() 
-                context['table_font_size'] = f"{self.get_table_font_size()}rem"
-                context['table_max_col_width'] = f"{self.get_table_max_col_width()}ch"
+                # context["original_target"] = self.get_original_target()
+                # context['table_max_height'] = self.get_table_max_height()
+                # context['table_font_size'] = f"{self.get_table_font_size()}"
+                # context['table_max_col_width'] = f"{self.get_table_max_col_width()}"
 
             if self.request.headers.get('X-Filter-Request'):
                 template_name=f"{template_name}#filtered_results"

@@ -4,14 +4,24 @@
     {% load crispy_forms_tags %}
 {% endif %}
 
-<div class="table-responsive">
-    <table class="table table-sm table-striped table-hover w-auto table-font-size"
+<style>
+    .table-max-height {
+        /* max-height: {{ table_max_height }}; */
+        max-height: calc((100vh - {{ table_pixel_height_other_page_elements }}) * {{ table_max_height }} / 100);
+    }
+</style>
+
+<div class="table-responsive table-max-height"
+    style="overflow-y: auto; width: fit-content; padding-right: 20px;">
+    <table class="table table-sm table-striped table-hover 
+        w-auto 
+        table-font-size"
         style="border-collapse: separate; border-spacing: 0.15rem 0;">
         <thead>
             <tr>
                 {% for header, field_name in headers %}
                 <th class="bg-primary text-center text-white text-wrap align-middle text-truncate table-column-width"
-                    style="cursor: pointer;"
+                    style="cursor: pointer; position: sticky; top: 0; z-index: 1;"
                     {% if use_htmx %}
                         hx-get="?sort={% if current_sort == field_name %}-{% elif current_sort == '-'|add:field_name %}{% else %}{% endif %}{{ field_name }}"
                         hx-target="{{original_target}}"
@@ -29,7 +39,8 @@
                     {% endif %}
                 </th>
                 {% endfor %}
-                <th class="bg-secondary text-center text-white align-middle">
+                <th class="bg-secondary text-center text-white align-middle"
+                    style="position: sticky; top: 0; z-index: 1;">
                     <span>Actions</span>
                 </th>
             </tr>
