@@ -1,3 +1,9 @@
+## 0.1.7 (2025-03-06)
+
+### Feature
+
+- **(django_nominopolitan)**:  add new parameters to calculate max-table-height css parameter in list.html
+
 ## 0.1.6 (2025-03-06)
 
 ### Documentation
