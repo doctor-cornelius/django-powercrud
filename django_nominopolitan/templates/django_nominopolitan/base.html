@@ -29,24 +29,29 @@
     {% block app_content %}{% endblock app_content %}
 
     <div class="container m-5 p-5">
-        <p mb-2>These buttons being served from base.html</p>
-        <a class="btn btn-primary" href="{% url 'home' %}">
-            Home (Reload)
-        </a>
-        <button class="btn btn-secondary" hx-get="{% url 'sample:book-list' %}" hx-target="#content" hx-swap="innerHTML"
-            hx-replace-url="true" hx-push-url="true">
-            Book List (htmx)
-        </button>
-        <a class="btn btn-info" href="{% url 'sample:book-list' %}">
-            Book List (reload)
-        </a>
-        <button class="btn btn-secondary" hx-get="{% url 'sample:author-list' %}" hx-target="#content" hx-swap="innerHTML"
-            hx-replace-url="true" hx-push-url="true">
-            Author List (htmx)
-        </button>
-        <a class="btn btn-info" href="{% url 'sample:author-list' %}">
-            Author List (reload)
-        </a>
+        <div class="mb-3">
+            <a class="btn btn-primary" href="{% url 'home' %}">
+                Home (Reload)
+            </a>
+            <div class="btn-group" role="group" aria-label="Book List buttons">
+                <a class="btn btn-secondary" hx-get="{% url 'sample:book-list' %}" hx-target="#content" hx-swap="innerHTML"
+                    hx-replace-url="true" hx-push-url="true">
+                    Book List (htmx)
+                </a>
+                <a class="btn btn-info" href="{% url 'sample:book-list' %}">
+                    Book List (reload)
+                </a>
+            </div>
+            <div class="btn-group" role="group" aria-label="Author List buttons">
+                <a class="btn btn-secondary" hx-get="{% url 'sample:author-list' %}" hx-target="#content" hx-swap="innerHTML"
+                    hx-replace-url="true" hx-push-url="true">
+                    Author List (htmx)
+                </a>
+                <a class="btn btn-info" href="{% url 'sample:author-list' %}">
+                    Author List (reload)
+                </a>
+            </div>
+        </div>
         <div id="content" >
         {% block content %}{% endblock content %}
         <div id="nominopolitan"></div>

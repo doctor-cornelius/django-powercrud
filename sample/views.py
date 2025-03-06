@@ -27,9 +27,10 @@ class BookCRUDView(NominopolitanMixin, CRUDView):
     # filterset_class = filters.BookFilterSet
 
     form_class = forms.BookForm
-    table_font_size = '1.2'
-    table_max_col_width = '15' # characters
 
+    table_font_size = '0.8'
+    table_max_col_width = '25' # characters
+    paginate_by = 10
 
     # Example of overrides of get_queryset and get_filter_queryset_for_field
     # def get_queryset(self):
@@ -54,9 +55,9 @@ class AuthorCRUDView(NominopolitanMixin, CRUDView):
     use_modal = True
 
     table_font_size = '0.675'
-    table_max_col_width = '8' # characters
+    table_max_col_width = '20' # characters
 
-    paginate_by = 5
+    paginate_by = 20
     # fields = ["name","bio","birth_date",]
     fields = "__all__"
     # exclude = ['bio',]

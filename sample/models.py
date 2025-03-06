@@ -19,7 +19,7 @@ class Book(models.Model):
     author = models.ForeignKey(Author, on_delete=models.CASCADE, related_name="books")
     published_date = models.DateField()
     isbn = models.CharField(max_length=13, unique=True)
-    isbn_empty=models.GeneratedField(
+    isbn_empty = models.GeneratedField(
         expression=(
             models.Case(
                 models.When(isbn='', then=True),
@@ -44,10 +44,9 @@ class Book(models.Model):
         if not self.uneditable_field:
             self.uneditable_field = "This field is uneditable"
 
-    def save(self):
+    def save(self, *args, **kwargs):
         self.clean()
-        super().save()
-        return self
+        return super().save(*args, **kwargs)
 
     @property
     def many_pages(self):

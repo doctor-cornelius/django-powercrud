@@ -109,6 +109,7 @@ class NominopolitanMixin:
     detail_properties_exclude: list[str] = []
 
     use_htmx: bool | None = None
+    default_htmx_target: str = '#content'
     hx_trigger: str | dict[str, str] | None = None
 
     use_modal: bool | None = None
@@ -117,6 +118,136 @@ class NominopolitanMixin:
 
     table_font_size: str | None = None
     table_max_col_width: str | None = None
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        # determine the starting list of fields (before exclusions)
+        if not self.fields or self.fields == '__all__':
+            # set to all fields in model
+            self.fields = self._get_all_fields()
+        elif type(self.fields) == list:
+            # check all are valid fields
+            all_fields = self._get_all_fields()
+            for field in self.fields:
+                if field not in all_fields:
+                    raise ValueError(f"Field {field} not defined in {self.model.__name__}")
+        elif type(self.fields) != list:
+            raise TypeError("fields must be a list")        
+        else:
+            raise ValueError("fields must be '__all__', a list of valid fields or not defined")
+
+        # exclude fields
+        if type(self.exclude) == list:
+            self.fields = [field for field in self.fields if field not in self.exclude]
+        else:
+            raise TypeError("exclude must be a list")
+
+        if self.properties:
+            if self.properties == '__all__':
+                # Set self.properties to a list of every property in self.model
+                self.properties = self._get_all_properties()
+            elif type(self.properties) == list:
+                # check all are valid properties
+                all_properties = self._get_all_properties()
+                for prop in self.properties:
+                    if prop not in all_properties:
+                        raise ValueError(f"Property {prop} not defined in {self.model.__name__}")
+            elif type(self.properties) != list:
+                raise TypeError("properties must be a list or '__all__'")
+            
+        # exclude properties
+        if type(self.properties_exclude) == list:
+            self.properties = [prop for prop in self.properties if prop not in self.properties_exclude]
+        else:
+            raise TypeError("properties_exclude must be a list")
+
+        # determine the starting list of detail_fields (before exclusions)
+        if self.detail_fields == '__all__':
+            # Set self.detail_fields to a list of every field in self.model
+            self.detail_fields = self._get_all_fields()        
+        elif not self.detail_fields or self.detail_fields == '__fields__':
+            # Set self.detail_fields to self.fields
+            self.detail_fields = self.fields
+        elif type(self.detail_fields) == list:
+            # check all are valid fields
+            all_fields = self._get_all_fields()
+            for field in self.detail_fields:
+                if field not in all_fields:
+                    raise ValueError(f"detail_field {field} not defined in {self.model.__name__}")
+        elif type(self.detail_fields) != list:
+            raise TypeError("detail_fields must be a list or '__all__' or '__fields__' or a list of fields")
+
+        # exclude detail_fields
+        if type(self.detail_exclude) == list:
+            self.detail_fields = [field for field in self.detail_fields 
+                                  if field not in self.detail_exclude]
+        else:
+            raise TypeError("detail_fields_exclude must be a list")
+
+        # add specified detail_properties            
+        if self.detail_properties:
+            if self.detail_properties == '__all__':
+                # Set self.detail_properties to a list of every property in self.model
+                self.detail_properties = self._get_all_properties()
+            elif self.detail_properties == '__properties__':
+                # Set self.detail_properties to a list of every property in self.model
+                self.detail_properties = self.properties
+            elif type(self.detail_properties) == list:
+                # check all are valid properties
+                all_properties = self._get_all_properties()
+                for prop in self.detail_properties:
+                    if prop not in all_properties:
+                        raise ValueError(f"Property {prop} not defined in {self.model.__name__}")
+            elif type(self.detail_properties) != list:
+                raise TypeError("detail_properties must be a list or '__all__' or '__properties__'")
+
+        # exclude detail_properties
+        if type(self.detail_properties_exclude) == list:
+            self.detail_properties = [prop for prop in self.detail_properties 
+                                  if prop not in self.detail_properties_exclude]
+        else:
+            raise TypeError("detail_properties_exclude must be a list")
+            
+    def list(self, request, *args, **kwargs):
+        """
+        Handle GET requests for list view, including filtering and pagination.
+        """
+        queryset = self.get_queryset()
+        filterset = self.get_filterset(queryset)
+        if filterset is not None:
+            queryset = filterset.qs
+
+        if not self.allow_empty and not queryset.exists():
+            raise Http404
+
+        paginate_by = self.get_paginate_by()
+        if paginate_by is None:
+            # Unpaginated response
+            self.object_list = queryset
+            context = self.get_context_data(
+                page_obj=None,
+                is_paginated=False,
+                paginator=None,
+                filterset=filterset,
+                sort=request.GET.get('sort', ''),  # Add sort to context
+                use_htmx=self.get_use_htmx(),
+            )
+        else:
+            # Paginated response
+            page = self.paginate_queryset(queryset, paginate_by)
+            self.object_list = page.object_list
+            context = self.get_context_data(
+                page_obj=page,
+                is_paginated=page.has_other_pages(),
+                paginator=page.paginator,
+                filterset=filterset,
+                sort=request.GET.get('sort', ''),  # Add sort to context
+                use_htmx=self.get_use_htmx(),
+            )
+
+        return self.render_to_response(context)
+
     def get_table_font_size(self):
         # The font size for the table (buttons, filters, column headers, rows) in object_list.html
         return self.table_font_size or '1' #rem
@@ -161,46 +292,6 @@ class NominopolitanMixin:
                 'modal_attrs': f'data-bs-toggle="modal" data-bs-target="{self.get_modal_id()}"',
             }
         }
-
-
-    def list(self, request, *args, **kwargs):
-        """
-        Handle GET requests for list view, including filtering and pagination.
-        """
-        queryset = self.get_queryset()
-        filterset = self.get_filterset(queryset)
-        if filterset is not None:
-            queryset = filterset.qs
-
-        if not self.allow_empty and not queryset.exists():
-            raise Http404
-
-        paginate_by = self.get_paginate_by()
-        if paginate_by is None:
-            # Unpaginated response
-            self.object_list = queryset
-            context = self.get_context_data(
-                page_obj=None,
-                is_paginated=False,
-                paginator=None,
-                filterset=filterset,
-                sort=request.GET.get('sort', ''),  # Add sort to context
-                use_htmx=self.get_use_htmx(),
-            )
-        else:
-            # Paginated response
-            page = self.paginate_queryset(queryset, paginate_by)
-            self.object_list = page.object_list
-            context = self.get_context_data(
-                page_obj=page,
-                is_paginated=page.has_other_pages(),
-                paginator=page.paginator,
-                filterset=filterset,
-                sort=request.GET.get('sort', ''),  # Add sort to context
-                use_htmx=self.get_use_htmx(),
-            )
-
-        return self.render_to_response(context)
 
     def get_filter_queryset_for_field(self, field_name, model_field):
         """Get the queryset to use for a ModelChoiceFilter.
@@ -315,108 +406,29 @@ class NominopolitanMixin:
                     if isinstance(getattr(self.model, name), property) and name != 'pk'
                 ]
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        # determine the starting list of fields (before exclusions)
-        if not self.fields or self.fields == '__all__':
-            # set to all fields in model
-            self.fields = self._get_all_fields()
-        elif type(self.fields) == list:
-            # check all are valid fields
-            all_fields = self._get_all_fields()
-            for field in self.fields:
-                if field not in all_fields:
-                    raise ValueError(f"Field {field} not defined in {self.model.__name__}")
-        elif type(self.fields) != list:
-            raise TypeError("fields must be a list")        
-        else:
-            raise ValueError("fields must be '__all__', a list of valid fields or not defined")
-
-        # exclude fields
-        if type(self.exclude) == list:
-            self.fields = [field for field in self.fields if field not in self.exclude]
-        else:
-            raise TypeError("exclude must be a list")
-
-        if self.properties:
-            if self.properties == '__all__':
-                # Set self.properties to a list of every property in self.model
-                self.properties = self._get_all_properties()
-            elif type(self.properties) == list:
-                # check all are valid properties
-                all_properties = self._get_all_properties()
-                for prop in self.properties:
-                    if prop not in all_properties:
-                        raise ValueError(f"Property {prop} not defined in {self.model.__name__}")
-            elif type(self.properties) != list:
-                raise TypeError("properties must be a list or '__all__'")
-            
-        # exclude properties
-        if type(self.properties_exclude) == list:
-            self.properties = [prop for prop in self.properties if prop not in self.properties_exclude]
-        else:
-            raise TypeError("properties_exclude must be a list")
-
-        # determine the starting list of detail_fields (before exclusions)
-        if self.detail_fields == '__all__':
-            # Set self.detail_fields to a list of every field in self.model
-            self.detail_fields = self._get_all_fields()        
-        elif not self.detail_fields or self.detail_fields == '__fields__':
-            # Set self.detail_fields to self.fields
-            self.detail_fields = self.fields
-        elif type(self.detail_fields) == list:
-            # check all are valid fields
-            all_fields = self._get_all_fields()
-            for field in self.detail_fields:
-                if field not in all_fields:
-                    raise ValueError(f"detail_field {field} not defined in {self.model.__name__}")
-        elif type(self.detail_fields) != list:
-            raise TypeError("detail_fields must be a list or '__all__' or '__fields__' or a list of fields")
-
-        # exclude detail_fields
-        if type(self.detail_exclude) == list:
-            self.detail_fields = [field for field in self.detail_fields 
-                                  if field not in self.detail_exclude]
-        else:
-            raise TypeError("detail_fields_exclude must be a list")
-
-        # add specified detail_properties            
-        if self.detail_properties:
-            if self.detail_properties == '__all__':
-                # Set self.detail_properties to a list of every property in self.model
-                self.detail_properties = self._get_all_properties()
-            elif self.detail_properties == '__properties__':
-                # Set self.detail_properties to a list of every property in self.model
-                self.detail_properties = self.properties
-            elif type(self.detail_properties) == list:
-                # check all are valid properties
-                all_properties = self._get_all_properties()
-                for prop in self.detail_properties:
-                    if prop not in all_properties:
-                        raise ValueError(f"Property {prop} not defined in {self.model.__name__}")
-            elif type(self.detail_properties) != list:
-                raise TypeError("detail_properties must be a list or '__all__' or '__properties__'")
-
-        # exclude detail_properties
-        if type(self.detail_properties_exclude) == list:
-            self.detail_properties = [prop for prop in self.detail_properties 
-                                  if prop not in self.detail_properties_exclude]
-        else:
-            raise TypeError("detail_properties_exclude must be a list")
-        
     def get_session_key(self):
-        """
-        Generate a unique session key for storing the original HTMX target.
+        """Generate a unique session key using app name, model name and url_base."""
+        app_name = self.model._meta.app_label
+        model_name = self.model._meta.object_name.lower()
+        # return f"nominopolitan_target_{app_name}_{model_name}_{self.url_base}"
+        return f"nominopolitan_target_{app_name}"
+    
+    def get_session_data(self) -> dict|None:
+        # retrieve the actual session variable based on the key
+        return self.request.session.get(self.get_session_key(), None)
+    
+    def set_session_data_key(self, data: dict):
+        existing_session_data = self.get_session_data()
+        if not existing_session_data:
+            # create a new session variable with data
+            self.request.session[self.get_session_key()] = data
+        else:
+            # update the session data with the new data
+            for k,v in data.items():
+                existing_session_data[k] = v
+                self.request.session[self.get_session_key()] = existing_session_data
 
-        This method is called from the render_to_response method when handling HTMX requests
-        for the list view. It creates a unique key based on the view's url_base to store
-        the original HTMX target in the session.
-
-        Returns:
-            str: A unique session key in the format "nominopolitan_list_target_{url_base}"
-        """
-        return f"nominopolitan_list_target_{self.url_base}"
+        return self.get_session_data()
 
     def get_original_target(self):
         """
@@ -428,7 +440,11 @@ class NominopolitanMixin:
         Returns:
             str or None: The original HTMX target or None if not set
         """
-        return self.request.session.get(self.get_session_key(), None)
+        session_data = self.get_session_data()
+
+        if not session_data:
+            return None        
+        return session_data.get('original_target', None)
 
     def get_use_htmx(self):
         """
@@ -524,9 +540,9 @@ class NominopolitanMixin:
             htmx_target = self.get_modal_target()
         elif hasattr(self.request, 'htmx') and self.request.htmx.target:
             # return the target of the original list request
-            htmx_target = f"#{self.request.htmx.target}"
+            htmx_target = self.get_original_target()
         else:
-            htmx_target = "#content"  # Default target for non-HTMX requests
+            htmx_target = self.default_htmx_target  # Default target for non-HTMX requests
 
         return htmx_target
 
@@ -893,8 +909,11 @@ class NominopolitanMixin:
 
         if self.request.htmx:
             if self.role == Role.LIST:
-                self.request.session[self.get_session_key()] = f"#{self.request.htmx.target}"
-                context["original_target"] = self.get_original_target()
+                if not self.get_original_target():
+                    # this must be the first time rendering the object_list template
+                    # set original_target to the current htmx target
+                    self.set_session_data_key({'original_target': f"#{self.request.htmx.target}"})
+                context["original_target"] = self.get_original_target() 
                 context['table_font_size'] = f"{self.get_table_font_size()}rem"
                 context['table_max_col_width'] = f"{self.get_table_max_col_width()}ch"
 

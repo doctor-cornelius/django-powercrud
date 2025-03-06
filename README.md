@@ -85,6 +85,10 @@ This is an opinionated extension package for the excellent [`neapolitan`](https:
 - current `list.html` template will display bootstrap icons (if installed) for sorting direction:
     - you must [install bootstrap icons](https://getbootstrap.com/docs/5.3/getting-started/introduction/#cdn-links) to use this feature
 
+**`sample` App**
+- `sample` app is a simple example of how to use `django_nominopolitan`. It's available in the repository and not part of the package.
+- it includes management commands `create_sample_data` and `delete_sample_data`
+
 This is a **very early alpha** release; expect many breaking changes. You might prefer to just fork or copy and use whatever you need. Hopefully some or all of these features may make their way into `neapolitan` over time.
 
 ## Installation

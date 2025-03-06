@@ -183,6 +183,7 @@ def object_list(context, objects, view):
     current_sort = request.GET.get('sort', '') if request else ''
     use_htmx = context.get('use_htmx', view.get_use_htmx())
     original_target = context.get('original_target', view.get_original_target())
+    htmx_target = context.get('htmx_target', view.get_htmx_target())
 
     return {
         "headers": headers,  # Now contains tuples of (display_name, field_name)
@@ -190,6 +191,7 @@ def object_list(context, objects, view):
         "current_sort": current_sort,
         "use_htmx": use_htmx,
         "original_target": original_target,
+        "htmx_target": htmx_target,
         "request": request,
     }
 
