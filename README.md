@@ -75,7 +75,7 @@ This is an opinionated extension package for the excellent [`neapolitan`](https:
 - set `table_font_size` as a parameter, measured in `rem`. eg `table_font_size = 0.875`. This will be applied to buttons, filters and the table data itself using the custom style in `object_list.html`: `.table-font-size {font-size: {{ table_font_size }};}`.
 - set `table_max_col_width` as a parameter, measured in `ch` (ie number of `0` characters in the current font). eg `table_max_col_width = 10`: 
     - limit the width of the column to these characters and truncate the data text if needed.
-    - if a field is truncated, a popover will be shown with the full text (**requires `popper.js` be installed**)
+    - if a field is truncated, a popover will be shown with the full text (**requires [`popper.js`](https://popper.js.org/docs/v2/) be installed**)
     - column headers will be wrapped to the width of the column (as determined by width of data items)
 - to calculate the maximum height of the `object_list` table, we allow setting of 2 parameters:
     - `table_pixel_height_other_page_elements` (default = 150), expressed in pixels.
