@@ -14,7 +14,7 @@
                     style="cursor: pointer;"
                     {% if use_htmx %}
                         hx-get="?sort={% if current_sort == field_name %}-{% elif current_sort == '-'|add:field_name %}{% else %}{% endif %}{{ field_name }}"
-                        hx-target="{{htmx_target}}"
+                        hx-target="{{original_target}}"
                         hx-push-url="true"
                         hx-trigger="click"
                     {% else %}
