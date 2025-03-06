@@ -410,8 +410,9 @@ class NominopolitanMixin:
         """Generate a unique session key using app name, model name and url_base."""
         app_name = self.model._meta.app_label
         model_name = self.model._meta.object_name.lower()
-        # return f"nominopolitan_target_{app_name}_{model_name}_{self.url_base}"
-        return f"nominopolitan_target_{app_name}"
+        session_key = f"nominopolitan_{app_name}_{self.url_base}"
+        log.debug(f"Session key: {session_key}")
+        return session_key
     
     def get_session_data(self) -> dict|None:
         # retrieve the actual session variable based on the key

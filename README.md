@@ -239,13 +239,19 @@ class ProjectCRUDView(NominopolitanMixin, CRUDView):
     ]
 ```
 
-### nm_mktemplate management command
+### Management Commands
 
-This is the same as `neapolitan`'s `mktemplate` command except it copies from the `nominopolitan` templates instead of the `neapolitan` templates.
+#### `nm_mktemplate` management command
 
-It's the same syntax as `neapolitan`'s `mktemplate` command:
+- This is the same as `neapolitan`'s `mktemplate` command except it copies from the `nominopolitan` templates instead of the `neapolitan` templates.
+- It's the same syntax as `neapolitan`'s `mktemplate` command:
 
 `python manage.py nm_mktemplate <app_name>.<model_name> --<suffix>`
+
+#### `nm_clear_session_keys` management command
+
+- Used to clear all user session keys related to nominopolitan 
+- Only works in development mode (ie when `DEBUG=True`).
 
 ## Status
 
