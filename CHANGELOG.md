@@ -1,3 +1,9 @@
+## 0.1.4 (2025-03-06)
+
+### Fix
+
+- **(filtering)**:  fix bug in filtering by setting original htmx target correctly in session variable
+
 ## 0.1.3 (2025-03-05)
 
 ### Fix
