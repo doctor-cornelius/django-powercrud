@@ -2,6 +2,12 @@
 
 This is an opinionated extension package for the excellent [`neapolitan`](https://github.com/carltongibson/neapolitan/tree/main) package. It adds these features:
 
+## Status
+
+Extremely early alpha. No tests. Limited docs. Suggest at this stage just use it as a reference and take what you need. It works for me.
+
+## Features
+
 **Namespacing**
 - Namespaced URL handling `namespace="my_app_name"`
 
@@ -106,6 +112,25 @@ This is an opinionated extension package for the excellent [`neapolitan`](https:
 - it includes management commands `create_sample_data` and `delete_sample_data`
 
 This is a **very early alpha** release; expect many breaking changes. You might prefer to just fork or copy and use whatever you need. Hopefully some or all of these features may make their way into `neapolitan` over time.
+
+**Management Commands**
+
+- `nm_mktemplate`:
+    - This is the same as `neapolitan`'s `mktemplate` command except it copies from the `nominopolitan` templates instead of the `neapolitan` templates.
+    - It's the same syntax as `neapolitan`'s `mktemplate` command:
+
+        ```python
+        python manage.py nm_mktemplate <app_name>.<model_name> --<suffix>
+        ```
+
+- `nm_clear_session_keys`
+    - Used to clear all user session keys related to nominopolitan
+
+- `nm_help`
+    - Displays the Nominopolitan README.md documentation in a paginated format
+    - `--lines` to specify number of lines to display per page (default: 20)
+    - `--all` to display entire content without pagination
+
 
 ## Installation
 
@@ -269,20 +294,3 @@ class ProjectCRUDView(NominopolitanMixin, CRUDView):
         },
     ]
 ```
-
-### Management Commands
-
-#### `nm_mktemplate` management command
-
-- This is the same as `neapolitan`'s `mktemplate` command except it copies from the `nominopolitan` templates instead of the `neapolitan` templates.
-- It's the same syntax as `neapolitan`'s `mktemplate` command:
-
-`python manage.py nm_mktemplate <app_name>.<model_name> --<suffix>`
-
-#### `nm_clear_session_keys` management command
-
-- Used to clear all user session keys related to nominopolitan 
-
-## Status
-
-Extremely early alpha. No tests. Limited docs. Suggest at this stage just use it as a reference and take what you need. It works for me.
