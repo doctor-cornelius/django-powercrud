@@ -23,7 +23,7 @@
                 <th class="bg-primary text-center text-white text-wrap align-middle text-truncate table-column-width"
                     style="cursor: pointer; position: sticky; top: 0; z-index: 1;">
                     {% if use_htmx %}
-                        <a class="text-white text-decoration-none" 
+                        <a class="text-white text-decoration-none d-block w-100 h-100" 
                            hx-get="?sort={% if current_sort == field_name %}-{% elif current_sort == '-'|add:field_name %}{% else %}{% endif %}{{ field_name }}{% if filter_params %}&{{ filter_params }}{% endif %}"
                            hx-target="{{original_target}}"
                            hx-push-url="true"
@@ -36,7 +36,7 @@
                             {% endif %}
                         </a>
                     {% else %}
-                        <a class="text-white text-decoration-none" 
+                        <a class="text-white text-decoration-none d-block w-100 h-100" 
                            href="?sort={% if current_sort == field_name %}-{% elif current_sort == '-'|add:field_name %}{% else %}{% endif %}{{ field_name }}{% if filter_params %}&{{ filter_params }}{% endif %}">
                             {{ header }}
                             {% if current_sort == field_name %}
