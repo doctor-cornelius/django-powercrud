@@ -21,21 +21,30 @@
             <tr>
                 {% for header, field_name in headers %}
                 <th class="bg-primary text-center text-white text-wrap align-middle text-truncate table-column-width"
-                    style="cursor: pointer; position: sticky; top: 0; z-index: 1;"
+                    style="cursor: pointer; position: sticky; top: 0; z-index: 1;">
                     {% if use_htmx %}
-                        hx-get="?sort={% if current_sort == field_name %}-{% elif current_sort == '-'|add:field_name %}{% else %}{% endif %}{{ field_name }}"
-                        hx-target="{{original_target}}"
-                        hx-push-url="true"
-                        hx-trigger="click"
+                        <a class="text-white text-decoration-none" 
+                           hx-get="?sort={% if current_sort == field_name %}-{% elif current_sort == '-'|add:field_name %}{% else %}{% endif %}{{ field_name }}{% if filter_params %}&{{ filter_params }}{% endif %}"
+                           hx-target="{{original_target}}"
+                           hx-push-url="true"
+                           hx-trigger="click">
+                            {{ header }}
+                            {% if current_sort == field_name %}
+                                <i class="bi bi-sort-down"></i>
+                            {% elif current_sort == '-'|add:field_name %}
+                                <i class="bi bi-sort-up"></i>
+                            {% endif %}
+                        </a>
                     {% else %}
-                        onclick="window.location.href='?sort={% if current_sort == field_name %}-{% elif current_sort == '-'|add:field_name %}{% else %}{% endif %}{{ field_name }}'"
-                    {% endif %}
-                >
-                    {{ header }}
-                    {% if current_sort == field_name %}
-                        <i class="bi bi-sort-down"></i>
-                    {% elif current_sort == '-'|add:field_name %}
-                        <i class="bi bi-sort-up"></i>
+                        <a class="text-white text-decoration-none" 
+                           href="?sort={% if current_sort == field_name %}-{% elif current_sort == '-'|add:field_name %}{% else %}{% endif %}{{ field_name }}{% if filter_params %}&{{ filter_params }}{% endif %}">
+                            {{ header }}
+                            {% if current_sort == field_name %}
+                                <i class="bi bi-sort-down"></i>
+                            {% elif current_sort == '-'|add:field_name %}
+                                <i class="bi bi-sort-up"></i>
+                            {% endif %}
+                        </a>
                     {% endif %}
                 </th>
                 {% endfor %}

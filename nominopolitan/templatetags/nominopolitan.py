@@ -181,6 +181,14 @@ def object_list(context, objects, view):
 
     request = context.get('request')
     current_sort = request.GET.get('sort', '') if request else ''
+    
+    # Get all current filter parameters
+    filter_params = request.GET.copy() if request else {}
+    if 'sort' in filter_params:
+        filter_params.pop('sort')
+    if 'page' in filter_params:
+        filter_params.pop('page')
+    
     use_htmx = context.get('use_htmx', view.get_use_htmx())
     original_target = context.get('original_target', view.get_original_target())
     htmx_target = context.get('htmx_target', view.get_htmx_target())
@@ -189,6 +197,7 @@ def object_list(context, objects, view):
         "headers": headers,  # Now contains tuples of (display_name, field_name)
         "object_list": object_list,
         "current_sort": current_sort,
+        "filter_params": filter_params.urlencode(),  # Add filter parameters to context
         "use_htmx": use_htmx,
         "original_target": original_target,
         "table_pixel_height_other_page_elements": view.get_table_pixel_height_other_page_elements(),
