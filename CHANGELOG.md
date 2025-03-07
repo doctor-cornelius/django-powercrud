@@ -1,3 +1,19 @@
+## 0.1.8 (2025-03-07)
+
+### Fix
+
+- **(list.html)**:  make sort click on header not just header text
+
+### Documentation
+
+- **(README)**:  update re nm_help
+- **(nm_help)**:  create management command to display README.md
+- **(README)**:  add url for popper.js installation instructions page
+
+### Feature
+
+- **(list.html)**:  enable sort to apply any selected filters to returned data set
+
 ## 0.1.7 (2025-03-06)
 
 ### Feature
