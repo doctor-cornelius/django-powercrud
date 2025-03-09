@@ -32,7 +32,7 @@ class BookCRUDView(NominopolitanMixin, CRUDView):
     table_max_height = 80
     table_font_size = '1.05'
     table_max_col_width = '25' # characters
-    # paginate_by = 30
+    paginate_by = 30
 
     # Example of overrides of get_queryset and get_filter_queryset_for_field
     # def get_queryset(self):

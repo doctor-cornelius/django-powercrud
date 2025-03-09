@@ -32,6 +32,7 @@ from django_filters import (
     )
 from django_filters.filterset import filterset_factory
 from neapolitan.views import Role
+from .validators import NominopolitanMixinValidator
 
 class HTMXFilterSetMixin:
     """
@@ -124,15 +125,29 @@ class NominopolitanMixin:
     modal_target: str | None = None
 
     # table display parameters
-    table_pixel_height_other_page_elements: int | float | None = 150  # Default pixel height to 
-        # subtract from the table height
-    table_max_height: int | None = 80 # expressed as vh units (ie percentage) of the remaining blank space 
+    table_pixel_height_other_page_elements: int | float = 0  # px pixels
+    table_max_height: int = 70 # expressed as vh units (ie percentage) of the remaining blank space 
         # after subtracting table_pixel_height_other_page_elements
-    table_font_size: str | None = '25' # will be expressed in rem units
-    table_max_col_width: str | None = '1' # will be expressed in ch units
+    table_font_size: int | float = 1 # Expressed in rem units
+    table_max_col_width: int = 25 # Expressed in ch units
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        
+        # Get all attributes that should be validated
+        config_dict = {
+            attr: getattr(self, attr)
+            for attr in NominopolitanMixinValidator.__fields__.keys()
+            if hasattr(self, attr)
+        }
+        
+        try:
+            validated_settings = NominopolitanMixinValidator(**config_dict)
+            # Update instance attributes with validated values
+            for field_name, value in validated_settings.dict().items():
+                setattr(self, field_name, value)
+        except ValueError as e:
+            raise ImproperlyConfigured(f"Invalid NominopolitanMixin configuration: {str(e)}")
 
         # determine the starting list of fields (before exclusions)
         if not self.fields or self.fields == '__all__':
@@ -266,7 +281,7 @@ class NominopolitanMixin:
         the table height will be calculated (in a css style in list.html) as
         {{ get_table_max_height }}% of the remaining viewport height.
         """
-        return f"{self.table_pixel_height_other_page_elements or 100}px" #px
+        return f"{self.table_pixel_height_other_page_elements or 0}px" #px
 
     def get_table_max_height(self) -> int:
         """Returns the proportion of visible space on the viewport after subtracting
@@ -275,15 +290,15 @@ class NominopolitanMixin:
 
         The table height is calculated in a css style for max-table-height in list.html.
         """
-        return self.table_max_height or 80
+        return self.table_max_height
 
     def get_table_font_size(self):
         # The font size for the table (buttons, filters, column headers, rows) in object_list.html
-        return f"{self.table_font_size or '1'}rem" #rem
+        return f"{self.table_font_size}rem"
     
     def get_table_max_col_width(self):
         # The max width for the table columns in object_list.html - in characters
-        return f"{self.table_max_col_width or '25'}ch" #ch
+        return f"{self.table_max_col_width}ch" #ch
 
     def get_framework_styles(self):
         """

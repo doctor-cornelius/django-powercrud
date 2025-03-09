@@ -1,10 +1,19 @@
 # Nominopolitan
 
-This is an opinionated extension package for the excellent [`neapolitan`](https://github.com/carltongibson/neapolitan/tree/main) package. It adds these features:
+This is an opinionated extension package for the excellent [`neapolitan`](https://github.com/carltongibson/neapolitan/tree/main) package.
 
-## Status
+It is a **very early alpha** release. No tests. Limited docs. Expect many breaking changes. You might prefer to just fork or copy and use whatever you need. Hopefully some features may make their way into `neapolitan` over time.
 
-Extremely early alpha. No tests. Limited docs. Suggest at this stage just use it as a reference and take what you need. It works for me.
+## Dependencies
+
+- `neapolitan` (obviously - see installation section below)
+- `bootstrap5` unless you want to override the css framework and templates
+- `javascript` for many of the features
+- `htmx` if you want to use htmx ;)
+- `django-crispy-forms` and `crispy-bootstrap5` - For enhanced form styling (if `use_crispy=True`)
+- `bootstrap5` - Default CSS framework (unless overridden)
+- `htmx` - Required in your base template if `use_htmx=True`
+- `popper.js` - Required for table column text truncation popovers
 
 ## Features
 
@@ -78,14 +87,18 @@ Extremely early alpha. No tests. Limited docs. Suggest at this stage just use it
     - if you have set up a different library use the correct crispy package (eg `crispy_bulma`, `crispy_tailwind`)
 
 **Styled Table Options**
-- set `table_font_size` as a parameter, measured in `rem`. eg `table_font_size = 0.875`. This will be applied to buttons, filters and the table data itself using the custom style in `object_list.html`: `.table-font-size {font-size: {{ table_font_size }};}`.
-- set `table_max_col_width` as a parameter, measured in `ch` (ie number of `0` characters in the current font). eg `table_max_col_width = 10`: 
+- set `table_font_size`, measured in `rem`.
+    - eg `table_font_size = 0.875`. (default = 1, set in `get_table_font_size()`)
+    - This will be applied to buttons, filters and the table data itself using the custom style in `object_list.html`: `.table-font-size {font-size: {{ table_font_size }};}`.
+- set `table_max_col_width` as a parameter, measured in `ch` (ie number of `0` characters in the current font). 
+    - eg `table_max_col_width = 10` (default = 25, set in `get_table_max_col_width()`) 
     - limit the width of the column to these characters and truncate the data text if needed.
     - if a field is truncated, a popover will be shown with the full text (**requires [`popper.js`](https://popper.js.org/docs/v2/) be installed**)
     - column headers will be wrapped to the width of the column (as determined by width of data items)
 - to calculate the maximum height of the `object_list` table, we allow setting of 2 parameters:
-    - `table_pixel_height_other_page_elements` (default = 150), expressed in pixels.
-    - `table_max_height`: (default = 80), expressed as vh units (ie percentage) of the remaining blank space after subtracting `table_pixel_height_other_page_elements`
+    - `table_pixel_height_other_page_elements`, expressed in pixels (default = 0, set in `get_table_pixel_height_other_page_elements()`)
+    - `table_max_height`: (default = 70, set in `get_table_max_height()`)
+        - expressed as vh units (ie percentage) of the remaining blank space after subtracting `table_pixel_height_other_page_elements`
     - In the partial `list.html` these parameters are used to calculate `table-max-height` as below:
     
     ```css
@@ -96,9 +109,8 @@ Extremely early alpha. No tests. Limited docs. Suggest at this stage just use it
         }
     </style>
     ```
-
-    - You can tune these parameters depending on the page that the table is appearing on to get the right table height. 
-    - crazy right? But it works.
+    - You can tune these parameters depending on the page that the table is appearing on to get the right table height.
+    - crazy right?.
 
 **Table Sorting**
 - click table header to toggle sorting direction (columns start off unsorted)
@@ -106,12 +118,12 @@ Extremely early alpha. No tests. Limited docs. Suggest at this stage just use it
 - will use `htmx` if `use_htmx is True`
 - current `list.html` template will display bootstrap icons (if installed) for sorting direction:
     - you must [install bootstrap icons](https://getbootstrap.com/docs/5.3/getting-started/introduction/#cdn-links) to use this feature
+- if filter options are set, the returned queryset will be sorted and filters
+    - *current issue where if filters are displayed and you sort, the filters are hidden; just redisplay them with the button*
 
 **`sample` App**
 - `sample` app is a simple example of how to use `django_nominopolitan`. It's available in the repository and not part of the package.
 - it includes management commands `create_sample_data` and `delete_sample_data`
-
-This is a **very early alpha** release; expect many breaking changes. You might prefer to just fork or copy and use whatever you need. Hopefully some or all of these features may make their way into `neapolitan` over time.
 
 **Management Commands**
 
