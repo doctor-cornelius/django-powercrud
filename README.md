@@ -4,17 +4,6 @@ This is an opinionated extension package for the excellent [`neapolitan`](https:
 
 It is a **very early alpha** release. No tests. Limited docs. Expect many breaking changes. You might prefer to just fork or copy and use whatever you need. Hopefully some features may make their way into `neapolitan` over time.
 
-## Dependencies
-
-- `neapolitan` (obviously - see installation section below)
-- `bootstrap5` unless you want to override the css framework and templates
-- `javascript` for many of the features
-- `htmx` if you want to use htmx ;)
-- `django-crispy-forms` and `crispy-bootstrap5` - For enhanced form styling (if `use_crispy=True`)
-- `bootstrap5` - Default CSS framework (unless overridden)
-- `htmx` - Required in your base template if `use_htmx=True`
-- `popper.js` - Required for table column text truncation popovers
-
 ## Features
 
 **Namespacing**
@@ -144,30 +133,73 @@ It is a **very early alpha** release. No tests. Limited docs. Expect many breaki
     - `--all` to display entire content without pagination
 
 
-## Installation
+## Installation and Dependencies
 
-With `pip`:
-`pip install django-nominopolitan`
+### Basic Installation
 
-Poetry:
-`poetry add django-nominopolitan`
+Basic installation with pip:
+```bash
+pip install django-nominopolitan
+```
+
+This will automatically install:
+- `django` (^5.1)
+- `django-template-partials` (^24.4)
+- `pydantic` (^2.10.6)
+
+### Required Dependencies
+
+You must install `neapolitan` (version 24.8) as it's required for core functionality:
+```bash
+pip install "django-nominopolitan[neapolitan]"
+```
+
+### Optional Dependencies
+
+- HTMX support:
+```bash
+pip install "django-nominopolitan[htmx]"
+```
+
+- Crispy Forms support (includes both `django-crispy-forms` and `crispy-bootstrap5`):
+```bash
+pip install "django-nominopolitan[crispy]"
+```
+
+You can combine multiple optional dependencies:
+```bash
+pip install "django-nominopolitan[neapolitan,htmx,crispy]"
+```
+
+### Frontend Dependencies
+These must be included in your base template:
+
+- Bootstrap 5 CSS and JS (if using the default templates)
+- Bootstrap Icons (if using sorting indicators)
+- HTMX (if `use_htmx=True`)
+- Popper.js (required for table column text truncation popovers)
+- Alpine.js (if using modals)
 
 ## Configuration
-Add these to your `settings.py`:
 
+Add to your `settings.py`:
 ```python
 INSTALLED_APPS = [
     ...
-    "nominopolitan", # put this before neapolitan
-    "neapolitan",    # this is required to use the `NominopolitanMixin`
+    "nominopolitan",  # must come before neapolitan
+    "neapolitan",     # required for NominopolitanMixin
+    "django_htmx",    # if using htmx features
     ...
 ]
 ```
 
-In addition:
-
-1. If you want to set `use_htmx = True`, then make sure `htmx` is installed in your base template and `django_htmx` is installed.
-2. If you want to set `use_modal = True`, it requires `use_htmx=True` (see above) **and** `alpinejs` is installed in your base template.
+Additional configuration:
+1. For HTMX features (`use_htmx=True`): 
+   - Install HTMX in your base template
+   - Ensure `django-htmx` is installed
+2. For modal support (`use_modal=True`):
+   - Requires `use_htmx=True`
+   - Install Alpine.js in your base template
 
 ## Usage
 
