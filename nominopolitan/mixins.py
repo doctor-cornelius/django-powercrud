@@ -962,12 +962,9 @@ class NominopolitanMixin:
                     # this must be the first time rendering the object_list template
                     # set original_target to the current htmx target
                     self.set_session_data_key({'original_target': f"#{self.request.htmx.target}"})
-                # context["original_target"] = self.get_original_target()
-                # context['table_max_height'] = self.get_table_max_height()
-                # context['table_font_size'] = f"{self.get_table_font_size()}"
-                # context['table_max_col_width'] = f"{self.get_table_max_col_width()}"
+                log.debug(f"self.get_original_target(): {self.get_original_target()}; htmx_target = {self.get_htmx_target()}")
 
-            if self.request.headers.get('X-Filter-Request'):
+            if self.request.headers.get('X-Filter-Sort-Request'):
                 template_name=f"{template_name}#filtered_results"
             else:
                 template_name=f"{template_name}{self.get_original_target()}"

@@ -25,7 +25,8 @@
                     {% if use_htmx %}
                         <a class="text-white text-decoration-none d-block w-100 h-100" 
                            hx-get="?sort={% if current_sort == field_name %}-{% elif current_sort == '-'|add:field_name %}{% else %}{% endif %}{{ field_name }}{% if filter_params %}&{{ filter_params }}{% endif %}"
-                           hx-target="{{original_target}}"
+                           hx-headers='{"X-Filter-Sort-Request": "true"}'
+                           hx-target="#filtered_results"
                            hx-push-url="true"
                            hx-trigger="click">
                             {{ header }}

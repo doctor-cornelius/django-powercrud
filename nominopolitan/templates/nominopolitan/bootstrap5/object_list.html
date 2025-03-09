@@ -57,7 +57,7 @@
 
                 <a href="." class="btn btn-sm btn-outline-secondary table-font-size" 
                     hx-get="." hx-target="#filtered_results"
-                    hx-headers='{"X-Filter-Request": "true"}' 
+                    hx-headers='{"X-Filter-Sort-Request": "true"}' 
                     onclick="resetFilterForm()">Reset</a>
 
             {% endif %}
@@ -80,7 +80,7 @@
         <div class="collapse" id="filterCollapse">
             <form id="filter-form" method="get" class="row g-3" 
                 hx-target="#filtered_results"
-                hx-headers='{"X-Filter-Request": "true"}'>
+                hx-headers='{"X-Filter-Sort-Request": "true"}'>
                 {% for field in filterset.form %}
                 <div class="col-auto mb-0">
                     {% if use_crispy %}
