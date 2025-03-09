@@ -4,76 +4,67 @@ from typing import Union, Optional, List, Literal
 class NominopolitanMixinValidator(BaseModel):
     """Validation model for NominopolitanMixin settings"""
     # namespace settings
-    namespace: Optional[str] = None
+    namespace: Optional[str]
     
     # template parameters
-    templates_path: str = Field(
-        default="nominopolitan/bootstrap5",
-        description="Path to template directory"
-    )
-    base_template_path: Optional[str] = None
+    templates_path: Optional[str]
+    base_template_path: Optional[str]
     
     # forms
-    use_crispy: Optional[bool] = None
+    use_crispy: Optional[bool]
     
     # field and property inclusion scope
-    fields: Union[List[str], Literal['__all__']] = []
-    properties: Union[List[str], Literal['__all__']] = []
-    exclude: List[str] = []
-    properties_exclude: List[str] = []
+    fields: Optional[Union[List[str], Literal['__all__']]]
+    properties: Optional[Union[List[str], Literal['__all__']]]
+    exclude: Optional[List[str]]
+    properties_exclude: Optional[List[str]]
     
     # Detail view settings
-    detail_fields: Union[List[str], Literal['__all__', '__fields__']] = '__fields__'
-    detail_exclude: List[str] = []
-    detail_properties: Union[List[str], Literal['__all__', '__properties__']] = '__properties__'
-    detail_properties_exclude: List[str] = []
+    detail_fields: Optional[Union[List[str], Literal['__all__', '__fields__']]]
+    detail_exclude: Optional[List[str]]
+    detail_properties: Optional[Union[List[str], Literal['__all__', '__properties__']]]
+    detail_properties_exclude: Optional[List[str]]
+    
+    # htmx
+    use_htmx: Optional[bool]
+    default_htmx_target: Optional[str]
+    hx_trigger: Optional[Union[str, int, float, dict]]
+    
+    # modals
+    use_modal: Optional[bool]
+    modal_id: Optional[str]
+    modal_target: Optional[str]
+    
+    # table display parameters
+    table_pixel_height_other_page_elements: Optional[Union[int, float]] = Field(ge=0)
+    table_max_height: Optional[int] = Field(ge=0, le=100)
+    table_font_size: Optional[Union[int, float]] = Field(gt=0)
+    table_max_col_width: Optional[int] = Field(gt=0)
 
     @field_validator('fields', 'properties', 'detail_fields', 'detail_properties')
     @classmethod
     def validate_field_specs(cls, v):
+        if v is None:
+            return v
         if isinstance(v, list) and not all(isinstance(x, str) for x in v):
             raise ValueError("List must contain only strings")
         return v
-    
-    # htmx
-    use_htmx: Optional[bool] = None
-    default_htmx_target: str = '#content'
-    hx_trigger: Optional[Union[str, int, float, dict]] = None
-    
-    # modals
-    use_modal: Optional[bool] = None
-    modal_id: Optional[str] = None
-    modal_target: Optional[str] = None
-    
-    # table display parameters
-    table_pixel_height_other_page_elements: Union[int, float] = Field(
-        default=0,
-        ge=0,
-        description="Height of other page elements in pixels (px)"
-    )
-    table_max_height: int = Field(
-        default=70,
-        ge=0,
-        le=100,
-        description="Maximum table height as percentage (vh units)"
-    )
-    table_font_size: Union[int, float] = Field(
-        default=1,
-        gt=0,
-        description="Table font size in rem units"
-    )
-    table_max_col_width: int = Field(
-        default=25,
-        gt=0,
-        description="Maximum column width in ch units"
-    )
 
     @field_validator('hx_trigger')
     @classmethod
     def validate_hx_trigger(cls, v):
+        if v is None:
+            return v
         if isinstance(v, dict):
             if not all(isinstance(k, str) for k in v.keys()):
                 raise ValueError("HX-Trigger dict keys must be strings")
+        return v
+
+    @field_validator('default_htmx_target')
+    @classmethod
+    def validate_default_htmx_target(cls, v, info):
+        if info.data.get('use_htmx') is True and v is None:
+            raise ValueError("default_htmx_target is required when use_htmx is True")
         return v
 
     class Config:

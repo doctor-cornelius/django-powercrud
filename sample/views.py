@@ -59,7 +59,7 @@ class AuthorCRUDView(NominopolitanMixin, CRUDView):
     table_font_size = '0.675'
     table_max_col_width = '20' # characters
 
-    paginate_by = 40
+    # paginate_by = 40
 
     # fields = ["name","bio","birth_date",]
     fields = "__all__"

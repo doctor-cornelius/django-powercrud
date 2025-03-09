@@ -147,7 +147,10 @@ class NominopolitanMixin:
             for field_name, value in validated_settings.dict().items():
                 setattr(self, field_name, value)
         except ValueError as e:
-            raise ImproperlyConfigured(f"Invalid NominopolitanMixin configuration: {str(e)}")
+            class_name = self.__class__.__name__
+            raise ImproperlyConfigured(
+                f"Invalid configuration in class '{class_name}': {str(e)}"
+            )
 
         # determine the starting list of fields (before exclusions)
         if not self.fields or self.fields == '__all__':
