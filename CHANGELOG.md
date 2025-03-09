@@ -1,3 +1,9 @@
+## 0.1.11 (2025-03-09)
+
+### Fix
+
+- **(sort)**:  maintain selected filter display when sorting with htmx
+
 ## 0.1.10 (2025-03-09)
 
 ### Fix
