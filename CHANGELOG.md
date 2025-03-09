@@ -1,3 +1,9 @@
+## 0.1.12 (2025-03-10)
+
+### Fix
+
+- **(list.html)**:  apply sort logic to th header not just the <a> tag with header text
+
 ## 0.1.11 (2025-03-09)
 
 ### Fix
