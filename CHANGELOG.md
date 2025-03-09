@@ -1,3 +1,18 @@
+## 0.1.10 (2025-03-09)
+
+### Fix
+
+- **(pypoetry)**:  correct extras syntax
+- **(NominopolitanMixinValidator)**:  remove defaults from validator class and set custom validator for hx_trigger
+
+### Build
+
+- **(pypoetry)**:  change extras
+
+### Documentation
+
+- **(README)**:  update installation section
+
 ## 0.1.9 (2025-03-09)
 
 ### Feature
