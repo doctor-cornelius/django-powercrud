@@ -135,6 +135,8 @@ It is a **very early alpha** release. No tests. Limited docs. Expect many breaki
 
 ## Installation and Dependencies
 
+Check [`pypoetry.toml`](https://github.com/doctor-cornelius/django-nominopolitan/blob/main/pyproject.toml) for the versions being used.
+
 ### Basic Installation
 
 Basic installation with pip:
@@ -143,9 +145,9 @@ pip install django-nominopolitan
 ```
 
 This will automatically install:
-- `django` (^5.1)
-- `django-template-partials` (^24.4)
-- `pydantic` (^2.10.6)
+- `django`
+- `django-template-partials`
+- `pydantic`
 
 ### Required Dependencies
 
@@ -172,13 +174,18 @@ pip install "django-nominopolitan[neapolitan,htmx,crispy]"
 ```
 
 ### Frontend Dependencies
-These must be included in your base template:
+These JavaScript and CSS libraries must be included in your base template:
 
-- Bootstrap 5 CSS and JS (if using the default templates)
-- Bootstrap Icons (if using sorting indicators)
-- HTMX (if `use_htmx=True`)
-- Popper.js (required for table column text truncation popovers)
-- Alpine.js (if using modals)
+1. Required JavaScript libraries:
+   - Popper.js - Required for table column text truncation popovers
+   - HTMX - Required if `use_htmx=True`
+   - Alpine.js - Required if using modals
+
+2. If using default templates:
+   - Bootstrap 5 CSS and JS
+   - Bootstrap Icons (for sorting indicators)
+
+See the example base template in `django_nominopolitan/templates/django_nominopolitan/base.html` for a complete implementation with CDN links.
 
 ## Configuration
 
