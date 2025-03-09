@@ -14,10 +14,13 @@ django = "^5.1"
 django-template-partials = "^24.4"
 pydantic = "^2.10.6"
 django_htmx = "^1.21"
+neapolitan = { version = "^24.8", optional = true }
+django-crispy-forms = { version = "^2.3", optional = true }
+crispy-bootstrap5 = { version = "^2024.10", optional = true }
 
 [tool.poetry.extras]
-neapolitan = ["neapolitan==24.8"]
-crispy = ["django-crispy-forms^2.3", "crispy-bootstrap5^2024.10"]
+neapolitan = ["neapolitan"]
+crispy = ["django-crispy-forms", "crispy-bootstrap5"]
 
 [tool.poetry.group.dev.dependencies]
 commitizen = "^3"
