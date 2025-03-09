@@ -1,3 +1,9 @@
+## 0.1.9 (2025-03-09)
+
+### Feature
+
+- **(NominopolitanMixin)**:  validate all class attributes with pydantic NominopolitanMixinValidator
+
 ## 0.1.8 (2025-03-07)
 
 ### Fix
