@@ -1035,6 +1035,7 @@ class NominopolitanMixin:
         from django.template.exceptions import TemplateDoesNotExist
 
         try:
+            # try to use overriden template if it exists
             template_name = template_names[0]
             # Verify template exists
             template = get_template(template_name)
