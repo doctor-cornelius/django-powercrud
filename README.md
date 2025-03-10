@@ -126,12 +126,29 @@ It is a **very early alpha** release. No tests. Limited docs. Expect many breaki
 **Management Commands**
 
 - `nm_mktemplate`:
-    - This is the same as `neapolitan`'s `mktemplate` command except it copies from the `nominopolitan` templates instead of the `neapolitan` templates.
-    - It's the same syntax as `neapolitan`'s `mktemplate` command:
-
-        ```python
-        python manage.py nm_mktemplate <app_name>.<model_name> --<suffix>
+    - Bootstraps CRUD templates from `nominopolitan` templates instead of `neapolitan` templates
+    - Basic syntax:
+        ```bash
+        python manage.py nm_mktemplate <target>
         ```
+    - The `target` can be either:
+        - An app name (e.g., `myapp`) to copy the entire template structure
+        - An app.Model combination (e.g., `myapp.Book`) for model-specific templates
+    
+    - Options for model-specific templates:
+        ```bash
+        # Copy all CRUD templates for a model
+        python manage.py nm_mktemplate myapp.Book --all
+
+        # Copy individual templates
+        python manage.py nm_mktemplate myapp.Book --list      # List view template
+        python manage.py nm_mktemplate myapp.Book --detail    # Detail view template
+        python manage.py nm_mktemplate myapp.Book --form      # Form template
+        python manage.py nm_mktemplate myapp.Book --delete    # Delete confirmation template
+        ```
+
+    - Templates will be copied to your app's template directory following Django's template naming conventions
+    - If the target directory already exists, files will be overwritten with a warning
 
 - `nm_clear_session_keys`
     - Used to clear all user session keys related to nominopolitan
