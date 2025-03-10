@@ -966,7 +966,8 @@ class NominopolitanMixin:
             if self.request.headers.get('X-Filter-Sort-Request'):
                 template_name=f"{template_name}#filtered_results"
             else:
-                template_name=f"{template_name}{self.get_original_target()}"
+                # template_name=f"{template_name}{self.get_original_target()}"
+                template_name=f"{template_name}#nm_content"
 
             response = render(
                 request=self.request,

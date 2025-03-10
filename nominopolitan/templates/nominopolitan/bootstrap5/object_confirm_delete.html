@@ -3,11 +3,11 @@
 {% load partials %}
 
 {% block content %}
-    {% partial content %}
+    {% partial nm_content %}
 
 {% endblock %}
 
-{% partialdef content %}
+{% partialdef nm_content %}
     <div class="is-flex is-flex-direction-column m-2 p-2">
         <div class="box">
             <p class="">Are you sure you want to delete the following {{ object_verbose_name }}?</p>
@@ -27,4 +27,4 @@
             </form>
         </div>
     </div>
-{% endpartialdef content %}
+{% endpartialdef nm_content %}

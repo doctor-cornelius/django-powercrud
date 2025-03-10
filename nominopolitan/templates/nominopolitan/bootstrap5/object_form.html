@@ -8,10 +8,10 @@
 
 
 {% block content %}
-    {% partial content %}
+    {% partial nm_content %}
 {% endblock %}
 
-{% partialdef content %}
+{% partialdef nm_content %}
 <div class="is-flex is-flex-direction-column m-2 p-2">
     <h1 class="title is-4">{% if object %}Edit {{object_verbose_name}}{% else %}Create {{object_verbose_name}}{% endif %}
     </h1>
@@ -39,4 +39,4 @@
         </form>
     </div>
 </div>
-{% endpartialdef content %}
+{% endpartialdef nm_content %}

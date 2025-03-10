@@ -6,10 +6,10 @@
 {% endif %}
 
 {% block content %}
-{% partial content %}
+{% partial nm_content %}
 {% endblock %}
 
-{% partialdef content %}
+{% partialdef nm_content %}
     <style>
         #filter-form label {
             font-weight: bold;
@@ -225,7 +225,7 @@
     });
 </script>
 
-{% endpartialdef content %}
+{% endpartialdef nm_content %}
 
 {% partialdef filtered_results %}
     {% if object_list %}
