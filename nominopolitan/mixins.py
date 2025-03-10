@@ -453,29 +453,29 @@ class NominopolitanMixin:
                     if isinstance(getattr(self.model, name), property) and name != 'pk'
                 ]
 
-    def get_session_key(self):
-        """Generate a unique session key using app name, model name and url_base."""
+    def get_model_session_key(self):
+        """Generate a unique key for this model within the nominopolitan session dict."""
         app_name = self.model._meta.app_label
-        model_name = self.model._meta.object_name.lower()
-        session_key = f"nominopolitan_{app_name}_{self.url_base}"
-        return session_key
-    
-    def get_session_data(self) -> dict|None:
-        # retrieve the actual session variable based on the key
-        return self.request.session.get(self.get_session_key(), None)
-    
-    def set_session_data_key(self, data: dict):
-        existing_session_data = self.get_session_data()
-        if not existing_session_data:
-            # create a new session variable with data
-            self.request.session[self.get_session_key()] = data
-        else:
-            # update the session data with the new data
-            for k,v in data.items():
-                existing_session_data[k] = v
-                self.request.session[self.get_session_key()] = existing_session_data
+        return f"{app_name}_{self.url_base}"
 
-        return self.get_session_data()
+    def get_session_data(self) -> dict|None:
+        """Retrieve the session data for this model from the nominopolitan session dict."""
+        nominopolitan_data = self.request.session.get('nominopolitan', {})
+        return nominopolitan_data.get(self.get_model_session_key(), None)
+
+    def set_session_data_key(self, data: dict):
+        """Update the session data for this model within the nominopolitan session dict."""
+        nominopolitan_data = self.request.session.get('nominopolitan', {})
+        model_key = self.get_model_session_key()
+        
+        if model_key not in nominopolitan_data:
+            nominopolitan_data[model_key] = data
+        else:
+            # Update existing data
+            nominopolitan_data[model_key].update(data)
+        
+        self.request.session['nominopolitan'] = nominopolitan_data
+        return nominopolitan_data[model_key]
 
     def get_original_target(self):
         """
