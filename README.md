@@ -228,13 +228,16 @@ from neapolitan.views import CRUDView
 class ProjectCRUDView(NominopolitanMixin, CRUDView):
     # *******************************************************************
     # Standard neapolitan attributes
-    model = models.Project
-    fields = [
-        "name", "project_owner", "project_manager", "due_date",
-        ]
+    model = models.Project # this is mandatory
 
-    form_class = forms.ProjectForm # standard neapolitan setting if needed
-    # ...other standard neapolitan attributes
+    # examples of other available neapolitan class attributes
+    url_base = "different_project" # use this to override the property url_base
+        # which will default to the model name. Useful if you want multiple CRUDViews 
+        # for the same model
+    form_class = ProjectForm # if you want to use a custom form
+
+    # check the code in neapolitan.views.CRUDView for all available attributes
+
     # ******************************************************************
     # nominopolitan attributes
 

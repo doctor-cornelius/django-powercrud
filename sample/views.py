@@ -16,24 +16,28 @@ class BookCRUDView(NominopolitanMixin, CRUDView):
     use_htmx = True
     use_modal = True
 
+    # standard neapolitan setting; this demonstrates how to override the default url_base (ie model name)
+    # useful if you want multiple CRUDViews for the same model
+    url_base = "bigbook" 
+
     # use_crispy = False
 
     # fields = ["author","title","published_date",]
-    # fields =  "__all__"
-    # exclude = ['pages','description']
+    fields =  "__all__"
+    exclude = ['pages','description']
     # properties = '__all__'
-    # detail_fields = '__all__'
-    # detail_properties = '__all__'
+    detail_fields = '__all__'
+    detail_properties = '__all__'
 
-    # filterset_fields = ['author', 'title', 'published_date','isbn', 'isbn_empty','pages', 'description', 'uneditable_field']
-    # filterset_class = filters.BookFilterSet
+    filterset_fields = ['author', 'title', 'published_date','isbn', 'isbn_empty','pages', 'description', 'uneditable_field']
+    filterset_class = filters.BookFilterSet
 
-    # form_class = forms.BookForm
+    form_class = forms.BookForm
 
-    # table_pixel_height_other_page_elements = 100
-    # table_max_height = 80
-    # table_font_size = '1.05'
-    # table_max_col_width = '25' # characters
+    table_pixel_height_other_page_elements = 100
+    table_max_height = 80
+    table_font_size = '1.05'
+    table_max_col_width = '25' # characters
     # paginate_by = 30
 
     # Example of overrides of get_queryset and get_filter_queryset_for_field

@@ -34,11 +34,11 @@
                 Home (Reload)
             </a>
             <div class="btn-group" role="group" aria-label="Book List buttons">
-                <a class="btn btn-secondary" hx-get="{% url 'sample:book-list' %}" hx-target="#content" hx-swap="innerHTML"
+                <a class="btn btn-secondary" hx-get="{% url 'sample:bigbook-list' %}" hx-target="#content" hx-swap="innerHTML"
                     hx-replace-url="true" hx-push-url="true">
                     Book List (htmx)
                 </a>
-                <a class="btn btn-info" href="{% url 'sample:book-list' %}">
+                <a class="btn btn-info" href="{% url 'sample:bigbook-list' %}">
                     Book List (reload)
                 </a>
             </div>
