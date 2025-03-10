@@ -8,6 +8,7 @@ Key Components:
 """
 
 from django import forms
+from django.forms import models as model_forms
 from django.db import models
 
 from django.http import Http404
@@ -719,10 +720,14 @@ class NominopolitanMixin:
         This method is called by Django's form processing to determine which form class to use.
         It removes non-editable fields from self.fields if a form_class is not explicitly set,
         and uses create_form_class for CREATE operations if specified.
+        
+        Additionally, it automatically sets appropriate HTML5 widgets for date/time fields
+        when no custom form class is provided.
 
         Returns:
             Form class to be used for the current view.
         """
+        # Remove non-editable fields if we're generating a default form
         if self.fields and not self.form_class:
             non_editable_fields = [
                     field.name for field in self.model._meta.fields 
@@ -730,10 +735,68 @@ class NominopolitanMixin:
                 ]
             self.fields = [field for field in self.fields if field not in non_editable_fields]
 
+        # Use special create form if specified and we're in CREATE mode
         if self.create_form_class and self.role is Role.CREATE:
             return self.create_form_class
 
-        return super().get_form_class()
+        # Use explicitly defined form class if provided
+        if self.form_class is not None:
+            return self.form_class
+
+        # Generate a default form class if we have both model and fields
+        if self.model is not None and self.fields is not None:
+            # Get all model fields for widget configuration
+            model_fields = self.model._meta.get_fields()
+            
+            # Configure HTML5 input widgets for date/time fields
+            # This provides better native date/time pickers in modern browsers
+            widgets = {}
+            for field in model_fields:
+                if isinstance(field, models.DateField):
+                    widgets[field.name] = forms.DateInput(
+                        attrs={'type': 'date', 'class': 'form-control'}
+                    )
+                elif isinstance(field, models.DateTimeField):
+                    widgets[field.name] = forms.DateTimeInput(
+                        attrs={'type': 'datetime-local', 'class': 'form-control'}
+                    )
+                elif isinstance(field, models.TimeField):
+                    widgets[field.name] = forms.TimeInput(
+                        attrs={'type': 'time', 'class': 'form-control'}
+                    )
+
+            # Create the form class with our configured widgets
+            form_class = model_forms.modelform_factory(
+                self.model,
+                fields=self.fields,
+                widgets=widgets
+            )
+
+            # Enhance the form with crispy-forms if enabled
+            # This monkey-patches the form's __init__ to add crispy-forms configuration
+            if self.get_use_crispy():
+                old_init = form_class.__init__
+
+                def new_init(self, *args, **kwargs):
+                    # Call the original __init__ first
+                    old_init(self, *args, **kwargs)
+                    # Set up crispy forms helper
+                    # We disable form tags and CSRF here because they're handled in the template
+                    # This allows for proper HTMX integration and modal support
+                    self.helper = FormHelper()
+                    self.helper.form_tag = False  # Let template handle the form tag
+                    self.helper.disable_csrf = True  # CSRF is handled in template
+
+                form_class.__init__ = new_init
+
+            return form_class
+
+        # If we get here, we don't have enough information to create a form
+        msg = (
+            "'%s' must either define 'form_class' or both 'model' and "
+            "'fields', or override 'get_form_class()'"
+        )
+        raise ImproperlyConfigured(msg % self.__class__.__name__)
 
     def get_prefix(self):
         """

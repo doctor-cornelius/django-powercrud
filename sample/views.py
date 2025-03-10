@@ -15,6 +15,7 @@ class BookCRUDView(NominopolitanMixin, CRUDView):
     base_template_path = "django_nominopolitan/base.html"
     use_htmx = True
     use_modal = True
+    # use_crispy = False
 
     # standard neapolitan setting; this demonstrates how to override the default url_base (ie model name)
     # useful if you want multiple CRUDViews for the same model
@@ -32,7 +33,7 @@ class BookCRUDView(NominopolitanMixin, CRUDView):
     filterset_fields = ['author', 'title', 'published_date','isbn', 'isbn_empty','pages', 'description', 'uneditable_field']
     filterset_class = filters.BookFilterSet
 
-    form_class = forms.BookForm
+    # form_class = forms.BookForm
 
     table_pixel_height_other_page_elements = 100
     table_max_height = 80
