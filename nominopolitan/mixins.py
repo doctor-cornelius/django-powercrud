@@ -110,10 +110,15 @@ class NominopolitanMixin:
     properties: list[str] = []
     properties_exclude: list[str] = []
 
+    # for the detail view
     detail_fields: list[str] = []
     detail_exclude: list[str] = []
     detail_properties: list[str] = []
     detail_properties_exclude: list[str] = []
+
+    # form fields (if no form_class is specified)
+    form_fields: list[str] = []
+    form_fields_exclude: list[str] = []
 
     # htmx
     use_htmx: bool | None = None
@@ -239,6 +244,40 @@ class NominopolitanMixin:
                                   if prop not in self.detail_properties_exclude]
         else:
             raise TypeError("detail_properties_exclude must be a list")
+
+        # Process form_fields last, after all other field processing is complete
+        all_editable = self._get_all_editable_fields()
+        
+        if not self.form_fields:
+            # Default to editable fields from detail_fields
+            self.form_fields = [
+                f for f in self.detail_fields 
+                if f in all_editable
+            ]
+        elif self.form_fields == '__all__':
+            self.form_fields = all_editable
+        elif self.form_fields == '__fields__':
+            self.form_fields = [
+                f for f in self.fields 
+                if f in all_editable
+            ]
+        else:
+            # Validate that specified fields exist and are editable
+            invalid_fields = [f for f in self.form_fields if f not in all_editable]
+            if invalid_fields:
+                raise ValueError(
+                    f"The following form_fields are not editable fields in {self.model.__name__}: "
+                    f"{', '.join(invalid_fields)}"
+                )
+
+        # Process form fields exclusions
+        if self.form_fields_exclude:
+            self.form_fields = [
+                f for f in self.form_fields 
+                if f not in self.form_fields_exclude
+            ]
+        
+        
             
     def list(self, request, *args, **kwargs):
         """
@@ -448,12 +487,19 @@ class NominopolitanMixin:
         ]
         return fields
 
-    
+    def _get_all_editable_fields(self):
+        """Gets all editable fields in model"""
+        return [
+            field.name 
+            for field in self.model._meta.get_fields() 
+            if hasattr(field, 'editable') and field.editable
+        ]
+
     def _get_all_properties(self):
         return [name for name in dir(self.model)
                     if isinstance(getattr(self.model, name), property) and name != 'pk'
                 ]
-
+    
     def get_model_session_key(self):
         """Generate a unique key for this model within the nominopolitan session dict."""
         app_name = self.model._meta.app_label
@@ -713,28 +759,12 @@ class NominopolitanMixin:
         except NoReverseMatch:
             return None
     
+        
+
     def get_form_class(self):
         """
-        Override get_form_class to remove any non-editable fields where a form_class was not specified.
-        
-        This method is called by Django's form processing to determine which form class to use.
-        It removes non-editable fields from self.fields if a form_class is not explicitly set,
-        and uses create_form_class for CREATE operations if specified.
-        
-        Additionally, it automatically sets appropriate HTML5 widgets for date/time fields
-        when no custom form class is provided.
-
-        Returns:
-            Form class to be used for the current view.
+        Override get_form_class to use form_fields for form generation.
         """
-        # Remove non-editable fields if we're generating a default form
-        if self.fields and not self.form_class:
-            non_editable_fields = [
-                    field.name for field in self.model._meta.fields 
-                    if not field.editable
-                ]
-            self.fields = [field for field in self.fields if field not in non_editable_fields]
-
         # Use special create form if specified and we're in CREATE mode
         if self.create_form_class and self.role is Role.CREATE:
             return self.create_form_class
@@ -743,15 +773,13 @@ class NominopolitanMixin:
         if self.form_class is not None:
             return self.form_class
 
-        # Generate a default form class if we have both model and fields
-        if self.model is not None and self.fields is not None:
-            # Get all model fields for widget configuration
-            model_fields = self.model._meta.get_fields()
-            
+        # Generate a default form class using form_fields
+        if self.model is not None and self.form_fields:
             # Configure HTML5 input widgets for date/time fields
-            # This provides better native date/time pickers in modern browsers
             widgets = {}
-            for field in model_fields:
+            for field in self.model._meta.get_fields():
+                if field.name not in self.form_fields:
+                    continue
                 if isinstance(field, models.DateField):
                     widgets[field.name] = forms.DateInput(
                         attrs={'type': 'date', 'class': 'form-control'}
@@ -768,33 +796,27 @@ class NominopolitanMixin:
             # Create the form class with our configured widgets
             form_class = model_forms.modelform_factory(
                 self.model,
-                fields=self.fields,
+                fields=self.form_fields,
                 widgets=widgets
             )
 
-            # Enhance the form with crispy-forms if enabled
-            # This monkey-patches the form's __init__ to add crispy-forms configuration
+            # Apply crispy forms if enabled
             if self.get_use_crispy():
                 old_init = form_class.__init__
 
                 def new_init(self, *args, **kwargs):
-                    # Call the original __init__ first
                     old_init(self, *args, **kwargs)
-                    # Set up crispy forms helper
-                    # We disable form tags and CSRF here because they're handled in the template
-                    # This allows for proper HTMX integration and modal support
                     self.helper = FormHelper()
-                    self.helper.form_tag = False  # Let template handle the form tag
-                    self.helper.disable_csrf = True  # CSRF is handled in template
+                    self.helper.form_tag = False
+                    self.helper.disable_csrf = True
 
                 form_class.__init__ = new_init
 
             return form_class
 
-        # If we get here, we don't have enough information to create a form
         msg = (
             "'%s' must either define 'form_class' or both 'model' and "
-            "'fields', or override 'get_form_class()'"
+            "'form_fields', or override 'get_form_class()'"
         )
         raise ImproperlyConfigured(msg % self.__class__.__name__)
 

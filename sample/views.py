@@ -30,10 +30,11 @@ class BookCRUDView(NominopolitanMixin, CRUDView):
     detail_fields = '__all__'
     detail_properties = '__all__'
 
+    form_fields = ['title', 'author', 'published_date', 'isbn',]
+    create_form_class = forms.BookForm
+
     filterset_fields = ['author', 'title', 'published_date','isbn', 'isbn_empty','pages', 'description', 'uneditable_field']
     filterset_class = filters.BookFilterSet
-
-    form_class = forms.BookForm
 
     table_pixel_height_other_page_elements = 100
     table_max_height = 80

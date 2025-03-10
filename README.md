@@ -21,7 +21,9 @@ It is a **very early alpha** release. No tests. Limited docs. Expect many breaki
 **Extended `fields` and `properties` attributes**
 - `fields=<'__all__' | [..]>` to specify which fields to include in list view
 - `properties=<'__all__' | [..]>` to specify which properties to include in list view
-- `detail_fields` and `detail_properties` to specify which to include in detail view
+- `detail_fields` and `detail_properties` to specify which to include in detail view. If not set, then:
+    - `detail_fields` defaults to the resolved setting for `fields`
+    - `detail_properties` defaults to `None`
 - Support exclusions via `exclude`, `exclude_properties`, `detail_exclude`, `detail_exclude_properties`
 - Support for `extra_actions` to add additional actions to list views
 
@@ -66,7 +68,14 @@ It is a **very early alpha** release. No tests. Limited docs. Expect many breaki
       set the `framework` key to the name of your framework and add the required values.
 
 **Forms**
-- if `form_class` is not specified, then non-editable fields are automatically excluded from forms
+- if `form_class` is specified, it will be used 
+- if `form_class` is not specified, then there are 2 additional potential attributes: 
+    - `form_fields = <'__all__' | '__fields__' | [..]>` to specify which fields to include in form
+        - `'__all__'`: includes all editable fields from the model
+        - `'__fields__'`: includes only editable fields that are in the resolved value for `fields`
+        - Default: includes only editable fields from the resolved value for `detail_fields`
+    - `form_fields_exclude = [..]` to specify which fields to exclude from the generated form
+    - the resolved value of these parameters is used to generate a form class with HTML5 widgets for `date`, `datetime` and `time` fields
 - Optional `create_form_class` for create operations:
     - Allows a separate form class specifically for create views
     - Useful when create and update forms need different: Field sets, Validation logic, Base classes
@@ -240,6 +249,8 @@ class ProjectCRUDView(NominopolitanMixin, CRUDView):
 
     # ******************************************************************
     # nominopolitan attributes
+    namespace = "my_app_name" # specify the namespace (optional)
+        # if your urls.py has app_name = "my_app_name"
 
     # which fields and properties to include in the list view
     fields = '__all__' # if you want to include all fields
@@ -266,8 +277,16 @@ class ProjectCRUDView(NominopolitanMixin, CRUDView):
 
     detail_properties_exclude = ["is_overdue",] # if you want to exclude @property fields from the detail view
 
-    namespace = "my_app_name" # specify the namespace 
-        # if your urls.py has app_name = "my_app_name"
+    # you can specify the fields to include in forms if no form_class is specified.
+    # note if a fom_class IS specified then it will be used
+    form_fields = ["name", "project_owner", "project_manager", "due_date", "description",]
+    # form_fields = '__all__' if you want to include all model fields (only editable fields will be included)
+    # form_fields = '__fields__' if you want to use the fields attribute (only editable fields will be included)
+    # if not specified, it will default to only editable fields in the resolved versin of detail_fields (ie excluding detail_exclude)
+    form_fields_exclude = ["description",] # list of fields to exclude from forms
+
+    create_form_class = forms.ProjectCreateForm # if you want a separate create form
+        # the update form always uses specified form_class OR the generated form class based on form_fields and form_fields_exclude
 
     # filtersets
     filterset_fields = ["name", "project_owner", "project_manager", "due_date",]
@@ -279,9 +298,6 @@ class ProjectCRUDView(NominopolitanMixin, CRUDView):
         # if you set it to True without crispy-forms installed, it will resolve to False
         # if you set it to False with crispy-forms installed, it will resolve to False
 
-    create_form_class = forms.ProjectCreateForm # if you want a separate create form
-        # the update form always uses form_class
-    
     # Templates
     base_template_path = "core/base.html" # defaults to inbuilt "nominopolitan/base.html"
     templates_path = "myapp" # if you want to override all the templates in another app

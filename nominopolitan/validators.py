@@ -41,6 +41,10 @@ class NominopolitanMixinValidator(BaseModel):
     table_font_size: Optional[Union[int, float]] = Field(gt=0)
     table_max_col_width: Optional[int] = Field(gt=0)
 
+    # form fields
+    form_fields: Optional[Union[List[str], Literal['__all__', '__fields__']]]
+    form_fields_exclude: Optional[List[str]]
+
     @field_validator('fields', 'properties', 'detail_fields', 'detail_properties')
     @classmethod
     def validate_field_specs(cls, v):
@@ -65,6 +69,24 @@ class NominopolitanMixinValidator(BaseModel):
     def validate_default_htmx_target(cls, v, info):
         if info.data.get('use_htmx') is True and v is None:
             raise ValueError("default_htmx_target is required when use_htmx is True")
+        return v
+
+    @field_validator('form_fields')
+    @classmethod
+    def validate_form_fields(cls, v):
+        if v is None:
+            return v
+        if isinstance(v, list) and not all(isinstance(x, str) for x in v):
+            raise ValueError("form_fields must contain only strings")
+        return v
+
+    @field_validator('form_fields_exclude')
+    @classmethod
+    def validate_form_fields_exclude(cls, v):
+        if v is None:
+            return v
+        if not all(isinstance(x, str) for x in v):
+            raise ValueError("form_fields_exclude must contain only strings")
         return v
 
     class Config:
