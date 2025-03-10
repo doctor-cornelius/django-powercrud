@@ -1,3 +1,13 @@
+## 0.1.13 (2025-03-10)
+
+### Fix
+
+- **(render_to_response)**:  change all template partial names to nm_content and specify in response logic
+
+### Refactor
+
+- **(refactor session key to single 'nominopolitan' session key)**: 
+
 ## 0.1.12 (2025-03-10)
 
 ### Fix
