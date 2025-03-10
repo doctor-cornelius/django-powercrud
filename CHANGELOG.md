@@ -1,3 +1,14 @@
+## 0.1.15 (2025-03-10)
+
+### Refactor
+
+- **(object_form)**:  use framework_template_path context var for relative include of crispy forms
+- **(render_to_response)**:  change logic to pick up overridden forms
+
+### Feature
+
+- **(nm_mktemplate)**:  enhance management command options with app_name --all and app_name.model --all
+
 ## 0.1.14 (2025-03-10)
 
 ### Refactor
