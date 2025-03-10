@@ -1,3 +1,15 @@
+## 0.1.14 (2025-03-10)
+
+### Refactor
+
+- **(sample)**:  set form_class for Book but not for Author
+
+### Documentation
+
+- **(README)**:  update docs re form_fields and form_fields_exclude attributes
+- **(get_form_class)**:  write code comments to improve maintainability
+- **(README)**:  update docs re url_base
+
 ## 0.1.13 (2025-03-10)
 
 ### Fix
