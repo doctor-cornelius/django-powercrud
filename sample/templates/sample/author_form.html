@@ -1,0 +1,39 @@
+{% extends base_template_path %}
+{% load nominopolitan %}
+{% load partials %}
+
+{% if use_crispy %}
+{% include "nominopolitan/bootstrap5/crispy_partials.html#crispy_form" %}
+{% endif %}
+
+{% block content %}
+{% partial nm_content %}
+{% endblock %}
+
+{% partialdef nm_content %}
+<div class="is-flex is-flex-direction-column m-2 p-2">
+    <h1 class="title is-4">OVERRIDDEN {% if object %}Edit {{object_verbose_name}}{% else %}Create {{object_verbose_name}}{% endif %}</h1>
+
+    <div class="box">
+        <form method="POST" 
+            {% if form.is_multipart %}enctype="multipart/form-data"{% endif %}
+            action="{% if object %}{{ update_view_url }}{% else %}{{ create_view_url }}{% endif %}" 
+            {% if use_htmx and original_target %}
+                hx-post="{% if object %}{{ update_view_url }}{% else %}{{ create_view_url }}{% endif %}"
+                hx-target="{{ original_target }}"
+                hx-push-url="true"
+            {% endif %}>
+            {% csrf_token %}
+
+            {% if use_crispy %}
+                {% include "nominopolitan/bootstrap5/crispy_partials.html#crispy_form" %}
+            {% else %}
+                {{ form }}
+            {% endif %}
+
+            <button type="submit" class="btn btn-primary mt-4">Save</button>
+            <button type="button" class="btn btn-secondary mt-4" data-bs-dismiss="modal">Close</button>
+        </form>
+    </div>
+</div>
+{% endpartialdef nm_content %}

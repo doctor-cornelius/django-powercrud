@@ -97,3 +97,8 @@ class AuthorCRUDView(NominopolitanMixin, CRUDView):
             "needs_pk": True,  # if the URL doesn't need the object's primary key
         },
     ]
+
+    def get_template_names(self):
+        names = super().get_template_names()
+        print("DEBUG: Looking for templates:", names)  # Debug print
+        return names

@@ -91,7 +91,7 @@ TEMPLATES = [
         "DIRS": [
             BASE_DIR / "django_nominopolitan" / "templates",
         ],
-        "APP_DIRS": False,
+        "APP_DIRS": True,  # Change this to True
         "OPTIONS": {
             "context_processors": [
                 "django.template.context_processors.debug",
@@ -99,15 +99,11 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
             ],
-            "loaders": [
-                "django.template.loaders.filesystem.Loader",
-                "django.template.loaders.app_directories.Loader",
-            ],
             "builtins": [
-                "django.templatetags.i18n",  # {% load i18n %}
-                "django.templatetags.static",  # {% load static %}
-                "django_htmx.templatetags.django_htmx",  # {% load django_htmx %}
-                "template_partials.templatetags.partials",  # {% load partials %}
+                "django.templatetags.i18n",
+                "django.templatetags.static",
+                "django_htmx.templatetags.django_htmx",
+                "template_partials.templatetags.partials",
             ],
         },
     },

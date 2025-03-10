@@ -102,7 +102,7 @@ def action_links(view: Any, object: Any) -> str:
     return mark_safe(" ".join(links))
 
 
-@register.inclusion_tag(f"nominopolitan/{getattr(settings, 'NOMINOPOLITAN_CSS_FRAMEWORK', 'bootstrap')}/partial/detail.html")
+@register.inclusion_tag(f"nominopolitan/{getattr(settings, 'NOMINOPOLITAN_CSS_FRAMEWORK', 'bootstrap5')}/partial/detail.html")
 def object_detail(object, view):
     """
     Display both fields and properties for an object detail view.

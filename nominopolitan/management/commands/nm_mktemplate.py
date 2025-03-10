@@ -6,12 +6,14 @@ from django.core.management.base import BaseCommand, CommandError
 from django.template.loader import TemplateDoesNotExist, get_template
 from django.template.engine import Engine
 from django.apps import apps
+from django.conf import settings
 
 
 class Command(BaseCommand):
     help = "Bootstrap a CRUD template for a model, copying from the active nominopolitan default templates."
 
     template_prefix = "nominopolitan"
+    template_prefix = f"nominopolitan/{getattr(settings, 'NOMINOPOLITAN_CSS_FRAMEWORK', 'bootstrap5')}"
 
     def add_arguments(self, parser):
         parser.add_argument(

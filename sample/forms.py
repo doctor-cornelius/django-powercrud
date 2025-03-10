@@ -15,6 +15,7 @@ class BookForm(forms.ModelForm):
         widgets = {
             "published_date": forms.DateInput(attrs={"type": "date"}),
         }
+        # template_name = 'sample/book_form.html'  # Removed as it's not used
 
 
 class AuthorForm(forms.ModelForm):

@@ -1027,31 +1027,35 @@ class NominopolitanMixin:
     def render_to_response(self, context={}):
         """
         Render the response, handling both HTMX and regular requests.
-
-        This method determines the appropriate template and rendering method based on
-        whether the request is an HTMX request or a regular request. For HTMX requests,
-        it handles partial content updates and sets appropriate HTMX-specific headers.
-
-        Args:
-            context (dict): The context dictionary for template rendering.
-
-        Returns:
-            HttpResponse: The rendered response, either as a full page or partial content.
         """
         template_names = self.get_template_names()
-        template_name = template_names[0] if self.template_name else template_names[1]
+        
+        # Try the first template (app-specific), fall back to second (generic)
+        from django.template.loader import get_template
+        from django.template.exceptions import TemplateDoesNotExist
+
+        try:
+            template_name = template_names[0]
+            # Verify template exists
+            template = get_template(template_name)
+            log.debug(f"Found template {template_name} at {template.origin.name}")
+        except TemplateDoesNotExist:
+            log.debug(f"Template {template_name} not found, falling back to {template_names[1]}")
+            template_name = template_names[1]
+        except Exception as e:
+            log.error(f"Unexpected error checking template {template_name}: {str(e)}")
+            template_name = template_names[1]
+        
+        log.debug(f"Rendering template_name: {template_name}")
 
         if self.request.htmx:
             if self.role == Role.LIST:
                 if not self.get_original_target():
-                    # this must be the first time rendering the object_list template
-                    # set original_target to the current htmx target
                     self.set_session_data_key({'original_target': f"#{self.request.htmx.target}"})
 
             if self.request.headers.get('X-Filter-Sort-Request'):
                 template_name=f"{template_name}#filtered_results"
             else:
-                # template_name=f"{template_name}{self.get_original_target()}"
                 template_name=f"{template_name}#nm_content"
 
             response = render(
