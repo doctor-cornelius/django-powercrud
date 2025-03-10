@@ -33,7 +33,7 @@ class BookCRUDView(NominopolitanMixin, CRUDView):
     filterset_fields = ['author', 'title', 'published_date','isbn', 'isbn_empty','pages', 'description', 'uneditable_field']
     filterset_class = filters.BookFilterSet
 
-    # form_class = forms.BookForm
+    form_class = forms.BookForm
 
     table_pixel_height_other_page_elements = 100
     table_max_height = 80
@@ -79,7 +79,8 @@ class AuthorCRUDView(NominopolitanMixin, CRUDView):
     # filterset_class = filters.AuthorFilterSet
     filterset_fields = ['name', 'birth_date', 'bio']
 
-    form_class = forms.AuthorForm
+    # form_class = forms.AuthorForm
+
     extra_actions = [
         {
             "url_name": "home",  # namespace:url_pattern
