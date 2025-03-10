@@ -3,9 +3,8 @@
 {% load partials %}
 
 {% if use_crispy %}
-    {% include "./crispy_partials.html#load_tags" %}
+    {% include framework_template_path|add:"/crispy_partials.html#load_tags" %}
 {% endif %}
-
 
 {% block content %}
     {% partial nm_content %}
@@ -29,7 +28,7 @@
             {% csrf_token %}
             
             {% if use_crispy %}
-                {% include "./crispy_partials.html#crispy_form" %}
+                {% include framework_template_path|add:"/crispy_partials.html#crispy_form" %}
             {% else %}
                 {{ form }}
             {% endif %}

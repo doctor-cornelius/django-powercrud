@@ -951,6 +951,7 @@ class NominopolitanMixin:
 
         # Add template and feature configuration
         context["base_template_path"] = self.base_template_path
+        context['framework_template_path'] = self.templates_path
         context["use_crispy"] = self.get_use_crispy()
         context["use_htmx"] = self.get_use_htmx()
         context['use_modal'] = self.get_use_modal()
