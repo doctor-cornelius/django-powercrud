@@ -1,3 +1,9 @@
+## 0.1.16 (2025-03-14)
+
+### Feature
+
+- **(extra_buttons)**:  allow extra buttons to be implemented next to Create button via class attribute
+
 ## 0.1.15 (2025-03-10)
 
 ### Refactor
