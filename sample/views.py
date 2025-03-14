@@ -57,6 +57,24 @@ class BookCRUDView(NominopolitanMixin, CRUDView):
     #         qs = qs.filter(id=20)
     #     return qs
 
+    extra_buttons = [
+        {
+            "url_name": "home",
+            "text": "Home",
+            "button_class": "btn-success",
+            "htmx_target": "content",
+            "needs_pk": False,
+            "display_modal": False,
+        },
+        {
+            "url_name": "home",
+            "text": "Home in Modal!",
+            "button_class": "btn-warning",
+            "htmx_target": "nominopolitanModalContent",
+            "display_modal": True,
+        }
+    ]
+
 class AuthorCRUDView(NominopolitanMixin, CRUDView):
     model = models.Author
     namespace = "sample"
@@ -95,6 +113,17 @@ class AuthorCRUDView(NominopolitanMixin, CRUDView):
             "url_name": "sample:author-detail",
             "text": "View Again",
             "needs_pk": True,  # if the URL doesn't need the object's primary key
+        },
+    ]
+
+    extra_buttons = [
+        {
+            "url_name": "home",
+            "text": "Home Again",
+            "button_class": "btn-success",
+            "htmx_target": "content",
+            "needs_pk": False,
+            "display_modal": False,
         },
     ]
 

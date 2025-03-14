@@ -49,7 +49,7 @@ def action_links(view: Any, object: Any) -> str:
 
     # Standard actions with framework-specific button classes
     actions: List[Tuple[str, str, str, str, bool, str]] = [
-        (url, name, styles['actions'][name], default_target, False, styles["modal_attrs"])
+        (url, name, styles['actions'][name], default_target, False, use_modal, styles["modal_attrs"])
         for url, name in [
             (view.safe_reverse(f"{prefix}-detail", kwargs={"pk": object.pk}), "View"),
             (view.safe_reverse(f"{prefix}-update", kwargs={"pk": object.pk}), "Edit"),
@@ -65,13 +65,15 @@ def action_links(view: Any, object: Any) -> str:
             action["url_name"],
             kwargs={"pk": object.pk} if action.get("needs_pk", True) else None,
         )
+        log.debug(f"Extra action: {action}, url: {url}")
         if url is not None:
             htmx_target: str = action.get("htmx_target", default_target)
             if htmx_target and not htmx_target.startswith("#"):
                 htmx_target = f"#{htmx_target}"
             button_class: str = action.get("button_class", styles['extra_default'])
             
-            show_modal: bool = action.get("display_modal", view.get_use_modal())
+            display_modal = action.get("display_modal", use_modal)
+            show_modal: bool = display_modal if use_modal else False
             modal_attrs: str = styles["modal_attrs"] if show_modal else " "
             
             actions.append((
@@ -80,6 +82,7 @@ def action_links(view: Any, object: Any) -> str:
                 button_class, 
                 htmx_target, 
                 action.get("hx_post", False),
+                show_modal,
                 modal_attrs
             ))
 
@@ -88,13 +91,13 @@ def action_links(view: Any, object: Any) -> str:
     links: List[str] = [
         f"<div class='btn-group btn-group-sm'>" +
         " ".join([
-            f"<a href='{url}' class='{styles['base']} {button_class}' style='{styles['button_style']}' "
+            f"<a href='{url}' class='{styles['base']}{styles['extra_actions_button_padding']} {button_class}' style='{styles['button_style']}' "
             + (f"hx-{'post' if hx_post else 'get'}='{url}' " if use_htmx else "")
             + (f"hx-target='{target}' " if use_htmx else "")
-            + (f"hx-replace-url='true' hx-push-url='true' " if use_htmx and not view.get_use_modal() else "")
-            + (f"{modal_attrs} " if use_modal else "")
+            + (f"hx-replace-url='true' hx-push-url='true' " if use_htmx and not show_modal else "")
+            + (f"{modal_attrs} " if show_modal else "")
             + f">{anchor_text}</a>"
-            for url, anchor_text, button_class, target, hx_post, modal_attrs in actions
+            for url, anchor_text, button_class, target, hx_post, show_modal, modal_attrs in actions
         ]) +
         "</div>"
     ]
@@ -136,7 +139,7 @@ def object_detail(object, view):
 
 
 @register.inclusion_tag(
-        f"nominopolitan/{getattr(settings, 'NOMINOPOLITAN_CSS_FRAMEWORK', 'bootstrap')}/partial/list.html", 
+        f"nominopolitan/{getattr(settings, 'NOMINOPOLITAN_CSS_FRAMEWORK', 'bootstrap5')}/partial/list.html", 
         takes_context=True
         )
 def object_list(context, objects, view):
@@ -226,4 +229,59 @@ def get_proper_elided_page_range(paginator, number, on_each_side=1, on_ends=1):
         on_ends=1
     )
     return page_range
+
+@register.simple_tag
+def extra_buttons(view: Any) -> str:
+    """
+    Generate HTML for extra buttons in the list view header.
+
+    Args:
+        view: The view instance
+
+    Returns:
+        str: HTML string of extra buttons
+    """
+    framework: str = getattr(settings, 'NOMINOPOLITAN_CSS_FRAMEWORK', 'bootstrap5')
+    styles: Dict[str, Any] = view.get_framework_styles()[framework]
+    
+    use_htmx: bool = view.get_use_htmx()
+    use_modal: bool = view.get_use_modal()
+
+    extra_buttons: List[Dict[str, Any]] = getattr(view, "extra_buttons", [])
+    
+    buttons: List[str] = []
+    for button in extra_buttons:
+        url: Optional[str] = view.safe_reverse(
+            button["url_name"],
+            kwargs={} if not button.get("needs_pk", False) else None
+        )
+        if url is not None:
+            htmx_attrs = ""
+            if use_htmx:
+                htmx_target = button.get("htmx_target", "")
+                if htmx_target and not htmx_target.startswith("#"):
+                    htmx_target = f"#{htmx_target}"
+                htmx_attrs = (
+                    f'hx-get="{url}" hx-target="{htmx_target}" '
+                    f'{("hx-replace-url=\"true\" hx-push-url=\"true\" " if use_htmx and not button.get("display_modal", False) else "")}'
+                )
+            
+            modal_attrs = ""
+            if use_modal and button.get("display_modal", False):
+                modal_attrs = styles["modal_attrs"]
+            
+            button_class = button.get("button_class", styles['extra_default'])
+            
+            buttons.append(
+                f'<a href="{url}" '
+                f'class="{styles["base"]} {button_class}" '
+                f'style="{styles["button_style"]}" '
+                f'{htmx_attrs} {modal_attrs}>'
+                f'{button["text"]}</a>'
+            )
+
+    if buttons:
+        return mark_safe(" ".join(buttons))
+    return ""
+
 

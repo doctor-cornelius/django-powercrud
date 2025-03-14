@@ -358,8 +358,10 @@ class NominopolitanMixin:
             'bootstrap5': {
                 # to make table styling for font size work
                 'font-size': f'{table_font_size};',
-                # base class for buttons
-                'base': 'btn btn-sm py-0',
+                # base class for all buttons
+                'base': 'btn btn-sm ',
+                # padding for extra_actions buttons only
+                'extra_actions_button_padding': ' py-0 ', # leave spaces either side
                 # style for buttons
                 'button_style': f'font-size: {table_font_size};',
                 # attributes for filter form fields

@@ -25,7 +25,10 @@ It is a **very early alpha** release. No tests. Limited docs. Expect many breaki
     - `detail_fields` defaults to the resolved setting for `fields`
     - `detail_properties` defaults to `None`
 - Support exclusions via `exclude`, `exclude_properties`, `detail_exclude`, `detail_exclude_properties`
-- Support for `extra_actions` to add additional actions to list views
+
+**Additional Buttons**
+- Support for `extra_actions` to add additional actions for each record to list views
+- Support for `extra_buttons` to add additional buttons to the list view, applicable across records
 
 **Filtersets**
 - `object_list.html` styled for bootstrap to show filters.
@@ -363,6 +366,18 @@ class ProjectCRUDView(NominopolitanMixin, CRUDView):
         # the project has a modal with a different id available
         # eg in the base template. This is where the modal content will be rendered.
 
+    # extra buttons that appear at the top of the page next to the Create or filters buttons
+    extra_buttons = [
+        {
+            "url_name": "fstp:home",        # namespace:url_pattern
+            "text": "Home Again",           # text to display on button
+            "button_class": "btn-success",  # intended as semantic colour for button
+                # defaults to NominopolitanMixin.get_framework_styles()['extra_default']
+            "htmx_target": "content",       # relevant only if use_htmx is True
+            "needs_pk": False,              # if the URL needs the object's primary key
+            "display_modal": False,         # if the button should display a modal
+        },
+    ]
     # extra actions (extra buttons for each record in the list)
     extra_actions = [ # adds additional actions for each record in the list
         {
@@ -370,14 +385,14 @@ class ProjectCRUDView(NominopolitanMixin, CRUDView):
             "text": "Do Something",
             "needs_pk": False,  # if the URL needs the object's primary key
             "hx_post": True, # use POST request instead of the default GET
-            "button_class": "is-primary", # semantic colour for button (defaults to "is-link")
+            "button_class": "btn-primary", # semantic colour for button (defaults to "is-link")
             "htmx_target": "content", # htmx target for the extra action response 
                 # (if use_htmx is True)
                 # NB if you have use_modal = True and do NOT specify htmx_target, then response
                 # will be directed to the modal 
             "display_modal": False, # when use_modal is True but for this action you do not
                 # want to use the modal for whatever is returned from the view, set this to False
-                # the default if empty is True
+                # the default if empty is whatever get_use_modal() resolves to
         },
     ]
 ```
