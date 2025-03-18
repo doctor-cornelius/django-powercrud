@@ -251,6 +251,9 @@ def extra_buttons(view: Any) -> str:
     
     buttons: List[str] = []
     for button in extra_buttons:
+        display_modal = button.get("display_modal", False) and use_modal
+        modal_attrs = ""
+
         url: Optional[str] = view.safe_reverse(
             button["url_name"],
             kwargs={} if not button.get("needs_pk", False) else None
@@ -258,20 +261,17 @@ def extra_buttons(view: Any) -> str:
         if url is not None:
             htmx_attrs = ""
             if use_htmx:
-                if use_modal:
+                if display_modal:
                     htmx_target = view.get_modal_target()
+                    modal_attrs = styles.get("modal_attrs", "")
                 else:
                     htmx_target = button.get("htmx_target", "")
                     if htmx_target and not htmx_target.startswith("#"):
                         htmx_target = f"#{htmx_target}"
                 htmx_attrs = (
                     f'hx-get="{url}" hx-target="{htmx_target}" '
-                    f'{("hx-replace-url=\"true\" hx-push-url=\"true\" " if use_htmx and not button.get("display_modal", False) else "")}'
-                )
-            
-            modal_attrs = ""
-            if use_modal and button.get("display_modal", False):
-                modal_attrs = styles["modal_attrs"]
+                    f'{("hx-replace-url=\"true\" hx-push-url=\"true\" " if use_htmx and not display_modal else "")}'
+                )                
             
             button_class = button.get("button_class", styles['extra_default'])
             
