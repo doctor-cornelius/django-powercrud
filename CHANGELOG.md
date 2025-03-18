@@ -1,3 +1,9 @@
+## 0.1.20 (2025-03-18)
+
+### Fix
+
+- **(extra_buttons)**:  set extra_attrs as last added to buttons
+
 ## 0.1.19 (2025-03-18)
 
 ### Fix
