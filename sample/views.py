@@ -65,7 +65,8 @@ class BookCRUDView(NominopolitanMixin, CRUDView):
             "htmx_target": "content",
             "needs_pk": False,
             "display_modal": False,
-            "extra_class_attrs": "py-10 my-10",
+            "extra_class_attrs": "rounded-circle border border-dark",
+            "extra_attrs": 'hx-push-url="false" hx-replace-url="false"',
         },
         {
             "url_name": "home",
@@ -74,8 +75,6 @@ class BookCRUDView(NominopolitanMixin, CRUDView):
             "htmx_target": "content",
             "display_modal": True, # NB if True then htmx_target is ignored
             "extra_class_attrs": "bg-warning text-dark px-4 rounded-pill border border-dark",
-            "extra_attrs": "data-bs-toggle='modal' data-bs-target='#modal-home'",
-            # "extra_attrs": "dave",
         },
     ]
 

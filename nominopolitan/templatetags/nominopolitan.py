@@ -254,14 +254,14 @@ def extra_buttons(view: Any) -> str:
         display_modal = button.get("display_modal", False) and use_modal
         modal_attrs = ""
         extra_attrs = button.get("extra_attrs", "")
-        log.debug(f"extra_attrs: {extra_attrs}")
+        extra_class_attrs = button.get("extra_class_attrs", "")
 
         url: Optional[str] = view.safe_reverse(
             button["url_name"],
             kwargs={} if not button.get("needs_pk", False) else None
         )
         if url is not None:
-            htmx_attrs = ""
+            htmx_attrs = []
             if use_htmx:
                 if display_modal:
                     htmx_target = view.get_modal_target()
@@ -270,19 +270,32 @@ def extra_buttons(view: Any) -> str:
                     htmx_target = button.get("htmx_target", "")
                     if htmx_target and not htmx_target.startswith("#"):
                         htmx_target = f"#{htmx_target}"
-                htmx_attrs = (
-                    f'hx-get="{url}" hx-target="{htmx_target}" '
-                    f'{("hx-replace-url=\"true\" hx-push-url=\"true\" " if use_htmx and not display_modal else "")}'
-                )                
+                
+                htmx_attrs.append(f'hx-get="{url}"')
+                if htmx_target:
+                    htmx_attrs.append(f'hx-target="{htmx_target}"')
+                if use_htmx and not display_modal:
+                    htmx_attrs.append('hx-replace-url="true"')
+                    htmx_attrs.append('hx-push-url="true"')
+                
+            htmx_attrs_str = " ".join(htmx_attrs)
             
             button_class = button.get("button_class", styles['extra_default'])
-            
-            buttons.append(
+
+            log.debug(f"extra_attrs: {extra_attrs}, htmx_attrs: {htmx_attrs}, modal_attrs: {modal_attrs}")
+
+            new_button = (
                 f'<a href="{url}" '
-                f'class="{styles["base"]} {button_class} {button.get("extra_class_attrs", "")}" '
+                f'class="{extra_class_attrs} {styles["base"]} {button_class}" '
                 f'style="{styles["button_style"]}" '
-                f'{htmx_attrs} {modal_attrs} {extra_attrs} >'
-                f'{button["text"]}</a>'
+                f'{extra_attrs} {htmx_attrs_str} {modal_attrs}>'
+                f'{button["text"]}</a>'                
+            )
+
+            log.debug(f"new_button: {new_button}")
+
+            buttons.append(
+                new_button
             )
 
     if buttons:

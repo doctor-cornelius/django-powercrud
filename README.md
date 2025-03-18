@@ -377,8 +377,10 @@ class ProjectCRUDView(NominopolitanMixin, CRUDView):
             "display_modal": True,         # if the button should display a modal.
                 # Note: modal will auto-close after any form submission
                 # Note: if True then htmx_target is ignored
-            "needs_pk": False,              # if the URL needs the object's primary key
-            "extra_class_attrs": "bg-warning text-dark rounded-pill border border-dark", # any additional class attributes
+            "needs_pk": True,              # if the URL needs the object's primary key
+
+            # extra class attributes will override automatically determined class attrs if duplicated
+            "extra_class_attrs": "rounded-pill border border-dark", 
         },
         # below example if want to use own modal not nominopolitan's
         {
@@ -388,6 +390,8 @@ class ProjectCRUDView(NominopolitanMixin, CRUDView):
             "htmx_target": "myModalContent",
             "display_modal": False, # NB if True then htmx_target is ignored
             "extra_class_attrs": "rounded-circle ",
+
+            # extra_attrs will override other attributes if duplicated
             "extra_attrs": "data-bs-toggle='modal' data-bs-target='#modal-home'",
         },
     ]
