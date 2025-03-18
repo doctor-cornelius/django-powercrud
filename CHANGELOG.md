@@ -1,3 +1,9 @@
+## 0.1.19 (2025-03-18)
+
+### Fix
+
+- **(extra_buttons)**:  fix logic for setting htmx_target
+
 ## 0.1.18 (2025-03-18)
 
 ### Feature
