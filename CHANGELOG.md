@@ -1,3 +1,17 @@
+## 0.1.17 (2025-03-18)
+
+### Fix
+
+- **(nm_help)**:  include README.md in package so it can be read when imported
+
+### Refactor
+
+- **(extra_buttons)**:  disregard htmx_target if display_modal is True
+
+### Feature
+
+- **(extra_buttons)**:  support parameter extra_class_attrs
+
 ## 0.1.16 (2025-03-14)
 
 ### Feature
