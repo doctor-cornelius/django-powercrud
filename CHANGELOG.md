@@ -1,3 +1,9 @@
+## 0.1.18 (2025-03-18)
+
+### Feature
+
+- **(extra_buttons)**:  add support for extra_attrs (eg if want to use own modal)
+
 ## 0.1.17 (2025-03-18)
 
 ### Fix
