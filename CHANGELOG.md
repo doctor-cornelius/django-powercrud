@@ -1,3 +1,9 @@
+## 0.1.21 (2025-03-18)
+
+### Refactor
+
+- **(extra_buttons)**:  put extra_attrs and extra_class attrs first so they override calculated attributes
+
 ## 0.1.20 (2025-03-18)
 
 ### Fix
