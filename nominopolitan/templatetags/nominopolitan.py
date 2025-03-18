@@ -278,6 +278,7 @@ def extra_buttons(view: Any) -> str:
             buttons.append(
                 f'<a href="{url}" '
                 f'class="{styles["base"]} {button_class} {button.get("extra_class_attrs", "")}" '
+                f'{button.get("extra_attrs", "")}'
                 f'style="{styles["button_style"]}" '
                 f'{htmx_attrs} {modal_attrs}>'
                 f'{button["text"]}</a>'

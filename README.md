@@ -374,11 +374,21 @@ class ProjectCRUDView(NominopolitanMixin, CRUDView):
             "button_class": "btn-success",  # intended as semantic colour for button
                 # defaults to NominopolitanMixin.get_framework_styles()['extra_default']
             "htmx_target": "content",       # relevant only if use_htmx is True. Disregarded if display_modal is True
-            "display_modal": False,         # if the button should display a modal.
+            "display_modal": True,         # if the button should display a modal.
                 # Note: modal will auto-close after any form submission
                 # Note: if True then htmx_target is ignored
             "needs_pk": False,              # if the URL needs the object's primary key
             "extra_class_attrs": "bg-warning text-dark rounded-pill border border-dark", # any additional class attributes
+        },
+        # below example if want to use own modal not nominopolitan's
+        {
+            "url_name": "fstp:home",
+            "text": "Home in Own Modal!",
+            "button_class": "btn-danger",
+            "htmx_target": "myModalContent",
+            "display_modal": False, # NB if True then htmx_target is ignored
+            "extra_class_attrs": "rounded-circle ",
+            "extra_attrs": "data-bs-toggle='modal' data-bs-target='#modal-home'",
         },
     ]
     # extra actions (extra buttons for each record in the list)
