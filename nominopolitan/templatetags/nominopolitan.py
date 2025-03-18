@@ -253,6 +253,8 @@ def extra_buttons(view: Any) -> str:
     for button in extra_buttons:
         display_modal = button.get("display_modal", False) and use_modal
         modal_attrs = ""
+        extra_attrs = button.get("extra_attrs", "")
+        log.debug(f"extra_attrs: {extra_attrs}")
 
         url: Optional[str] = view.safe_reverse(
             button["url_name"],
@@ -278,9 +280,8 @@ def extra_buttons(view: Any) -> str:
             buttons.append(
                 f'<a href="{url}" '
                 f'class="{styles["base"]} {button_class} {button.get("extra_class_attrs", "")}" '
-                f'{button.get("extra_attrs", "")}'
                 f'style="{styles["button_style"]}" '
-                f'{htmx_attrs} {modal_attrs}>'
+                f'{htmx_attrs} {modal_attrs} {extra_attrs} >'
                 f'{button["text"]}</a>'
             )
 

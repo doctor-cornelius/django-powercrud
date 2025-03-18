@@ -74,7 +74,8 @@ class BookCRUDView(NominopolitanMixin, CRUDView):
             "htmx_target": "content",
             "display_modal": True, # NB if True then htmx_target is ignored
             "extra_class_attrs": "bg-warning text-dark px-4 rounded-pill border border-dark",
-            # "extra_attrs": "data-bs-toggle='modal' data-bs-target='#modal-home'",
+            "extra_attrs": "data-bs-toggle='modal' data-bs-target='#modal-home'",
+            # "extra_attrs": "dave",
         },
     ]
 
