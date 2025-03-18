@@ -71,9 +71,9 @@ class BookCRUDView(NominopolitanMixin, CRUDView):
             "url_name": "home",
             "text": "Home in Modal!",
             "button_class": "btn-warning",
-            "htmx_target": "nominopolitanModalContent",
+            "htmx_target": "content",
             "display_modal": True,
-            "extra_class_attrs": "px-10 mx-10",
+            "extra_class_attrs": "bg-warning text-dark px-4 rounded-pill border border-dark",
         },
     ]
 

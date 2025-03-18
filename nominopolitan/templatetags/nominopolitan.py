@@ -258,9 +258,12 @@ def extra_buttons(view: Any) -> str:
         if url is not None:
             htmx_attrs = ""
             if use_htmx:
-                htmx_target = button.get("htmx_target", "")
-                if htmx_target and not htmx_target.startswith("#"):
-                    htmx_target = f"#{htmx_target}"
+                if use_modal:
+                    htmx_target = view.get_modal_target()
+                else:
+                    htmx_target = button.get("htmx_target", "")
+                    if htmx_target and not htmx_target.startswith("#"):
+                        htmx_target = f"#{htmx_target}"
                 htmx_attrs = (
                     f'hx-get="{url}" hx-target="{htmx_target}" '
                     f'{("hx-replace-url=\"true\" hx-push-url=\"true\" " if use_htmx and not button.get("display_modal", False) else "")}'
