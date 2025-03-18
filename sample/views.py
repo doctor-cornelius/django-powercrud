@@ -65,6 +65,7 @@ class BookCRUDView(NominopolitanMixin, CRUDView):
             "htmx_target": "content",
             "needs_pk": False,
             "display_modal": False,
+            "extra_class_attrs": "py-10 my-10",
         },
         {
             "url_name": "home",
@@ -72,7 +73,8 @@ class BookCRUDView(NominopolitanMixin, CRUDView):
             "button_class": "btn-warning",
             "htmx_target": "nominopolitanModalContent",
             "display_modal": True,
-        }
+            "extra_class_attrs": "px-10 mx-10",
+        },
     ]
 
 class AuthorCRUDView(NominopolitanMixin, CRUDView):
