@@ -1042,15 +1042,15 @@ class NominopolitanMixin:
             template_name = template_names[0]
             # Verify template exists
             template = get_template(template_name)
-            log.debug(f"Found template {template_name} at {template.origin.name}")
+            # log.debug(f"Found template {template_name} at {template.origin.name}")
         except TemplateDoesNotExist:
-            log.debug(f"Template {template_name} not found, falling back to {template_names[1]}")
+            # log.debug(f"Template {template_name} not found, falling back to {template_names[1]}")
             template_name = template_names[1]
         except Exception as e:
             log.error(f"Unexpected error checking template {template_name}: {str(e)}")
             template_name = template_names[1]
         
-        log.debug(f"Rendering template_name: {template_name}")
+        # log.debug(f"Rendering template_name: {template_name}")
 
         if self.request.htmx:
             if self.role == Role.LIST:

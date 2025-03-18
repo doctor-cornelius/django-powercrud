@@ -2,6 +2,7 @@ from django.core.management.base import BaseCommand
 import os
 import sys
 from pathlib import Path
+import importlib.resources
 
 class Command(BaseCommand):
     help = "Displays the Nominopolitan README.md documentation in a paginated format"
@@ -20,19 +21,25 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
-        # Find the README.md file (assuming it's in the root directory of the package)
-        package_dir = Path(__file__).resolve().parent.parent.parent.parent
-        readme_path = package_dir / 'README.md'
-
-        if not readme_path.exists():
-            self.stdout.write(
-                self.style.ERROR('README.md not found in the package directory')
-            )
-            return
-
         try:
-            with open(readme_path, 'r', encoding='utf-8') as f:
-                content = f.readlines()
+            # First try to get README from package resources
+            try:
+                import nominopolitan
+                with importlib.resources.files(nominopolitan).joinpath('README.md').open('r', encoding='utf-8') as f:
+                    content = f.readlines()
+            except (ImportError, FileNotFoundError):
+                # Fallback to local development path
+                package_dir = Path(__file__).resolve().parent.parent.parent.parent
+                readme_path = package_dir / 'README.md'
+                
+                if not readme_path.exists():
+                    self.stdout.write(
+                        self.style.ERROR('README.md not found in the package directory')
+                    )
+                    return
+
+                with open(readme_path, 'r', encoding='utf-8') as f:
+                    content = f.readlines()
 
             if options['all']:
                 # Display entire content at once

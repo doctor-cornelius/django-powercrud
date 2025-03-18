@@ -4,7 +4,17 @@ version = "0.1.16"
 description = "Neapolitan with namespaces - Django CRUD views"
 authors = ["doctor-cornelius"]
 readme = "README.md"
-packages = [{include = "nominopolitan"}]
+
+# The 'packages' field tells Poetry which files to include in the final distribution
+# It's a list of dictionaries, where each dictionary specifies what to include
+packages = [
+    # Include the main package directory 'nominopolitan' and all its contents
+    {include = "nominopolitan"},
+    # Include README.md in the package root - this is needed so management commands
+    # like nm_help can access the README content after the package is installed
+    {include = "README.md"}
+]
+
 repository = "https://github.com/doctor-cornelius/django-nominopolitan"
 homepage = "https://github.com/doctor-cornelius/django-nominopolitan"
 
