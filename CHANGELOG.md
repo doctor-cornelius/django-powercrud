@@ -1,3 +1,9 @@
+## 0.1.22 (2025-03-19)
+
+### Feature
+
+- **(render_to_response)**:  add original_template to session data, retrievable via template tag or get_session_data_key('original_target')
+
 ## 0.1.21 (2025-03-18)
 
 ### Refactor
