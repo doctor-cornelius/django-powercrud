@@ -526,6 +526,13 @@ class NominopolitanMixin:
         self.request.session['nominopolitan'] = nominopolitan_data
         return nominopolitan_data[model_key]
 
+    def get_session_data_key(self, key: str):
+        """Retrieve a specific key from the session data for this model."""
+        session_data = self.get_session_data()
+        if session_data:
+            return session_data.get(key, None)
+        return None
+
     def get_original_target(self):
         """
         Retrieve the original HTMX target from the session.
@@ -1040,17 +1047,23 @@ class NominopolitanMixin:
         try:
             # try to use overriden template if it exists
             template_name = template_names[0]
-            # Verify template exists
+            # this call check if valid template
             template = get_template(template_name)
-            # log.debug(f"Found template {template_name} at {template.origin.name}")
         except TemplateDoesNotExist:
             # log.debug(f"Template {template_name} not found, falling back to {template_names[1]}")
             template_name = template_names[1]
+            template = get_template(template_name)
+            # log.debug(f"Found template {template_name} at {template.origin.name}")
         except Exception as e:
             log.error(f"Unexpected error checking template {template_name}: {str(e)}")
             template_name = template_names[1]
         
         # log.debug(f"Rendering template_name: {template_name}")
+
+        # add to session here (template name may change later)
+        self.set_session_data_key({'original_template': template_name})
+
+        # log.debug(f"context: \n{json.dumps(context, indent=4, default=str)}")
 
         if self.request.htmx:
             if self.role == Role.LIST:

@@ -65,7 +65,7 @@ def action_links(view: Any, object: Any) -> str:
             action["url_name"],
             kwargs={"pk": object.pk} if action.get("needs_pk", True) else None,
         )
-        log.debug(f"Extra action: {action}, url: {url}")
+        # log.debug(f"Extra action: {action}, url: {url}")
         if url is not None:
             htmx_target: str = action.get("htmx_target", default_target)
             if htmx_target and not htmx_target.startswith("#"):
@@ -282,7 +282,7 @@ def extra_buttons(view: Any) -> str:
             
             button_class = button.get("button_class", styles['extra_default'])
 
-            log.debug(f"extra_attrs: {extra_attrs}, htmx_attrs: {htmx_attrs}, modal_attrs: {modal_attrs}")
+            # log.debug(f"extra_attrs: {extra_attrs}, htmx_attrs: {htmx_attrs}, modal_attrs: {modal_attrs}")
 
             new_button = (
                 f'<a href="{url}" '
@@ -292,7 +292,7 @@ def extra_buttons(view: Any) -> str:
                 f'{button["text"]}</a>'                
             )
 
-            log.debug(f"new_button: {new_button}")
+            # log.debug(f"new_button: {new_button}")
 
             buttons.append(
                 new_button
@@ -301,5 +301,26 @@ def extra_buttons(view: Any) -> str:
     if buttons:
         return mark_safe(" ".join(buttons))
     return ""
+
+
+@register.simple_tag(takes_context=True)
+def get_nominopolitan_session_data(context, key):
+    """
+    Get a value from the nominopolitan session data for the current model.
+    
+    Usage in template:
+    {% get_nominopolitan_session_data 'original_template' as template_name %}
+    """
+    request = context.get('request')
+    view = context.get('view')
+    
+    if not request or not view:
+        return None
+        
+    nominopolitan_data = request.session.get('nominopolitan', {})
+    model_key = view.get_model_session_key()
+    model_data = nominopolitan_data.get(model_key, {})
+    
+    return model_data.get(key)
 
 
