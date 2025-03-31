@@ -1,3 +1,13 @@
+## 0.1.23 (2025-03-31)
+
+### Fix
+
+- **(new_release.sh)**:  ensure production css files built via npx
+
+### Feature
+
+- **(daisy)**:  add daisyUI framework capability and templates
+
 ## 0.1.22 (2025-03-19)
 
 ### Feature
