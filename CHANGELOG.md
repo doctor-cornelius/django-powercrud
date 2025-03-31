@@ -1,3 +1,9 @@
+## 0.1.24 (2025-03-31)
+
+### Fix
+
+- **(new_release.sh)**:  ensure correct path to static css files
+
 ## 0.1.23 (2025-03-31)
 
 ### Fix
