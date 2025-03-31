@@ -44,6 +44,9 @@ fi
 # create new changelog
 cz changelog --unreleased-version=$NEW_VERSION
 
+# Build CSS for production
+NODE_ENV=production npx tailwindcss -i static/css/input.css -o static/css/output.css --minify
+
 # Note scope (release) is what will trigger the release job
 git add -A
 git commit -m "release($BUMP_TYPE): Release $NEW_VERSION"
