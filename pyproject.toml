@@ -25,8 +25,10 @@ django-template-partials = "^24.4"
 pydantic = "^2.10.6"
 django_htmx = "^1.21"
 neapolitan = { version = "^24.8", optional = true }
+
 django-crispy-forms = { version = "^2.3", optional = true }
 crispy-bootstrap5 = { version = "^2024.10", optional = true }
+crispy-tailwind = { version = "^1.0.3", optional = true }
 
 [tool.poetry.extras]
 neapolitan = ["neapolitan"]

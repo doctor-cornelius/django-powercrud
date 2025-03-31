@@ -379,7 +379,32 @@ class NominopolitanMixin:
                 'extra_default': 'btn-primary',
                 # modal class attributes
                 'modal_attrs': f'data-bs-toggle="modal" data-bs-target="{self.get_modal_id()}"',
-            }
+            },
+            'daisyUI': {
+                # to make table styling for font size work
+                'font-size': f'{table_font_size};',
+                # base class for all buttons
+                'base': 'btn btn-sm ',
+                # padding for extra_actions buttons only
+                'extra_actions_button_padding': ' py-0 ', # leave spaces either side
+                # style for buttons
+                'button_style': f'font-size: {table_font_size};',
+                # attributes for filter form fields
+                'filter_attrs': {
+                    'class': 'input input-bordered input-sm w-full',
+                    'style': f'font-size: {table_font_size};'
+                },
+                # set colours for the action buttons
+                'actions': {
+                    'View': 'btn-info',
+                    'Edit': 'btn-primary',
+                    'Delete': 'btn-error'
+                },
+                # default colour for extra action buttons
+                'extra_default': 'btn-primary',
+                # modal class attributes
+                'modal_attrs': f'onclick="{self.get_modal_id()[1:]}.showModal()"', 
+            },
         }
 
     def get_filter_queryset_for_field(self, field_name, model_field):

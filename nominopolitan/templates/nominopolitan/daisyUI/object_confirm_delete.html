@@ -1,0 +1,30 @@
+{% extends base_template_path %}
+{% load nominopolitan %}
+{% load partials %}
+
+{% block content %}
+    {% partial nm_content %}
+{% endblock %}
+
+{% partialdef nm_content %}
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+            <p class="text-lg">Are you sure you want to delete the following {{ object_verbose_name }}?</p>
+            <h2 class="card-title text-error">{{ object }}</h2>
+        
+            <form method="POST" action="{{ delete_view_url }}"
+                {% if use_htmx and original_target %}
+                hx-post="{{ delete_view_url }}"
+                hx-target="{{ original_target }}"
+                hx-push-url="true"
+                {% endif %}
+            >
+                {% csrf_token %}
+                {{ form }}
+                <div class="card-actions justify-end mt-4">
+                    <button type="submit" class="btn btn-error">Delete</button>
+                </div>
+            </form>
+        </div>
+    </div>
+{% endpartialdef nm_content %}

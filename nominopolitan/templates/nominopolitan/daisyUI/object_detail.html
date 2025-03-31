@@ -1,0 +1,16 @@
+{% extends base_template_path %}
+{% load nominopolitan %}
+{% load partials %}
+
+{% block content %}
+    {% partial nm_content %}
+{% endblock %}
+
+{% partialdef nm_content %}
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+            <h2 class="card-title">{{ object }}</h2>
+            {% object_detail object view %}
+        </div>
+    </div>
+{% endpartialdef nm_content %}

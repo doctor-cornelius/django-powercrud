@@ -89,9 +89,9 @@ def action_links(view: Any, object: Any) -> str:
     # set up links for all actions (regular and extra)
     # note for future - could simplify by just conditionally adding hx-disable if not use_htmx
     links: List[str] = [
-        f"<div class='btn-group btn-group-sm'>" +
+        f"<div class='join'>" +
         " ".join([
-            f"<a href='{url}' class='{styles['base']}{styles['extra_actions_button_padding']} {button_class}' style='{styles['button_style']}' "
+            f"<a href='{url}' class='{styles['base']} join-item {button_class}' style='{styles['button_style']}' "
             + (f"hx-{'post' if hx_post else 'get'}='{url}' " if use_htmx else "")
             + (f"hx-target='{target}' " if use_htmx else "")
             + (f"hx-replace-url='true' hx-push-url='true' " if use_htmx and not show_modal else "")
@@ -243,7 +243,7 @@ def extra_buttons(view: Any) -> str:
     """
     framework: str = getattr(settings, 'NOMINOPOLITAN_CSS_FRAMEWORK', 'bootstrap5')
     styles: Dict[str, Any] = view.get_framework_styles()[framework]
-    
+
     use_htmx: bool = view.get_use_htmx()
     use_modal: bool = view.get_use_modal()
 
@@ -288,7 +288,8 @@ def extra_buttons(view: Any) -> str:
                 f'<a href="{url}" '
                 f'class="{extra_class_attrs} {styles["base"]} {button_class}" '
                 f'style="{styles["button_style"]}" '
-                f'{extra_attrs} {htmx_attrs_str} {modal_attrs}>'
+                f'{extra_attrs} {htmx_attrs_str} '
+                f'{modal_attrs}>'
                 f'{button["text"]}</a>'                
             )
 

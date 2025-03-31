@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+
+<html lang="en" data-theme="light">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Tailwind/DaisyUI -->
+    <link href="/static/css/output.css" rel="stylesheet">
+
+    <!-- Add this line for Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+    <!-- Popper.js and Tippy -->
+    <script src="https://unpkg.com/@popperjs/core@2"></script>
+    <script src="https://unpkg.com/tippy.js@6"></script>
+    <link href="https://unpkg.com/tippy.js@6/themes/light.css" rel="stylesheet">
+
+    <!-- Install htmx -->
+    <script src="https://unpkg.com/htmx.org@2.0.3"></script>
+    <script src="https://unpkg.com/htmx.org/dist/ext/multi-swap.js"></script>
+
+    {% block header_title %}
+    <title id="header_title">{{header_title}}</title>
+    {% endblock header_title %}
+
+    {% block extra_head %}{% endblock extra_head %}
+</head>
+
+<body hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+    {% block app_content %}{% endblock app_content %}
+
+    <div class="container mt-20 mb-5 mx-5 p-5">
+        <div class="mb-3 flex items-center gap-2">
+            <a class="btn btn-primary" href="{% url 'home' %}">
+                Home (Reload)
+            </a>
+            <div class="join" role="group" aria-label="Book List buttons">
+                <a class="btn btn-secondary join-item" hx-get="{% url 'sample:bigbook-list' %}" hx-target="#content" hx-swap="innerHTML"
+                    hx-replace-url="true" hx-push-url="true">
+                    Book List (htmx)
+                </a>
+                <a class="btn join-item btn-info" href="{% url 'sample:bigbook-list' %}">
+                    Book List (reload)
+                </a>
+            </div>
+            <div class="join" role="group" aria-label="Author List buttons">
+                <a class="btn btn-secondary join-item" hx-get="{% url 'sample:author-list' %}" hx-target="#content" hx-swap="innerHTML"
+                    hx-replace-url="true" hx-push-url="true">
+                    Author List (htmx)
+                </a>
+                <a class="btn join-item btn-info" href="{% url 'sample:author-list' %}">
+                    Author List (reload)
+                </a>
+            </div>
+        </div>
+        <div id="content" >
+        {% block content %}{% endblock content %}
+        <div id="nominopolitan"></div>
+        </div>
+    </div>
+
+</body>
+
+</html>

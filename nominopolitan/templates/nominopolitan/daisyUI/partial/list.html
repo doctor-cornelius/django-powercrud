@@ -1,0 +1,65 @@
+{% load partials %}
+
+{% if use_crispy %}
+    {% load crispy_forms_tags %}
+{% endif %}
+
+<style>
+    .table-max-height {
+        /* max-height: {{ table_max_height }}; */
+        max-height: calc((100vh - {{ table_pixel_height_other_page_elements }}) * {{ table_max_height }} / 100);
+    }
+</style>
+
+<div class="table-responsive table-max-height"
+    style="overflow-y: auto; width: fit-content; padding-right: 20px;">
+    <table class="table table-zebra table-pin-rows 
+        w-auto 
+        table-font-size">
+        <thead>
+            <tr>
+                {% for header, field_name in headers %}
+                <th class="bg-primary text-center text-primary-content align-middle text-truncate table-column-width"
+                    style="cursor: pointer; position: sticky; top: 0; z-index: 1;"
+                    {% if use_htmx %}
+                    hx-get="?sort={% if current_sort == field_name %}-{% elif current_sort == '-'|add:field_name %}{% else %}{% endif %}{{ field_name }}{% if filter_params %}&{{ filter_params }}{% endif %}"
+                    hx-headers='{"X-Filter-Sort-Request": "true"}'
+                    hx-target="#filtered_results"
+                    hx-push-url="true"
+                    hx-trigger="click"
+                    {% else %}
+                    onclick="window.location.href='?sort={% if current_sort == field_name %}-{% elif current_sort == '-'|add:field_name %}{% else %}{% endif %}{{ field_name }}{% if filter_params %}&{{ filter_params }}{% endif %}'"
+                    {% endif %}>
+                    <span class="text-primary-content d-block w-100 h-100">
+                        {{ header }}
+                        {% if current_sort == field_name %}
+                            <i class="bi bi-sort-down"></i>
+                        {% elif current_sort == '-'|add:field_name %}
+                            <i class="bi bi-sort-up"></i>
+                        {% endif %}
+                    </span>
+                </th>
+                {% endfor %}
+                <th class="bg-secondary text-center text-secondary-content align-middle"
+                    style="position: sticky; top: 0; z-index: 1;">
+                    <span class="text-center text-secondary-content d-block w-100 h-100">Actions</span>
+                </th>
+            </tr>
+        </thead>
+            <tbody>
+                {% for object in object_list %}
+                <tr class="text-center hover">
+                    {% for field in object.fields %}
+                    <td class="{% if forloop.first %}font-medium{% endif %} py-0 align-middle px-2 truncate table-column-width"
+                        data-tippy-content="{{field}}">
+                        {{ field }}
+                    </td>
+                    {% endfor %}
+                    <td class="text-end py-1 align-middle">
+                        {{ object.actions }}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+</div>

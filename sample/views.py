@@ -15,7 +15,7 @@ class BookCRUDView(NominopolitanMixin, CRUDView):
     model = models.Book
     namespace = "sample"
     base_template_path = "django_nominopolitan/base.html"
-    use_htmx = True
+    use_htmx = False
     use_modal = True
     # use_crispy = False
 
@@ -35,13 +35,14 @@ class BookCRUDView(NominopolitanMixin, CRUDView):
     form_fields = ['title', 'author', 'published_date', 'isbn',]
     create_form_class = forms.BookForm
 
-    filterset_fields = ['author', 'title', 'published_date','isbn', 'isbn_empty','pages', 'description', 'uneditable_field']
+    # filterset_fields = ['author', 'title', 'published_date','isbn', 'isbn_empty','pages', 'description', 'uneditable_field']
+    # filterset_fields = ['author', 'title', 'published_date',]
     filterset_class = filters.BookFilterSet
 
     table_pixel_height_other_page_elements = 100
     table_max_height = 80
     table_font_size = '1.05'
-    table_max_col_width = '25' # characters
+    table_max_col_width = '15' # characters
     # paginate_by = 30
 
     # Example of overrides of get_queryset and get_filter_queryset_for_field

@@ -1,0 +1,8 @@
+<dl class="divide-y">
+    {% for label, value in object %}
+    <div class="py-2">
+        <dt class="font-bold">{{ label }}</dt>
+        <dd>{{ value }}</dd>
+    </div>
+    {% endfor %}
+</dl>

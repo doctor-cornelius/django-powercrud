@@ -65,12 +65,14 @@ INSTALLED_APPS = [
     "neapolitan",
     "crispy_forms",
     "crispy_bootstrap5",
+    "crispy_tailwind",
 ]
 
+CRISPY_ALLOWED_TEMPLATE_PACKS = ('bootstrap5', 'tailwind',)
 NOMINOPOLITAN_CSS_FRAMEWORK = 'bootstrap5'
-
-CRISPY_ALLOWED_TEMPLATE_PACKS = (NOMINOPOLITAN_CSS_FRAMEWORK,)
-CRISPY_TEMPLATE_PACK = NOMINOPOLITAN_CSS_FRAMEWORK
+CRISPY_TEMPLATE_PACK = 'bootstrap5'
+# NOMINOPOLITAN_CSS_FRAMEWORK = 'daisyUI'
+# CRISPY_TEMPLATE_PACK = 'tailwind'
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",

@@ -27,7 +27,7 @@ class AuthorFilterSet(HTMXFilterSetMixin, FilterSet):
         # setup htmx attributes by using helper class from Nominoopolitan
         self.setup_htmx_attrs()
 
-class BookFilterSet(FilterSet):
+class BookFilterSet(HTMXFilterSetMixin,FilterSet):
     title = CharFilter(lookup_expr='icontains')
     published_date = DateFilter(
         widget=forms.DateInput(attrs={'type': 'date', })
@@ -39,12 +39,9 @@ class BookFilterSet(FilterSet):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        hx_get = ''
-        hx_target = '#content'
-
         HTMX_ATTRS = {
             'hx-get': '',
-            'hx-target': '#content',
+            # 'hx-target': '#content',
             'hx-include': '[name]',  # This will include all named form fields
         }
 
