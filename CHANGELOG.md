@@ -1,3 +1,9 @@
+## 0.1.25 (2025-04-01)
+
+### Feature
+
+- **(django_nominopolitan)**:  add parameters table_classes, action_button_classes, extra_button_classes and drop table_font_size
+
 ## 0.1.24 (2025-03-31)
 
 ### Fix
