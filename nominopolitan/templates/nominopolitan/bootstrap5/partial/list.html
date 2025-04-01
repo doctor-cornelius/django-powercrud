@@ -6,17 +6,22 @@
 
 <style>
     .table-max-height {
-        /* max-height: {{ table_max_height }}; */
         max-height: calc((100vh - {{ table_pixel_height_other_page_elements }}) * {{ table_max_height }} / 100);
+    }
+    
+    /* Match header text with table size */      
+    .table-sm th {
+        font-size: 0.875rem;
+    }
+    
+    /* For Bootstrap's table-sm */
+    .table-sm td {
+        padding: 0.25rem;
     }
 </style>
 
-<div class="table-responsive table-max-height"
-    style="overflow-y: auto; width: fit-content; padding-right: 20px;">
-    <table class="table table-sm table-striped table-hover 
-        w-auto 
-        table-font-size"
-        style="border-collapse: separate; border-spacing: 0.15rem 0;">
+<div class="table-responsive table-max-height">
+    <table class="table {{ table_classes }} w-auto">
         <thead>
             <tr>
                 {% for header, field_name in headers %}
@@ -31,12 +36,16 @@
                     {% else %}
                     onclick="window.location.href='?sort={% if current_sort == field_name %}-{% elif current_sort == '-'|add:field_name %}{% else %}{% endif %}{{ field_name }}{% if filter_params %}&{{ filter_params }}{% endif %}'"
                     {% endif %}>
-                    <span class="text-white text-decoration-none d-block w-100 h-100">
+                    <span class="d-block w-100 h-100">
                         {{ header }}
                         {% if current_sort == field_name %}
-                            <i class="bi bi-sort-down"></i>
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" width="1em" height="1em" class="d-inline-block">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                            </svg>
                         {% elif current_sort == '-'|add:field_name %}
-                            <i class="bi bi-sort-up"></i>
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" width="1em" height="1em" class="d-inline-block">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 15.75l7.5-7.5 7.5 7.5" />
+                            </svg>
                         {% endif %}
                     </span>
                 </th>

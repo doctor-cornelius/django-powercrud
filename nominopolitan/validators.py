@@ -38,7 +38,6 @@ class NominopolitanMixinValidator(BaseModel):
     # table display parameters
     table_pixel_height_other_page_elements: Optional[Union[int, float]] = Field(ge=0)
     table_max_height: Optional[int] = Field(ge=0, le=100)
-    table_font_size: Optional[Union[int, float]] = Field(gt=0)
     table_max_col_width: Optional[int] = Field(gt=0)
 
     # form fields

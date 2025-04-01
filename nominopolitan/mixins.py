@@ -90,8 +90,6 @@ class NominopolitanMixin:
             the project has a modal with a different id available
             in the base template.
 
-        table_font_size (str | None): Table font size in rem
-        table_max_col_width (str | None): Maximum column width in characters
     """
 
     # namespace if appropriate
@@ -134,8 +132,12 @@ class NominopolitanMixin:
     table_pixel_height_other_page_elements: int | float = 0  # px pixels
     table_max_height: int = 70 # expressed as vh units (ie percentage) of the remaining blank space 
         # after subtracting table_pixel_height_other_page_elements
-    table_font_size: int | float = 1 # Expressed in rem units
+
     table_max_col_width: int = 25 # Expressed in ch units
+
+    table_classes: str = ''
+    action_button_classes: str = ''
+    extra_button_classes: str = ''
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -335,13 +337,27 @@ class NominopolitanMixin:
         """
         return self.table_max_height
 
-    def get_table_font_size(self):
-        # The font size for the table (buttons, filters, column headers, rows) in object_list.html
-        return f"{self.table_font_size}rem"
-    
     def get_table_max_col_width(self):
         # The max width for the table columns in object_list.html - in characters
         return f"{self.table_max_col_width}ch" #ch
+    
+    def get_table_classes(self):
+        """
+        Get the table classes.
+        """
+        return self.table_classes
+
+    def get_action_button_classes(self):
+        """
+        Get the action button classes.
+        """
+        return self.action_button_classes
+    
+    def get_extra_button_classes(self):
+        """
+        Get the extra button classes.
+        """
+        return self.extra_button_classes
 
     def get_framework_styles(self):
         """
@@ -352,22 +368,13 @@ class NominopolitanMixin:
             dict: Framework-specific style configurations
         """
         
-        table_font_size = self.get_table_font_size()
-
         return {
             'bootstrap5': {
-                # to make table styling for font size work
-                'font-size': f'{table_font_size};',
                 # base class for all buttons
-                'base': 'btn btn-sm ',
-                # padding for extra_actions buttons only
-                'extra_actions_button_padding': ' py-0 ', # leave spaces either side
-                # style for buttons
-                'button_style': f'font-size: {table_font_size};',
+                'base': 'btn ',
                 # attributes for filter form fields
                 'filter_attrs': {
-                    'class': 'form-control-xs small py-1',
-                    'style': f'font-size: {table_font_size};'
+                    'class': 'form-control-xs small py-1 ;'
                 },
                 # set colours for the action buttons
                 'actions': {
@@ -381,18 +388,11 @@ class NominopolitanMixin:
                 'modal_attrs': f'data-bs-toggle="modal" data-bs-target="{self.get_modal_id()}"',
             },
             'daisyUI': {
-                # to make table styling for font size work
-                'font-size': f'{table_font_size};',
                 # base class for all buttons
-                'base': 'btn btn-sm ',
-                # padding for extra_actions buttons only
-                'extra_actions_button_padding': ' py-0 ', # leave spaces either side
-                # style for buttons
-                'button_style': f'font-size: {table_font_size};',
+                'base': 'btn ',
                 # attributes for filter form fields
                 'filter_attrs': {
-                    'class': 'input input-bordered input-sm w-full',
-                    'style': f'font-size: {table_font_size};'
+                    'class': 'input input-bordered input-sm w-full;'
                 },
                 # set colours for the action buttons
                 'actions': {
@@ -994,8 +994,8 @@ class NominopolitanMixin:
         # Set table styling parameters
         context['table_pixel_height_other_page_elements'] = self.get_table_pixel_height_other_page_elements()
         context['get_table_max_height'] = self.get_table_max_height()
-        context['table_font_size'] = f"{self.get_table_font_size()}"
         context['table_max_col_width'] = f"{self.get_table_max_col_width()}"
+        context['table_classes'] = self.get_table_classes()
 
         # Add HTMX-specific context if enabled
         if self.get_use_htmx():

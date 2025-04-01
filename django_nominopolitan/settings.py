@@ -69,10 +69,10 @@ INSTALLED_APPS = [
 ]
 
 CRISPY_ALLOWED_TEMPLATE_PACKS = ('bootstrap5', 'tailwind',)
-NOMINOPOLITAN_CSS_FRAMEWORK = 'bootstrap5'
-CRISPY_TEMPLATE_PACK = 'bootstrap5'
-# NOMINOPOLITAN_CSS_FRAMEWORK = 'daisyUI'
-# CRISPY_TEMPLATE_PACK = 'tailwind'
+# NOMINOPOLITAN_CSS_FRAMEWORK = 'bootstrap5'
+# CRISPY_TEMPLATE_PACK = 'bootstrap5'
+NOMINOPOLITAN_CSS_FRAMEWORK = 'daisyUI'
+CRISPY_TEMPLATE_PACK = 'tailwind'
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",

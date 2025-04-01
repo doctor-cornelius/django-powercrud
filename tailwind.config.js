@@ -15,15 +15,14 @@ module.exports= {
         './django_nominopolitan/templates/**/*.html',
 
         /* Main templates directory */
-        './django_nominopolitan/sample/templates/**/*.html',
-
-        /**
-             * JS: If you use Tailwind CSS in JavaScript
-             */
+        './django_nominopolitan/templates/**/*.html',
         './django_nominopolitan/static/js/**/*.js',
-        './nominopolitan/**/*.py',  // Add this
-        './nominopolitan/templates/nominopolitan/**/*.html', 
-        './sample/**/*.py',          // Add this
+
+        './nominopolitan/mixins.py', // for get_framework_styles()
+        './nominopolitan/templates/nominopolitan/**/*.html', // nominopolitan templates
+
+        './sample/views.py', // for overrides specified in views
+        './sample/templates/sample/**/*.html', // sample templates
         /* Ignore node_modules */
         '!**/node_modules/**'
     ],
@@ -31,7 +30,40 @@ module.exports= {
 
     ],
     daisyui: {
-        themes: ["light"]  // or any other theme you prefer
+        themes: [
+            "light", 
+            "dark", 
+            "corporate", 
+            "business", 
+            "caramellatte",
+            "nord",
+            "coffee", 
+            "winter",
+            // "cupcake", 
+            // "bumblebee", 
+            // "emerald", 
+            // "synthwave", 
+            // "retro", 
+            // "cyberpunk", 
+            // "valentine", 
+            // "halloween", 
+            // "garden", 
+            // "forest", 
+            // "aqua", 
+            // "lofi", 
+            // "pastel", 
+            // "fantasy", 
+            // "wireframe", 
+            // "black", 
+            // "luxury", 
+            // "dracula", 
+            // "cmyk", 
+            // "autumn", 
+            // "acid", 
+            // "lemonade", 
+            // "night", 
+        ]
+
     },
     theme: {
         extend: {},

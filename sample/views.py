@@ -35,14 +35,19 @@ class BookCRUDView(NominopolitanMixin, CRUDView):
     form_fields = ['title', 'author', 'published_date', 'isbn',]
     create_form_class = forms.BookForm
 
-    # filterset_fields = ['author', 'title', 'published_date','isbn', 'isbn_empty','pages', 'description', 'uneditable_field']
+    filterset_fields = ['author', 'title', 'published_date','isbn', 'isbn_empty','pages', 'description', 'uneditable_field']
     # filterset_fields = ['author', 'title', 'published_date',]
-    filterset_class = filters.BookFilterSet
+    # filterset_class = filters.BookFilterSet
 
     table_pixel_height_other_page_elements = 100
     table_max_height = 80
-    table_font_size = '1.05'
-    table_max_col_width = '15' # characters
+    table_max_col_width = '25' # characters
+
+    table_classes = 'table-zebra table-sm'
+    # action_button_classes = 'btn-sm min-h-0 h-6 leading-6'
+    action_button_classes = 'btn-xs'
+    extra_button_classes = 'btn-sm'
+
     # paginate_by = 30
 
     # Example of overrides of get_queryset and get_filter_queryset_for_field
@@ -68,7 +73,7 @@ class BookCRUDView(NominopolitanMixin, CRUDView):
             "htmx_target": "content",
             "needs_pk": False,
             "display_modal": False,
-            "extra_class_attrs": "rounded-circle border border-dark",
+            "extra_class_attrs": "",
             "extra_attrs": 'hx-push-url="false" hx-replace-url="false"',
         },
         {
@@ -77,7 +82,7 @@ class BookCRUDView(NominopolitanMixin, CRUDView):
             "button_class": "btn-warning",
             "htmx_target": "content",
             "display_modal": True, # NB if True then htmx_target is ignored
-            "extra_class_attrs": "bg-warning text-dark px-4 rounded-pill border border-dark",
+            "extra_class_attrs": "bg-warning",
         },
     ]
 
@@ -88,8 +93,10 @@ class AuthorCRUDView(NominopolitanMixin, CRUDView):
     use_htmx = True
     use_modal = True
 
-    table_font_size = '0.675'
-    table_max_col_width = '20' # characters
+    table_max_col_width = '25' # characters
+    table_classes = 'table-zebra table-sm'
+    action_button_classes = 'btn-xs'
+    extra_button_classes = 'btn-sm'
 
     # paginate_by = 40
 

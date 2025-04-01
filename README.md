@@ -26,10 +26,6 @@ It is a **very early alpha** release. No tests. Limited docs. Expect many breaki
     - `detail_properties` defaults to `None`
 - Support exclusions via `exclude`, `exclude_properties`, `detail_exclude`, `detail_exclude_properties`
 
-**Additional Buttons**
-- Support for `extra_actions` to add additional actions for each record to list views
-- Support for `extra_buttons` to add additional buttons to the list view, applicable across records
-
 **Filtersets**
 - `object_list.html` styled for bootstrap to show filters.
 - if `filterset_fields` is specified, style with crispy_forms if present and set htmx attributes if applicable
@@ -64,11 +60,24 @@ It is a **very early alpha** release. No tests. Limited docs. Expect many breaki
 - Support to specify `hx_trigger` and set `response['HX-Trigger']` for every response
 
 **Styled Templates**
-- Supports `bootstrap5` (default framework). To use a different CSS framework:
+- Supports `bootstrap5` (default framework) and `daisyUI`. To use a different CSS framework:
     - Set `NOMINOPOLITAN_CSS_FRAMEWORK = '<framework_name>'` in `settings.py`
     - Create corresponding templates in your `templates_path` directory
     - Override `NominopolitanMixin.get_framework_styles()` in your view to add your framework's styles,  
       set the `framework` key to the name of your framework and add the required values.
+
+- If using a `tailwindcss` framework including `daisyUI` then you need to set these content locations in you `tailwind.config.js`:
+
+    ```javascript
+    //tailwind.config.js
+    content: [
+        // include django_nominopolitan class definitions
+        'django_nominopolitan/nominopolitan/mixins.py', // for get_framework_styles()
+        'django_nominopolitan/nominopolitan/templates/nominopolitan/**/*.html', // nominopolitan templates
+        // in your owm apps
+        'myapp/views.py', // for overrides specified in any (NominopolitanMixin, CRUDView) classes 
+    ]
+    ```
 
 **Forms**
 - if `form_class` is specified, it will be used 
@@ -87,10 +96,15 @@ It is a **very early alpha** release. No tests. Limited docs. Expect many breaki
     - make sure you have `crispy_bootstrap5` also installed if you want
     - if you have set up a different library use the correct crispy package (eg `crispy_bulma`, `crispy_tailwind`)
 
+**Additional Buttons**
+- Support for `extra_actions` to add additional actions for each record to list views
+    - `action_button_classes` parameter allows you to add additional button classes (to the base specified in `get_framework_styles`) and control how extra_actions (ie per-record) buttons appear
+- Support for `extra_buttons` to add additional buttons to the list view, applicable across records
+    - `extra_button_classes` parameter allows you to add additional button classes (to the base specified for each button in `object_list.html` adn well as for each extra button in `extra_buttons`). 
+
 **Styled Table Options**
-- set `table_font_size`, measured in `rem`.
-    - eg `table_font_size = 0.875`. (default = 1, set in `get_table_font_size()`)
-    - This will be applied to buttons, filters and the table data itself using the custom style in `object_list.html`: `.table-font-size {font-size: {{ table_font_size }};}`.
+- set `table_classes` as a parameter and add additional table classes (the base is `table` in `partials/list.html`)
+    - eg `table_classes = 'table-zebra table-sm'`
 - set `table_max_col_width` as a parameter, measured in `ch` (ie number of `0` characters in the current font). 
     - eg `table_max_col_width = 10` (default = 25, set in `get_table_max_col_width()`) 
     - limit the width of the column to these characters and truncate the data text if needed.
@@ -117,8 +131,7 @@ It is a **very early alpha** release. No tests. Limited docs. Expect many breaki
 - click table header to toggle sorting direction (columns start off unsorted)
 - the method always includes a secondary sort by primary key for stable pagination
 - will use `htmx` if `use_htmx is True`
-- current `list.html` template will display bootstrap icons (if installed) for sorting direction:
-    - you must [install bootstrap icons](https://getbootstrap.com/docs/5.3/getting-started/introduction/#cdn-links) to use this feature
+- current `list.html` template will display hero icons (SVG) to indicate sorting direction. No install needed.
 - if filter options are set, the returned queryset will be sorted and filters
     - *current issue where if filters are displayed and you sort, the filters are hidden; just redisplay them with the button*
 
@@ -327,8 +340,11 @@ class ProjectCRUDView(NominopolitanMixin, CRUDView):
     # table display parameters
     table_pixel_height_other_page_elements = 100 # this will be expressed in pixels
     table_max_height = 80 # as a percentage of remaining viewport height
-    table_font_size = '1.05' # expressed as rem
     table_max_col_width = '25' # expressed as `ch` (characters wide)
+
+    table_classes = 'table-sm'
+    action_button_classes = 'btn-sm'
+    extra_button_classes = 'btn-sm'
 
     # htmx & modals
     use_htmx = True # if you want the View, Detail, Delete and Create forms to use htmx

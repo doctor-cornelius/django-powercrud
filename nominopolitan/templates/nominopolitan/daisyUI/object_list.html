@@ -12,13 +12,7 @@
 {% partialdef nm_content %}
     <style>
         #filter-form label {
-            font-weight: bold;
-            text-align: center;
-            display: block;
-            font-size: {{ table_font_size }};
-        }
-        .table-font-size {
-            font-size: {{ table_font_size }};
+            @apply font-bold text-center block;
         }
         .table-column-width {
             width: min-content;
@@ -30,48 +24,44 @@
             white-space: normal;
             hyphens: auto;
         }
-        /* Custom tooltip styles */
-        .custom-tooltip {
-        --bs-tooltip-bg: var(--bs-dark);
-        --bs-tooltip-color: var(--bs-white);
-        }
-
     </style>
 
     <title id="header_title">{{header_title}}</title>
-    <div class="d-flex flex-column">
-        <h1 class="flex-grow-1 fw-bold h4">{{ object_verbose_name_plural|capfirst }}</h1>
+    <div class="flex flex-col">
+        <h1 class="flex-1 font-bold text-xl">{{ object_verbose_name_plural|capfirst }}</h1>
     
         <div class="flex gap-2 my-2">
             {% if filterset %}
-                <button class="btn btn-sm btn-secondary table-font-size" type="button" 
-                    onclick="document.getElementById('filterCollapse').classList.toggle('hidden')"
-                    id="filterToggleBtn">
-                    <i class="bi bi-funnel"></i>
-                    <span>Show Filters</span>
-                </button>
-                
-                {% if not use_htmx %}
-                    <button onclick="event.preventDefault(); submitFilterForm();"
-                        class="btn btn-sm btn-info table-font-size">Filter</button>
-                {% endif %}
+                <div class="join">
+                    <button class="join-item btn btn-secondary {{ view.get_extra_button_classes }}" type="button" 
+                        onclick="document.getElementById('filterCollapse').classList.toggle('hidden')"
+                        id="filterToggleBtn">
+                        <i class="bi bi-funnel"></i>
+                        <span>Show Filters</span>
+                    </button>
+                    
+                    {% if not use_htmx %}
+                        <button onclick="event.preventDefault(); submitFilterForm();"
+                            class="join-item btn btn-info {{ view.get_extra_button_classes }}">Filter</button>
+                    {% endif %}
 
-                <a href="." class="btn btn-outline btn-secondary btn-sm table-font-size" 
-                    hx-get="." hx-target="#filtered_results"
-                    hx-headers='{"X-Filter-Sort-Request": "true"}' 
-                    onclick="resetFilterForm()">Reset</a>
-
+                    <a href="." class="join-item btn btn-outline btn-secondary {{ view.get_extra_button_classes }}" 
+                        hx-get="." hx-target="#filtered_results"
+                        hx-headers='{"X-Filter-Sort-Request": "true"}' 
+                        onclick="resetFilterForm()">Reset</a>
+                </div>
             {% endif %}
+
             {% if create_view_url %}
                 {% if use_htmx and htmx_target %}
-                    <a class="btn btn-sm btn-primary table-font-size" href="{{ create_view_url }}" 
+                    <a class="btn btn-primary {{ view.get_extra_button_classes }}" href="{{ create_view_url }}" 
                         hx-get="{{ create_view_url }}"
                         hx-target="{{htmx_target}}" 
                         onclick="nominopolitanBaseModal.showModal()">
                         Create {{ object_verbose_name }}
                     </a>
                 {% else %}
-                    <a class="btn btn-sm btn-primary table-font-size" href="{{ create_view_url }}">
+                    <a class="btn btn-primary {{ view.get_extra_button_classes }}" href="{{ create_view_url }}">
                         Create {{ object_verbose_name }}
                     </a>
                 {% endif %}
@@ -244,10 +234,10 @@
 {% partialdef pagination %}
 {% if is_paginated %}
 <nav aria-label="Page navigation" class="mt-4">
-    <ul class="pagination pagination-sm justify-content-center">
+    <ul class="join flex justify-center">
         {% if page_obj.has_previous %}
-        <li class="page-item">
-            <a class="page-link" href="?page={{ page_obj.previous_page_number }}" {% if use_htmx and original_target %}
+        <li>
+            <a class="join-item btn btn-sm" href="?page={{ page_obj.previous_page_number }}" {% if use_htmx and original_target %}
                 hx-get="?page={{ page_obj.previous_page_number }}" hx-target="{{original_target}}" hx-replace-url="true"
                 hx-push-url="true" {% endif %}>Previous</a>
         </li>
@@ -256,10 +246,11 @@
         {% get_proper_elided_page_range paginator page_obj.number as page_range %}
         {% for i in page_range %}
         {% if i == "..." %}
-        <li class="page-item disabled"><span class="page-link">…</span></li>
+        <li><span class="join-item btn btn-sm btn-disabled">…</span></li>
         {% else %}
-        <li class="page-item {% if page_obj.number == i %}active{% endif %}">
-            <a class="page-link" href="?page={{ i }}" {% if use_htmx and original_target %} hx-get="?page={{ i }}"
+        <li>
+            <a class="join-item btn btn-sm {% if page_obj.number == i %}btn-active{% endif %}" href="?page={{ i }}" 
+                {% if use_htmx and original_target %} hx-get="?page={{ i }}"
                 hx-target="{{original_target}}" hx-replace-url="true" hx-push-url="true" {% endif %}>{{ i }}
             </a>
         </li>
@@ -267,8 +258,8 @@
         {% endfor %}
 
         {% if page_obj.has_next %}
-        <li class="page-item">
-            <a class="page-link" href="?page={{ page_obj.next_page_number }}" {% if use_htmx and original_target %}
+        <li>
+            <a class="join-item btn btn-sm" href="?page={{ page_obj.next_page_number }}" {% if use_htmx and original_target %}
                 hx-get="?page={{ page_obj.next_page_number }}" hx-target="{{original_target}}" hx-replace-url="true"
                 hx-push-url="true" {% endif %}>Next</a>
         </li>

@@ -40,6 +40,7 @@ def action_links(view: Any, object: Any) -> str:
     """
     framework: str = getattr(settings, 'NOMINOPOLITAN_CSS_FRAMEWORK', 'bootstrap5')
     styles: Dict[str, Any] = view.get_framework_styles()[framework]
+    action_button_classes = view.get_action_button_classes()
 
     prefix: str = view.get_prefix()
     use_htmx: bool = view.get_use_htmx()
@@ -91,7 +92,7 @@ def action_links(view: Any, object: Any) -> str:
     links: List[str] = [
         f"<div class='join'>" +
         " ".join([
-            f"<a href='{url}' class='{styles['base']} join-item {button_class}' style='{styles['button_style']}' "
+            f"<a href='{url}' class='{styles['base']} join-item {button_class} {action_button_classes}' "
             + (f"hx-{'post' if hx_post else 'get'}='{url}' " if use_htmx else "")
             + (f"hx-target='{target}' " if use_htmx else "")
             + (f"hx-replace-url='true' hx-push-url='true' " if use_htmx and not show_modal else "")
@@ -205,6 +206,7 @@ def object_list(context, objects, view):
         "original_target": original_target,
         "table_pixel_height_other_page_elements": view.get_table_pixel_height_other_page_elements(),
         "table_max_height": view.get_table_max_height(),
+        "table_classes": view.get_table_classes(),
         "htmx_target": htmx_target,
         "request": request,
     }
@@ -248,6 +250,7 @@ def extra_buttons(view: Any) -> str:
     use_modal: bool = view.get_use_modal()
 
     extra_buttons: List[Dict[str, Any]] = getattr(view, "extra_buttons", [])
+    extra_button_classes = view.get_extra_button_classes()
     
     buttons: List[str] = []
     for button in extra_buttons:
@@ -286,8 +289,7 @@ def extra_buttons(view: Any) -> str:
 
             new_button = (
                 f'<a href="{url}" '
-                f'class="{extra_class_attrs} {styles["base"]} {button_class}" '
-                f'style="{styles["button_style"]}" '
+                f'class="{extra_class_attrs} {styles["base"]} {extra_button_classes} {button_class}" '
                 f'{extra_attrs} {htmx_attrs_str} '
                 f'{modal_attrs}>'
                 f'{button["text"]}</a>'                

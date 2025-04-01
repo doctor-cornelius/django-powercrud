@@ -35,7 +35,6 @@
         --bs-tooltip-bg: var(--bs-dark);
         --bs-tooltip-color: var(--bs-white);
         }
-
     </style>
 
     <title id="header_title">{{header_title}}</title>
@@ -44,7 +43,7 @@
     
         <div class="d-flex gap-2 my-2">
             {% if filterset %}
-                <button class="btn btn-sm btn-secondary table-font-size" type="button" data-bs-toggle="collapse"
+                <button class="btn btn-sm btn-secondary  {{ view.get_extra_button_classes }}" type="button" data-bs-toggle="collapse"
                     data-bs-target="#filterCollapse" aria-expanded="false" aria-controls="filterCollapse" id="filterToggleBtn">
                     <i class="bi bi-funnel"></i>
                     <span>Show Filters</span>
@@ -52,10 +51,10 @@
                 
                 {% if not use_htmx %}
                     <button onclick="event.preventDefault(); submitFilterForm();"
-                        class="btn btn-sm btn-info table-font-size">Filter</button>
+                        class="btn btn-sm btn-info  {{ view.get_extra_button_classes }}">Filter</button>
                 {% endif %}
 
-                <a href="." class="btn btn-sm btn-outline-secondary table-font-size" 
+                <a href="." class="btn btn-sm btn-outline-secondary  {{ view.get_extra_button_classes }}" 
                     hx-get="." hx-target="#filtered_results"
                     hx-headers='{"X-Filter-Sort-Request": "true"}' 
                     onclick="resetFilterForm()">Reset</a>
@@ -63,13 +62,13 @@
             {% endif %}
             {% if create_view_url %}
                 {% if use_htmx and htmx_target %}
-                    <a class="btn btn-sm btn-primary table-font-size" href="{{ create_view_url }}" hx-get="{{ create_view_url }}"
+                    <a class="btn btn-sm btn-primary  {{ view.get_extra_button_classes }}" href="{{ create_view_url }}" hx-get="{{ create_view_url }}"
                         hx-target="{{htmx_target}}" {% if use_modal %}data-bs-toggle="modal"
                         data-bs-target="#nominopolitanBaseModal" {% endif %}>
                         Create {{ object_verbose_name }}
                     </a>
                 {% else %}
-                    <a class="btn btn-sm btn-primary table-font-size" href="{{ create_view_url }}">
+                    <a class="btn btn-sm btn-primary  {{ view.get_extra_button_classes }}" href="{{ create_view_url }}">
                         Create {{ object_verbose_name }}
                     </a>
                 {% endif %}
