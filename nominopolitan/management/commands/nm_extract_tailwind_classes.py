@@ -2,11 +2,26 @@ import os
 import re
 import json
 from pathlib import Path
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandError
+from django.conf import settings
 
 # Define regex pattern to extract class names
 CLASS_REGEX = re.compile(r'class=["\']([^"\']+)["\']')
-DEFAULT_FILENAME = "nominopolitan_tailwind_safelist.json"
+DEFAULT_FILENAME = 'nominopolitan_tailwind_safelist.json'
+
+def get_help_message():
+    return (
+        "Output location not specified. Either:\n"
+        "1. Set NM_TAILWIND_SAFELIST_JSON_LOC in your Django settings (relative to BASE_DIR), or\n"
+        "2. Use --output to specify the output location\n\n"
+        "Examples:\n"
+        "  Settings:\n"
+        "    NM_TAILWIND_SAFELIST_JSON_LOC = 'config'  # Creates BASE_DIR/config/nominopolitan_tailwind_safelist.json\n"
+        "    NM_TAILWIND_SAFELIST_JSON_LOC = 'config/safelist.json'  # Uses exact filename\n"
+        "  Command line:\n"
+        "    --output ./config  # Creates ./config/nominopolitan_tailwind_safelist.json\n"
+        "    --output ./config/safelist.json  # Uses exact filename"
+    )
 
 class Command(BaseCommand):
     help = "Extracts Tailwind CSS class names from templates and Python files."
@@ -18,17 +33,45 @@ class Command(BaseCommand):
             help='Save and print the output in a pretty, formatted way'
         )
         parser.add_argument(
-            '--package-dir',
-            action='store_true',
-            help='Save the file in the package directory instead of current working directory'
-        )
-        parser.add_argument(
             '--output',
             type=str,
-            help=f'Specify output path (relative to current directory or absolute). If a directory is specified, {DEFAULT_FILENAME} will be created inside it'
+            help='Specify output path (directory or file path)'
         )
 
     def handle(self, *args, **kwargs):
+        # Determine output location
+        output_path = None
+        if kwargs['output']:
+            # For --output, treat path as relative to current directory
+            path = Path(kwargs['output']).expanduser()
+            # If path is a directory or doesn't have an extension, treat as directory
+            if path.is_dir() or not path.suffix:
+                output_path = path / DEFAULT_FILENAME
+            else:
+                output_path = path
+        elif hasattr(settings, 'NM_TAILWIND_SAFELIST_JSON_LOC') and settings.NM_TAILWIND_SAFELIST_JSON_LOC:
+            try:
+                # For settings value, treat path as relative to BASE_DIR
+                base_dir = Path(settings.BASE_DIR)
+                path = Path(settings.NM_TAILWIND_SAFELIST_JSON_LOC)
+                
+                # Combine with BASE_DIR if it's not absolute
+                if not path.is_absolute():
+                    path = base_dir / path
+
+                # If path is a directory or doesn't have an extension, treat as directory
+                if path.is_dir() or not path.suffix:
+                    output_path = path / DEFAULT_FILENAME
+                else:
+                    output_path = path
+            except Exception as e:
+                raise CommandError(f"Invalid NM_TAILWIND_SAFELIST_JSON_LOC setting: {str(e)}\n\n{get_help_message()}")
+        else:
+            raise CommandError(get_help_message())
+
+        # Resolve the final path
+        output_path = output_path.resolve()
+
         base_dir = Path(__file__).resolve().parent.parent.parent
         templates_dir = base_dir / "templates"
         package_dir = base_dir
@@ -52,24 +95,11 @@ class Command(BaseCommand):
         # Convert to a sorted list
         class_list = sorted(extracted_classes)
 
-        # Determine output location
-        if kwargs['output']:
-            output_path = Path(kwargs['output']).expanduser().resolve()
-            # If output_path is a directory, append the default filename
-            if output_path.is_dir():
-                output_file = output_path / DEFAULT_FILENAME
-            else:
-                output_file = output_path
-        elif kwargs['package_dir']:
-            output_file = base_dir / DEFAULT_FILENAME
-        else:
-            output_file = Path.cwd() / DEFAULT_FILENAME
-
         # Create directory if it doesn't exist
-        output_file.parent.mkdir(parents=True, exist_ok=True)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
 
         # Save to a JSON file
-        with open(output_file, "w", encoding="utf-8") as f:
+        with open(output_path, "w", encoding="utf-8") as f:
             if kwargs['pretty']:
                 json.dump(class_list, f, indent=2)
                 f.write('\n')  # Add newline at end of file
@@ -84,4 +114,4 @@ class Command(BaseCommand):
             compressed_json = json.dumps(class_list, separators=(',', ':'))
             self.stdout.write(compressed_json)
 
-        self.stdout.write(self.style.SUCCESS(f"\nExtracted {len(class_list)} classes to {output_file}"))
+        self.stdout.write(self.style.SUCCESS(f"\nExtracted {len(class_list)} classes to {output_path}"))

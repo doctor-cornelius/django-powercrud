@@ -73,6 +73,7 @@ CRISPY_ALLOWED_TEMPLATE_PACKS = ('bootstrap5', 'tailwind',)
 # CRISPY_TEMPLATE_PACK = 'bootstrap5'
 NOMINOPOLITAN_CSS_FRAMEWORK = 'daisyUI'
 CRISPY_TEMPLATE_PACK = 'tailwind'
+NM_TAILWIND_SAFELIST_JSON_LOC = 'sample/templates/sample/'
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",

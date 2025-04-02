@@ -47,9 +47,6 @@ cz changelog --unreleased-version=$NEW_VERSION
 # Build CSS for production
 # NODE_ENV=production npx tailwindcss -i django_nominopolitan/static/css/input.css -o django_nominopolitan/static/css/output.css --minify
 npx webpack --mode production
-# update the safelist
-echo "updating tailwind_safelist.json"
-./manage.py nm_extract_tailwind_classes
 
 # Note scope (release) is what will trigger the release job
 git add -A

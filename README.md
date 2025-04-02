@@ -269,13 +269,19 @@ See the example base template in `django_nominopolitan/templates/django_nominopo
 
 Add to your `settings.py`:
 ```python
+# Required settings
 INSTALLED_APPS = [
     ...
-    "nominopolitan",  # must come before neapolitan
-    "neapolitan",     # required for NominopolitanMixin
+    "nominopolitan",
+    "neapolitan",
     "django_htmx",    # if using htmx features
     ...
 ]
+
+# Optional: Configure Tailwind safelist location (relative to BASE_DIR)
+NM_TAILWIND_SAFELIST_JSON_LOC = 'config/nominopolitan_tailwind_safelist.json'  # will create config/nominopolitan_tailwind_safelist.json
+# or
+NM_TAILWIND_SAFELIST_JSON_LOC = 'config'  # will create config/nominopolitan_tailwind_safelist.json
 ```
 
 Additional configuration:
