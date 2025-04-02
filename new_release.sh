@@ -45,7 +45,8 @@ fi
 cz changelog --unreleased-version=$NEW_VERSION
 
 # Build CSS for production
-NODE_ENV=production npx tailwindcss -i django_nominopolitan/static/css/input.css -o django_nominopolitan/static/css/output.css --minify
+# NODE_ENV=production npx tailwindcss -i django_nominopolitan/static/css/input.css -o django_nominopolitan/static/css/output.css --minify
+npx webpack --mode production
 
 # Note scope (release) is what will trigger the release job
 git add -A

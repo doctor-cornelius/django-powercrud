@@ -11,18 +11,18 @@ module.exports= {
              * HTML. Paths to Django template files that will contain Tailwind CSS classes.
              */
 
-        /* All templates in apps directory */
-        './django_nominopolitan/templates/**/*.html',
+        // /* All templates in apps directory */
+        // './django_nominopolitan/templates/**/*.html',
 
-        /* Main templates directory */
-        './django_nominopolitan/templates/**/*.html',
-        './django_nominopolitan/static/js/**/*.js',
+        // /* Main templates directory */
+        // './django_nominopolitan/templates/**/*.html',
+        // './django_nominopolitan/static/js/**/*.js',
 
-        './nominopolitan/mixins.py', // for get_framework_styles()
-        './nominopolitan/templates/nominopolitan/**/*.html', // nominopolitan templates
+        // './nominopolitan/mixins.py', // for get_framework_styles()
+        // './nominopolitan/templates/nominopolitan/**/*.html', // nominopolitan templates
 
-        './sample/views.py', // for overrides specified in views
-        './sample/templates/sample/**/*.html', // sample templates
+        // './sample/views.py', // for overrides specified in views
+        // './sample/templates/sample/**/*.html', // sample templates
         /* Ignore node_modules */
         '!**/node_modules/**'
     ],
@@ -74,9 +74,9 @@ module.exports= {
          * for forms. If you don't like it or have own styling for forms,
          * comment the line below to disable '@tailwindcss/forms'.
          */
-        require('@tailwindcss/forms'),
+        require('daisyui'),  // Move daisyui first        
         require('@tailwindcss/typography'),
         require('@tailwindcss/aspect-ratio'),
-        require('daisyui'),
+        require('@tailwindcss/forms'),
     ],
 }

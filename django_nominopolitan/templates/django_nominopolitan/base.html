@@ -7,20 +7,13 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <!-- daisy all themes -->
-    <link href="https://cdn.jsdelivr.net/npm/daisyui@5/themes.css" rel="stylesheet" type="text/css" />
-
-    <!-- Tailwind/DaisyUI -->
-    <link href="/static/css/output.css" rel="stylesheet">
-
-    <!-- Popper.js and Tippy -->
-    <script src="https://unpkg.com/@popperjs/core@2"></script>
-    <script src="https://unpkg.com/tippy.js@6"></script>
-    <link href="https://unpkg.com/tippy.js@6/themes/light.css" rel="stylesheet">
-
-    <!-- Install htmx -->
-    <script src="https://unpkg.com/htmx.org@2.0.3"></script>
-    <script src="https://unpkg.com/htmx.org/dist/ext/multi-swap.js"></script>
+    <!-- Bundled CSS (includes Tailwind, DaisyUI, Tippy.js styles, and fonts) -->
+    <link href="/static/dist/css/bundle.css" rel="stylesheet">
+    
+    <!-- Load htmx first -->
+    <script src="/static/dist/js/htmx.bundle.js"></script>
+    <!-- Then load main bundle -->
+    <script src="/static/dist/js/main.bundle.js"></script>
 
     {% block header_title %}
     <title id="header_title">{{header_title}}</title>
