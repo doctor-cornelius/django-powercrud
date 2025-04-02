@@ -16,6 +16,16 @@ class Command(BaseCommand):
             action='store_true',
             help='Print the output in a pretty, formatted way'
         )
+        parser.add_argument(
+            '--package-dir',
+            action='store_true',
+            help='Save the file in the package directory instead of current working directory'
+        )
+        parser.add_argument(
+            '--output',
+            type=str,
+            help='Specify output path (relative to current directory or absolute). If a directory is specified, tailwind_safelist.json will be created inside it'
+        )
 
     def handle(self, *args, **kwargs):
         base_dir = Path(__file__).resolve().parent.parent.parent
@@ -41,8 +51,23 @@ class Command(BaseCommand):
         # Convert to a sorted list
         class_list = sorted(extracted_classes)
 
+        # Determine output location
+        if kwargs['output']:
+            output_path = Path(kwargs['output']).expanduser().resolve()
+            # If output_path is a directory, append the default filename
+            if output_path.is_dir():
+                output_file = output_path / "tailwind_safelist.json"
+            else:
+                output_file = output_path
+        elif kwargs['package_dir']:
+            output_file = base_dir / "tailwind_safelist.json"
+        else:
+            output_file = Path.cwd() / "tailwind_safelist.json"
+
+        # Create directory if it doesn't exist
+        output_file.parent.mkdir(parents=True, exist_ok=True)
+
         # Save to a JSON file in compressed format
-        output_file = base_dir / "tailwind_safelist.json"
         with open(output_file, "w", encoding="utf-8") as f:
             json.dump(class_list, f, separators=(',', ':'))
 
