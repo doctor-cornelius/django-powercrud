@@ -1,3 +1,14 @@
+## 0.1.26 (2025-04-02)
+
+### Build
+
+- **(webpoack.config.js)**:  add minimisers
+- **(webpack)**:  use webpack
+
+### Feature
+
+- **(nm_generate_tailwind_config)**:  write mgmt command to identify locations of files with tw classes
+
 ## 0.1.25 (2025-04-01)
 
 ### Feature
