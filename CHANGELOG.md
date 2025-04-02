@@ -1,3 +1,9 @@
+## 0.1.31 (2025-04-02)
+
+### Fix
+
+- **(nm_extract_tailwind_classes)**:  make --pretty option also save in pretty format
+
 ## 0.1.30 (2025-04-02)
 
 ### Refactor
