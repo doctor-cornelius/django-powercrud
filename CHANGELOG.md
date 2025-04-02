@@ -1,3 +1,9 @@
+## 0.1.29 (2025-04-02)
+
+### Feature
+
+- **(nm_extract_tailwind_classes)**:  allow options --output and --package-dir to set file save destination
+
 ## 0.1.28 (2025-04-02)
 
 ### Refactor
