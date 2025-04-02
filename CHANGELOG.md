@@ -1,3 +1,9 @@
+## 0.1.30 (2025-04-02)
+
+### Refactor
+
+- **(nm_extract_tailwind_classes)**:  change default filename to nominopolitan_tailwind_safelist.json
+
 ## 0.1.29 (2025-04-02)
 
 ### Feature
