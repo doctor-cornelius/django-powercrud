@@ -1,3 +1,9 @@
+## 0.1.33 (2025-04-02)
+
+### Refactor
+
+- **(remove post-install because package manager does not support such things)**: 
+
 ## 0.1.32 (2025-04-02)
 
 ### Refactor
