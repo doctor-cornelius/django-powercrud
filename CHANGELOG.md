@@ -1,3 +1,13 @@
+## 0.1.27 (2025-04-02)
+
+### Documentation
+
+- **(new_release.sh)**:  add comment
+
+### Feature
+
+- **(nm_extract_tailwind_classes)**:  create management command to extract classes for downstream to include in safelist
+
 ## 0.1.26 (2025-04-02)
 
 ### Build
