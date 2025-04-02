@@ -145,7 +145,9 @@ It is a **very early alpha** release. No tests. Limited docs. Expect many breaki
     - Extracts all Tailwind CSS class names used in your templates and Python files
     - Useful for generating a safelist of classes that Tailwind should not purge during build
     - Scans both HTML templates and Python files for class="..." patterns
-    - Saves the extracted classes to `nominopolitan_tailwind_safelist.json`
+    - IMPORTANT: Requires output location to be specified via either:
+        - `NM_TAILWIND_SAFELIST_JSON_LOC` in Django settings (recommended), or
+        - `--output` command line parameter
     - Basic syntax:
         ```bash
         python manage.py nm_extract_tailwind_classes [options]
@@ -153,7 +155,6 @@ It is a **very early alpha** release. No tests. Limited docs. Expect many breaki
     - Options:
         ```bash
         --pretty          # Print the output in a formatted, readable way
-        --package-dir     # Save the file in the package directory instead of current working directory
         --output PATH     # Specify custom output path (relative or absolute)
                          # If directory is specified, nominopolitan_tailwind_safelist.json will be created inside it
                          # Examples:
@@ -164,9 +165,9 @@ It is a **very early alpha** release. No tests. Limited docs. Expect many breaki
         1. Custom path if `--output` is specified
            - If directory: creates nominopolitan_tailwind_safelist.json inside it
            - If file path: uses exact path
-        2. Package directory if `--package-dir` is used
-        3. Current working directory (default)
-    - The generated `nominopolitan_tailwind_safelist.json` can be used in your `tailwind.config.js` safelist:
+        2. Location specified in `NM_TAILWIND_SAFELIST_JSON_LOC` setting (relative to BASE_DIR)
+        3. Raises an error if neither location is specified
+    - The generated safelist file can be used in your `tailwind.config.js`:
         ```javascript
         //tailwind.config.js
         module.exports = {
@@ -279,9 +280,19 @@ INSTALLED_APPS = [
 ]
 
 # Optional: Configure Tailwind safelist location (relative to BASE_DIR)
-NM_TAILWIND_SAFELIST_JSON_LOC = 'config/nominopolitan_tailwind_safelist.json'  # will create config/nominopolitan_tailwind_safelist.json
-# or
-NM_TAILWIND_SAFELIST_JSON_LOC = 'config'  # will create config/nominopolitan_tailwind_safelist.json
+# Example: if BASE_DIR = '/home/user/myproject'
+NM_TAILWIND_SAFELIST_JSON_LOC = 'config/templates/nominopolitan/'  
+# This will create: /home/user/myproject/config/templates/nominopolitan/nominopolitan_tailwind_safelist.json
+# when the management command ./manage.oy 
+
+# Important: After adding the setting, you must manually run the following command
+# to extract Tailwind classes from your templates and prevent them from being purged:
+python manage.py nm_extract_tailwind_classes --pretty
+
+# Note: This command requires either:
+# 1. The NM_TAILWIND_SAFELIST_JSON_LOC setting above, or
+# 2. The --output parameter
+# See the "Management Commands" section below for detailed usage and options.
 ```
 
 Additional configuration:

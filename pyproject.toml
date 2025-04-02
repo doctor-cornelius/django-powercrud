@@ -10,12 +10,6 @@ packages = [
     {include = "README.md"}
 ]
 
-repository = "https://github.com/doctor-cornelius/django-nominopolitan"
-homepage = "https://github.com/doctor-cornelius/django-nominopolitan"
-
-[tool.poetry.scripts]
-post-install = "nominopolitan.scripts.post_install:main"
-
 [tool.poetry.dependencies]
 python = "^3.12"
 django = "^5.1"
