@@ -1,3 +1,9 @@
+## 0.1.28 (2025-04-02)
+
+### Refactor
+
+- **(nm_extract_tailwind_classes)**:  save file in non-pretty format and allow print of file in normal or --pretty format
+
 ## 0.1.27 (2025-04-02)
 
 ### Documentation
