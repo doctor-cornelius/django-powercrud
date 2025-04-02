@@ -15,7 +15,7 @@ class Command(BaseCommand):
         parser.add_argument(
             '--pretty',
             action='store_true',
-            help='Print the output in a pretty, formatted way'
+            help='Save and print the output in a pretty, formatted way'
         )
         parser.add_argument(
             '--package-dir',
@@ -68,11 +68,15 @@ class Command(BaseCommand):
         # Create directory if it doesn't exist
         output_file.parent.mkdir(parents=True, exist_ok=True)
 
-        # Save to a JSON file in compressed format
+        # Save to a JSON file
         with open(output_file, "w", encoding="utf-8") as f:
-            json.dump(class_list, f, separators=(',', ':'))
+            if kwargs['pretty']:
+                json.dump(class_list, f, indent=2)
+                f.write('\n')  # Add newline at end of file
+            else:
+                json.dump(class_list, f, separators=(',', ':'))
 
-        # Print output based on format preference
+        # Print output
         if kwargs['pretty']:
             formatted_json = json.dumps(class_list, indent=2)
             self.stdout.write(formatted_json)
