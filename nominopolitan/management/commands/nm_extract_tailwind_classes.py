@@ -6,6 +6,7 @@ from django.core.management.base import BaseCommand
 
 # Define regex pattern to extract class names
 CLASS_REGEX = re.compile(r'class=["\']([^"\']+)["\']')
+DEFAULT_FILENAME = "nominopolitan_tailwind_safelist.json"
 
 class Command(BaseCommand):
     help = "Extracts Tailwind CSS class names from templates and Python files."
@@ -24,7 +25,7 @@ class Command(BaseCommand):
         parser.add_argument(
             '--output',
             type=str,
-            help='Specify output path (relative to current directory or absolute). If a directory is specified, tailwind_safelist.json will be created inside it'
+            help=f'Specify output path (relative to current directory or absolute). If a directory is specified, {DEFAULT_FILENAME} will be created inside it'
         )
 
     def handle(self, *args, **kwargs):
@@ -56,13 +57,13 @@ class Command(BaseCommand):
             output_path = Path(kwargs['output']).expanduser().resolve()
             # If output_path is a directory, append the default filename
             if output_path.is_dir():
-                output_file = output_path / "tailwind_safelist.json"
+                output_file = output_path / DEFAULT_FILENAME
             else:
                 output_file = output_path
         elif kwargs['package_dir']:
-            output_file = base_dir / "tailwind_safelist.json"
+            output_file = base_dir / DEFAULT_FILENAME
         else:
-            output_file = Path.cwd() / "tailwind_safelist.json"
+            output_file = Path.cwd() / DEFAULT_FILENAME
 
         # Create directory if it doesn't exist
         output_file.parent.mkdir(parents=True, exist_ok=True)

@@ -145,7 +145,7 @@ It is a **very early alpha** release. No tests. Limited docs. Expect many breaki
     - Extracts all Tailwind CSS class names used in your templates and Python files
     - Useful for generating a safelist of classes that Tailwind should not purge during build
     - Scans both HTML templates and Python files for class="..." patterns
-    - Saves the extracted classes to `tailwind_safelist.json`
+    - Saves the extracted classes to `nominopolitan_tailwind_safelist.json`
     - Basic syntax:
         ```bash
         python manage.py nm_extract_tailwind_classes [options]
@@ -155,25 +155,25 @@ It is a **very early alpha** release. No tests. Limited docs. Expect many breaki
         --pretty          # Print the output in a formatted, readable way
         --package-dir     # Save the file in the package directory instead of current working directory
         --output PATH     # Specify custom output path (relative or absolute)
-                         # If directory is specified, tailwind_safelist.json will be created inside it
+                         # If directory is specified, nominopolitan_tailwind_safelist.json will be created inside it
                          # Examples:
-                         #   --output ./config            # Creates ./config/tailwind_safelist.json
+                         #   --output ./config            # Creates ./config/nominopolitan_tailwind_safelist.json
                          #   --output config/safelist.json # Uses exact filename
         ```
     - Output location priority:
         1. Custom path if `--output` is specified
-           - If directory: creates tailwind_safelist.json inside it
+           - If directory: creates nominopolitan_tailwind_safelist.json inside it
            - If file path: uses exact path
         2. Package directory if `--package-dir` is used
         3. Current working directory (default)
-    - The generated `tailwind_safelist.json` can be used in your `tailwind.config.js` safelist:
+    - The generated `nominopolitan_tailwind_safelist.json` can be used in your `tailwind.config.js` safelist:
         ```javascript
         //tailwind.config.js
         module.exports = {
           content: [
             // ... your content paths
           ],
-          safelist: require('./tailwind_safelist.json')
+          safelist: require('./nominopolitan_tailwind_safelist.json')
         }
         ```
 
