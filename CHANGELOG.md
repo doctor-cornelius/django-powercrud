@@ -1,3 +1,9 @@
+## 0.1.32 (2025-04-02)
+
+### Refactor
+
+- **(post_install)**:  add post_install script to package to run nm_extract_tailwind_classes
+
 ## 0.1.31 (2025-04-02)
 
 ### Fix
