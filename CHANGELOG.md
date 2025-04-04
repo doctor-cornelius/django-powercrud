@@ -1,3 +1,13 @@
+## 0.1.34 (2025-04-04)
+
+### Documentation
+
+- **(README.md)**:  document tailwindcss considerations
+
+### Style
+
+- **(crispy_tailwind_safelist.json)**:  add json file with safelist of all the class names in crispy_tailwind that I could find
+
 ## 0.1.33 (2025-04-02)
 
 ### Refactor
