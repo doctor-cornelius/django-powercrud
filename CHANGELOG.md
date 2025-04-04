@@ -1,3 +1,9 @@
+## 0.1.35 (2025-04-04)
+
+### Fix
+
+- **(nm_extract_tailwind_classes)**:  include json and text files in scan
+
 ## 0.1.34 (2025-04-04)
 
 ### Documentation
