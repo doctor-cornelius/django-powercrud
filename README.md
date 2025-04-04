@@ -60,24 +60,18 @@ It is a **very early alpha** release. No tests. Limited docs. Expect many breaki
 - Support to specify `hx_trigger` and set `response['HX-Trigger']` for every response
 
 **Styled Templates**
-- Supports `bootstrap5` (default framework) and `daisyUI`. To use a different CSS framework:
+- Supports `bootstrap5` (default framework) and `daisyUI` (v5, which uses tailwindcss v4). To use a different CSS framework:
     - Set `NOMINOPOLITAN_CSS_FRAMEWORK = '<framework_name>'` in `settings.py`
     - Create corresponding templates in your `templates_path` directory
     - Override `NominopolitanMixin.get_framework_styles()` in your view to add your framework's styles,  
       set the `framework` key to the name of your framework and add the required values.
 
-- If using a `tailwindcss` framework including `daisyUI` then you need to set these content locations in you `tailwind.config.js`:
+**Tailwind CSS Considerations**
 
-    ```javascript
-    //tailwind.config.js
-    content: [
-        // include django_nominopolitan class definitions
-        'django_nominopolitan/nominopolitan/mixins.py', // for get_framework_styles()
-        'django_nominopolitan/nominopolitan/templates/nominopolitan/**/*.html', // nominopolitan templates
-        // in your owm apps
-        'myapp/views.py', // for overrides specified in any (NominopolitanMixin, CRUDView) classes 
-    ]
-    ```
+Tailwind needs to scan all the classes used in your project. I don't know how to do that for imported libraries. The solutions below work, but there may be better ways!
+
+1. If using a `tailwindcss` framework including `daisyUI` then you need to run the management command `nm_extract_tailwind_classes` as discussed in the management commands section below.
+2. If using `crispy_tailwind` the command above will include a safelist of classes used in that package which need to be scanned by tailwind. Otherwise the classes won't be included in your css and the forms will look pretty bad. If you want that safelist for your own project, you can find it at: `nominopolitan/templates/daisyUI/crispy_tailwind_safelist.json`.
 
 **Forms**
 - if `form_class` is specified, it will be used 
