@@ -23,11 +23,11 @@ module.exports= {
 
         // './sample/views.py', // for overrides specified in views
         // './sample/templates/sample/**/*.html', // sample templates
+
         /* Ignore node_modules */
         '!**/node_modules/**'
     ],
     safelist: [
-
     ],
     daisyui: {
         themes: [
