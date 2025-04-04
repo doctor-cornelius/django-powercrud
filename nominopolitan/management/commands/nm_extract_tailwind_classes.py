@@ -5,9 +5,24 @@ from pathlib import Path
 from django.core.management.base import BaseCommand, CommandError
 from django.conf import settings
 
-# Define regex pattern to extract class names
+# Define regex patterns to extract class names
 CLASS_REGEX = re.compile(r'class=["\']([^"\']+)["\']')
+JSON_ARRAY_REGEX = re.compile(r'\[(.*?)\]', re.DOTALL)
+
 DEFAULT_FILENAME = 'nominopolitan_tailwind_safelist.json'
+def extract_classes_from_json(content):
+    """Extract classes from JSON content"""
+    try:
+        data = json.loads(content)
+        if isinstance(data, list):
+            return set(data)
+    except json.JSONDecodeError:
+        pass
+    return set()
+
+def extract_classes_from_txt(content):
+    """Extract classes from text content, assuming one class per line"""
+    return set(line.strip() for line in content.splitlines() if line.strip())
 
 def get_help_message():
     return (
@@ -24,7 +39,7 @@ def get_help_message():
     )
 
 class Command(BaseCommand):
-    help = "Extracts Tailwind CSS class names from templates and Python files."
+    help = "Extracts Tailwind CSS class names from templates, Python files, JSON files, and text files."
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -91,6 +106,18 @@ class Command(BaseCommand):
                 content = f.read()
                 for match in CLASS_REGEX.findall(content):
                     extracted_classes.update(match.split())
+
+        # Scan JSON files
+        for json_file in package_dir.rglob("*.json"):
+            with open(json_file, "r", encoding="utf-8") as f:
+                content = f.read()
+                extracted_classes.update(extract_classes_from_json(content))
+
+        # Scan TXT files
+        for txt_file in package_dir.rglob("*.txt"):
+            with open(txt_file, "r", encoding="utf-8") as f:
+                content = f.read()
+                extracted_classes.update(extract_classes_from_txt(content))
 
         # Convert to a sorted list
         class_list = sorted(extracted_classes)
