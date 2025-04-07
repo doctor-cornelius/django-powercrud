@@ -114,6 +114,9 @@ class AuthorCRUDView(NominopolitanMixin, CRUDView):
 
     # form_class = forms.AuthorForm
 
+    table_header_min_wrap_width = '15' # characters
+    table_max_col_width = '25' # characters
+
     extra_actions = [
         {
             "url_name": "home",  # namespace:url_pattern

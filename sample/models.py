@@ -12,6 +12,10 @@ class Author(models.Model):
     @property
     def has_bio(self):
         return bool(self.bio)
+    
+    @property
+    def property_birth_date(self):
+        return self.birth_date
 
     def __str__(self):
         return self.name
