@@ -1,3 +1,11 @@
+## 0.1.36 (2025-04-07)
+
+### Style
+
+- **(modal)**:  remove modal header and format individual form header text colours
+-  improve formatting
+- **(object_form)**:  make heading bold
+
 ## 0.1.35 (2025-04-04)
 
 ### Fix
