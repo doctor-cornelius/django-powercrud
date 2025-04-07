@@ -1,3 +1,13 @@
+## 0.1.39 (2025-04-08)
+
+### Fix
+
+- **(object_list)**:  remove debug paragraph
+
+### Refactor
+
+- **(Author)**:  set table column width parameters
+
 ## 0.1.38 (2025-04-08)
 
 ### Style
