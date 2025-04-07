@@ -1092,6 +1092,7 @@ class NominopolitanMixin:
 
         if self.request.htmx:
             if self.role == Role.LIST:
+                # this is the list view
                 if not self.get_original_target():
                     self.set_session_data_key({'original_target': f"#{self.request.htmx.target}"})
 

@@ -12,7 +12,7 @@
 
 {% partialdef nm_content %}
 <div class="is-flex is-flex-direction-column m-2 p-2">
-    <h1 class="flex-1 font-bold text-xl mb-4">{% if object %}Edit {{object_verbose_name}}{% else %}Create {{object_verbose_name}}{% endif %}</h1>
+    <h1 class="flex-1 font-bold text-xl text-primary mb-4">{% if object %}Edit {{object_verbose_name}}{% else %}Create {{object_verbose_name}}{% endif %}</h1>
 
     <div class="box">
         <form method="POST" 

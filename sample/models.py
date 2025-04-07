@@ -2,6 +2,9 @@ from django.db import models
 
 
 class Author(models.Model):
+    class Meta:
+        verbose_name = "The Author Person"
+
     name = models.CharField(max_length=200)
     bio = models.TextField(blank=True)
     birth_date = models.DateField(null=True, blank=True)

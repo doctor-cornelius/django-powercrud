@@ -1,8 +1,10 @@
-<dl class="divide-y">
-    {% for label, value in object %}
-    <div class="py-2">
-        <dt class="font-bold">{{ label }}</dt>
-        <dd>{{ value }}</dd>
-    </div>
-    {% endfor %}
-</dl>
+<table class="table w-full border border-base-300">
+    <tbody>
+        {% for label, value in object %}
+        <tr class="border border-base-300">
+            <td class="font-bold w-1/3 py-1 border border-base-300">{{ label }}</td>
+            <td class="py-1 border border-base-300">{{ value }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
