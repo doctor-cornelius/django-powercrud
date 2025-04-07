@@ -27,8 +27,6 @@
     <title id="header_title">{{header_title}}</title>
     <div class="flex flex-col">
         <h1 class="flex-1 font-bold text-xl text-primary">{{ object_verbose_name_plural|capfirst }}</h1>
-        <p>table_max_col_width: {{ table_max_col_width }}; table_header_min_wrap_width: {{ table_header_min_wrap_width }}</p>
-
 
         <div class="flex gap-2 my-2">
             {% if filterset %}

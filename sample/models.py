@@ -8,6 +8,7 @@ class Author(models.Model):
     name = models.CharField(max_length=200)
     bio = models.TextField(blank=True)
     birth_date = models.DateField(null=True, blank=True)
+    an_integer_with_long_heading_text = models.IntegerField(default=0)
 
     @property
     def has_bio(self):

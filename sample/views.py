@@ -94,7 +94,6 @@ class AuthorCRUDView(NominopolitanMixin, CRUDView):
     use_htmx = True
     use_modal = True
 
-    table_max_col_width = '25' # characters
     table_classes = 'table-zebra table-sm'
     action_button_classes = 'btn-xs'
     extra_button_classes = 'btn-sm'
