@@ -152,17 +152,17 @@ def object_list(context, objects, view):
     fields = view.fields
     properties = getattr(view, "properties", []) or []
 
-    # Create tuples of (display_name, field_name) for each field
+    # Create tuples of (display_name, field_name, is_sortable) for each field
     headers = []
     for f in fields:
         field = view.model._meta.get_field(f)
         display_name = field.verbose_name.title() if field.verbose_name else f.replace('_', ' ').title()
-        headers.append((display_name, f))
+        headers.append((display_name, f, True))  # Regular fields are sortable
 
-    # Add properties with proper display names
+    # Add properties with proper display names (not sortable)
     for prop in properties:
         display_name = prop.replace('_', ' ').title()
-        headers.append((display_name, prop))
+        headers.append((display_name, prop, False))  # Properties are not sortable
 
     object_list = [
         {
@@ -198,7 +198,7 @@ def object_list(context, objects, view):
     htmx_target = context.get('htmx_target', view.get_htmx_target())
 
     return {
-        "headers": headers,  # Now contains tuples of (display_name, field_name)
+        "headers": headers,  # Now contains tuples of (display_name, field_name, is_sortable)
         "object_list": object_list,
         "current_sort": current_sort,
         "filter_params": filter_params.urlencode(),  # Add filter parameters to context
