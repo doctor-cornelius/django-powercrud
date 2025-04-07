@@ -38,6 +38,14 @@ class Book(models.Model):
     description = models.TextField(blank=True)
     uneditable_field = models.CharField(max_length=200, blank=True, null=True, editable=False)
 
+    @property
+    def there_are_so_many_pages_this_header_surely_will_wrap(self):
+        return self.pages > 10
+
+    @property
+    def a_really_long_property_header_for_title(self):
+        return self.title
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -50,10 +58,6 @@ class Book(models.Model):
     def save(self, *args, **kwargs):
         self.clean()
         return super().save(*args, **kwargs)
-
-    @property
-    def there_are_so_many_pages_this_header_surely_will_wrap(self):
-        return self.pages > 10
 
     def __str__(self):
         return self.title

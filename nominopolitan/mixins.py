@@ -133,7 +133,8 @@ class NominopolitanMixin:
     table_max_height: int = 70 # expressed as vh units (ie percentage) of the remaining blank space 
         # after subtracting table_pixel_height_other_page_elements
 
-    table_max_col_width: int = 25 # Expressed in ch units
+    table_max_col_width: int = None # Expressed in ch units
+    table_header_min_wrap_width: int = None  # Expressed in ch units
 
     table_classes: str = ''
     action_button_classes: str = ''
@@ -339,7 +340,16 @@ class NominopolitanMixin:
 
     def get_table_max_col_width(self):
         # The max width for the table columns in object_list.html - in characters
-        return f"{self.table_max_col_width}ch" #ch
+        return f"{self.table_max_col_width}ch" or '25ch'
+    
+    def get_table_header_min_wrap_width(self):
+        # The max width for the table columns in object_list.html - in characters
+        if self.table_header_min_wrap_width is None:
+            return self.get_table_max_col_width()
+        elif int(self.table_header_min_wrap_width) > int(self.table_max_col_width):
+            return self.get_table_max_col_width()
+        else:
+            return f"{self.table_header_min_wrap_width}ch" #ch
     
     def get_table_classes(self):
         """
@@ -995,6 +1005,7 @@ class NominopolitanMixin:
         context['table_pixel_height_other_page_elements'] = self.get_table_pixel_height_other_page_elements()
         context['get_table_max_height'] = self.get_table_max_height()
         context['table_max_col_width'] = f"{self.get_table_max_col_width()}"
+        context['table_header_min_wrap_width'] = f"{self.get_table_header_min_wrap_width()}"
         context['table_classes'] = self.get_table_classes()
 
         # Add HTMX-specific context if enabled

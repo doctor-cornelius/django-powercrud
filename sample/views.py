@@ -41,6 +41,7 @@ class BookCRUDView(NominopolitanMixin, CRUDView):
 
     table_pixel_height_other_page_elements = 100
     table_max_height = 80
+    table_header_min_wrap_width = '15' # characters
     table_max_col_width = '25' # characters
 
     table_classes = 'table-zebra table-sm'

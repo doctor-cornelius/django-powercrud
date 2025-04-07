@@ -46,7 +46,7 @@
                         onclick="window.location.href='?sort={% if current_sort == field_name %}-{% elif current_sort == '-'|add:field_name %}{% else %}{% endif %}{{ field_name }}{% if filter_params %}&{{ filter_params }}{% endif %}'"
                         {% endif %}
                     {% endif %}>
-                    <span class="block w-full h-full">
+                    <span class="block h-full">
                         {{ header }}
                         {% if is_sortable %}
                             {% if current_sort == field_name %}

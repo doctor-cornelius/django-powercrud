@@ -100,10 +100,15 @@ Tailwind needs to scan all the classes used in your project. I don't know how to
 - set `table_classes` as a parameter and add additional table classes (the base is `table` in `partials/list.html`)
     - eg `table_classes = 'table-zebra table-sm'`
 - set `table_max_col_width` as a parameter, measured in `ch` (ie number of `0` characters in the current font). 
-    - eg `table_max_col_width = 10` (default = 25, set in `get_table_max_col_width()`) 
+    - eg `table_max_col_width = 25` (default = 25, set in `get_table_max_col_width()`) 
     - limit the width of the column to these characters and truncate the data text if needed.
     - if a field is truncated, a popover will be shown with the full text (**requires [`popper.js`](https://popper.js.org/docs/v2/) be installed**)
-    - column headers will be wrapped to the width of the column (as determined by width of data items)
+- set `table_header_min_wrap_width` as a parameter, measured in `ch` (ie number of `0` characters in the current font). 
+    - eg `table_header_min_wrap_width = 15` (default = `get_table_max_col_width()`, set in `get_table_header_min_wrap_width()`)
+    - if a table column header needs to wrap, then:
+        - if the column width based on data elements is < this value then the column width will be set to `table_header_min_wrap_width`
+        - if the column width based on data elements is > this value (which be capped by `table_max_col_width`) then the column width will stay at that value
+    - Basically just think about say a 4-char wide column with a really long name: its title will wrap at whatever you've set for `table_header_min_wrap_width`
 - to calculate the maximum height of the `object_list` table, we allow setting of 2 parameters:
     - `table_pixel_height_other_page_elements`, expressed in pixels (default = 0, set in `get_table_pixel_height_other_page_elements()`)
     - `table_max_height`: (default = 70, set in `get_table_max_height()`)
