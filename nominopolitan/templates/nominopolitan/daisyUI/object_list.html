@@ -15,14 +15,12 @@
             @apply font-bold text-center block;
         }
         .table-column-width {
-            width: min-content;
-            word-wrap: break-word;
-            max-width: {{ table_max_col_width }};
+            width: min({{ table_max_col_width }}, fit-content); /* controls initial width */
+            max-width: {{ table_max_col_width }}; /* sets absolute limits */
         }
         th.table-column-width {
-            width: min-content;
-            white-space: normal;
-            hyphens: auto;
+            /* applies to table headers only */
+            white-space: normal; /* Allows text to wrap naturally in headers*/
         }
     </style>
 
