@@ -1,3 +1,18 @@
+## 0.1.37 (2025-04-07)
+
+### Fix
+
+- **(list)**:  make properties not sortable
+
+### Refactor
+
+- **(Book)**:  add property with very long header name
+
+### Style
+
+- **(object_list)**:  improve css for header wrapping
+- **(object_detail)**:  use text-primary-content not !text-primary-content for header
+
 ## 0.1.36 (2025-04-07)
 
 ### Style
