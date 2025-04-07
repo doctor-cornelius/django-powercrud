@@ -1,3 +1,11 @@
+## 0.1.38 (2025-04-08)
+
+### Style
+
+- **(object_list)**:  apply styling for boolean and date, date fields also for properties
+- **(object_list)**:  use svg for boolean fields
+- **(table_header_min_wrap_width)**:  support parameter for minimum wrap point for table headers
+
 ## 0.1.37 (2025-04-07)
 
 ### Fix
