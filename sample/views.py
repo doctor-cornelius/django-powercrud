@@ -28,7 +28,7 @@ class BookCRUDView(NominopolitanMixin, CRUDView):
     # fields = ["author","title","published_date",]
     fields =  "__all__"
     exclude = ['pages','description']
-    # properties = '__all__'
+    properties = '__all__'
     detail_fields = '__all__'
     detail_properties = '__all__'
 

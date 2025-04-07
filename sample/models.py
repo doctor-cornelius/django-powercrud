@@ -52,7 +52,7 @@ class Book(models.Model):
         return super().save(*args, **kwargs)
 
     @property
-    def many_pages(self):
+    def there_are_so_many_pages_this_header_surely_will_wrap(self):
         return self.pages > 10
 
     def __str__(self):
