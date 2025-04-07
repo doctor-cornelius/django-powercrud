@@ -105,7 +105,7 @@ class AuthorCRUDView(NominopolitanMixin, CRUDView):
     fields = "__all__"
     # exclude = ['bio',]
     properties = '__all__'
-    properties_exclude = ['has_bio',]
+    # properties_exclude = ['has_bio',]
     detail_fields = '__fields__'
     detail_properties = '__properties__'
 

@@ -164,15 +164,22 @@ def object_list(context, objects, view):
         display_name = prop.replace('_', ' ').title()
         headers.append((display_name, prop, False))  # Properties are not sortable
 
+    TICK_SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="green" class="size-4 inline-block"><path fill-rule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12Zm13.36-1.814a.75.75 0 1 0-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 0 0-1.06 1.06l2.25 2.25a.75.75 0 0 0 1.14-.094l3.75-5.25Z" clip-rule="evenodd" /></svg>'
+    CROSS_SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="darkred" class="size-4 inline-block"><path fill-rule="evenodd" d="M8 15A7 7 0 1 0 8 1a7 7 0 0 0 0 14Zm2.78-4.22a.75.75 0 0 1-1.06 0L8 9.06l-1.72 1.72a.75.75 0 1 1-1.06-1.06L6.94 8 5.22 6.28a.75.75 0 0 1 1.06-1.06L8 6.94l1.72-1.72a.75.75 0 1 1 1.06 1.06L9.06 8l1.72 1.72a.75.75 0 0 1 0 1.06Z" clip-rule="evenodd" /></svg>'
+
     object_list = [
         {
             "object": object,
             "fields": [
                 (
-                    str(getattr(object, f).strftime('%d/%m/%Y'))
-                    if object._meta.get_field(f).get_internal_type() == 'DateField' and getattr(object, f) is not None
+                    mark_safe(TICK_SVG) 
+                        if object._meta.get_field(f).get_internal_type() == 'BooleanField' and getattr(object, f) is True
+                    else mark_safe(CROSS_SVG) 
+                        if object._meta.get_field(f).get_internal_type() == 'BooleanField' and getattr(object, f) is False
+                    else str(getattr(object, f).strftime('%d/%m/%Y'))
+                        if object._meta.get_field(f).get_internal_type() == 'DateField' and getattr(object, f) is not None
                     else str(getattr(object, f))
-                    if object._meta.get_field(f).is_relation
+                        if object._meta.get_field(f).is_relation
                     else object._meta.get_field(f).value_to_string(object)
                 )
                 for f in fields

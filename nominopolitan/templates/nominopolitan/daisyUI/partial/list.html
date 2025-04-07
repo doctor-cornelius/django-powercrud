@@ -73,7 +73,7 @@
                 <tr class="text-center hover">
                     {% for field in object.fields %}
                     <td class="{% if forloop.first %}font-medium{% endif %} py-0 align-middle px-2 truncate table-column-width"
-                        data-tippy-content="{{field}}">
+                        {% if not field|safe|stringformat:"s"|first in "<" %}data-tippy-content="{{field}}"{% endif %}>
                         {{ field }}
                     </td>
                     {% endfor %}
