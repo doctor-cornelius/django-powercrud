@@ -1,3 +1,9 @@
+## 0.1.40 (2025-04-09)
+
+### Feature
+
+- **(NominopolitanMixin, nominopolitan.py)**:  handle M2M fields in object list, forms and filtersets
+
 ## 0.1.39 (2025-04-08)
 
 ### Fix
