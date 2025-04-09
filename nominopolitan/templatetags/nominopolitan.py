@@ -156,9 +156,18 @@ def object_list(context, objects, view):
     # Create tuples of (display_name, field_name, is_sortable) for each field
     headers = []
     for f in fields:
-        field = view.model._meta.get_field(f)
-        display_name = field.verbose_name.title() if field.verbose_name else f.replace('_', ' ').title()
-        headers.append((display_name, f, True))  # Regular fields are sortable
+        try:
+            field = view.model._meta.get_field(f)
+            # Handle M2M fields differently
+            if hasattr(field, 'remote_field') and field.remote_field and isinstance(field.remote_field, models.ManyToManyRel):
+                display_name = field.remote_field.model._meta.verbose_name_plural.title()
+            else:
+                display_name = field.verbose_name.title() if hasattr(field, 'verbose_name') and field.verbose_name else f.replace('_', ' ').title()
+            headers.append((display_name, f, True))  # Regular fields are sortable
+        except Exception as e:
+            log.warning(f"Error processing field {f}: {str(e)}")
+            # Fallback to basic field name formatting
+            headers.append((f.replace('_', ' ').title(), f, True))
 
     # Add properties with proper display names (not sortable)
     for prop in properties:
@@ -173,18 +182,16 @@ def object_list(context, objects, view):
             "object": object,
             "fields": [
                 (
+                    # M2M field
+                    ", ".join(str(obj) for obj in getattr(object, f).all()) if object._meta.get_field(f).many_to_many
                     # boolean True
-                    mark_safe(TICK_SVG) 
-                        if object._meta.get_field(f).get_internal_type() == 'BooleanField' and getattr(object, f) is True
+                    else mark_safe(TICK_SVG) if object._meta.get_field(f).get_internal_type() == 'BooleanField' and getattr(object, f) is True
                     # boolean False
-                    else mark_safe(CROSS_SVG) 
-                        if object._meta.get_field(f).get_internal_type() == 'BooleanField' and getattr(object, f) is False
+                    else mark_safe(CROSS_SVG) if object._meta.get_field(f).get_internal_type() == 'BooleanField' and getattr(object, f) is False
                     # date type
-                    else str(getattr(object, f).strftime('%d/%m/%Y'))
-                        if object._meta.get_field(f).get_internal_type() == 'DateField' and getattr(object, f) is not None
+                    else str(getattr(object, f).strftime('%d/%m/%Y')) if object._meta.get_field(f).get_internal_type() == 'DateField' and getattr(object, f) is not None
                     # related field
-                    else str(getattr(object, f))
-                        if object._meta.get_field(f).is_relation
+                    else str(getattr(object, f)) if object._meta.get_field(f).is_relation
                     # any other type gets applied as string
                     else object._meta.get_field(f).value_to_string(object)
                 )

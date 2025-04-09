@@ -40,12 +40,21 @@
                 </a>
             </div>
             <div class="join" role="group" aria-label="Author List buttons">
-                <a class="btn btn-secondary join-item" hx-get="{% url 'sample:author-list' %}" hx-target="#content" hx-swap="innerHTML"
-                    hx-replace-url="true" hx-push-url="true">
+                <a class="btn btn-secondary join-item" hx-get="{% url 'sample:author-list' %}" hx-target="#content"
+                    hx-swap="innerHTML" hx-replace-url="true" hx-push-url="true">
                     Author List (htmx)
                 </a>
                 <a class="btn join-item btn-info" href="{% url 'sample:author-list' %}">
                     Author List (reload)
+                </a>
+            </div>
+            <div class="join" role="group" aria-label="Author List buttons">
+                <a class="btn btn-secondary join-item" hx-get="{% url 'sample:genre-list' %}" hx-target="#content"
+                    hx-swap="innerHTML" hx-replace-url="true" hx-push-url="true">
+                    Genre List (htmx)
+                </a>
+                <a class="btn join-item btn-info" href="{% url 'sample:genre-list' %}">
+                    Genre List (reload)
                 </a>
             </div>
         </div>

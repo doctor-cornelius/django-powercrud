@@ -30,7 +30,10 @@ It is a **very early alpha** release. No tests. Limited docs. Expect many breaki
 - `object_list.html` styled for bootstrap to show filters.
 - if `filterset_fields` is specified, style with crispy_forms if present and set htmx attributes if applicable
 - if `filterset_class` is provided, then option to subclass `HTMXFilterSetMixin` and use `self.setup_htmx_attrs()` in `__init__()`
-- You can now override the method `get_filter_queryset_for_field(self, field_name, model_field)` to restrict the available options for a filter field.
+- **M2M filters**
+    - `m2m_filter_and_logic = True` to use AND logic for M2M filters (default is OR logic)
+- **Overrides**
+- You can override the method `get_filter_queryset_for_field(self, field_name, model_field)` to restrict the available options for a filter field.
     - `field_name`: The name of the field being filtered (str)
     - `model_field`: The actual Django model field instance (e.g., ForeignKey, CharField)
     - For example, if you're already restricting the returned objects by overriding `get_queryset()`, then you want the filter options for foreign key fields to also be subject to this restriction.

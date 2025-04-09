@@ -30,10 +30,25 @@ from django import forms
 from django_filters import (
     FilterSet, CharFilter, DateFilter, NumberFilter, 
     BooleanFilter, ModelChoiceFilter, TimeFilter,
-    )
+    ModelMultipleChoiceFilter,
+)
 from django_filters.filterset import filterset_factory
 from neapolitan.views import Role
 from .validators import NominopolitanMixinValidator
+from django.db.models import Q
+from functools import reduce
+import operator
+
+class AllValuesModelMultipleChoiceFilter(ModelMultipleChoiceFilter):
+    """Custom filter that requires ALL selected values to match (AND logic)"""
+    def filter(self, qs, value):
+        if not value:
+            return qs
+        
+        # For each value, filter for items that have that value in the M2M field
+        for val in value:
+            qs = qs.filter(**{f"{self.field_name}": val})
+        return qs
 
 class HTMXFilterSetMixin:
     """
@@ -139,6 +154,9 @@ class NominopolitanMixin:
     table_classes: str = ''
     action_button_classes: str = ''
     extra_button_classes: str = ''
+
+    # Add this class attribute to control M2M filter logic
+    m2m_filter_and_logic = False  # False for OR logic (default), True for AND logic
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -424,14 +442,28 @@ class NominopolitanMixin:
         
         Args:
             field_name (str): Name of the field being filtered 
-                                (makes it easier to override)
-            model_field: The actual Django model field instance 
-                                (e.g., ForeignKey, CharField)
+            model_field: The actual Django model field instance
             
         Returns:
             QuerySet: The queryset to use for the filter choices
         """
-        return model_field.related_model.objects.all()
+        # Get base queryset
+        queryset = model_field.related_model.objects.all()
+        
+        # Convert queryset to list and sort by string representation
+        sorted_objects = sorted(list(queryset), key=lambda x: str(x).lower())
+        
+        # Get ordered PKs
+        pk_list = [obj.pk for obj in sorted_objects]
+        
+        # Return ordered queryset using Case/When to preserve the exact ordering
+        from django.db.models import Case, When, Value, IntegerField
+        preserved_order = Case(
+            *[When(pk=pk, then=Value(i)) for i, pk in enumerate(pk_list)],
+            output_field=IntegerField(),
+        )
+        
+        return queryset.filter(pk__in=pk_list).order_by(preserved_order)
 
     def get_filterset(self, queryset=None):
         """
@@ -471,7 +503,21 @@ class NominopolitanMixin:
                     field_to_check = model_field.output_field if isinstance(model_field, models.GeneratedField) else model_field
 
                     # Create appropriate filter based on field type
-                    if isinstance(field_to_check, (models.CharField, models.TextField)):
+                    if isinstance(field_to_check, models.ManyToManyField):
+                        # Add max-height and other useful styles to the select widget
+                        field_attrs.update({
+                            'style': 'max-height: 200px; overflow-y: auto;',
+                            'class': field_attrs.get('class', '') + ' select2',  # Add select2 class if you want to use Select2
+                        })
+                        
+                        # Choose between OR logic (ModelMultipleChoiceFilter) or AND logic (AllValuesModelMultipleChoiceFilter)
+                        filter_class = AllValuesModelMultipleChoiceFilter if self.m2m_filter_and_logic else ModelMultipleChoiceFilter
+                        
+                        locals()[field_name] = filter_class(
+                            queryset=self.get_filter_queryset_for_field(field_name, model_field),
+                            widget=forms.SelectMultiple(attrs=field_attrs)
+                        )
+                    elif isinstance(field_to_check, (models.CharField, models.TextField)):
                         locals()[field_name] = CharFilter(lookup_expr='icontains', widget=forms.TextInput(attrs=field_attrs))
                     elif isinstance(field_to_check, models.DateField):
                         field_attrs['type'] = 'date'

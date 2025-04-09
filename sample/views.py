@@ -15,7 +15,7 @@ class BookCRUDView(NominopolitanMixin, CRUDView):
     model = models.Book
     namespace = "sample"
     base_template_path = "django_nominopolitan/base.html"
-    use_htmx = False
+    use_htmx = True
     use_modal = True
     # use_crispy = False
 
@@ -32,10 +32,11 @@ class BookCRUDView(NominopolitanMixin, CRUDView):
     detail_fields = '__all__'
     detail_properties = '__all__'
 
-    form_fields = ['title', 'author', 'published_date', 'isbn',]
+    form_fields = ['title', 'author', 'genres', 'published_date', 'isbn',]
     create_form_class = forms.BookForm
 
-    filterset_fields = ['author', 'title', 'published_date','isbn', 'isbn_empty','pages', 'description', 'uneditable_field']
+    filterset_fields = ['author', 'title', 'published_date','isbn', 'isbn_empty','pages', 'description', 'genres']
+    m2m_filter_and_logic = True  # Use AND logic for M2M filters
     # filterset_fields = ['author', 'title', 'published_date',]
     # filterset_class = filters.BookFilterSet
 
@@ -86,6 +87,19 @@ class BookCRUDView(NominopolitanMixin, CRUDView):
             "extra_class_attrs": "bg-warning",
         },
     ]
+
+class GenreCRUDView(NominopolitanMixin, CRUDView):
+    model = models.Genre
+    namespace = "sample"
+    base_template_path = "django_nominopolitan/base.html"
+    use_htmx = True
+    use_modal = True
+
+    table_classes = 'table-zebra table-sm'
+    action_button_classes = 'btn-xs'
+    extra_button_classes = 'btn-sm'
+
+    fields = ['name',]
 
 class AuthorCRUDView(NominopolitanMixin, CRUDView):
     model = models.Author

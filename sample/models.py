@@ -22,9 +22,18 @@ class Author(models.Model):
         return self.name
 
 
+class Genre(models.Model):
+    name = models.CharField(max_length=100)
+    description = models.TextField(blank=True)
+
+    def __str__(self):
+        return self.name
+
+
 class Book(models.Model):
     title = models.CharField(max_length=200)
     author = models.ForeignKey(Author, on_delete=models.CASCADE, related_name="books")
+    genres = models.ManyToManyField(Genre, related_name="books")
     published_date = models.DateField()
     isbn = models.CharField(max_length=13, unique=True)
     isbn_empty = models.GeneratedField(

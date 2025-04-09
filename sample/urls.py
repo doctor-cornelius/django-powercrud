@@ -10,3 +10,4 @@ urlpatterns = []
 
 urlpatterns = views.BookCRUDView.get_urls()
 urlpatterns += views.AuthorCRUDView.get_urls()
+urlpatterns += views.GenreCRUDView.get_urls()
