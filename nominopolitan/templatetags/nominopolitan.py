@@ -21,7 +21,7 @@ from django import template
 from django.utils.safestring import mark_safe
 from django.core.exceptions import FieldDoesNotExist
 from django.conf import settings
-
+from django.db import models 
 
 import logging
 log = logging.getLogger("nominopolitan")
