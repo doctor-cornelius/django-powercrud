@@ -1,3 +1,9 @@
+## 0.1.41 (2025-04-14)
+
+### Fix
+
+- **(nominopolitan.py)**:  add in missing models import from django.db
+
 ## 0.1.40 (2025-04-09)
 
 ### Feature
