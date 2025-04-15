@@ -1,3 +1,9 @@
+## 0.1.42 (2025-04-15)
+
+### Fix
+
+- **(object_list)**:  guartd against non-existent filter in initializeFilterToggle
+
 ## 0.1.41 (2025-04-14)
 
 ### Fix
