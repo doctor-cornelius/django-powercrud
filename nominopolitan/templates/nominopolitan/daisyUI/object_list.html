@@ -189,6 +189,9 @@
         const filterCollapse = document.getElementById('filterCollapse');
         const filterBtn = document.getElementById('filterToggleBtn');
 
+        // Only proceed if elements exist
+        if (!filterCollapse || !filterBtn) return;
+
         filterCollapse.addEventListener('show.bs.collapse', function () {
             filterBtn.querySelector('span').textContent = 'Hide Filters';
         });
