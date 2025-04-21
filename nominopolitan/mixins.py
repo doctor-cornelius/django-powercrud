@@ -436,27 +436,59 @@ class NominopolitanMixin:
         }
 
     def get_filter_queryset_for_field(self, field_name, model_field):
-        """Get the queryset to use for a ModelChoiceFilter.
+        """Get an efficiently filtered and sorted queryset for filter options."""
         
-        Override this method to customize filter querysets for foreign keys.
+        # Start with an empty queryset
+        queryset = model_field.related_model.objects
         
-        Args:
-            field_name (str): Name of the field being filtered 
-            model_field: The actual Django model field instance
-            
-        Returns:
-            QuerySet: The queryset to use for the filter choices
-        """
-        # Get base queryset
-        queryset = model_field.related_model.objects.all()
+        # Define model_fields early to ensure it exists in all code paths
+        model_fields = [f.name for f in model_field.related_model._meta.fields]
         
-        # Convert queryset to list and sort by string representation
+        # Apply custom filters if defined
+        filter_options = getattr(self, 'filter_queryset_options', {})
+        if field_name in filter_options:
+            filters = filter_options[field_name]
+            if callable(filters):
+                try:
+                    # Add error handling for the callable
+                    from datetime import datetime  # Ensure datetime is available
+                    result = filters(self.request, field_name, model_field)
+                    if isinstance(result, models.QuerySet):
+                        queryset = result
+                    else:
+                        queryset = queryset.filter(**result)
+                except Exception as e:
+                    import logging
+                    logging.error(f"Error in filter callable for {field_name}: {str(e)}")
+            elif isinstance(filters, dict):
+                # Apply filter dict directly
+                queryset = queryset.filter(**filters)
+            elif isinstance(filters, (int, str)):
+                # Handle simple ID/PK filtering
+                queryset = queryset.filter(pk=filters)
+        else:
+            # No filters specified, get all records
+            queryset = queryset.all()
+        
+        # Check if we should sort by a specific field
+        sort_options = getattr(self, 'filter_sort_options', {})
+        if field_name in sort_options:
+            sort_field = sort_options[field_name]
+            return queryset.order_by(sort_field)
+        
+        # If no specified sort field but model has common name fields, use that
+        for field in ['name', 'title', 'label', 'display_name']:
+            if field in model_fields:
+                return queryset.order_by(field)
+        
+        # Only if really necessary, fall back to string representation sorting
         sorted_objects = sorted(list(queryset), key=lambda x: str(x).lower())
-        
-        # Get ordered PKs
         pk_list = [obj.pk for obj in sorted_objects]
         
-        # Return ordered queryset using Case/When to preserve the exact ordering
+        if not pk_list:  # Empty list case
+            return queryset.none()
+            
+        # Return ordered queryset
         from django.db.models import Case, When, Value, IntegerField
         preserved_order = Case(
             *[When(pk=pk, then=Value(i)) for i, pk in enumerate(pk_list)],

@@ -35,10 +35,22 @@ class BookCRUDView(NominopolitanMixin, CRUDView):
     form_fields = ['title', 'author', 'genres', 'published_date', 'isbn',]
     create_form_class = forms.BookForm
 
-    filterset_fields = ['author', 'title', 'published_date','isbn', 'isbn_empty','pages', 'description', 'genres']
-    m2m_filter_and_logic = True  # Use AND logic for M2M filters
-    # filterset_fields = ['author', 'title', 'published_date',]
     # filterset_class = filters.BookFilterSet
+    filterset_fields = ['author', 'title', 'published_date','isbn', 'isbn_empty','pages', 'description', 'genres']
+    m2m_filter_and_logic = False  # Use AND logic for M2M filters
+
+    filter_queryset_options = {
+        'author': {
+            # 'name': 'Nancy Wilson',
+            # 'name__in': ['Nancy Wilson', 'Thomas Adams', ],
+            'name__icontains': 'Nancy',
+        },
+    }
+    
+    # Define how filter dropdown options should be sorted
+    filter_sort_options = {
+        'author': 'name',              # Sort authors by name field
+    }    
 
     table_pixel_height_other_page_elements = 100
     table_max_height = 80
@@ -50,7 +62,7 @@ class BookCRUDView(NominopolitanMixin, CRUDView):
     action_button_classes = 'btn-xs'
     extra_button_classes = 'btn-sm'
 
-    # paginate_by = 30
+    paginate_by = 30
 
     # Example of overrides of get_queryset and get_filter_queryset_for_field
     # def get_queryset(self):

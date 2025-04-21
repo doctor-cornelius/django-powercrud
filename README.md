@@ -27,9 +27,23 @@ It is a **very early alpha** release. No tests. Limited docs. Expect many breaki
 - Support exclusions via `exclude`, `exclude_properties`, `detail_exclude`, `detail_exclude_properties`
 
 **Filtersets**
-- `object_list.html` styled for bootstrap to show filters.
-- if `filterset_fields` is specified, style with crispy_forms if present and set htmx attributes if applicable
-- if `filterset_class` is provided, then option to subclass `HTMXFilterSetMixin` and use `self.setup_htmx_attrs()` in `__init__()`
+- `object_list.html` styled to show filters.
+- if `filterset_class` is provided, then option to subclass `HTMXFilterSetMixin` and use `self.setup_htmx_attrs()` in `__init__()- if `filterset_fields` is specified, style with crispy_forms if present and set htmx attributes if applicable. Optionally, can also set:
+  -  `filter_queryset_options` to control which options appear in filter dropdowns. For example:
+
+    ```python
+    filter_queryset_options = {
+        # Only show specific author in dropdown
+        'author': {'name': 'Nancy Wilson'},
+        
+        # Only show genres containing "fiction"
+        'genres': {'name__icontains': 'fiction'},
+    }
+    ```
+
+  - `filter_sort_options` to control how filter options are sorted
+      - takes a field name with optional `-` prefix for descending order
+`
 - **M2M filters**
     - `m2m_filter_and_logic = True` to use AND logic for M2M filters (default is OR logic)
 - **Overrides**
