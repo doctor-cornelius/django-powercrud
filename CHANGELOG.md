@@ -1,3 +1,18 @@
+## 0.2.3 (2025-04-21)
+
+### Refactor
+
+- **(object_list)**:  remove unnecessary js given recent fix in backend
+
+### Feature
+
+- **(NominopolitanMixin)**:  amend get_queryset and add override paginate_queryset to allow filters and pagination to coexist
+
+### Style
+
+- **(object_list)**:  refactor javascript to remove redundant functions
+- **(object_list)**:  add js to reset pagination when filter changes
+
 ## 0.2.2 (2025-04-21)
 
 ### Style
