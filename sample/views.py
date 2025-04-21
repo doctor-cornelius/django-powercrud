@@ -22,6 +22,7 @@ class BookCRUDView(NominopolitanMixin, CRUDView):
     # standard neapolitan setting; this demonstrates how to override the default url_base (ie model name)
     # useful if you want multiple CRUDViews for the same model
     url_base = "bigbook" 
+    paginate_by = 5
 
     # use_crispy = False
 
@@ -61,8 +62,6 @@ class BookCRUDView(NominopolitanMixin, CRUDView):
     # action_button_classes = 'btn-sm min-h-0 h-6 leading-6'
     action_button_classes = 'btn-xs'
     extra_button_classes = 'btn-sm'
-
-    paginate_by = 30
 
     # Example of overrides of get_queryset and get_filter_queryset_for_field
     # def get_queryset(self):

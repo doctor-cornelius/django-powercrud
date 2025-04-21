@@ -116,8 +116,9 @@
     
         {% if filterset %}
         <div class="hidden py-2" id="filterCollapse">
-            <form id="filter-form" method="get" class="flex flex-wrap gap-2" hx-target="#filtered_results"
-                hx-headers='{"X-Filter-Sort-Request": "true"}'>
+            <form id="filter-form" method="get" class="flex flex-wrap gap-2" hx-target="#filtered_results" hx-push-url="true"
+                hx-replace-url="true" hx-headers='{"X-Filter-Sort-Request": "true"}'
+                onsubmit="return prepareFilterSubmit(this, event)">
                 {% for field in filterset.form %}
                 <div class="form-control w-full max-w-[14rem]">
                     <label class="label py-0">
@@ -125,8 +126,8 @@
                     </label>
 
                     {% if field.field.widget.allow_multiple_selected %}
-                    <!-- Special case for multi-select (allow_multiple_selected is True for SelectMultiple) -->
-                    <div class="mb-4"> <!-- Use margin-bottom instead of fixed height -->
+                    <!-- Special case for multi-select -->
+                    <div class="mb-4">
                         {{ field }}
                     </div>
                     {% else %}
@@ -274,6 +275,167 @@
         initializeTooltips();
         initializeFilterToggle();
     });
+
+        // Ensure page parameter is reset when filters change
+        document.addEventListener('DOMContentLoaded', function () {
+            const filterForm = document.getElementById('filter-form');
+            if (filterForm) {
+                // Add event listeners to all form inputs and selects
+                filterForm.querySelectorAll('input, select').forEach(element => {
+                    element.addEventListener('change', function () {
+                        // Remove page parameter from all hx-get attributes in the form
+                        const currentUrl = new URL(window.location.href);
+                        currentUrl.searchParams.delete('page');
+
+                        // If this element has its own hx-get, update it
+                        if (element.hasAttribute('hx-get')) {
+                            const baseUrl = window.location.pathname;
+                            element.setAttribute('hx-get', baseUrl + currentUrl.search);
+                        }
+                    });
+
+                    // For text inputs, also listen for keyup events with delay
+                    if (element.tagName.toLowerCase() === 'input' &&
+                        (element.type === 'text' || element.type === 'search')) {
+                        element.addEventListener('keyup', function () {
+                            // Remove page parameter from URL
+                            const currentUrl = new URL(window.location.href);
+                            currentUrl.searchParams.delete('page');
+                        });
+                    }
+                });
+
+                // Also handle form's hx-get attribute if it has one
+                if (filterForm.hasAttribute('hx-get')) {
+                    const observer = new MutationObserver(function (mutations) {
+                        mutations.forEach(function (mutation) {
+                            if (mutation.type === 'attributes' && mutation.attributeName === 'hx-get') {
+                                const currentUrl = new URL(filterForm.getAttribute('hx-get'), window.location.origin);
+                                currentUrl.searchParams.delete('page');
+                                filterForm.setAttribute('hx-get', currentUrl.pathname + currentUrl.search);
+                            }
+                        });
+                    });
+
+                    observer.observe(filterForm, { attributes: true });
+                }
+            }
+        });
+
+        // Re-attach listeners after HTMX content swaps
+        document.body.addEventListener('htmx:afterSwap', function () {
+            const filterForm = document.getElementById('filter-form');
+            if (filterForm) {
+                const event = new Event('DOMContentLoaded');
+                document.dispatchEvent(event);
+            }
+        });
+
+    // Add this function to your script section
+    function prepareFilterSubmit(form, event) {
+        // Remove default form submission behavior
+        event.preventDefault();
+
+        // Get base URL without query parameters
+        const baseUrl = window.location.pathname;
+
+        // Create a new FormData object from the form
+        const formData = new FormData(form);
+        const params = new URLSearchParams();
+
+        // Add non-empty form values to params
+        for (let [key, value] of formData.entries()) {
+            if (value.trim() !== '') {
+                params.append(key, value);
+            }
+        }
+
+        // Create the target URL without the page parameter
+        const targetUrl = baseUrl + (params.toString() ? '?' + params.toString() : '');
+
+        // Manually trigger the HTMX request
+        htmx.ajax('GET', targetUrl, {
+            target: '#filtered_results',
+            swap: 'innerHTML',
+            headers: {
+                'X-Filter-Sort-Request': 'true'
+            },
+            values: {
+                // Include all form values here to ensure they're sent
+            }
+        });
+
+        // Update the URL in the address bar
+        if (history.pushState) {
+            history.pushState(null, '', targetUrl);
+        }
+
+        return false; // Prevent the form from submitting normally
+    }
+
+    // Also modify the resetFilterForm function
+    function resetFilterForm() {
+        const form = document.getElementById('filter-form');
+        form.querySelectorAll('input, select').forEach(field => {
+            if (field.type === 'select-one') {
+                field.selectedIndex = 0;
+            } else if (field.type === 'select-multiple') {
+                // For multi-select fields, deselect all options
+                for (let i = 0; i < field.options.length; i++) {
+                    field.options[i].selected = false;
+                }
+            } else {
+                field.value = '';
+            }
+        });
+
+        // Manually trigger the reset request
+        const baseUrl = window.location.pathname;
+
+        htmx.ajax('GET', baseUrl, {
+            target: '#filtered_results',
+            swap: 'innerHTML',
+            headers: {
+                'X-Filter-Sort-Request': 'true'
+            }
+        });
+
+        // Update URL in browser
+        if (history.pushState) {
+            history.pushState(null, '', baseUrl);
+        }
+
+        return false;
+    }
+
+    // Add these event listeners for the filter fields
+    document.addEventListener('DOMContentLoaded', function () {
+        const filterForm = document.getElementById('filter-form');
+        if (filterForm) {
+            // Add change event handlers to automatically submit
+            filterForm.querySelectorAll('input, select').forEach(element => {
+                if (element.tagName.toLowerCase() === 'select' ||
+                    element.type === 'checkbox' ||
+                    element.type === 'radio' ||
+                    element.type === 'date') {
+                    // These elements should trigger on change
+                    element.addEventListener('change', function () {
+                        prepareFilterSubmit(filterForm, { preventDefault: () => { } });
+                    });
+                } else if (element.type === 'text' || element.type === 'search') {
+                    // For text inputs, use keyup with delay
+                    let timer;
+                    element.addEventListener('keyup', function () {
+                        clearTimeout(timer);
+                        timer = setTimeout(function () {
+                            prepareFilterSubmit(filterForm, { preventDefault: () => { } });
+                        }, 500); // 500ms delay
+                    });
+                }
+            });
+        }
+    });
+
 </script>
 
 {% endpartialdef nm_content %}
