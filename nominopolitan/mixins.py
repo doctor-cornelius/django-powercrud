@@ -297,8 +297,6 @@ class NominopolitanMixin:
                 f for f in self.form_fields 
                 if f not in self.form_fields_exclude
             ]
-        
-        
             
     def list(self, request, *args, **kwargs):
         """
@@ -532,6 +530,13 @@ class NominopolitanMixin:
         filterset_class = getattr(self, "filterset_class", None)
         filterset_fields = getattr(self, "filterset_fields", None)
 
+        if filterset_class is not None or filterset_fields is not None:
+            # Check if any filter params (besides page/sort) are present
+            filter_keys = [k for k in self.request.GET.keys() if k != 'page' and k != 'sort']
+            if filter_keys and 'page' in self.request.GET:
+                # Remember we need to reset pagination
+                setattr(self, '_reset_pagination', True)
+
         if filterset_class is None and filterset_fields is not None:
             use_htmx = self.get_use_htmx()
             use_crispy = self.get_use_crispy()
@@ -635,7 +640,34 @@ class NominopolitanMixin:
             queryset=queryset,
             request=self.request,
         )
-    
+
+    def paginate_queryset(self, queryset, page_size):
+        """
+        Override paginate_queryset to reset to page 1 when filters are applied.
+        """
+        # If filters were applied, modify the GET request temporarily to force page 1
+        original_GET = None
+        if hasattr(self, '_reset_pagination') and self._reset_pagination:
+            # Store original GET
+            original_GET = self.request.GET
+            # Create a copy we can modify
+            modified_GET = self.request.GET.copy()
+            # Set page to 1
+            modified_GET['page'] = '1'
+            # Replace with our modified version temporarily
+            self.request.GET = modified_GET
+            # Clean up flag
+            delattr(self, '_reset_pagination')
+        
+        # Call parent implementation
+        try:
+            return super().paginate_queryset(queryset, page_size)
+        finally:
+            # Restore original GET if we modified it
+            if original_GET is not None:
+                self.request.GET = original_GET
+
+
     def _get_all_fields(self):
         fields = [field.name for field in self.model._meta.get_fields()]
             
