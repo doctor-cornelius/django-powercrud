@@ -148,216 +148,132 @@
         </div>
     </div>
 
-<!-- Modal -->
-<dialog id="nominopolitanBaseModal" class="modal">
-    <div class="modal-box">
-        <!-- Header with primary background -->
-        <!-- <div class="bg-primary text-primary-content p-4 -m-6 mb-6 rounded-t-lg">
-            <h3 class="font-bold text-lg">{{ header_title }}</h3>
-            <form method="dialog">
-                <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
-            </form>
-        </div> -->
-        
-        <!-- Body -->
-        <div class="py-4">
-            <div id="nominopolitanModalContent"></div>
+    <!-- Modal -->
+    <dialog id="nominopolitanBaseModal" class="modal">
+        <div class="modal-box">
+            <!-- Header with primary background -->
+            <!-- <div class="bg-primary text-primary-content p-4 -m-6 mb-6 rounded-t-lg">
+                <h3 class="font-bold text-lg">{{ header_title }}</h3>
+                <form method="dialog">
+                    <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
+                </form>
+            </div> -->
+            
+            <!-- Body -->
+            <div class="py-4">
+                <div id="nominopolitanModalContent"></div>
+            </div>
+            
+            <!-- Footer -->
+            <!-- <div class="flex justify-end gap-2">
+                <form method="dialog">
+                    <button class="btn btn-warning" onclick="baseModal.close()">Close</button>
+                    
+                </form>
+            </div> -->
         </div>
-        
-        <!-- Footer -->
-        <!-- <div class="flex justify-end gap-2">
-            <form method="dialog">
-                <button class="btn btn-warning" onclick="baseModal.close()">Close</button>
-                
-            </form>
-        </div> -->
-    </div>
-    <form method="dialog" class="modal-backdrop">
-        <button>close</button>
-    </form>
-</dialog>
+        <form method="dialog" class="modal-backdrop">
+            <button>close</button>
+        </form>
+    </dialog>
 
-<script>
-    // Handles modal form submissions - automatically closes the modal when a form inside it is submitted
-    document.addEventListener('submit', function (event) {
-        if (event.target.closest('#nominopolitanBaseModal')) {
-            const modalElement = document.getElementById('nominopolitanBaseModal');
-            modalElement.close();
-        }
-    });
-
-    // Initializes tooltips only for text that overflows its container
-    function initializeTooltips() {
-        const tooltipTriggerList = document.querySelectorAll('[data-tippy-content]');
-        const measureSpan = document.createElement('span');
-        measureSpan.style.visibility = 'hidden';
-        measureSpan.style.position = 'absolute';
-        measureSpan.style.whiteSpace = 'nowrap';
-        document.body.appendChild(measureSpan);
-
-        [...tooltipTriggerList].forEach(tooltipTriggerEl => {
-            const text = tooltipTriggerEl.textContent.trim();
-            const computedStyle = window.getComputedStyle(tooltipTriggerEl);
-            measureSpan.style.fontSize = computedStyle.fontSize;
-            measureSpan.style.fontFamily = computedStyle.fontFamily;
-            measureSpan.textContent = text;
-
-            const textWidth = measureSpan.offsetWidth;
-            const maxWidth = parseFloat(computedStyle.maxWidth);
-            const paddingLeft = parseFloat(computedStyle.paddingLeft);
-            const paddingRight = parseFloat(computedStyle.paddingRight);
-            const availableWidth = maxWidth - paddingLeft - paddingRight;
-
-            if (textWidth > availableWidth) {
-                tippy(tooltipTriggerEl, {
-                    theme: 'dark',
-                    placement: 'top'
-                });
+    <script>
+        // Handles modal form submissions - automatically closes the modal when a form inside it is submitted
+        document.addEventListener('submit', function (event) {
+            if (event.target.closest('#nominopolitanBaseModal')) {
+                const modalElement = document.getElementById('nominopolitanBaseModal');
+                modalElement.close();
             }
         });
 
-        document.body.removeChild(measureSpan);
-    }
+        // Initializes tooltips only for text that overflows its container
+        function initializeTooltips() {
+            const tooltipTriggerList = document.querySelectorAll('[data-tippy-content]');
+            const measureSpan = document.createElement('span');
+            measureSpan.style.visibility = 'hidden';
+            measureSpan.style.position = 'absolute';
+            measureSpan.style.whiteSpace = 'nowrap';
+            document.body.appendChild(measureSpan);
 
-    // Function to directly handle filter form submission
-    function prepareFilterSubmit(form, event) {
-        // Remove default form submission behavior
-        if (event && event.preventDefault) {
-            event.preventDefault();
-        }
+            [...tooltipTriggerList].forEach(tooltipTriggerEl => {
+                const text = tooltipTriggerEl.textContent.trim();
+                const computedStyle = window.getComputedStyle(tooltipTriggerEl);
+                measureSpan.style.fontSize = computedStyle.fontSize;
+                measureSpan.style.fontFamily = computedStyle.fontFamily;
+                measureSpan.textContent = text;
 
-        // Get base URL without query parameters
-        const baseUrl = window.location.pathname;
+                const textWidth = measureSpan.offsetWidth;
+                const maxWidth = parseFloat(computedStyle.maxWidth);
+                const paddingLeft = parseFloat(computedStyle.paddingLeft);
+                const paddingRight = parseFloat(computedStyle.paddingRight);
+                const availableWidth = maxWidth - paddingLeft - paddingRight;
 
-        // Create a new FormData object from the form
-        const formData = new FormData(form);
-        const params = new URLSearchParams();
-
-        // Add non-empty form values to params
-        for (let [key, value] of formData.entries()) {
-            if (value.trim() !== '') {
-                params.append(key, value);
-            }
-        }
-
-        // Create the target URL without the page parameter
-        const targetUrl = baseUrl + (params.toString() ? '?' + params.toString() : '');
-
-        // Manually trigger the HTMX request
-        htmx.ajax('GET', targetUrl, {
-            target: '#filtered_results',
-            swap: 'innerHTML',
-            headers: {
-                'X-Filter-Sort-Request': 'true'
-            }
-        });
-
-        // Update the URL in the address bar
-        if (history.pushState) {
-            history.pushState(null, '', targetUrl);
-        }
-
-        return false; // Prevent the form from submitting normally
-    }
-
-    // Resets all filter form fields and submits
-    function resetFilterForm() {
-        const form = document.getElementById('filter-form');
-        form.querySelectorAll('input, select').forEach(field => {
-            if (field.type === 'select-one') {
-                field.selectedIndex = 0;
-            } else if (field.type === 'select-multiple') {
-                // For multi-select fields, deselect all options
-                for (let i = 0; i < field.options.length; i++) {
-                    field.options[i].selected = false;
-                }
-            } else {
-                field.value = '';
-            }
-        });
-
-        // Manually trigger the reset request
-        const baseUrl = window.location.pathname;
-
-        htmx.ajax('GET', baseUrl, {
-            target: '#filtered_results',
-            swap: 'innerHTML',
-            headers: {
-                'X-Filter-Sort-Request': 'true'
-            }
-        });
-
-        // Update URL in browser
-        if (history.pushState) {
-            history.pushState(null, '', baseUrl);
-        }
-
-        return false;
-    }
-
-    // Sets up event listeners for filter section collapse/expand button text
-    function initializeFilterToggle() {
-        const filterCollapse = document.getElementById('filterCollapse');
-        const filterBtn = document.getElementById('filterToggleBtn');
-
-        // Only proceed if elements exist
-        if (!filterCollapse || !filterBtn) return;
-
-        filterCollapse.addEventListener('show.bs.collapse', function () {
-            filterBtn.querySelector('span').textContent = 'Hide Filters';
-        });
-
-        filterCollapse.addEventListener('hide.bs.collapse', function () {
-            filterBtn.querySelector('span').textContent = 'Show Filters';
-        });
-    }
-
-    // Initialize everything on page load
-    document.addEventListener('DOMContentLoaded', () => {
-        initializeTooltips();
-        initializeFilterToggle();
-
-        // Set up auto-submit for filter form fields
-        const filterForm = document.getElementById('filter-form');
-        if (filterForm) {
-            // Add change event handlers to automatically submit
-            filterForm.querySelectorAll('input, select').forEach(element => {
-                if (element.tagName.toLowerCase() === 'select' ||
-                    element.type === 'checkbox' ||
-                    element.type === 'radio' ||
-                    element.type === 'date') {
-                    // These elements should trigger on change
-                    element.addEventListener('change', function () {
-                        prepareFilterSubmit(filterForm, { preventDefault: () => { } });
-                    });
-                } else if (element.type === 'text' || element.type === 'search') {
-                    // For text inputs, use keyup with delay
-                    let timer;
-                    element.addEventListener('keyup', function () {
-                        clearTimeout(timer);
-                        timer = setTimeout(function () {
-                            prepareFilterSubmit(filterForm, { preventDefault: () => { } });
-                        }, 500); // 500ms delay
+                if (textWidth > availableWidth) {
+                    tippy(tooltipTriggerEl, {
+                        theme: 'dark',
+                        placement: 'top'
                     });
                 }
             });
+
+            document.body.removeChild(measureSpan);
         }
 
-        // Restore filter section expanded state if previously saved
-        if (localStorage.getItem('filterExpanded') === 'true') {
+        // Resets all filter form fields to their default values
+        function resetFilterForm() {
+            const form = document.getElementById('filter-form');
+            form.querySelectorAll('input, select').forEach(field => {
+                if (field.type === 'select-one') {
+                    field.selectedIndex = 0;
+                } else if (field.type === 'select-multiple') {
+                    // For multi-select fields, deselect all options
+                    for (let i = 0; i < field.options.length; i++) {
+                        field.options[i].selected = false;
+                    }
+                } else {
+                    field.value = '';
+                }
+            });
+            // Let the link handle the navigation
+            return true;
+        }
+
+        // Sets up event listeners for filter section collapse/expand button text
+        function initializeFilterToggle() {
             const filterCollapse = document.getElementById('filterCollapse');
-            new bootstrap.Collapse(filterCollapse, { show: true });
-            localStorage.removeItem('filterExpanded');
+            const filterBtn = document.getElementById('filterToggleBtn');
+
+            // Only proceed if elements exist
+            if (!filterCollapse || !filterBtn) return;
+
+            filterCollapse.addEventListener('show.bs.collapse', function () {
+                filterBtn.querySelector('span').textContent = 'Hide Filters';
+            });
+
+            filterCollapse.addEventListener('hide.bs.collapse', function () {
+                filterBtn.querySelector('span').textContent = 'Show Filters';
+            });
         }
-    });
 
-    // Re-initialize tooltips and filter toggle after HTMX content updates
-    document.body.addEventListener('htmx:afterSwap', () => {
-        initializeTooltips();
-        initializeFilterToggle();
-    });
-</script>
+        // Initialize everything on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeTooltips();
+            initializeFilterToggle();
 
+            // Restore filter section expanded state if previously saved
+            if (localStorage.getItem('filterExpanded') === 'true') {
+                const filterCollapse = document.getElementById('filterCollapse');
+                new bootstrap.Collapse(filterCollapse, { show: true });
+                localStorage.removeItem('filterExpanded');
+            }
+        });
+
+        // Re-initialize tooltips and filter toggle after HTMX content updates
+        document.body.addEventListener('htmx:afterSwap', () => {
+            initializeTooltips();
+            initializeFilterToggle();
+        });
+    </script>
 
 {% endpartialdef nm_content %}
 
