@@ -1,3 +1,13 @@
+## 0.2.0 (2025-04-21)
+
+### Fix
+
+- **(get_filter_queryset_for_field)**:  make method more robust with filter and sort options
+
+### Style
+
+- **(object_list)**:  completely restyle filterset elements in template and get_framework_styles
+
 ## 0.1.43 (2025-04-15)
 
 ## 0.1.42 (2025-04-15)
