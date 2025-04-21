@@ -1,3 +1,11 @@
+## 0.2.2 (2025-04-21)
+
+### Style
+
+- **(object_list)**:  adjust padding to separate filters from table
+
+## 0.2.1 (2025-04-21)
+
 ## 0.2.0 (2025-04-21)
 
 ### Fix
