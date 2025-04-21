@@ -115,7 +115,7 @@
         </div>
     
         {% if filterset %}
-        <div class="hidden" id="filterCollapse">
+        <div class="hidden py-2" id="filterCollapse">
             <form id="filter-form" method="get" class="flex flex-wrap gap-2" hx-target="#filtered_results"
                 hx-headers='{"X-Filter-Sort-Request": "true"}'>
                 {% for field in filterset.form %}
