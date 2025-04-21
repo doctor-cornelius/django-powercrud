@@ -189,7 +189,6 @@
     // Initializes tooltips only for text that overflows its container
     function initializeTooltips() {
         const tooltipTriggerList = document.querySelectorAll('[data-tippy-content]');
-
         const measureSpan = document.createElement('span');
         measureSpan.style.visibility = 'hidden';
         measureSpan.style.position = 'absolute';
@@ -199,7 +198,6 @@
         [...tooltipTriggerList].forEach(tooltipTriggerEl => {
             const text = tooltipTriggerEl.textContent.trim();
             const computedStyle = window.getComputedStyle(tooltipTriggerEl);
-
             measureSpan.style.fontSize = computedStyle.fontSize;
             measureSpan.style.fontFamily = computedStyle.fontFamily;
             measureSpan.textContent = text;
@@ -221,120 +219,12 @@
         document.body.removeChild(measureSpan);
     }
 
-    // Handles filter form submission while preserving filter section expanded state
-    function submitFilterForm() {
-        const filterCollapse = document.getElementById('filterCollapse');
-        localStorage.setItem('filterExpanded', filterCollapse.classList.contains('show'));
-        document.getElementById('filter-form').submit();
-    }
-
-    // Resets all filter form fields to their default values
-    function resetFilterForm() {
-        const form = document.getElementById('filter-form');
-        form.querySelectorAll('input, select').forEach(field => {
-            if (field.type === 'select-one') {
-                field.selectedIndex = 0;
-            } else {
-                field.value = '';
-            }
-        });
-        return true;
-    }
-
-    // Sets up event listeners for filter section collapse/expand button text
-    function initializeFilterToggle() {
-        const filterCollapse = document.getElementById('filterCollapse');
-        const filterBtn = document.getElementById('filterToggleBtn');
-
-        // Only proceed if elements exist
-        if (!filterCollapse || !filterBtn) return;
-
-        filterCollapse.addEventListener('show.bs.collapse', function () {
-            filterBtn.querySelector('span').textContent = 'Hide Filters';
-        });
-
-        filterCollapse.addEventListener('hide.bs.collapse', function () {
-            filterBtn.querySelector('span').textContent = 'Show Filters';
-        });
-    }
-
-    // Initialize everything on page load
-    document.addEventListener('DOMContentLoaded', () => {
-        initializeTooltips();
-        initializeFilterToggle();
-        // Restore filter section expanded state if previously saved
-        if (localStorage.getItem('filterExpanded') === 'true') {
-            const filterCollapse = document.getElementById('filterCollapse');
-            new bootstrap.Collapse(filterCollapse, { show: true });
-            localStorage.removeItem('filterExpanded');
-        }
-    });
-
-    // Re-initialize tooltips and filter toggle after HTMX content updates
-    document.body.addEventListener('htmx:afterSwap', () => {
-        initializeTooltips();
-        initializeFilterToggle();
-    });
-
-        // Ensure page parameter is reset when filters change
-        document.addEventListener('DOMContentLoaded', function () {
-            const filterForm = document.getElementById('filter-form');
-            if (filterForm) {
-                // Add event listeners to all form inputs and selects
-                filterForm.querySelectorAll('input, select').forEach(element => {
-                    element.addEventListener('change', function () {
-                        // Remove page parameter from all hx-get attributes in the form
-                        const currentUrl = new URL(window.location.href);
-                        currentUrl.searchParams.delete('page');
-
-                        // If this element has its own hx-get, update it
-                        if (element.hasAttribute('hx-get')) {
-                            const baseUrl = window.location.pathname;
-                            element.setAttribute('hx-get', baseUrl + currentUrl.search);
-                        }
-                    });
-
-                    // For text inputs, also listen for keyup events with delay
-                    if (element.tagName.toLowerCase() === 'input' &&
-                        (element.type === 'text' || element.type === 'search')) {
-                        element.addEventListener('keyup', function () {
-                            // Remove page parameter from URL
-                            const currentUrl = new URL(window.location.href);
-                            currentUrl.searchParams.delete('page');
-                        });
-                    }
-                });
-
-                // Also handle form's hx-get attribute if it has one
-                if (filterForm.hasAttribute('hx-get')) {
-                    const observer = new MutationObserver(function (mutations) {
-                        mutations.forEach(function (mutation) {
-                            if (mutation.type === 'attributes' && mutation.attributeName === 'hx-get') {
-                                const currentUrl = new URL(filterForm.getAttribute('hx-get'), window.location.origin);
-                                currentUrl.searchParams.delete('page');
-                                filterForm.setAttribute('hx-get', currentUrl.pathname + currentUrl.search);
-                            }
-                        });
-                    });
-
-                    observer.observe(filterForm, { attributes: true });
-                }
-            }
-        });
-
-        // Re-attach listeners after HTMX content swaps
-        document.body.addEventListener('htmx:afterSwap', function () {
-            const filterForm = document.getElementById('filter-form');
-            if (filterForm) {
-                const event = new Event('DOMContentLoaded');
-                document.dispatchEvent(event);
-            }
-        });
-
-    // Add this function to your script section
+    // Function to directly handle filter form submission
     function prepareFilterSubmit(form, event) {
         // Remove default form submission behavior
-        event.preventDefault();
+        if (event && event.preventDefault) {
+            event.preventDefault();
+        }
 
         // Get base URL without query parameters
         const baseUrl = window.location.pathname;
@@ -359,9 +249,6 @@
             swap: 'innerHTML',
             headers: {
                 'X-Filter-Sort-Request': 'true'
-            },
-            values: {
-                // Include all form values here to ensure they're sent
             }
         });
 
@@ -373,7 +260,7 @@
         return false; // Prevent the form from submitting normally
     }
 
-    // Also modify the resetFilterForm function
+    // Resets all filter form fields and submits
     function resetFilterForm() {
         const form = document.getElementById('filter-form');
         form.querySelectorAll('input, select').forEach(field => {
@@ -408,8 +295,29 @@
         return false;
     }
 
-    // Add these event listeners for the filter fields
-    document.addEventListener('DOMContentLoaded', function () {
+    // Sets up event listeners for filter section collapse/expand button text
+    function initializeFilterToggle() {
+        const filterCollapse = document.getElementById('filterCollapse');
+        const filterBtn = document.getElementById('filterToggleBtn');
+
+        // Only proceed if elements exist
+        if (!filterCollapse || !filterBtn) return;
+
+        filterCollapse.addEventListener('show.bs.collapse', function () {
+            filterBtn.querySelector('span').textContent = 'Hide Filters';
+        });
+
+        filterCollapse.addEventListener('hide.bs.collapse', function () {
+            filterBtn.querySelector('span').textContent = 'Show Filters';
+        });
+    }
+
+    // Initialize everything on page load
+    document.addEventListener('DOMContentLoaded', () => {
+        initializeTooltips();
+        initializeFilterToggle();
+
+        // Set up auto-submit for filter form fields
         const filterForm = document.getElementById('filter-form');
         if (filterForm) {
             // Add change event handlers to automatically submit
@@ -434,9 +342,22 @@
                 }
             });
         }
+
+        // Restore filter section expanded state if previously saved
+        if (localStorage.getItem('filterExpanded') === 'true') {
+            const filterCollapse = document.getElementById('filterCollapse');
+            new bootstrap.Collapse(filterCollapse, { show: true });
+            localStorage.removeItem('filterExpanded');
+        }
     });
 
+    // Re-initialize tooltips and filter toggle after HTMX content updates
+    document.body.addEventListener('htmx:afterSwap', () => {
+        initializeTooltips();
+        initializeFilterToggle();
+    });
 </script>
+
 
 {% endpartialdef nm_content %}
 
