@@ -402,7 +402,17 @@ class NominopolitanMixin:
                 'base': 'btn ',
                 # attributes for filter form fields
                 'filter_attrs': {
-                    'class': 'form-control-xs small py-1 ;'
+                    'text': {'class': 'form-control form-control-sm small py-1'},
+                    'select': {'class': 'form-select form-select-sm small py-1'},
+                    'multiselect': {
+                        'class': 'form-select form-select-sm small', 
+                        'size': '5',
+                        'style': 'min-height: 8rem; padding: 0.25rem;'
+                    },
+                    'date': {'class': 'form-control form-control-sm small py-1', 'type': 'date'},
+                    'number': {'class': 'form-control form-control-sm small py-1', 'step': 'any'},
+                    'time': {'class': 'form-control form-control-sm small py-1', 'type': 'time'},
+                    'default': {'class': 'form-control form-control-sm small py-1'},
                 },
                 # set colours for the action buttons
                 'actions': {
@@ -420,7 +430,17 @@ class NominopolitanMixin:
                 'base': 'btn ',
                 # attributes for filter form fields
                 'filter_attrs': {
-                    'class': 'input input-bordered input-sm w-full;'
+                    'text': {'class': 'input input-bordered input-sm w-full text-xs h-10 min-h-10'},
+                    'select': {'class': 'select select-bordered select-sm w-full text-xs h-10 min-h-10'},
+                    'multiselect': {
+                        'class': 'select select-bordered select-sm w-full text-xs', 
+                        'size': '5',
+                        'style': 'min-height: 8rem; max-height: 8rem; overflow-y: auto;'
+                    },
+                    'date': {'class': 'input input-bordered input-sm w-full text-xs h-10 min-h-10', 'type': 'date'},
+                    'number': {'class': 'input input-bordered input-sm w-full text-xs h-10 min-h-10', 'step': 'any'},
+                    'time': {'class': 'input input-bordered input-sm w-full text-xs h-10 min-h-10', 'type': 'time'},
+                    'default': {'class': 'input input-bordered input-sm w-full text-xs h-10 min-h-10'},
                 },
                 # set colours for the action buttons
                 'actions': {
@@ -519,20 +539,41 @@ class NominopolitanMixin:
             class DynamicFilterSet(HTMXFilterSetMixin, FilterSet):
                 """
                 Dynamically create a FilterSet class based on the model fields.
-
                 This class inherits from HTMXFilterSetMixin to add HTMX functionality
                 and FilterSet for Django filtering capabilities.
                 """
                 framework = getattr(settings, 'NOMINOPOLITAN_CSS_FRAMEWORK', 'bootstrap5')
                 BASE_ATTRS = self.get_framework_styles()[framework]['filter_attrs']
-
+                
                 # Dynamically create filter fields based on the model's fields
                 for field_name in filterset_fields:
                     model_field = self.model._meta.get_field(field_name)
-                    field_attrs = BASE_ATTRS.copy()
-
+                    
                     # Handle GeneratedField special case
                     field_to_check = model_field.output_field if isinstance(model_field, models.GeneratedField) else model_field
+                    # Check if BASE_ATTRS is structured by field type
+                    if isinstance(BASE_ATTRS, dict) and ('text' in BASE_ATTRS or 'select' in BASE_ATTRS):
+                        # Get appropriate attributes based on field type
+                        if isinstance(field_to_check, models.ManyToManyField):
+                            field_attrs = BASE_ATTRS.get('multiselect', BASE_ATTRS.get('select', BASE_ATTRS.get('default', {}))).copy()
+                        elif isinstance(field_to_check, models.ForeignKey):
+                            field_attrs = BASE_ATTRS.get('select', BASE_ATTRS.get('default', {})).copy()
+                        elif isinstance(field_to_check, (models.CharField, models.TextField)):
+                            field_attrs = BASE_ATTRS.get('text', BASE_ATTRS.get('default', {})).copy()
+                        elif isinstance(field_to_check, models.DateField):
+                            field_attrs = BASE_ATTRS.get('date', BASE_ATTRS.get('default', {})).copy()
+                        elif isinstance(field_to_check, (models.IntegerField, models.DecimalField, models.FloatField)):
+                            field_attrs = BASE_ATTRS.get('number', BASE_ATTRS.get('default', {})).copy()
+                        elif isinstance(field_to_check, models.TimeField):
+                            field_attrs = BASE_ATTRS.get('time', BASE_ATTRS.get('default', {})).copy()
+                        elif isinstance(field_to_check, models.BooleanField):
+                            field_attrs = BASE_ATTRS.get('select', BASE_ATTRS.get('default', {})).copy()
+                        else:
+                            field_attrs = BASE_ATTRS.get('default', {}).copy()
+                    else:
+                        # Legacy behavior - use the same attributes for all fields
+                        field_attrs = BASE_ATTRS.copy()
+
 
                     # Create appropriate filter based on field type
                     if isinstance(field_to_check, models.ManyToManyField):
@@ -552,10 +593,12 @@ class NominopolitanMixin:
                     elif isinstance(field_to_check, (models.CharField, models.TextField)):
                         locals()[field_name] = CharFilter(lookup_expr='icontains', widget=forms.TextInput(attrs=field_attrs))
                     elif isinstance(field_to_check, models.DateField):
-                        field_attrs['type'] = 'date'
+                        if 'type' not in field_attrs:
+                            field_attrs['type'] = 'date'
                         locals()[field_name] = DateFilter(widget=forms.DateInput(attrs=field_attrs))
                     elif isinstance(field_to_check, (models.IntegerField, models.DecimalField, models.FloatField)):
-                        field_attrs['step'] = 'any'
+                        if 'step' not in field_attrs:
+                            field_attrs['step'] = 'any'
                         locals()[field_name] = NumberFilter(widget=forms.NumberInput(attrs=field_attrs))
                     elif isinstance(field_to_check, models.BooleanField):
                         locals()[field_name] = BooleanFilter(widget=forms.Select(
@@ -566,7 +609,8 @@ class NominopolitanMixin:
                             widget=forms.Select(attrs=field_attrs)
                         )
                     elif isinstance(field_to_check, models.TimeField):
-                        field_attrs['type'] = 'time'
+                        if 'type' not in field_attrs:
+                            field_attrs['type'] = 'time'
                         locals()[field_name] = TimeFilter(widget=forms.TimeInput(attrs=field_attrs))
                     else:
                         locals()[field_name] = CharFilter(lookup_expr='icontains', widget=forms.TextInput(attrs=field_attrs))

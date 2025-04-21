@@ -22,7 +22,53 @@
             white-space: normal;
             max-width: {{ table_header_min_wrap_width }}; /* if header needs to wrap, then we set the max for it to wrap can be this */
         }
-    </style>
+        /* Super specific selectors to override existing styles */
+        #filter-form select.select,
+        #filter-form .select select {
+            height: 2rem !important;
+            min-height: 2rem !important;
+            font-size: 0.875rem !important;
+        }
+        
+        #filter-form input,
+        #filter-form select {
+        height: 2.2rem !important;  /* Increased from 2rem */
+        min-height: 2.2rem !important;
+        max-height: 2.2rem !important;
+        padding-top: 0.25rem !important;
+        padding-bottom: 0.25rem !important;
+        line-height: 1.2 !important;  /* Increased from 1 */
+        }
+        
+        /* Make all filter elements the same width */
+        #filter-form .form-control {
+            width: 14rem !important;
+            max-width: 14rem !important;
+        }
+
+        /* Make standard inputs/selects taller to prevent letter cutting */
+        #filter-form input:not([type="checkbox"]),
+        #filter-form select:not([multiple]) {
+        height: 2.5rem !important;
+        min-height: 2.5rem !important;
+        max-height: 2.5rem !important;
+        line-height: 1.2 !important;
+        }
+
+        /* Special styling for multi-select (M2M) fields */
+        #filter-form select[multiple] {
+        height: auto !important;
+        min-height: 8rem !important; /* Show approximately 5 rows */
+        padding: 0.25rem !important;
+        }
+
+        /* Style the options inside multi-selects */
+        #filter-form select[multiple] option {
+        padding: 0.25rem 0.5rem !important;
+        line-height: 1.5 !important;
+        }
+
+</style>
 
     <title id="header_title">{{header_title}}</title>
     <div class="flex flex-col">
@@ -70,21 +116,31 @@
     
         {% if filterset %}
         <div class="hidden" id="filterCollapse">
-            <form id="filter-form" method="get" class="flex flex-wrap gap-3" 
-                hx-target="#filtered_results"
+            <form id="filter-form" method="get" class="flex flex-wrap gap-2" hx-target="#filtered_results"
                 hx-headers='{"X-Filter-Sort-Request": "true"}'>
                 {% for field in filterset.form %}
-                <div class="form-control w-full max-w-xs">
-                    {% if use_crispy %}
-                    {{ field|as_crispy_field }}
+                <div class="form-control w-full max-w-[14rem]">
+                    <label class="label py-0">
+                        <span class="label-text text-xs font-semibold">{{ field.label }}</span>
+                    </label>
+
+                    {% if field.field.widget.allow_multiple_selected %}
+                    <!-- Special case for multi-select (allow_multiple_selected is True for SelectMultiple) -->
+                    <div class="mb-4"> <!-- Use margin-bottom instead of fixed height -->
+                        {{ field }}
+                    </div>
                     {% else %}
-                    {{ field.label_tag }} {{ field }}
+                    <!-- Normal case for regular inputs and selects -->
+                    <div class="h-[38px] flex items-center">
+                        {{ field }}
+                    </div>
                     {% endif %}
                 </div>
                 {% endfor %}
             </form>
         </div>
         {% endif %}
+
 
         <div id="filtered_results">
             {% partial filtered_results %}
