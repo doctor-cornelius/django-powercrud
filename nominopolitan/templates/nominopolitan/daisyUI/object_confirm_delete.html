@@ -9,8 +9,9 @@
 {% partialdef nm_content %}
     <div class="card bg-base-100 shadow-xl">
         <div class="card-body">
-            <p class="text-lg bg-error text-error-content">Are you sure you want to delete the following {{ object_verbose_name }}?</p>
-            <h2 class="card-title text-error">{{ object }}</h2>
+            <p class="text-lg bg-error text-error-content"
+                >Are you sure you want to delete the following {{ object_verbose_name }}?</p>
+            <h2 class="card-title justify-center my-2">{{ object }}</h2>
         
             <form method="POST" action="{{ delete_view_url }}"
                 {% if use_htmx and original_target %}
@@ -21,7 +22,7 @@
             >
                 {% csrf_token %}
                 {{ form }}
-                <div class="card-actions justify-end mt-4">
+                <div class="card-actions justify-end">
                     <button type="submit" class="btn btn-error">Delete</button>
                 </div>
             </form>
