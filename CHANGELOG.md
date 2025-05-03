@@ -1,3 +1,9 @@
+## 0.2.4 (2025-05-03)
+
+### Style
+
+- **(delete)**:  restyle the delete confirmation template
+
 ## 0.2.3 (2025-04-21)
 
 ### Refactor
