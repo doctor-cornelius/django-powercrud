@@ -1,3 +1,9 @@
+## 0.2.5 (2025-05-04)
+
+### Feature
+
+- **(object_detail)**:  support property.fget.short_description for column header if it exists
+
 ## 0.2.4 (2025-05-03)
 
 ### Style
