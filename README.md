@@ -21,6 +21,7 @@ It is a **very early alpha** release. No tests. Limited docs. Expect many breaki
 **Extended `fields` and `properties` attributes**
 - `fields=<'__all__' | [..]>` to specify which fields to include in list view
 - `properties=<'__all__' | [..]>` to specify which properties to include in list view
+    - If you hae a property `myprop` and you set `myprop.fget.short_description="Special Title"`, then that will be used as the column title if included in the table
 - `detail_fields` and `detail_properties` to specify which to include in detail view. If not set, then:
     - `detail_fields` defaults to the resolved setting for `fields`
     - `detail_properties` defaults to `None`

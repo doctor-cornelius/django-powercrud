@@ -59,6 +59,7 @@ class Book(models.Model):
     @property
     def a_really_long_property_header_for_title(self):
         return self.title
+    a_really_long_property_header_for_title.fget.short_description = "Really Long Title"
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

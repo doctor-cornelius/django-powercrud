@@ -171,7 +171,12 @@ def object_list(context, objects, view):
 
     # Add properties with proper display names (not sortable)
     for prop in properties:
-        display_name = prop.replace('_', ' ').title()
+        # Try to get short_description from property
+        prop_obj = getattr(view.model, prop, None)
+        if prop_obj and hasattr(prop_obj.fget, 'short_description') and prop_obj.fget.short_description:
+            display_name = prop_obj.fget.short_description
+        else:
+            display_name = prop.replace('_', ' ').title()
         headers.append((display_name, prop, False))  # Properties are not sortable
 
     TICK_SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="green" class="size-4 inline-block"><path fill-rule="evenodd" d="M8 15A7 7 0 1 0 8 1a7 7 0 0 0 0 14Zm3.844-8.791a.75.75 0 0 0-1.188-.918l-3.7 4.79-1.649-1.833a.75.75 0 1 0-1.114 1.004l2.25 2.5a.75.75 0 0 0 1.15-.043l4.25-5.5Z" clip-rule="evenodd" /></svg>'
