@@ -66,15 +66,16 @@ INSTALLED_APPS = [
     "crispy_forms",
     "crispy_bootstrap5",
     "crispy_tailwind",
+    "crispy_daisyui",
 ]
 
 # CRISPY_ALLOWED_TEMPLATE_PACKS = 'bootstrap5'
 # NOMINOPOLITAN_CSS_FRAMEWORK = 'bootstrap5'
 # CRISPY_TEMPLATE_PACK = 'bootstrap5'
 
-CRISPY_ALLOWED_TEMPLATE_PACKS = 'tailwind'
+CRISPY_ALLOWED_TEMPLATE_PACKS = 'daisyui'
 NOMINOPOLITAN_CSS_FRAMEWORK = 'daisyUI'
-CRISPY_TEMPLATE_PACK = 'tailwind'
+CRISPY_TEMPLATE_PACK = 'daisyui'
 
 NM_TAILWIND_SAFELIST_JSON_LOC = 'sample/templates/sample/'
 
