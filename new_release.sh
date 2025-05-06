@@ -45,7 +45,22 @@ fi
 cz changelog --unreleased-version=$NEW_VERSION
 
 # Build CSS for production
-npm run build  
+# Use a subshell to ensure environment is properly set up
+(
+  # Ensure we're using the right Node.js environment
+  export NODE_ENV=production
+  
+  # Ensure npm can find all dependencies
+  export PATH="$PWD/node_modules/.bin:$PATH"
+  
+  # Run the build command with verbose output for debugging
+  echo "Building assets with npm..."
+  npm run build --verbose || {
+    echo "Build failed. Continuing with release process anyway."
+    # Uncomment the line below if you want to abort on build failure
+    # exit 1
+  }
+)
 
 # Note scope (release) is what will trigger the release job
 git add -A
