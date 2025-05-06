@@ -1,3 +1,9 @@
+## 0.2.7 (2025-05-06)
+
+### Build
+
+- **(vite)**:  set env vars before running npm for new release
+
 ## 0.2.6 (2025-05-06)
 
 ### Refactor
