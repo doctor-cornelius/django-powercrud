@@ -1,31 +1,8 @@
-// =========================================
-// Font Imports
-// =========================================
-// IBM Plex Family
-import "@fontsource/ibm-plex-sans/300.css";
-import "@fontsource/ibm-plex-sans/400.css";
-import "@fontsource/ibm-plex-sans/500.css";
-import "@fontsource/ibm-plex-sans/700.css";
+import '@/css/main.css'
+import htmx from 'htmx.org'
+// import 'htmx.org/dist/ext/multi-swap.js'
 
-import "@fontsource/ibm-plex-serif/300.css";
-import "@fontsource/ibm-plex-serif/400.css";
-import "@fontsource/ibm-plex-serif/500.css";
-import "@fontsource/ibm-plex-serif/700.css";
-
-import "@fontsource/ibm-plex-mono/300.css";
-import "@fontsource/ibm-plex-mono/400.css";
-import "@fontsource/ibm-plex-mono/500.css";
-import "@fontsource/ibm-plex-mono/700.css";
-
-// Sans-Serif Fonts
-import "@fontsource/open-sans/300.css";
-import "@fontsource/open-sans/400.css";
-import "@fontsource/open-sans/500.css";
-import "@fontsource/open-sans/700.css";
-
-// =========================================
-// Library Imports and Initialization
-// =========================================
+window.htmx = htmx
 
 // Bootstrap
 import * as bootstrap from 'bootstrap'
@@ -40,8 +17,11 @@ import tippy from 'tippy.js';
 import 'tippy.js/dist/tippy.css';
 window.tippy = tippy;
 
-// Initialize everything when DOM is ready
+// Make htmx available globally
 document.addEventListener('DOMContentLoaded', () => {
+    // Start htmx after DOM is ready
+    htmx.process(document.body)
+
     // Start Alpine after DOM is ready
     Alpine.start()
     

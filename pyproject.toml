@@ -22,6 +22,7 @@ django-crispy-forms = { version = "^2.3", optional = true }
 crispy-bootstrap5 = { version = "^2024.10", optional = true }
 crispy-tailwind = { version = "^1.0.3", optional = true }
 crispy-daisyui = { version = "^0.7.0", optional = true }
+django-vite = "^3.1.0"
 
 [tool.poetry.extras]
 neapolitan = ["neapolitan"]

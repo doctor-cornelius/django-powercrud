@@ -393,7 +393,7 @@ test = ["pytest", "pytest-django"]
 name = "crispy-daisyui"
 version = "0.7.0"
 description = "A DaisyUI package for Django Crispy Forms"
-optional = false
+optional = true
 python-versions = ">=3.7"
 files = [
     {file = "crispy_daisyui-0.7.0-py3-none-any.whl", hash = "sha256:8215212202095879c38a368d06f9332d0a3aa1c89e9448930bcd1b4ec99b321f"},
@@ -503,7 +503,7 @@ bcrypt = ["bcrypt"]
 name = "django-crispy-forms"
 version = "2.4"
 description = "Best way to have Django DRY forms"
-optional = false
+optional = true
 python-versions = ">=3.8"
 files = [
     {file = "django_crispy_forms-2.4-py3-none-any.whl", hash = "sha256:5a4b99876cfb1bdd3e47727731b6d4197c51c0da502befbfbec6a93010b02030"},
@@ -559,6 +559,23 @@ Django = "*"
 [package.extras]
 docs = ["Sphinx"]
 tests = ["coverage", "django_coverage_plugin"]
+
+[[package]]
+name = "django-vite"
+version = "3.1.0"
+description = "Integration of Vite in a Django project."
+optional = false
+python-versions = "*"
+files = [
+    {file = "django_vite-3.1.0-py3-none-any.whl", hash = "sha256:4e46572bd6b1ce70784be129205dc2ffcbc7a3c19fea50bebfb72b327bbde5fc"},
+    {file = "django_vite-3.1.0.tar.gz", hash = "sha256:8b4ffe4a9fa81ff568bfb195e74dde8694aaf13fd4b656ae60bf59cce08b85e8"},
+]
+
+[package.dependencies]
+Django = ">=3.2"
+
+[package.extras]
+dev = ["black"]
 
 [[package]]
 name = "executing"
@@ -1572,4 +1589,4 @@ neapolitan = ["neapolitan"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.12"
-content-hash = "d79eb135766fd490ecbd32e861b95b5c4aba6b250082e5b0d596cf30937ae841"
+content-hash = "e32dc866e7f5ed71decbb4b7ec26ad2e00a0fa0dfdaa75a452ac0b2fbe778241"

@@ -1,0 +1,52 @@
+{
+  "name": "django_nominopolitan",
+  "version": "1.0.0",
+  "description": "This is an opinionated extension package for the excellent neapolitan package.",
+  "main": "webpack.config.js",
+  "scripts": {},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/doctor-cornelius/django-nominopolitan.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/doctor-cornelius/django-nominopolitan/issues"
+  },
+  "homepage": "https://github.com/doctor-cornelius/django-nominopolitan#readme",
+  "devDependencies": {
+    "@tailwindcss/aspect-ratio": "^0.4.2",
+    "@tailwindcss/forms": "^0.5.10",
+    "@tailwindcss/postcss": "^4.0.17",
+    "@tailwindcss/typography": "^0.5.16",
+    "autoprefixer": "^10.4.21",
+    "cross-env": "^7.0.3",
+    "css-loader": "^7.1.2",
+    "css-minimizer-webpack-plugin": "^5.0.1",
+    "daisyui": "^5.0.9",
+    "mini-css-extract-plugin": "^2.9.2",
+    "postcss": "^8.5.3",
+    "postcss-import": "^16.1.0",
+    "postcss-loader": "^8.1.1",
+    "postcss-nested": "^7.0.2",
+    "postcss-simple-vars": "^7.0.1",
+    "tailwindcss": "^4.0.17",
+    "terser-webpack-plugin": "^5.3.10",
+    "webpack-cli": "^6.0.1"
+  },
+  "dependencies": {
+    "@fontsource/ibm-plex-sans": "^5.0.17",
+    "@fontsource/ibm-plex-serif": "^5.0.17",
+    "@fontsource/ibm-plex-mono": "^5.0.17",
+    "@fontsource/open-sans": "^5.0.17",
+    "@popperjs/core": "^2.11.8",
+    "@tailwindcss/postcss": "^4.0.17",
+    "alpinejs": "^3.14.9",
+    "bootstrap": "^5.3.3",
+    "bootstrap-icons": "^1.11.3",
+    "htmx.org": "^1.9.12",
+    "tippy": "^0.0.0",
+    "tippy.js": "^6.3.7"
+  }
+}

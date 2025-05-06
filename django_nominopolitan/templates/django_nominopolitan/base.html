@@ -1,3 +1,4 @@
+{% load django_vite %}
 <!DOCTYPE html>
 
 <html lang="en" data-theme="nord">
@@ -7,13 +8,16 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+    {% vite_hmr_client %}
+    {% vite_asset 'django_nominopolitan/static/js/main.js' %}
+
     <!-- Bundled CSS (includes Tailwind, DaisyUI, Tippy.js styles, and fonts) -->
-    <link href="/static/dist/css/bundle.css" rel="stylesheet">
+    <!-- <link href="/static/dist/css/bundle.css" rel="stylesheet"> -->
     
     <!-- Load htmx first -->
-    <script src="/static/dist/js/htmx.bundle.js"></script>
+    <!-- <script src="/static/dist/js/htmx.bundle.js"></script> -->
     <!-- Then load main bundle -->
-    <script src="/static/dist/js/main.bundle.js"></script>
+    <!-- <script src="/static/dist/js/main.bundle.js"></script> -->
 
     {% block header_title %}
     <title id="header_title">{{header_title}}</title>

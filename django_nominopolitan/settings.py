@@ -61,8 +61,12 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "template_partials",
     "sample",
+
     "nominopolitan",
     "neapolitan",
+    
+    "django_vite",
+
     "crispy_forms",
     "crispy_bootstrap5",
     "crispy_tailwind",
@@ -73,7 +77,7 @@ INSTALLED_APPS = [
 # NOMINOPOLITAN_CSS_FRAMEWORK = 'bootstrap5'
 # CRISPY_TEMPLATE_PACK = 'bootstrap5'
 
-CRISPY_ALLOWED_TEMPLATE_PACKS = 'daisyui'
+CRISPY_ALLOWED_TEMPLATE_PACKS = ['tailwind', 'daisyui']
 NOMINOPOLITAN_CSS_FRAMEWORK = 'daisyUI'
 CRISPY_TEMPLATE_PACK = 'daisyui'
 
@@ -166,8 +170,17 @@ USE_TZ = True
 
 STATIC_URL = "static/"
 STATICFILES_DIRS = [
-    BASE_DIR / "django_nominopolitan" / "static",
+    # BASE_DIR / "django_nominopolitan" / "static", # for webpack setup
+    BASE_DIR / "nominopolitan" / "assets", # for vite setup
 ]
+
+STATIC_ROOT = BASE_DIR / "nominopolitan" / "staticfiles"
+
+DJANGO_VITE = {
+  "default": {
+    "dev_mode": False # set to use DEBUG variable (ie False in Production)
+  }
+}
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
