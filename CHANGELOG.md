@@ -1,3 +1,14 @@
+## 0.2.6 (2025-05-06)
+
+### Refactor
+
+- **(crispy)**:  use crispy_daisyui (not working)
+- **(crispy)**:  use crispy_daisyui instead (makes no difference)
+
+### Build
+
+- **(vite)**:  switch to vite instead of webpack
+
 ## 0.2.5 (2025-05-04)
 
 ### Feature
