@@ -35,6 +35,10 @@ class Book(models.Model):
     author = models.ForeignKey(Author, on_delete=models.CASCADE, related_name="books")
     genres = models.ManyToManyField(Genre, related_name="books")
     published_date = models.DateField()
+    bestseller = models.BooleanField(
+        default=False,
+        help_text="Is this book a bestseller?",
+        )
     isbn = models.CharField(max_length=13, unique=True)
     isbn_empty = models.GeneratedField(
         expression=(

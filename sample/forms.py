@@ -8,6 +8,7 @@ class BookForm(forms.ModelForm):
             "title",
             "author",
             "published_date",
+            "bestseller",
             "isbn",
             "pages",
             "description",
