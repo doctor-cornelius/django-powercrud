@@ -1,3 +1,9 @@
+## 0.2.8 (2025-05-06)
+
+### Refactor
+
+- **(nm_extract_tailwind_classes)**:  use generated css file instead of simulating
+
 ## 0.2.7 (2025-05-06)
 
 ### Build
