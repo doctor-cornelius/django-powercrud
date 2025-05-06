@@ -1,6 +1,6 @@
 import json
-
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404, redirect
+from django.urls import reverse
 
 from neapolitan.views import CRUDView
 from nominopolitan.mixins import NominopolitanMixin
@@ -9,6 +9,24 @@ from django import forms
 from . import models
 from . import forms
 from . import filters
+
+
+# Regular view for updating a book
+def book_update_view(request, pk):
+    book = get_object_or_404(models.Book, pk=pk)
+    
+    if request.method == 'POST':
+        form = forms.BookForm(request.POST, instance=book)
+        if form.is_valid():
+            form.save()
+            return redirect('sample:book-detail', pk=book.pk)
+    else:
+        form = forms.BookForm(instance=book)
+    
+    return render(request, 'sample/book_update_form.html', {
+        'form': form,
+        'book': book,
+    })
 
 
 class BookCRUDView(NominopolitanMixin, CRUDView):
@@ -99,6 +117,17 @@ class BookCRUDView(NominopolitanMixin, CRUDView):
         },
     ]
 
+    extra_actions = [
+        {
+            "url_name": "sample:book-update-view",  # namespace:url_pattern
+            "text": "Normal Edit", # bypasses nominopolitan & uses regular view
+            "needs_pk": True,  # if the URL needs the object's primary key
+            "button_class": "btn-info",
+            # "htmx_target": "content",
+            "display_modal": True,
+        },
+    ]
+
 class GenreCRUDView(NominopolitanMixin, CRUDView):
     model = models.Genre
     namespace = "sample"
@@ -172,3 +201,4 @@ class AuthorCRUDView(NominopolitanMixin, CRUDView):
         names = super().get_template_names()
         print("DEBUG: Looking for templates:", names)  # Debug print
         return names
+
