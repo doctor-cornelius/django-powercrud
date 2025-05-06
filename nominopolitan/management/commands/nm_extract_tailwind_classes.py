@@ -1,28 +1,12 @@
 import os
 import re
 import json
+import shutil
 from pathlib import Path
 from django.core.management.base import BaseCommand, CommandError
 from django.conf import settings
 
-# Define regex patterns to extract class names
-CLASS_REGEX = re.compile(r'class=["\']([^"\']+)["\']')
-JSON_ARRAY_REGEX = re.compile(r'\[(.*?)\]', re.DOTALL)
-
 DEFAULT_FILENAME = 'nominopolitan_tailwind_safelist.json'
-def extract_classes_from_json(content):
-    """Extract classes from JSON content"""
-    try:
-        data = json.loads(content)
-        if isinstance(data, list):
-            return set(data)
-    except json.JSONDecodeError:
-        pass
-    return set()
-
-def extract_classes_from_txt(content):
-    """Extract classes from text content, assuming one class per line"""
-    return set(line.strip() for line in content.splitlines() if line.strip())
 
 def get_help_message():
     return (
@@ -39,18 +23,18 @@ def get_help_message():
     )
 
 class Command(BaseCommand):
-    help = "Extracts Tailwind CSS class names from templates, Python files, JSON files, and text files."
+    help = "Copies the compiled Tailwind CSS file to the specified location for use in safelist."
 
     def add_arguments(self, parser):
-        parser.add_argument(
-            '--pretty',
-            action='store_true',
-            help='Save and print the output in a pretty, formatted way'
-        )
         parser.add_argument(
             '--output',
             type=str,
             help='Specify output path (directory or file path)'
+        )
+        parser.add_argument(
+            '--legacy',
+            action='store_true',
+            help='Use legacy method of extracting classes from templates and files'
         )
 
     def handle(self, *args, **kwargs):
@@ -87,58 +71,25 @@ class Command(BaseCommand):
         # Resolve the final path
         output_path = output_path.resolve()
 
-        base_dir = Path(__file__).resolve().parent.parent.parent
-        templates_dir = base_dir / "templates"
-        package_dir = base_dir
-
-        extracted_classes = set()
-
-        # Scan HTML templates
-        for html_file in templates_dir.rglob("*.html"):
-            with open(html_file, "r", encoding="utf-8") as f:
-                content = f.read()
-                for match in CLASS_REGEX.findall(content):
-                    extracted_classes.update(match.split())
-
-        # Scan Python files for class names inside strings
-        for py_file in package_dir.rglob("*.py"):
-            with open(py_file, "r", encoding="utf-8") as f:
-                content = f.read()
-                for match in CLASS_REGEX.findall(content):
-                    extracted_classes.update(match.split())
-
-        # Scan JSON files
-        for json_file in package_dir.rglob("*.json"):
-            with open(json_file, "r", encoding="utf-8") as f:
-                content = f.read()
-                extracted_classes.update(extract_classes_from_json(content))
-
-        # Scan TXT files
-        for txt_file in package_dir.rglob("*.txt"):
-            with open(txt_file, "r", encoding="utf-8") as f:
-                content = f.read()
-                extracted_classes.update(extract_classes_from_txt(content))
-
-        # Convert to a sorted list
-        class_list = sorted(extracted_classes)
-
         # Create directory if it doesn't exist
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
-        # Save to a JSON file
-        with open(output_path, "w", encoding="utf-8") as f:
-            if kwargs['pretty']:
-                json.dump(class_list, f, indent=2)
-                f.write('\n')  # Add newline at end of file
-            else:
-                json.dump(class_list, f, separators=(',', ':'))
-
-        # Print output
-        if kwargs['pretty']:
-            formatted_json = json.dumps(class_list, indent=2)
-            self.stdout.write(formatted_json)
-        else:
-            compressed_json = json.dumps(class_list, separators=(',', ':'))
-            self.stdout.write(compressed_json)
-
-        self.stdout.write(self.style.SUCCESS(f"\nExtracted {len(class_list)} classes to {output_path}"))
+        # Find the package directory
+        base_dir = Path(__file__).resolve().parent.parent.parent
+        assets_dir = base_dir / "assets" / "django_assets"
+        
+        if not assets_dir.exists():
+            raise CommandError(f"Assets directory not found at {assets_dir}")
+        
+        # Find the first CSS file in the assets directory
+        css_files = list(assets_dir.glob("*.css"))
+        if not css_files:
+            raise CommandError(f"No CSS files found in {assets_dir}")
+        
+        css_file = css_files[0]
+        self.stdout.write(f"Using compiled CSS file: {css_file}")
+        
+        # Copy the CSS file to the output location
+        shutil.copy2(css_file, output_path)
+        
+        self.stdout.write(self.style.SUCCESS(f"\nCopied CSS file to {output_path}"))
