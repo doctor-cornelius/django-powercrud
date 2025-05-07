@@ -1,11 +1,11 @@
 {
   "django_nominopolitan/static/js/main.js": {
-    "file": "django_assets/nominopolitan-C7eZmXtk.js",
+    "file": "django_assets/nominopolitan-CldVt9Gg.js",
     "name": "nominopolitan",
     "src": "django_nominopolitan/static/js/main.js",
     "isEntry": true,
     "css": [
-      "django_assets/nominopolitan-D0Xez_2N.css"
+      "django_assets/nominopolitan-omzb7A9U.css"
     ]
   }
 }
