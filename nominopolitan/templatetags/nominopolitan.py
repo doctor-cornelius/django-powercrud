@@ -39,7 +39,7 @@ def action_links(view: Any, object: Any) -> str:
     Returns:
         str: HTML string of action buttons
     """
-    framework: str = getattr(settings, 'NOMINOPOLITAN_CSS_FRAMEWORK', 'bootstrap5')
+    framework: str = getattr(settings, 'NOMINOPOLITAN_CSS_FRAMEWORK', 'daisyui')
     styles: Dict[str, Any] = view.get_framework_styles()[framework]
     action_button_classes = view.get_action_button_classes()
 
@@ -107,7 +107,7 @@ def action_links(view: Any, object: Any) -> str:
     return mark_safe(" ".join(links))
 
 
-@register.inclusion_tag(f"nominopolitan/{getattr(settings, 'NOMINOPOLITAN_CSS_FRAMEWORK', 'bootstrap5')}/partial/detail.html")
+@register.inclusion_tag(f"nominopolitan/{getattr(settings, 'NOMINOPOLITAN_CSS_FRAMEWORK', 'daisyui')}/partial/detail.html")
 def object_detail(object, view):
     """
     Display both fields and properties for an object detail view.
@@ -141,7 +141,7 @@ def object_detail(object, view):
 
 
 @register.inclusion_tag(
-        f"nominopolitan/{getattr(settings, 'NOMINOPOLITAN_CSS_FRAMEWORK', 'bootstrap5')}/partial/list.html", 
+        f"nominopolitan/{getattr(settings, 'NOMINOPOLITAN_CSS_FRAMEWORK', 'daisyui')}/partial/list.html", 
         takes_context=True
         )
 def object_list(context, objects, view):
@@ -282,7 +282,7 @@ def extra_buttons(view: Any) -> str:
     Returns:
         str: HTML string of extra buttons
     """
-    framework: str = getattr(settings, 'NOMINOPOLITAN_CSS_FRAMEWORK', 'bootstrap5')
+    framework: str = getattr(settings, 'NOMINOPOLITAN_CSS_FRAMEWORK', 'daisyui')
     styles: Dict[str, Any] = view.get_framework_styles()[framework]
 
     use_htmx: bool = view.get_use_htmx()

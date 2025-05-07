@@ -68,7 +68,7 @@ INSTALLED_APPS = [
     "django_vite",
 
     "crispy_forms",
-    "crispy_bootstrap5",
+    # "crispy_bootstrap5",
     "crispy_tailwind",
     "crispy_daisyui",
 ]
@@ -77,9 +77,12 @@ INSTALLED_APPS = [
 # NOMINOPOLITAN_CSS_FRAMEWORK = 'bootstrap5'
 # CRISPY_TEMPLATE_PACK = 'bootstrap5'
 
+NOMINOPOLITAN_CSS_FRAMEWORK = 'daisyUI' # this is for the rendering of nominopolitan forms
+
+# NB we use crispy_tailwind because crispy_daisyui classes don't seem to work with daisyUI v5
+# (and they don't come through to the tailwind tree shaker either even when you include the repo files in templates)
 CRISPY_ALLOWED_TEMPLATE_PACKS = ['tailwind', 'daisyui']
-NOMINOPOLITAN_CSS_FRAMEWORK = 'daisyUI'
-CRISPY_TEMPLATE_PACK = 'daisyui'
+CRISPY_TEMPLATE_PACK = 'tailwind'
 
 NM_TAILWIND_SAFELIST_JSON_LOC = 'sample/templates/sample/'
 
@@ -178,7 +181,7 @@ STATIC_ROOT = BASE_DIR / "nominopolitan" / "staticfiles"
 
 DJANGO_VITE = {
   "default": {
-    "dev_mode": False # set to use DEBUG variable (ie False in Production)
+    "dev_mode": True # set to use DEBUG variable (ie False in Production)
   }
 }
 

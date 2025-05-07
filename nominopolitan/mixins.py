@@ -79,11 +79,19 @@ class HTMXFilterSetMixin:
             attrs: dict[str, str] = {**self.HTMX_ATTRS, 'hx-trigger': trigger}
             field.widget.attrs.update(attrs)
 
-        self.helper = FormHelper()
-        self.helper.form_tag = False
-        self.helper.disable_csrf = True
-        self.helper.wrapper_class = 'col-auto'
-        self.helper.template = 'bootstrap5/layout/inline_field.html'
+        # self.helper = FormHelper()
+        # self.helper.form_tag = False
+        # self.helper.disable_csrf = True
+
+        # bootstrap5
+        # self.helper.wrapper_class = 'col-auto'
+        # self.helper.template = 'bootstrap5/layout/inline_field.html'
+
+        # Use Tailwind-specific classes instead of Bootstrap
+        # self.helper.label_class = 'block text-sm font-medium text-gray-700'
+        # self.helper.field_class = 'mt-1 block w-full rounded-md border-gray-300 shadow-sm'
+        # self.helper.template = 'tailwind/layout/inline_field.html'
+
 
 class NominopolitanMixin:
     """
@@ -111,7 +119,7 @@ class NominopolitanMixin:
     namespace: str | None = None
 
     # template parameters
-    templates_path: str = f"nominopolitan/{getattr(settings, 'NOMINOPOLITAN_CSS_FRAMEWORK', 'bootstrap5')}"
+    templates_path: str = f"nominopolitan/{getattr(settings, 'NOMINOPOLITAN_CSS_FRAMEWORK', 'daisyui')}"
     base_template_path: str = f"{templates_path}/base.html"
 
     # forms
@@ -547,7 +555,7 @@ class NominopolitanMixin:
                 This class inherits from HTMXFilterSetMixin to add HTMX functionality
                 and FilterSet for Django filtering capabilities.
                 """
-                framework = getattr(settings, 'NOMINOPOLITAN_CSS_FRAMEWORK', 'bootstrap5')
+                framework = getattr(settings, 'NOMINOPOLITAN_CSS_FRAMEWORK', 'daisyui')
                 BASE_ATTRS = self.get_framework_styles()[framework]['filter_attrs']
                 
                 # Dynamically create filter fields based on the model's fields
@@ -769,7 +777,6 @@ class NominopolitanMixin:
         Get the ID for the modal element.
 
         This method is called in get_framework_styles() to set the modal attributes
-        for Bootstrap 5.
 
         Returns:
             str: The modal ID with a '#' prefix

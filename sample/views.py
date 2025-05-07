@@ -123,8 +123,8 @@ class BookCRUDView(NominopolitanMixin, CRUDView):
             "text": "Normal Edit", # bypasses nominopolitan & uses regular view
             "needs_pk": True,  # if the URL needs the object's primary key
             "button_class": "btn-info",
-            # "htmx_target": "content",
-            "display_modal": True,
+            "htmx_target": "content",
+            "display_modal": False,
         },
     ]
 
