@@ -86,10 +86,9 @@ It is a **very early alpha** release. No tests. Limited docs. Expect many breaki
 
 **Tailwind CSS Considerations**
 
-Tailwind needs to scan all the classes used in your project. I don't know how to do that for imported libraries. The solutions below work, but there may be better ways!
+Tailwind needs to scan all the classes used in your project. To do this @TODO
 
-1. If using a `tailwindcss` framework including `daisyUI` then you need to run the management command `nm_extract_tailwind_classes` as discussed in the management commands section below.
-2. If using `crispy_tailwind` the command above will include a safelist of classes used in that package which need to be scanned by tailwind. Otherwise the classes won't be included in your css and the forms will look pretty bad. If you want that safelist for your own project, you can find it at: `nominopolitan/templates/daisyUI/crispy_tailwind_safelist.json`.
+If using a `tailwindcss` framework including `daisyUI` then you need to run the management command `nm_extract_tailwind_classes` as discussed in the management commands section below.
 
 **Forms**
 - if `form_class` is specified, it will be used 
@@ -100,9 +99,51 @@ Tailwind needs to scan all the classes used in your project. I don't know how to
         - Default: includes only editable fields from the resolved value for `detail_fields`
     - `form_fields_exclude = [..]` to specify which fields to exclude from the generated form
     - the resolved value of these parameters is used to generate a form class with HTML5 widgets for `date`, `datetime` and `time` fields
-- Support for `crispy-forms` if installed in project and `use_crispy` parameter is not `False`
-    - make sure you have `crispy_bootstrap5` also installed if you want
-    - if you have set up a different library use the correct crispy package (eg `crispy_bulma`, `crispy_tailwind`)
+
+**Using `crispy-forms`**
+
+Support for `crispy-forms` is enabled if it's installed in your project and the `use_crispy` parameter is not explicitly set to `False`. There are some important details about how this works:
+
+- The template `object_form.html` already includes:
+  - A `<form>` tag (needed for HTMX attributes)
+  - A `{% csrf_token %}` tag
+  - Conditional inclusion of crispy rendering via `{% include framework_template_path|add:"/crispy_partials.html#crispy_form" %}`
+
+- The `crispy_partials.html` template uses `{% crispy form %}` syntax which by default would:
+  - Generate its own `<form>` tag (causing nested forms)
+  - Add its own CSRF token (causing duplicate tokens)
+
+- To prevent duplicating `<form>` and CSRF token issues, `nominopolitan` automatically adds a FormHelper to your form class with:
+  
+  ```python
+  self.helper = FormHelper()
+  self.helper.form_tag = False     # Don't generate a form tag
+  self.helper.disable_csrf = True  # Don't add a CSRF token
+  ```
+
+- **Important**: You do NOT need to add a FormHelper to your form class. Nominopolitan will add one for you.
+
+- **More Important**: If you DO have a FormHelper in your form class, be aware that `mixins._apply_crispy_helper()` will override your settings for `form_tag` and `disable_csrf`, **even if you have set them explicitly**
+
+    - If you need to retain the default FormHelper settings for `form_tag` and `disable_csrf`, override the `_apply_crispy_helper()` method:
+
+    ```python
+    class MyClassName(NominopolitanMixin, CRUDView):
+        def _apply_crispy_helper(self, form_class):
+            # Either skip the parent method entirely:
+            return form_class
+            
+            # Or call it but then restore your settings:
+            form_class = super()._apply_crispy_helper(form_class)
+            # Then in the __init__ method, restore your preferred settings:
+            old_init = form_class.__init__
+            def new_init(self, *args, **kwargs):
+                old_init(self, *args, **kwargs)
+                self.helper.form_tag = True      # If you want crispy to generate the form tag
+                self.helper.disable_csrf = False # If you want crispy to add the CSRF token
+            form_class.__init__ = new_init
+            return form_class
+    ```
 
 **Additional Buttons**
 - Support for `extra_actions` to add additional actions for each record to list views

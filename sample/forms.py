@@ -20,11 +20,11 @@ class BookForm(forms.ModelForm):
         }
 
 # class BookForm(forms.ModelForm):
-#     def __init__(self, *args, **kwargs):
-#         super().__init__(*args, **kwargs)
-#         self.helper = FormHelper()
-#         self.helper.form_tag = False
-#         self.helper.disable_csrf = True
+    # def __init__(self, *args, **kwargs):
+    #     super().__init__(*args, **kwargs)
+    #     self.helper = FormHelper()
+    #     self.helper.form_tag = False
+    #     self.helper.disable_csrf = True
 
 #     class Meta:
 #         model = models.Book
