@@ -100,10 +100,6 @@ Tailwind needs to scan all the classes used in your project. I don't know how to
         - Default: includes only editable fields from the resolved value for `detail_fields`
     - `form_fields_exclude = [..]` to specify which fields to exclude from the generated form
     - the resolved value of these parameters is used to generate a form class with HTML5 widgets for `date`, `datetime` and `time` fields
-- Optional `create_form_class` for create operations:
-    - Allows a separate form class specifically for create views
-    - Useful when create and update forms need different: Field sets, Validation logic, Base classes
-    - Falls back to `form_class` if not specified
 - Support for `crispy-forms` if installed in project and `use_crispy` parameter is not `False`
     - make sure you have `crispy_bootstrap5` also installed if you want
     - if you have set up a different library use the correct crispy package (eg `crispy_bulma`, `crispy_tailwind`)
@@ -387,9 +383,6 @@ class ProjectCRUDView(NominopolitanMixin, CRUDView):
     # form_fields = '__fields__' if you want to use the fields attribute (only editable fields will be included)
     # if not specified, it will default to only editable fields in the resolved versin of detail_fields (ie excluding detail_exclude)
     form_fields_exclude = ["description",] # list of fields to exclude from forms
-
-    create_form_class = forms.ProjectCreateForm # if you want a separate create form
-        # the update form always uses specified form_class OR the generated form class based on form_fields and form_fields_exclude
 
     # filtersets
     filterset_fields = ["name", "project_owner", "project_manager", "due_date",]

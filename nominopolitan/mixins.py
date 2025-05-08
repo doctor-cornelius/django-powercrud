@@ -124,7 +124,6 @@ class NominopolitanMixin:
 
     # forms
     use_crispy: bool | None = None
-    create_form_class: type[forms.ModelForm] | None = None
 
     # field and property inclusion scope
     exclude: list[str] = []
@@ -964,19 +963,52 @@ class NominopolitanMixin:
         except NoReverseMatch:
             return None
     
-        
 
     def get_form_class(self):
         """
         Override get_form_class to use form_fields for form generation.
         """
-        # Use special create form if specified and we're in CREATE mode
-        if self.create_form_class and self.role is Role.CREATE:
-            return self.create_form_class
-
         # Use explicitly defined form class if provided
         if self.form_class is not None:
-            return self.form_class
+            log.debug("Using explicitly defined form class")
+            # If crispy forms aren't being used, return the form class as is
+            if not self.get_use_crispy():
+                return self.form_class
+            
+            log.debug("Using crispy forms")
+            # Only modify the form class if crispy forms is enabled
+            form_class = self.form_class
+            
+            # Create a new instance to check if it has a helper
+            _temp_form = form_class()
+            has_helper = hasattr(_temp_form, 'helper')
+            
+            if not has_helper:
+                log.debug("Form class does not have a helper, adding one")
+                # No helper, so we need to add one
+                old_init = form_class.__init__
+                
+                def new_init(self, *args, **kwargs):
+                    old_init(self, *args, **kwargs)
+                    self.helper = FormHelper()
+                    self.helper.form_tag = False
+                    self.helper.disable_csrf = True
+                
+                form_class.__init__ = new_init
+            else:
+                log.debug("Form class has a helper, ensuring form_tag is False")
+                # Has helper, but we need to ensure form_tag is False
+                old_init = form_class.__init__
+                
+                def new_init(self, *args, **kwargs):
+                    old_init(self, *args, **kwargs)
+                    # Override form_tag and disable_csrf
+                    self.helper.form_tag = False
+                    self.helper.disable_csrf = True
+                
+                form_class.__init__ = new_init
+            
+            return form_class
 
         # Generate a default form class using form_fields
         if self.model is not None and self.form_fields:
