@@ -1,3 +1,9 @@
+## 0.2.10 (2025-05-08)
+
+### Feature
+
+- **ure(get_form_class)**:  add FormHelper to form class if not already there; drop create_form_class option
+
 ## 0.2.9 (2025-05-07)
 
 ## 0.2.8 (2025-05-06)
