@@ -1,3 +1,9 @@
+## 0.2.11 (2025-05-08)
+
+### Documentation
+
+- **(README.md)**:  document how mixins._apply_crispy_helper() works
+
 ## 0.2.10 (2025-05-08)
 
 ### Feature
