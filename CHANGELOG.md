@@ -1,3 +1,9 @@
+## 0.2.12 (2025-05-10)
+
+### Build
+
+- **(tailwind)**:  explicitly include crispy_tailwind from .venv using @source
+
 ## 0.2.11 (2025-05-08)
 
 ### Documentation
