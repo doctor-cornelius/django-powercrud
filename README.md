@@ -88,7 +88,26 @@ It is a **very early alpha** release. No tests. Limited docs. Expect many breaki
 
 Tailwind needs to scan all the classes used in your project. To do this @TODO
 
-If using a `tailwindcss` framework including `daisyUI` then you need to run the management command `nm_extract_tailwind_classes` as discussed in the management commands section below.
+If using a `tailwindcss` framework (including `daisyUI`) then you need to make sure that the classes from this package `nominopolitan` are included in your project's tailwind build. There are two ways to do this.
+
+1. **Explicitly add using @source**. For `tailwindcss` v4, as per [these instructions](https://tailwindcss.com/docs/detecting-classes-in-source-files#explicitly-registering-sources), you need to use the `@source` command in your `tailwind.css` (or `main.css` or whatever you've called it).
+
+    To detect the correct path for your package, you can use:
+
+    ```python
+    >>>import django_nominopolitan 
+    >>>print(django_nominopolitan.__path__)
+    ['/usr/local/lib/python3.12/site-packages/nominopolitan']
+    ```
+
+    In which case you would enter `@source: "/usr/local/lib/python3.12/site-packages/nominopolitan";`, so the top part of your `tailwind.css` file would look like this:
+
+    ```css
+    @import "tailwindcss";`
+    @source "/usr/local/lib/python3.12/site-packages/nominopolitan";
+    ```
+
+2. **Management Command**. If you prefer not to follow the tailwindcss instructions (!) then you can run the included management command `nm_extract_tailwind_classes` as discussed in the management commands section below.
 
 **Forms**
 - if `form_class` is specified, it will be used 
