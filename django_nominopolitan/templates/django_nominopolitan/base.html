@@ -12,14 +12,6 @@
     {% vite_hmr_client %}
     {% vite_asset 'django_nominopolitan/static/js/main.js' %}
 
-    <!-- Bundled CSS (includes Tailwind, DaisyUI, Tippy.js styles, and fonts) -->
-    <!-- <link href="/static/dist/css/bundle.css" rel="stylesheet"> -->
-    
-    <!-- Load htmx first -->
-    <!-- <script src="/static/dist/js/htmx.bundle.js"></script> -->
-    <!-- Then load main bundle -->
-    <!-- <script src="/static/dist/js/main.bundle.js"></script> -->
-
     {% block header_title %}
     <title id="header_title">{{header_title}}</title>
     {% endblock header_title %}

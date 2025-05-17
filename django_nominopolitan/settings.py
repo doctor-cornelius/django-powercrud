@@ -181,7 +181,7 @@ STATIC_ROOT = BASE_DIR / "nominopolitan" / "staticfiles"
 
 DJANGO_VITE = {
   "default": {
-    "dev_mode": True # set to use DEBUG variable (ie False in Production)
+    "dev_mode": DEBUG # set to use DEBUG variable (ie False in Production)
   }
 }
 

@@ -56,9 +56,10 @@ cz changelog --unreleased-version=$NEW_VERSION
   # Run the build command with verbose output for debugging
   echo "Building assets with npm..."
   npm run build --verbose || {
-    echo "Build failed. Continuing with release process anyway."
+    echo "npm build failed."
     # Uncomment the line below if you want to abort on build failure
-    # exit 1
+    exit 1
+    echo "Continuing with release process anyway."
   }
 )
 

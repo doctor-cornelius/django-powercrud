@@ -992,12 +992,12 @@ class NominopolitanMixin:
                 
                 # Check if form_tag has been explicitly set to True
                 if self.helper.form_tag is True:
-                    log.debug(f"Overriding form_tag=True to False in {self.__class__.__name__}")
+                    # log.debug(f"Overriding form_tag=True to False in {self.__class__.__name__}")
                     self.helper.form_tag = False
                 
                 # Check if disable_csrf has been explicitly set to False
                 if self.helper.disable_csrf is False:
-                    log.debug(f"Overriding disable_csrf=False to True in {self.__class__.__name__}")
+                    # log.debug(f"Overriding disable_csrf=False to True in {self.__class__.__name__}")
                     self.helper.disable_csrf = True
             
             form_class.__init__ = new_init

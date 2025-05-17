@@ -2,7 +2,6 @@
   "name": "django_nominopolitan",
   "version": "1.0.0",
   "description": "This is an opinionated extension package for the excellent [`neapolitan`](https://github.com/carltongibson/neapolitan/tree/main) package.",
-  "main": "postcss.config.js",
   "dependencies": {
     "@tailwindcss/vite": "^4.1.6",
     "acorn": "^8.14.1",
