@@ -205,6 +205,12 @@
                 const paddingRight = parseFloat(computedStyle.paddingRight);
                 const availableWidth = maxWidth - paddingLeft - paddingRight;
 
+                // Remove any existing tippy instance
+                if (tooltipTriggerEl._tippy) {
+                    tooltipTriggerEl._tippy.destroy();
+                }
+
+                // Only initialize tooltip if text is actually truncated
                 if (textWidth > availableWidth) {
                     tippy(tooltipTriggerEl, {
                         theme: 'dark',
@@ -252,23 +258,40 @@
             });
         }
 
-        // Initialize everything on page load
+        // Initialize everything on page load with a slight delay to ensure styles are applied
         document.addEventListener('DOMContentLoaded', () => {
-            initializeTooltips();
+            // Delay tooltip initialization to ensure styles are fully applied
+            setTimeout(initializeTooltips, 100);
             initializeFilterToggle();
 
             // Restore filter section expanded state if previously saved
             if (localStorage.getItem('filterExpanded') === 'true') {
                 const filterCollapse = document.getElementById('filterCollapse');
-                new bootstrap.Collapse(filterCollapse, { show: true });
+                if (filterCollapse) {
+                    filterCollapse.classList.remove('hidden');
+                    const filterBtn = document.getElementById('filterToggleBtn');
+                    if (filterBtn) {
+                        filterBtn.querySelector('span').textContent = 'Hide Filters';
+                    }
+                }
                 localStorage.removeItem('filterExpanded');
             }
         });
 
         // Re-initialize tooltips and filter toggle after HTMX content updates
         document.body.addEventListener('htmx:afterSwap', () => {
-            initializeTooltips();
+            // Small delay to ensure styles are applied after content swap
+            setTimeout(initializeTooltips, 50);
             initializeFilterToggle();
+        });
+
+        // Add window resize handler to recalculate tooltips when window size changes
+        window.addEventListener('resize', () => {
+            // Debounce the resize event
+            if (window.resizeTimer) {
+                clearTimeout(window.resizeTimer);
+            }
+            window.resizeTimer = setTimeout(initializeTooltips, 100);
         });
     </script>
 
