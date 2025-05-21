@@ -4,6 +4,9 @@ import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
   base: "/static/", // must match STATIC_URL setting in settings 
+  server: {
+    port: 5174,
+  },
   resolve : {
     alias : {
         '@': '/django_nominopolitan/static'
