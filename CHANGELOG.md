@@ -1,3 +1,17 @@
+## 0.2.13 (2025-05-21)
+
+### Refactor
+
+- **(mixins)**:  comment out debug statements
+
+### Documentation
+
+- **(README)**:  document correct way to use @source instead of management command
+
+### Style
+
+- **(object_list)**:  ensure css styles have loaded before tooltips are initialised
+
 ## 0.2.12 (2025-05-10)
 
 ### Build
