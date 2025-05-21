@@ -974,7 +974,7 @@ class NominopolitanMixin:
         has_helper = hasattr(_temp_form, 'helper')
         
         if not has_helper:
-            log.debug(f"Adding FormHelper to {form_class.__name__} with form_tag=False and disable_csrf=True")
+            # log.debug(f"Adding FormHelper to {form_class.__name__} with form_tag=False and disable_csrf=True")
             old_init = form_class.__init__
             
             def new_init(self, *args, **kwargs):
