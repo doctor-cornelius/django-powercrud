@@ -1,3 +1,14 @@
+## 0.2.14 (2025-05-22)
+
+### Refactor
+
+- **(Genre)**:  fix logic and method in clean()
+- **(Genre)**:  add test field
+
+### Style
+
+- **(nominopolitan)**:  make modal based form errors appear in modal not template body
+
 ## 0.2.13 (2025-05-21)
 
 ### Refactor
