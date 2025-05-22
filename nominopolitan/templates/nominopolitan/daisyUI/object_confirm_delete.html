@@ -9,9 +9,9 @@
 {% partialdef nm_content %}
     <div class="card bg-base-100 shadow-xl">
         <div class="card-body">
-            <p class="text-lg bg-error text-error-content"
+            <p class="text-lg"
                 >Are you sure you want to delete the following {{ object_verbose_name }}?</p>
-            <h2 class="card-title justify-center my-2">{{ object }}</h2>
+            <h2 class="card-title justify-center my-2 text-error">{{ object }}</h2>
         
             <form method="POST" action="{{ delete_view_url }}"
                 {% if use_htmx and original_target %}
