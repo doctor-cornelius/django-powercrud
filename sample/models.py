@@ -29,8 +29,8 @@ class Genre(models.Model):
     numeric_string = models.CharField(max_length=4, blank=True)
 
     def clean(self):
-        if not self.numeric_string.isnumeric():
-            raise ValidationError("Numeric string must not be numeric")
+        if self.numeric_string and not self.numeric_string.isnumeric():
+            raise ValidationError("Numeric string must be numeric")
 
     def __str__(self):
         return self.name
