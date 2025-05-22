@@ -1225,6 +1225,11 @@ class NominopolitanMixin:
         # Add sort parameter to context
         context['sort'] = self.request.GET.get('sort', '')
 
+        # If we have a form with errors and modals are enabled,
+        # ensure the htmx_target is set to the modal target
+        if hasattr(self, 'object_form') and hasattr(self.object_form, 'errors') and self.object_form.errors and self.get_use_modal():
+            context['htmx_target'] = self.get_modal_target()
+
         return context
 
     def get_success_url(self):
@@ -1264,9 +1269,23 @@ class NominopolitanMixin:
 
         return success_url
 
+    def form_invalid(self, form):
+        """
+        Handle form validation errors and ensure they appear in the modal.
+        """
+        # Store the form with errors
+        self.object_form = form
+        
+        # If using modals, set a flag to indicate we need to show the modal again
+        if self.get_use_modal():
+            self.form_has_errors = True
+        
+        return super().form_invalid(form)
+
     def render_to_response(self, context={}):
         """
         Render the response, handling both HTMX and regular requests.
+        Ensure modal context is maintained when forms have errors.
         """
         template_names = self.get_template_names()
         
@@ -1293,7 +1312,8 @@ class NominopolitanMixin:
         # add to session here (template name may change later)
         self.set_session_data_key({'original_template': template_name})
 
-        # log.debug(f"context: \n{json.dumps(context, indent=4, default=str)}")
+        # Check if this is a form with errors being redisplayed
+        form_has_errors = hasattr(self, 'form_has_errors') and self.form_has_errors
 
         if self.request.htmx:
             if self.role == Role.LIST:
@@ -1311,7 +1331,41 @@ class NominopolitanMixin:
                 template_name=f"{template_name}",
                 context=context,
             )
-            response['HX-Trigger'] = self.get_hx_trigger()
+            
+            # Add HX-Trigger for modal if form has errors and modal should be used
+            if form_has_errors and self.get_use_modal():
+                # For daisyUI, we need to trigger the showModal() method
+                modal_id = self.get_modal_id()[1:]  # Remove the # prefix
+                
+                # Create or update HX-Trigger header
+                trigger_data = {"showModal": modal_id}
+                
+                # If there's an existing HX-Trigger, merge with it
+                existing_trigger = self.get_hx_trigger()
+                if existing_trigger:
+                    if isinstance(existing_trigger, str) and existing_trigger.startswith('{'):
+                        # It's a JSON string
+                        try:
+                            existing_data = json.loads(existing_trigger)
+                            trigger_data.update(existing_data)
+                        except json.JSONDecodeError:
+                            # Not valid JSON, treat as a simple event name
+                            trigger_data["existingEvent"] = existing_trigger
+                    else:
+                        # It's a simple string trigger
+                        trigger_data["existingEvent"] = existing_trigger
+                
+                response['HX-Trigger'] = json.dumps(trigger_data)
+                
+                # Make sure the response targets the modal content
+                if self.get_modal_target():
+                    response['HX-Retarget'] = self.get_modal_target()
+                
+                # Clear the flag after handling
+                self.form_has_errors = False
+            elif self.get_hx_trigger():
+                response['HX-Trigger'] = self.get_hx_trigger()
+            
             return response
         else:
             return TemplateResponse(
