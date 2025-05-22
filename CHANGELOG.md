@@ -1,3 +1,11 @@
+## 0.2.16 (2025-05-22)
+
+### Refactor
+
+- **(object_list): change htmx**: afterSwap listener to add event
+- **(render_to_response)**:  assuem hx trigger is always json format
+- **(get_hx_trigger)**:  always return json formatted triggers
+
 ## 0.2.15 (2025-05-22)
 
 ### Style
