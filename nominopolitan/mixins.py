@@ -1345,17 +1345,10 @@ class NominopolitanMixin:
                 # If there's an existing HX-Trigger, merge with it
                 existing_trigger = self.get_hx_trigger()
                 if existing_trigger:
-                    if isinstance(existing_trigger, str) and existing_trigger.startswith('{'):
-                        # It's a JSON string
-                        try:
-                            existing_data = json.loads(existing_trigger)
-                            trigger_data.update(existing_data)
-                        except json.JSONDecodeError:
-                            # Not valid JSON, treat as a simple event name
-                            trigger_data["existingEvent"] = existing_trigger
-                    else:
-                        # It's a simple string trigger
-                        trigger_data["existingEvent"] = existing_trigger
+                    # Since get_hx_trigger always returns a JSON string, we can parse it directly
+                    existing_data = json.loads(existing_trigger)
+                    trigger_data.update(existing_data)
+
                 
                 response['HX-Trigger'] = json.dumps(trigger_data)
                 
