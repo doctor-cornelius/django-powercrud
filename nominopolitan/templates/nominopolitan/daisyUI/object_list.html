@@ -279,11 +279,10 @@
         });
 
         // Re-initialize tooltips and filter toggle after HTMX content updates
-        document.body.addEventListener('htmx:afterSwap', () => {
+        document.body.addEventListener('htmx:afterSwap', (event) => {
             // Small delay to ensure styles are applied after content swap
             setTimeout(initializeTooltips, 50);
             initializeFilterToggle();
-
             // Add modal trigger handling
             const triggerHeader = event.detail.xhr.getResponseHeader('HX-Trigger');
             if (triggerHeader) {
@@ -299,7 +298,7 @@
                 } catch (e) {
                     console.error('Error processing HX-Trigger:', e);
                 }
-            }            
+            }
         });
 
         // Add window resize handler to recalculate tooltips when window size changes
