@@ -799,19 +799,21 @@ class NominopolitanMixin:
     def get_hx_trigger(self):
         """
         Get the HX-Trigger value for HTMX responses.
-
+        
         This method is called in render_to_response() to set the HX-Trigger header
         for HTMX responses. It handles string, numeric, and dictionary values for
         the hx_trigger attribute.
-
+        
         Returns:
-            str or None: The HX-Trigger value as a string, or None if not applicable
+            str or None: The HX-Trigger value as a JSON string, or None if not applicable
         """
         if not self.get_use_htmx() or not self.hx_trigger:
             return None
             
         if isinstance(self.hx_trigger, (str, int, float)):
-            return str(self.hx_trigger)
+            # Convert simple triggers to JSON format
+            # 'messagesChanged' becomes '{"messagesChanged":true}'
+            return json.dumps({str(self.hx_trigger): True})
         elif isinstance(self.hx_trigger, dict):
             # Validate all keys are strings
             if not all(isinstance(k, str) for k in self.hx_trigger.keys()):
