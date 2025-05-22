@@ -139,7 +139,7 @@ class GenreCRUDView(NominopolitanMixin, CRUDView):
     action_button_classes = 'btn-xs'
     extra_button_classes = 'btn-sm'
 
-    fields = ['name',]
+    fields = ['name', 'numeric_string']
 
 class AuthorCRUDView(NominopolitanMixin, CRUDView):
     model = models.Author

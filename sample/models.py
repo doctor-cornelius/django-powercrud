@@ -1,5 +1,6 @@
 from django.db import models
 
+from django.core.exceptions import ValidationError
 
 class Author(models.Model):
     class Meta:
@@ -25,6 +26,11 @@ class Author(models.Model):
 class Genre(models.Model):
     name = models.CharField(max_length=100)
     description = models.TextField(blank=True)
+    numeric_string = models.CharField(max_length=4, blank=True)
+
+    def clean(self):
+        if not self.numeric_string.isnumeric():
+            raise ValidationError("Numeric string must not be numeric")
 
     def __str__(self):
         return self.name
