@@ -21,8 +21,7 @@
             {% if use_htmx and original_target %}
                 hx-post="{% if object %}{{ update_view_url }}{% else %}{{ create_view_url }}{% endif %}"
                 hx-target="{{ original_target }}"
-                hx-push-url="true"
-                
+                {% if not use_modal %}hx-push-url="true"{% endif %}
             {% endif %}>
             {% csrf_token %}
             
