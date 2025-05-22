@@ -1,3 +1,10 @@
+## 0.2.15 (2025-05-22)
+
+### Style
+
+- **(object_form)**:  do not set push-url if using modal
+- **(object_confirm_delete)**:  change colour of text
+
 ## 0.2.14 (2025-05-22)
 
 ### Refactor
