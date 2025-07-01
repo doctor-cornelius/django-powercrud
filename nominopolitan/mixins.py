@@ -760,10 +760,23 @@ class NominopolitanMixin:
                                 m2m_manager.set(m2m_values)
                         elif info.get('is_relation'):
                             # Handle relation fields
-                            if value == "null":
+                            if value == "null" or value == "" or value is None:
                                 setattr(obj, field, None)
                             else:
-                                setattr(obj, field, value)
+                                try:
+                                    # Get the related model
+                                    related_model = info['field'].related_model
+                                    log.debug(f"Looking up {related_model.__name__} with pk={value}")
+                                    
+                                    # Fetch the actual instance
+                                    instance = related_model.objects.get(pk=int(value))
+                                    log.debug(f"Found instance: {instance}")
+                                    
+                                    # Set the field to the instance
+                                    setattr(obj, field, instance)
+                                except Exception as e:
+                                    log.debug(f"Error setting relation: {str(e)}")
+                                    raise ValidationError(f"Invalid value for {info['verbose_name']}: {str(e)}")
                         else:
                             # Handle regular fields
                             setattr(obj, field, value)

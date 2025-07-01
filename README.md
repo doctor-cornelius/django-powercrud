@@ -47,8 +47,9 @@ It is a **very early alpha** release. No tests. Limited docs. Expect many breaki
 `
 - **M2M filters**
     - `m2m_filter_and_logic = True` to use AND logic for M2M filters (default is OR logic)
+  
 - **Overrides**
-- You can override the method `get_filter_queryset_for_field(self, field_name, model_field)` to restrict the available options for a filter field.
+    - You can override the method `get_filter_queryset_for_field(self, field_name, model_field)` to restrict the available options for a filter field.
     - `field_name`: The name of the field being filtered (str)
     - `model_field`: The actual Django model field instance (e.g., ForeignKey, CharField)
     - For example, if you're already restricting the returned objects by overriding `get_queryset()`, then you want the filter options for foreign key fields to also be subject to this restriction.
@@ -83,6 +84,16 @@ It is a **very early alpha** release. No tests. Limited docs. Expect many breaki
     - Create corresponding templates in your `templates_path` directory
     - Override `NominopolitanMixin.get_framework_styles()` in your view to add your framework's styles,  
       set the `framework` key to the name of your framework and add the required values.
+
+**Bulk Edit**
+- Support for bulk edit of multiple records
+- include `bulk_fields` list in view definition with names of fields to be updated
+- row selection survives pagination and both htmx and full page reloads (actually it's kind of permanent for a model until you explicitly clear selection ;)
+- bulk update is atomic: either all pass or no edits are made
+- bulk delete also supported (with confirmation step and safety verification)
+- Clear separation between update and delete operations in the UI
+- bulk update process runs `full_clean()` and `save()` on every record
+    - you can specify `bulk_full_clean = False` (default is `True`) to skip full clean step
 
 **Tailwind CSS Considerations**
 
