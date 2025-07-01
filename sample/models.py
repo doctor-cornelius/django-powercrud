@@ -37,6 +37,12 @@ class Genre(models.Model):
 
 
 class Book(models.Model):
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['title', 'author'], name='unique_title_author')
+        ]
+
     title = models.CharField(max_length=200)
     author = models.ForeignKey(Author, on_delete=models.CASCADE, related_name="books")
     genres = models.ManyToManyField(Genre, related_name="books")

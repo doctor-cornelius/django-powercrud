@@ -3,6 +3,7 @@
 {% load nominopolitan %}
 
 {% block content %}
+    {% csrf_token %}
     {% partial nm_content %}
 {% endblock %}
 
@@ -12,12 +13,13 @@
             @apply font-bold text-center block;
         }
         .table-column-width {
-            width: min( {{ table_header_min_wrap_width }}, fit-content); /* controls initial width */
-            max-width: {{ table_max_col_width }}; /* sets absolute limits */
+            /* Set a reasonable default width and max-width, override with inline style if needed */
+            width: fit-content;
+            max-width: 25ch;
         }
         th.table-column-width {
             white-space: normal;
-            max-width: {{ table_header_min_wrap_width }}; /* if header needs to wrap, then we set the max for it to wrap can be this */
+            max-width: 25ch;
         }
         /* Super specific selectors to override existing styles */
         #filter-form select.select,
@@ -93,6 +95,20 @@
                 </div>
             {% endif %}
 
+            {% if enable_bulk_edit %}
+            <!-- Bulk actions container - always hidden by default, shown by JS if needed -->
+            <div id="bulk-actions-container" class="join hidden">
+                <a href="{{ request.path }}bulk-edit/" class="join-item btn btn-primary {{ view.get_extra_button_classes }}"
+                    hx-get="{{ request.path }}bulk-edit/" hx-target="#nominopolitanModalContent"
+                    onclick="this.setAttribute('hx-vals', JSON.stringify({'selected_ids': getSelectedIds()})); nominopolitanBaseModal.showModal();">
+                    Bulk Edit <span id="selected-items-counter">0</span>
+                </a>
+                <button class="join-item btn btn-outline btn-error {{ view.get_extra_button_classes }}" onclick="clearSelection()">
+                    Clear Selection
+                </button>
+            </div>
+            {% endif %}
+                        
             {% if create_view_url %}
                 {% if use_htmx and htmx_target %}
                     <a class="btn btn-primary {{ view.get_extra_button_classes }}" href="{{ create_view_url }}" 
@@ -175,11 +191,66 @@
     </dialog>
 
     <script>
-        // Handles modal form submissions - automatically closes the modal when a form inside it is submitted
-        document.addEventListener('submit', function (event) {
-            if (event.target.closest('#nominopolitanBaseModal')) {
-                const modalElement = document.getElementById('nominopolitanBaseModal');
-                modalElement.close();
+        // Track form submissions from the modal
+        document.body.addEventListener('htmx:beforeSend', function (event) {
+            // Only handle form submissions from within the modal
+            if (event.detail.elt.closest('#nominopolitanBaseModal form')) {
+                // Prevent the default modal closing behavior
+                event.detail.shouldCancelSend = false;
+                console.log("Modal form submission detected");
+            }
+        });
+
+        // Handle HTMX events for modals and form submissions
+        document.body.addEventListener('htmx:afterOnLoad', function (event) {
+            const xhr = event.detail.xhr;
+            if (!xhr) return;
+
+            const triggerHeader = xhr.getResponseHeader('HX-Trigger');
+            if (!triggerHeader) return;
+
+            try {
+                let triggers;
+                if (triggerHeader.startsWith('{')) {
+                    triggers = JSON.parse(triggerHeader);
+                } else {
+                    // Handle string triggers
+                    triggers = {};
+                    triggerHeader.split(',').forEach(t => triggers[t.trim()] = true);
+                }
+
+                console.log("HTMX Triggers:", triggers);
+
+                // Handle form success - close modal and refresh list
+                if (triggers.formSuccess || triggers.bulkEditSuccess) {
+                    // Close the modal if it exists
+                    const modalElement = document.getElementById('nominopolitanBaseModal');
+                    if (modalElement) modalElement.close();
+
+                    // Refresh the list view
+                    const targetId = "{{ original_target|default:'#filtered_results' }}";
+                    const target = document.querySelector(targetId);
+                    if (target) {
+                        console.log("Refreshing target:", targetId);
+                        htmx.ajax('GET', window.location.pathname, { target: targetId });
+                    } else {
+                        console.error("Target not found:", targetId);
+                        // Fallback to reloading the page
+                        window.location.reload();
+                    }
+                }
+
+                // Handle form errors - ensure the modal stays open
+                if (triggers.formError) {
+                    // The modal should already be open, but we can ensure it
+                    const modalId = 'nominopolitanBaseModal';
+                    const modal = document.getElementById(modalId);
+                    if (modal && typeof modal.showModal === 'function') {
+                        modal.showModal();
+                    }
+                }
+            } catch (e) {
+                console.error('Error processing HX-Trigger:', e);
             }
         });
 
@@ -278,29 +349,6 @@
             }
         });
 
-        // Re-initialize tooltips and filter toggle after HTMX content updates
-        document.body.addEventListener('htmx:afterSwap', (event) => {
-            // Small delay to ensure styles are applied after content swap
-            setTimeout(initializeTooltips, 50);
-            initializeFilterToggle();
-            // Add modal trigger handling
-            const triggerHeader = event.detail.xhr.getResponseHeader('HX-Trigger');
-            if (triggerHeader) {
-                try {
-                    const triggers = JSON.parse(triggerHeader);
-                    if (triggers.showModal) {
-                        // For daisyUI dialog element
-                        const modal = document.getElementById(triggers.showModal);
-                        if (modal && typeof modal.showModal === 'function') {
-                            modal.showModal();
-                        }
-                    }
-                } catch (e) {
-                    console.error('Error processing HX-Trigger:', e);
-                }
-            }
-        });
-
         // Add window resize handler to recalculate tooltips when window size changes
         window.addEventListener('resize', () => {
             // Debounce the resize event
@@ -309,6 +357,130 @@
             }
             window.resizeTimer = setTimeout(initializeTooltips, 100);
         });
+
+        // Listen for HX-Trigger 'bulkEditSuccess' to clear selection before the list is refreshed
+        document.body.addEventListener('htmx:beforeOnLoad', function (event) {
+            var xhr = event.detail.xhr;
+            if (!xhr) return;
+            var triggerHeader = xhr.getResponseHeader('HX-Trigger');
+            if (!triggerHeader) return;
+            var triggers;
+            try {
+                triggers = JSON.parse(triggerHeader);
+            } catch (e) {
+                triggers = triggerHeader;
+            }
+            // Clear selection on bulkEditSuccess
+            if ((typeof triggers === 'object' && triggers.bulkEditSuccess) || triggers === 'bulkEditSuccess') {
+                var storageKey = "{{ storage_key|default:'' }}";
+                if (storageKey) {
+                    sessionStorage.removeItem(storageKey);
+                }
+            }
+        });
+
+    // --- Selection state logic ---
+    function updateSelectionUI() {
+        const key = "{{ storage_key|default:'' }}";
+        if (!key) return;
+        const selectedIdsJson = sessionStorage.getItem(key);
+        const selectedIds = JSON.parse(selectedIdsJson || '[]');
+        // Update checkboxes and row styling
+        document.querySelectorAll('.row-select-checkbox').forEach(checkbox => {
+            const id = checkbox.dataset.id;
+            checkbox.checked = selectedIds.includes(id);
+            const row = checkbox.closest('tr');
+            if (row) {
+                if (checkbox.checked) {
+                    row.classList.add('bg-base-200');
+                } else {
+                    row.classList.remove('bg-base-200');
+                }
+            }
+        });
+        // Update "Select All" checkbox
+        const selectAllCheckbox = document.getElementById('select-all-checkbox');
+        if (selectAllCheckbox) {
+            const checkboxes = document.querySelectorAll('.row-select-checkbox');
+            selectAllCheckbox.checked = checkboxes.length > 0 && Array.from(checkboxes).every(cb => cb.checked);
+            selectAllCheckbox.indeterminate = !selectAllCheckbox.checked && Array.from(checkboxes).some(cb => cb.checked);
+        }
+        // Update bulk actions UI
+        const bulkActionsContainer = document.getElementById('bulk-actions-container');
+        const counter = document.getElementById('selected-items-counter');
+        if (bulkActionsContainer && counter) {
+            if (selectedIds.length > 0) {
+                bulkActionsContainer.classList.remove('hidden');
+                counter.textContent = selectedIds.length;
+            } else {
+                bulkActionsContainer.classList.add('hidden');
+                counter.textContent = 0;
+            }
+        }
+    }
+    // Restore selection on full page load
+    document.addEventListener('DOMContentLoaded', updateSelectionUI);
+    // Restore selection after any HTMX swap that brings in the table
+    document.body.addEventListener('htmx:afterSwap', (event) => {
+        if (event.detail.target && event.detail.target.querySelector && event.detail.target.querySelector('.row-select-checkbox')) {
+            setTimeout(updateSelectionUI, 100);
+        }
+    });
+
+    // --- Selection helper functions ---
+    function getStorageKey() {
+        return "{{ storage_key|default:'' }}";
+    }
+    function getSelectedIds() {
+        const key = getStorageKey();
+        const storedIds = sessionStorage.getItem(key);
+        return storedIds ? JSON.parse(storedIds) : [];
+    }
+    function saveSelectedIds(ids) {
+        const key = getStorageKey();
+        sessionStorage.setItem(key, JSON.stringify(ids));
+        updateSelectionUI();
+    }
+    function toggleRowSelection(checkbox) {
+        const id = checkbox.dataset.id;
+        const isSelected = checkbox.checked;
+        let selectedIds = getSelectedIds();
+        if (isSelected && !selectedIds.includes(id)) {
+            selectedIds.push(id);
+        } else if (!isSelected && selectedIds.includes(id)) {
+            selectedIds = selectedIds.filter(item => item !== id);
+        }
+        saveSelectedIds(selectedIds);
+    }
+    function toggleAllSelection(checked) {
+        const checkboxes = document.querySelectorAll('.row-select-checkbox');
+        let selectedIds = getSelectedIds();
+        if (checked) {
+            checkboxes.forEach(checkbox => {
+                const id = checkbox.dataset.id;
+                checkbox.checked = true;
+                const row = checkbox.closest('tr');
+                if (row) row.classList.add('bg-base-200');
+                if (!selectedIds.includes(id)) {
+                    selectedIds.push(id);
+                }
+            });
+        } else {
+            const currentPageIds = Array.from(checkboxes).map(cb => cb.dataset.id);
+            selectedIds = selectedIds.filter(id => !currentPageIds.includes(id));
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = false;
+                const row = checkbox.closest('tr');
+                if (row) row.classList.remove('bg-base-200');
+            });
+        }
+        saveSelectedIds(selectedIds);
+    }
+    function clearSelection() {
+        const key = getStorageKey();
+        sessionStorage.removeItem(key);
+        updateSelectionUI();
+    }
     </script>
 
 {% endpartialdef nm_content %}

@@ -153,6 +153,22 @@ def object_list(context, objects, view):
     fields = view.fields
     properties = getattr(view, "properties", []) or []
 
+    # Check if bulk edit is enabled
+    enable_bulk_edit = hasattr(view, 'get_bulk_edit_enabled') and view.get_bulk_edit_enabled()
+    
+    # Get currently selected IDs from session if bulk edit is enabled
+    request = context.get('request')
+    selected_ids = []
+    if request and enable_bulk_edit:
+        selected_ids = request.session.get('nominopolitan_bulk_selected', [])
+        # Convert to strings for comparison
+        selected_ids = [str(id) for id in selected_ids]
+
+    # Get selection key suffix if available
+    selection_key_suffix = ""
+    if enable_bulk_edit and hasattr(view, 'get_bulk_selection_key_suffix'):
+        selection_key_suffix = view.get_bulk_selection_key_suffix()
+
     # Create tuples of (display_name, field_name, is_sortable) for each field
     headers = []
     for f in fields:
@@ -185,6 +201,8 @@ def object_list(context, objects, view):
     object_list = [
         {
             "object": object,
+            "id": str(object.pk),  # Add ID for selection tracking
+            "is_selected": str(object.pk) in selected_ids if enable_bulk_edit else False,  # Check if this object is selected
             "fields": [
                 (
                     # M2M field
@@ -248,6 +266,11 @@ def object_list(context, objects, view):
         "table_classes": view.get_table_classes(),
         "htmx_target": htmx_target,
         "request": request,
+        # Add bulk edit related context
+        "enable_bulk_edit": enable_bulk_edit,
+        "selected_count": len(selected_ids) if enable_bulk_edit else 0,
+        "model_name": view.model.__name__.lower() if hasattr(view, 'model') else '',
+        "selection_key_suffix": selection_key_suffix,
     }
 
 @register.simple_tag

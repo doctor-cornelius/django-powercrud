@@ -6,17 +6,20 @@ Key Components:
 - HTMXFilterSetMixin: Adds HTMX attributes to filter forms for dynamic updates
 - NominopolitanMixin: Main mixin that provides CRUD view enhancements with HTMX and modal support
 """
+from django.template.loader import render_to_string
+
 
 from django import forms
 from django.forms import models as model_forms
-from django.db import models
+from django.db import models, transaction
 
-from django.http import Http404
+from django.http import Http404, JsonResponse, HttpResponse, HttpResponseRedirect
 from django.urls import NoReverseMatch, path, reverse
 from django.utils.decorators import classonlymethod
-from django.core.exceptions import ImproperlyConfigured
+from django.core.exceptions import ImproperlyConfigured, ValidationError
 from django.shortcuts import render
 from django.template.response import TemplateResponse
+
 
 from django.conf import settings
 from django.db.models.fields.reverse_related import ManyToOneRel
@@ -92,6 +95,29 @@ class HTMXFilterSetMixin:
         # self.helper.field_class = 'mt-1 block w-full rounded-md border-gray-300 shadow-sm'
         # self.helper.template = 'tailwind/layout/inline_field.html'
 
+# Create a standalone BulkEditRole class
+class BulkEditRole:
+    """A role for bulk editing that mimics the interface of Role"""
+    
+    def handlers(self):
+        return {"get": "bulk_edit", "post": "bulk_edit"}
+    
+    def extra_initkwargs(self):
+        return {"template_name_suffix": "_bulk_edit"}
+    
+    @property
+    def url_name_component(self):
+        return "bulk-edit"
+    
+    def url_pattern(self, view_cls):
+        return f"{view_cls.url_base}/bulk-edit/"
+    
+    def get_url(self, view_cls):
+        return path(
+            self.url_pattern(view_cls),
+            view_cls.as_view(role=self),
+            name=f"{view_cls.url_base}-{self.url_name_component}",
+        )
 
 class NominopolitanMixin:
     """
@@ -112,6 +138,9 @@ class NominopolitanMixin:
             which is #nominopolitanModalContent. Useful if for example
             the project has a modal with a different id available
             in the base template.
+
+        bulk_fields (list[str] | list[dict]): Fields that can be bulk edited
+        bulk_full_clean (bool): If True (default), run full_clean() on each object during bulk edit. If False, skip validation. Can be set by downstream users.
 
     """
 
@@ -140,6 +169,10 @@ class NominopolitanMixin:
     form_fields: list[str] = []
     form_fields_exclude: list[str] = []
 
+    # bulk edit parameters
+    bulk_fields: list[str] | list[dict] = []
+    bulk_full_clean: bool = True  # If True, run full_clean() on each object during bulk edit
+
     # htmx
     use_htmx: bool | None = None
     default_htmx_target: str = '#content'
@@ -153,7 +186,7 @@ class NominopolitanMixin:
     # table display parameters
     table_pixel_height_other_page_elements: int | float = 0  # px pixels
     table_max_height: int = 70 # expressed as vh units (ie percentage) of the remaining blank space 
-        # after subtracting table_pixel_height_other_page_elements
+    # after subtracting table_pixel_height_other_page_elements
 
     table_max_col_width: int = None # Expressed in ch units
     table_header_min_wrap_width: int = None  # Expressed in ch units
@@ -167,14 +200,14 @@ class NominopolitanMixin:
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        
+
         # Get all attributes that should be validated
         config_dict = {
             attr: getattr(self, attr)
             for attr in NominopolitanMixinValidator.__fields__.keys()
             if hasattr(self, attr)
         }
-        
+
         try:
             validated_settings = NominopolitanMixinValidator(**config_dict)
             # Update instance attributes with validated values
@@ -219,7 +252,7 @@ class NominopolitanMixin:
                         raise ValueError(f"Property {prop} not defined in {self.model.__name__}")
             elif type(self.properties) != list:
                 raise TypeError("properties must be a list or '__all__'")
-            
+
         # exclude properties
         if type(self.properties_exclude) == list:
             self.properties = [prop for prop in self.properties if prop not in self.properties_exclude]
@@ -249,7 +282,7 @@ class NominopolitanMixin:
         else:
             raise TypeError("detail_fields_exclude must be a list")
 
-        # add specified detail_properties            
+        # add specified detail_properties
         if self.detail_properties:
             if self.detail_properties == '__all__':
                 # Set self.detail_properties to a list of every property in self.model
@@ -273,9 +306,26 @@ class NominopolitanMixin:
         else:
             raise TypeError("detail_properties_exclude must be a list")
 
+        # validate bulk_fields list if present
+        if self.bulk_fields:
+            if isinstance(self.bulk_fields, list):
+                all_fields = self._get_all_fields()
+                for field_config in self.bulk_fields:
+                    if isinstance(field_config, str):
+                        field_name = field_config
+                    elif isinstance(field_config, dict) and 'name' in field_config:
+                        field_name = field_config['name']
+                    else:
+                        raise ValueError(f"Invalid bulk field configuration: {field_config}. Must be a string or dict with 'name' key.")
+
+                    if field_name not in all_fields:
+                        raise ValueError(f"Bulk field '{field_name}' not defined in {self.model.__name__}")
+            else:
+                raise TypeError("bulk_fields must be a list of field names or field configs")
+
         # Process form_fields last, after all other field processing is complete
         all_editable = self._get_all_editable_fields()
-        
+
         if not self.form_fields:
             # Default to editable fields from detail_fields
             self.form_fields = [
@@ -304,7 +354,7 @@ class NominopolitanMixin:
                 f for f in self.form_fields 
                 if f not in self.form_fields_exclude
             ]
-            
+
     def list(self, request, *args, **kwargs):
         """
         Handle GET requests for list view, including filtering and pagination.
@@ -364,7 +414,7 @@ class NominopolitanMixin:
     def get_table_max_col_width(self):
         # The max width for the table columns in object_list.html - in characters
         return f"{self.table_max_col_width}ch" or '25ch'
-    
+
     def get_table_header_min_wrap_width(self):
         # The max width for the table columns in object_list.html - in characters
         if self.table_header_min_wrap_width is None:
@@ -373,7 +423,7 @@ class NominopolitanMixin:
             return self.get_table_max_col_width()
         else:
             return f"{self.table_header_min_wrap_width}ch" #ch
-    
+
     def get_table_classes(self):
         """
         Get the table classes.
@@ -385,7 +435,7 @@ class NominopolitanMixin:
         Get the action button classes.
         """
         return self.action_button_classes
-    
+
     def get_extra_button_classes(self):
         """
         Get the extra button classes.
@@ -400,7 +450,7 @@ class NominopolitanMixin:
         Returns:
             dict: Framework-specific style configurations
         """
-        
+
         return {
             'bootstrap5': {
                 # base class for all buttons
@@ -460,15 +510,401 @@ class NominopolitanMixin:
             },
         }
 
+    def get_bulk_edit_enabled(self):
+        """
+        Determine if bulk edit functionality should be enabled.
+        
+        Returns:
+            bool: True if bulk edit is enabled (bulk_fields is not empty)
+        """
+        return bool(self.bulk_fields and self.use_modal and self.use_htmx)
+
+    def get_bulk_fields_metadata(self):
+        """
+        Get metadata for bulk editable fields.
+        
+        Returns:
+            list: List of dictionaries with field metadata
+        """
+        result = []
+
+        for field_config in self.bulk_fields:
+            if isinstance(field_config, str):
+                field_name = field_config
+                config = {}
+            else:
+                field_name = field_config.get('name')
+                config = field_config
+
+            try:
+                model_field = self.model._meta.get_field(field_name)
+                field_type = model_field.get_internal_type()
+                verbose_name = model_field.verbose_name.title() if hasattr(model_field, 'verbose_name') else field_name.replace('_', ' ').title()
+
+                result.append({
+                    'name': field_name,
+                    'verbose_name': verbose_name,
+                    'type': field_type,
+                    'is_relation': model_field.is_relation,
+                    'null': model_field.null if hasattr(model_field, 'null') else False,
+                    'config': config
+                })
+            except Exception as e:
+                log.warning(f"Error processing bulk field {field_name}: {str(e)}")
+
+        return result
+
+    def get_storage_key(self):
+        """
+        Return the storage key for the bulk selection.
+        """
+        return f"nominopolitan_bulk_{self.model.__name__.lower()}_{self.get_bulk_selection_key_suffix()}"
+
+    def get_bulk_selection_key_suffix(self):
+        """
+        Return a suffix to be appended to the bulk selection storage key.
+        Override this method to add custom constraints to selection persistence.
+        
+        Returns:
+            str: A string to append to the selection storage key
+        """
+        return ""
+
+    def bulk_edit(self, request, *args, **kwargs):
+        """
+        Handle GET and POST requests for bulk editing.
+        GET: Return a form for bulk editing selected objects
+        POST: Process the form and update selected objects
+        """
+        # Ensure HTMX is being used for both GET and POST
+        if not (hasattr(request, 'htmx') and request.htmx):
+            from django.http import HttpResponseBadRequest
+            return HttpResponseBadRequest("Bulk edit only supported via HTMX requests.")
+
+        # Get selected IDs from the request
+        selected_ids = request.POST.getlist('selected_ids[]') or request.GET.getlist('selected_ids[]')
+        if not selected_ids:
+            # If no IDs provided, try to get from JSON body
+            try:
+                if request.body and request.content_type == 'application/json':
+                    data = json.loads(request.body)
+                    selected_ids = data.get('selected_ids', [])
+            except:
+                pass
+            # If still no IDs, check for individual selected_ids parameters
+            if not selected_ids:
+                selected_ids = request.POST.getlist('selected_ids') or request.GET.getlist('selected_ids')
+        # If still no IDs, return an error
+        if not selected_ids:
+            return render(
+                request,
+                f"{self.templates_path}/partial/bulk_edit_error.html",
+                {"error": "No items selected for bulk edit."}
+            )
+        # Get the queryset of selected objects
+        queryset = self.model.objects.filter(pk__in=selected_ids)
+        # Get bulk fields (fields that can be bulk edited)
+        bulk_fields = getattr(self, 'bulk_fields', [])
+        if not bulk_fields:
+            return render(
+                request,
+                f"{self.templates_path}/partial/bulk_edit_error.html",
+                {"error": "No fields configured for bulk editing."}
+            )
+        # Handle form submission
+        if request.method == 'POST' and 'bulk_submit' in request.POST:
+            # If logic gets too large, move to a helper method
+            return self.bulk_edit_process_post(request, queryset, bulk_fields)
+        # Prepare context for the form
+        context = {
+            'selected_ids': selected_ids,
+            'selected_count': len(selected_ids),
+            'bulk_fields': bulk_fields,
+            'model': self.model,
+            'model_name': self.model.__name__.lower() if hasattr(self.model, '__name__') else '',
+            'model_name_plural': self.model._meta.verbose_name_plural,
+            'queryset': queryset,
+            'field_info': self._get_bulk_field_info(bulk_fields),
+            'storage_key': self.get_storage_key(),
+            'original_target': self.get_original_target(),
+        }
+        # Render the bulk edit form
+        return render(
+            request,
+            f"{self.templates_path}/partial/bulk_edit_form.html",
+            context
+        )
+
+    def bulk_edit_process_post(self, request, queryset, bulk_fields):
+        """
+        Process the POST logic for bulk editing. Handles deletion and updates with atomicity.
+        On success: returns an empty response and sets HX-Trigger for the main page to refresh the list.
+        On error: re-renders the form with errors.
+        """
+        log = logging.getLogger("nominopolitan")
+        fields_to_update = request.POST.getlist('fields_to_update')
+        log.debug(f"Bulk edit POST fields_to_update: {fields_to_update}")
+        delete_selected = request.POST.get('delete_selected')
+        log.debug(f"Bulk edit POST delete_selected: {delete_selected}")
+        errors = []
+        updated_count = 0
+        deleted_count = 0
+        field_info = self._get_bulk_field_info(bulk_fields)
+        log.debug(f"Bulk edit field_info: {field_info}")
+
+        if delete_selected:
+            log.debug(f"Bulk edit: Deleting {queryset.count()} objects")
+            # Call delete() on each object individually for model-specific logic
+            for obj in queryset:
+                try:
+                    obj.delete()
+                    deleted_count += 1
+                except Exception as e:
+                    log.debug(f"Error deleting object {obj.pk}: {e}")
+                    errors.append((obj.pk, [str(e)]))
+                
+            # Handle response based on errors
+            if errors:
+                context = {
+                    "errors": errors,
+                    "selected_ids": [obj.pk for obj in queryset],
+                    "selected_count": queryset.count(),
+                    "bulk_fields": bulk_fields,
+                    "model": self.model,
+                    "model_name": self.model.__name__.lower() if hasattr(self.model, '__name__') else '',
+                    "model_name_plural": self.model._meta.verbose_name_plural,
+                    "queryset": queryset,
+                    "field_info": field_info,
+                    "storage_key": self.get_storage_key(),
+                    "original_target": self.get_original_target(),
+                }
+                response = render(
+                    request,
+                    f"{self.templates_path}/partial/bulk_edit_form.html",
+                    context
+                )
+                
+                # Use formError trigger and include showModal to ensure the modal stays open
+                modal_id = self.get_modal_id()[1:]  # Remove the # prefix
+                response["HX-Trigger"] = json.dumps({
+                    "formError": True,
+                    "showModal": modal_id,
+                })
+                
+                # Make sure the response targets the modal content
+                response["HX-Retarget"] = self.get_modal_target()
+                return response
+                
+            if not errors:
+                response = HttpResponse("")
+                response["HX-Trigger"] = json.dumps({"bulkEditSuccess": True})
+                log.debug(f"Bulk edit: Deleted {deleted_count} objects successfully.")
+                return response
+        
+        # Bulk update - collect all changes first, then apply in transaction
+        updates_to_apply = []
+        
+        # First pass: collect all changes without saving
+        for obj in queryset:
+            log.debug(f"Preparing bulk edit for object {obj.pk}")
+            obj_changes = {'object': obj, 'changes': {}}
+            
+            for field in fields_to_update:
+                info = field_info.get(field, {})
+                value = request.POST.get(field)
+                log.debug(f"Field '{field}' info: {info}, raw POST value: {value}")
+                
+                # Process value based on field type
+                if info.get('type') == 'BooleanField':
+                    if value == "true":
+                        value = True
+                    elif value == "false":
+                        value = False
+                    elif value in (None, "", "null"):
+                        value = None
+                
+                # Store the change to apply later
+                obj_changes['changes'][field] = {
+                    'value': value,
+                    'info': info
+                }
+            
+            updates_to_apply.append(obj_changes)
+        
+        # Second pass: apply all changes in a transaction
+        error_occurred = False
+        error_message = None
+        
+        try:
+            with transaction.atomic():
+                for update in updates_to_apply:
+                    obj = update['object']
+                    changes = update['changes']
+                    
+                    # Apply all changes to the object
+                    for field, change_info in changes.items():
+                        info = change_info['info']
+                        value = change_info['value']
+                        
+                        if info.get('is_m2m'):
+                            # Handle M2M fields
+                            m2m_action = request.POST.get(f"{field}_action", "replace")
+                            m2m_values = request.POST.getlist(f"{field}[]")
+                            m2m_manager = getattr(obj, field)
+                            
+                            if m2m_action == "add":
+                                m2m_manager.add(*m2m_values)
+                            elif m2m_action == "remove":
+                                m2m_manager.remove(*m2m_values)
+                            else:  # replace
+                                m2m_manager.set(m2m_values)
+                        elif info.get('is_relation'):
+                            # Handle relation fields
+                            if value == "null":
+                                setattr(obj, field, None)
+                            else:
+                                setattr(obj, field, value)
+                        else:
+                            # Handle regular fields
+                            setattr(obj, field, value)
+                    
+                    # Validate and save the object
+                    if getattr(self, 'bulk_full_clean', True):
+                        obj.full_clean()  # This will raise ValidationError if validation fails
+                    obj.save()
+                    updated_count += 1
+                    log.debug(f"Object {obj.pk} updated successfully.")
+                
+                # If we get here, all objects were updated successfully
+                log.debug(f"All {updated_count} objects updated successfully.")
+        
+        except Exception as e:
+            # If any exception occurs, the transaction is rolled back
+            error_occurred = True
+            error_message = str(e)
+            log.debug(f"Error during bulk update, transaction rolled back: {error_message}")
+            
+            # Directly add the error to our list
+            if isinstance(e, ValidationError):
+                # Handle different ValidationError formats
+                if hasattr(e, 'message_dict'):
+                    # This is a dictionary of field names to error messages
+                    for field, messages in e.message_dict.items():
+                        errors.append((field, messages))
+                elif hasattr(e, 'messages'):
+                    # This is a list of error messages
+                    errors.append(("general", e.messages))
+                else:
+                    # Fallback
+                    errors.append(("general", [str(e)]))
+            else:
+                # For other exceptions, just add the error message
+                errors.append(("general", [str(e)]))
+        
+        # Force an error if we caught an exception but didn't add any specific errors
+        if error_occurred and not errors:
+            errors.append(("general", [error_message or "An unknown error occurred"]))
+        
+        # Check if there were any errors during the update process
+        log.debug(f"Bulk edit update errors: {errors}")
+        if errors:
+            context = {
+                "errors": errors,
+                "selected_ids": [obj.pk for obj in queryset],
+                "selected_count": queryset.count(),
+                "bulk_fields": bulk_fields,
+                "model": self.model,
+                "model_name": self.model.__name__.lower() if hasattr(self.model, '__name__') else '',
+                "model_name_plural": self.model._meta.verbose_name_plural,
+                "queryset": queryset,
+                "field_info": field_info,
+                "storage_key": self.get_storage_key(),
+                "original_target": self.get_original_target(),
+            }
+            response = render(
+                request,
+                f"{self.templates_path}/partial/bulk_edit_form.html",
+                context
+            )
+            
+            # Use the same error handling as for delete errors
+            modal_id = self.get_modal_id()[1:]  # Remove the # prefix
+            response["HX-Trigger"] = json.dumps({
+                "formError": True,
+                "showModal": modal_id,
+            })
+            
+            # Make sure the response targets the modal content
+            response["HX-Retarget"] = self.get_modal_target()
+            log.debug(f"Returning error response with {len(errors)} errors")
+            return response
+        else:
+            # Success case (no errors)
+            response = HttpResponse("")
+            response["HX-Trigger"] = json.dumps({"bulkEditSuccess": True})
+            log.debug(f"Bulk edit: Updated {updated_count} objects successfully.")
+            return response
+
+    def _get_bulk_field_info(self, bulk_fields):
+        """
+        Get information about fields for bulk editing.
+        
+        Returns:
+            dict: A dictionary mapping field names to their metadata
+        """
+        field_info = {}
+
+        for field_spec in bulk_fields:
+            if isinstance(field_spec, dict):
+                field_dict = field_spec
+                field_name = field_spec.get('name', None)
+                if not field_name:
+                    continue
+            else:
+                field_name = field_spec
+                field_dict = {}
+
+            try:
+                field = self.model._meta.get_field(field_name)
+
+                # Get field type and other metadata
+                field_type = field.get_internal_type()
+                is_relation = field.is_relation
+                is_m2m = field_type == 'ManyToManyField'
+
+                # For related fields, get all possible related objects
+                bulk_choices = None
+                if is_relation and hasattr(field, 'related_model'):
+                    # Use the related model's objects manager directly
+                    bulk_choices = field.related_model.objects.all()
+
+                field_info[field_name] = {
+                    'field': field,
+                    'type': field_type,
+                    'is_relation': is_relation,
+                    'is_m2m': is_m2m,  # Add a flag for M2M fields
+                    'bulk_choices': bulk_choices,
+                    'verbose_name': field.verbose_name,
+                    'null': field.null if hasattr(field, 'null') else False,
+                    # Add any additional info from field_dict
+                    **{k: v for k, v in field_dict.items() if k != 'name'}
+                }
+            except Exception as e:
+                # Skip invalid fields
+                print(f"Error processing field {field_name}: {str(e)}")
+                continue
+
+        return field_info
+
     def get_filter_queryset_for_field(self, field_name, model_field):
         """Get an efficiently filtered and sorted queryset for filter options."""
-        
+
         # Start with an empty queryset
         queryset = model_field.related_model.objects
-        
+
         # Define model_fields early to ensure it exists in all code paths
         model_fields = [f.name for f in model_field.related_model._meta.fields]
-        
+
         # Apply custom filters if defined
         filter_options = getattr(self, 'filter_queryset_options', {})
         if field_name in filter_options:
@@ -494,32 +930,32 @@ class NominopolitanMixin:
         else:
             # No filters specified, get all records
             queryset = queryset.all()
-        
+
         # Check if we should sort by a specific field
         sort_options = getattr(self, 'filter_sort_options', {})
         if field_name in sort_options:
             sort_field = sort_options[field_name]
             return queryset.order_by(sort_field)
-        
+
         # If no specified sort field but model has common name fields, use that
         for field in ['name', 'title', 'label', 'display_name']:
             if field in model_fields:
                 return queryset.order_by(field)
-        
+
         # Only if really necessary, fall back to string representation sorting
         sorted_objects = sorted(list(queryset), key=lambda x: str(x).lower())
         pk_list = [obj.pk for obj in sorted_objects]
-        
+
         if not pk_list:  # Empty list case
             return queryset.none()
-            
+
         # Return ordered queryset
         from django.db.models import Case, When, Value, IntegerField
         preserved_order = Case(
             *[When(pk=pk, then=Value(i)) for i, pk in enumerate(pk_list)],
             output_field=IntegerField(),
         )
-        
+
         return queryset.filter(pk__in=pk_list).order_by(preserved_order)
 
     def get_filterset(self, queryset=None):
@@ -556,11 +992,11 @@ class NominopolitanMixin:
                 """
                 framework = getattr(settings, 'NOMINOPOLITAN_CSS_FRAMEWORK', 'daisyui')
                 BASE_ATTRS = self.get_framework_styles()[framework]['filter_attrs']
-                
+
                 # Dynamically create filter fields based on the model's fields
                 for field_name in filterset_fields:
                     model_field = self.model._meta.get_field(field_name)
-                    
+
                     # Handle GeneratedField special case
                     field_to_check = model_field.output_field if isinstance(model_field, models.GeneratedField) else model_field
                     # Check if BASE_ATTRS is structured by field type
@@ -586,7 +1022,6 @@ class NominopolitanMixin:
                         # Legacy behavior - use the same attributes for all fields
                         field_attrs = BASE_ATTRS.copy()
 
-
                     # Create appropriate filter based on field type
                     if isinstance(field_to_check, models.ManyToManyField):
                         # Add max-height and other useful styles to the select widget
@@ -594,10 +1029,10 @@ class NominopolitanMixin:
                             'style': 'max-height: 200px; overflow-y: auto;',
                             'class': field_attrs.get('class', '') + ' select2',  # Add select2 class if you want to use Select2
                         })
-                        
+
                         # Choose between OR logic (ModelMultipleChoiceFilter) or AND logic (AllValuesModelMultipleChoiceFilter)
                         filter_class = AllValuesModelMultipleChoiceFilter if self.m2m_filter_and_logic else ModelMultipleChoiceFilter
-                        
+
                         locals()[field_name] = filter_class(
                             queryset=self.get_filter_queryset_for_field(field_name, model_field),
                             widget=forms.SelectMultiple(attrs=field_attrs)
@@ -630,13 +1065,13 @@ class NominopolitanMixin:
                 class Meta:
                     model = self.model
                     fields = filterset_fields
-               
+
                 def __init__(self, *args, **kwargs):
                     """Initialize the FilterSet and set up HTMX attributes if needed."""
                     super().__init__(*args, **kwargs)
                     if use_htmx:
                         self.setup_htmx_attrs()
-                        
+
             filterset_class = DynamicFilterSet
 
         if filterset_class is None:
@@ -665,7 +1100,7 @@ class NominopolitanMixin:
             self.request.GET = modified_GET
             # Clean up flag
             delattr(self, '_reset_pagination')
-        
+
         # Call parent implementation
         try:
             return super().paginate_queryset(queryset, page_size)
@@ -674,10 +1109,9 @@ class NominopolitanMixin:
             if original_GET is not None:
                 self.request.GET = original_GET
 
-
     def _get_all_fields(self):
         fields = [field.name for field in self.model._meta.get_fields()]
-            
+
         # Exclude reverse relations
         fields = [
             field.name for field in self.model._meta.get_fields()
@@ -697,7 +1131,7 @@ class NominopolitanMixin:
         return [name for name in dir(self.model)
                     if isinstance(getattr(self.model, name), property) and name != 'pk'
                 ]
-    
+
     def get_model_session_key(self):
         """Generate a unique key for this model within the nominopolitan session dict."""
         app_name = self.model._meta.app_label
@@ -712,13 +1146,13 @@ class NominopolitanMixin:
         """Update the session data for this model within the nominopolitan session dict."""
         nominopolitan_data = self.request.session.get('nominopolitan', {})
         model_key = self.get_model_session_key()
-        
+
         if model_key not in nominopolitan_data:
             nominopolitan_data[model_key] = data
         else:
             # Update existing data
             nominopolitan_data[model_key].update(data)
-        
+
         self.request.session['nominopolitan'] = nominopolitan_data
         return nominopolitan_data[model_key]
 
@@ -770,7 +1204,7 @@ class NominopolitanMixin:
         """
         result = self.use_modal is True and self.get_use_htmx()
         return result
-    
+
     def get_modal_id(self):
         """
         Get the ID for the modal element.
@@ -782,7 +1216,7 @@ class NominopolitanMixin:
         """
         modal_id = self.modal_id or 'nominopolitanBaseModal'
         return f'#{modal_id}'
-    
+
     def get_modal_target(self):
         """
         Get the target element ID for the modal content.
@@ -795,7 +1229,7 @@ class NominopolitanMixin:
         """
         modal_target = self.modal_target or 'nominopolitanModalContent'
         return f'#{modal_target}'
-    
+
     def get_hx_trigger(self):
         """
         Get the HX-Trigger value for HTMX responses.
@@ -809,7 +1243,7 @@ class NominopolitanMixin:
         """
         if not self.get_use_htmx() or not self.hx_trigger:
             return None
-            
+
         if isinstance(self.hx_trigger, (str, int, float)):
             # Convert simple triggers to JSON format
             # 'messagesChanged' becomes '{"messagesChanged":true}'
@@ -909,7 +1343,16 @@ class NominopolitanMixin:
         """
         if roles is None:
             roles = iter(Role)
-        return [NominopolitanMixin.get_url(role, cls) for role in roles]
+
+        # Standard CRUD URLs
+        urls = [NominopolitanMixin.get_url(role, cls) for role in roles]
+
+        # Add bulk edit URL if bulk_fields are defined
+        if hasattr(cls, 'bulk_fields') and cls.bulk_fields:
+            bulk_edit_role = BulkEditRole()
+            urls.append(bulk_edit_role.get_url(cls))
+
+        return urls
 
     def reverse(self, role, view, object=None):
         """
@@ -964,46 +1407,45 @@ class NominopolitanMixin:
             return self.reverse(view, object)
         except NoReverseMatch:
             return None
-    
 
     def _apply_crispy_helper(self, form_class):
         """Helper method to apply crispy form settings to a form class."""
         if not self.get_use_crispy():
             return form_class
-        
+
         # Create a new instance to check if it has a helper
         _temp_form = form_class()
         has_helper = hasattr(_temp_form, 'helper')
-        
+
         if not has_helper:
             # log.debug(f"Adding FormHelper to {form_class.__name__} with form_tag=False and disable_csrf=True")
             old_init = form_class.__init__
-            
+
             def new_init(self, *args, **kwargs):
                 old_init(self, *args, **kwargs)
                 self.helper = FormHelper()
                 self.helper.form_tag = False
                 self.helper.disable_csrf = True
-            
+
             form_class.__init__ = new_init
         else:
             old_init = form_class.__init__
-            
+
             def new_init(self, *args, **kwargs):
                 old_init(self, *args, **kwargs)
-                
+
                 # Check if form_tag has been explicitly set to True
                 if self.helper.form_tag is True:
                     # log.debug(f"Overriding form_tag=True to False in {self.__class__.__name__}")
                     self.helper.form_tag = False
-                
+
                 # Check if disable_csrf has been explicitly set to False
                 if self.helper.disable_csrf is False:
                     # log.debug(f"Overriding disable_csrf=False to True in {self.__class__.__name__}")
                     self.helper.disable_csrf = True
-            
+
             form_class.__init__ = new_init
-        
+
         return form_class
 
     def get_form_class(self):
@@ -1012,7 +1454,7 @@ class NominopolitanMixin:
         # Use explicitly defined form class if provided
         if self.form_class is not None:
             return self._apply_crispy_helper(self.form_class)
-        
+
         # Generate a default form class using form_fields
         if self.model is not None and self.form_fields:
             # Configure HTML5 input widgets for date/time fields
@@ -1126,17 +1568,17 @@ class NominopolitanMixin:
         """
         queryset = super().get_queryset()
         sort_param = self.request.GET.get('sort')
-        
+
         if sort_param:
             # Handle descending sort (prefixed with '-')
             descending = sort_param.startswith('-')
             field_name = sort_param[1:] if descending else sort_param
-            
+
             # Get all valid field names and properties
             valid_fields = {f.name: f.name for f in self.model._meta.fields}
             # Add any properties that are sortable
             valid_fields.update({p: p for p in getattr(self, 'properties', [])})
-            
+
             # Try to match the sort parameter to a valid field
             # First try exact match
             if field_name in valid_fields:
@@ -1145,7 +1587,7 @@ class NominopolitanMixin:
                 # Try case-insensitive match
                 matches = {k.lower(): v for k, v in valid_fields.items()}
                 sort_field = matches.get(field_name.lower())
-                
+
             if sort_field:
                 # Re-add the minus sign if it was descending
                 if descending:
@@ -1158,7 +1600,7 @@ class NominopolitanMixin:
         else:
             # If no sort specified, sort by pk as default
             queryset = queryset.order_by('pk')
-            
+
         return queryset
 
     def get_context_data(self, **kwargs):
@@ -1196,6 +1638,10 @@ class NominopolitanMixin:
         context["use_htmx"] = self.get_use_htmx()
         context['use_modal'] = self.get_use_modal()
         context["original_target"] = self.get_original_target()
+
+        # bulk edit context vars
+        context['enable_bulk_edit'] = self.get_bulk_edit_enabled()
+        context['storage_key'] = self.get_storage_key()
 
         # Set table styling parameters
         context['table_pixel_height_other_page_elements'] = self.get_table_pixel_height_other_page_elements()
@@ -1271,9 +1717,27 @@ class NominopolitanMixin:
 
         return success_url
 
+    def form_valid(self, form):
+        """
+        Handle form validation success with a simplified trigger approach.
+        """
+        self.object = form.save()
+        
+        # If this is an HTMX request, return a response with appropriate triggers
+        if hasattr(self, 'request') and getattr(self.request, 'htmx', False):
+            response = HttpResponse("")
+            
+            # Single, simplified trigger
+            response["HX-Trigger"] = json.dumps({"formSuccess": True})
+            
+            return response
+        
+        # Otherwise, use the default redirect
+        return HttpResponseRedirect(self.get_success_url())
+
     def form_invalid(self, form):
         """
-        Handle form validation errors and ensure they appear in the modal.
+        Handle form validation errors with a simplified trigger approach.
         """
         # Store the form with errors
         self.object_form = form
@@ -1282,7 +1746,72 @@ class NominopolitanMixin:
         if self.get_use_modal():
             self.form_has_errors = True
         
-        return super().form_invalid(form)
+        # Call the parent implementation to render the form with errors
+        response = super().form_invalid(form)
+        
+        # If this is an HTMX request and we're using modals, ensure the response
+        # has the right headers to keep the modal open
+        if hasattr(self, 'request') and getattr(self.request, 'htmx', False) and self.get_use_modal():
+            # Single, simplified trigger
+            response["HX-Trigger"] = json.dumps({"formError": True})
+            
+            # Make sure the response targets the modal content
+            response["HX-Retarget"] = self.get_modal_target()
+            
+            # Ensure the modal stays open
+            modal_id = self.get_modal_id()[1:]  # Remove the # prefix
+            response["HX-Trigger"] = json.dumps({"formError": True, "showModal": modal_id})
+        
+        return response
+
+    def _prepare_htmx_response(self, response, context=None, form_has_errors=False):
+        """
+        Prepare an HTMX response with appropriate triggers and headers.
+        """
+        # Handle modal display for forms with errors
+        if form_has_errors and self.get_use_modal():
+            # For daisyUI, we need to trigger the showModal() method
+            modal_id = self.get_modal_id()[1:]  # Remove the # prefix
+            
+            # Create or update HX-Trigger header
+            trigger_data = {"showModal": modal_id, "formSubmitError": True}
+            
+            # If there's an existing HX-Trigger, merge with it
+            existing_trigger = self.get_hx_trigger()
+            if existing_trigger:
+                # Since get_hx_trigger always returns a JSON string, we can parse it directly
+                existing_data = json.loads(existing_trigger)
+                trigger_data.update(existing_data)
+            
+            response['HX-Trigger'] = json.dumps(trigger_data)
+            
+            # Make sure the response targets the modal content
+            if self.get_modal_target():
+                response['HX-Retarget'] = self.get_modal_target()
+        
+        # For successful form submissions
+        elif context and context.get('success') is True:
+            # Create success trigger
+            trigger_data = {
+                "formSubmitSuccess": True, 
+                "modalFormSuccess": True,
+                "refreshList": True,
+                "refreshUrl": self.request.path
+            }
+            
+            # If there's an existing HX-Trigger, merge with it
+            existing_trigger = self.get_hx_trigger()
+            if existing_trigger:
+                existing_data = json.loads(existing_trigger)
+                trigger_data.update(existing_data)
+            
+            response['HX-Trigger'] = json.dumps(trigger_data)
+        
+        # For other cases, just use the existing HX-Trigger if any
+        elif self.get_hx_trigger():
+            response['HX-Trigger'] = self.get_hx_trigger()
+        
+        return response
 
     def render_to_response(self, context={}):
         """
@@ -1301,16 +1830,12 @@ class NominopolitanMixin:
             # this call check if valid template
             template = get_template(template_name)
         except TemplateDoesNotExist:
-            # log.debug(f"Template {template_name} not found, falling back to {template_names[1]}")
             template_name = template_names[1]
             template = get_template(template_name)
-            # log.debug(f"Found template {template_name} at {template.origin.name}")
         except Exception as e:
             log.error(f"Unexpected error checking template {template_name}: {str(e)}")
             template_name = template_names[1]
         
-        # log.debug(f"Rendering template_name: {template_name}")
-
         # add to session here (template name may change later)
         self.set_session_data_key({'original_template': template_name})
 
@@ -1336,25 +1861,11 @@ class NominopolitanMixin:
             
             # Add HX-Trigger for modal if form has errors and modal should be used
             if form_has_errors and self.get_use_modal():
-                # For daisyUI, we need to trigger the showModal() method
-                modal_id = self.get_modal_id()[1:]  # Remove the # prefix
-                
-                # Create or update HX-Trigger header
-                trigger_data = {"showModal": modal_id}
-                
-                # If there's an existing HX-Trigger, merge with it
-                existing_trigger = self.get_hx_trigger()
-                if existing_trigger:
-                    # Since get_hx_trigger always returns a JSON string, we can parse it directly
-                    existing_data = json.loads(existing_trigger)
-                    trigger_data.update(existing_data)
-
-                
-                response['HX-Trigger'] = json.dumps(trigger_data)
+                # Single, simplified trigger
+                response['HX-Trigger'] = json.dumps({"formError": True})
                 
                 # Make sure the response targets the modal content
-                if self.get_modal_target():
-                    response['HX-Retarget'] = self.get_modal_target()
+                response['HX-Retarget'] = self.get_modal_target()
                 
                 # Clear the flag after handling
                 self.form_has_errors = False

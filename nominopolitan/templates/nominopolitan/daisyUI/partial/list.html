@@ -38,10 +38,21 @@
 </style>
 
 <div class="overflow-x-auto table-max-height"
-    style="overflow-y: auto; width: fit-content; padding-right: 20px;">
+    style="overflow-y: auto; width: fit-content; padding-right: 20px;"
+    {% if enable_bulk_edit %}data-selection-key="{{ keyBase }}_{{ selection_key_suffix }}_selected"{% endif %}
+    >
     <table class="table {{ table_classes }} w-auto">
         <thead>
             <tr>
+                {% if enable_bulk_edit %}
+                <!-- Bulk selection checkbox column -->
+                <th class="bg-neutral text-neutral-content text-center align-middle sticky-header w-10">
+                    <input type="checkbox" id="select-all-checkbox" 
+                           class="checkbox checkbox-sm" 
+                           onchange="toggleAllSelection(this.checked)">
+                </th>
+                {% endif %}
+                
                 {% for header, field_name, is_sortable in headers %}
                 <th class="bg-neutral text-neutral-content text-center align-middle truncate table-column-width sticky-header"
                     {% if is_sortable %}style="cursor: pointer;"{% endif %}
@@ -79,7 +90,18 @@
         </thead>
             <tbody>
                 {% for object in object_list %}
-                <tr class="text-center hover">
+                <tr class="text-center hover {% if object.is_selected %}bg-base-200{% endif %}">
+                    {% if enable_bulk_edit %}
+                    <!-- Row selection checkbox -->
+                    <td class="py-0 align-middle">
+                        <input type="checkbox" 
+                               class="checkbox checkbox-sm row-select-checkbox" 
+                               data-id="{{ object.id }}"
+                               {% if object.is_selected %}checked{% endif %}
+                               onchange="toggleRowSelection(this)">
+                    </td>
+                    {% endif %}
+                    
                     {% for field in object.fields %}
                     <td class="{% if forloop.first %}font-medium{% endif %} py-0 align-middle px-2 truncate table-column-width"
                         {% if not field|safe|stringformat:"s"|first in "<" %}data-tippy-content="{{field}}"{% endif %}>
@@ -94,3 +116,7 @@
             </tbody>
         </table>
 </div>
+
+{% if enable_bulk_edit %}
+<!-- No selection restore JS here; handled globally in object_list.html -->
+{% endif %}

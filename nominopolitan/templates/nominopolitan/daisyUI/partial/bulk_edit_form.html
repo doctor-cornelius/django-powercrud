@@ -1,0 +1,195 @@
+{% if errors %}
+    <div class="alert alert-error mb-4">
+        <ul>
+        {% for obj_pk, error_list in errors %}
+            {% for error in error_list %}
+                <li>
+                    {% if obj_pk %}
+                        <strong>Object {{ obj_pk }}:</strong>
+                    {% endif %}
+                    {{ error }}
+                </li>
+            {% endfor %}
+        {% endfor %}
+        </ul>
+    </div>
+{% endif %}
+
+<div class="p-4">
+    <h2 class="text-xl font-bold mb-4">Bulk Edit {{ selected_count }} {{ model_name_plural }}</h2>
+    
+    <form id="bulk-edit-form" method="post" hx-post="{{ request.path }}" hx-target="#nominopolitanModalContent">
+        {% csrf_token %}
+        
+        <!-- Hidden field for selected IDs -->
+        {% for id in selected_ids %}
+        <input type="hidden" name="selected_ids[]" value="{{ id }}">
+        {% endfor %}
+        
+        <div class="mb-4">
+            <p class="text-sm text-base-content/70 mb-2">
+                Select which fields to update and provide new values.
+                Only checked fields will be modified.
+            </p>
+        </div>
+        
+        <div class="space-y-4">
+            {% for field_name, info in field_info.items %}
+            <div class="form-control">
+                <label class="cursor-pointer label justify-start gap-4">
+                    <input type="checkbox" name="fields_to_update" value="{{ field_name }}" 
+                           class="checkbox checkbox-primary field-toggle" 
+                           onchange="toggleFieldInput(this)">
+                    <span class="label-text font-medium">{{ info.verbose_name|title }}</span>
+                </label>
+                
+                <div class="mt-2 pl-10 field-input-container" style="display: none;">
+                    {% if info.type == 'BooleanField' %}
+                    <!-- Boolean field -->
+                    <select name="{{ field_name }}" class="select select-bordered w-full" disabled>
+                        <option value="">-- No change --</option>
+                        <option value="true">Yes</option>
+                        <option value="false">No</option>
+                    </select>
+                    
+                    {% elif info.type == 'DateField' %}
+                    <!-- Date field -->
+                    <input type="date" name="{{ field_name }}" class="input input-bordered w-full" disabled>
+                    
+                    {% elif info.type == 'DateTimeField' %}
+                    <!-- DateTime field -->
+                    <input type="datetime-local" name="{{ field_name }}" class="input input-bordered w-full" disabled>
+                    
+                    {% elif info.is_relation %}
+                        {% if info.type == 'ForeignKey' %}
+                        <select name="{{ field_name }}" class="select select-bordered w-full" disabled>
+                            <option value="">-- No change --</option>
+                            {% if info.null %}
+                            <option value="null">-- None --</option>
+                            {% endif %}
+                            {% for choice in info.bulk_choices %}
+                            <option value="{{ choice.pk }}">{{ choice }}</option>
+                            {% endfor %}
+                        </select>
+                        {% elif info.is_m2m %}
+                        <select name="{{ field_name }}" class="select select-bordered w-full min-h-[150px] h-auto" multiple disabled>
+                            {% for choice in info.bulk_choices %}
+                            <option value="{{ choice.pk }}">{{ choice }}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="text-xs mt-1">
+                            <label class="flex items-center">
+                                <input type="radio" name="{{ field_name }}_action" value="add" class="radio radio-xs mr-1" disabled>
+                                <span>Add selected</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="radio" name="{{ field_name }}_action" value="remove" class="radio radio-xs mr-1" disabled>
+                                <span>Remove selected</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="radio" name="{{ field_name }}_action" value="replace" class="radio radio-xs mr-1" disabled>
+                                <span>Replace with selected</span>
+                            </label>
+                        </div>
+                        {% endif %}
+                    {% elif info.type == 'ManyToManyField' %}
+                    <!-- Many-to-many field -->
+                    <div class="border rounded-lg p-2 max-h-40 overflow-y-auto">
+                        <div class="mb-2">
+                            <label class="cursor-pointer label justify-start gap-2">
+                                <input type="radio" name="{{ field_name }}_action" value="add" 
+                                       class="radio radio-sm radio-primary" checked disabled>
+                                <span class="label-text">Add selected</span>
+                            </label>
+                            <label class="cursor-pointer label justify-start gap-2">
+                                <input type="radio" name="{{ field_name }}_action" value="remove" 
+                                       class="radio radio-sm radio-primary" disabled>
+                                <span class="label-text">Remove selected</span>
+                            </label>
+                            <label class="cursor-pointer label justify-start gap-2">
+                                <input type="radio" name="{{ field_name }}_action" value="replace" 
+                                       class="radio radio-sm radio-primary" disabled>
+                                <span class="label-text">Replace with selected</span>
+                            </label>
+                        </div>
+                        
+                        {% for choice in info.choices %}
+                        <label class="cursor-pointer label justify-start gap-2">
+                            <input type="checkbox" name="{{ field_name }}[]" value="{{ choice.pk }}" 
+                                   class="checkbox checkbox-sm checkbox-primary" disabled>
+                            <span class="label-text">{{ choice }}</span>
+                        </label>
+                        {% endfor %}
+                    </div>
+                    
+                    {% elif info.choices %}
+                    <!-- Field with choices -->
+                    <select name="{{ field_name }}" class="select select-bordered w-full" disabled>
+                        <option value="">-- No change --</option>
+                        {% for value, label in info.choices %}
+                        <option value="{{ value }}">{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                    
+                    {% elif info.type == 'IntegerField' or info.type == 'FloatField' or info.type == 'DecimalField' %}
+                    <!-- Numeric field -->
+                    <input type="number" name="{{ field_name }}" class="input input-bordered w-full" 
+                           step="{% if info.type == 'IntegerField' %}1{% else %}any{% endif %}" disabled>
+                    
+                    {% else %}
+                    <!-- Default to text input -->
+                    <input type="text" name="{{ field_name }}" class="input input-bordered w-full" disabled>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <!-- Delete option -->
+        <div class="form-control mt-6 border-t pt-4">
+            <label class="cursor-pointer label justify-start gap-4">
+                <input type="checkbox" name="delete_selected" value="1" 
+                       class="checkbox checkbox-error">
+                <span class="label-text font-medium text-error">Delete all selected items</span>
+            </label>
+            <p class="text-sm text-error/70 pl-10">
+                Warning: This action cannot be undone.
+            </p>
+        </div>
+        
+        <!-- Submit buttons -->
+        <div class="modal-action mt-6">
+            <button type="button" class="btn btn-outline" onclick="nominopolitanBaseModal.close()">
+                Cancel
+            </button>
+            <button type="submit" name="bulk_submit" value="1" class="btn btn-primary">
+                Apply Changes
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+    // Toggle input fields when checkboxes are clicked
+    function toggleFieldInput(checkbox) {
+        const container = checkbox.closest('.form-control').querySelector('.field-input-container');
+        const inputs = container.querySelectorAll('input, select, textarea');
+        
+        if (checkbox.checked) {
+            container.style.display = 'block';
+            inputs.forEach(input => {
+                input.disabled = false;
+            });
+        } else {
+            container.style.display = 'none';
+            inputs.forEach(input => {
+                input.disabled = true;
+            });
+        }
+    }
+    
+    // Initialize the form
+    document.addEventListener('DOMContentLoaded', function() {
+        // Nothing to initialize yet
+    });
+</script>
