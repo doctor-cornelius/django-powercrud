@@ -1,3 +1,13 @@
+## 0.2.17 (2025-07-01)
+
+### Fix
+
+- **(bulk_edit)**:  fix foreign key record update and document bulk edit functionality
+
+### Feature
+
+- **(bulk_edit)**:  add bulk edit functionality with atomic rollback on failure
+
 ## 0.2.16 (2025-05-22)
 
 ### Refactor
