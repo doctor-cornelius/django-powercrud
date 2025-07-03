@@ -1,3 +1,9 @@
+## 0.2.19 (2025-07-03)
+
+### Refactor
+
+- **(get_bulk_choices_for_field)**:  separate out method for extracting choices for foreign key fields, to allow easier override
+
 ## 0.2.18 (2025-07-03)
 
 ### Fix
