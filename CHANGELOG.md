@@ -1,3 +1,18 @@
+## 0.2.20 (2025-07-03)
+
+### Documentation
+
+- **(README.md)**:  improve documentation of override method for get_bulk_choice_for_field
+
+### Feature
+
+- **(sample)**:  add Profile and ProfileCRUDView to test OneToOneField bulk edit
+- **(bulk_edit_form)**:  add logic to also handle OneToOneFields
+
+### Style
+
+- **(list.html)**:  set checkbox all for bulk edit to have white border
+
 ## 0.2.19 (2025-07-03)
 
 ### Refactor
