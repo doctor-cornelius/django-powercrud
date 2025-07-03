@@ -97,7 +97,17 @@ It is a **very early alpha** release. No tests. Limited docs. Expect many breaki
 - Clear separation between update and delete operations in the UI
 - bulk update process runs `full_clean()` and `save()` on every record
     - you can specify `bulk_full_clean = False` (default is `True`) to skip full clean step
-- to further restrict choices for foreign key dropdowns, you can override `get_bulk_choice_for_field`
+- **Overrides** to further restrict choices for foreign key dropdowns, you can override `get_bulk_choice_for_field`; see the toy example in `sample/views.py` for the `BookCRUDView` class:
+
+    ```python
+    def get_bulk_choices_for_field(self, field_name, field):
+        """Example of how to override to further restrict foreign key choices for 
+            dropdown in bulk edit form.
+        """
+        if field_name == 'author' and hasattr(field, "related_model") and field.related_model is not None:
+            return field.related_model.objects.filter(id=19)
+        return super().get_bulk_choices_for_field(field_name, field)    
+    ```
 
 **Tailwind CSS Considerations**
 
