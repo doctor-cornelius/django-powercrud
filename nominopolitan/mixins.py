@@ -854,7 +854,7 @@ class NominopolitanMixin:
         else:
             # Success case (no errors)
             response = HttpResponse("")
-            response["HX-Trigger"] = json.dumps({"bulkEditSuccess": True})
+            response["HX-Trigger"] = json.dumps({"bulkEditSuccess": True, "refreshTable": True})
             log.debug(f"Bulk edit: Updated {updated_count} objects successfully.")
             return response
 
@@ -1145,37 +1145,6 @@ class NominopolitanMixin:
                     if isinstance(getattr(self.model, name), property) and name != 'pk'
                 ]
 
-    def get_model_session_key(self):
-        """Generate a unique key for this model within the nominopolitan session dict."""
-        app_name = self.model._meta.app_label
-        return f"{app_name}_{self.url_base}"
-
-    def get_session_data(self) -> dict|None:
-        """Retrieve the session data for this model from the nominopolitan session dict."""
-        nominopolitan_data = self.request.session.get('nominopolitan', {})
-        return nominopolitan_data.get(self.get_model_session_key(), None)
-
-    def set_session_data_key(self, data: dict):
-        """Update the session data for this model within the nominopolitan session dict."""
-        nominopolitan_data = self.request.session.get('nominopolitan', {})
-        model_key = self.get_model_session_key()
-
-        if model_key not in nominopolitan_data:
-            nominopolitan_data[model_key] = data
-        else:
-            # Update existing data
-            nominopolitan_data[model_key].update(data)
-
-        self.request.session['nominopolitan'] = nominopolitan_data
-        return nominopolitan_data[model_key]
-
-    def get_session_data_key(self, key: str):
-        """Retrieve a specific key from the session data for this model."""
-        session_data = self.get_session_data()
-        if session_data:
-            return session_data.get(key, None)
-        return None
-
     def get_original_target(self):
         """
         Retrieve the original HTMX target from the session.
@@ -1186,11 +1155,7 @@ class NominopolitanMixin:
         Returns:
             str or None: The original HTMX target or None if not set
         """
-        session_data = self.get_session_data()
-
-        if not session_data:
-            return None        
-        return session_data.get('original_target', None)
+        return self.default_htmx_target
 
     def get_use_htmx(self):
         """
@@ -1289,7 +1254,7 @@ class NominopolitanMixin:
             # return the target of the original list request
             htmx_target = self.get_original_target()
         else:
-            htmx_target = self.default_htmx_target  # Default target for non-HTMX requests
+            htmx_target = self.default_htmx_target  # Default target for htmx requests
 
         return htmx_target
 
@@ -1630,6 +1595,7 @@ class NominopolitanMixin:
             dict: The context dictionary containing all the data for template rendering.
         """
         context = super().get_context_data(**kwargs)
+        log.debug(f"get_context_data: request.GET = {self.request.GET}")
 
         # Generate and add URLs for create, update, and delete operations
         view_name = f"{self.get_prefix()}-{Role.CREATE.value}"
@@ -1641,6 +1607,13 @@ class NominopolitanMixin:
             delete_view_name = f"{self.get_prefix()}-{Role.DELETE.value}"
             context["delete_view_url"] = self.safe_reverse(delete_view_name, kwargs={"pk": self.object.pk})
 
+        # send list_view_url
+        if self.namespace:
+            list_url_name = f"{self.namespace}:{self.url_base}-list"
+        else:
+            list_url_name = f"{self.url_base}-list"
+        context["list_view_url"] = reverse(list_url_name)
+        
         # Set header title for partial updates
         context["header_title"] = f"{self.url_base.title()}-{self.role.value.title()}"
 
@@ -1732,25 +1705,101 @@ class NominopolitanMixin:
 
     def form_valid(self, form):
         """
-        Handle form validation success with a simplified trigger approach.
+        Handle form validation success with HTMX support.
+        
+        This method saves the form and then handles the response differently based on
+        whether it's an HTMX request or not:
+        
+        For HTMX requests:
+        1. Temporarily changes the role to LIST to access list view functionality
+        2. Sets the template to the filtered_results partial from object_list.html
+        3. Uses the existing list() method to handle pagination and filtering
+        4. Adds HTMX headers to:
+        - Close the modal (via formSuccess trigger)
+        - Target the filtered_results div (via HX-Retarget)
+        
+        For non-HTMX requests:
+        - Redirects to the success URL (typically the list view)
+        
+        This approach ensures consistent behavior with the standard list view,
+        including proper pagination and filtering, while avoiding code duplication.
+        
+        Args:
+            form: The validated form instance
+            
+        Returns:
+            HttpResponse: Either a rendered list view or a redirect
         """
         self.object = form.save()
         
-        # If this is an HTMX request, return a response with appropriate triggers
+        # If this is an HTMX request, handle it specially
         if hasattr(self, 'request') and getattr(self.request, 'htmx', False):
-            response = HttpResponse("")
-            
-            # Single, simplified trigger
+            from django.http import QueryDict
+            filter_params = QueryDict('', mutable=True)
+            filter_prefix = '_nominopolitan_filter_'
+            for k, v in self.request.POST.lists():
+                if k.startswith(filter_prefix):
+                    real_key = k[len(filter_prefix):]
+                    for value in v:
+                        filter_params.appendlist(real_key, value)
+            # Patch self.request.GET
+            original_get = self.request.GET
+            self.request.GET = filter_params
+            # Temporarily change the role to LIST
+            original_role = self.role
+            self.role = Role.LIST
+            # Use the list method to handle pagination and filtering
+            response = self.list(self.request)
+            # Restore original GET
+            self.request.GET = original_get
+            # Build canonical list URL with current filter/sort params
+            clean_params = {}
+            for k, v in filter_params.lists():
+                if v:
+                    clean_params[k] = v[-1]
+            from django.urls import reverse
+            if self.namespace:
+                list_url_name = f"{self.namespace}:{self.url_base}-list"
+            else:
+                list_url_name = f"{self.url_base}-list"
+            list_path = reverse(list_url_name)
+            if clean_params:
+                from urllib.parse import urlencode
+                canonical_query = urlencode(clean_params)
+                canonical_url = f"{list_path}?{canonical_query}"
+            else:
+                canonical_url = list_path
+            log.debug(f"form_valid: setting HX-Push-Url: {canonical_url}")
             response["HX-Trigger"] = json.dumps({"formSuccess": True})
-            
+            response["HX-Retarget"] = f"{self.get_original_target()}"
+            response["HX-Push-Url"] = canonical_url
             return response
-        
-        # Otherwise, use the default redirect
+        # For non-HTMX requests, use the default redirect
         return HttpResponseRedirect(self.get_success_url())
 
     def form_invalid(self, form):
         """
-        Handle form validation errors with a simplified trigger approach.
+        Handle form validation errors, ensuring proper display in modals.
+        
+        This method handles form validation errors differently based on whether
+        it's an HTMX request with modals enabled:
+        
+        For HTMX requests with modals:
+        1. Stores the form with errors
+        2. Sets a flag to indicate the modal should stay open
+        3. Ensures the correct form template is used (not object_list)
+        4. Adds HTMX headers to:
+        - Keep the modal open (via formError and showModal triggers)
+        - Target the modal content (via HX-Retarget)
+        
+        For other requests:
+        - Uses the default form_invalid behavior
+        
+        Args:
+            form: The form with validation errors
+            
+        Returns:
+            HttpResponse: The rendered form with error messages
         """
         # Store the form with errors
         self.object_form = form
@@ -1759,23 +1808,36 @@ class NominopolitanMixin:
         if self.get_use_modal():
             self.form_has_errors = True
         
-        # Call the parent implementation to render the form with errors
-        response = super().form_invalid(form)
-        
-        # If this is an HTMX request and we're using modals, ensure the response
-        # has the right headers to keep the modal open
+        # For HTMX requests with modals, ensure we use the form template
         if hasattr(self, 'request') and getattr(self.request, 'htmx', False) and self.get_use_modal():
-            # Single, simplified trigger
-            response["HX-Trigger"] = json.dumps({"formError": True})
+            # Ensure we're using the form template, not object_list
+            original_template_name = getattr(self, 'template_name', None)
             
-            # Make sure the response targets the modal content
-            response["HX-Retarget"] = self.get_modal_target()
+            # Set template to the form partial
+            if self.object:  # Update form
+                self.template_name = f"{self.templates_path}/object_form.html#nm_content"
+            else:  # Create form
+                self.template_name = f"{self.templates_path}/object_form.html#nm_content"
             
-            # Ensure the modal stays open
+            # Render the response with the form template
+            context = self.get_context_data(form=form)
+            response = render(
+                request=self.request,
+                template_name=self.template_name,
+                context=context,
+            )
+            
+            # Add HTMX headers to keep the modal open
             modal_id = self.get_modal_id()[1:]  # Remove the # prefix
             response["HX-Trigger"] = json.dumps({"formError": True, "showModal": modal_id})
+            response["HX-Retarget"] = self.get_modal_target()
+            
+            return response
         
-        return response
+        # For non-HTMX requests or without modals, use the default behavior
+        return super().form_invalid(form)
+
+
 
     def _prepare_htmx_response(self, response, context=None, form_has_errors=False):
         """
@@ -1849,28 +1911,50 @@ class NominopolitanMixin:
             log.error(f"Unexpected error checking template {template_name}: {str(e)}")
             template_name = template_names[1]
         
-        # add to session here (template name may change later)
-        self.set_session_data_key({'original_template': template_name})
-
         # Check if this is a form with errors being redisplayed
         form_has_errors = hasattr(self, 'form_has_errors') and self.form_has_errors
 
         if self.request.htmx:
-            if self.role == Role.LIST:
-                # this is the list view
-                if not self.get_original_target():
-                    self.set_session_data_key({'original_target': f"#{self.request.htmx.target}"})
-
-            if self.request.headers.get('X-Filter-Sort-Request'):
-                template_name=f"{template_name}#filtered_results"
+            if self.request.headers.get('X-Redisplay-Object-List'):
+                # Use object_list template
+                object_list_template = f"{self.templates_path}/object_list.html"
+                
+                if self.request.headers.get('X-Filter-Sort-Request'):
+                    template_name = f"{object_list_template}#filtered_results"
+                else:
+                    template_name = f"{object_list_template}#nm_content"
             else:
-                template_name=f"{template_name}#nm_content"
+                # Use whatever template was determined normally
+                if self.request.headers.get('X-Filter-Sort-Request'):
+                    template_name = f"{template_name}#filtered_results"
+                else:
+                    template_name = f"{template_name}#nm_content"
+
+            log.debug(f"render_to_response: template_name: {template_name}")
+            log.debug(f"Headers: {self.request.headers}")
+            log.debug(f"X-Redisplay-Object-List: {self.request.headers.get('X-Redisplay-Object-List')}")
 
             response = render(
                 request=self.request,
                 template_name=f"{template_name}",
                 context=context,
             )
+
+            # Only set HX-Push-Url for GET requests and when role is LIST
+            if self.request.method == "GET" and self.role == Role.LIST:
+                clean_params = {}
+                for k in self.request.GET:
+                    values = self.request.GET.getlist(k)
+                    if values and values[-1]:  # Only non-empty
+                        clean_params[k] = values[-1]
+                if clean_params:
+                    from urllib.parse import urlencode
+                    canonical_query = urlencode(clean_params)
+                    canonical_url = f"{self.request.path}?{canonical_query}"
+                else:
+                    canonical_url = self.request.path
+                log.debug(f"render_to_response: setting HX-Push-Url: {canonical_url}")
+                response['HX-Push-Url'] = canonical_url
             
             # Add HX-Trigger for modal if form has errors and modal should be used
             if form_has_errors and self.get_use_modal():

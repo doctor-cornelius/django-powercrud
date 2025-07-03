@@ -65,20 +65,19 @@ class BookCRUDView(NominopolitanMixin, CRUDView):
 
     # filterset_class = filters.BookFilterSet
     filterset_fields = ['author', 'title', 'published_date','isbn', 'isbn_empty','pages', 'description', 'genres']
-    m2m_filter_and_logic = False  # Use AND logic for M2M filters
-
-    filter_queryset_options = {
-        'author': {
-            # 'name': 'Nancy Wilson',
-            # 'name__in': ['Nancy Wilson', 'Thomas Adams', ],
-            'name__icontains': 'Nancy',
-        },
-    }
-    
     # Define how filter dropdown options should be sorted
     filter_sort_options = {
-        'author': 'name',              # Sort authors by name field
-    }    
+        "author": "name",  # Sort authors by name field
+    }
+    m2m_filter_and_logic = False  # Use AND logic for M2M filters
+
+    # filter_queryset_options = {
+    #     'author': {
+    #         # 'name': 'Nancy Wilson',
+    #         # 'name__in': ['Nancy Wilson', 'Thomas Adams', ],
+    #         'name__icontains': 'Nancy',
+    #     },
+    # }
 
     table_pixel_height_other_page_elements = 100
     table_max_height = 80
@@ -210,4 +209,3 @@ class AuthorCRUDView(NominopolitanMixin, CRUDView):
         names = super().get_template_names()
         print("DEBUG: Looking for templates:", names)  # Debug print
         return names
-

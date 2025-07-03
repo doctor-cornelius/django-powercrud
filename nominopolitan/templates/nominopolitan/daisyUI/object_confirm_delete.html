@@ -13,14 +13,26 @@
                 >Are you sure you want to delete the following {{ object_verbose_name }}?</p>
             <h2 class="card-title justify-center my-2 text-error">{{ object }}</h2>
         
-            <form method="POST" action="{{ delete_view_url }}"
-                {% if use_htmx and original_target %}
-                hx-post="{{ delete_view_url }}"
-                hx-target="{{ original_target }}"
-                hx-push-url="true"
-                {% endif %}
-            >
+            <form method="POST" 
+                action="{{ delete_view_url }}" 
+                {% if use_htmx and original_target %} 
+                    hx-post="{{ delete_view_url }}"
+                    hx-target="{{ original_target }}" 
+                    hx-push-url="false" 
+                    hx-headers='{"X-Redisplay-Object-List": "true"}' 
+                {% endif %}>
                 {% csrf_token %}
+
+                {# Add hidden fields for all current GET params except csrf, page, and form fields #}
+                {% for key, values in request.GET.lists %}
+                    {% if key != 'csrfmiddlewaretoken' and key != 'page' %}
+                        {% for value in values %}
+                            <input type="hidden" name="_nominopolitan_filter_{{ key }}" value="{{ value }}">
+                        {% endfor %}
+                    {% endif %}
+                {% endfor %}
+
+
                 {{ form }}
                 <div class="card-actions justify-end">
                     <button type="submit" class="btn btn-error">Delete</button>

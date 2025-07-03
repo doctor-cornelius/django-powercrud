@@ -21,9 +21,19 @@
             {% if use_htmx and original_target %}
                 hx-post="{% if object %}{{ update_view_url }}{% else %}{{ create_view_url }}{% endif %}"
                 hx-target="{{ original_target }}"
-                {% if not use_modal %}hx-push-url="true"{% endif %}
+                {% if not use_modal %}hx-push-url="true"{% else %}hx-push-url="false"{% endif %}
+                hx-headers='{"X-Redisplay-Object-List": "true"}'
             {% endif %}>
             {% csrf_token %}
+
+            {# Add hidden fields for all current GET params except csrf, page, and form fields #}
+            {% for key, values in request.GET.lists %}
+                {% if key != 'csrfmiddlewaretoken' and key != 'page' %}
+                    {% for value in values %}
+                        <input type="hidden" name="_nominopolitan_filter_{{ key }}" value="{{ value }}">
+                    {% endfor %}
+                {% endif %}
+            {% endfor %}
             
             {% if use_crispy %}
                 {% include framework_template_path|add:"/crispy_partials.html#crispy_form" %}

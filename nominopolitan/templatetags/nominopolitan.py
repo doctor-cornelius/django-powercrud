@@ -78,8 +78,13 @@ def action_links(view: Any, object: Any) -> str:
             show_modal: bool = display_modal if use_modal else False
             modal_attrs: str = styles["modal_attrs"] if show_modal else " "
             
+            # Append current query string for modal actions
+            query_string = ''
+            if show_modal and hasattr(view.request, 'GET') and view.request.GET:
+                query_string = '?' + view.request.GET.urlencode()
+            
             actions.append((
-                url, 
+                url + query_string if show_modal else url, 
                 action["text"], 
                 button_class, 
                 htmx_target, 
@@ -89,12 +94,13 @@ def action_links(view: Any, object: Any) -> str:
             ))
 
     # set up links for all actions (regular and extra)
-    # note for future - could simplify by just conditionally adding hx-disable if not use_htmx
     links: List[str] = [
         f"<div class='join'>" +
         " ".join([
-            f"<a href='{url}' class='{styles['base']} join-item {button_class} {action_button_classes}' "
-            + (f"hx-{'post' if hx_post else 'get'}='{url}' " if use_htmx else "")
+            # Append query string for modal actions (edit/create)
+            f"<a href='{url if not show_modal else url + ('?' + view.request.GET.urlencode() if view.request.GET else '')}' "
+            f"class='{styles['base']} join-item {button_class} {action_button_classes}' "
+            + (f"hx-{'post' if hx_post else 'get'}='{url if not show_modal else url + ('?' + view.request.GET.urlencode() if view.request.GET else '')}' " if use_htmx else "")
             + (f"hx-target='{target}' " if use_htmx else "")
             + (f"hx-replace-url='true' hx-push-url='true' " if use_htmx and not show_modal else "")
             + (f"{modal_attrs} " if show_modal else "")
@@ -249,6 +255,14 @@ def object_list(context, objects, view):
         filter_params.pop('sort')
     if 'page' in filter_params:
         filter_params.pop('page')
+
+    # Only keep the last value for each key to avoid duplicate params in URLs
+    clean_params = {}
+    for k in filter_params:
+        clean_params[k] = filter_params.getlist(k)[-1]
+    filter_params = filter_params.__class__('', mutable=True)
+    for k, v in clean_params.items():
+        filter_params[k] = v
     
     use_htmx = context.get('use_htmx', view.get_use_htmx())
     original_target = context.get('original_target', view.get_original_target())
@@ -387,5 +401,3 @@ def get_nominopolitan_session_data(context, key):
     model_data = nominopolitan_data.get(model_key, {})
     
     return model_data.get(key)
-
-

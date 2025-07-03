@@ -42,8 +42,11 @@ It is a **very early alpha** release. No tests. Limited docs. Expect many breaki
     }
     ```
 
-  - `filter_sort_options` to control how filter options are sorted
+  - `filter_sort_options` to control how filter options are sorted for foreign key dropdown options:
       - takes a field name with optional `-` prefix for descending order
+      - eg if you have `filterset_fields = ['author', 'title', 'published_date','isbn', 'isbn_empty','pages', 'description', 'genres']`
+      - then if you set `filter_sort_options = {'author': 'name'}` it means the `author` field (a dropdown) will have its options sorted in ascending order by the `'name'` field
+      - **NOTE**: this will only work for foreign key fields (ie those with dropdown options). If you specify for any other type of field, the sort key will simply be ignored and there will be no error reported.
 `
 - **M2M filters**
     - `m2m_filter_and_logic = True` to use AND logic for M2M filters (default is OR logic)
@@ -286,9 +289,6 @@ Support for `crispy-forms` is enabled if it's installed in your project and the 
 
     - Templates will be copied to your app's template directory following Django's template naming conventions
     - If the target directory already exists, files will be overwritten with a warning
-
-- `nm_clear_session_keys`
-    - Used to clear all user session keys related to nominopolitan
 
 - `nm_help`
     - Displays the Nominopolitan README.md documentation in a paginated format
