@@ -1,3 +1,9 @@
+## 0.2.18 (2025-07-03)
+
+### Fix
+
+- **(targeting)**:  fix htmx targeting and table refresh after (bulk) edit save to preserve filter and sort params
+
 ## 0.2.17 (2025-07-01)
 
 ### Fix
