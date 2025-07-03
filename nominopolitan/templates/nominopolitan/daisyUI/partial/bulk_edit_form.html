@@ -63,40 +63,40 @@
                             disabled>
 
                         {% elif info.is_relation %}
-                        {% if info.type == 'ForeignKey' %}
-                        <select name="{{ field_name }}" class="select select-bordered w-full" disabled>
-                            <option value="">-- No change --</option>
-                            {% if info.null %}
-                            <option value="null">-- None --</option>
-                            {% endif %}
-                            {% for choice in info.bulk_choices %}
-                            <option value="{{ choice.pk }}">{{ choice }}</option>
-                            {% endfor %}
-                        </select>
-                        {% elif info.is_m2m %}
-                        <select name="{{ field_name }}" class="select select-bordered w-full min-h-[150px] h-auto"
-                            multiple disabled>
-                            {% for choice in info.bulk_choices %}
-                            <option value="{{ choice.pk }}">{{ choice }}</option>
-                            {% endfor %}
-                        </select>
-                        <div class="text-xs mt-1">
-                            <label class="flex items-center">
-                                <input type="radio" name="{{ field_name }}_action" value="add"
-                                    class="radio radio-xs mr-1" disabled>
-                                <span>Add selected</span>
-                            </label>
-                            <label class="flex items-center">
-                                <input type="radio" name="{{ field_name }}_action" value="remove"
-                                    class="radio radio-xs mr-1" disabled>
-                                <span>Remove selected</span>
-                            </label>
-                            <label class="flex items-center">
-                                <input type="radio" name="{{ field_name }}_action" value="replace"
-                                    class="radio radio-xs mr-1" disabled>
-                                <span>Replace with selected</span>
-                            </label>
-                        </div>
+                            {% if info.type == 'ForeignKey' or info.type == 'OneToOneField' %}
+                            <select name="{{ field_name }}" class="select select-bordered w-full" disabled>
+                                <option value="">-- No change --</option>
+                                {% if info.null %}
+                                <option value="null">-- None --</option>
+                                {% endif %}
+                                {% for choice in info.bulk_choices %}
+                                <option value="{{ choice.pk }}">{{ choice }}</option>
+                                {% endfor %}
+                            </select>
+                            {% elif info.is_m2m %}
+                            <select name="{{ field_name }}" class="select select-bordered w-full min-h-[150px] h-auto"
+                                multiple disabled>
+                                {% for choice in info.bulk_choices %}
+                                <option value="{{ choice.pk }}">{{ choice }}</option>
+                                {% endfor %}
+                            </select>
+                            <div class="text-xs mt-1">
+                                <label class="flex items-center">
+                                    <input type="radio" name="{{ field_name }}_action" value="add"
+                                        class="radio radio-xs mr-1" disabled>
+                                    <span>Add selected</span>
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="radio" name="{{ field_name }}_action" value="remove"
+                                        class="radio radio-xs mr-1" disabled>
+                                    <span>Remove selected</span>
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="radio" name="{{ field_name }}_action" value="replace"
+                                        class="radio radio-xs mr-1" disabled>
+                                    <span>Replace with selected</span>
+                                </label>
+                            </div>
                         {% endif %}
                         {% elif info.type == 'ManyToManyField' %}
                         <!-- Many-to-many field -->
