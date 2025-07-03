@@ -97,6 +97,7 @@ It is a **very early alpha** release. No tests. Limited docs. Expect many breaki
 - Clear separation between update and delete operations in the UI
 - bulk update process runs `full_clean()` and `save()` on every record
     - you can specify `bulk_full_clean = False` (default is `True`) to skip full clean step
+- to further restrict choices for foreign key dropdowns, you can override `get_bulk_choice_for_field`
 
 **Tailwind CSS Considerations**
 

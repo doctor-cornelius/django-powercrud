@@ -889,7 +889,7 @@ class NominopolitanMixin:
                 bulk_choices = None
                 if is_relation and hasattr(field, 'related_model'):
                     # Use the related model's objects manager directly
-                    bulk_choices = field.related_model.objects.all()
+                    bulk_choices = self.get_bulk_choices_for_field(field_name=field_name, field=field)
 
                 field_info[field_name] = {
                     'field': field,
@@ -908,6 +908,25 @@ class NominopolitanMixin:
                 continue
 
         return field_info
+
+    def get_bulk_choices_for_field(self, field_name, field):
+        """
+        Hook to get the queryset for bulk_choices for a given field in bulk edit.
+
+        By default, returns all objects for the related model.
+        Override this in a subclass to restrict choices as needed.
+
+        Args:
+            field_name (str): The name of the field.
+            field (models.Field): The Django model field instance.
+
+        Returns:
+            QuerySet or None: The queryset of choices, or None if not applicable.
+        """
+        if hasattr(field, 'related_model') and field.related_model is not None:
+            return field.related_model.objects.all()
+        return None
+
 
     def get_filter_queryset_for_field(self, field_name, model_field):
         """Get an efficiently filtered and sorted queryset for filter options."""

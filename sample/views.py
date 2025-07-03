@@ -136,6 +136,18 @@ class BookCRUDView(NominopolitanMixin, CRUDView):
         },
     ]
 
+
+    # def get_bulk_choices_for_field(self, field_name, field):
+    #     """Example of how to override to further restrict foreign key choices for 
+    #         dropdown in bulk edit form.
+    #     """
+    #     if field_name == 'author' and hasattr(field, "related_model") and field.related_model is not None:
+    #         return field.related_model.objects.filter(
+    #             id=19
+    #         )
+    #     return super().get_bulk_choices_for_field(field_name, field)
+
+
 class GenreCRUDView(NominopolitanMixin, CRUDView):
     model = models.Genre
     namespace = "sample"
