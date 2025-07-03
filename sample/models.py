@@ -14,13 +14,27 @@ class Author(models.Model):
     @property
     def has_bio(self):
         return bool(self.bio)
-    
+
     @property
     def property_birth_date(self):
         return self.birth_date
 
     def __str__(self):
         return self.name
+
+
+class Profile(models.Model):
+    """Just for testing logic for OneToOneFields"""
+    author = models.OneToOneField(
+        Author, on_delete=models.CASCADE, related_name="profile"
+    )
+    nickname = models.CharField(max_length=100)
+    favorite_genre = models.ForeignKey(
+        "Genre", on_delete=models.SET_NULL, null=True, blank=True
+    )
+
+    def __str__(self):
+        return f"{self.nickname} ({self.author.name})"
 
 
 class Genre(models.Model):

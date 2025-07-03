@@ -161,6 +161,30 @@ class GenreCRUDView(NominopolitanMixin, CRUDView):
 
     fields = ['name', 'numeric_string']
 
+
+class ProfileCRUDView(NominopolitanMixin, CRUDView):
+    model = models.Profile
+    namespace = "sample"
+    base_template_path = "django_nominopolitan/base.html"
+    use_htmx = True
+    use_modal = True
+
+    table_classes = "table-zebra table-sm"
+    action_button_classes = "btn-xs"
+    extra_button_classes = "btn-sm"
+
+    fields = "__all__"
+    properties = "__all__"
+
+
+    # Add the OneToOneField to bulk_fields to test it
+    bulk_fields = [
+        {"name": "author"},
+        "nickname",
+        "favorite_genre",
+    ]
+
+
 class AuthorCRUDView(NominopolitanMixin, CRUDView):
     model = models.Author
     namespace = "sample"

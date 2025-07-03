@@ -10,6 +10,7 @@ urlpatterns = []
 urlpatterns = views.BookCRUDView.get_urls()
 urlpatterns += views.AuthorCRUDView.get_urls()
 urlpatterns += views.GenreCRUDView.get_urls()
+urlpatterns += views.ProfileCRUDView.get_urls()
 
 # Add the regular book update view URL
 urlpatterns += [
