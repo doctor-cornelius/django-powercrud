@@ -74,60 +74,30 @@
                                 {% endfor %}
                             </select>
                             {% elif info.is_m2m %}
-                            <select name="{{ field_name }}" class="select select-bordered w-full min-h-[150px] h-auto"
-                                multiple disabled>
-                                {% for choice in info.bulk_choices %}
-                                <option value="{{ choice.pk }}">{{ choice }}</option>
-                                {% endfor %}
-                            </select>
-                            <div class="text-xs mt-1">
-                                <label class="flex items-center">
-                                    <input type="radio" name="{{ field_name }}_action" value="add"
-                                        class="radio radio-xs mr-1" disabled>
-                                    <span>Add selected</span>
-                                </label>
-                                <label class="flex items-center">
-                                    <input type="radio" name="{{ field_name }}_action" value="remove"
-                                        class="radio radio-xs mr-1" disabled>
-                                    <span>Remove selected</span>
-                                </label>
-                                <label class="flex items-center">
-                                    <input type="radio" name="{{ field_name }}_action" value="replace"
-                                        class="radio radio-xs mr-1" disabled>
-                                    <span>Replace with selected</span>
-                                </label>
-                            </div>
-                        {% endif %}
-                        {% elif info.type == 'ManyToManyField' %}
-                        <!-- Many-to-many field -->
-                        <div class="border rounded-lg p-2 max-h-40 overflow-y-auto">
-                            <div class="mb-2">
-                                <label class="cursor-pointer label justify-start gap-2">
-                                    <input type="radio" name="{{ field_name }}_action" value="add"
-                                        class="radio radio-sm radio-primary" checked disabled>
-                                    <span class="label-text">Add selected</span>
-                                </label>
-                                <label class="cursor-pointer label justify-start gap-2">
-                                    <input type="radio" name="{{ field_name }}_action" value="remove"
-                                        class="radio radio-sm radio-primary" disabled>
-                                    <span class="label-text">Remove selected</span>
-                                </label>
-                                <label class="cursor-pointer label justify-start gap-2">
-                                    <input type="radio" name="{{ field_name }}_action" value="replace"
-                                        class="radio radio-sm radio-primary" disabled>
-                                    <span class="label-text">Replace with selected</span>
-                                </label>
-                            </div>
-
-                            {% for choice in info.choices %}
-                            <label class="cursor-pointer label justify-start gap-2">
-                                <input type="checkbox" name="{{ field_name }}[]" value="{{ choice.pk }}"
-                                    class="checkbox checkbox-sm checkbox-primary" disabled>
-                                <span class="label-text">{{ choice }}</span>
-                            </label>
-                            {% endfor %}
-                        </div>
-
+                                <select name="{{ field_name }}" class="select select-bordered w-full min-h-[150px] h-auto"
+                                    multiple disabled>
+                                    {% for choice in info.bulk_choices %}
+                                    <option value="{{ choice.pk }}">{{ choice }}</option>
+                                    {% endfor %}
+                                </select>
+                                <div class="text-xs mt-1">
+                                    <label class="flex items-center">
+                                        <input type="radio" name="{{ field_name }}_action" value="add"
+                                            class="radio radio-xs mr-1" disabled>
+                                        <span>Add selected</span>
+                                    </label>
+                                    <label class="flex items-center">
+                                        <input type="radio" name="{{ field_name }}_action" value="remove"
+                                            class="radio radio-xs mr-1" disabled>
+                                        <span>Remove selected</span>
+                                    </label>
+                                    <label class="flex items-center">
+                                        <input type="radio" name="{{ field_name }}_action" value="replace"
+                                            class="radio radio-xs mr-1" disabled>
+                                        <span>Replace with selected</span>
+                                    </label>
+                                </div>
+                            {% endif %}
                         {% elif info.choices %}
                         <!-- Field with choices -->
                         <select name="{{ field_name }}" class="select select-bordered w-full" disabled>

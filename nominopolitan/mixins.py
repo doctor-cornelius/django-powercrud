@@ -765,7 +765,7 @@ class NominopolitanMixin:
                         if info.get('is_m2m'):
                             # Handle M2M fields
                             m2m_action = request.POST.get(f"{field}_action", "replace")
-                            m2m_values = request.POST.getlist(f"{field}[]")
+                            m2m_values = request.POST.getlist(field)
                             m2m_manager = getattr(obj, field)
                             
                             if m2m_action == "add":
