@@ -1,3 +1,9 @@
+## 0.2.22 (2025-07-04)
+
+### Fix
+
+- **(bulk edit)**:  fix processing of m2m fields
+
 ## 0.2.21 (2025-07-04)
 
 ### Feature
