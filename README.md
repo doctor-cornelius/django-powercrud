@@ -88,6 +88,11 @@ It is a **very early alpha** release. No tests. Limited docs. Expect many breaki
     - Override `NominopolitanMixin.get_framework_styles()` in your view to add your framework's styles,  
       set the `framework` key to the name of your framework and add the required values.
 
+**Pagination**
+- supports `neapolitan` `paginate_by` parameter to enable pagination and set default page size
+- user can select desired page size via drop-down (if pagination is enabled)
+- pagination selection persists after modal-based edits (single record or bulk edits)
+
 **Bulk Edit**
 - Support for bulk edit of multiple records
 - include `bulk_fields` list in view definition with names of fields to be updated

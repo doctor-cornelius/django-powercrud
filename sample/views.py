@@ -196,7 +196,7 @@ class AuthorCRUDView(NominopolitanMixin, CRUDView):
     action_button_classes = 'btn-xs'
     extra_button_classes = 'btn-sm'
 
-    paginate_by = 5
+    paginate_by = 15
 
     # fields = ["name","bio","birth_date",]
     fields = "__all__"

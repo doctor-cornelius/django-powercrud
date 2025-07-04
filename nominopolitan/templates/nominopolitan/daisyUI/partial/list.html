@@ -58,15 +58,15 @@
                     {% if is_sortable %}style="cursor: pointer;"{% endif %}
                     {% if is_sortable %}
                         {% if use_htmx %}
-                        hx-get="?sort={% if current_sort == field_name %}-{% elif current_sort == '-'|add:field_name %}{% else %}{% endif %}{{ field_name }}{% if filter_params %}&{{ filter_params }}{% endif %}"
+                        hx-get="?sort={% if current_sort == field_name %}-{% elif current_sort == '-'|add:field_name %}{% else %}{% endif %}{{ field_name }}{% if request.GET.page_size %}&page_size={{ request.GET.page_size }}{% endif %}{% if filter_params %}&{{ filter_params }}{% endif %}"
                         hx-headers='{"X-Filter-Sort-Request": "true"}'
                         hx-target="#filtered_results"
                         hx-push-url="true"
                         hx-trigger="click"
                         {% else %}
-                        onclick="window.location.href='?sort={% if current_sort == field_name %}-{% elif current_sort == '-'|add:field_name %}{% else %}{% endif %}{{ field_name }}{% if filter_params %}&{{ filter_params }}{% endif %}'"
+                        onclick="window.location.href='?sort={% if current_sort == field_name %}-{% elif current_sort == '-'|add:field_name %}{% else %}{% endif %}{{ field_name }}{% if request.GET.page_size %}&page_size={{ request.GET.page_size }}{% endif %}{% if filter_params %}&{{ filter_params }}{% endif %}'"
                         {% endif %}
-                    {% endif %}>
+                    {% endif %}
                     <span class="block h-full">
                         {{ header }}
                         {% if is_sortable %}

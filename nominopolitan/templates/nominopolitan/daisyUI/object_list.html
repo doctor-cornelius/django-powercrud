@@ -72,7 +72,7 @@
     <div class="flex flex-col">
         <h1 class="flex-1 font-bold text-xl text-primary">{{ object_verbose_name_plural|capfirst }}</h1>
 
-        <div class="flex gap-2 my-2">
+        <div class="flex gap-2 my-2 items-center flex-wrap">
             {% if filterset %}
                 <div class="join">
                     <button class="join-item btn btn-secondary {{ view.get_extra_button_classes }}" type="button" 
@@ -124,6 +124,28 @@
             {% endif %}
 
             {% extra_buttons view %}
+
+            <!-- Page Size Selector -->
+            <form id="page-size-form" class="inline ml-2" style="white-space:nowrap;"
+                hx-get="." hx-target="{{ original_target }}" hx-push-url="true"
+                hx-trigger="change" hx-include="[name]">
+                <label for="page-size-select" class="sr-only">Page size</label>
+                <select id="page-size-select" name="page_size"
+                    class="select select-bordered select-sm align-middle"
+                    style="width:10ch;">
+                    {% for size in page_size_options %}
+                        <option value="{{ size }}"
+                            {% if request.GET.page_size == size %}
+                                selected
+                            {% elif not request.GET.page_size and default_page_size == size %}
+                                selected
+                            {% endif %}>{{ size }}</option>
+                    {% endfor %}
+                    <option value="all" {% if request.GET.page_size == 'all' or default_page_size is None %}selected{% endif %}>
+                        All</option>
+                </select>
+                <span class="text-xs text-base-content/70 ml-1">per page</span>
+            </form>
         </div>
     
         {% if filterset %}
@@ -155,6 +177,12 @@
         </div>
         {% endif %}
 
+        <!-- Hidden fields to preserve current filter and sort parameters -->
+        {% for key, value in request.GET.items %}
+            {% if key != 'page_size' and key != 'page' %}
+                <input type="hidden" name="{{ key }}" value="{{ value }}">
+            {% endif %}
+        {% endfor %}
 
         <div id="filtered_results">
             {% partial filtered_results %}
@@ -520,33 +548,49 @@
     <ul class="join flex justify-center">
         {% if page_obj.has_previous %}
         <li>
-            <a class="join-item btn btn-sm" href="?page={{ page_obj.previous_page_number }}" {% if use_htmx and original_target %}
-                hx-get="?page={{ page_obj.previous_page_number }}" hx-target="{{original_target}}" hx-replace-url="true"
-                hx-push-url="true" {% endif %}>Previous</a>
+            <a class="join-item btn btn-sm" 
+               href="?page={{ page_obj.previous_page_number }}{% if request.GET.page_size %}&page_size={{ request.GET.page_size }}{% endif %}{% if filter_params %}&{{ filter_params }}{% endif %}" 
+               {% if use_htmx and original_target %}
+               hx-get="?page={{ page_obj.previous_page_number }}{% if request.GET.page_size %}&page_size={{ request.GET.page_size }}{% endif %}{% if filter_params %}&{{ filter_params }}{% endif %}" 
+               hx-target="{{original_target}}" 
+               hx-replace-url="true"
+               hx-push-url="true" 
+               {% endif %}>Previous</a>
         </li>
         {% endif %}
 
         {% get_proper_elided_page_range paginator page_obj.number as page_range %}
         {% for i in page_range %}
-        {% if i == "..." %}
-        <li><span class="join-item btn btn-sm btn-disabled">…</span></li>
-        {% else %}
-        <li>
-            <a class="join-item btn btn-sm {% if page_obj.number == i %}btn-active{% endif %}" href="?page={{ i }}" 
-                {% if use_htmx and original_target %} hx-get="?page={{ i }}"
-                hx-target="{{original_target}}" hx-replace-url="true" hx-push-url="true" {% endif %}>{{ i }}
-            </a>
-        </li>
-        {% endif %}
+            {% if i == "..." %}
+            <li><span class="join-item btn btn-sm btn-disabled">…</span></li>
+            {% else %}
+            <li>
+                <a class="join-item btn btn-sm {% if page_obj.number == i %}btn-active{% endif %}" 
+                href="?page={{ i }}{% if request.GET.page_size %}&page_size={{ request.GET.page_size }}{% endif %}{% if filter_params %}&{{ filter_params }}{% endif %}" 
+                {% if use_htmx and original_target %} 
+                hx-get="?page={{ i }}{% if request.GET.page_size %}&page_size={{ request.GET.page_size }}{% endif %}{% if filter_params %}&{{ filter_params }}{% endif %}"
+                hx-target="{{original_target}}" 
+                hx-replace-url="true" 
+                hx-push-url="true" 
+                {% endif %}>{{ i }}
+                </a>
+            </li>
+            {% endif %}
         {% endfor %}
 
         {% if page_obj.has_next %}
         <li>
-            <a class="join-item btn btn-sm" href="?page={{ page_obj.next_page_number }}" {% if use_htmx and original_target %}
-                hx-get="?page={{ page_obj.next_page_number }}" hx-target="{{original_target}}" hx-replace-url="true"
-                hx-push-url="true" {% endif %}>Next</a>
+            <a class="join-item btn btn-sm" 
+               href="?page={{ page_obj.next_page_number }}{% if request.GET.page_size %}&page_size={{ request.GET.page_size }}{% endif %}{% if filter_params %}&{{ filter_params }}{% endif %}" 
+               {% if use_htmx and original_target %}
+               hx-get="?page={{ page_obj.next_page_number }}{% if request.GET.page_size %}&page_size={{ request.GET.page_size }}{% endif %}{% if filter_params %}&{{ filter_params }}{% endif %}" 
+               hx-target="{{original_target}}" 
+               hx-replace-url="true"
+               hx-push-url="true" 
+               {% endif %}>Next</a>
         </li>
         {% endif %}
+
     </ul>
 </nav>
 {% endif %}

@@ -355,6 +355,27 @@ class NominopolitanMixin:
                 if f not in self.form_fields_exclude
             ]
 
+    def get_paginate_by(self):
+        """Override of parent method to enable dealing with user-specified
+        page size set on screen.
+        """
+        page_size = self.request.GET.get('page_size')
+        if page_size == 'all':
+            return None  # disables pagination, returns all records
+        try:
+            return int(page_size)
+        except (TypeError, ValueError):
+            return self.paginate_by  # fallback to default
+
+    def get_page_size_options(self):
+        standard_sizes = [5, 10, 25, 50, 100]
+        default = self.paginate_by
+        options = []
+        for size in sorted(set(standard_sizes + ([default] if default and default not in standard_sizes else []))):
+            if size is not None:
+                options.append(str(size))  # convert to string here!
+        return options
+
     def list(self, request, *args, **kwargs):
         """
         Handle GET requests for list view, including filtering and pagination.
@@ -643,17 +664,13 @@ class NominopolitanMixin:
         """
         log = logging.getLogger("nominopolitan")
         fields_to_update = request.POST.getlist('fields_to_update')
-        log.debug(f"Bulk edit POST fields_to_update: {fields_to_update}")
         delete_selected = request.POST.get('delete_selected')
-        log.debug(f"Bulk edit POST delete_selected: {delete_selected}")
         errors = []
         updated_count = 0
         deleted_count = 0
         field_info = self._get_bulk_field_info(bulk_fields)
-        log.debug(f"Bulk edit field_info: {field_info}")
 
         if delete_selected:
-            log.debug(f"Bulk edit: Deleting {queryset.count()} objects")
             # Call delete() on each object individually for model-specific logic
             for obj in queryset:
                 try:
@@ -712,7 +729,6 @@ class NominopolitanMixin:
             for field in fields_to_update:
                 info = field_info.get(field, {})
                 value = request.POST.get(field)
-                log.debug(f"Field '{field}' info: {info}, raw POST value: {value}")
                 
                 # Process value based on field type
                 if info.get('type') == 'BooleanField':
@@ -766,16 +782,13 @@ class NominopolitanMixin:
                                 try:
                                     # Get the related model
                                     related_model = info['field'].related_model
-                                    log.debug(f"Looking up {related_model.__name__} with pk={value}")
                                     
                                     # Fetch the actual instance
                                     instance = related_model.objects.get(pk=int(value))
-                                    log.debug(f"Found instance: {instance}")
                                     
                                     # Set the field to the instance
                                     setattr(obj, field, instance)
                                 except Exception as e:
-                                    log.debug(f"Error setting relation: {str(e)}")
                                     raise ValidationError(f"Invalid value for {info['verbose_name']}: {str(e)}")
                         else:
                             # Handle regular fields
@@ -786,16 +799,13 @@ class NominopolitanMixin:
                         obj.full_clean()  # This will raise ValidationError if validation fails
                     obj.save()
                     updated_count += 1
-                    log.debug(f"Object {obj.pk} updated successfully.")
                 
-                # If we get here, all objects were updated successfully
-                log.debug(f"All {updated_count} objects updated successfully.")
         
         except Exception as e:
             # If any exception occurs, the transaction is rolled back
             error_occurred = True
             error_message = str(e)
-            log.debug(f"Error during bulk update, transaction rolled back: {error_message}")
+            log.error(f"Error during bulk update, transaction rolled back: {error_message}")
             
             # Directly add the error to our list
             if isinstance(e, ValidationError):
@@ -1007,7 +1017,7 @@ class NominopolitanMixin:
 
         if filterset_class is not None or filterset_fields is not None:
             # Check if any filter params (besides page/sort) are present
-            filter_keys = [k for k in self.request.GET.keys() if k != 'page' and k != 'sort']
+            filter_keys = [k for k in self.request.GET.keys() if k not in ('page', 'sort', 'page_size')]
             if filter_keys and 'page' in self.request.GET:
                 # Remember we need to reset pagination
                 setattr(self, '_reset_pagination', True)
@@ -1415,7 +1425,6 @@ class NominopolitanMixin:
         has_helper = hasattr(_temp_form, 'helper')
 
         if not has_helper:
-            # log.debug(f"Adding FormHelper to {form_class.__name__} with form_tag=False and disable_csrf=True")
             old_init = form_class.__init__
 
             def new_init(self, *args, **kwargs):
@@ -1433,12 +1442,10 @@ class NominopolitanMixin:
 
                 # Check if form_tag has been explicitly set to True
                 if self.helper.form_tag is True:
-                    # log.debug(f"Overriding form_tag=True to False in {self.__class__.__name__}")
                     self.helper.form_tag = False
 
                 # Check if disable_csrf has been explicitly set to False
                 if self.helper.disable_csrf is False:
-                    # log.debug(f"Overriding disable_csrf=False to True in {self.__class__.__name__}")
                     self.helper.disable_csrf = True
 
             form_class.__init__ = new_init
@@ -1614,7 +1621,6 @@ class NominopolitanMixin:
             dict: The context dictionary containing all the data for template rendering.
         """
         context = super().get_context_data(**kwargs)
-        log.debug(f"get_context_data: request.GET = {self.request.GET}")
 
         # Generate and add URLs for create, update, and delete operations
         view_name = f"{self.get_prefix()}-{Role.CREATE.value}"
@@ -1677,6 +1683,10 @@ class NominopolitanMixin:
 
         # Add sort parameter to context
         context['sort'] = self.request.GET.get('sort', '')
+
+        # pagination variables
+        context['page_size_options'] = self.get_page_size_options()
+        context['default_page_size'] = str(self.paginate_by) if self.paginate_by is not None else None
 
         # If we have a form with errors and modals are enabled,
         # ensure the htmx_target is set to the modal target
@@ -1788,7 +1798,6 @@ class NominopolitanMixin:
                 canonical_url = f"{list_path}?{canonical_query}"
             else:
                 canonical_url = list_path
-            log.debug(f"form_valid: setting HX-Push-Url: {canonical_url}")
             response["HX-Trigger"] = json.dumps({"formSuccess": True})
             response["HX-Retarget"] = f"{self.get_original_target()}"
             response["HX-Push-Url"] = canonical_url
@@ -1949,10 +1958,6 @@ class NominopolitanMixin:
                 else:
                     template_name = f"{template_name}#nm_content"
 
-            log.debug(f"render_to_response: template_name: {template_name}")
-            log.debug(f"Headers: {self.request.headers}")
-            log.debug(f"X-Redisplay-Object-List: {self.request.headers.get('X-Redisplay-Object-List')}")
-
             response = render(
                 request=self.request,
                 template_name=f"{template_name}",
@@ -1972,7 +1977,6 @@ class NominopolitanMixin:
                     canonical_url = f"{self.request.path}?{canonical_query}"
                 else:
                     canonical_url = self.request.path
-                log.debug(f"render_to_response: setting HX-Push-Url: {canonical_url}")
                 response['HX-Push-Url'] = canonical_url
             
             # Add HX-Trigger for modal if form has errors and modal should be used
