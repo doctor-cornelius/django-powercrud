@@ -1,3 +1,9 @@
+## 0.2.21 (2025-07-04)
+
+### Feature
+
+- **(pagination)**:  enable user page size selection which persists after edits
+
 ## 0.2.20 (2025-07-03)
 
 ### Documentation
