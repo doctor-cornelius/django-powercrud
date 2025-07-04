@@ -679,7 +679,7 @@ class NominopolitanMixin:
                 except Exception as e:
                     log.debug(f"Error deleting object {obj.pk}: {e}")
                     errors.append((obj.pk, [str(e)]))
-                
+
             # Handle response based on errors
             if errors:
                 context = {
@@ -700,36 +700,36 @@ class NominopolitanMixin:
                     f"{self.templates_path}/partial/bulk_edit_form.html",
                     context
                 )
-                
+
                 # Use formError trigger and include showModal to ensure the modal stays open
                 modal_id = self.get_modal_id()[1:]  # Remove the # prefix
                 response["HX-Trigger"] = json.dumps({
                     "formError": True,
                     "showModal": modal_id,
                 })
-                
+
                 # Make sure the response targets the modal content
                 response["HX-Retarget"] = self.get_modal_target()
                 return response
-                
+
             if not errors:
                 response = HttpResponse("")
                 response["HX-Trigger"] = json.dumps({"bulkEditSuccess": True})
                 log.debug(f"Bulk edit: Deleted {deleted_count} objects successfully.")
                 return response
-        
+
         # Bulk update - collect all changes first, then apply in transaction
         updates_to_apply = []
-        
+
         # First pass: collect all changes without saving
         for obj in queryset:
             log.debug(f"Preparing bulk edit for object {obj.pk}")
             obj_changes = {'object': obj, 'changes': {}}
-            
+
             for field in fields_to_update:
                 info = field_info.get(field, {})
                 value = request.POST.get(field)
-                
+
                 # Process value based on field type
                 if info.get('type') == 'BooleanField':
                     if value == "true":
@@ -738,36 +738,36 @@ class NominopolitanMixin:
                         value = False
                     elif value in (None, "", "null"):
                         value = None
-                
+
                 # Store the change to apply later
                 obj_changes['changes'][field] = {
                     'value': value,
                     'info': info
                 }
-            
+
             updates_to_apply.append(obj_changes)
-        
+
         # Second pass: apply all changes in a transaction
         error_occurred = False
         error_message = None
-        
+
         try:
             with transaction.atomic():
                 for update in updates_to_apply:
                     obj = update['object']
                     changes = update['changes']
-                    
+
                     # Apply all changes to the object
                     for field, change_info in changes.items():
                         info = change_info['info']
                         value = change_info['value']
-                        
+
                         if info.get('is_m2m'):
                             # Handle M2M fields
                             m2m_action = request.POST.get(f"{field}_action", "replace")
                             m2m_values = request.POST.getlist(field)
                             m2m_manager = getattr(obj, field)
-                            
+
                             if m2m_action == "add":
                                 m2m_manager.add(*m2m_values)
                             elif m2m_action == "remove":
@@ -782,10 +782,10 @@ class NominopolitanMixin:
                                 try:
                                     # Get the related model
                                     related_model = info['field'].related_model
-                                    
+
                                     # Fetch the actual instance
                                     instance = related_model.objects.get(pk=int(value))
-                                    
+
                                     # Set the field to the instance
                                     setattr(obj, field, instance)
                                 except Exception as e:
@@ -793,20 +793,19 @@ class NominopolitanMixin:
                         else:
                             # Handle regular fields
                             setattr(obj, field, value)
-                    
+
                     # Validate and save the object
                     if getattr(self, 'bulk_full_clean', True):
                         obj.full_clean()  # This will raise ValidationError if validation fails
                     obj.save()
                     updated_count += 1
-                
-        
+
         except Exception as e:
             # If any exception occurs, the transaction is rolled back
             error_occurred = True
             error_message = str(e)
             log.error(f"Error during bulk update, transaction rolled back: {error_message}")
-            
+
             # Directly add the error to our list
             if isinstance(e, ValidationError):
                 # Handle different ValidationError formats
@@ -823,11 +822,11 @@ class NominopolitanMixin:
             else:
                 # For other exceptions, just add the error message
                 errors.append(("general", [str(e)]))
-        
+
         # Force an error if we caught an exception but didn't add any specific errors
         if error_occurred and not errors:
             errors.append(("general", [error_message or "An unknown error occurred"]))
-        
+
         # Check if there were any errors during the update process
         log.debug(f"Bulk edit update errors: {errors}")
         if errors:
@@ -849,14 +848,14 @@ class NominopolitanMixin:
                 f"{self.templates_path}/partial/bulk_edit_form.html",
                 context
             )
-            
+
             # Use the same error handling as for delete errors
             modal_id = self.get_modal_id()[1:]  # Remove the # prefix
             response["HX-Trigger"] = json.dumps({
                 "formError": True,
                 "showModal": modal_id,
             })
-            
+
             # Make sure the response targets the modal content
             response["HX-Retarget"] = self.get_modal_target()
             log.debug(f"Returning error response with {len(errors)} errors")
@@ -936,7 +935,6 @@ class NominopolitanMixin:
         if hasattr(field, 'related_model') and field.related_model is not None:
             return field.related_model.objects.all()
         return None
-
 
     def get_filter_queryset_for_field(self, field_name, model_field):
         """Get an efficiently filtered and sorted queryset for filter options."""
@@ -1638,7 +1636,7 @@ class NominopolitanMixin:
         else:
             list_url_name = f"{self.url_base}-list"
         context["list_view_url"] = reverse(list_url_name)
-        
+
         # Set header title for partial updates
         context["header_title"] = f"{self.url_base.title()}-{self.role.value.title()}"
 
@@ -1760,7 +1758,7 @@ class NominopolitanMixin:
             HttpResponse: Either a rendered list view or a redirect
         """
         self.object = form.save()
-        
+
         # If this is an HTMX request, handle it specially
         if hasattr(self, 'request') and getattr(self.request, 'htmx', False):
             from django.http import QueryDict
@@ -1831,22 +1829,22 @@ class NominopolitanMixin:
         """
         # Store the form with errors
         self.object_form = form
-        
+
         # If using modals, set a flag to indicate we need to show the modal again
         if self.get_use_modal():
             self.form_has_errors = True
-        
+
         # For HTMX requests with modals, ensure we use the form template
         if hasattr(self, 'request') and getattr(self.request, 'htmx', False) and self.get_use_modal():
             # Ensure we're using the form template, not object_list
             original_template_name = getattr(self, 'template_name', None)
-            
+
             # Set template to the form partial
             if self.object:  # Update form
                 self.template_name = f"{self.templates_path}/object_form.html#nm_content"
             else:  # Create form
                 self.template_name = f"{self.templates_path}/object_form.html#nm_content"
-            
+
             # Render the response with the form template
             context = self.get_context_data(form=form)
             response = render(
@@ -1854,18 +1852,16 @@ class NominopolitanMixin:
                 template_name=self.template_name,
                 context=context,
             )
-            
+
             # Add HTMX headers to keep the modal open
             modal_id = self.get_modal_id()[1:]  # Remove the # prefix
             response["HX-Trigger"] = json.dumps({"formError": True, "showModal": modal_id})
             response["HX-Retarget"] = self.get_modal_target()
-            
+
             return response
-        
+
         # For non-HTMX requests or without modals, use the default behavior
         return super().form_invalid(form)
-
-
 
     def _prepare_htmx_response(self, response, context=None, form_has_errors=False):
         """
@@ -1875,23 +1871,23 @@ class NominopolitanMixin:
         if form_has_errors and self.get_use_modal():
             # For daisyUI, we need to trigger the showModal() method
             modal_id = self.get_modal_id()[1:]  # Remove the # prefix
-            
+
             # Create or update HX-Trigger header
             trigger_data = {"showModal": modal_id, "formSubmitError": True}
-            
+
             # If there's an existing HX-Trigger, merge with it
             existing_trigger = self.get_hx_trigger()
             if existing_trigger:
                 # Since get_hx_trigger always returns a JSON string, we can parse it directly
                 existing_data = json.loads(existing_trigger)
                 trigger_data.update(existing_data)
-            
+
             response['HX-Trigger'] = json.dumps(trigger_data)
-            
+
             # Make sure the response targets the modal content
             if self.get_modal_target():
                 response['HX-Retarget'] = self.get_modal_target()
-        
+
         # For successful form submissions
         elif context and context.get('success') is True:
             # Create success trigger
@@ -1901,19 +1897,19 @@ class NominopolitanMixin:
                 "refreshList": True,
                 "refreshUrl": self.request.path
             }
-            
+
             # If there's an existing HX-Trigger, merge with it
             existing_trigger = self.get_hx_trigger()
             if existing_trigger:
                 existing_data = json.loads(existing_trigger)
                 trigger_data.update(existing_data)
-            
+
             response['HX-Trigger'] = json.dumps(trigger_data)
-        
+
         # For other cases, just use the existing HX-Trigger if any
         elif self.get_hx_trigger():
             response['HX-Trigger'] = self.get_hx_trigger()
-        
+
         return response
 
     def render_to_response(self, context={}):
@@ -1922,7 +1918,7 @@ class NominopolitanMixin:
         Ensure modal context is maintained when forms have errors.
         """
         template_names = self.get_template_names()
-        
+
         # Try the first template (app-specific), fall back to second (generic)
         from django.template.loader import get_template
         from django.template.exceptions import TemplateDoesNotExist
@@ -1938,7 +1934,7 @@ class NominopolitanMixin:
         except Exception as e:
             log.error(f"Unexpected error checking template {template_name}: {str(e)}")
             template_name = template_names[1]
-        
+
         # Check if this is a form with errors being redisplayed
         form_has_errors = hasattr(self, 'form_has_errors') and self.form_has_errors
 
@@ -1946,7 +1942,7 @@ class NominopolitanMixin:
             if self.request.headers.get('X-Redisplay-Object-List'):
                 # Use object_list template
                 object_list_template = f"{self.templates_path}/object_list.html"
-                
+
                 if self.request.headers.get('X-Filter-Sort-Request'):
                     template_name = f"{object_list_template}#filtered_results"
                 else:
@@ -1978,20 +1974,20 @@ class NominopolitanMixin:
                 else:
                     canonical_url = self.request.path
                 response['HX-Push-Url'] = canonical_url
-            
+
             # Add HX-Trigger for modal if form has errors and modal should be used
             if form_has_errors and self.get_use_modal():
                 # Single, simplified trigger
                 response['HX-Trigger'] = json.dumps({"formError": True})
-                
+
                 # Make sure the response targets the modal content
                 response['HX-Retarget'] = self.get_modal_target()
-                
+
                 # Clear the flag after handling
                 self.form_has_errors = False
             elif self.get_hx_trigger():
                 response['HX-Trigger'] = self.get_hx_trigger()
-            
+
             return response
         else:
             return TemplateResponse(
