@@ -95,12 +95,12 @@ It is a **very early alpha** release. No tests. Limited docs. Expect many breaki
 
 **Bulk Edit**
 - Support for bulk edit of multiple records
-- include `bulk_fields` list in view definition with names of fields to be updated
+- To enable bulk edit and / or delete set:
+    - `bulk_fields` list in view definition with names of fields to be updated
+    - **and/or** set `bulk_delete` parameter (default = `False`) to `True` to enable bulk delete of selected rows 
 - row selection survives pagination and both htmx and full page reloads (actually it's kind of permanent for a model until you explicitly clear selection ;)
-- bulk update is atomic: either all pass or no edits are made
-- bulk delete also supported (with confirmation step and safety verification)
-- Clear separation between update and delete operations in the UI
-- bulk update process runs `full_clean()` and `save()` on every record
+- bulk updates and deletes are atomic: either all pass or no edits are made
+- bulk edit process runs `full_clean()` and `save()` on every record
     - you can specify `bulk_full_clean = False` (default is `True`) to skip full clean step
 - **Overrides** to further restrict choices for foreign key dropdowns, you can override `get_bulk_choice_for_field`; see the toy example in `sample/views.py` for the `BookCRUDView` class:
 

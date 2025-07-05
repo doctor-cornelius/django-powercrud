@@ -56,9 +56,10 @@ class BookCRUDView(NominopolitanMixin, CRUDView):
         'published_date',
         'bestseller',
         'pages',
-        {'name':'author'},
+        'author',
         'genres',
     ]
+    bulk_delete = True
 
     # form_fields = ['title', 'author', 'bestseller', 'genres', 'published_date', 'isbn',]
     form_class = forms.BookForm

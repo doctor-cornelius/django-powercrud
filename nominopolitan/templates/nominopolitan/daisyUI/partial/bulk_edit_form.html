@@ -28,6 +28,7 @@
 
         <!-- Main form content -->
         <div id="main-form-content">
+            {% if bulk_fields %}
             <div class="mb-4">
                 <p class="text-sm text-base-content/70 mb-2">
                     Select which fields to update and provide new values.
@@ -128,16 +129,19 @@
                     Apply Changes
                 </button>
             </div>
+            {% endif %}
 
             <!-- Delete section -->
-            <div class="form-control mt-6 border-t pt-4 text-center">
-                <button type="button" class="btn btn-error mx-auto" onclick="showDeleteConfirmation()">
-                    Delete All Selected Items
-                </button>
-                <p class="text-sm text-error/70 mt-2 text-center">
-                    This will permanently delete all selected items.
-                </p>
-            </div>
+            {% if enable_bulk_delete %}
+                <div class="form-control mt-6 border-t pt-4 text-center">
+                    <button type="button" class="btn btn-error mx-auto" onclick="showDeleteConfirmation()">
+                        Delete All Selected Items
+                    </button>
+                    <p class="text-sm text-error/70 mt-2 text-center">
+                        This will permanently delete all selected items.
+                    </p>
+                </div>
+            {% endif %}
         </div>
 
         <!-- Delete confirmation section (initially hidden) -->
@@ -161,8 +165,9 @@
                     <button type="button" class="btn btn-outline" onclick="hideDeleteConfirmation()">
                         Cancel
                     </button>
-                    <button type="button" id="confirm-delete-button" class="btn btn-error" disabled
-                        onclick="submitDelete()">
+                    <button type="button" id="confirm-delete-button" class="btn btn-error" hx-post="{{ request.path }}"
+                        hx-target="#nominopolitanModalContent" hx-include="#bulk-edit-form"
+                        hx-vals='{"delete_selected": "1", "bulk_submit": "1"}' disabled>
                         Delete Items
                     </button>
                 </div>
@@ -217,16 +222,4 @@
         button.disabled = !checkbox.checked;
     }
 
-    // Submit the form with delete flag
-    function submitDelete() {
-        // Add a hidden field to indicate deletion
-        const deleteField = document.createElement('input');
-        deleteField.type = 'hidden';
-        deleteField.name = 'delete_selected';
-        deleteField.value = '1';
-        document.getElementById('bulk-edit-form').appendChild(deleteField);
-
-        // Submit the form
-        document.getElementById('bulk-edit-form').submit();
-    }
 </script>

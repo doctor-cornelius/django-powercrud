@@ -13,7 +13,13 @@ from django import forms
 from django.forms import models as model_forms
 from django.db import models, transaction
 
-from django.http import Http404, JsonResponse, HttpResponse, HttpResponseRedirect
+from django.http import (
+    Http404,
+    JsonResponse,
+    HttpResponse,
+    HttpResponseRedirect,
+    HttpResponseForbidden,
+)
 from django.urls import NoReverseMatch, path, reverse
 from django.utils.decorators import classonlymethod
 from django.core.exceptions import ImproperlyConfigured, ValidationError
@@ -170,7 +176,8 @@ class NominopolitanMixin:
     form_fields_exclude: list[str] = []
 
     # bulk edit parameters
-    bulk_fields: list[str] | list[dict] = []
+    bulk_fields: list[str] = []
+    bulk_delete: bool = False
     bulk_full_clean: bool = True  # If True, run full_clean() on each object during bulk edit
 
     # htmx
@@ -310,18 +317,12 @@ class NominopolitanMixin:
         if self.bulk_fields:
             if isinstance(self.bulk_fields, list):
                 all_fields = self._get_all_fields()
-                for field_config in self.bulk_fields:
-                    if isinstance(field_config, str):
-                        field_name = field_config
-                    elif isinstance(field_config, dict) and 'name' in field_config:
-                        field_name = field_config['name']
-                    else:
-                        raise ValueError(f"Invalid bulk field configuration: {field_config}. Must be a string or dict with 'name' key.")
+                for field_name in self.bulk_fields:
+                    if not isinstance(field_name, str):
+                        raise ValueError(f"Invalid bulk field configuration: {field_name}. Must be a string.")
 
                     if field_name not in all_fields:
                         raise ValueError(f"Bulk field '{field_name}' not defined in {self.model.__name__}")
-            else:
-                raise TypeError("bulk_fields must be a list of field names or field configs")
 
         # Process form_fields last, after all other field processing is complete
         all_editable = self._get_all_editable_fields()
@@ -538,7 +539,22 @@ class NominopolitanMixin:
         Returns:
             bool: True if bulk edit is enabled (bulk_fields is not empty)
         """
-        return bool(self.bulk_fields and self.use_modal and self.use_htmx)
+
+        allowed = bool(
+            (self.bulk_fields or self.bulk_delete)
+            and (self.use_modal and self.use_htmx)
+            )
+        log.debug(f"get_bulk_edit_enabled = {allowed}")
+        return allowed
+
+    def get_bulk_delete_enabled(self):
+        """
+        Determine if bulk delete is allowed.
+
+        Returns:
+            bool: True if both get_bulk_edit_enabled and self.bulk_delete are True
+        """
+        return self.bulk_delete and self.get_bulk_edit_enabled()
 
     def get_bulk_fields_metadata(self):
         """
@@ -549,14 +565,7 @@ class NominopolitanMixin:
         """
         result = []
 
-        for field_config in self.bulk_fields:
-            if isinstance(field_config, str):
-                field_name = field_config
-                config = {}
-            else:
-                field_name = field_config.get('name')
-                config = field_config
-
+        for field_name in self.bulk_fields:
             try:
                 model_field = self.model._meta.get_field(field_name)
                 field_type = model_field.get_internal_type()
@@ -626,7 +635,7 @@ class NominopolitanMixin:
         queryset = self.model.objects.filter(pk__in=selected_ids)
         # Get bulk fields (fields that can be bulk edited)
         bulk_fields = getattr(self, 'bulk_fields', [])
-        if not bulk_fields:
+        if not bulk_fields and not getattr(self, "bulk_delete", False):
             return render(
                 request,
                 f"{self.templates_path}/partial/bulk_edit_error.html",
@@ -641,6 +650,8 @@ class NominopolitanMixin:
             'selected_ids': selected_ids,
             'selected_count': len(selected_ids),
             'bulk_fields': bulk_fields,
+            'enable_bulk_delete': self.get_bulk_delete_enabled(),
+            'enable_bulk_edit': self.get_bulk_edit_enabled(),
             'model': self.model,
             'model_name': self.model.__name__.lower() if hasattr(self.model, '__name__') else '',
             'model_name_plural': self.model._meta.verbose_name_plural,
@@ -670,15 +681,22 @@ class NominopolitanMixin:
         deleted_count = 0
         field_info = self._get_bulk_field_info(bulk_fields)
 
+        log.debug(f"bulk_edit_process_post: delete_selected = {delete_selected}")
+
         if delete_selected:
+            if not self.get_bulk_delete_enabled():
+                return HttpResponseForbidden("Bulk delete is not allowed.")
+
             # Call delete() on each object individually for model-specific logic
-            for obj in queryset:
-                try:
-                    obj.delete()
-                    deleted_count += 1
-                except Exception as e:
-                    log.debug(f"Error deleting object {obj.pk}: {e}")
-                    errors.append((obj.pk, [str(e)]))
+            # Make bulk delete atomic
+            try:
+                with transaction.atomic():
+                    for obj in queryset:
+                        obj.delete()
+                        deleted_count += 1
+            except Exception as e:
+                log.debug(f"Error during bulk delete, transaction rolled back: {e}")
+                errors.append((None, [str(e)]))
 
             # Handle response based on errors
             if errors:
@@ -710,6 +728,7 @@ class NominopolitanMixin:
 
                 # Make sure the response targets the modal content
                 response["HX-Retarget"] = self.get_modal_target()
+                log.debug(f"bulk delete errors: {errors}")
                 return response
 
             if not errors:
@@ -876,15 +895,7 @@ class NominopolitanMixin:
         """
         field_info = {}
 
-        for field_spec in bulk_fields:
-            if isinstance(field_spec, dict):
-                field_dict = field_spec
-                field_name = field_spec.get('name', None)
-                if not field_name:
-                    continue
-            else:
-                field_name = field_spec
-                field_dict = {}
+        for field_name in bulk_fields:
 
             try:
                 field = self.model._meta.get_field(field_name)
@@ -909,8 +920,6 @@ class NominopolitanMixin:
                     'verbose_name': field.verbose_name,
                     'null': field.null if hasattr(field, 'null') else False,
                     'choices': getattr(field, 'choices', None),  # Add choices for fields with choices
-                    # Add any additional info from field_dict
-                    **{k: v for k, v in field_dict.items() if k != 'name'}
                 }
             except Exception as e:
                 # Skip invalid fields
@@ -1353,8 +1362,8 @@ class NominopolitanMixin:
         # Standard CRUD URLs
         urls = [NominopolitanMixin.get_url(role, cls) for role in roles]
 
-        # Add bulk edit URL if bulk_fields are defined
-        if hasattr(cls, 'bulk_fields') and cls.bulk_fields:
+        # Add bulk edit URL if bulk_fields are defined OR bulk_delete is enabled
+        if (hasattr(cls, 'bulk_fields') and cls.bulk_fields) or getattr(cls, 'bulk_delete', False):
             bulk_edit_role = BulkEditRole()
             urls.append(bulk_edit_role.get_url(cls))
 
@@ -1651,6 +1660,7 @@ class NominopolitanMixin:
 
         # bulk edit context vars
         context['enable_bulk_edit'] = self.get_bulk_edit_enabled()
+        context['enable_bulk_delete'] = self.get_bulk_delete_enabled()
         context['storage_key'] = self.get_storage_key()
 
         # Set table styling parameters
