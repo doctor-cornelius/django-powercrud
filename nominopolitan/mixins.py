@@ -908,6 +908,7 @@ class NominopolitanMixin:
                     'bulk_choices': bulk_choices,
                     'verbose_name': field.verbose_name,
                     'null': field.null if hasattr(field, 'null') else False,
+                    'choices': getattr(field, 'choices', None),  # Add choices for fields with choices
                     # Add any additional info from field_dict
                     **{k: v for k, v in field_dict.items() if k != 'name'}
                 }
