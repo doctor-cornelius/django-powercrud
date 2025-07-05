@@ -714,7 +714,7 @@ class NominopolitanMixin:
 
             if not errors:
                 response = HttpResponse("")
-                response["HX-Trigger"] = json.dumps({"bulkEditSuccess": True})
+                response["HX-Trigger"] = json.dumps({"bulkEditSuccess": True, "refreshTable": True})
                 log.debug(f"Bulk edit: Deleted {deleted_count} objects successfully.")
                 return response
 
