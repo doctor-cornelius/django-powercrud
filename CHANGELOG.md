@@ -1,3 +1,9 @@
+## 0.2.25 (2025-07-05)
+
+### Feature
+
+- **(dropdown_sort_options)**:  implement param to sort related objects asc or desc by specified field name for filters, bulk & single edit
+
 ## 0.2.24 (2025-07-05)
 
 ### Fix
