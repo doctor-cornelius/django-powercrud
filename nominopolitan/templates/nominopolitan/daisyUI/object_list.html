@@ -180,7 +180,11 @@
         <!-- Hidden fields to preserve current filter and sort parameters -->
         {% for key, value in request.GET.items %}
             {% if key != 'page_size' and key != 'page' %}
-                <input type="hidden" name="{{ key }}" value="{{ value }}">
+                {% if filterset and key not in filterset.form.fields %}
+                    <input type="hidden" name="{{ key }}" value="{{ value }}">
+                {% elif not filterset %}
+                    <input type="hidden" name="{{ key }}" value="{{ value }}">
+                {% endif %}
             {% endif %}
         {% endfor %}
 

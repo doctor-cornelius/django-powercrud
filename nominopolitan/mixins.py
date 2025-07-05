@@ -545,7 +545,6 @@ class NominopolitanMixin:
             (self.bulk_fields or self.bulk_delete)
             and (self.use_modal and self.use_htmx)
             )
-        log.debug(f"get_bulk_edit_enabled = {allowed}")
         return allowed
 
     def get_bulk_delete_enabled(self):
