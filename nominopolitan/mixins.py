@@ -204,6 +204,7 @@ class NominopolitanMixin:
 
     # Add this class attribute to control M2M filter logic
     m2m_filter_and_logic = False  # False for OR logic (default), True for AND logic
+    dropdown_sort_options: dict = {} # field to store dict of related object fields to sort
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -943,7 +944,15 @@ class NominopolitanMixin:
             QuerySet or None: The queryset of choices, or None if not applicable.
         """
         if hasattr(field, 'related_model') and field.related_model is not None:
-            return field.related_model.objects.all()
+            qs = field.related_model.objects.all()
+            
+            # Apply dropdown sorting if configured
+            sort_options = getattr(self, 'dropdown_sort_options', {})
+            if field_name in sort_options:
+                sort_field = sort_options[field_name]  # Can be "name" or "-name"
+                qs = qs.order_by(sort_field)
+            
+            return qs
         return None
 
     def get_filter_queryset_for_field(self, field_name, model_field):
@@ -982,9 +991,9 @@ class NominopolitanMixin:
             queryset = queryset.all()
 
         # Check if we should sort by a specific field
-        sort_options = getattr(self, 'filter_sort_options', {})
+        sort_options = getattr(self, 'dropdown_sort_options', {})
         if field_name in sort_options:
-            sort_field = sort_options[field_name]
+            sort_field = sort_options[field_name]  # Can be "name" or "-name"
             return queryset.order_by(sort_field)
 
         # If no specified sort field but model has common name fields, use that
@@ -1426,6 +1435,8 @@ class NominopolitanMixin:
     def _apply_crispy_helper(self, form_class):
         """Helper method to apply crispy form settings to a form class."""
         if not self.get_use_crispy():
+            # Apply dropdown sorting even if not using crispy
+            self._apply_dropdown_sorting(form_class)
             return form_class
 
         # Create a new instance to check if it has a helper
@@ -1458,7 +1469,20 @@ class NominopolitanMixin:
 
             form_class.__init__ = new_init
 
+        # Apply dropdown sorting
+        self._apply_dropdown_sorting(form_class)
+
         return form_class
+
+    def _apply_dropdown_sorting(self, form_class):
+        """Apply dropdown sorting to form fields."""
+        sort_options = getattr(self, 'dropdown_sort_options', {})
+        for field_name, sort_field in sort_options.items():
+            if field_name in form_class.base_fields:
+                form_field = form_class.base_fields[field_name]
+                if hasattr(form_field, 'queryset') and form_field.queryset is not None:
+                    # sort_field can be "name" or "-name" - Django's order_by handles both
+                    form_field.queryset = form_field.queryset.order_by(sort_field)
 
     def get_form_class(self):
         """Override get_form_class to use form_fields for form generation."""
@@ -1493,6 +1517,15 @@ class NominopolitanMixin:
                 fields=self.form_fields,
                 widgets=widgets
             )
+
+            # Apply dropdown sorting to form fields
+            sort_options = getattr(self, 'dropdown_sort_options', {})
+            for field_name, sort_field in sort_options.items():
+                if field_name in self.form_fields:
+                    model_field = self.model._meta.get_field(field_name)
+                    if hasattr(model_field, 'related_model') and model_field.related_model:
+                        form_field = form_class.base_fields[field_name]
+                        form_field.queryset = model_field.related_model.objects.order_by(sort_field)
 
             # Apply crispy forms if enabled
             if self.get_use_crispy():

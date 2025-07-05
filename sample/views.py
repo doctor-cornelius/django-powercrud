@@ -67,8 +67,9 @@ class BookCRUDView(NominopolitanMixin, CRUDView):
     # filterset_class = filters.BookFilterSet
     filterset_fields = ['author', 'title', 'published_date','isbn', 'isbn_empty','pages', 'description', 'genres']
     # Define how filter dropdown options should be sorted
-    filter_sort_options = {
-        "author": "name",  # Sort authors by name field
+    dropdown_sort_options = {
+        "author": "name",  # Sort authors by name field in all dropdowns
+        "unknown_model": 'zebra_face',
     }
     m2m_filter_and_logic = False  # Use AND logic for M2M filters
 
