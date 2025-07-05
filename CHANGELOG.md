@@ -1,3 +1,13 @@
+## 0.2.24 (2025-07-05)
+
+### Fix
+
+- **(bulk_edit)**:  ensure refresh table after bulk delete
+
+### Feature
+
+- **(bulk delete)**:  allow bulk edit and/or bulk delete (or neither) with new bulk_delete param
+
 ## 0.2.23 (2025-07-05)
 
 ### Fix
