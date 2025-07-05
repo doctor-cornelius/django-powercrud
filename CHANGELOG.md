@@ -1,3 +1,9 @@
+## 0.2.26 (2025-07-05)
+
+### Fix
+
+- **(object_list)**:  prevent adding null params to get url
+
 ## 0.2.25 (2025-07-05)
 
 ### Feature
