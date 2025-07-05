@@ -1,3 +1,9 @@
+## 0.2.23 (2025-07-05)
+
+### Fix
+
+- **(bulk_edit)**:  add choices for fields with choices to _get_bulk_field_info
+
 ## 0.2.22 (2025-07-04)
 
 ### Fix
