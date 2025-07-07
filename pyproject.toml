@@ -23,6 +23,7 @@ crispy-bootstrap5 = { version = "^2024.10", optional = true }
 crispy-tailwind = { version = "^1.0.3", optional = true }
 crispy-daisyui = { version = "^0.7.0", optional = true }
 django-vite = "^3.1.0"
+django-q2 = "^1.8.0" # for basic async tasks
 
 [tool.poetry.extras]
 neapolitan = ["neapolitan"]
