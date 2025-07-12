@@ -67,7 +67,6 @@ def action_links(view: Any, object: Any) -> str:
             action["url_name"],
             kwargs={"pk": object.pk} if action.get("needs_pk", True) else None,
         )
-        # log.debug(f"Extra action: {action}, url: {url}")
         if url is not None:
             htmx_target: str = action.get("htmx_target", default_target)
             if htmx_target and not htmx_target.startswith("#"):
@@ -361,8 +360,6 @@ def extra_buttons(view: Any) -> str:
             
             button_class = button.get("button_class", styles['extra_default'])
 
-            # log.debug(f"extra_attrs: {extra_attrs}, htmx_attrs: {htmx_attrs}, modal_attrs: {modal_attrs}")
-
             new_button = (
                 f'<a href="{url}" '
                 f'class="{extra_class_attrs} {styles["base"]} {extra_button_classes} {button_class}" '
@@ -370,8 +367,6 @@ def extra_buttons(view: Any) -> str:
                 f'{modal_attrs}>'
                 f'{button["text"]}</a>'                
             )
-
-            # log.debug(f"new_button: {new_button}")
 
             buttons.append(
                 new_button

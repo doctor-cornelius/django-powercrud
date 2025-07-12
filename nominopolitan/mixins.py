@@ -12,13 +12,13 @@ from django.template.loader import render_to_string
 from django import forms
 from django.forms import models as model_forms
 from django.db import models, transaction
-
 from django.http import (
     Http404,
     JsonResponse,
     HttpResponse,
     HttpResponseRedirect,
     HttpResponseForbidden,
+    QueryDict,
 )
 from django.urls import NoReverseMatch, path, reverse
 from django.utils.decorators import classonlymethod
@@ -29,6 +29,7 @@ from django.template.response import TemplateResponse
 
 from django.conf import settings
 from django.db.models.fields.reverse_related import ManyToOneRel
+from urllib.parse import urlencode
 
 import json
 import logging
@@ -84,22 +85,13 @@ class HTMXFilterSetMixin:
         """Configure HTMX attributes for form fields and setup crispy form helper."""
         for field in self.form.fields.values():
             widget_class: type[forms.Widget] = type(field.widget)
+
             trigger: str = self.FIELD_TRIGGERS.get(widget_class, self.FIELD_TRIGGERS['default'])
+
             attrs: dict[str, str] = {**self.HTMX_ATTRS, 'hx-trigger': trigger}
+
             field.widget.attrs.update(attrs)
 
-        # self.helper = FormHelper()
-        # self.helper.form_tag = False
-        # self.helper.disable_csrf = True
-
-        # bootstrap5
-        # self.helper.wrapper_class = 'col-auto'
-        # self.helper.template = 'bootstrap5/layout/inline_field.html'
-
-        # Use Tailwind-specific classes instead of Bootstrap
-        # self.helper.label_class = 'block text-sm font-medium text-gray-700'
-        # self.helper.field_class = 'mt-1 block w-full rounded-md border-gray-300 shadow-sm'
-        # self.helper.template = 'tailwind/layout/inline_field.html'
 
 # Create a standalone BulkEditRole class
 class BulkEditRole:
@@ -681,8 +673,6 @@ class NominopolitanMixin:
         deleted_count = 0
         field_info = self._get_bulk_field_info(bulk_fields)
 
-        log.debug(f"bulk_edit_process_post: delete_selected = {delete_selected}")
-
         if delete_selected:
             if not self.get_bulk_delete_enabled():
                 return HttpResponseForbidden("Bulk delete is not allowed.")
@@ -731,7 +721,7 @@ class NominopolitanMixin:
                 log.debug(f"bulk delete errors: {errors}")
                 return response
 
-            if not errors:
+            else: # no errors
                 response = HttpResponse("")
                 response["HX-Trigger"] = json.dumps({"bulkEditSuccess": True, "refreshTable": True})
                 log.debug(f"Bulk edit: Deleted {deleted_count} objects successfully.")
@@ -879,8 +869,8 @@ class NominopolitanMixin:
             response["HX-Retarget"] = self.get_modal_target()
             log.debug(f"Returning error response with {len(errors)} errors")
             return response
-        else:
-            # Success case (no errors)
+        
+        else: # Success case (no errors)
             response = HttpResponse("")
             response["HX-Trigger"] = json.dumps({"bulkEditSuccess": True, "refreshTable": True})
             log.debug(f"Bulk edit: Updated {updated_count} objects successfully.")
@@ -1034,9 +1024,13 @@ class NominopolitanMixin:
         if filterset_class is not None or filterset_fields is not None:
             # Check if any filter params (besides page/sort) are present
             filter_keys = [k for k in self.request.GET.keys() if k not in ('page', 'sort', 'page_size')]
-            if filter_keys and 'page' in self.request.GET:
-                # Remember we need to reset pagination
+            
+            # Only reset pagination for actual filter form submissions
+            is_filter_form_submission = self.request.headers.get('X-Filter-Setting-Request') == 'true'
+            
+            if filter_keys and 'page' in self.request.GET and is_filter_form_submission:
                 setattr(self, '_reset_pagination', True)
+
 
         if filterset_class is None and filterset_fields is not None:
             use_htmx = self.get_use_htmx()
@@ -1803,15 +1797,43 @@ class NominopolitanMixin:
         self.object = form.save()
 
         # If this is an HTMX request, handle it specially
-        if hasattr(self, 'request') and getattr(self.request, 'htmx', False):
-            from django.http import QueryDict
+        if hasattr(self, 'request') and getattr(self.request, 'htmx', False):            
+            # unpack hidden filter parameters
             filter_params = QueryDict('', mutable=True)
+            # prefix is set in object_form.html
             filter_prefix = '_nominopolitan_filter_'
+
             for k, v in self.request.POST.lists():
                 if k.startswith(filter_prefix):
                     real_key = k[len(filter_prefix):]
                     for value in v:
                         filter_params.appendlist(real_key, value)
+
+            # Build canonical list URL with current filter/sort params
+            clean_params = {}
+            for k, v in filter_params.lists():
+                # filter out keys with no values
+                if v:
+                    clean_params[k] = v[-1]
+
+            # determine the canonical url that includes the filter parameters
+            if self.namespace:
+                list_url_name = f"{self.namespace}:{self.url_base}-list"
+            else:
+                list_url_name = f"{self.url_base}-list"
+            list_path = reverse(list_url_name)
+
+            if clean_params:
+                canonical_query = urlencode(clean_params)
+                canonical_url = f"{list_path}?{canonical_query}"
+            else:
+                canonical_url = list_path
+            if clean_params:
+                canonical_query = urlencode(clean_params)
+                canonical_url = f"{list_path}?{canonical_query}"
+            else:
+                canonical_url = list_path
+
             # Patch self.request.GET
             original_get = self.request.GET
             self.request.GET = filter_params
@@ -1822,23 +1844,7 @@ class NominopolitanMixin:
             response = self.list(self.request)
             # Restore original GET
             self.request.GET = original_get
-            # Build canonical list URL with current filter/sort params
-            clean_params = {}
-            for k, v in filter_params.lists():
-                if v:
-                    clean_params[k] = v[-1]
-            from django.urls import reverse
-            if self.namespace:
-                list_url_name = f"{self.namespace}:{self.url_base}-list"
-            else:
-                list_url_name = f"{self.url_base}-list"
-            list_path = reverse(list_url_name)
-            if clean_params:
-                from urllib.parse import urlencode
-                canonical_query = urlencode(clean_params)
-                canonical_url = f"{list_path}?{canonical_query}"
-            else:
-                canonical_url = list_path
+            
             response["HX-Trigger"] = json.dumps({"formSuccess": True})
             response["HX-Retarget"] = f"{self.get_original_target()}"
             response["HX-Push-Url"] = canonical_url

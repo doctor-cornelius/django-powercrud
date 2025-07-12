@@ -151,7 +151,7 @@
         {% if filterset %}
         <div class="hidden py-2" id="filterCollapse">
             <form id="filter-form" method="get" class="flex flex-wrap gap-2" hx-target="#filtered_results" hx-push-url="true"
-                hx-replace-url="true" hx-headers='{"X-Filter-Sort-Request": "true"}'
+                hx-replace-url="true" hx-headers='{"X-Filter-Sort-Request": "true", "X-Filter-Setting-Request": "true"}'
                 action="{{ request.path }}"
                 onsubmit="return removeEmptyFields(this)">
                 {% for field in filterset.form %}
@@ -532,7 +532,47 @@
         }, 100);
         return true;
     }
-    </script>
+
+    // Get current filter/sort/pagesize parameters for pagination
+    function getCurrentFilters() {
+        const params = new URLSearchParams(window.location.search);
+        const clean = {};
+        // console.log("DEBUG object_list: current filters = ", params);
+        for (const [key, value] of params) {
+            if (value && key !== 'page') {
+                clean[key] = value;
+                // console.log("DEBUG object_list: adding to clean: {", key, value, "}");
+            }
+        }
+        // console.log("DEBUG object_list: current filters provided as input to hx-vals= ", clean);
+        return clean;
+    }
+
+    // Delay form submit until after M2M select value for filters is properly updated in DOM
+    document.addEventListener('DOMContentLoaded', function () {
+        // Handle M2M select changes with proper timing
+        document.querySelectorAll('#filter-form select[multiple]').forEach(select => {
+            select.addEventListener('change', function () {
+                // Small delay to ensure DOM is updated
+                setTimeout(() => {
+                    // Use HTMX to submit the form
+                    const form = document.getElementById('filter-form');
+                    htmx.ajax('GET', form.action, {
+                        source: form,
+                        target: '#filtered_results',
+                        headers: {
+                            'X-Filter-Sort-Request': 'true',
+                            'X-Filter-Setting-Request': 'true'
+                        },
+                        swap: 'innerHTML',
+                        pushURL: true
+                    });
+                }, 10);
+            });
+        });
+    });
+
+</script>
 
 {% endpartialdef nm_content %}
 
@@ -552,15 +592,17 @@
     <ul class="join flex justify-center">
         {% if page_obj.has_previous %}
         <li>
-            <a class="join-item btn btn-sm" 
-               href="?page={{ page_obj.previous_page_number }}{% if request.GET.page_size %}&page_size={{ request.GET.page_size }}{% endif %}{% if filter_params %}&{{ filter_params }}{% endif %}" 
-               {% if use_htmx and original_target %}
-               hx-get="?page={{ page_obj.previous_page_number }}{% if request.GET.page_size %}&page_size={{ request.GET.page_size }}{% endif %}{% if filter_params %}&{{ filter_params }}{% endif %}" 
-               hx-target="{{original_target}}" 
-               hx-replace-url="true"
-               hx-push-url="true" 
-               {% endif %}>Previous</a>
+            <a class="join-item btn btn-sm"
+                href="?page={{ page_obj.previous_page_number }}{% if request.GET.page_size %}&page_size={{ request.GET.page_size }}{% endif %}"
+                {% if use_htmx and original_target %} 
+                    hx-get="?page={{ page_obj.previous_page_number }}"
+                    hx-vals="js:{...getCurrentFilters()}" hx-headers='{"X-Filter-Sort-Request": "true"}'
+                    hx-target="#filtered_results" 
+                    hx-replace-url="true" hx-push-url="true" 
+                {% endif %}>Previous
+            </a>
         </li>
+        
         {% endif %}
 
         {% get_proper_elided_page_range paginator page_obj.number as page_range %}
@@ -569,31 +611,33 @@
             <li><span class="join-item btn btn-sm btn-disabled">…</span></li>
             {% else %}
             <li>
-                <a class="join-item btn btn-sm {% if page_obj.number == i %}btn-active{% endif %}" 
-                href="?page={{ i }}{% if request.GET.page_size %}&page_size={{ request.GET.page_size }}{% endif %}{% if filter_params %}&{{ filter_params }}{% endif %}" 
-                {% if use_htmx and original_target %} 
-                hx-get="?page={{ i }}{% if request.GET.page_size %}&page_size={{ request.GET.page_size }}{% endif %}{% if filter_params %}&{{ filter_params }}{% endif %}"
-                hx-target="{{original_target}}" 
-                hx-replace-url="true" 
-                hx-push-url="true" 
-                {% endif %}>{{ i }}
+                <a class="join-item btn btn-sm {% if page_obj.number == i %}btn-active{% endif %}"
+                    href="?page={{ i }}{% if request.GET.page_size %}&page_size={{ request.GET.page_size }}{% endif %}"
+                    {% if use_htmx and original_target %}
+                        hx-get="?page={{ i }}" 
+                        hx-vals="js:{...getCurrentFilters()}" hx-headers='{"X-Filter-Sort-Request": "true"}' 
+                        hx-target="#filtered_results" 
+                        hx-replace-url="true" hx-push-url="true" 
+                    {% endif %}>{{ i }}
                 </a>
             </li>
+            
             {% endif %}
         {% endfor %}
 
         {% if page_obj.has_next %}
         <li>
-            <a class="join-item btn btn-sm" 
-               href="?page={{ page_obj.next_page_number }}{% if request.GET.page_size %}&page_size={{ request.GET.page_size }}{% endif %}{% if filter_params %}&{{ filter_params }}{% endif %}" 
-               {% if use_htmx and original_target %}
-               hx-get="?page={{ page_obj.next_page_number }}{% if request.GET.page_size %}&page_size={{ request.GET.page_size }}{% endif %}{% if filter_params %}&{{ filter_params }}{% endif %}" 
-               hx-target="{{original_target}}" 
-               hx-replace-url="true"
-               hx-push-url="true" 
-               {% endif %}>Next</a>
+            <a class="join-item btn btn-sm"
+                href="?page={{ page_obj.next_page_number }}{% if request.GET.page_size %}&page_size={{ request.GET.page_size }}{% endif %}"
+                {% if use_htmx and original_target %} 
+                    hx-get="?page={{ page_obj.next_page_number }}"
+                    hx-vals="js:{...getCurrentFilters()}" hx-headers='{"X-Filter-Sort-Request": "true"}' 
+                    hx-target="#filtered_results" 
+                    hx-replace-url="true" hx-push-url="true" 
+                {%endif %}>Next
+            </a>
         </li>
-        {% endif %}
+        {%endif %}
 
     </ul>
 </nav>
