@@ -48,6 +48,7 @@ from .validators import NominopolitanMixinValidator
 from django.db.models import Q
 from functools import reduce
 import operator
+from typing import List, Tuple
 
 class AllValuesModelMultipleChoiceFilter(ModelMultipleChoiceFilter):
     """Custom filter that requires ALL selected values to match (AND logic)"""
@@ -354,6 +355,11 @@ class NominopolitanMixin:
                 f for f in self.form_fields 
                 if f not in self.form_fields_exclude
             ]
+
+        # check async if enabled
+        if self.bulk_async:
+            if not self.get_bulk_async_enabled():
+                log.warning(f"bulk_async is enabled but backend '{self.get_bulk_async_backend()}' is not available")
 
     def get_paginate_by(self):
         """Override of parent method to enable dealing with user-specified
@@ -986,6 +992,54 @@ class NominopolitanMixin:
             str: Notification method ('status_page', 'messages', 'email', 'callback', 'none')
         """
         return self.bulk_async_notification    
+
+    def should_process_async(self, record_count: int) -> bool:
+        """
+        Determine if a bulk operation should be processed asynchronously.
+        
+        Args:
+            record_count: Number of records to be processed
+            
+        Returns:
+            bool: True if operation should be async, False for sync processing
+        """
+        if not self.get_bulk_async_enabled():
+            return False
+        
+        return record_count >= self.get_bulk_min_async_records()
+
+    def is_async_backend_available(self) -> bool:
+        """
+        Check if the configured async backend is available and properly configured.
+        
+        Returns:
+            bool: True if backend is available, False otherwise
+        """
+        backend = self.get_bulk_async_backend()
+        
+        if backend == 'q2':
+            try:
+                import django_q
+                
+                # Check if django_q is in INSTALLED_APPS
+                if 'django_q' not in settings.INSTALLED_APPS:
+                    return False
+                    
+                # Basic check - more comprehensive validation can be added later
+                return True
+                
+            except ImportError:
+                return False
+        
+        # Future backends (celery, etc.) would be checked here
+        return False
+
+    def validate_async_configuration(self) -> Tuple[bool, List[str]]:
+        """
+        Placeholder for validating async config.
+        """
+
+        return (False, [])
 
     def get_filter_queryset_for_field(self, field_name, model_field):
         """Get an efficiently filtered and sorted queryset for filter options."""
