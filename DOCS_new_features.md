@@ -10,123 +10,17 @@ This is to document planned new features. We have a list at the top and for any 
 - **Material for Mkdocs documentation**: the `README.md` is getting too long and we need to split it up into a more useable form.
 - **testing**: we need to add some tests to the project. Starty with backend (`pytest`) as priority but later follow with front-end testing (eg `puppeteer`).
 - **architectural review of filterset field `htmx` treatment**: including why we needed a javascript function workaround to make M2M field selection work properly.
+- **simplify params preservation on single record edit**: see `DOCS_filter_pagination.md` for details. Need to simplify approach from hidden form fields (over engineered) to follow simpler approach used with bulk_editing.
 
 ### Planned
 
 The following are planned and have detailed explanations in the subsequent sections.
 
-1. **filter selecton disappears once user selects one of the page numbers**: this is a bug that needs to be fixed. Filter selection should persist. We have worked hard on this and looks like we forgot this use case.
-2. **fix bulk selection method**: currently cannot select > ~800 records for bulk processing. The reason is that we pass the selected id's back as hidden fields in the form, and there are browser or other hard limits on this. Need to change from using local storage (I think it's `cacheStorage`) to a server-side solution (eg django `cache` or `sessions`).
-3. **background processing for long-running tasks**: we need to be able to run long-running tasks in the background and have the UI update when they are complete. This is planned. See below.
+1. ✅ Done: **filter selecton disappears once user selects one of the page numbers**: this is a bug that needs to be fixed. Filter selection should persist. We have worked hard on this and looks like we forgot this use case.
+2. **background processing for long-running tasks**: we need to be able to run long-running tasks in the background and have the UI update when they are complete. This is planned. See below.
+3. **fix bulk selection method**: currently cannot select > ~800 records for bulk processing. The reason is that we pass the selected id's back as hidden fields in the form, and there are browser or other hard limits on this. Need to change from using local storage (I think it's `cacheStorage`) to a server-side solution (eg django `cache` or `sessions`).
 
-
-## 1. Fix Filter Persistence on Page Number Change
-
-Steps to reproduce:
-1. Set filter criteria and page size such that there are >1 pages
-2. Click on a page number
-3. You will see that filtering gets reset (my guess is it's a full page reload not an `htmx` request, or else it's poor `htmx` targeting)
-
-### Analysis of Design Options
-
-#### URL + hx-vals
-**Mechanism**: JavaScript reads current URL parameters, sends via hx-vals
-- ✅ Simple conceptual model (URL is source of truth)
-- ✅ No storage management needed  
-- ✅ Stateless
-- ✅ One place to read state (URL)
-- ❌ JavaScript must parse URL parameters for every request
-
-#### sessionStorage + hx-vals
-**Mechanism**: JavaScript reads sessionStorage, sends via hx-vals
-- ✅ Per-tab isolation built-in
-- ✅ Can store complex objects
-- ✅ No URL parameter parsing needed
-- ❌ Client-side storage management required
-- ❌ Must sync sessionStorage with URL state
-
-#### Django Sessions
-**Mechanism**: Server stores state, pagination sends minimal data
-- ✅ Simplest front-end (no JavaScript state management)
-- ✅ Server has immediate access to state
-- ❌ Server-side storage required
-- ❌ Multiple tabs share same session
-- ❌ Memory usage on server
-- ❌ Too heavy for this specific problem
-
-#### Forms with Hidden Fields
-**Mechanism**: Hidden form fields preserve state, HTMX includes automatically
-- ✅ No JavaScript state management needed
-- ✅ HTMX handles inclusion automatically
-- ❌ More HTML per page
-- ❌ Template must generate hidden fields for pagination
-- ❌ Verbose with large page ranges
-
-### Selected Approach
-
-**URL + hx-vals**: Clean, simple, stateless approach where JavaScript reads current URL parameters and sends them via hx-vals. This maintains the URL as the single source of truth while enabling clean pagination links. All approaches would result in clean URLs in the browser bar via hx-push-url, so this provides the most straightforward implementation without additional storage mechanisms.
-
-Implementation will involve:
-1. JavaScript function to parse current URL parameters
-2. Pagination links using hx-vals to send current filter state
-3. Clean URL management via hx-push-url/hx-replace-url
-
-### Implementation Notes
-
-#### Core Mechanism
-- Use `hx-vals="js:getCurrentFilters()"` pattern on pagination links
-- JavaScript function reads current URL parameters using `new URLSearchParams(window.location.search)`
-- Server processes parameters and returns filtered results
-- Server uses `hx-push-url` or `hx-replace-url` to maintain clean URLs in browser bar
-
-#### URL Parameter Management
-- **Clean URLs**: Strip empty parameters before sending to avoid ugly URLs with empty values
-- **No concatenation**: Use clean URL push/replace instead of concatenating with existing URLs
-- **No duplicates**: Ensure parameter deduplication in JavaScript function
-- **Filter out pagination**: Don't include current `page` parameter when collecting filter state
-- **Server-side URL forcing**: Server can force clean URLs via HTMX headers when needed
-
-#### JavaScript Implementation
-```javascript
-function getCurrentFilters() {
-   const params = new URLSearchParams(window.location.search);
-   const clean = {};
-   for (const [key, value] of params) {
-       if (value && key !== 'page') clean[key] = value;
-   }
-   return clean;
-}
-```
-
-#### Template Simplification
-- Templates don't need to handle parameter passing for pagination links
-- No complex URL building in templates (JavaScript handles this)
-- Pagination links become simple: `<a hx-get="?page=2" hx-vals="js:getCurrentFilters()">2</a>`
-
-#### State Management
-- **URL as single source of truth**: Always read current state from URL parameters
-- **Stateless**: No client-side or server-side storage required
-- **Page refresh compatible**: URLs always reflect current state for bookmarking
-- **Clean separation**: JavaScript handles URL parsing, server handles filter processing
-
-#### Server-Side Considerations
-- Use `hx-push-url` to update browser URL with clean parameters
-- Server can clean/normalize parameters before generating response URLs
-- Maintain RESTful URL structure for direct access and bookmarking
-- Handle both HTMX and non-HTMX requests consistently
-
-#### Benefits of This Approach
-- No storage management overhead
-- Simple conceptual model (URL = state)
-- Works with page refresh and direct URL access
-- Clean separation between client URL handling and server processing
-- Maintains existing template tag architecture for filter form population
-
-## 2. Fix Bulk Selection Method
-
-The current bulk selection method has a hard limit of ~800 records due to browser limitations. We need to change the approach to use a server-side solution for storing selected IDs.
-
-## 3. Background Processing for Long-Running Tasks
+## 2. Background Processing for Long-Running Tasks
 
 ### Overview
 
@@ -195,19 +89,23 @@ class BulkTask(models.Model):
 **Status Page Features:**
 - List of user's bulk operations with progress
 - Real-time status updates (pending, in progress, completed, failed)
+    - use `htmx` for this (haha if htmx enabled) with potential to use [celery-progress](https://www.saaspegasus.com/guides/django-celery-progress-bars/)
 - Detailed error reporting for failed operations
 - Operation history and audit trail
 - Links back to relevant model list views
+- consider whether to persist an estimated progress_percent field in the BulkTask model to avoid recalculating in templates or clients.
+- consider optionally (or as standard) allowing: task cancel, retry operations
 
 ### Duplicate Request Handling
 
 **Problem**: Impatient users might trigger the same bulk operation multiple times.
 
 **Solution**: 
-- Generate unique `task_key` based on user, selected IDs, and operation data
+- Generate unique `task_key` based on user, selected IDs, and operation data. Consider providing hook for downstream user to modify and further specialise key to ensure uniqueness.
 - Check for existing pending/running tasks before creating new ones
 - Return status of existing task instead of creating duplicates
 - Provide clear feedback: "This bulk operation is already in progress"
+- **OR** consider option to cancel / rollback existing task and start a new one (consider class param for this or provide hooks for downstream user to modify)
 
 ### Notification Options
 
@@ -216,6 +114,7 @@ class BulkTask(models.Model):
   - Persistent across sessions
   - Detailed progress and error information
   - Best UX for power users
+  - Consider whether to go direct to this page when calling task ends, or not, or provide alert or django message, etc. Consider parameterising this or providing a hook. Discuss when we get to the relevant task.
 
 2. **Django Messages**:
   - Good for small operations
@@ -357,3 +256,7 @@ def bulk_edit_process_post(self, request, queryset, bulk_fields):
    - Better feedback for queued operations
    - Status page styling and usability
    - Mobile-responsive design for status pages
+
+## 3. Fix Bulk Selection Method
+
+The current bulk selection method has a hard limit of ~800 records due to browser limitations. We need to change the approach to use a server-side solution for storing selected IDs.

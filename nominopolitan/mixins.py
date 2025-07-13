@@ -172,6 +172,12 @@ class NominopolitanMixin:
     bulk_delete: bool = False
     bulk_full_clean: bool = True  # If True, run full_clean() on each object during bulk edit
 
+    # async processing parameters
+    bulk_async: bool = False
+    bulk_min_async_records: int = 20
+    bulk_async_backend: str = 'q2' # currently only 'q2' is supported; future 'celery' backend proposed
+    bulk_async_notification: str = 'status_page' # 'status_page' or 'email' or 'messages'
+
     # htmx
     use_htmx: bool | None = None
     default_htmx_target: str = '#content'
@@ -943,6 +949,43 @@ class NominopolitanMixin:
             
             return qs
         return None
+
+    # bulk async methods
+    def get_bulk_async_enabled(self) -> bool:
+        """
+        Determine if async bulk processing should be enabled.
+        
+        Returns:
+            bool: True if async processing is enabled and backend is available
+        """
+        return self.bulk_async and self.is_async_backend_available()
+
+    def get_bulk_min_async_records(self) -> int:
+        """
+        Get the minimum number of records required to trigger async processing.
+        
+        Returns:
+            int: Minimum record count for async processing
+        """
+        return self.bulk_min_async_records
+
+    def get_bulk_async_backend(self) -> str:
+        """
+        Get the configured async backend.
+        
+        Returns:
+            str: Backend name ('database', 'celery', 'asgi')
+        """
+        return self.bulk_async_backend
+
+    def get_bulk_async_notification(self) -> str:
+        """
+        Get the configured notification method for async operations.
+        
+        Returns:
+            str: Notification method ('status_page', 'messages', 'email', 'callback', 'none')
+        """
+        return self.bulk_async_notification    
 
     def get_filter_queryset_for_field(self, field_name, model_field):
         """Get an efficiently filtered and sorted queryset for filter options."""
