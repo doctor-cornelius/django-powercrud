@@ -5,7 +5,7 @@ class Command(BaseCommand):
     help = "Opens the Nominopolitan documentation in your default browser"
 
     def handle(self, *args, **options):
-        docs_url = "https://your-docs-url.github.io/django-nominopolitan/"
+        docs_url = "https://doctor-cornelius.github.io/django-nominopolitan/"
         
         try:
             webbrowser.open(docs_url)
