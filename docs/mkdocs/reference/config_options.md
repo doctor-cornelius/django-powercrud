@@ -62,7 +62,7 @@ Complete alphabetical reference of all available configuration options with defa
 
 ## Notes
 
-- **Required settings**: Only `model` is required
+- **Required settings**: Only `model` and `base_template_path` are required
 - **Auto-detection**: `use_crispy` and `use_htmx` auto-detect library availability
 - **Dependencies**: Bulk operations require both `use_htmx = True` and `use_modal = True`
 - **Field shortcuts**: Use `'__all__'` for all fields, `'__fields__'` to reference the `fields` setting

@@ -64,8 +64,6 @@ class ProjectView(NominopolitanMixin, CRUDView):
 - **Bootstrap 5** - Production-ready components
 - **Custom frameworks** - Bring your own CSS
 
-## Requirements
+## Documentation
 
-- Django 4.2+
-- Python 3.8+
-- neapolitan 24.8+
+See full documentation at https://doctor-cornelius.github.io/django-nominopolitan/.

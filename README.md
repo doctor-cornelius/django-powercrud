@@ -58,3 +58,6 @@ class ProjectView(NominopolitanMixin, CRUDView):
 2. **[Quick Start](getting_started.md#quick-start-tutorial)** - Your first Nominopolitan view
 3. **[Configuration](configuration/core_config.md)** - Explore the features
 
+## Documentation
+
+See full documentation at https://doctor-cornelius.github.io/django-nominopolitan/.
