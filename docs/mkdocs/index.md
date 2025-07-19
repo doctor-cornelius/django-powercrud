@@ -58,3 +58,14 @@ class ProjectView(NominopolitanMixin, CRUDView):
 2. **[Quick Start](getting_started.md#quick-start-tutorial)** - Your first Nominopolitan view
 3. **[Configuration](configuration/core_config.md)** - Explore the features
 
+## Framework Support
+
+- **daisyUI/Tailwind CSS** - Modern utility-first styling (default)
+- **Bootstrap 5** - Production-ready components
+- **Custom frameworks** - Bring your own CSS
+
+## Requirements
+
+- Django 4.2+
+- Python 3.8+
+- neapolitan 24.8+

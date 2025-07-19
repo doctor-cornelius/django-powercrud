@@ -1,7 +1,14 @@
-# How Filtering and Pagination Works
+---
+date: 2025-07-11
+categories:
+  - frontend
+  - filters
+---
+# Preserving Filtering, Sort and Pagination Parameters
 
-This document explains how filtering and pagination work in this package, including how filter, sort and pagination parameters as well as current page number are preserved on edit, bulk edit, change of filtering and change of page number.
+This is a record of my thought procss (yeah and the AI coding assistant's) of solving the problem of how to ensure that filter, sort and pagination parameters as well as current page number are preserved on edit, bulk edit, change of filtering and change of page number.
 
+<!-- more -->
 ## Overview
 
 There are four operations where filter, sort and pagination parameters need to be preserved:
@@ -57,8 +64,6 @@ And before we get into how params are preserved, let's start with what we have g
 
 ### Pagination
 
-### Pagination
-
 #### Front End
 
 - Page size selector dropdown allows user to choose records per page (5, 10, 25, 50, 100, "All")
@@ -66,6 +71,7 @@ And before we get into how params are preserved, let's start with what we have g
 - When `page_size="all"`, pagination is disabled and all records shown
 - Page size changes use HTMX with `hx-include="[name]"` to preserve filters/sort while updating results
 - Pagination links show page numbers with proper elision (1 ... 5 6 7 ... 20)
+
 - **Currently broken**: Page number links fail to preserve `page_size` and filter parameters when clicked
 - Page size persists across filtering and sorting operations via hidden form fields
 - **Key files**: `object_list.html` (page-size-form, pagination partial)
@@ -139,6 +145,7 @@ response["HX-Trigger"] = json.dumps({"bulkEditSuccess": True, "refreshTable": Tr
 ```
 
 **Frontend Response (object_list.html JavaScript)**:
+
 1. **Trigger detection**: JavaScript listens for HTMX response headers:
 ```javascript
 document.body.addEventListener('htmx:afterOnLoad', function (event) {
@@ -165,6 +172,7 @@ document.body.addEventListener('htmx:afterOnLoad', function (event) {
 ```
 
 2. **Parameter preservation**: Make fresh GET request to current URL:
+
 ```javascript
 htmx.ajax('GET', window.location.pathname + window.location.search, {
     target: '#filtered_results',
@@ -173,11 +181,13 @@ htmx.ajax('GET', window.location.pathname + window.location.search, {
 ```
 
 Where:
+
 - `window.location.pathname` = The path part of current URL (without domain)
 - `window.location.search` = The query string part (the ? and everything after)
 - Combined = The exact same URL the user is currently viewing
 
 3. **Selection cleanup**: Clear sessionStorage after successful bulk edit:
+
 ```javascript
 // Clear selection on bulkEditSuccess
 if (triggers.bulkEditSuccess) {
@@ -193,6 +203,7 @@ if (triggers.bulkEditSuccess) {
 
 **Form Setup (object_list.html)**:
 - Filter form has HTMX attributes on the form level:
+
 ```html
 <form id="filter-form" method="get" 
       hx-target="#filtered_results" 
@@ -201,6 +212,7 @@ if (triggers.bulkEditSuccess) {
 ```
 
 - Each individual filter field gets HTMX attributes via `HTMXFilterSetMixin.setup_htmx_attrs()`:
+
 ```python
 HTMX_ATTRS = {
     'hx-get': '',  # Send to form's action URL
@@ -209,6 +221,7 @@ HTMX_ATTRS = {
 ```
 
 - Hidden fields preserve non-filter parameters:
+
 ```html
 {% for key, value in request.GET.items %}
     {% if key != 'page_size' and key != 'page' %}
@@ -221,12 +234,14 @@ HTMX_ATTRS = {
 
 **How `hx-include="[name]"` works**:
 This HTMX attribute tells the browser to include ALL form elements that have a `name` attribute in the request. So when a user changes the "author" filter field, HTMX includes:
+
 - The new "author" value they just selected
 - All other current filter field values (title, date, etc.)
 - All hidden fields (sort parameters, page_size, etc.)
 
 **How the GET request works**:
 When a filter field changes:
+
 1. **HTMX trigger** fires (e.g., user selects new author)
 2. **Field collection**: `hx-include="[name]"` gathers ALL current form values
 3. **Request construction**: HTMX sends GET request to form's action URL with ALL collected values as query parameters
@@ -244,6 +259,7 @@ At this point page number selection does not preserve parameters. This is a shor
 **Method**: Template-constructed URLs → Explicit parameter inclusion → HTMX request with preserved state
 
 **Backend Parameter Preparation (nominopolitan.py template tag)**:
+
 ```python
 # Get all current filter parameters
 filter_params = request.GET.copy() if request else {}
@@ -263,6 +279,7 @@ for k, v in clean_params.items():
 
 **Frontend Template Logic (list.html)**:
 - Each sortable column header includes explicit URL construction:
+
 ```html
 {% if is_sortable %}
     {% if use_htmx %}
@@ -278,6 +295,7 @@ for k, v in clean_params.items():
 ```
 
 **When user clicks column header**:
+
 1. **Sort logic**: Template toggles between ascending (`title`), descending (`-title`), and unsorted
 2. **URL construction**: Template builds URL including:
    - New sort parameter
@@ -332,7 +350,9 @@ Only **two** things actually need fixing:
 From analysis of potential approaches, there are four main strategies for parameter preservation:
 
 #### 1. URL + hx-vals
+
 **Mechanism**: JavaScript reads current URL parameters, sends via hx-vals
+
 - ✅ Simple conceptual model (URL is source of truth)
 - ✅ No storage management needed  
 - ✅ Stateless
@@ -340,7 +360,9 @@ From analysis of potential approaches, there are four main strategies for parame
 - ❌ JavaScript must parse URL parameters for every request
 
 #### 2. SessionStorage + hx-vals
+
 **Mechanism**: JavaScript reads sessionStorage, sends via hx-vals
+
 - ✅ Per-tab isolation built-in
 - ✅ Can store complex objects
 - ✅ No URL parameter parsing needed
@@ -348,7 +370,9 @@ From analysis of potential approaches, there are four main strategies for parame
 - ❌ Must sync sessionStorage with URL state
 
 #### 3. Django Sessions
+
 **Mechanism**: Server stores state, pagination sends minimal data
+
 - ✅ Simplest front-end (no JavaScript state management)
 - ✅ Server has immediate access to state
 - ❌ Server-side storage required
@@ -357,7 +381,9 @@ From analysis of potential approaches, there are four main strategies for parame
 - ❌ Too heavy for this specific problem
 
 #### 4. Forms with Hidden Fields
+
 **Mechanism**: Hidden form fields preserve state, HTMX includes automatically
+
 - ✅ No JavaScript state management needed
 - ✅ HTMX handles inclusion automatically
 - ❌ More HTML per page
@@ -365,7 +391,9 @@ From analysis of potential approaches, there are four main strategies for parame
 - ❌ Verbose with large page ranges
 
 #### 5. Current Bulk Edit Pattern (JavaScript URL Refresh)
+
 **Mechanism**: Server triggers JavaScript to refresh current URL
+
 - ✅ Extremely simple (just refresh current URL)
 - ✅ Perfect separation of concerns
 - ✅ Works regardless of how user reached current state
@@ -377,6 +405,7 @@ From analysis of potential approaches, there are four main strategies for parame
 #### For Pagination Links
 
 **Rejected Options**:
+
 - **Current Bulk Edit Pattern**: Would create weird two-step flow:
   - Click page 2 → GET request → Server response with trigger → JavaScript makes ANOTHER GET for page 2
   - This is wasteful (two round trips) and confusing
@@ -425,6 +454,7 @@ function getCurrentFilters() {
 ```
 
 **Why this is superior**:
+
 - **Single round trip**: Click → GET with all params → Response
 - **Clean template**: No verbose URL construction in template
 - **Maintainable**: JavaScript function can be enhanced/debugged independently
@@ -433,6 +463,7 @@ function getCurrentFilters() {
 #### For Single Record Edit
 
 **Rejected Options**:
+
 - **URL + hx-vals**: Form submission already handles parameter passing; this doesn't solve the core complexity
 - **SessionStorage + hx-vals**: Adds storage management without addressing the real issue
 - **Django Sessions**: Overkill for parameter preservation
@@ -501,6 +532,7 @@ if (triggers.formSuccess || triggers.bulkEditSuccess) {
 ```
 
 **Why this is superior**:
+
 - **Massive simplification**: Server doesn't need to understand current UI state
 - **Consistent with bulk edit**: Same pattern for all post-operation refreshes  
 - **Separation of concerns**: Server handles business logic, client handles UI state
@@ -516,6 +548,7 @@ if (triggers.formSuccess || triggers.bulkEditSuccess) {
 4. **Sort Selection**: Keep current template URL construction (appropriate for single-parameter changes)
 
 This gives us the benefits of each approach where they're most appropriate, rather than forcing everything into one pattern. The result is:
+
 - **Fixed pagination** (currently broken)
 - **Simplified single record edit** (remove complex server-side processing)
 - **Maintained strengths** of filter form and sort selection approaches
@@ -541,17 +574,20 @@ During debugging, we uncovered that the core problem was not pagination link par
 ### Root Cause Analysis
 
 The issue was traced to the interaction between:
+
 - **HTMXFilterSetMixin**: Dynamically adds HTMX attributes to filter fields for generic package functionality
 - **Field-level HTMX triggers**: Each filter field gets `hx-get=""` and `hx-include: '[name]'` attributes
 - **Request timing**: HTMX was somehow including both old and new parameter values in requests
 
 The duplicate parameters caused a "lag" effect where:
+
 - Filter changes resulting in fewer records showed previous results (using first parameter value)
 - Filter changes resulting in more records worked correctly (using last parameter value)
 
 ### Architectural Context
 
 This is a **generic package** issue where the HTMXFilterSetMixin serves a critical purpose:
+
 - Downstream developers specify arbitrary `filterset_fields` lists
 - Package must dynamically configure HTMX attributes for unknown field combinations
 - Different field types require different HTMX triggers (text inputs vs selects vs dates)
@@ -560,6 +596,7 @@ This is a **generic package** issue where the HTMXFilterSetMixin serves a critic
 ### Resolution
 
 After extensive debugging, the issue was resolved by implementing a **JavaScript-based solution** that:
+
 - Uses explicit event handling instead of automatic HTMX attribute injection
 - Provides reliable form data serialization without duplicate parameters
 - Maintains the same user experience with better reliability

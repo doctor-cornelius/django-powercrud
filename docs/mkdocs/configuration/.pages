@@ -1,0 +1,11 @@
+title: Configuration Guide
+
+arrange:
+  - core_config.md
+  - styling.md
+  - htmx_modals.md
+  - form_handling.md
+  - filtering.md
+  - pagination.md
+  - bulk_operations.md
+  - async_processing.md

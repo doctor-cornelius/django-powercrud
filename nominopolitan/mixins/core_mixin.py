@@ -9,7 +9,6 @@ from ..validators import NominopolitanMixinValidator
 
 log = logging.getLogger("nominopolitan")
 
-
 class CoreMixin:
     """
     The core mixin for Nominopolitan. Contains the fundamental setup,

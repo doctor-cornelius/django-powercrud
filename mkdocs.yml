@@ -1,0 +1,119 @@
+site_name: Django Nominopolitan
+site_author: Michael Foulds
+
+nav:
+  - "Home": "index.md"
+  - ... # To allow awesom-plugin to automatically pick up folders
+    
+docs_dir: docs/mkdocs
+site_dir: docs/site
+
+dev_addr: 0.0.0.0:10005
+repo_url: https://github.com/doctor-cornelius/django-nominopolitan
+edit_uri: blob/mkdocs/docs/
+
+# ------------------------------------------------------------------
+plugins:
+  - search
+  - awesome-pages
+      # collapse_single_pages: true
+  # - enumerate-headings:          # pip install mkdocs-enumerate-headings-plugin
+  #     toc_depth: 6
+  #     strict: false
+  #     increment_across_pages: true
+  # exclude:
+  #   - index.md
+  # - with-pdf                   # mamba install weasyprint && pip install mkdocs-with-pdf
+  # - mermaid2                   # not needed if using mkdocs-material with custom_fences
+  - blog:
+      blog_dir: blog
+      post_dir: "{blog}/posts"
+      blog_toc: true
+      post_date_format: medium
+      post_url_date_format: yyyy/MM/dd
+      pagination_per_page: 25
+      draft: true # render drafts
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.caret # caret (^) will superscript next char
+  - pymdownx.tilde # tilde (~) will subscript next char
+  - pymdownx.superfences:
+      custom_fences: # from the mkdocs-material docs
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:materialx.emoji.to_svg
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - abbr
+  - attr_list
+  - md_in_html
+theme:
+  name: material # pip install mkdocs-material
+  font:
+    text: Playfair Display
+  features:
+    - content.code.copy
+    - content.code.annotate
+    - navigation.instant
+    - navigation.indexes
+    - navigation.tabs # puts major headings in horizontal menu
+    # - navigation.tabs.sticky # this makes headings ALSO in LHS
+    - navigation.sections # makes sections NOT collapsed
+    - search.suggest
+    - search.highlight
+    - search.share
+    - header.autohide
+
+  palette:
+    - primary: teal
+    # Palette toggle for light mode
+    - scheme: default
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+
+    # Palette toggle for dark mode
+    - scheme: slate
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+
+  icon:
+    repo: fontawesome/brands/gitlab
+    admonition:
+      note: octicons/tag-16
+      abstract: octicons/checklist-16
+      info: octicons/info-16
+      tip: octicons/squirrel-16
+      success: octicons/check-16
+      question: octicons/question-16
+      warning: octicons/alert-16
+      failure: octicons/x-circle-16
+      danger: octicons/zap-16
+      bug: octicons/bug-16
+      example: octicons/beaker-16
+      quote: octicons/quote-16
+
+extra:
+  generator: false
+
+extra_javascript:
+  # mathjax
+  - docs/javascripts/mathjax.js
+  - https://polyfill.io/v3/polyfill.min.js?features=es6
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js

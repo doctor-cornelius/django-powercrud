@@ -1,0 +1,119 @@
+# Getting Started
+
+## Installation
+
+### 1. Install Core Dependencies
+
+```bash
+pip install neapolitan
+pip install django-nominopolitan
+```
+
+This automatically installs:
+- `django`
+- `django-template-partials`
+- `pydantic`
+- `django_htmx`
+
+## Frontend Dependencies
+
+You'll need to include these JavaScript libraries in your base template:
+
+- **HTMX** - [Install from htmx.org](https://htmx.org/docs/#installing)
+- **Popper.js** - For table column text truncation popovers
+- **Alpine.js** - If using modals
+
+**Default styling:**
+- daisyUI v5 with Tailwind CSS v4
+- Bootstrap 5 CSS and JS (if using bootstrap5 framework)
+- Bootstrap Icons (for sorting indicators when using bootstrap5)
+
+*Note: There are many ways to include JavaScript (CDN, npm, Vite, etc.) - use whatever works for your project.*
+
+See the example base template in `django_nominopolitan/templates/django_nominopolitan/base.html` for a complete implementation with CDN links.
+
+## Settings Configuration
+
+Add to your `settings.py`:
+
+```python
+# Required settings
+INSTALLED_APPS = [
+    ...
+    "nominopolitan",
+    "neapolitan",
+    "django_htmx",
+    ...
+]
+
+# Optional: Set CSS framework (default is 'daisyui')
+NOMINOPOLITAN_CSS_FRAMEWORK = 'daisyui'  # or 'bootstrap5'
+```
+
+**Important:** If using Tailwind CSS (default), ensure Tailwind includes Nominopolitan's classes in its build process. See [Styling Configuration](configuration/styling.md#tailwind-css-setup) for details.
+
+## Quick Start Tutorial
+
+### Basic Setup
+
+The best starting point is [`neapolitan`'s docs](https://noumenal.es/neapolitan/). Start with a basic CRUD view:
+
+```python
+from nominopolitan.mixins import NominopolitanMixin
+from neapolitan.views import CRUDView
+from . import models
+
+class ProjectCRUDView(NominopolitanMixin, CRUDView):
+    model = models.Project
+    fields = ["name", "owner", "last_review", "status"]
+    base_template_path = "core/base.html"
+```
+
+### Add to URLs
+
+```python
+# urls.py
+from django.urls import path, include
+
+app_name = "my_app"  # Optional namespace
+
+urlpatterns = [
+    path("projects/", ProjectCRUDView.as_view(), name="project"),
+]
+```
+
+### Your First Enhanced View
+
+Add some Nominopolitan features:
+
+```python
+class ProjectCRUDView(NominopolitanMixin, CRUDView):
+    model = models.Project
+    base_template_path = "core/base.html"
+    
+    # Basic field control
+    fields = ["name", "owner", "status", "created_date"]
+    properties = ["is_overdue"]  # Include @property fields
+    
+    # Enable modern features
+    use_htmx = True
+    use_modal = True
+    
+    # Add filtering
+    filterset_fields = ["owner", "status", "created_date"]
+    
+    # Enable pagination
+    paginate_by = 25
+    
+    # Optional: namespace for URLs
+    namespace = "my_app"
+```
+
+That's it! You now have a fully-featured CRUD interface with filtering, pagination, modals, and HTMX support.
+
+## Next Steps
+
+- **[Core Configuration](configuration/core_config.md)** - Field control and basic settings
+- **[HTMX & Modals](configuration/htmx_modals.md)** - Interactive features
+- **[Filtering](configuration/filtering.md)** - Advanced search and filter options
+- **[Bulk Operations](configuration/bulk_operations.md)** - Edit multiple records at once
