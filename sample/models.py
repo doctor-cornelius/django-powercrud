@@ -2,6 +2,9 @@ from django.db import models
 
 from django.core.exceptions import ValidationError
 
+import logging
+log = logging.getLogger("nominopolitan")
+
 class Author(models.Model):
     class Meta:
         verbose_name = "The Author Person"
@@ -103,6 +106,14 @@ class Book(models.Model):
     def save(self, *args, **kwargs):
         self.clean()
         return super().save(*args, **kwargs)
+    
+    def delete(self, *args, **kwargs):
+        """insert a delay for testing async processing
+        """
+        import time
+        time.sleep(1)
+        log.debug(f"Deleting book: {self.title}")
+        return super().delete(*args, **kwargs)
 
     def __str__(self):
         return self.title

@@ -151,7 +151,9 @@ class BulkMixin:
         # Handle form submission
         if request.method == 'POST' and 'bulk_submit' in request.POST:
             # If logic gets too large, move to a helper method
-            return self.bulk_edit_process_post(request, queryset, bulk_fields)
+            return self.bulk_edit_process_post(
+                request, queryset, bulk_fields, selected_ids
+            )
         # Prepare context for the form
         context = {
             'selected_ids': selected_ids,
@@ -207,7 +209,6 @@ class BulkMixin:
             ):
         errors = []
         updated_count = 0
-        field_info = self._get_bulk_field_info(bulk_fields)
 
         # Bulk update - collect all changes first, then apply in transaction
         updates_to_apply = []
@@ -336,46 +337,36 @@ class BulkMixin:
                 'errors': [],
             }
 
-    def bulk_edit_process_post(self, request, queryset, bulk_fields):
+    def bulk_edit_process_post(
+            self, request, queryset, bulk_fields,
+            selected_ids=None,
+            ):
         """
         Process the POST logic for bulk editing. Handles deletion and updates with atomicity.
         On success: returns an empty response and sets HX-Trigger for the main page to refresh the list.
         On error: re-renders the form with errors.
         """
+        from .async_mixin import AsyncMixin
+
         delete_selected = request.POST.get('delete_selected')
-        fields_to_update = request.POST.getlist('fields_to_update')
-        field_info = self._get_bulk_field_info(bulk_fields)
-        
-        # extract necessary data from the request
-        field_data = []
-        for field in fields_to_update:
-                info = field_info.get(field, {})
-                value = request.POST.get(field)
+        log.debug(f"Processing bulk edit for {len(selected_ids)} selected records")
 
-                # Extract M2M-specific data if this is an M2M field
-                m2m_action = None
-                m2m_values = []
-                if info.get('is_m2m'):
-                    m2m_action = request.POST.get(f"{field}_action", "replace")
-                    m2m_values = request.POST.getlist(field)
-
-                field_data.append({
-                    'field': field, 
-                    'value': value, 
-                    'info': info,
-                    'm2m_action': m2m_action,
-                    'm2m_values': m2m_values,
-                    }
-                )
         if delete_selected:
             if not self.get_bulk_delete_enabled():
                 return HttpResponseForbidden("Bulk delete is not allowed.")
 
+            # check if should process asynchronously
+            if self.should_process_async(len(selected_ids)):
+                log.debug(f"Processing bulk delete asynchronously for {len(selected_ids)} records.")
+                return self._handle_async_bulk_operation(
+                    request, selected_ids, delete_selected, bulk_fields, fields_to_update
+                )
+
+            # Synchronous processing
             result = self._perform_bulk_delete(queryset)
             success = result.get('success', False)
             errors = result.get('errors', [])
             deleted_count = result.get('success_records', 0)
-
 
             # Handle response based on errors
             if errors:
@@ -415,6 +406,33 @@ class BulkMixin:
                 response["HX-Trigger"] = json.dumps({"bulkEditSuccess": True, "refreshTable": True})
                 log.debug(f"Bulk edit: Deleted {deleted_count} objects successfully.")
                 return response
+
+        # Bulk Update Logic
+
+        fields_to_update = request.POST.getlist('fields_to_update')
+        field_info = self._get_bulk_field_info(bulk_fields)
+        
+        # extract necessary data from the request
+        field_data = []
+        for field in fields_to_update:
+                info = field_info.get(field, {})
+                value = request.POST.get(field)
+
+                # Extract M2M-specific data if this is an M2M field
+                m2m_action = None
+                m2m_values = []
+                if info.get('is_m2m'):
+                    m2m_action = request.POST.get(f"{field}_action", "replace")
+                    m2m_values = request.POST.getlist(field)
+
+                field_data.append({
+                    'field': field, 
+                    'value': value, 
+                    'info': info,
+                    'm2m_action': m2m_action,
+                    'm2m_values': m2m_values,
+                    }
+                )
 
         result = self._perform_bulk_update(
             queryset, bulk_fields, fields_to_update, field_data

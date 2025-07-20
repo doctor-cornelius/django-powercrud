@@ -60,6 +60,8 @@ class BookCRUDView(NominopolitanMixin, CRUDView):
         'genres',
     ]
     bulk_delete = True
+    bulk_async = True
+    bulk_min_async_records = 2
 
     # form_fields = ['title', 'author', 'bestseller', 'genres', 'published_date', 'isbn',]
     form_class = forms.BookForm
