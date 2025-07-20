@@ -6,6 +6,7 @@ from django.core.exceptions import ValidationError
 from django.http import HttpResponse, HttpResponseForbidden
 from django.shortcuts import render
 from django.urls import path
+from django.core.exceptions import ObjectDoesNotExist
 
 
 log = logging.getLogger("nominopolitan")

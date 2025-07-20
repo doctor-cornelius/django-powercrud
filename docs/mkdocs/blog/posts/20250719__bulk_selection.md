@@ -227,6 +227,27 @@ def bulk_edit_process_post(self, request, queryset, bulk_fields):
   - Duplicate request detection
   - Response handling for async operations
 
+    5.1 **Duplicate request detection**
+
+    This is actually pretty involved and needs another list
+
+    1. ✅ Add bulk_async_conflict_checking parameter
+    2. ✅ Implement get_conflict_checking_enabled() method
+    3. ✅ Implement _check_for_conflicts() method
+    4. ✅ Add conflict response helper methods
+    5. ✅ Override confirm_delete() method
+    6. ✅ Override process_deletion() method
+    7. ✅ Add conflict checking to bulk edit operations
+    8. Update object_confirm_delete.html template
+    9. Test delete conflict detection
+    10. Test bulk operation conflict detection
+    11. Find neapolitan update methods
+    12. Override update methods with conflict checking
+    13. Update templates for update conflicts
+    14. Test HTMX vs non-HTMX responses
+    15. Handle JavaScript conflict triggers
+    16. Test with Redis for concurrency
+
 6. **Create BulkTask status views**
 
   - List view for user's bulk operations

@@ -8,36 +8,56 @@
 
 {% partialdef nm_content %}
     <div class="card bg-base-100 shadow-xl">
-        <div class="card-body">
-            <p class="text-lg"
-                >Are you sure you want to delete the following {{ object_verbose_name }}?</p>
-            <h2 class="card-title justify-center my-2 text-error">{{ object }}</h2>
-        
-            <form method="POST" 
-                action="{{ delete_view_url }}" 
-                {% if use_htmx and original_target %} 
-                    hx-post="{{ delete_view_url }}"
-                    hx-target="{{ original_target }}" 
-                    hx-push-url="false" 
-                    hx-headers='{"X-Redisplay-Object-List": "true"}' 
-                {% endif %}>
-                {% csrf_token %}
-
-                {# Add hidden fields for all current GET params except csrf, page, and form fields #}
-                {% for key, values in request.GET.lists %}
-                    {% if key != 'csrfmiddlewaretoken' and key != 'page' %}
-                        {% for value in values %}
-                            <input type="hidden" name="_nominopolitan_filter_{{ key }}" value="{{ value }}">
-                        {% endfor %}
-                    {% endif %}
-                {% endfor %}
-
-
-                {{ form }}
-                <div class="card-actions justify-end">
-                    <button type="submit" class="btn btn-error">Delete</button>
-                </div>
-            </form>
-        </div>
+        {% if conflict_detected %}
+            {% partial conflict_detected %}
+        {% else %}
+            {% partial normal_content %}
+        {% endif %}
     </div>
 {% endpartialdef nm_content %}
+
+{% partialdef conflict_detected %}
+{# Show conflict warning when bulk operation is in progress #}
+<div class="alert alert-warning mb-4">
+    <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+    </svg>
+    <span>{{ conflict_message }}</span>
+</div>
+
+<p class="text-lg opacity-60">{{ object_verbose_name }} deletion is currently blocked</p>
+<h2 class="card-title justify-center my-2 text-base-content opacity-60">{{ object }}</h2>
+
+<div class="card-actions justify-end">
+    <button type="button" class="btn btn-outline" onclick="window.history.back()">Go Back</button>
+</div>
+{% endpartialdef conflict_detected %}
+
+{% partialdef normal_content %}
+<div class="card-body">
+    <p class="text-lg">Are you sure you want to delete the following {{ object_verbose_name }}?</p>
+    <h2 class="card-title justify-center my-2 text-error">{{ object }}</h2>
+
+    <form method="POST" action="{{ delete_view_url }}" {% if use_htmx and original_target %}
+        hx-post="{{ delete_view_url }}" hx-target="{{ original_target }}" hx-push-url="false"
+        hx-headers='{"X-Redisplay-Object-List": "true"}' {% endif %}>
+        {% csrf_token %}
+
+        {# Add hidden fields for all current GET params except csrf, page, and form fields #}
+        {% for key, values in request.GET.lists %}
+        {% if key != 'csrfmiddlewaretoken' and key != 'page' %}
+        {% for value in values %}
+        <input type="hidden" name="_nominopolitan_filter_{{ key }}" value="{{ value }}">
+        {% endfor %}
+        {% endif %}
+        {% endfor %}
+
+
+        {{ form }}
+        <div class="card-actions justify-end">
+            <button type="submit" class="btn btn-error">Delete</button>
+        </div>
+    </form>
+</div>
+{% endpartialdef normal_content %}

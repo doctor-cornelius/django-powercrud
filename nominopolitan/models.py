@@ -110,13 +110,16 @@ class BulkTask(models.Model):
         verbose_name_plural = "Bulk Tasks"
     
     def __str__(self):
-        return f"{self.get_operation_display()} {self.model_name} - {self.user.username} ({self.status})"
+        username = self.user.username if self.user else "Anonymous"
+        return f"{self.get_operation_display()} {self.model_name} - {username} ({self.status})"
     
     @property
     def progress_percentage(self):
         """Calculate completion percentage"""
         if self.total_records == 0:
             return 0
+        if self.is_complete:
+            return 100
         return min(100, (self.processed_records / self.total_records) * 100)
     
     @property
@@ -160,7 +163,6 @@ class BulkTask(models.Model):
         """Mark the task as completed"""
         self.status = self.SUCCESS if success else self.FAILURE
         self.completed_at = timezone.now()
-        self.progress_percentage = 100
         if error_message:
             self.error_message = error_message
         self.save(update_fields=['status', 'completed_at', 'error_message'])

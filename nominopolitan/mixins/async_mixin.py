@@ -163,9 +163,7 @@ class AsyncMixin:
 
     def confirm_delete(self, request, *args, **kwargs):
         """Override to check for conflicts before showing delete confirmation"""
-        if (self.should_process_async() 
-            and self.get_conflict_checking_enabled()
-            ):
+        if self.get_conflict_checking_enabled() and self._check_for_conflicts():
             pk = kwargs.get('pk') or kwargs.get('id') 
             if self._check_for_conflicts():  # Model+suffix level for now
                 # Add conflict flag to context
@@ -217,7 +215,8 @@ class AsyncMixin:
         
         # Create task record
         task = BulkTask.objects.create(
-            user=request.user,
+            async_backend=self.get_bulk_async_backend(),
+            user=user,
             model_name=f"{self.model._meta.app_label}.{self.model.__name__}",
             operation=BulkTask.DELETE if delete_selected else BulkTask.UPDATE,
             total_records=len(selected_ids),
