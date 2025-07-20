@@ -201,6 +201,13 @@ class AsyncMixin:
         """Handle async bulk operations - create task and queue it"""
         log.debug("running _handle_async_bulk_operation")
 
+        # ✅ Check authentication if required
+        user = getattr(request, 'user', None)
+        if not user or user.is_anonymous:
+            if not self.bulk_async_allow_anonymous:
+                return HttpResponseForbidden("Authentication required for bulk operations")
+            user = None  # Handle anonymous user
+
         # ✅ Check for conflicts first
         if self.get_conflict_checking_enabled() and self._check_for_conflicts():
             return self._render_bulk_conflict_response(request, selected_ids, delete_selected)

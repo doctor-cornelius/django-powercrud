@@ -50,6 +50,7 @@ class CoreMixin:
     bulk_min_async_records: int = 20
     bulk_async_backend: str = 'q2' # currently only 'q2' is supported; future 'celery' backend proposed
     bulk_async_notification: str = 'status_page' # 'status_page' or 'email' or 'messages'
+    bulk_async_allow_anonymous = True # default is to allow anonymous async operations
 
     # htmx
     use_htmx: bool | None = None

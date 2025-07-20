@@ -80,16 +80,38 @@ class BulkTask(models.Model):
 - consider whether to persist an estimated progress_percent field in the BulkTask model to avoid recalculating in templates or clients.
 - consider optionally (or as standard) allowing: task cancel, retry operations
 
-## Duplicate Request Handling
+## Concurrent Operation Conflict Detection
 
-**Problem**: Impatient users might trigger the same bulk operation multiple times.
+**Problem**: Multiple users (or the same impatient user) might trigger conflicting bulk operations, or single edits during bulk operations, creating race conditions and data inconsistency.
 
-**Solution**: 
-- Generate unique `task_key` based on user, selected IDs, and operation data. Consider providing hook for downstream user to modify and further specialise key to ensure uniqueness.
-- Check for existing pending/running tasks before creating new ones
-- Return status of existing task instead of creating duplicates
-- Provide clear feedback: "This bulk operation is already in progress"
-- **OR** consider option to cancel / rollback existing task and start a new one (consider class param for this or provide hooks for downstream user to modify)
+**Enhanced Solution - Model+Suffix Level Locking**: 
+
+- Use `unique_model_key` based on `get_storage_key()` (model + suffix combination) to detect conflicts
+- Prevent **any** bulk operation when another bulk operation is running on the same model+suffix, regardless of user or operation type (UPDATE vs DELETE)
+- Extend conflict detection to single CRUD operations to prevent editing records involved in bulk operations
+- Provide clear user feedback: "Another bulk operation is running on [Model]. Please try again later."
+
+**Implementation Strategy:**
+
+- **BulkTask Model**: Added `unique_model_key` field storing the storage key for efficient conflict queries
+- **Conflict Detection**: `_check_for_conflicts()` method checks for active tasks with same `unique_model_key`
+- **Bulk Operation Interception**: `_handle_async_bulk_operation()` checks conflicts before creating new tasks
+- **Single Operation Protection**: Override `confirm_delete()` and `process_deletion()` with conflict checking
+- **Configurable**: `bulk_async_conflict_checking = True` parameter allows disabling conflict detection
+- **Progressive Enhancement**: Start with model+suffix level locking, can evolve to record-level ID checking later
+
+**User Experience:**
+
+- **Bulk Operations**: Show conflict message in modal, user must wait or try later
+- **Single Operations**: Show conflict message in delete confirmation, prevent operation
+- **Clear Messaging**: Explain what's happening and when to retry
+- **Graceful Degradation**: Missing records during DELETE operations handled silently
+
+**Future Enhancements:**
+
+- Record-level conflict detection using BulkTaskSelectedId table
+- Queue conflicting operations instead of rejecting them
+- Real-time progress notifications to reduce user impatience
 
 ## Notification Options
 

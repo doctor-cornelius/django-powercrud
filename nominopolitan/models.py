@@ -34,6 +34,7 @@ class BulkTask(models.Model):
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, 
         on_delete=models.CASCADE,
+        null=True, blank=True, # allow Anonymous
         help_text="User who initiated the bulk operation"
     )
     model_name = models.CharField(
