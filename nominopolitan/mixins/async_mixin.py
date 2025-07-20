@@ -1,7 +1,11 @@
 from typing import List, Tuple
 from django.conf import settings
-import logging
+from django_q.tasks import async_task
 
+from ..models import BulkTask
+
+
+import logging
 log = logging.getLogger("nominopolitan")
 
 
@@ -107,8 +111,6 @@ class AsyncMixin:
     @classmethod
     def _handle_async_bulk_operation(self, request, selected_ids, delete_selected, bulk_fields, fields_to_update):
         """Handle async bulk operations - create task and queue it"""
-        from django_q.tasks import async_task
-        from .models import BulkTask
         
         # Determine operation type
         operation = BulkTask.DELETE if delete_selected else BulkTask.UPDATE
