@@ -1,7 +1,9 @@
 from django.db import models
 from django.conf import settings
 from django.utils import timezone
-
+from django_q.models import Task
+import logging
+log = logging.getLogger("nominopolitan")
 
 class BulkTask(models.Model):
     """
@@ -31,6 +33,12 @@ class BulkTask(models.Model):
     ]
     
     # Core fields
+    async_backend = models.CharField(
+        max_length=20,
+        null=True, blank=True,
+        choices=[('q2', 'Django-Q2'), ('celery', 'Celery')],
+        help_text="Async backend used for this task"
+    )
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, 
         on_delete=models.CASCADE,
@@ -87,6 +95,7 @@ class BulkTask(models.Model):
     # Additional metadata
     operation_data = models.JSONField(
         default=dict,
+        null=True, blank=True,
         help_text="Serialized data about the operation (fields, values, etc.)"
     )
     
@@ -129,6 +138,18 @@ class BulkTask(models.Model):
             return timezone.now() - self.started_at
         return None
     
+    @classmethod
+    def clear_q2_queue(cls):
+        """Clear all django-q2 tasks - useful for debugging"""
+        try:
+            count = Task.objects.count()
+            Task.objects.all().delete()
+            log.info(f"Cleared {count} tasks from django-q2 queue")
+            return f"Cleared {count} tasks"
+        except Exception as e:
+            log.error(f"Failed to clear Q2 queue: {e}")
+            return f"Error: {e}"
+
     def mark_started(self):
         """Mark the task as started"""
         self.status = self.STARTED
@@ -139,6 +160,7 @@ class BulkTask(models.Model):
         """Mark the task as completed"""
         self.status = self.SUCCESS if success else self.FAILURE
         self.completed_at = timezone.now()
+        self.progress_percentage = 100
         if error_message:
             self.error_message = error_message
         self.save(update_fields=['status', 'completed_at', 'error_message'])
@@ -147,3 +169,22 @@ class BulkTask(models.Model):
         """Update the progress counter"""
         self.processed_records = processed_count
         self.save(update_fields=['processed_records'])
+
+    def delete(self, *args, **kwargs):
+        """Override delete to also remove async task if it exists"""
+        if self.async_backend == 'q2':
+            try:
+                # Use BulkTask ID to find and delete Q2 task
+                Task.objects.filter(
+                    func='nominopolitan.tasks.bulk_delete_task',
+                    args__contains=str(self.id)
+                ).delete()
+                Task.objects.filter(
+                    func='nominopolitan.tasks.bulk_update_task', 
+                    args__contains=str(self.id)
+                ).delete()
+                log.debug(f"Deleted Q2 tasks for BulkTask {self.id}")
+            except Exception as e:
+                log.warning(f"Failed to delete Q2 tasks for BulkTask {self.id}: {e}")
+        
+        super().delete(*args, **kwargs)

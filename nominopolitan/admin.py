@@ -5,10 +5,10 @@ from .models import BulkTask
 @admin.register(BulkTask)
 class BulkTaskAdmin(admin.ModelAdmin):
     list_display = [
-        'id', 'user', 'model_name', 'operation', 'status', 
+        'id', 'async_backend', 'user', 'model_name', 'operation', 'status', 
         'progress_display', 'created_at', 'duration_display'
     ]
-    list_filter = ['status', 'operation', 'model_name', 'created_at']
+    list_filter = ['async_backend', 'status', 'operation', 'model_name', 'created_at']
     search_fields = ['user__username', 'model_name', 'task_key']
     readonly_fields = [
         'created_at', 'started_at', 'completed_at', 'task_key', 
@@ -17,7 +17,7 @@ class BulkTaskAdmin(admin.ModelAdmin):
     
     fieldsets = (
         ('Basic Information', {
-            'fields': ('user', 'model_name', 'operation', 'status')
+            'fields': ('async_backend', 'user', 'model_name', 'operation', 'status')
         }),
         ('Progress', {
             'fields': ('total_records', 'processed_records', 'progress_percentage')
@@ -49,3 +49,11 @@ class BulkTaskAdmin(admin.ModelAdmin):
     def has_add_permission(self, request):
         """Prevent manual creation of bulk tasks"""
         return False
+    
+    actions = ['clear_q2_queue']
+    
+    def clear_q2_queue(self, request, queryset):
+        """Clear the entire django-q2 task queue"""
+        result = BulkTask.clear_q2_queue()
+        self.message_user(request, result)
+    clear_q2_queue.short_description = "Clear entire Q2 task queue"
