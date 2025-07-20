@@ -174,7 +174,7 @@ class BulkMixin:
             context
         )
 
-    def _perform_bulk_delete(self, request, queryset):
+    def _perform_bulk_delete(self, queryset):
         deleted_count = 0
         errors = []
         # Call delete() on each object individually for model-specific logic
@@ -201,9 +201,11 @@ class BulkMixin:
                 'errors': [],
             }
 
-    def _perform_bulk_update(self, request, queryset, bulk_fields):
+    def _perform_bulk_update(
+            self, queryset, 
+            bulk_fields, fields_to_update, field_data,
+            ):
         errors = []
-        fields_to_update = request.POST.getlist('fields_to_update')
         updated_count = 0
         field_info = self._get_bulk_field_info(bulk_fields)
 
@@ -215,9 +217,12 @@ class BulkMixin:
             log.debug(f"Preparing bulk edit for object {obj.pk}")
             obj_changes = {'object': obj, 'changes': {}}
 
-            for field in fields_to_update:
-                info = field_info.get(field, {})
-                value = request.POST.get(field)
+            for field_dict in field_data:
+                field = field_dict['field']
+                value = field_dict['value']
+                info = field_dict['info']
+                m2m_action = field_dict.get('m2m_action')
+                m2m_values = field_dict.get('m2m_values', [])
 
                 # Process value based on field type
                 if info.get('type') == 'BooleanField':
@@ -231,7 +236,9 @@ class BulkMixin:
                 # Store the change to apply later
                 obj_changes['changes'][field] = {
                     'value': value,
-                    'info': info
+                    'info': info,
+                    'm2m_action': m2m_action,
+                    'm2m_values': m2m_values,
                 }
 
             updates_to_apply.append(obj_changes)
@@ -253,8 +260,8 @@ class BulkMixin:
 
                         if info.get('is_m2m'):
                             # Handle M2M fields
-                            m2m_action = request.POST.get(f"{field}_action", "replace")
-                            m2m_values = request.POST.getlist(field)
+                            m2m_action = change_info.get('m2m_action')
+                            m2m_values = change_info.get('m2m_values', [])
                             m2m_manager = getattr(obj, field)
 
                             if m2m_action == "add":
@@ -336,16 +343,35 @@ class BulkMixin:
         On error: re-renders the form with errors.
         """
         delete_selected = request.POST.get('delete_selected')
-        errors = []
         fields_to_update = request.POST.getlist('fields_to_update')
-        updated_count = 0
         field_info = self._get_bulk_field_info(bulk_fields)
+        
+        # extract necessary data from the request
+        field_data = []
+        for field in fields_to_update:
+                info = field_info.get(field, {})
+                value = request.POST.get(field)
 
+                # Extract M2M-specific data if this is an M2M field
+                m2m_action = None
+                m2m_values = []
+                if info.get('is_m2m'):
+                    m2m_action = request.POST.get(f"{field}_action", "replace")
+                    m2m_values = request.POST.getlist(field)
+
+                field_data.append({
+                    'field': field, 
+                    'value': value, 
+                    'info': info,
+                    'm2m_action': m2m_action,
+                    'm2m_values': m2m_values,
+                    }
+                )
         if delete_selected:
             if not self.get_bulk_delete_enabled():
                 return HttpResponseForbidden("Bulk delete is not allowed.")
 
-            result = self._perform_bulk_delete(request, queryset)
+            result = self._perform_bulk_delete(queryset)
             success = result.get('success', False)
             errors = result.get('errors', [])
             deleted_count = result.get('success_records', 0)
@@ -390,7 +416,9 @@ class BulkMixin:
                 log.debug(f"Bulk edit: Deleted {deleted_count} objects successfully.")
                 return response
 
-        result = self._perform_bulk_update(request, queryset, bulk_fields)
+        result = self._perform_bulk_update(
+            queryset, bulk_fields, fields_to_update, field_data
+            )
         success = result.get('success', False)
         errors = result.get('errors', [])
         updated_count = result.get('success_records', 0)
