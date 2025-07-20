@@ -177,31 +177,35 @@ class BulkMixin:
         )
 
     def _perform_bulk_delete(self, queryset):
+        """Delete with graceful handling of missing records"""
+        log.debug(f"Performing bulk delete on {queryset.count()} records")
         deleted_count = 0
         errors = []
-        # Call delete() on each object individually for model-specific logic
+        
         try:
             with transaction.atomic():
-            # Make bulk delete atomic
                 for obj in queryset:
-                    obj.delete()
-                    deleted_count += 1
+                    try:
+                        obj.delete()
+                        deleted_count += 1
+                    except ObjectDoesNotExist:
+                        # ✅ Record already deleted by another process - that's fine!
+                        log.debug(f"Record {obj.pk} already deleted")
+                        continue
+                    except Exception as e:
+                        # Real errors
+                        log.error(f"Error deleting {obj.pk}: {e}")
+                        raise
+                        
         except Exception as e:
-            log.debug(f"Error during bulk delete, transaction rolled back: {e}")
+            log.debug(f"Error during bulk delete: {e}")
             errors.append((None, [str(e)]))
         
-        if errors:
-            return {
-                'success': False,
-                'success_records': 0,
-                'errors': errors,
-            }
-        else:
-            return{
-                'success': True,
-                'success_records': deleted_count,
-                'errors': [],
-            }
+        return {
+            'success': len(errors) == 0,
+            'success_records': deleted_count,
+            'errors': errors,
+        }
 
     def _perform_bulk_update(
             self, queryset, 

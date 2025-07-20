@@ -204,7 +204,7 @@ SESSION_SAVE_EVERY_REQUEST = True  # Update session expiry on every request
 # settings.py example
 Q_CLUSTER = {
     'name': 'nominopolitan',
-    'workers': 4,
+    'workers': 1, # only 1 worker for sqlite
     'recycle': 500,
     'timeout': 60,
     'orm': 'default',  # Use database instead of Redis

@@ -1,10 +1,11 @@
+from django.http import HttpResponse, HttpResponseForbidden, HttpResponseServerError
 from typing import List, Tuple
 from django.conf import settings
 from django_q.tasks import async_task
 
 from ..models import BulkTask
 
-
+import json
 import logging
 log = logging.getLogger("nominopolitan")
 
@@ -67,7 +68,7 @@ class AsyncMixin:
         result = record_count >= self.get_bulk_min_async_records()
         log.debug(f"should_process_async: {result} for {record_count} records")
         return result
-
+   
     def is_async_backend_available(self) -> bool:
         """
         Check if the configured async backend is available and properly configured.
@@ -101,17 +102,36 @@ class AsyncMixin:
 
         return (False, [])
 
-    @classmethod
+    def get_conflict_checking_enabled(self):
+        return (
+            self.bulk_async_conflict_checking 
+            and self.should_process_async(1)  # If async is available
+        )
+ 
+    def _check_for_conflicts(self):
+        storage_key_base = self.get_storage_key()  # "nominopolitan_bulk_book_"
+        
+        return BulkTask.objects.filter(
+            model_name=f"{self.model._meta.app_label}.{self.model.__name__}",
+            # Could add suffix logic here if get_storage_key() includes it
+            status__in=[BulkTask.PENDING, BulkTask.STARTED]
+        ).exists()
+
     def _generate_task_key(self, user, selected_ids, operation):
-        """Generate unique task key to prevent duplicates"""
-        import hashlib
-        data = f"{user.id}:{sorted(selected_ids)}:{operation}:{self.model.__name__}"
-        return hashlib.md5(data.encode()).hexdigest()
-    
-    @classmethod
+        """Generate task key for duplicate prevention"""
+        # Use the storage key + operation as base
+        storage_key = self.get_storage_key()  # e.g., "nominopolitan_bulk_book_"
+        operation_type = "delete" if operation == BulkTask.DELETE else "update"
+        
+        # Add timestamp to make it unique per attempt
+        import time
+        timestamp = int(time.time())
+        
+        return f"{storage_key}_{operation_type}_{timestamp}"
+
     def _handle_async_bulk_operation(self, request, selected_ids, delete_selected, bulk_fields, fields_to_update):
         """Handle async bulk operations - create task and queue it"""
-        
+        log.debug("running _handle_async_bulk_operation")
         # Determine operation type
         operation = BulkTask.DELETE if delete_selected else BulkTask.UPDATE
         
@@ -121,13 +141,12 @@ class AsyncMixin:
             model_name=self.model.__name__,
             operation=operation,
             total_records=len(selected_ids),
-            task_key=self._generate_task_key(request.user, selected_ids, operation)
         )
-        
         model_path = f"{self.model._meta.app_label}.{self.model.__name__}"
         
         try:
             if delete_selected:
+                log.debug(f"Queueing async bulk delete task for {len(selected_ids)} records")
                 # Queue delete task
                 async_task('nominopolitan.tasks.bulk_delete_task', 
                         task.id, model_path, selected_ids, request.user.id)
@@ -169,11 +188,17 @@ class AsyncMixin:
             return response
             
         except Exception as e:
-            # If queueing fails, fall back to sync processing
-            log.warning(f"Async task queueing failed, falling back to sync: {e}")
-            task.delete()  # Clean up failed task
+            # ✅ Log the damn error and fail hard
+            log.error(f"Async task queueing failed for task {task.id}: {str(e)}", exc_info=True)
             
-            # Fall back to synchronous processing
-            # You'd call your existing sync logic here
-            return self._handle_sync_bulk_operation(request, queryset, bulk_fields, delete_selected, fields_to_update)
-
+            # Mark task as failed
+            task.mark_completed(success=False, error_message=f"Failed to queue task: {str(e)}")
+            
+            # Return error response
+            response = HttpResponseServerError("Async processing failed")
+            response["HX-Trigger"] = json.dumps({
+                "bulkEditFailed": True,
+                "taskId": task.id,
+                "error": f"Failed to queue async operation: {str(e)}"
+            })
+            return response
