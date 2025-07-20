@@ -174,73 +174,38 @@ class BulkMixin:
             context
         )
 
-    def bulk_edit_process_post(self, request, queryset, bulk_fields):
-        """
-        Process the POST logic for bulk editing. Handles deletion and updates with atomicity.
-        On success: returns an empty response and sets HX-Trigger for the main page to refresh the list.
-        On error: re-renders the form with errors.
-        """
-        log = logging.getLogger("nominopolitan")
-        fields_to_update = request.POST.getlist('fields_to_update')
-        delete_selected = request.POST.get('delete_selected')
-        errors = []
-        updated_count = 0
+    def _perform_bulk_delete(self, request, queryset):
         deleted_count = 0
-        field_info = self._get_bulk_field_info(bulk_fields)
-
-        if delete_selected:
-            if not self.get_bulk_delete_enabled():
-                return HttpResponseForbidden("Bulk delete is not allowed.")
-
-            # Call delete() on each object individually for model-specific logic
+        errors = []
+        # Call delete() on each object individually for model-specific logic
+        try:
+            with transaction.atomic():
             # Make bulk delete atomic
-            try:
-                with transaction.atomic():
-                    for obj in queryset:
-                        obj.delete()
-                        deleted_count += 1
-            except Exception as e:
-                log.debug(f"Error during bulk delete, transaction rolled back: {e}")
-                errors.append((None, [str(e)]))
+                for obj in queryset:
+                    obj.delete()
+                    deleted_count += 1
+        except Exception as e:
+            log.debug(f"Error during bulk delete, transaction rolled back: {e}")
+            errors.append((None, [str(e)]))
+        
+        if errors:
+            return {
+                'success': False,
+                'success_records': 0,
+                'errors': errors,
+            }
+        else:
+            return{
+                'success': True,
+                'success_records': deleted_count,
+                'errors': [],
+            }
 
-            # Handle response based on errors
-            if errors:
-                context = {
-                    "errors": errors,
-                    "selected_ids": [obj.pk for obj in queryset],
-                    "selected_count": queryset.count(),
-                    "bulk_fields": bulk_fields,
-                    "model": self.model,
-                    "model_name": self.model.__name__.lower() if hasattr(self.model, '__name__') else '',
-                    "model_name_plural": self.model._meta.verbose_name_plural,
-                    "queryset": queryset,
-                    "field_info": field_info,
-                    "storage_key": self.get_storage_key(),
-                    "original_target": self.get_original_target(),
-                }
-                response = render(
-                    request,
-                    f"{self.templates_path}/partial/bulk_edit_form.html",
-                    context
-                )
-
-                # Use formError trigger and include showModal to ensure the modal stays open
-                modal_id = self.get_modal_id()[1:]  # Remove the # prefix
-                response["HX-Trigger"] = json.dumps({
-                    "formError": True,
-                    "showModal": modal_id,
-                })
-
-                # Make sure the response targets the modal content
-                response["HX-Retarget"] = self.get_modal_target()
-                log.debug(f"bulk delete errors: {errors}")
-                return response
-
-            else: # no errors
-                response = HttpResponse("")
-                response["HX-Trigger"] = json.dumps({"bulkEditSuccess": True, "refreshTable": True})
-                log.debug(f"Bulk edit: Deleted {deleted_count} objects successfully.")
-                return response
+    def _perform_bulk_update(self, request, queryset, bulk_fields):
+        errors = []
+        fields_to_update = request.POST.getlist('fields_to_update')
+        updated_count = 0
+        field_info = self._get_bulk_field_info(bulk_fields)
 
         # Bulk update - collect all changes first, then apply in transaction
         updates_to_apply = []
@@ -350,6 +315,85 @@ class BulkMixin:
         # Force an error if we caught an exception but didn't add any specific errors
         if error_occurred and not errors:
             errors.append(("general", [error_message or "An unknown error occurred"]))
+
+        if errors:
+            return {
+                'success': False,
+                'success_records': 0,
+                'errors': errors,
+            }
+        else:
+            return {
+                'success': True,
+                'success_records': updated_count,
+                'errors': [],
+            }
+
+    def bulk_edit_process_post(self, request, queryset, bulk_fields):
+        """
+        Process the POST logic for bulk editing. Handles deletion and updates with atomicity.
+        On success: returns an empty response and sets HX-Trigger for the main page to refresh the list.
+        On error: re-renders the form with errors.
+        """
+        delete_selected = request.POST.get('delete_selected')
+        errors = []
+        fields_to_update = request.POST.getlist('fields_to_update')
+        updated_count = 0
+        field_info = self._get_bulk_field_info(bulk_fields)
+
+        if delete_selected:
+            if not self.get_bulk_delete_enabled():
+                return HttpResponseForbidden("Bulk delete is not allowed.")
+
+            result = self._perform_bulk_delete(request, queryset)
+            success = result.get('success', False)
+            errors = result.get('errors', [])
+            deleted_count = result.get('success_records', 0)
+
+
+            # Handle response based on errors
+            if errors:
+                context = {
+                    "errors": errors,
+                    "selected_ids": [obj.pk for obj in queryset],
+                    "selected_count": queryset.count(),
+                    "bulk_fields": bulk_fields,
+                    "model": self.model,
+                    "model_name": self.model.__name__.lower() if hasattr(self.model, '__name__') else '',
+                    "model_name_plural": self.model._meta.verbose_name_plural,
+                    "queryset": queryset,
+                    "field_info": field_info,
+                    "storage_key": self.get_storage_key(),
+                    "original_target": self.get_original_target(),
+                }
+                response = render(
+                    request,
+                    f"{self.templates_path}/partial/bulk_edit_form.html",
+                    context
+                )
+
+                # Use formError trigger and include showModal to ensure the modal stays open
+                modal_id = self.get_modal_id()[1:]  # Remove the # prefix
+                response["HX-Trigger"] = json.dumps({
+                    "formError": True,
+                    "showModal": modal_id,
+                })
+
+                # Make sure the response targets the modal content
+                response["HX-Retarget"] = self.get_modal_target()
+                log.debug(f"bulk delete errors: {errors}")
+                return response
+
+            else: # no errors
+                response = HttpResponse("")
+                response["HX-Trigger"] = json.dumps({"bulkEditSuccess": True, "refreshTable": True})
+                log.debug(f"Bulk edit: Deleted {deleted_count} objects successfully.")
+                return response
+
+        result = self._perform_bulk_update(request, queryset, bulk_fields)
+        success = result.get('success', False)
+        errors = result.get('errors', [])
+        updated_count = result.get('success_records', 0)
 
         # Check if there were any errors during the update process
         log.debug(f"Bulk edit update errors: {errors}")

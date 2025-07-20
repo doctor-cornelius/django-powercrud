@@ -2,7 +2,7 @@
 
 ## Installation
 
-### 1. Install Core Dependencies
+### Install Core Dependencies
 
 ```bash
 pip install neapolitan
@@ -15,7 +15,7 @@ This automatically installs:
 - `pydantic`
 - `django_htmx`
 
-## Frontend Dependencies
+### install Frontend Dependencies
 
 You'll need to include these JavaScript libraries in your base template:
 

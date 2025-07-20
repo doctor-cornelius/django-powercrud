@@ -199,3 +199,15 @@ SESSION_ENGINE = 'django.contrib.sessions.backends.db'  # Default, using databas
 SESSION_COOKIE_AGE = 300  # 5 minutes in seconds
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True  # Sessions expire when browser closes
 SESSION_SAVE_EVERY_REQUEST = True  # Update session expiry on every request
+
+# django-q2 settings
+# settings.py example
+Q_CLUSTER = {
+    'name': 'nominopolitan',
+    'workers': 4,
+    'recycle': 500,
+    'timeout': 60,
+    'orm': 'default',  # Use database instead of Redis
+    'save_limit': 250,
+    'queue_limit': 500,
+}
