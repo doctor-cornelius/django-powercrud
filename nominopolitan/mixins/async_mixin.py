@@ -105,17 +105,49 @@ class AsyncMixin:
     def get_conflict_checking_enabled(self):
         return (
             self.bulk_async_conflict_checking 
-            and self.should_process_async(1)  # If async is available
+            and self.get_bulk_async_enabled()
         )
+
  
     def _check_for_conflicts(self):
-        storage_key_base = self.get_storage_key()  # "nominopolitan_bulk_book_"
+        """Get all active bulk tasks for this model & suffix combo"""
+        unique_model_key = self.get_storage_key()
         
         return BulkTask.objects.filter(
-            model_name=f"{self.model._meta.app_label}.{self.model.__name__}",
+            unique_model_key=unique_model_key,
             # Could add suffix logic here if get_storage_key() includes it
             status__in=[BulkTask.PENDING, BulkTask.STARTED]
         ).exists()
+
+    def _check_single_record_conflict(self, pk):
+        """Check if a single record is involved in any bulk operation"""
+        # For now, just check model+suffix level
+        return self._check_for_conflicts()
+
+    def _render_conflict_response(self, request, pk, operation):
+        """Render conflict response for single operations"""
+        if hasattr(request, 'htmx') and request.htmx:
+            # HTMX response
+            response = HttpResponse("")
+            response["HX-Trigger"] = json.dumps({
+                "operationBlocked": True,
+                "message": f"Cannot {operation} - bulk operation in progress on {self.model._meta.verbose_name_plural}. Please try again later."
+            })
+            return response
+        else:
+            # Regular HTTP response - redirect with message?
+            # Or render an error page
+            pass
+
+    def _render_bulk_conflict_response(self, request, selected_ids, delete_selected):
+        """Render conflict response for bulk operations"""
+        operation = "delete" if delete_selected else "update"
+        response = HttpResponse("")
+        response["HX-Trigger"] = json.dumps({
+            "bulkConflict": True,
+            "message": f"Another bulk operation is already running on {self.model._meta.verbose_name_plural}. Please try again later."
+        })
+        return response
 
     def _generate_task_key(self, user, selected_ids, operation):
         """Generate task key for duplicate prevention"""
@@ -129,18 +161,61 @@ class AsyncMixin:
         
         return f"{storage_key}_{operation_type}_{timestamp}"
 
+    def confirm_delete(self, request, *args, **kwargs):
+        """Override to check for conflicts before showing delete confirmation"""
+        if (self.should_process_async() 
+            and self.get_conflict_checking_enabled()
+            ):
+            pk = kwargs.get('pk') or kwargs.get('id') 
+            if self._check_for_conflicts():  # Model+suffix level for now
+                # Add conflict flag to context
+                self.object = self.get_object()
+                context = self.get_context_data(
+                    conflict_detected=True,
+                    conflict_message=f"Cannot delete - bulk operation in progress on {self.model._meta.verbose_name_plural}. Please try again later."
+                )
+                return self.render_to_response(context)
+        
+        # No conflict, proceed normally
+        return super().confirm_delete(request, *args, **kwargs)
+    
+    def process_deletion(self, request, *args, **kwargs):
+        """Override to check for conflicts before actual deletion"""
+        if self.get_conflict_checking_enabled() and self._check_for_conflicts():
+            # For HTMX, return conflict response
+            if hasattr(request, 'htmx') and request.htmx:
+                response = HttpResponse("")
+                response["HX-Trigger"] = json.dumps({
+                    "operationBlocked": True,
+                    "message": f"Cannot delete - bulk operation in progress."
+                })
+                return response
+            else:
+                # Redirect back to confirm_delete with conflict
+                return self.confirm_delete(request, *args, **kwargs)
+        
+        # No conflict, proceed with deletion
+        return super().process_deletion(request, *args, **kwargs)
+
     def _handle_async_bulk_operation(self, request, selected_ids, delete_selected, bulk_fields, fields_to_update):
         """Handle async bulk operations - create task and queue it"""
         log.debug("running _handle_async_bulk_operation")
+
+        # ✅ Check for conflicts first
+        if self.get_conflict_checking_enabled() and self._check_for_conflicts():
+            return self._render_bulk_conflict_response(request, selected_ids, delete_selected)
+
         # Determine operation type
         operation = BulkTask.DELETE if delete_selected else BulkTask.UPDATE
         
         # Create task record
         task = BulkTask.objects.create(
             user=request.user,
-            model_name=self.model.__name__,
-            operation=operation,
+            model_name=f"{self.model._meta.app_label}.{self.model.__name__}",
+            operation=BulkTask.DELETE if delete_selected else BulkTask.UPDATE,
             total_records=len(selected_ids),
+            unique_model_key=self.get_storage_key(),
+            task_key=self._generate_task_key(request.user, selected_ids, operation)
         )
         model_path = f"{self.model._meta.app_label}.{self.model.__name__}"
         

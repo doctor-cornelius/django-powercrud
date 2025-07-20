@@ -78,6 +78,10 @@ class BulkTask(models.Model):
         db_index=True,
         help_text="Unique key to prevent duplicate operations"
     )
+
+    # Model unique key to test whether operation is unique
+    # This derives from bulk_mixin.get_storage_key()
+    unique_model_key = models.CharField(max_length=255, db_index=True)  
     
     # Additional metadata
     operation_data = models.JSONField(
