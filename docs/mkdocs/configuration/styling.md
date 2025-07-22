@@ -6,7 +6,7 @@ Configure visual appearance and styling for your Nominopolitan views.
 
 ### Supported Frameworks
 
-Choose from built-in framework support:
+The current default framework is `daisyUI` (version 4.x). You don't need to specify anything to get `daisyUI` support. However if you want to specify a new framework, set `NOMINOPOLITAN_CSS_FRAMEWORK` in `settings.py`:
 
 ```python
 # settings.py
@@ -14,11 +14,16 @@ NOMINOPOLITAN_CSS_FRAMEWORK = 'daisyui'    # Default (with Tailwind CSS v4)
 NOMINOPOLITAN_CSS_FRAMEWORK = 'bootstrap5'  # Alternative
 ```
 
+!!! warning "Bootstrap Templates Are Outdated"
+
+    Bootstrap templates are currently out of date as all recent development has focused on `daisyUI`. Once async support is finalised and tested, Bootstrap templates will either be updated or removed.
+
+
 **Available frameworks:**
 
-- **daisyUI v5** (default) - Modern utility-first styling with Tailwind CSS v4
-- **Bootstrap 5** - Production-ready component library
-- **Custom** - Bring your own framework
+- **daisyUI v5** (default) - uses Tailwind CSS v4
+- **Bootstrap 5** - Templates exist but are outdated at present
+- **Custom** - Bring your own framework. Instructions below explain how to configure.
 
 ## Basic Styling
 

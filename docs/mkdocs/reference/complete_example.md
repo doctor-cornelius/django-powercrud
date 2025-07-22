@@ -1,7 +1,6 @@
 # 'Kitchen Sink' Example Class Definition
 
 Below is an example of a class definition for a CRUD view with an unrealistic number of parameters, to illustrate syntax.
-@TODO: Check that this makes sense
 
 
 ```python

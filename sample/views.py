@@ -10,29 +10,10 @@ from . import models
 from . import forms
 from . import filters
 
-
-# Regular view for updating a book
-def book_update_view(request, pk):
-    book = get_object_or_404(models.Book, pk=pk)
-    
-    if request.method == 'POST':
-        form = forms.BookForm(request.POST, instance=book)
-        if form.is_valid():
-            form.save()
-            return redirect('sample:book-detail', pk=book.pk)
-    else:
-        form = forms.BookForm(instance=book)
-    
-    return render(request, 'sample/book_update_form.html', {
-        'form': form,
-        'book': book,
-    })
-
-
 class BookCRUDView(NominopolitanMixin, CRUDView):
     model = models.Book
     namespace = "sample"
-    base_template_path = "django_nominopolitan/base.html"
+    base_template_path = "sample/base.html"
     use_htmx = True
     use_modal = True
     # use_crispy = False
@@ -155,7 +136,7 @@ class BookCRUDView(NominopolitanMixin, CRUDView):
 class GenreCRUDView(NominopolitanMixin, CRUDView):
     model = models.Genre
     namespace = "sample"
-    base_template_path = "django_nominopolitan/base.html"
+    base_template_path = "sample/base.html"
     use_htmx = True
     use_modal = True
 
@@ -169,7 +150,7 @@ class GenreCRUDView(NominopolitanMixin, CRUDView):
 class ProfileCRUDView(NominopolitanMixin, CRUDView):
     model = models.Profile
     namespace = "sample"
-    base_template_path = "django_nominopolitan/base.html"
+    base_template_path = "sample/base.html"
     use_htmx = True
     use_modal = True
 
@@ -183,7 +164,7 @@ class ProfileCRUDView(NominopolitanMixin, CRUDView):
 
     # Add the OneToOneField to bulk_fields to test it
     bulk_fields = [
-        {"name": "author"},
+        "author", # OneToOneField
         "nickname",
         "favorite_genre",
     ]
@@ -192,7 +173,7 @@ class ProfileCRUDView(NominopolitanMixin, CRUDView):
 class AuthorCRUDView(NominopolitanMixin, CRUDView):
     model = models.Author
     namespace = "sample"
-    base_template_path = "django_nominopolitan/base.html"
+    base_template_path = "sample/base.html"
     use_htmx = True
     use_modal = True
 

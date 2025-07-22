@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
 from pathlib import Path
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 
@@ -185,7 +186,8 @@ STATIC_ROOT = BASE_DIR / "nominopolitan" / "staticfiles"
 DJANGO_VITE = {
   "default": {
     "dev_mode": DEBUG, # set to use DEBUG variable (ie False in Production)
-    "dev_server_port": 5174 # match setting in server key of vite.config.mjs
+    "dev_server_port": 5174, # match setting in server key of vite.config.mjs
+     "dev_server_host": "localhost",
   }
 }
 
@@ -199,6 +201,18 @@ SESSION_ENGINE = 'django.contrib.sessions.backends.db'  # Default, using databas
 SESSION_COOKIE_AGE = 300  # 5 minutes in seconds
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True  # Sessions expire when browser closes
 SESSION_SAVE_EVERY_REQUEST = True  # Update session expiry on every request
+
+DATABASES = {
+    # postgres
+    "default": {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": os.environ.get("DATABASE_NAME"),
+        "USER": os.environ.get("POSTGRES_USER"),
+        "PASSWORD": os.environ.get("POSTGRES_PASSWORD"),
+        "HOST": os.environ.get("DATABASE_HOST"),
+        "PORT": "5432",
+    }
+}
 
 # django-q2 settings
 # settings.py example

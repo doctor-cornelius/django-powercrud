@@ -3,9 +3,18 @@ import { resolve } from 'path';
 import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
-  base: "/static/", // must match STATIC_URL setting in settings 
+  base: "/static/",
   server: {
+    host: '0.0.0.0',    // Add this
     port: 5174,
+    cors: true,         // Add this
+    allowedHosts: [
+      'django_nominopolitan_vite_dev',  // Add container name
+      'localhost'                       // Keep localhost for local access
+    ],
+    watch: {
+      usePolling: true  // Add this
+    }
   },
   resolve : {
     alias : {

@@ -1,0 +1,80 @@
+#!/bin/bash
+# runproj
+# to call the really complicated docker-compose commands from the parent project directory.
+
+echo "running runproj script to run docker-compose. Usage: ./runproj <up [dev|test|prod] | down [dev|test|prod] | exec | root | postgres | pgadmin>"
+
+ACTION="$1"
+
+DEPLOYMENT_ENV=$2
+# 2nd parameter if present is the DEPLOYMENT_ENV parameter
+if [ -z "$2" ]; then
+    # assume it is dev if not specified
+    DEPLOYMENT_ENV=dev
+fi
+
+# Check if DEPLOYMENT_ENV is in the allowed array
+ALLOWED=("dev" "test" "prod")
+if [[ " ${ALLOWED[*]} " == *" $DEPLOYMENT_ENV "* ]]; then
+    echo "ACTION = ${ACTION}; DEPLOYMENT_ENV=${DEPLOYMENT_ENV}"
+else
+    echo "Error: Invalid DEPLOYMENT_ENV parameter. Must be blank or in: [dev|test|prod]"
+    exit 1
+fi
+
+function exec_in {
+    # exec into the first container that matches this image (the sed command restricts to 2nd line)
+    
+    # if called as `exec_in root` then it will enter as root user
+    ROOTPARMS=""
+    container_name="${DOCKER_PREFIX}_django_${DEPLOYMENT_ENV}"
+    if [[ $1 == "root" ]]; then
+        ROOTPARMS=" -u root -w /home/${DEPLOYMENT_ENV}user/$PROJECT_DIR "
+    fi
+    
+    # CONTAINER=$(docker ps -a | grep "${DOCKER_PREFIX}_django" | tr -s " " | cut -d " " -f 1)
+    CONTAINER=$(docker ps -qf "name=${container_name}")
+    echo "CONTAINER = ${CONTAINER}"
+    docker exec $ROOTPARMS -it $CONTAINER /bin/bash
+}
+
+if [[ ${ACTION} == "up" ]]
+then
+    DEPLOYMENT_ENV=${DEPLOYMENT_ENV} \
+    COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_BUILDKIT=1 \
+    docker compose -f ./docker/docker-compose.yml \
+        --env-file ./docker/.env \
+        up --detach --build
+    echo "open django project after running ./src/manage.py runserver 0:8000"
+
+    # docker exec in
+    exec_in
+
+elif [[ $ACTION == "down" ]]; 
+then
+    DEPLOYMENT_ENV=${DEPLOYMENT_ENV} \
+    COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_BUILDKIT=1 \
+    docker compose -f ./docker/docker-compose.yml \
+        --env-file ./docker/.env \
+        down
+elif [[ $ACTION == "exec" ]];
+then
+    exec_in
+elif [[ $ACTION == "root" ]];
+then
+    exec_in root
+elif [[ $ACTION == "postgres" ]];
+then
+    # exec into the first container that matches this image (the sed command restricts to 2nd line)
+    CONTAINER=$(docker ps -a | grep ${DOCKER_PREFIX}_postgres | sed -n '1p' | tr -s " " | cut -d " " -f 1)
+    docker exec -it $CONTAINER /bin/bash
+elif [[ $ACTION == "pgadmin" ]];
+then
+    # exec into the first container that matches this image (the sed command restricts to 2nd line)
+    CONTAINER=$(docker ps -a | grep pgadmin | sed -n '1p' | tr -s " " | cut -d " " -f 1)
+    # it's an Alpine image, so must use sh not bash
+    docker exec -it $CONTAINER /bin/sh
+else
+    echo "You must have only 1 parameter from ['up', 'down', 'exec', 'root', 'postgres', 'pgadmin' ]"
+    echo "last two in case you need to re-enter the relevant container service]"
+fi

@@ -15,8 +15,13 @@ Nominopolitan comes with these features built-in, specifically for user-facing C
 
 🎯 **Advanced CRUD Operations** - Filtering, bulk edit/delete, and pagination out of the box  
 ⚡ **Modern Web UX** - HTMX integration, modals, and reactive updates  
-🎨 **Multiple CSS Frameworks** - daisyUI/Tailwind (default) and Bootstrap 5 support  
 🔧 **Developer Friendly** - Convention over configuration with full customization options  
+🎨 **Multiple CSS Frameworks** - daisyUI/Tailwind (default) and Bootstrap 5 support (partial)
+
+!!! warning "Bootstrap Templates Outdated"
+
+    Bootstrap templates are currently out of date as all recent development has focused on `daisyUI`. Once async support is finalised and tested, Bootstrap templates will either be updated or removed.
+
 
 ## Quick Example
 

@@ -12,7 +12,3 @@ urlpatterns += views.AuthorCRUDView.get_urls()
 urlpatterns += views.GenreCRUDView.get_urls()
 urlpatterns += views.ProfileCRUDView.get_urls()
 
-# Add the regular book update view URL
-urlpatterns += [
-    path('book/<int:pk>/update/', views.book_update_view, name='book-update-view'),
-]

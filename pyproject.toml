@@ -32,6 +32,20 @@ crispy-tailwind = "^1.0.3"
 crispy-daisyui = "^0.7.0"
 django-vite = "^3.1.0"
 django-q2 = "^1.8.0"
+# postgres
+# need to do both of these to get same effect as psycopg[binary]
+# see https://learndjango.com/tutorials/psycopg3-binary-and-django-42-installation-quick-t
+psycopg-binary = "^3.2.1"
+psycopg = "^3.2.1"
+
+# redis
+redis = "^5.2.0"
+django-redis = "^5.4.0"
+# celery
+celery = "^5.4.0"
+django-celery-beat = "^2.7.0"
+
+
 
 [tool.poetry.group.docs.dependencies]
 # mkdocs
