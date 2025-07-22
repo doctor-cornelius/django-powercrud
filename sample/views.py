@@ -10,6 +10,13 @@ from . import models
 from . import forms
 from . import filters
 
+def home(request):
+    template_name = "sample/index.html"
+    context = {'header_title': "Home"}
+    if request.htmx:
+        return render(request, f"{template_name}#content", context)
+    return render(request, template_name, context)
+    
 class BookCRUDView(NominopolitanMixin, CRUDView):
     model = models.Book
     namespace = "sample"

@@ -1,26 +1,16 @@
+{% load django_vite %}
+
 <!DOCTYPE html>
 
-<html lang="en" data-theme="corporate">
+<html lang="en" data-theme="nord">
 
 <head>
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <!-- daisy all themes -->
-    <link href="https://cdn.jsdelivr.net/npm/daisyui@5/themes.css" rel="stylesheet" type="text/css" />
-
-    <!-- Tailwind/DaisyUI -->
-    <link href="/static/css/output.css" rel="stylesheet">
-
-    <!-- Popper.js and Tippy -->
-    <script src="https://unpkg.com/@popperjs/core@2"></script>
-    <script src="https://unpkg.com/tippy.js@6"></script>
-    <link href="https://unpkg.com/tippy.js@6/themes/light.css" rel="stylesheet">
-
-    <!-- Install htmx -->
-    <script src="https://unpkg.com/htmx.org@2.0.3"></script>
-    <script src="https://unpkg.com/htmx.org/dist/ext/multi-swap.js"></script>
+    {% vite_hmr_client %}
+    {% vite_asset 'django_nominopolitan/static/js/main.js' %}
 
     {% block header_title %}
     <title id="header_title">{{header_title}}</title>
@@ -30,6 +20,7 @@
 </head>
 
 <body hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+
     {% block app_content %}{% endblock app_content %}
 
     <div class="container mt-20 mb-5 mx-5 p-5">
@@ -38,8 +29,8 @@
                 Home (Reload)
             </a>
             <div class="join" role="group" aria-label="Book List buttons">
-                <a class="btn btn-secondary join-item" hx-get="{% url 'sample:bigbook-list' %}" hx-target="#content" hx-swap="innerHTML"
-                    hx-replace-url="true" hx-push-url="true">
+                <a class="btn btn-secondary join-item" hx-get="{% url 'sample:bigbook-list' %}" hx-target="#content"
+                    hx-swap="innerHTML" hx-replace-url="true" hx-push-url="true">
                     Book List (htmx)
                 </a>
                 <a class="btn join-item btn-info" href="{% url 'sample:bigbook-list' %}">
@@ -47,18 +38,36 @@
                 </a>
             </div>
             <div class="join" role="group" aria-label="Author List buttons">
-                <a class="btn btn-secondary join-item" hx-get="{% url 'sample:author-list' %}" hx-target="#content" hx-swap="innerHTML"
-                    hx-replace-url="true" hx-push-url="true">
+                <a class="btn btn-secondary join-item" hx-get="{% url 'sample:author-list' %}" hx-target="#content"
+                    hx-swap="innerHTML" hx-replace-url="true" hx-push-url="true">
                     Author List (htmx)
                 </a>
                 <a class="btn join-item btn-info" href="{% url 'sample:author-list' %}">
                     Author List (reload)
                 </a>
             </div>
+            <div class="join" role="group" aria-label="Author List buttons">
+                <a class="btn btn-secondary join-item" hx-get="{% url 'sample:profile-list' %}" hx-target="#content"
+                    hx-swap="innerHTML" hx-replace-url="true" hx-push-url="true">
+                    Profile (htmx)
+                </a>
+                <a class="btn join-item btn-info" href="{% url 'sample:profile-list' %}">
+                    Profile (reload)
+                </a>
+            </div>
+            <div class="join" role="group" aria-label="Author List buttons">
+                <a class="btn btn-secondary join-item" hx-get="{% url 'sample:genre-list' %}" hx-target="#content"
+                    hx-swap="innerHTML" hx-replace-url="true" hx-push-url="true">
+                    Genre List (htmx)
+                </a>
+                <a class="btn join-item btn-info" href="{% url 'sample:genre-list' %}">
+                    Genre List (reload)
+                </a>
+            </div>
         </div>
-        <div id="content" >
-        {% block content %}{% endblock content %}
-        <div id="nominopolitan"></div>
+        <div id="content">
+            {% block content %}{% endblock content %}
+            <div id="nominopolitan"></div>
         </div>
     </div>
 

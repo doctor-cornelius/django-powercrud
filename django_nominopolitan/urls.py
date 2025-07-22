@@ -4,8 +4,7 @@ from django.contrib.staticfiles.storage import staticfiles_storage
 from django.contrib import admin
 from django.urls import path, include
 
-from . import views
-from sample import views as sample_views
+from sample import views
 
 urlpatterns = [
     path(
