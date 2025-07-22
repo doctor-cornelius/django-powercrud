@@ -35,6 +35,17 @@
 
 ### Async Processing
 - **django-q2 1.8.0+** - Async task processing for bulk operations
+- **Celery 5.4.0+** - Alternative async task processing backend
+- **django-celery-beat 2.7.0+** - Periodic task scheduling for Celery
+
+### Database Systems
+- **PostgreSQL** - Primary database for development and production
+- **psycopg 3.2.1+** - PostgreSQL adapter for Python
+- **psycopg-binary 3.2.1+** - Binary distribution of psycopg
+
+### Caching & Session Storage
+- **Redis 5.2.0+** - In-memory data structure store for caching
+- **django-redis 5.4.0+** - Redis cache backend for Django
 
 ## Development Setup
 
@@ -65,9 +76,10 @@
 - **Python 3.12+** - Modern Python features and performance improvements
 
 ### Database Considerations
-- **SQLite** - Default for development (django_nominopolitan project)
-- **PostgreSQL/MySQL** - Recommended for production
+- **PostgreSQL** - Primary database for development and production (config project)
+- **SQLite** - Alternative for simple development setups
 - **Session Storage** - Database-backed sessions for bulk selection persistence
+- **Docker Support** - PostgreSQL containerized setup available
 
 ### Browser Support
 - **Modern Browsers** - HTMX and modern CSS features require recent browser versions
@@ -98,6 +110,18 @@ CRISPY_TEMPLATE_PACK = 'bootstrap5'  # or 'tailwind'
 
 # Tailwind safelist location
 NM_TAILWIND_SAFELIST_JSON_LOC = 'path/to/safelist/'
+
+# django-q2 settings
+Q_CLUSTER = {
+    'name': 'nominopolitan',
+    'workers': 1,
+    'recycle': 500,
+    'timeout': 250,
+    'retry': 300,
+    'orm': 'default',  # Use database instead of Redis
+    'save_limit': 250,
+    'queue_limit': 500,
+}
 ```
 
 ### Middleware Requirements

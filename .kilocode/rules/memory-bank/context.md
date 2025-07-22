@@ -6,11 +6,14 @@
 ## Current Work Focus
 
 ### Recent Development (Last 10 Releases)
-1. **Bulk Operations Enhancement** - Improved bulk edit/delete functionality with better error handling
-2. **Dropdown Sorting** - Added `dropdown_sort_options` for related field sorting in filters and forms
-3. **Pagination Improvements** - User-selectable page sizes that persist after operations
-4. **Template System** - Enhanced template override capabilities and framework switching
-5. **HTMX Integration** - Refined modal handling and form error display
+1. **Async Processing Implementation** - Added django-q2 and Celery support for bulk operations
+2. **Infrastructure Modernization** - Moved Django project from `django_nominopolitan/` to `config/`
+3. **Database Enhancement** - Added PostgreSQL support with Docker configuration
+4. **Bulk Operations Enhancement** - Improved bulk edit/delete functionality with better error handling
+5. **Dropdown Sorting** - Added `dropdown_sort_options` for related field sorting in filters and forms
+6. **Pagination Improvements** - User-selectable page sizes that persist after operations
+7. **Template System** - Enhanced template override capabilities and framework switching
+8. **HTMX Integration** - Refined modal handling and form error display
 
 ### Active Features
 - **Bulk Edit/Delete**: Atomic operations with validation and error handling
@@ -53,6 +56,9 @@
 - **Development Tools**: Poetry for dependency management, Vite for asset building
 - **CSS Frameworks**: daisyUI/Tailwind CSS (default) Bootstrap5 (will be reconsidered)
 - **Frontend**: Javascript, HTMX, Alpine.js, Popper.js for enhanced interactions
+- **Database**: PostgreSQL with Docker containerization
+- **Async Processing**: django-q2 for bulk operations, Celery support planned
+- **Caching**: Redis for session storage and caching
 
 ### Sample Application
 - Comprehensive sample app with Author, Book, Genre, Profile models

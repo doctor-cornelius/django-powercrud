@@ -100,11 +100,20 @@ Comprehensive example implementation:
 - **`filters.py`** - Custom filter examples
 - **Management commands for sample data**
 
-### Django Project: `/django_nominopolitan/`
-Development/demo Django project:
-- **`settings.py`** - Configuration for development
+### Django Project: `/config/`
+Development/demo Django project (renamed from `django_nominopolitan/`):
+- **`settings.py`** - Configuration for development with PostgreSQL and async support
 - **`urls.py`** - URL routing
-- **`templates/`** - Base templates for demo
+- **`wsgi.py`** - WSGI application
+- **`asgi.py`** - ASGI application for async support
+- **`static/`** - Static assets for demo
+
+### Additional Infrastructure
+- **`docker/`** - Docker configuration for development
+  - **`docker-compose.yml`** - Multi-service development setup
+  - **`dockerfile_django`** - Django application container
+  - **`postgresql.conf`** - PostgreSQL configuration
+- **`tasks.py`** - Async task functions for django-q2 and Celery backends
 
 ## Key Technical Decisions
 

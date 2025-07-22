@@ -13,7 +13,8 @@ Django Nominopolitan is an opinionated extension package for the excellent `neap
 - **Advanced CRUD Operations**: Enhanced list/detail views with property support and field exclusions
 - **HTMX Integration**: Reactive pagination, modal dialogs, and partial page updates
 - **Filtering & Search**: Comprehensive filterset support with M2M logic and custom queryset options
-- **Bulk Operations**: Multi-record editing and deletion with atomic transactions
+- **Bulk Operations**: Multi-record editing and deletion with atomic transactions and async processing
+- **Async Processing**: django-q2 support for handling large bulk operations
 - **Template System**: Flexible template overrides with DaisyUI and Bootstrap5 support and potential extension to other css frameworks
 - **Form Enhancement**: Crispy-forms integration with HTML5 widgets
 - **Table Features**: Sortable columns, pagination, and responsive design
