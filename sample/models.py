@@ -111,7 +111,7 @@ class Book(models.Model):
         """insert a delay for testing async processing
         """
         import time
-        time.sleep(10)
+        time.sleep(40)
         log.debug(f"Deleting book: {self.title}")
         return super().delete(*args, **kwargs)
 

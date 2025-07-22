@@ -17,20 +17,27 @@
 {% endpartialdef nm_content %}
 
 {% partialdef conflict_detected %}
-{# Show conflict warning when bulk operation is in progress #}
-<div class="alert alert-warning mb-4">
-    <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-    </svg>
-    <span>{{ conflict_message }}</span>
-</div>
+<div class="card-body text-center">
+    <div class="bg-warning text-warning-content px-4 py-2 rounded-lg mb-4">
+        <h3 class="text-lg font-semibold">Edit Conflict</h3>
+    </div>
+    <p class="text-lg">{{ conflict_message }}</p>
+    <h2 class="text-lg opacity-60 mt-4">{{ object }}</h2>
 
-<p class="text-lg opacity-60">{{ object_verbose_name }} deletion is currently blocked</p>
-<h2 class="card-title justify-center my-2 text-base-content opacity-60">{{ object }}</h2>
+    {% comment %}Only show button when NOT using modals{% endcomment %}
+    {% if not use_modal %}
+    <div class="card-actions justify-end mt-4">
+        {% if use_htmx %}
+        <button type="button" class="btn btn-outline" hx-get="{{ list_view_url }}"
+            hx-vals='{"page_size": "{{ request.GET.page_size|default:default_page_size }}"}' hx-target="{{ original_target }}"
+            hx-push-url="true">Return to List
+        </button>
+        {% else %}
+        <a href="{{ list_view_url }}" class="btn btn-outline">Return to List</a>
 
-<div class="card-actions justify-end">
-    <button type="button" class="btn btn-outline" onclick="window.history.back()">Go Back</button>
+        {% endif %}
+    </div>
+    {% endif %}
 </div>
 {% endpartialdef conflict_detected %}
 
