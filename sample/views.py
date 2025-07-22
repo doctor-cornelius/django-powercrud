@@ -21,8 +21,8 @@ class BookCRUDView(NominopolitanMixin, CRUDView):
     model = models.Book
     namespace = "sample"
     base_template_path = "sample/base.html"
-    use_htmx = True
-    use_modal = True
+    # use_htmx = True
+    # use_modal = True
     # use_crispy = False
 
     # standard neapolitan setting; this demonstrates how to override the default url_base (ie model name)

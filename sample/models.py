@@ -2,6 +2,7 @@ from django.db import models
 
 from django.core.exceptions import ValidationError
 
+import time
 import logging
 log = logging.getLogger("nominopolitan")
 
@@ -104,13 +105,16 @@ class Book(models.Model):
             self.uneditable_field = "This field is uneditable"
 
     def save(self, *args, **kwargs):
+        
+        time.sleep(40)
+        log.debug(f"Updating book: {self.title}")
+
         self.clean()
         return super().save(*args, **kwargs)
     
     def delete(self, *args, **kwargs):
         """insert a delay for testing async processing
         """
-        import time
         time.sleep(40)
         log.debug(f"Deleting book: {self.title}")
         return super().delete(*args, **kwargs)

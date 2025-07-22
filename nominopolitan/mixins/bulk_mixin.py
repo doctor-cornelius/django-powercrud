@@ -392,7 +392,6 @@ class BulkMixin:
                 )
 
         log.debug(f"Processing bulk edit for {len(selected_ids)} selected records")
-
         if delete_selected:
             if not self.get_bulk_delete_enabled():
                 return HttpResponseForbidden("Bulk delete is not allowed.")
@@ -452,7 +451,14 @@ class BulkMixin:
                 return response
 
         # Bulk Update Logic
-
+        # Check whether async processing required
+        if self.should_process_async(len(selected_ids)):
+            log.debug(f"Processing bulk update asynchronously for {len(selected_ids)} records.")
+            return self._handle_async_bulk_operation(
+                request, selected_ids, 
+                delete_selected,  # This will be None/False
+                bulk_fields, fields_to_update
+            )
         result = self._perform_bulk_update(
             queryset, bulk_fields, fields_to_update, field_data
             )

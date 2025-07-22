@@ -8,6 +8,9 @@ from django.core.exceptions import ImproperlyConfigured, ValidationError
 from django.http import HttpResponseRedirect, QueryDict
 from django.shortcuts import render
 from django.urls import reverse
+
+from urllib.parse import urlencode  # ← Add this
+
 from crispy_forms.helper import FormHelper
 from neapolitan.views import Role
 
@@ -161,6 +164,26 @@ class FormMixin:
         )
         raise ImproperlyConfigured(msg % self.__class__.__name__)
 
+    def show_form(self, request, *args, **kwargs):
+        """Override to check for conflicts before showing edit form"""
+        # Only check conflicts for UPDATE operations (not CREATE)
+        if (self.role == Role.UPDATE and 
+            self.get_conflict_checking_enabled() and 
+            self._check_for_conflicts()):
+            
+            # Set the object for context (like the parent does)
+            self.object = self.get_object()
+            
+            # Return conflict response
+            context = self.get_context_data(
+                conflict_detected=True,
+                conflict_message=f"Cannot update - bulk operation in progress on {self.model._meta.verbose_name_plural}. Please try again later."
+            )
+            return self.render_to_response(context)
+        
+        # No conflict, proceed normally
+        return super().show_form(request, *args, **kwargs)
+
     def form_valid(self, form):
         """
         Handle form validation success with HTMX support.
@@ -188,20 +211,6 @@ class FormMixin:
         Returns:
             HttpResponse: Either a rendered list view or a redirect
         """
-
-        # Check for conflicts with running background tasks on UPDATE operations
-        if (hasattr(self, 'object') and self.object and self.object.pk and 
-            self.get_conflict_checking_enabled() and self._check_for_conflicts()):
-            
-            # Return conflict response for update operations
-            # Similar to confirm_delete conflict handling
-            context = self.get_context_data(
-                form=form,
-                conflict_detected=True,
-                conflict_message=f"Cannot update - bulk operation in progress on {self.model._meta.verbose_name_plural}. Please try again later."
-            )
-            return self.render_to_response(context)
-
         self.object = form.save()
 
         # If this is an HTMX request, handle it specially
@@ -231,11 +240,6 @@ class FormMixin:
                 list_url_name = f"{self.url_base}-list"
             list_path = reverse(list_url_name)
 
-            if clean_params:
-                canonical_query = urlencode(clean_params)
-                canonical_url = f"{list_path}?{canonical_query}"
-            else:
-                canonical_url = list_path
             if clean_params:
                 canonical_query = urlencode(clean_params)
                 canonical_url = f"{list_path}?{canonical_query}"

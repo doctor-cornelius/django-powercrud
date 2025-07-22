@@ -216,7 +216,8 @@ Q_CLUSTER = {
     'name': 'nominopolitan',
     'workers': 1, # only 1 worker for sqlite
     'recycle': 500,
-    'timeout': 60,
+    'timeout': 250,
+    'retry': 300,
     'orm': 'default',  # Use database instead of Redis
     'save_limit': 250,
     'queue_limit': 500,
