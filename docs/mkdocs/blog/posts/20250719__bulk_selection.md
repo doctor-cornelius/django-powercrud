@@ -243,10 +243,9 @@ def bulk_edit_process_post(self, request, queryset, bulk_fields):
     10. ✅ Test bulk operation conflict detection
     11. ✅ Find neapolitan update methods
     12. ✅ Override update methods with conflict checking
-    13. Update templates for update conflicts
-    14. Test HTMX vs non-HTMX responses
-    15. Handle JavaScript conflict triggers
-    16. Test with Redis for concurrency
+    13. ✅ Update templates for update conflicts
+    14. ✅ Test HTMX vs non-HTMX responses
+    15. Test with Redis for concurrency
 
 6. **Create BulkTask status views**
 

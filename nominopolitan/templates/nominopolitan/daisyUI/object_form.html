@@ -33,14 +33,14 @@
         {% if not use_modal %}
         <div class="card-actions justify-end mt-4">
             {% if use_htmx %}
-            <button type="button" class="btn btn-outline" 
-                hx-get="{{ list_view_url }}" 
-                hx-vals='{"page_size": "{{ request.GET.page_size|default:default_page_size }}"}'
-                hx-target="{{ original_target }}" 
-                hx-push-url="true">Return to List</button>
+                <button type="button" class="btn btn-outline"
+                    hx-get="{{ list_view_url }}{% if request.GET.page_size %}?page_size={{ request.GET.page_size }}{% endif %}{% if filter_params %}&{{ filter_params }}{% endif %}"
+                    hx-target="{{ original_target }}" hx-push-url="true">
+                    Return to List</button>
             {% else %}
-            <button type="button" class="btn btn-outline" 
-                onclick="window.location.href='{{ list_view_url }}'">Return to List</button>
+                <a href="{{ list_view_url }}" class="btn btn-outline">
+                    Return to List
+                </a>            
             {% endif %}
         </div>
         {% endif %}

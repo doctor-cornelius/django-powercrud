@@ -173,11 +173,19 @@ class FormMixin:
             
             # Set the object for context (like the parent does)
             self.object = self.get_object()
-            
+
+            # Get filter params (like sort selection does)
+            filter_params = request.GET.copy()
+            if 'sort' in filter_params:
+                filter_params.pop('sort')  
+            if 'page' in filter_params:
+                filter_params.pop('page')
+
             # Return conflict response
             context = self.get_context_data(
                 conflict_detected=True,
-                conflict_message=f"Cannot update - bulk operation in progress on {self.model._meta.verbose_name_plural}. Please try again later."
+                conflict_message=f"Cannot update - bulk operation in progress on {self.model._meta.verbose_name_plural}. Please try again later.",
+                filter_params=filter_params.urlencode() if filter_params else "",
             )
             return self.render_to_response(context)
         
