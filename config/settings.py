@@ -101,7 +101,7 @@ MIDDLEWARE = [
     "django_htmx.middleware.HtmxMiddleware",
 ]
 
-ROOT_URLCONF = "django_nominopolitan.urls"
+ROOT_URLCONF = "config.urls"
 
 TEMPLATES = [
     {
@@ -127,7 +127,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = "django_nominopolitan.wsgi.application"
+WSGI_APPLICATION = "config.wsgi.application"
 
 
 # Database
@@ -164,11 +164,8 @@ AUTH_PASSWORD_VALIDATORS = [
 # https://docs.djangoproject.com/en/5.1/topics/i18n/
 
 LANGUAGE_CODE = "en-us"
-
 TIME_ZONE = "UTC"
-
 USE_I18N = True
-
 USE_TZ = True
 
 
@@ -177,7 +174,6 @@ USE_TZ = True
 
 STATIC_URL = "static/"
 STATICFILES_DIRS = [
-    # BASE_DIR / "django_nominopolitan" / "static", # for webpack setup
     BASE_DIR / "nominopolitan" / "assets", # for vite setup
 ]
 

@@ -18,7 +18,7 @@ export default defineConfig({
   },
   resolve : {
     alias : {
-        '@': '/django_nominopolitan/static'
+        '@': '/config/static'
     }
   },
   build: {
@@ -27,7 +27,7 @@ export default defineConfig({
     assetsDir: "django_assets",
     rollupOptions: {
       input: {
-        nominopolitan: resolve('django_nominopolitan/static/js/main.js')
+        nominopolitan: resolve('config/static/js/main.js')
       }
     }
   },

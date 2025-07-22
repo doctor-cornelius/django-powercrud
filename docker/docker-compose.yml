@@ -43,7 +43,7 @@ services:
       PROJECT_DIR: ${PROJECT_DIR}
       env: DISPLAY
       DJANGO_LIFECYCLE_ENV: ${DEPLOYMENT_ENV}
-      DJANGO_SETTINGS_MODULE: django_nominopolitan.settings
+      DJANGO_SETTINGS_MODULE: config.settings
       DJANGO_PROJECT_NAME: ${PROJECT_DIR}
       DATABASE_NAME: ${DOCKER_PREFIX}_postgres_${DEPLOYMENT_ENV}
       DATABASE_HOST: ${DOCKER_PREFIX}_postgres_${DEPLOYMENT_ENV}
@@ -71,7 +71,7 @@ services:
     environment:
       PROJECT_DIR: ${PROJECT_DIR}
       DJANGO_LIFECYCLE_ENV: ${DEPLOYMENT_ENV}
-      DJANGO_SETTINGS_MODULE: django_nominopolitan.settings
+      DJANGO_SETTINGS_MODULE: config.settings
     working_dir: /home/${DEPLOYMENT_ENV}user/${PROJECT_DIR}
     ports:
       - 5174:5174
