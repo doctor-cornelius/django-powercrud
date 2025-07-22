@@ -118,22 +118,17 @@ def save_selected_ids_to_session(self, request, ids):
      - Replace JavaScript sessionStorage calls with HTMX attributes on checkboxes
      - Update checkbox rendering to show server session state
      - Keep existing JavaScript as fallback for non-HTMX scenarios
-
-5. **Create response partials**
-
      - Selection status partial for bulk actions container
      - Checkbox state partial for individual row updates
 
-### Phase 3: Testing and Cleanup
-
-6. **Test migration**
+### Phase 3: Testing and Cleanu. **Test migration**
 
      - Test selection persistence across page loads
      - Test bulk operations with session-stored selections
      - Verify fallback behavior works
      - Test with multiple models/suffixes
 
-7. **Documentation**
+6. **Documentation**
 
      - Update docs with session backend requirements
      - Add configuration notes about Django sessions
