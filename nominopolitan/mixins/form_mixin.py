@@ -188,6 +188,20 @@ class FormMixin:
         Returns:
             HttpResponse: Either a rendered list view or a redirect
         """
+
+        # Check for conflicts with running background tasks on UPDATE operations
+        if (hasattr(self, 'object') and self.object and self.object.pk and 
+            self.get_conflict_checking_enabled() and self._check_for_conflicts()):
+            
+            # Return conflict response for update operations
+            # Similar to confirm_delete conflict handling
+            context = self.get_context_data(
+                form=form,
+                conflict_detected=True,
+                conflict_message=f"Cannot update - bulk operation in progress on {self.model._meta.verbose_name_plural}. Please try again later."
+            )
+            return self.render_to_response(context)
+
         self.object = form.save()
 
         # If this is an HTMX request, handle it specially

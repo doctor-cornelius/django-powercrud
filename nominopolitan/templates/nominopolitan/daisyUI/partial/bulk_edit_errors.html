@@ -1,0 +1,23 @@
+{# partial to show errors related to bulk ops #}
+{% partialdef bulk_edit_error %}
+<div class="p-4">
+    <div class="bg-error text-error-content px-4 py-2 rounded-lg mb-4 text-center">
+        <h3 class="text-lg font-semibold">Bulk Edit Error</h3>
+    </div>
+    <p class="text-lg text-center text-error">{{ error }}</p>
+</div>
+{% endpartialdef bulk_edit_error %}
+
+
+{# partial to show conflict with running async #}
+{% partialdef bulk_edit_conflict %}
+<div class="p-4">
+    <div class="bg-warning text-warning-content px-4 py-2 rounded-lg mb-4 text-center">
+        <h3 class="text-lg font-semibold">Bulk Operation Conflict</h3>
+    </div>
+    <p class="text-lg text-center">{{ conflict_message }}</p>
+    <p class="text-sm text-center opacity-70 mt-2">
+        Selected {{ selected_count }} {{ model_name_plural }} cannot be processed right now.
+    </p>
+</div>
+{% endpartialdef bulk_edit_conflict %}

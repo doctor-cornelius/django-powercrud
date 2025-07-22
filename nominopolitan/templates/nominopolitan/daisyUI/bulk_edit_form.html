@@ -15,6 +15,10 @@
 </div>
 {% endif %}
 
+{# show the normal form #}
+{% partial full_form %}
+
+{% partialdef full_form %}
 <div class="p-4">
     <h2 class="text-xl font-bold mb-4">Bulk Edit {{ selected_count }} {{ model_name_plural }}</h2>
 
@@ -175,6 +179,7 @@
         </div>
     </form>
 </div>
+{% endpartialdef full_form %}
 
 <script>
     // Toggle input fields when checkboxes are clicked

@@ -3,11 +3,10 @@ import json
 
 from django.db import transaction
 from django.core.exceptions import ValidationError
-from django.http import HttpResponse, HttpResponseForbidden
+from django.http import HttpResponse, HttpResponseForbidden, HttpResponseBadRequest
 from django.shortcuts import render
 from django.urls import path
 from django.core.exceptions import ObjectDoesNotExist
-
 
 log = logging.getLogger("nominopolitan")
 
@@ -114,9 +113,10 @@ class BulkMixin:
         GET: Return a form for bulk editing selected objects
         POST: Process the form and update selected objects
         """
+        template_name = f"{self.templates_path}/bulk_edit_form.html"
+        template_errors = f"{self.templates_path}/partial/bulk_edit_errors.html"
         # Ensure HTMX is being used for both GET and POST
         if not (hasattr(request, 'htmx') and request.htmx):
-            from django.http import HttpResponseBadRequest
             return HttpResponseBadRequest("Bulk edit only supported via HTMX requests.")
 
         # Get selected IDs from the request
@@ -136,17 +136,34 @@ class BulkMixin:
         if not selected_ids:
             return render(
                 request,
-                f"{self.templates_path}/partial/bulk_edit_error.html",
+                f"{template_errors}#bulk_edit_error",
                 {"error": "No items selected for bulk edit."}
             )
         # Get the queryset of selected objects
         queryset = self.model.objects.filter(pk__in=selected_ids)
+
+        # Check for conflicts before showing the form
+        if (self.get_conflict_checking_enabled() and 
+            self._check_for_conflicts()):
+            # Show conflict message instead of form
+            context = {
+                'conflict_detected': True,
+                'conflict_message': f"Another bulk operation is already running on {self.model._meta.verbose_name_plural}. Please try again later.",
+                'selected_count': len(selected_ids),
+                'model_name_plural': self.model._meta.verbose_name_plural,
+            }
+            return render(
+                request,
+                f"{template_errors}#bulk_edit_conflict",
+                context
+            )
+
         # Get bulk fields (fields that can be bulk edited)
         bulk_fields = getattr(self, 'bulk_fields', [])
         if not bulk_fields and not getattr(self, "bulk_delete", False):
             return render(
                 request,
-                f"{self.templates_path}/partial/bulk_edit_error.html",
+                f"{template_errors}#bulk_edit_error",
                 {"error": "No fields configured for bulk editing."}
             )
         # Handle form submission
@@ -171,11 +188,7 @@ class BulkMixin:
             'original_target': self.get_original_target(),
         }
         # Render the bulk edit form
-        return render(
-            request,
-            f"{self.templates_path}/partial/bulk_edit_form.html",
-            context
-        )
+        return render(request, template_name,context)
 
     def _perform_bulk_delete(self, queryset):
         """Delete with graceful handling of missing records"""
