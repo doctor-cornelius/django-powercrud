@@ -99,10 +99,10 @@
             <div id="bulk-actions-container" class="join hidden">
                 <a href="{{ list_view_url }}bulk-edit/" class="join-item btn btn-primary {{ view.get_extra_button_classes }}"
                     hx-get="{{ list_view_url }}bulk-edit/" hx-target="#nominopolitanModalContent"
-                    onclick="this.setAttribute('hx-vals', JSON.stringify({'selected_ids': getSelectedIds()})); nominopolitanBaseModal.showModal();">
+                    onclick="nominopolitanBaseModal.showModal();">
                     Bulk Edit <span id="selected-items-counter">0</span>
                 </a>
-                <button class="join-item btn btn-outline btn-error {{ view.get_extra_button_classes }}" onclick="clearSelection()">
+                <button class="join-item btn btn-outline btn-error {{ view.get_extra_button_classes }}" hx-post="clear-selection/" hx-target="#bulk-actions-container" hx-swap="outerHTML">
                     Clear Selection
                 </button>
             </div>
@@ -388,129 +388,7 @@
             window.resizeTimer = setTimeout(initializeTooltips, 100);
         });
 
-        // Listen for HX-Trigger 'bulkEditSuccess' to clear selection before the list is refreshed
-        document.body.addEventListener('htmx:beforeOnLoad', function (event) {
-            var xhr = event.detail.xhr;
-            if (!xhr) return;
-            var triggerHeader = xhr.getResponseHeader('HX-Trigger');
-            if (!triggerHeader) return;
-            var triggers;
-            try {
-                triggers = JSON.parse(triggerHeader);
-            } catch (e) {
-                triggers = triggerHeader;
-            }
-            // Clear selection on bulkEditSuccess
-            if ((typeof triggers === 'object' && triggers.bulkEditSuccess) || triggers === 'bulkEditSuccess') {
-                var storageKey = "{{ storage_key|default:'' }}";
-                if (storageKey) {
-                    sessionStorage.removeItem(storageKey);
-                }
-            }
-        });
 
-    // --- Selection state logic ---
-    function updateSelectionUI() {
-        const key = "{{ storage_key|default:'' }}";
-        if (!key) return;
-        const selectedIdsJson = sessionStorage.getItem(key);
-        const selectedIds = JSON.parse(selectedIdsJson || '[]');
-        // Update checkboxes and row styling
-        document.querySelectorAll('.row-select-checkbox').forEach(checkbox => {
-            const id = checkbox.dataset.id;
-            checkbox.checked = selectedIds.includes(id);
-            const row = checkbox.closest('tr');
-            if (row) {
-                if (checkbox.checked) {
-                    row.classList.add('bg-base-200');
-                } else {
-                    row.classList.remove('bg-base-200');
-                }
-            }
-        });
-        // Update "Select All" checkbox
-        const selectAllCheckbox = document.getElementById('select-all-checkbox');
-        if (selectAllCheckbox) {
-            const checkboxes = document.querySelectorAll('.row-select-checkbox');
-            selectAllCheckbox.checked = checkboxes.length > 0 && Array.from(checkboxes).every(cb => cb.checked);
-            selectAllCheckbox.indeterminate = !selectAllCheckbox.checked && Array.from(checkboxes).some(cb => cb.checked);
-        }
-        // Update bulk actions UI
-        const bulkActionsContainer = document.getElementById('bulk-actions-container');
-        const counter = document.getElementById('selected-items-counter');
-        if (bulkActionsContainer && counter) {
-            if (selectedIds.length > 0) {
-                bulkActionsContainer.classList.remove('hidden');
-                counter.textContent = selectedIds.length;
-            } else {
-                bulkActionsContainer.classList.add('hidden');
-                counter.textContent = 0;
-            }
-        }
-    }
-    // Restore selection on full page load
-    document.addEventListener('DOMContentLoaded', updateSelectionUI);
-    // Restore selection after any HTMX swap that brings in the table
-    document.body.addEventListener('htmx:afterSwap', (event) => {
-        if (event.detail.target && event.detail.target.querySelector && event.detail.target.querySelector('.row-select-checkbox')) {
-            setTimeout(updateSelectionUI, 100);
-        }
-    });
-
-    // --- Selection helper functions ---
-    function getStorageKey() {
-        return "{{ storage_key|default:'' }}";
-    }
-    function getSelectedIds() {
-        const key = getStorageKey();
-        const storedIds = sessionStorage.getItem(key);
-        return storedIds ? JSON.parse(storedIds) : [];
-    }
-    function saveSelectedIds(ids) {
-        const key = getStorageKey();
-        sessionStorage.setItem(key, JSON.stringify(ids));
-        updateSelectionUI();
-    }
-    function toggleRowSelection(checkbox) {
-        const id = checkbox.dataset.id;
-        const isSelected = checkbox.checked;
-        let selectedIds = getSelectedIds();
-        if (isSelected && !selectedIds.includes(id)) {
-            selectedIds.push(id);
-        } else if (!isSelected && selectedIds.includes(id)) {
-            selectedIds = selectedIds.filter(item => item !== id);
-        }
-        saveSelectedIds(selectedIds);
-    }
-    function toggleAllSelection(checked) {
-        const checkboxes = document.querySelectorAll('.row-select-checkbox');
-        let selectedIds = getSelectedIds();
-        if (checked) {
-            checkboxes.forEach(checkbox => {
-                const id = checkbox.dataset.id;
-                checkbox.checked = true;
-                const row = checkbox.closest('tr');
-                if (row) row.classList.add('bg-base-200');
-                if (!selectedIds.includes(id)) {
-                    selectedIds.push(id);
-                }
-            });
-        } else {
-            const currentPageIds = Array.from(checkboxes).map(cb => cb.dataset.id);
-            selectedIds = selectedIds.filter(id => !currentPageIds.includes(id));
-            checkboxes.forEach(checkbox => {
-                checkbox.checked = false;
-                const row = checkbox.closest('tr');
-                if (row) row.classList.remove('bg-base-200');
-            });
-        }
-        saveSelectedIds(selectedIds);
-    }
-    function clearSelection() {
-        const key = getStorageKey();
-        sessionStorage.removeItem(key);
-        updateSelectionUI();
-    }
 
     // Removes empty fields from the filter form before submission
     function removeEmptyFields(form) {
