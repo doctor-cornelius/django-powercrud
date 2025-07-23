@@ -552,6 +552,68 @@ class BulkMixin:
             log.debug(f"Bulk edit: Updated {updated_count} objects successfully.")
             return response
 
+    def toggle_selection_view(self, request, *args, **kwargs):
+        """
+        Handle HTMX requests for toggling individual checkbox selections.
+        Accepts obj_id from POST/GET requests.
+        """
+        obj_id = request.POST.get('obj_id') or request.GET.get('obj_id')
+        if not obj_id:
+            return HttpResponseBadRequest("Missing obj_id parameter.")
+
+        try:
+            # Validate obj_id exists in the model's queryset
+            obj = self.model.objects.get(pk=obj_id)
+        except ObjectDoesNotExist:
+            return HttpResponseBadRequest(f"Object with ID {obj_id} does not exist.")
+        except ValueError:
+            return HttpResponseBadRequest(f"Invalid obj_id: {obj_id}.")
+
+        selected_ids = self.toggle_selection_in_session(request, obj_id)
+        is_selected = str(obj_id) in selected_ids
+        selected_count = len(selected_ids)
+        storage_key = self.get_storage_key()
+
+        preserved_params = self._get_preserved_url_params(request)
+
+        context = {
+            'obj_id': obj_id,
+            'is_selected': is_selected,
+            'selected_count': selected_count,
+            'selected_ids': selected_ids,
+            'storage_key': storage_key,
+            'preserved_params': preserved_params,
+        }
+        return render(request, f"{self.templates_path}/partial/selection_status.html", context)
+
+    def clear_selection_view(self, request, *args, **kwargs):
+        """
+        Handle HTMX requests for clearing all selections.
+        """
+        self.clear_selection_from_session(request)
+        selected_ids = []
+        selected_count = 0
+        storage_key = self.get_storage_key()
+
+        preserved_params = self._get_preserved_url_params(request)
+
+        context = {
+            'selected_count': selected_count,
+            'selected_ids': selected_ids,
+            'storage_key': storage_key,
+            'preserved_params': preserved_params,
+        }
+        return render(request, f"{self.templates_path}/partial/selection_status.html", context)
+
+    def _get_preserved_url_params(self, request):
+        """
+        Extracts current URL parameters from request.GET, excluding 'page'.
+        """
+        preserved_params = request.GET.copy()
+        if 'page' in preserved_params:
+            del preserved_params['page']
+        return preserved_params.urlencode()
+
     def _get_bulk_field_info(self, bulk_fields):
         """
         Get information about fields for bulk editing.
