@@ -107,6 +107,46 @@ class BulkMixin:
         """
         return ""
 
+    def get_selected_ids_from_session(self, request):
+        """
+        Get selected IDs for the current model from the Django session.
+        """
+        session_key = self.get_storage_key()
+        return request.session.get('nominopolitan_selections', {}).get(session_key, [])
+
+    def save_selected_ids_to_session(self, request, ids):
+        """
+        Save selected IDs for the current model to the Django session.
+        """
+        session_key = self.get_storage_key()
+        if 'nominopolitan_selections' not in request.session:
+            request.session['nominopolitan_selections'] = {}
+        request.session['nominopolitan_selections'][session_key] = list(map(str, ids))
+        request.session.modified = True
+
+    def toggle_selection_in_session(self, request, obj_id):
+        """
+        Toggle an individual object's selection state in the Django session.
+        """
+        selected_ids = self.get_selected_ids_from_session(request)
+        obj_id_str = str(obj_id)
+        if obj_id_str in selected_ids:
+            selected_ids.remove(obj_id_str)
+        else:
+            selected_ids.append(obj_id_str)
+        self.save_selected_ids_to_session(request, selected_ids)
+        return selected_ids
+
+    def clear_selection_from_session(self, request):
+        """
+        Clear all selections for the current model from the Django session.
+        """
+        session_key = self.get_storage_key()
+        if 'nominopolitan_selections' in request.session:
+            if session_key in request.session['nominopolitan_selections']:
+                del request.session['nominopolitan_selections'][session_key]
+                request.session.modified = True
+
     def bulk_edit(self, request, *args, **kwargs):
         """
         Handle GET and POST requests for bulk editing.
@@ -121,17 +161,23 @@ class BulkMixin:
 
         # Get selected IDs from the request
         selected_ids = request.POST.getlist('selected_ids[]') or request.GET.getlist('selected_ids[]')
+
         if not selected_ids:
-            # If no IDs provided, try to get from JSON body
-            try:
-                if request.body and request.content_type == 'application/json':
-                    data = json.loads(request.body)
-                    selected_ids = data.get('selected_ids', [])
-            except:
-                pass
-            # If still no IDs, check for individual selected_ids parameters
+            # If no IDs provided via POST/GET, try to get from session first
+            selected_ids = self.get_selected_ids_from_session(request)
+
             if not selected_ids:
-                selected_ids = request.POST.getlist('selected_ids') or request.GET.getlist('selected_ids')
+                # If still no IDs, try to get from JSON body
+                try:
+                    if request.body and request.content_type == 'application/json':
+                        data = json.loads(request.body)
+                        selected_ids = data.get('selected_ids', [])
+                except:
+                    pass
+                # If still no IDs, check for individual selected_ids parameters (without [])
+                if not selected_ids:
+                    selected_ids = request.POST.getlist('selected_ids') or request.GET.getlist('selected_ids')
+
         # If still no IDs, return an error
         if not selected_ids:
             return render(
@@ -174,7 +220,7 @@ class BulkMixin:
             )
         # Prepare context for the form
         context = {
-            'selected_ids': selected_ids,
+            'selected_ids': [str(pk) for pk in queryset.values_list('pk', flat=True)], # Ensure selected_ids in context reflect the actual queryset
             'selected_count': len(selected_ids),
             'bulk_fields': bulk_fields,
             'enable_bulk_delete': self.get_bulk_delete_enabled(),
@@ -415,7 +461,7 @@ class BulkMixin:
             if errors:
                 context = {
                     "errors": errors,
-                    "selected_ids": [obj.pk for obj in queryset],
+                    "selected_ids": [str(pk) for pk in queryset.values_list('pk', flat=True)], # Ensure selected_ids in context reflect the actual queryset
                     "selected_count": queryset.count(),
                     "bulk_fields": bulk_fields,
                     "model": self.model,
@@ -471,7 +517,7 @@ class BulkMixin:
         if errors:
             context = {
                 "errors": errors,
-                "selected_ids": [obj.pk for obj in queryset],
+                "selected_ids": [str(pk) for pk in queryset.values_list('pk', flat=True)], # Ensure selected_ids in context reflect the actual queryset
                 "selected_count": queryset.count(),
                 "bulk_fields": bulk_fields,
                 "model": self.model,
