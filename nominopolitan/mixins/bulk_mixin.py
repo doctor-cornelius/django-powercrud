@@ -40,6 +40,25 @@ class BulkMixin:
     """
     Provides all bulk editing functionality for Nominopolitan views.
     """
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        selected_ids = self.get_selected_ids_from_session(self.request)
+        context['selected_ids'] = selected_ids
+        context['selected_count'] = len(selected_ids)
+        # Determine if all items on the current page are selected
+        # This requires object_list to be available in context
+        if 'object_list' in context:
+            current_page_ids = set(str(obj.pk) for obj in context['object_list'])
+            all_selected_on_page = current_page_ids.issubset(set(selected_ids))
+            some_selected_on_page = bool(current_page_ids.intersection(set(selected_ids)))
+            context['all_selected'] = all_selected_on_page and len(current_page_ids) > 0
+            context['some_selected'] = some_selected_on_page and not all_selected_on_page
+        else:
+            context['all_selected'] = False
+            context['some_selected'] = False
+        return context
+
     def get_bulk_edit_enabled(self):
         """
         Determine if bulk edit functionality should be enabled.
@@ -147,6 +166,28 @@ class BulkMixin:
                 del request.session['nominopolitan_selections'][session_key]
                 request.session.modified = True
 
+    def toggle_all_selection_in_session(self, request, object_ids):
+        """
+        Toggle the selection state of all provided object IDs in the Django session.
+        If all provided IDs are already selected, deselect all of them.
+        Otherwise, select all of them.
+        """
+        current_selected_ids = set(self.get_selected_ids_from_session(request))
+        object_ids_set = set(map(str, object_ids))
+
+        # Check if all current page objects are already selected
+        all_on_page_selected = object_ids_set.issubset(current_selected_ids)
+
+        if all_on_page_selected:
+            # Deselect all objects on the current page
+            new_selected_ids = current_selected_ids - object_ids_set
+        else:
+            # Select all objects on the current page
+            new_selected_ids = current_selected_ids.union(object_ids_set)
+        
+        self.save_selected_ids_to_session(request, list(new_selected_ids))
+        return list(new_selected_ids)
+
     def bulk_edit(self, request, *args, **kwargs):
         """
         Handle GET and POST requests for bulk editing.
@@ -236,41 +277,48 @@ class BulkMixin:
         # Render the bulk edit form
         return render(request, template_name,context)
 
+
     def toggle_selection_view(self, request, *args, **kwargs):
         """
-        Handle HTMX requests to toggle the selection of a single object.
+        Toggle an individual object's selection state.
         """
         if not (hasattr(request, 'htmx') and request.htmx):
-            return HttpResponseBadRequest("Selection toggle only supported via HTMX requests.")
-
+            return HttpResponseBadRequest("Only HTMX requests are supported for this operation.")
+        
         object_id = kwargs.get(self.pk_url_kwarg)
         if not object_id:
             return HttpResponseBadRequest("Object ID not provided.")
-
-        selected_ids = self.toggle_selection_in_session(request, object_id)
         
-        context = {
-            'selected_count': len(selected_ids),
-            'model_name_plural': self.model._meta.verbose_name_plural,
-            'storage_key': self.get_storage_key(),
-        }
-        return render(request, f"{self.templates_path}/partial/bulk_selection_status.html", context)
+        selected_ids = self.toggle_selection_in_session(request, object_id)
+        context = self.get_context_data()
+        context['selected_ids'] = selected_ids
+        return render(request, f"{self.templates_path}/object_list.html#filtered_results", context)
 
     def clear_selection_view(self, request, *args, **kwargs):
         """
-        Handle HTMX requests to clear all selected objects from the session.
+        Clear all selected items for the current model.
         """
         if not (hasattr(request, 'htmx') and request.htmx):
-            return HttpResponseBadRequest("Clear selection only supported via HTMX requests.")
-
-        self.clear_selection_from_session(request)
+            return HttpResponseBadRequest("Only HTMX requests are supported for this operation.")
         
-        context = {
-            'selected_count': 0,
-            'model_name_plural': self.model._meta.verbose_name_plural,
-            'storage_key': self.get_storage_key(),
-        }
-        return render(request, f"{self.templates_path}/partial/bulk_selection_status.html", context)
+        self.clear_selection_from_session(request)
+        context = self.get_context_data()
+        context['selected_ids'] = []
+        return render(request, f"{self.templates_path}/object_list.html#filtered_results", context)
+
+    def toggle_all_selection_view(self, request, *args, **kwargs):
+        """
+        Toggle the selection state of all items on the current page.
+        """
+        if not (hasattr(request, 'htmx') and request.htmx):
+            return HttpResponseBadRequest("Only HTMX requests are supported for this operation.")
+        
+        queryset = self.get_queryset()
+        object_ids = list(queryset.values_list('pk', flat=True))
+        selected_ids = self.toggle_all_selection_in_session(request, object_ids)
+        context = self.get_context_data()
+        context['selected_ids'] = selected_ids
+        return render(request, f"{self.templates_path}/object_list.html#filtered_results", context)
 
     def _perform_bulk_delete(self, queryset):
         """Delete with graceful handling of missing records"""

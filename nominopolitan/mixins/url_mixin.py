@@ -232,6 +232,19 @@ class UrlMixin:
                 )
             )
 
+            # Add URL for toggling all selection on the current page
+            urls.append(
+                path(
+                    f"{cls.url_base}/toggle-all-selection/",
+                    cls.as_view(
+                        role=Role.LIST,
+                        http_method_names=["post"],
+                        template_name_suffix="_toggle_all_selection",
+                    ),
+                    name=f"{cls.url_base}-toggle-all-selection",
+                )
+            )
+
         return urls
     
     def get_context_data(self, **kwargs):

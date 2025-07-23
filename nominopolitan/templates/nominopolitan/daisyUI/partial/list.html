@@ -103,8 +103,8 @@
                                data-id="{{ object.id }}"
                                {% if object.id|stringformat:"s" in selected_ids %}checked{% endif %}
                                hx-post="{{ list_view_url }}toggle-selection/{{ object.id }}/"
-                               hx-target="#bulk-actions-container"
-                               hx-swap="outerHTML">
+                               hx-target="#filtered_results"
+                               hx-swap="innerHTML">
                     </td>
                     {% endif %}
                     
