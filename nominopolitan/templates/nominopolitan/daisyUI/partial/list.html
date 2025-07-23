@@ -1,85 +1,122 @@
-{% load static %}
-{% load nominopolitan %}
+{% load partials %}
 
-<!-- List Partial - Used by HTMX for table updates -->
-<div id="list-partial-container">
-    <table class="table table-zebra w-full">
+{% if use_crispy %}
+    {% load crispy_forms_tags %}
+{% endif %}
+
+<style>
+    .table-max-height {
+        max-height: calc((100vh - {{ table_pixel_height_other_page_elements }}) * {{ table_max_height }} / 100);
+    }
+    
+    /* Add styles to match header text with table size */
+    .table-xl th {
+        font-size: 1.25rem;  /* Matches DaisyUI's table-xl text size */
+    }
+    
+    .table-lg th {
+        font-size: 1.125rem; /* Matches DaisyUI's table-lg text size */
+    }
+    
+    .table-sm th {
+        font-size: 0.875rem; /* Matches DaisyUI's table-sm text size */
+    }
+    
+    .table-xs th {
+        font-size: 0.75rem; /* Matches DaisyUI's table-xs text size */
+    }
+
+    /* Add sticky header styles */
+    .sticky-header {
+        position: -webkit-sticky;
+        position: sticky;
+        top: 0;
+        z-index: 1;
+        will-change: transform;
+        backface-visibility: hidden;
+    }
+</style>
+
+<div class="overflow-x-auto table-max-height"
+    style="overflow-y: auto; width: fit-content; padding-right: 20px;"
+    {% if enable_bulk_edit %}data-selection-key="{{ keyBase }}_{{ selection_key_suffix }}_selected"{% endif %}
+    >
+    <table class="table {{ table_classes }} w-auto">
         <thead>
             <tr>
-                {% if can_bulk_edit or can_bulk_delete %}
-                <th class="w-12">
-                    <label class="cursor-pointer">
-                        <input type="checkbox" 
-                               class="checkbox checkbox-sm"
-                               id="select-all-checkbox-partial"
-                               hx-post="{% url 'toggle_all_selection_view' model_name=model_name %}"
-                               hx-target="#selection-status-container"
-                               hx-swap="outerHTML"
-                               hx-include="[name='preserved_params']"
-                               {% if selected_count == object_list|length %}checked{% endif %}>
-                    </label>
+                {% if enable_bulk_edit %}
+                <!-- Bulk selection checkbox column -->
+                <th class="bg-neutral text-neutral-content text-center align-middle sticky-header w-10">
+                    <input type="checkbox" id="select-all-checkbox" 
+                           class="checkbox checkbox-sm checkbox-neutral border-1 border-white" 
+                           onchange="toggleAllSelection(this.checked)">
                 </th>
                 {% endif %}
-                {% for column in columns %}
-                <th class="{% if column.sortable %}cursor-pointer{% endif %}">
-                    {% if column.sortable %}
-                        <a href="{% url 'list' %}{{ preserved_params }}&sort={{ column.name }}{% if sort == column.name and direction == 'asc' %}&direction=desc{% else %}&direction=asc{% endif %}"
-                           class="flex items-center">
-                            {{ column.label }}
-                            {% if sort == column.name %}
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    {% if direction == 'asc' %}
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />
-                                    {% else %}
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                                    {% endif %}
+                
+                {% for header, field_name, is_sortable in headers %}
+                <th class="bg-neutral text-neutral-content text-center align-middle truncate table-column-width sticky-header"
+                    {% if is_sortable %}style="cursor: pointer;"{% endif %}
+                    {% if is_sortable %}
+                        {% if use_htmx %}
+                        hx-get="?sort={% if current_sort == field_name %}-{% elif current_sort == '-'|add:field_name %}{% else %}{% endif %}{{ field_name }}{% if request.GET.page_size %}&page_size={{ request.GET.page_size }}{% endif %}{% if filter_params %}&{{ filter_params }}{% endif %}"
+                        hx-headers='{"X-Filter-Sort-Request": "true"}'
+                        hx-target="#filtered_results"
+                        hx-push-url="true"
+                        hx-trigger="click"
+                        {% else %}
+                        onclick="window.location.href='?sort={% if current_sort == field_name %}-{% elif current_sort == '-'|add:field_name %}{% else %}{% endif %}{{ field_name }}{% if request.GET.page_size %}&page_size={{ request.GET.page_size }}{% endif %}{% if filter_params %}&{{ filter_params }}{% endif %}'"
+                        {% endif %}
+                    {% endif %}
+                    <span class="block h-full">
+                        {{ header }}
+                        {% if is_sortable %}
+                            {% if current_sort == field_name %}
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 inline-block">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                                </svg>
+                            {% elif current_sort == '-'|add:field_name %}
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 inline-block">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 15.75l7.5-7.5 7.5 7.5" />
                                 </svg>
                             {% endif %}
-                        </a>
-                    {% else %}
-                        {{ column.label }}
-                    {% endif %}
+                        {% endif %}
+                    </span>
                 </th>
                 {% endfor %}
-                <th class="w-24">Actions</th>
+                <th class="bg-neutral text-neutral-content text-center align-middle sticky-header">
+                    <span class="text-center block w-full h-full">Actions</span>
+                </th>
             </tr>
         </thead>
-        <tbody>
-            {% for object in object_list %}
-            <tr>
-                {% if can_bulk_edit or can_bulk_delete %}
-                <td>
-                    <label class="cursor-pointer">
+            <tbody>
+                {% for object in object_list %}
+                <tr class="text-center hover {% if object.is_selected %}bg-base-200{% endif %}">
+                    {% if enable_bulk_edit %}
+                    <!-- Row selection checkbox -->
+                    <td class="py-0 align-middle">
                         <input type="checkbox" 
-                               class="checkbox checkbox-sm row-checkbox"
-                               value="{{ object.pk }}"
-                               hx-post="{% url 'toggle_selection_view' model_name=model_name %}"
-                               hx-target="#selection-status-container"
-                               hx-swap="outerHTML"
-                               hx-include="[name='preserved_params']"
-                               {% if object.pk in selected_ids %}checked{% endif %}>
-                    </label>
-                </td>
-                {% endif %}
-                {% for column in columns %}
-                <td>
-                    {% if column.name == 'action_links' %}
-                        {% action_links object %}
-                    {% else %}
-                        {{ column.render|default:object|getattr:column.name }}
+                               class="checkbox checkbox-sm row-select-checkbox" 
+                               data-id="{{ object.id }}"
+                               {% if object.is_selected %}checked{% endif %}
+                               onchange="toggleRowSelection(this)">
+                    </td>
                     {% endif %}
-                </td>
+                    
+                    {% for field in object.fields %}
+                    <td class="{% if forloop.first %}font-medium{% endif %} py-0 align-middle px-2 truncate table-column-width"
+                        {% if not field|safe|stringformat:"s"|first in "<" %}data-tippy-content="{{field}}"{% endif %}>
+                        {{ field }}
+                    </td>
+                    {% endfor %}
+                    <td class="text-right py-1 align-middle">
+                        {{ object.actions }}
+                    </td>
+                </tr>
                 {% endfor %}
-                <td>
-                    <div class="flex space-x-1">
-                        {% action_links object %}
-                    </div>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-    
-    <!-- Hidden preserved parameters -->
-    <input type="hidden" name="preserved_params" value="{{ preserved_params|default:'' }}">
+            </tbody>
+        </table>
 </div>
+
+{% if enable_bulk_edit %}
+<!-- No selection restore JS here; handled globally in object_list.html -->
+{% endif %}
