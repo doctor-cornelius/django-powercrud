@@ -209,8 +209,9 @@ class UrlMixin:
             # Add URL for toggling individual selection
             urls.append(
                 path(
-                    f"{cls.url_base}/toggle-selection/<int:{cls.pk_url_kwarg}>/",
+                    f"{cls.url_base}/toggle-selection/<int:{cls.lookup_url_kwarg}>/",
                     cls.as_view(
+                        role=Role.LIST,
                         http_method_names=["post"],
                         template_name_suffix="_toggle_selection",
                     ),
@@ -223,6 +224,7 @@ class UrlMixin:
                 path(
                     f"{cls.url_base}/clear-selection/",
                     cls.as_view(
+                        role=Role.LIST,
                         http_method_names=["post"],
                         template_name_suffix="_clear_selection",
                     ),
