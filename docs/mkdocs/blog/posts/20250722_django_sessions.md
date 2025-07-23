@@ -371,8 +371,9 @@ Returns empty bulk actions container
 
 **New Container**:
 ```html
-{% include "nominopolitan/daisyUI/partial/bulk_selection_status.html" %}
+{% partial bulk_selection_status %}
 ```
+**Note**: The `bulk_selection_status` content was moved into a `partialdef` block within `object_list.html` itself, rather than using a separate include file, to better align with `django-template-partials` usage and keep related logic contained.
 
 #### Task 9: Complete sessionStorage Removal
 
