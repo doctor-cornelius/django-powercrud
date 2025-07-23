@@ -205,6 +205,30 @@ class UrlMixin:
         if (hasattr(cls, 'bulk_fields') and cls.bulk_fields) or getattr(cls, 'bulk_delete', False):
             bulk_edit_role = BulkEditRole()
             urls.append(bulk_edit_role.get_url(cls))
+            
+            # Add URL for toggling individual selection
+            urls.append(
+                path(
+                    f"{cls.url_base}/toggle-selection/<int:{cls.pk_url_kwarg}>/",
+                    cls.as_view(
+                        http_method_names=["post"],
+                        template_name_suffix="_toggle_selection",
+                    ),
+                    name=f"{cls.url_base}-toggle-selection",
+                )
+            )
+
+            # Add URL for clearing all selections
+            urls.append(
+                path(
+                    f"{cls.url_base}/clear-selection/",
+                    cls.as_view(
+                        http_method_names=["post"],
+                        template_name_suffix="_clear_selection",
+                    ),
+                    name=f"{cls.url_base}-clear-selection",
+                )
+            )
 
         return urls
     
