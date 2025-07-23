@@ -90,16 +90,16 @@ def save_selected_ids_to_session(self, request, ids):
 
 ## Implementation Tasks
 
-### Phase 1: Backend Session Support
+### ✅ Phase 1: Backend Session Support
 
-1. **Add session methods to BulkMixin**
+1. ✅ **Add session methods to BulkMixin**
 
      - Add `get_selected_ids_from_session(request)` method
      - Add `save_selected_ids_to_session(request, ids)` method
      - Add `toggle_selection(request, obj_id)` method
      - Add `clear_selection(request)` method
 
-2. **Update bulk_edit method**
+2. ✅ **Update bulk_edit method**
 
      - Check session for selected IDs if not in POST data
      - Maintain backward compatibility with existing POST approach
@@ -121,7 +121,7 @@ def save_selected_ids_to_session(self, request, ids):
      - Selection status partial for bulk actions container
      - Checkbox state partial for individual row updates
 
-### Phase 3: Testing and Cleanu. **Test migration**
+### Phase 3: Testing and Cleanup. **Test migration**
 
      - Test selection persistence across page loads
      - Test bulk operations with session-stored selections
@@ -133,6 +133,13 @@ def save_selected_ids_to_session(self, request, ids):
      - Update docs with session backend requirements
      - Add configuration notes about Django sessions
      - Document new server-side selection capabilities
+
+!!! warning "Implementation Notes"
+
+   - disregard all bootstrap5 templates. bootstrap5 is deprecated at the moment. ONLY work on daisyUI templates
+   - we will eventually be removing the current sessionStorage approach completely, including all relevant javascript related to selection, deselection of id's but not other js
+   - I do not want to see extra css styles added if possible. We are using daisyUI v5 and tailwindcss v4. It should be possible if customisation is needed to use preferably daisyUI and if not tailwindcss classes
+   - do not mess up the extensive work done to ensure persistence of filtering, sort, page size and page number params detailed in [this document](./20250711_filter_preservation.md)
 
 ## Django Session Backend
 

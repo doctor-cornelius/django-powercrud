@@ -236,6 +236,42 @@ class BulkMixin:
         # Render the bulk edit form
         return render(request, template_name,context)
 
+    def toggle_selection_view(self, request, *args, **kwargs):
+        """
+        Handle HTMX requests to toggle the selection of a single object.
+        """
+        if not (hasattr(request, 'htmx') and request.htmx):
+            return HttpResponseBadRequest("Selection toggle only supported via HTMX requests.")
+
+        object_id = kwargs.get(self.pk_url_kwarg)
+        if not object_id:
+            return HttpResponseBadRequest("Object ID not provided.")
+
+        selected_ids = self.toggle_selection_in_session(request, object_id)
+        
+        context = {
+            'selected_count': len(selected_ids),
+            'model_name_plural': self.model._meta.verbose_name_plural,
+            'storage_key': self.get_storage_key(),
+        }
+        return render(request, f"{self.templates_path}/partial/bulk_selection_status.html", context)
+
+    def clear_selection_view(self, request, *args, **kwargs):
+        """
+        Handle HTMX requests to clear all selected objects from the session.
+        """
+        if not (hasattr(request, 'htmx') and request.htmx):
+            return HttpResponseBadRequest("Clear selection only supported via HTMX requests.")
+
+        self.clear_selection_from_session(request)
+        
+        context = {
+            'selected_count': 0,
+            'model_name_plural': self.model._meta.verbose_name_plural,
+            'storage_key': self.get_storage_key(),
+        }
+        return render(request, f"{self.templates_path}/partial/bulk_selection_status.html", context)
+
     def _perform_bulk_delete(self, queryset):
         """Delete with graceful handling of missing records"""
         log.debug(f"Performing bulk delete on {queryset.count()} records")
