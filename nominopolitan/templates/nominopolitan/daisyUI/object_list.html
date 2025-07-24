@@ -432,6 +432,19 @@
          // No need to explicitly trigger htmx.ajax here
      }
  
+     // Optimistic clearing of selection
+     function clearSelectionOptimistic() {
+         // 1. Immediately clear all checkboxes on the page
+         document.querySelectorAll('.row-select-checkbox').forEach(cb => cb.checked = false);
+         document.getElementById('select-all-checkbox').checked = false;
+         document.getElementById('select-all-checkbox').indeterminate = false;
+ 
+         // 2. Update the bulk actions counter to 0
+         updateBulkActionsCounter(0);
+ 
+         // 3. Hide the bulk actions container (already handled by updateBulkActionsCounter)
+         // 4. Then allow the HTMX request to clear the Django session
+     }
  </script>
 
 {% endpartialdef nm_content %}
@@ -445,6 +458,7 @@
         Bulk Edit <span id="selected-items-counter">{{ selected_count }}</span>
     </a>
     <button class="join-item btn btn-outline btn-error {{ view.get_extra_button_classes }}"
+            onclick="clearSelectionOptimistic()"
             hx-post="{{ list_view_url }}clear-selection/"
             hx-target="#bulk-actions-container"
             hx-swap="outerHTML">
@@ -462,6 +476,7 @@
         Bulk Edit <span id="selected-items-counter">{{ selected_count }}</span>
     </a>
     <button class="join-item btn btn-outline btn-error {{ view.get_extra_button_classes }}"
+            onclick="clearSelectionOptimistic()"
             hx-post="{{ list_view_url }}clear-selection/"
             hx-target="#bulk-actions-container"
             hx-swap="outerHTML">
