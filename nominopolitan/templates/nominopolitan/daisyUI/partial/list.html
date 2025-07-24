@@ -100,6 +100,7 @@
                                class="checkbox checkbox-sm row-select-checkbox"
                                data-id="{{ object.id }}"
                                {% if object.id|stringformat:"s" in selected_ids %}checked{% endif %}
+                               onchange="handleRowSelectionChange(this)"
                                hx-post="{{ list_view_url }}toggle-selection/{{ object.id }}/">
                     </td>
                     {% endif %}

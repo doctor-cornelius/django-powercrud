@@ -407,6 +407,31 @@
         if (container) container.classList.toggle('hidden', count === 0);
     }
  
+     function handleRowSelectionChange(checkbox) {
+         const selectAllCheckbox = document.getElementById('select-all-checkbox');
+         const checkboxes = document.querySelectorAll('.row-select-checkbox');
+         const selectedCheckboxes = Array.from(checkboxes).filter(cb => cb.checked);
+         const selectedCount = selectedCheckboxes.length;
+ 
+         // Update the "select all" checkbox state
+         if (selectedCount === 0) {
+             selectAllCheckbox.checked = false;
+             selectAllCheckbox.indeterminate = false;
+         } else if (selectedCount === checkboxes.length) {
+             selectAllCheckbox.checked = true;
+             selectAllCheckbox.indeterminate = false;
+         } else {
+             selectAllCheckbox.checked = false;
+             selectAllCheckbox.indeterminate = true;
+         }
+ 
+         // Update bulk actions counter and visibility
+         updateBulkActionsCounter(selectedCount);
+ 
+         // HTMX request is already handled by hx-post on the checkbox itself
+         // No need to explicitly trigger htmx.ajax here
+     }
+ 
  </script>
 
 {% endpartialdef nm_content %}
