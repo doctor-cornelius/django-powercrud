@@ -378,8 +378,36 @@
             });
         });
     });
-
-</script>
+ 
+    // Select-all functionality with immediate UI updates
+    function toggleAllSelection() {
+        const selectAll = document.getElementById('select-all-checkbox');
+        const checkboxes = document.querySelectorAll('.row-select-checkbox');
+        
+        // Immediate UI update - JavaScript handles all visual changes
+        checkboxes.forEach(cb => cb.checked = selectAll.checked);
+        updateBulkActionsCounter(selectAll.checked ? checkboxes.length : 0);
+        
+        // Background session sync - backend only updates session
+        const allIds = Array.from(checkboxes).map(cb => cb.dataset.id);
+        htmx.ajax('POST', '{{ list_view_url }}toggle-all-selection/', {
+            values: {
+                'object_ids': allIds,
+                'action': selectAll.checked ? 'add' : 'remove'
+            },
+            target: '#bulk-actions-container'  // Update container with accurate count
+        });
+    }
+ 
+    function updateBulkActionsCounter(count) {
+        const counter = document.getElementById('selected-items-counter');
+        if (counter) counter.textContent = count;
+        
+        const container = document.getElementById('bulk-actions-container');
+        if (container) container.classList.toggle('hidden', count === 0);
+    }
+ 
+ </script>
 
 {% endpartialdef nm_content %}
 

@@ -48,12 +48,10 @@
                 <!-- Bulk selection checkbox column -->
                 <th class="bg-neutral text-neutral-content text-center align-middle sticky-header w-10">
                     <input type="checkbox" id="select-all-checkbox"
-                           class="checkbox checkbox-sm checkbox-neutral border-1 border-white"
-                           {% if all_selected %}checked{% endif %}
-                           {% if some_selected and not all_selected %}indeterminate{% endif %}
-                           hx-post="{{ list_view_url }}toggle-all-selection/"
-                           hx-target="#bulk-actions-container"
-                           hx-swap="innerHTML">
+                             class="checkbox checkbox-sm checkbox-neutral border-1 border-white"
+                             {% if all_selected %}checked{% endif %}
+                             {% if some_selected and not all_selected %}indeterminate{% endif %}
+                             onchange="toggleAllSelection()">
                 </th>
                 {% endif %}
                 
@@ -102,9 +100,7 @@
                                class="checkbox checkbox-sm row-select-checkbox"
                                data-id="{{ object.id }}"
                                {% if object.id|stringformat:"s" in selected_ids %}checked{% endif %}
-                               hx-post="{{ list_view_url }}toggle-selection/{{ object.id }}/"
-                               hx-target="#bulk-actions-container"
-                               hx-swap="innerHTML">
+                               hx-post="{{ list_view_url }}toggle-selection/{{ object.id }}/">
                     </td>
                     {% endif %}
                     
