@@ -175,6 +175,8 @@ class BulkMixin:
         If all provided IDs are already selected, deselect all of them.
         Otherwise, select all of them.
         """
+        log.debug(f"starting toggle_all_selection")
+
         current_selected_ids = set(self.get_selected_ids_from_session(request))
         object_ids_set = set(map(str, object_ids))
 

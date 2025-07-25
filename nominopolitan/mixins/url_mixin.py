@@ -5,6 +5,8 @@ from neapolitan.views import Role
 
 from .bulk_mixin import BulkEditRole
 
+import logging
+log = logging.getLogger("nominopolitan")
 
 class UrlMixin:
     """
@@ -244,6 +246,7 @@ class UrlMixin:
                     name=f"{cls.url_base}-toggle-all-selection",
                 )
             )
+            log.debug(f"get_urls: name={cls.url_base}-toggle-all-selection")
 
         return urls
     
