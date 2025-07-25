@@ -108,6 +108,9 @@ class FormMixin:
         _temp_form = form_class()
         has_helper = hasattr(_temp_form, 'helper')
 
+        # Capture the current FormMixin instance
+        mixin_instance = self
+
         if not has_helper:
             old_init = form_class.__init__
 
@@ -116,7 +119,8 @@ class FormMixin:
                 self.helper = FormHelper()
                 self.helper.form_tag = False
                 self.helper.disable_csrf = True
-                self._apply_widget_classes(self) # Call the new method here
+                # Call _apply_widget_classes from the captured mixin_instance
+                mixin_instance._apply_widget_classes(self)
             form_class.__init__ = new_init
         else:
             old_init = form_class.__init__
@@ -131,7 +135,8 @@ class FormMixin:
                 # Check if disable_csrf has been explicitly set to False
                 if self.helper.disable_csrf is False:
                     self.helper.disable_csrf = True
-                self._apply_widget_classes(self) # Call the new method here
+                # Call _apply_widget_classes from the captured mixin_instance
+                mixin_instance._apply_widget_classes(self)
             form_class.__init__ = new_init
 
         # Apply dropdown sorting
