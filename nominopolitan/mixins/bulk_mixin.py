@@ -388,11 +388,11 @@ class BulkMixin:
             'original_target': self.get_original_target(),
         }
         # Render the bulk edit form
-        return render(request, template_name,context)
+        response = render(request, template_name, context)
+        return response
 
     def _perform_bulk_delete(self, queryset):
         """Delete with graceful handling of missing records"""
-        log.debug(f"Performing bulk delete on {queryset.count()} records")
         deleted_count = 0
         errors = []
         
@@ -642,12 +642,18 @@ class BulkMixin:
                 # Make sure the response targets the modal content
                 response["HX-Retarget"] = self.get_modal_target()
                 log.debug(f"bulk delete errors: {errors}")
+                log.debug(f"BulkMixin: bulk_edit_process_post (DELETE ERROR) - Returning response of type {type(response)}")
+                log.debug(f"BulkMixin: bulk_edit_process_post (DELETE ERROR) - Response content (first 500 chars): {response.content.decode('utf-8')[:500]}")
+                log.debug(f"BulkMixin: bulk_edit_process_post (DELETE ERROR) - Response headers: {response.headers}")
                 return response
 
             else: # no errors
                 response = HttpResponse("")
                 response["HX-Trigger"] = json.dumps({"bulkEditSuccess": True, "refreshTable": True})
                 log.debug(f"Bulk edit: Deleted {deleted_count} objects successfully.")
+                log.debug(f"BulkMixin: bulk_edit_process_post (DELETE SUCCESS) - Returning response of type {type(response)}")
+                log.debug(f"BulkMixin: bulk_edit_process_post (DELETE SUCCESS) - Response content: {response.content.decode('utf-8')}")
+                log.debug(f"BulkMixin: bulk_edit_process_post (DELETE SUCCESS) - Response headers: {response.headers}")
                 return response
 
         # Bulk Update Logic
@@ -698,12 +704,18 @@ class BulkMixin:
             # Make sure the response targets the modal content
             response["HX-Retarget"] = self.get_modal_target()
             log.debug(f"Returning error response with {len(errors)} errors")
+            log.debug(f"BulkMixin: bulk_edit_process_post (UPDATE ERROR) - Returning response of type {type(response)}")
+            log.debug(f"BulkMixin: bulk_edit_process_post (UPDATE ERROR) - Response content (first 500 chars): {response.content.decode('utf-8')[:500]}")
+            log.debug(f"BulkMixin: bulk_edit_process_post (UPDATE ERROR) - Response headers: {response.headers}")
             return response
         
         else: # Success case (no errors)
             response = HttpResponse("")
             response["HX-Trigger"] = json.dumps({"bulkEditSuccess": True, "refreshTable": True})
             log.debug(f"Bulk edit: Updated {updated_count} objects successfully.")
+            log.debug(f"BulkMixin: bulk_edit_process_post (UPDATE SUCCESS) - Returning response of type {type(response)}")
+            log.debug(f"BulkMixin: bulk_edit_process_post (UPDATE SUCCESS) - Response content: {response.content.decode('utf-8')}")
+            log.debug(f"BulkMixin: bulk_edit_process_post (UPDATE SUCCESS) - Response headers: {response.headers}")
             return response
 
     def _get_bulk_field_info(self, bulk_fields):
