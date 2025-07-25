@@ -3,7 +3,7 @@ from django.utils.decorators import classonlymethod
 from django.core.exceptions import ImproperlyConfigured
 from neapolitan.views import Role
 
-from .bulk_mixin import BulkEditRole
+from .bulk_mixin import BulkEditRole, BulkActions
 
 import logging
 log = logging.getLogger("nominopolitan")
@@ -208,45 +208,10 @@ class UrlMixin:
             bulk_edit_role = BulkEditRole()
             urls.append(bulk_edit_role.get_url(cls))
             
-            # Add URL for toggling individual selection
-            urls.append(
-                path(
-                    f"{cls.url_base}/toggle-selection/<int:{cls.lookup_url_kwarg}>/",
-                    cls.as_view(
-                        role=Role.LIST,
-                        http_method_names=["post"],
-                        template_name_suffix="_toggle_selection",
-                    ),
-                    name=f"{cls.url_base}-toggle-selection",
-                )
-            )
-
-            # Add URL for clearing all selections
-            urls.append(
-                path(
-                    f"{cls.url_base}/clear-selection/",
-                    cls.as_view(
-                        role=Role.LIST,
-                        http_method_names=["post"],
-                        template_name_suffix="_clear_selection",
-                    ),
-                    name=f"{cls.url_base}-clear-selection",
-                )
-            )
-
-            # Add URL for toggling all selection on the current page
-            urls.append(
-                path(
-                    f"{cls.url_base}/toggle-all-selection/",
-                    cls.as_view(
-                        role=Role.LIST,
-                        http_method_names=["post"],
-                        template_name_suffix="_toggle_all_selection",
-                    ),
-                    name=f"{cls.url_base}-toggle-all-selection",
-                )
-            )
-            log.debug(f"get_urls: name={cls.url_base}-toggle-all-selection")
+            # Add URLs for bulk actions using the new BulkActions enum
+            urls.append(BulkActions.TOGGLE_SELECTION.get_url(cls))
+            urls.append(BulkActions.CLEAR_SELECTION.get_url(cls))
+            urls.append(BulkActions.TOGGLE_ALL_SELECTION.get_url(cls))
 
         return urls
     
@@ -342,7 +307,10 @@ class UrlMixin:
             kwargs['htmx_target'] = self.get_modal_target()
 
         # if bulk ops enabled then pass selected_ids
-        # if self.get_bulk_edit_enabled():
-        #     context["selected_ids"] = self.get_selected_ids_from_session(request)
+        request = kwargs.get('request')
+        if request and self.get_bulk_edit_enabled():
+            selected_ids = self.get_selected_ids_from_session(request)
+            log.debug(f"get_context_data: selected_ids from request = {selected_ids}")
+            kwargs["selected_ids"] = selected_ids
 
         return kwargs

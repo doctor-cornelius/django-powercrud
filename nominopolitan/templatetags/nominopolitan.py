@@ -164,8 +164,8 @@ def object_list(context, objects, view):
     # Get currently selected IDs from session if bulk edit is enabled
     request = context.get('request')
     selected_ids = []
-    if request and enable_bulk_edit:
-        selected_ids = request.session.get('nominopolitan_bulk_selected', [])
+    if request and enable_bulk_edit and hasattr(view, 'get_selected_ids_from_session'):
+        selected_ids = view.get_selected_ids_from_session(request)
         # Convert to strings for comparison
         selected_ids = [str(id) for id in selected_ids]
 
@@ -279,6 +279,8 @@ def object_list(context, objects, view):
         "table_classes": view.get_table_classes(),
         "htmx_target": htmx_target,
         "request": request,
+        # add bulk selection context
+        "selected_ids": view.get_selected_ids_from_session(request),
         # Add bulk edit related context
         "enable_bulk_edit": enable_bulk_edit,
         "selected_count": len(selected_ids) if enable_bulk_edit else 0,

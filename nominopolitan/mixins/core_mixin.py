@@ -322,6 +322,7 @@ class CoreMixin:
                 filterset=filterset,
                 sort=request.GET.get('sort', ''),  # Add sort to context
                 use_htmx=self.get_use_htmx(),
+                request=request,
             )
         else:
             # Paginated response
@@ -334,6 +335,7 @@ class CoreMixin:
                 filterset=filterset,
                 sort=request.GET.get('sort', ''),  # Add sort to context
                 use_htmx=self.get_use_htmx(),
+                request=request,
             )
 
         return self.render_to_response(context)

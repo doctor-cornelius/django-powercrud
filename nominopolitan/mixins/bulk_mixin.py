@@ -1,5 +1,6 @@
 import logging
 import json
+import enum
 
 from django.db import transaction
 from django.core.exceptions import ValidationError
@@ -34,6 +35,53 @@ class BulkEditRole:
             name=f"{view_cls.url_base}-{self.url_name_component}",
         )
 
+class BulkActions(enum.Enum):
+    TOGGLE_SELECTION = "toggle-selection"
+    CLEAR_SELECTION = "clear-selection"
+    TOGGLE_ALL_SELECTION = "toggle-all-selection"
+
+    def handlers(self):
+        match self:
+            case BulkActions.TOGGLE_SELECTION:
+                return {"post": "toggle_selection_view"}
+            case BulkActions.CLEAR_SELECTION:
+                return {"post": "clear_selection_view"}
+            case BulkActions.TOGGLE_ALL_SELECTION:
+                return {"post": "toggle_all_selection_view"}
+
+    def extra_initkwargs(self):
+        match self:
+            case BulkActions.TOGGLE_SELECTION:
+                return {"template_name_suffix": "_toggle_selection"}
+            case BulkActions.CLEAR_SELECTION:
+                return {"template_name_suffix": "_clear_selection"}
+            case BulkActions.TOGGLE_ALL_SELECTION:
+                return {"template_name_suffix": "_toggle_all_selection"}
+
+    @property
+    def url_name_component(self):
+        return self.value
+
+    def url_pattern(self, view_cls):
+        url_kwarg = view_cls.lookup_url_kwarg or view_cls.lookup_field 
+        match self:
+            case BulkActions.TOGGLE_SELECTION:
+                return f"{view_cls.url_base}/toggle-selection/<int:{url_kwarg}>/"
+            case BulkActions.CLEAR_SELECTION:
+                return f"{view_cls.url_base}/clear-selection/"
+            case BulkActions.TOGGLE_ALL_SELECTION:
+                return f"{view_cls.url_base}/toggle-all-selection/"
+
+    def get_url(self, view_cls):
+        return path(
+            self.url_pattern(view_cls),
+            view_cls.as_view(
+                role=self,
+                lookup_url_kwarg=view_cls.lookup_url_kwarg or view_cls.lookup_field,
+                lookup_field=view_cls.lookup_field,
+            ),
+            name=f"{view_cls.url_base}-{self.url_name_component}",
+        )
 
 class BulkMixin:
     """
@@ -153,12 +201,41 @@ class BulkMixin:
         selected_ids = self.get_selected_ids_from_session(request)
         obj_id_str = str(obj_id)
         if obj_id_str in selected_ids:
+            log.debug(f"toggle_selection_in_session: removing {obj_id_str}")
             selected_ids.remove(obj_id_str)
         else:
+            log.debug(f"toggle_selection_in_session: adding {obj_id_str}")
             selected_ids.append(obj_id_str)
         self.save_selected_ids_to_session(request, selected_ids)
         return selected_ids
 
+    def toggle_selection_view(self, request, *args, **kwargs):
+        """
+        Toggle an individual object's selection state.
+        """
+        log.debug(f"toggle_selection_view: self.lookup_url_kwarg = {self.lookup_url_kwarg}")
+        log.debug(f"toggle_selection_view: kwargs = {kwargs}")
+
+        if not (hasattr(request, 'htmx') and request.htmx):
+            log.debug(f"toggle_selection_view: no htmx")
+            return HttpResponseBadRequest("Only HTMX requests are supported for this operation.")
+        
+        object_id = kwargs.get(self.lookup_url_kwarg)
+        if not object_id:
+            log.debug(f"toggle_selection_view: no object_id")
+            return HttpResponseBadRequest("Object ID not provided.")
+        
+        # Get selected IDs BEFORE toggling to determine previous count
+        previous_selected_ids = self.get_selected_ids_from_session(request)
+        previous_count = len(previous_selected_ids)
+        
+        log.debug(f"toggle_selection_view: about to get selected_ids for {object_id}")
+        selected_ids = self.toggle_selection_in_session(request, object_id)
+        current_count = len(selected_ids)
+        
+        context = {'selected_ids': selected_ids, 'selected_count': current_count}
+        return render(request, f"{self.templates_path}/object_list.html#bulk_selection_status", context)
+        
     def clear_selection_from_session(self, request):
         """
         Clear all selections for the current model from the Django session.
@@ -168,6 +245,19 @@ class BulkMixin:
             if session_key in request.session['nominopolitan_selections']:
                 del request.session['nominopolitan_selections'][session_key]
                 request.session.modified = True
+
+    def clear_selection_view(self, request, *args, **kwargs):
+        """
+        Clear all selected items for the current model.
+        """
+        if not (hasattr(request, 'htmx') and request.htmx):
+            return HttpResponseBadRequest("Only HTMX requests are supported for this operation.")
+        
+        self.clear_selection_from_session(request)
+        
+        # Return ONLY bulk actions container with empty state
+        context = {'selected_ids': [], 'selected_count': 0}
+        return render(request, f"{self.templates_path}/object_list.html#bulk_selection_status", context)
 
     def toggle_all_selection_in_session(self, request, object_ids):
         """
@@ -192,6 +282,24 @@ class BulkMixin:
         
         self.save_selected_ids_to_session(request, list(new_selected_ids))
         return list(new_selected_ids)
+
+    def toggle_all_selection_view(self, request, *args, **kwargs):
+        """
+        Toggle the selection state of all items on the current page.
+        """
+        if not (hasattr(request, 'htmx') and request.htmx):
+            return HttpResponseBadRequest("Only HTMX requests are supported for this operation.")
+        
+        # Get object_ids from the request body (sent by HTMX)
+        object_ids = request.POST.getlist('object_ids')
+        # Ensure IDs are integers        
+        object_ids = [int(obj_id) for obj_id in object_ids] 
+        selected_ids = self.toggle_all_selection_in_session(request, object_ids)
+        context = self.get_context_data()
+        context['selected_ids'] = selected_ids
+        context['selected_count'] = len(selected_ids)
+
+        return render(request, f"{self.templates_path}/object_list.html#bulk_selection_status", context)
 
     def bulk_edit(self, request, *args, **kwargs):
         """
@@ -281,59 +389,6 @@ class BulkMixin:
         }
         # Render the bulk edit form
         return render(request, template_name,context)
-
-
-    def toggle_selection_view(self, request, *args, **kwargs):
-        """
-        Toggle an individual object's selection state.
-        """
-        if not (hasattr(request, 'htmx') and request.htmx):
-            return HttpResponseBadRequest("Only HTMX requests are supported for this operation.")
-        
-        object_id = kwargs.get(self.pk_url_kwarg)
-        if not object_id:
-            return HttpResponseBadRequest("Object ID not provided.")
-        
-        # Get selected IDs BEFORE toggling to determine previous count
-        previous_selected_ids = self.get_selected_ids_from_session(request)
-        previous_count = len(previous_selected_ids)
-        
-        selected_ids = self.toggle_selection_in_session(request, object_id)
-        current_count = len(selected_ids)
-        
-        # Only update bulk-actions-container when crossing the 0 threshold (0->1 or 1->0 selections)
-        if (previous_count == 0 and current_count > 0) or (previous_count > 0 and current_count == 0):
-            context = {'selected_ids': selected_ids, 'selected_count': current_count}
-            return render(request, f"{self.templates_path}/partial/bulk_selection_status.html", context)
-        
-        return HttpResponse("")  # Most cases: empty response
-
-    def clear_selection_view(self, request, *args, **kwargs):
-        """
-        Clear all selected items for the current model.
-        """
-        if not (hasattr(request, 'htmx') and request.htmx):
-            return HttpResponseBadRequest("Only HTMX requests are supported for this operation.")
-        
-        self.clear_selection_from_session(request)
-        
-        # Return ONLY bulk actions container with empty state
-        context = {'selected_ids': [], 'selected_count': 0}
-        return render(request, f"{self.templates_path}/partial/bulk_selection_status.html", context)
-
-    def toggle_all_selection_view(self, request, *args, **kwargs):
-        """
-        Toggle the selection state of all items on the current page.
-        """
-        if not (hasattr(request, 'htmx') and request.htmx):
-            return HttpResponseBadRequest("Only HTMX requests are supported for this operation.")
-        
-        queryset = self.get_queryset()
-        object_ids = list(queryset.values_list('pk', flat=True))
-        selected_ids = self.toggle_all_selection_in_session(request, object_ids)
-        context = self.get_context_data()
-        context['selected_ids'] = selected_ids
-        return render(request, f"{self.templates_path}/object_list.html#filtered_results", context)
 
     def _perform_bulk_delete(self, queryset):
         """Delete with graceful handling of missing records"""
