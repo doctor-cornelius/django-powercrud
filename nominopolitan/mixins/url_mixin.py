@@ -256,6 +256,8 @@ class UrlMixin:
 
         Args:
             **kwargs: Additional keyword arguments passed to the method.
+                - NB parent class neapolitan.views.get_context_data() expects:
+                    - 
 
         Returns:
             dict: The context dictionary containing all the data for template rendering.
@@ -333,5 +335,9 @@ class UrlMixin:
         # ensure the htmx_target is set to the modal target
         if hasattr(self, 'object_form') and hasattr(self.object_form, 'errors') and self.object_form.errors and self.get_use_modal():
             context['htmx_target'] = self.get_modal_target()
+
+        # if bulk ops enabled then pass selected_ids
+        # if self.get_bulk_edit_enabled():
+        #     context["selected_ids"] = self.get_selected_ids_from_session(request)
 
         return context

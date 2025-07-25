@@ -5,7 +5,7 @@ from django.db.models.fields.reverse_related import ManyToOneRel
 from django.conf import settings
 
 from ..validators import NominopolitanMixinValidator
-
+from django.http import Http404
 
 log = logging.getLogger("nominopolitan")
 

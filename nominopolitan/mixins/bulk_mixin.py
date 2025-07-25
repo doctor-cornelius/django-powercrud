@@ -10,7 +10,6 @@ from django.core.exceptions import ObjectDoesNotExist
 
 log = logging.getLogger("nominopolitan")
 
-
 # Create a standalone BulkEditRole class
 class BulkEditRole:
     """A role for bulk editing that mimics the interface of Role"""
@@ -44,6 +43,7 @@ class BulkMixin:
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         selected_ids = self.get_selected_ids_from_session(self.request)
+        log.debug(f"BulkMixin: get_context_data - selected_ids in context: {selected_ids}")
         context['selected_ids'] = selected_ids
         context['selected_count'] = len(selected_ids)
         # Determine if all items on the current page are selected
@@ -131,7 +131,9 @@ class BulkMixin:
         Get selected IDs for the current model from the Django session.
         """
         session_key = self.get_storage_key()
-        return request.session.get('nominopolitan_selections', {}).get(session_key, [])
+        selected_ids = request.session.get('nominopolitan_selections', {}).get(session_key, [])
+        log.debug(f"BulkMixin: get_selected_ids_from_session - Session Key: '{session_key}', Retrieved IDs: {selected_ids}")
+        return selected_ids
 
     def save_selected_ids_to_session(self, request, ids):
         """
@@ -142,6 +144,7 @@ class BulkMixin:
             request.session['nominopolitan_selections'] = {}
         request.session['nominopolitan_selections'][session_key] = list(map(str, ids))
         request.session.modified = True
+        log.debug(f"BulkMixin: save_selected_ids_to_session - Session Key: '{session_key}', Saved IDs: {ids}")
 
     def toggle_selection_in_session(self, request, obj_id):
         """
@@ -289,10 +292,19 @@ class BulkMixin:
         if not object_id:
             return HttpResponseBadRequest("Object ID not provided.")
         
+        # Get selected IDs BEFORE toggling to determine previous count
+        previous_selected_ids = self.get_selected_ids_from_session(request)
+        previous_count = len(previous_selected_ids)
+        
         selected_ids = self.toggle_selection_in_session(request, object_id)
-        context = self.get_context_data()
-        context['selected_ids'] = selected_ids
-        return render(request, f"{self.templates_path}/object_list.html#filtered_results", context)
+        current_count = len(selected_ids)
+        
+        # Only update bulk-actions-container when crossing the 0 threshold (0->1 or 1->0 selections)
+        if (previous_count == 0 and current_count > 0) or (previous_count > 0 and current_count == 0):
+            context = {'selected_ids': selected_ids, 'selected_count': current_count}
+            return render(request, f"{self.templates_path}/partial/bulk_selection_status.html", context)
+        
+        return HttpResponse("")  # Most cases: empty response
 
     def clear_selection_view(self, request, *args, **kwargs):
         """
@@ -302,9 +314,10 @@ class BulkMixin:
             return HttpResponseBadRequest("Only HTMX requests are supported for this operation.")
         
         self.clear_selection_from_session(request)
-        context = self.get_context_data()
-        context['selected_ids'] = []
-        return render(request, f"{self.templates_path}/object_list.html#filtered_results", context)
+        
+        # Return ONLY bulk actions container with empty state
+        context = {'selected_ids': [], 'selected_count': 0}
+        return render(request, f"{self.templates_path}/partial/bulk_selection_status.html", context)
 
     def toggle_all_selection_view(self, request, *args, **kwargs):
         """

@@ -91,6 +91,8 @@
             </tr>
         </thead>
             <tbody>
+                <p>selected_ids: {{ selected_ids|safe }}</p>
+                
                 {% for object in object_list %}
                 <tr class="text-center hover {% if object.is_selected %}bg-base-200{% endif %}">
                     {% if enable_bulk_edit %}
