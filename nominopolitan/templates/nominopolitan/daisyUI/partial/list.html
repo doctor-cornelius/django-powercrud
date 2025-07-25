@@ -4,40 +4,8 @@
     {% load crispy_forms_tags %}
 {% endif %}
 
-<style>
-    .table-max-height {
-        max-height: calc((100vh - {{ table_pixel_height_other_page_elements }}) * {{ table_max_height }} / 100);
-    }
-    
-    /* Add styles to match header text with table size */
-    .table-xl th {
-        font-size: 1.25rem;  /* Matches DaisyUI's table-xl text size */
-    }
-    
-    .table-lg th {
-        font-size: 1.125rem; /* Matches DaisyUI's table-lg text size */
-    }
-    
-    .table-sm th {
-        font-size: 0.875rem; /* Matches DaisyUI's table-sm text size */
-    }
-    
-    .table-xs th {
-        font-size: 0.75rem; /* Matches DaisyUI's table-xs text size */
-    }
 
-    /* Add sticky header styles */
-    .sticky-header {
-        position: -webkit-sticky;
-        position: sticky;
-        top: 0;
-        z-index: 1;
-        will-change: transform;
-        backface-visibility: hidden;
-    }
-</style>
-
-<div class="overflow-x-auto table-max-height"
+<div class="overflow-x-auto"
     style="overflow-y: auto; width: fit-content; padding-right: 20px;"
     {% if enable_bulk_edit %}data-selection-key="{{ keyBase }}_{{ selection_key_suffix }}_selected"{% endif %}
     >
@@ -46,7 +14,7 @@
             <tr>
                 {% if enable_bulk_edit %}
                 <!-- Bulk selection checkbox column -->
-                <th class="bg-neutral text-neutral-content text-center align-middle sticky-header w-10">
+                <th class="bg-neutral text-neutral-content text-center align-middle w-10 sticky top-0 z-10 will-change-transform backface-hidden">
                     <input type="checkbox" id="select-all-checkbox"
                              class="checkbox checkbox-sm checkbox-neutral border-1 border-white"
                              {% if all_selected %}checked{% endif %}
@@ -56,7 +24,7 @@
                 {% endif %}
                 
                 {% for header, field_name, is_sortable in headers %}
-                <th class="bg-neutral text-neutral-content text-center align-middle truncate table-column-width sticky-header"
+                <th class="bg-neutral text-neutral-content text-center align-middle truncate table-column-width sticky top-0 z-10 will-change-transform backface-hidden"
                     {% if is_sortable %}style="cursor: pointer;"{% endif %}
                     {% if is_sortable %}
                         {% if use_htmx %}
@@ -85,14 +53,12 @@
                     </span>
                 </th>
                 {% endfor %}
-                <th class="bg-neutral text-neutral-content text-center align-middle sticky-header">
+                <th class="bg-neutral text-neutral-content text-center align-middle sticky top-0 z-10 will-change-transform backface-hidden">
                     <span class="text-center block w-full h-full">Actions</span>
                 </th>
             </tr>
         </thead>
             <tbody>
-                <p>selected_ids: {{ selected_ids|safe }}</p>
-                
                 {% for object in object_list %}
                 <tr class="text-center hover {% if object.is_selected %}bg-base-200{% endif %}">
                     {% if enable_bulk_edit %}

@@ -8,65 +8,12 @@
 
 {% partialdef nm_content %}
     <style>
-        #filter-form label {
-            @apply font-bold text-center block;
-        }
-        .table-column-width {
-            /* Set a reasonable default width and max-width, override with inline style if needed */
-            width: fit-content;
-            max-width: 25ch;
-        }
-        th.table-column-width {
-            white-space: normal;
-            max-width: 25ch;
-        }
-        /* Super specific selectors to override existing styles */
-        #filter-form select.select,
-        #filter-form .select select {
-            height: 2rem !important;
-            min-height: 2rem !important;
-            font-size: 0.875rem !important;
-        }
-        
-        #filter-form input,
-        #filter-form select {
-        height: 2.2rem !important;  /* Increased from 2rem */
-        min-height: 2.2rem !important;
-        max-height: 2.2rem !important;
-        padding-top: 0.25rem !important;
-        padding-bottom: 0.25rem !important;
-        line-height: 1.2 !important;  /* Increased from 1 */
-        }
-        
-        /* Make all filter elements the same width */
-        #filter-form .form-control {
-            width: 14rem !important;
-            max-width: 14rem !important;
-        }
-
-        /* Make standard inputs/selects taller to prevent letter cutting */
-        #filter-form input:not([type="checkbox"]),
-        #filter-form select:not([multiple]) {
-        height: 2.5rem !important;
-        min-height: 2.5rem !important;
-        max-height: 2.5rem !important;
-        line-height: 1.2 !important;
-        }
-
-        /* Special styling for multi-select (M2M) fields */
-        #filter-form select[multiple] {
-        height: auto !important;
-        min-height: 8rem !important; /* Show approximately 5 rows */
-        padding: 0.25rem !important;
-        }
-
-        /* Style the options inside multi-selects */
+        /* Style the options inside multi-selects - cannot be controlled via Python widget attrs */
         #filter-form select[multiple] option {
         padding: 0.25rem 0.5rem !important;
         line-height: 1.5 !important;
         }
-
-</style>
+    </style>
 
     <title id="header_title">{{header_title}}</title>
     <div class="flex flex-col">
@@ -121,8 +68,7 @@
                 hx-trigger="change" hx-include="[name]">
                 <label for="page-size-select" class="sr-only">Page size</label>
                 <select id="page-size-select" name="page_size"
-                    class="select select-bordered select-sm align-middle"
-                    style="width:10ch;">
+                    class="select select-bordered select-sm align-middle w-[10ch]">
                     {% for size in page_size_options %}
                         <option value="{{ size }}"
                             {% if request.GET.page_size == size %}
@@ -145,9 +91,9 @@
                 action="{{ request.path }}"
                 onsubmit="return removeEmptyFields(this)">
                 {% for field in filterset.form %}
-                <div class="form-control w-full max-w-[14rem]">
+                <div class="form-control w-full w-56 max-w-56">
                     <label class="label py-0">
-                        <span class="label-text text-xs font-semibold">{{ field.label }}</span>
+                        <span class="label-text text-xs font-semibold font-bold text-center block">{{ field.label }}</span>
                     </label>
 
                     {% if field.field.widget.allow_multiple_selected %}
