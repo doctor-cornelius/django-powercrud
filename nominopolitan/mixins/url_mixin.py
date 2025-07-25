@@ -310,7 +310,6 @@ class UrlMixin:
         request = kwargs.get('request')
         if request and self.get_bulk_edit_enabled():
             selected_ids = self.get_selected_ids_from_session(request)
-            log.debug(f"get_context_data: selected_ids from request = {selected_ids}")
             kwargs["selected_ids"] = selected_ids
 
         return kwargs

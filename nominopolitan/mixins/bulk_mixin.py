@@ -91,7 +91,6 @@ class BulkMixin:
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         selected_ids = self.get_selected_ids_from_session(self.request)
-        log.debug(f"BulkMixin: get_context_data - selected_ids in context: {selected_ids}")
         context['selected_ids'] = selected_ids
         context['selected_count'] = len(selected_ids)
         # Determine if all items on the current page are selected
@@ -180,7 +179,6 @@ class BulkMixin:
         """
         session_key = self.get_storage_key()
         selected_ids = request.session.get('nominopolitan_selections', {}).get(session_key, [])
-        log.debug(f"BulkMixin: get_selected_ids_from_session - Session Key: '{session_key}', Retrieved IDs: {selected_ids}")
         return selected_ids
 
     def save_selected_ids_to_session(self, request, ids):
@@ -192,7 +190,6 @@ class BulkMixin:
             request.session['nominopolitan_selections'] = {}
         request.session['nominopolitan_selections'][session_key] = list(map(str, ids))
         request.session.modified = True
-        log.debug(f"BulkMixin: save_selected_ids_to_session - Session Key: '{session_key}', Saved IDs: {ids}")
 
     def toggle_selection_in_session(self, request, obj_id):
         """
@@ -201,10 +198,8 @@ class BulkMixin:
         selected_ids = self.get_selected_ids_from_session(request)
         obj_id_str = str(obj_id)
         if obj_id_str in selected_ids:
-            log.debug(f"toggle_selection_in_session: removing {obj_id_str}")
             selected_ids.remove(obj_id_str)
         else:
-            log.debug(f"toggle_selection_in_session: adding {obj_id_str}")
             selected_ids.append(obj_id_str)
         self.save_selected_ids_to_session(request, selected_ids)
         return selected_ids
@@ -213,23 +208,17 @@ class BulkMixin:
         """
         Toggle an individual object's selection state.
         """
-        log.debug(f"toggle_selection_view: self.lookup_url_kwarg = {self.lookup_url_kwarg}")
-        log.debug(f"toggle_selection_view: kwargs = {kwargs}")
-
         if not (hasattr(request, 'htmx') and request.htmx):
-            log.debug(f"toggle_selection_view: no htmx")
             return HttpResponseBadRequest("Only HTMX requests are supported for this operation.")
         
         object_id = kwargs.get(self.lookup_url_kwarg)
         if not object_id:
-            log.debug(f"toggle_selection_view: no object_id")
             return HttpResponseBadRequest("Object ID not provided.")
         
         # Get selected IDs BEFORE toggling to determine previous count
         previous_selected_ids = self.get_selected_ids_from_session(request)
         previous_count = len(previous_selected_ids)
         
-        log.debug(f"toggle_selection_view: about to get selected_ids for {object_id}")
         selected_ids = self.toggle_selection_in_session(request, object_id)
         current_count = len(selected_ids)
         
@@ -265,7 +254,6 @@ class BulkMixin:
         If all provided IDs are already selected, deselect all of them.
         Otherwise, select all of them.
         """
-        log.debug(f"starting toggle_all_selection")
 
         current_selected_ids = set(self.get_selected_ids_from_session(request))
         object_ids_set = set(map(str, object_ids))
@@ -412,7 +400,7 @@ class BulkMixin:
                         raise
                         
         except Exception as e:
-            log.debug(f"Error during bulk delete: {e}")
+            log.error(f"Error during bulk delete: {e}")
             errors.append((None, [str(e)]))
         
         return {
