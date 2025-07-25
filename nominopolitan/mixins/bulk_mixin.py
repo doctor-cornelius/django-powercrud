@@ -628,7 +628,7 @@ class BulkMixin:
                 }
                 response = render(
                     request,
-                    f"{self.templates_path}/partial/bulk_edit_form.html",
+                    f"{self.templates_path}/bulk_edit_form.html",
                     context
                 )
 
@@ -684,7 +684,7 @@ class BulkMixin:
             }
             response = render(
                 request,
-                f"{self.templates_path}/partial/bulk_edit_form.html",
+                f"{self.templates_path}/bulk_edit_form.html",
                 context
             )
 
