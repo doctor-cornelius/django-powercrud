@@ -262,55 +262,57 @@ class UrlMixin:
         Returns:
             dict: The context dictionary containing all the data for template rendering.
         """
-        context = super().get_context_data(**kwargs)
+        kwargs = super().get_context_data(**kwargs)
 
         # Generate and add URLs for create, update, and delete operations
+
         view_name = f"{self.get_prefix()}-{Role.CREATE.value}"
-        context["create_view_url"] = self.safe_reverse(view_name)
+
+        kwargs["create_view_url"] = self.safe_reverse(view_name)
 
         if self.object:
             update_view_name = f"{self.get_prefix()}-{Role.UPDATE.value}"
-            context["update_view_url"] = self.safe_reverse(update_view_name, kwargs={"pk": self.object.pk})
+            kwargs["update_view_url"] = self.safe_reverse(update_view_name, kwargs={"pk": self.object.pk})
             delete_view_name = f"{self.get_prefix()}-{Role.DELETE.value}"
-            context["delete_view_url"] = self.safe_reverse(delete_view_name, kwargs={"pk": self.object.pk})
+            kwargs["delete_view_url"] = self.safe_reverse(delete_view_name, kwargs={"pk": self.object.pk})
 
         # send list_view_url
         if self.namespace:
             list_url_name = f"{self.namespace}:{self.url_base}-list"
         else:
             list_url_name = f"{self.url_base}-list"
-        context["list_view_url"] = reverse(list_url_name)
+        kwargs["list_view_url"] = reverse(list_url_name)
 
         # Set header title for partial updates
-        context["header_title"] = f"{self.url_base.title()}-{self.role.value.title()}"
+        kwargs["header_title"] = f"{self.url_base.title()}-{self.role.value.title()}"
 
         # Add template and feature configuration
-        context["base_template_path"] = self.base_template_path
-        context['framework_template_path'] = self.templates_path
-        context["use_crispy"] = self.get_use_crispy()
-        context["use_htmx"] = self.get_use_htmx()
-        context['use_modal'] = self.get_use_modal()
-        context["original_target"] = self.get_original_target()
+        kwargs["base_template_path"] = self.base_template_path
+        kwargs['framework_template_path'] = self.templates_path
+        kwargs["use_crispy"] = self.get_use_crispy()
+        kwargs["use_htmx"] = self.get_use_htmx()
+        kwargs['use_modal'] = self.get_use_modal()
+        kwargs["original_target"] = self.get_original_target()
 
         # bulk edit context vars
-        context['enable_bulk_edit'] = self.get_bulk_edit_enabled()
-        context['enable_bulk_delete'] = self.get_bulk_delete_enabled()
-        context['storage_key'] = self.get_storage_key()
+        kwargs['enable_bulk_edit'] = self.get_bulk_edit_enabled()
+        kwargs['enable_bulk_delete'] = self.get_bulk_delete_enabled()
+        kwargs['storage_key'] = self.get_storage_key()
 
         # Set table styling parameters
-        context['table_pixel_height_other_page_elements'] = self.get_table_pixel_height_other_page_elements()
-        context['get_table_max_height'] = self.get_table_max_height()
-        context['table_max_col_width'] = f"{self.get_table_max_col_width()}"
-        context['table_header_min_wrap_width'] = f"{self.get_table_header_min_wrap_width()}"
-        context['table_classes'] = self.get_table_classes()
+        kwargs['table_pixel_height_other_page_elements'] = self.get_table_pixel_height_other_page_elements()
+        kwargs['get_table_max_height'] = self.get_table_max_height()
+        kwargs['table_max_col_width'] = f"{self.get_table_max_col_width()}"
+        kwargs['table_header_min_wrap_width'] = f"{self.get_table_header_min_wrap_width()}"
+        kwargs['table_classes'] = self.get_table_classes()
 
         # Add HTMX-specific context if enabled
         if self.get_use_htmx():
-            context["htmx_target"] = self.get_htmx_target()
+            kwargs["htmx_target"] = self.get_htmx_target()
 
         # Add related fields information for list view
         if self.role == Role.LIST and hasattr(self, "object_list"):
-            context["related_fields"] = {
+            kwargs["related_fields"] = {
                 field.name: field.related_model._meta.verbose_name
                 for field in self.model._meta.fields
                 if field.is_relation
@@ -318,26 +320,26 @@ class UrlMixin:
 
         # Add related objects information for detail view
         if self.role == Role.DETAIL and hasattr(self, "object"):
-            context["related_objects"] = {
+            kwargs["related_objects"] = {
                 field.name: str(getattr(self.object, field.name))
                 for field in self.model._meta.fields
                 if field.is_relation and getattr(self.object, field.name)
             }
 
         # Add sort parameter to context
-        context['sort'] = self.request.GET.get('sort', '')
+        kwargs['sort'] = self.request.GET.get('sort', '')
 
         # pagination variables
-        context['page_size_options'] = self.get_page_size_options()
-        context['default_page_size'] = str(self.paginate_by) if self.paginate_by is not None else None
+        kwargs['page_size_options'] = self.get_page_size_options()
+        kwargs['default_page_size'] = str(self.paginate_by) if self.paginate_by is not None else None
 
         # If we have a form with errors and modals are enabled,
         # ensure the htmx_target is set to the modal target
         if hasattr(self, 'object_form') and hasattr(self.object_form, 'errors') and self.object_form.errors and self.get_use_modal():
-            context['htmx_target'] = self.get_modal_target()
+            kwargs['htmx_target'] = self.get_modal_target()
 
         # if bulk ops enabled then pass selected_ids
         # if self.get_bulk_edit_enabled():
         #     context["selected_ids"] = self.get_selected_ids_from_session(request)
 
-        return context
+        return kwargs
