@@ -451,36 +451,39 @@
          // 3. Hide the bulk actions container (already handled by updateBulkActionsCounter)
          // 4. Then allow the HTMX request to clear the Django session
      }
+
+     document.body.addEventListener('bulkEditSuccess', function(evt) {
+         nominopolitanBaseModal.close();
+         // Also clear selection optimistically on success
+         clearSelectionOptimistic();
+     });
+
+    document.body.addEventListener('refreshTable', function (evt) {
+        htmx.ajax('GET', '{{ list_view_url }}', {
+            target: '#filtered_results',
+            headers: {
+                'X-Filter-Sort-Request': 'true'
+            },
+            swap: 'innerHTML',
+            pushURL: true, // To update the URL in the browser history
+            vals: getCurrentFilters() // Include current filters
+        });
+    });     
  </script>
 
 {% endpartialdef nm_content %}
 
 {% partialdef bulk_selection_status %}
 <!-- Bulk actions container - show/hide based on selection count -->
-<div id="bulk-actions-container" class="join {% if selected_count == 0 %}hidden{% endif %}" hx-target="this" hx-swap="outerHTML" hx-trigger="bulkSelectionChanged from:body">
-    <a href="{{ list_view_url }}bulk-edit/" 
-        class="join-item btn btn-primary {{ view.get_extra_button_classes }}"
-        hx-get="{{ list_view_url }}bulk-edit/" 
-        hx-target="#nominopolitanModalContent" 
-        hx-swap="innerHTML"
-        onclick="nominopolitanBaseModal.showModal();">
-        Bulk Edit <span id="selected-items-counter">{{ selected_count }}</span>
-    </a>
-    <button class="join-item btn btn-outline btn-error {{ view.get_extra_button_classes }}"
-            onclick="clearSelectionOptimistic()"
-            hx-post="{{ list_view_url }}clear-selection/"
-            hx-target="#bulk-actions-container"
-            hx-swap="outerHTML">
-        Clear Selection
-    </button>
-</div>
-{% endpartialdef bulk_selection_status %}
-
-{% partialdef bulk_selection_status %}
-<!-- Bulk actions container - show/hide based on selection count -->
-<div id="bulk-actions-container" class="join {% if selected_count == 0 %}hidden{% endif %}" hx-target="this" hx-swap="outerHTML" hx-trigger="bulkSelectionChanged from:body">
+<div id="bulk-actions-container" 
+    class="join {% if selected_count == 0 %}hidden{% endif %}" 
+    hx-target="this" 
+    hx-swap="outerHTML" 
+    hx-trigger="bulkSelectionChanged from:body">
     <a href="{{ list_view_url }}bulk-edit/" class="join-item btn btn-sm btn-primary {{ view.get_extra_button_classes }}"
-        hx-get="{{ list_view_url }}bulk-edit/" hx-target="#nominopolitanModalContent"
+        hx-get="{{ list_view_url }}bulk-edit/" 
+        hx-target="#nominopolitanModalContent"
+        hx-swap="innerHTML"
         onclick="nominopolitanBaseModal.showModal();">
         Bulk Edit <span id="selected-items-counter">{{ selected_count }}</span>
     </a>

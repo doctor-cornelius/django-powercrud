@@ -294,6 +294,8 @@ class HtmxMixin:
                 else:
                     template_name = f"{template_name}#nm_content"
 
+            log.debug(f"render_to_response: template_name = {template_name}")
+
             response = render(
                 request=self.request,
                 template_name=f"{template_name}",

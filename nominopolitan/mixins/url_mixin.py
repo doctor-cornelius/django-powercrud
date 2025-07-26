@@ -311,5 +311,6 @@ class UrlMixin:
         if request and self.get_bulk_edit_enabled():
             selected_ids = self.get_selected_ids_from_session(request)
             kwargs["selected_ids"] = selected_ids
+            kwargs["selected_count"] = len(selected_ids)
 
         return kwargs

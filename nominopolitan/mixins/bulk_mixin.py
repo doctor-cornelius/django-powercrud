@@ -295,10 +295,10 @@ class BulkMixin:
         GET: Return a form for bulk editing selected objects
         POST: Process the form and update selected objects
         """
-        template_name = f"{self.templates_path}/bulk_edit_form.html"
+        template_name = f"{self.templates_path}/bulk_edit_form.html#full_form"
         template_errors = f"{self.templates_path}/partial/bulk_edit_errors.html"
         # Ensure HTMX is being used for both GET and POST
-        if not (hasattr(request, 'htmx') and request.htmx):
+        if not hasattr(request, 'htmx'):
             return HttpResponseBadRequest("Bulk edit only supported via HTMX requests.")
 
         # Get selected IDs from the request
@@ -376,6 +376,7 @@ class BulkMixin:
             'original_target': self.get_original_target(),
         }
         # Render the bulk edit form
+        log.debug(f"bulk_edit: template_name = {template_name}")
         response = render(request, template_name, context)
         return response
 
@@ -698,12 +699,13 @@ class BulkMixin:
             return response
         
         else: # Success case (no errors)
+            # Clear selected IDs from session after successful bulk update
+            self.clear_selection_from_session(request)
             response = HttpResponse("")
-            response["HX-Trigger"] = json.dumps({"bulkEditSuccess": True, "refreshTable": True})
+            response["HX-Trigger"] = json.dumps({
+                "bulkEditSuccess": True, "refreshTable": True
+                })
             log.debug(f"Bulk edit: Updated {updated_count} objects successfully.")
-            log.debug(f"BulkMixin: bulk_edit_process_post (UPDATE SUCCESS) - Returning response of type {type(response)}")
-            log.debug(f"BulkMixin: bulk_edit_process_post (UPDATE SUCCESS) - Response content: {response.content.decode('utf-8')}")
-            log.debug(f"BulkMixin: bulk_edit_process_post (UPDATE SUCCESS) - Response headers: {response.headers}")
             return response
 
     def _get_bulk_field_info(self, bulk_fields):
