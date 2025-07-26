@@ -637,8 +637,11 @@ class BulkMixin:
                 return response
 
             else: # no errors
+                self.clear_selection_from_session(request)
                 response = HttpResponse("")
-                response["HX-Trigger"] = json.dumps({"bulkEditSuccess": True, "refreshTable": True})
+                response["HX-Trigger"] = json.dumps({
+                    "bulkEditSuccess": True, "refreshTable": True
+                    })
                 log.debug(f"Bulk edit: Deleted {deleted_count} objects successfully.")
                 log.debug(f"BulkMixin: bulk_edit_process_post (DELETE SUCCESS) - Returning response of type {type(response)}")
                 log.debug(f"BulkMixin: bulk_edit_process_post (DELETE SUCCESS) - Response content: {response.content.decode('utf-8')}")
@@ -699,7 +702,6 @@ class BulkMixin:
             return response
         
         else: # Success case (no errors)
-            # Clear selected IDs from session after successful bulk update
             self.clear_selection_from_session(request)
             response = HttpResponse("")
             response["HX-Trigger"] = json.dumps({
