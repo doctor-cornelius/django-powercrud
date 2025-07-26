@@ -69,15 +69,22 @@ class BookCRUDView(NominopolitanMixin, CRUDView):
 === "Creating Test Data"
 
     ```bash
-    ./manage.py create_sample_data --authors 25 --books 50
+    # Create default authors (25) and books (50)
+    ./manage.py create_sample_data
+
+    # Create 100 authors and 1000 books
+    ./manage.py create_sample_data --authors 100 --books 1000
+
+    # Create 500 books with an average of 5 books per author
+    ./manage.py create_sample_data --books 500 --books-per-author 5
     ```
 
     Generates realistic sample data:
 
-    - Random author names from predefined lists
-    - Book titles from configurable components  
-    - Realistic publication dates and ISBNs
+    - Random author names and bios
+    - Book titles, descriptions, publication dates, and ISBNs
     - Progress feedback during creation
+    - Allows control over the distribution of books per author using `--books-per-author`.
 
 === "Clearing Test Data"
 
