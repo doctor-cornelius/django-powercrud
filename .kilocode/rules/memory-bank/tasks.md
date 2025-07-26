@@ -186,3 +186,18 @@ progress = {
     'success': task.success,
     'error': task.error_message
 }
+## Create Sample Data
+
+**Last performed:** 2025-07-26
+**Files to modify:**
+- `/sample/management/commands/create_sample_data.py` - Updated to use Faker for data generation.
+
+**Steps:**
+1.  Install `Faker` library (`poetry add faker`).
+2.  Modify `create_sample_data.py` to replace hardcoded lists for author names, book titles, ISBNs, and descriptions with `Faker` generators.
+3.  Ensure generated data respects unique constraints (e.g., unique ISBN, unique title/author combination).
+
+**Important notes:**
+-   `Faker` provides a wide range of realistic-looking data, significantly increasing the uniqueness of generated entries.
+-   The `isbn13()` method of `Faker` generates valid 13-digit ISBNs, helping to satisfy the unique ISBN constraint.
+-   The `sentence()` and `paragraph()` methods provide varied and realistic titles and descriptions.

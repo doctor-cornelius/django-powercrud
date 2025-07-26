@@ -69,22 +69,14 @@ class Book(models.Model):
         default=False,
         help_text="Is this book a bestseller?",
         )
-    isbn = models.CharField(max_length=13, unique=True)
-    isbn_empty = models.GeneratedField(
-        expression=(
-            models.Case(
-                models.When(isbn='', then=True),
-                models.When(isbn__isnull=True, then=True),
-                default=False,
-                output_field=models.BooleanField(),
-            )
-        ),
-        output_field=models.BooleanField(),
-        db_persist=True
-    )
+    isbn = models.CharField(max_length=17, unique=True)
     pages = models.IntegerField()
     description = models.TextField(blank=True)
     uneditable_field = models.CharField(max_length=200, blank=True, null=True, editable=False)
+
+    @property
+    def isbn_empty(self):
+        return not self.isbn
 
     @property
     def there_are_so_many_pages_this_header_surely_will_wrap(self):

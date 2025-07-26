@@ -55,7 +55,7 @@ class BookCRUDView(NominopolitanMixin, CRUDView):
     form_class = forms.BookForm
 
     # filterset_class = filters.BookFilterSet
-    filterset_fields = ['author', 'title', 'published_date','isbn', 'isbn_empty','pages', 'description', 'genres']
+    filterset_fields = ['author', 'title', 'published_date','isbn', 'pages', 'description', 'genres']
     # Define how filter dropdown options should be sorted
     dropdown_sort_options = {
         "author": "name",  # Sort authors by name field in all dropdowns

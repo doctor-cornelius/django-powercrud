@@ -2,10 +2,11 @@ from django.core.management.base import BaseCommand, CommandError
 from django.conf import settings
 from django.utils import timezone
 from datetime import datetime, timedelta
+
 import random
+from faker import Faker
 
 from sample.models import Author, Book
-
 
 class Command(BaseCommand):
     help = "Creates sample data for testing (authors and books)"
@@ -23,6 +24,12 @@ class Command(BaseCommand):
             default=50,
             help="Number of books to create (default: 50)",
         )
+        parser.add_argument(
+            "--books-per-author",
+            type=int,
+            default=10,
+            help="Average number of books per author (default: 10). If specified, overrides --authors.",
+        )
 
     def handle(self, *args, **options):
         if not settings.DEBUG:
@@ -30,55 +37,42 @@ class Command(BaseCommand):
                 "This command can only be run in development mode (DEBUG=True)"
             )
 
-        num_authors = options["authors"]
+        fake = Faker()
         num_books = options["books"]
+        books_per_author = options["books_per_author"]
+        num_authors_arg = options["authors"]
 
-        # Author names generation
-        first_names = ["James", "Maria", "Robert", "Lisa", "Michael", "Sarah", "David", 
-                      "Jennifer", "John", "Patricia", "Richard", "Elizabeth", "Joseph",
-                      "Margaret", "Charles", "Susan", "Daniel", "Nancy", "Paul", "Betty",
-                      "Mark", "Dorothy", "Donald", "Sandra", "Steven", "Emily", "Thomas",
-                      "Jessica", "William", "Karen"]
-        
-        last_names = ["Smith", "Garcia", "Johnson", "Brown", "Davis", "Wilson", "Martinez",
-                     "Taylor", "Anderson", "Thomas", "White", "Hall", "Lee", "Clark",
-                     "Wright", "Lopez", "Hill", "Green", "Adams", "King", "Baker",
-                     "Scott", "Nelson", "Carter", "Mitchell", "Young", "Walker",
-                     "Allen", "King", "Wright"]
+        if books_per_author:
+            # Calculate authors based on books per author, ensuring at least 1 author
+            num_authors = max(1, num_books // books_per_author)
+            if num_authors_arg != 25: # Only warn if user explicitly set --authors
+                self.stdout.write(self.style.WARNING(
+                    f"Warning: --books-per-author ({books_per_author}) is specified. "
+                    f"Calculating {num_authors} authors based on {num_books} books. "
+                    f"The --authors argument ({num_authors_arg}) will be ignored."
+                ))
+        else:
+            num_authors = num_authors_arg
 
         self.stdout.write("Creating authors...")
         authors = []
         for _ in range(num_authors):
-            name = f"{random.choice(first_names)} {random.choice(last_names)}"
+            name = fake.name()
             author = Author.objects.create(
                 name=name,
-                bio=f"Distinguished author known for {random.choice(['fiction', 'non-fiction', 'poetry', 'drama'])} works.",
-                birth_date=datetime(
-                    random.randint(1940, 1990),
-                    random.randint(1, 12),
-                    random.randint(1, 28)
-                ).date()
+                bio=fake.paragraph(nb_sentences=random.randint(2, 4)),
+                birth_date=fake.date_of_birth(minimum_age=30, maximum_age=80)
             )
             authors.append(author)
         
         self.stdout.write(self.style.SUCCESS(f"Created {len(authors)} authors"))
 
-        # Book title components
-        titles_prefix = ["The", "A", "My", "Our", "Their"]
-        titles_main = ["Journey", "Story", "Adventure", "Mystery", "Secret", 
-                      "Legend", "Tale", "Chronicles", "Path", "Quest",
-                      "Voyage", "Saga", "Epic", "Legacy", "Prophecy"]
-        titles_suffix = ["of Time", "in Space", "of Love", "of Magic", "of Life",
-                        "of Dreams", "of Hope", "of Destiny", "of the Ages",
-                        "of Tomorrow", "of the Past", "of the Future", "of Glory",
-                        "of Wonder", "of Mystery"]
-
         self.stdout.write("Creating books...")
         for i in range(num_books):
-            title = f"{random.choice(titles_prefix)} {random.choice(titles_main)} {random.choice(titles_suffix)}"
+            title = fake.sentence(nb_words=random.randint(3, 7))
             
-            # Generate ISBN (simplified version)
-            isbn = ''.join([str(random.randint(0, 9)) for _ in range(13)])
+            # Generate ISBN using Faker
+            isbn = fake.isbn13()
             
             # Random date within last 30 years
             pub_date = timezone.now().date() - timedelta(days=random.randint(0, 10950))
@@ -89,8 +83,7 @@ class Command(BaseCommand):
                 published_date=pub_date,
                 isbn=isbn,
                 pages=random.randint(100, 1000),
-                description=f"A compelling {random.choice(['story', 'narrative', 'account', 'tale'])} "
-                           f"about {random.choice(['love', 'adventure', 'mystery', 'life', 'destiny'])}."
+                description=fake.paragraph(nb_sentences=random.randint(3, 5))
             )
             
             if (i + 1) % 10 == 0:
@@ -99,3 +92,4 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS(
             f"\nSuccessfully created {num_books} books and {num_authors} authors"
         ))
+

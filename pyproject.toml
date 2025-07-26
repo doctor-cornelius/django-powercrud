@@ -24,6 +24,10 @@ pytest = "^8.2.1"
 coverage = "^7"
 pytest-mock = "^3.14.0"
 validators = "^0.28.3"
+
+# faker for the sample app mgmt commands
+faker = "^37.4.2"
+
 # for testing sample app during development
 neapolitan = "^24.8"
 django-crispy-forms = "^2.3"
