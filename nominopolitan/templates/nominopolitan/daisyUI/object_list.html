@@ -13,6 +13,66 @@
         padding: 0.25rem 0.5rem !important;
         line-height: 1.5 !important;
         }
+
+        .table-column-width {
+            /* Set a reasonable default width and max-width, override with inline style if needed */
+            width: fit-content;
+            max-width: 25ch;
+        }
+        th.table-column-width {
+            white-space: normal;
+            max-width: 25ch;
+        }
+
+        #filter-form label {
+            @apply font-bold text-center block;
+        }
+
+        /* Super specific selectors to override existing styles */
+        #filter-form select.select,
+        #filter-form .select select {
+            height: 2rem !important;
+            min-height: 2rem !important;
+            font-size: 0.875rem !important;
+        }
+        
+        #filter-form input,
+        #filter-form select {
+        height: 2.2rem !important; 
+        min-height: 2.2rem !important;
+        max-height: 2.2rem !important;
+        padding-top: 0.25rem !important;
+        padding-bottom: 0.25rem !important;
+        line-height: 1.2 !important;
+        }
+        
+        /* Make all filter elements the same width */
+        #filter-form .form-control {
+            width: 14rem !important;
+            max-width: 14rem !important;
+        }
+
+        /* Make standard inputs/selects taller to prevent letter cutting */
+        #filter-form input:not([type="checkbox"]),
+        #filter-form select:not([multiple]) {
+        height: 2.5rem !important;
+        min-height: 2.5rem !important;
+        max-height: 2.5rem !important;
+        line-height: 1.2 !important;
+        }
+
+        /* Special styling for multi-select (M2M) fields */
+        #filter-form select[multiple] {
+        height: auto !important;
+        min-height: 8rem !important;
+        padding: 0.25rem !important;
+        }
+
+        /* Style the options inside multi-selects */
+        #filter-form select[multiple] option {
+        padding: 0.25rem 0.5rem !important;
+        line-height: 1.5 !important;
+        }
     </style>
 
     <title id="header_title">{{header_title}}</title>
@@ -398,8 +458,11 @@
 {% partialdef bulk_selection_status %}
 <!-- Bulk actions container - show/hide based on selection count -->
 <div id="bulk-actions-container" class="join {% if selected_count == 0 %}hidden{% endif %}" hx-target="this" hx-swap="outerHTML" hx-trigger="bulkSelectionChanged from:body">
-    <a href="{{ list_view_url }}bulk-edit/" class="join-item btn btn-primary {{ view.get_extra_button_classes }}"
-        hx-get="{{ list_view_url }}bulk-edit/" hx-target="#nominopolitanModalContent" hx-swap="innerHTML"
+    <a href="{{ list_view_url }}bulk-edit/" 
+        class="join-item btn btn-primary {{ view.get_extra_button_classes }}"
+        hx-get="{{ list_view_url }}bulk-edit/" 
+        hx-target="#nominopolitanModalContent" 
+        hx-swap="innerHTML"
         onclick="nominopolitanBaseModal.showModal();">
         Bulk Edit <span id="selected-items-counter">{{ selected_count }}</span>
     </a>

@@ -106,7 +106,7 @@ class Book(models.Model):
 
     def save(self, *args, **kwargs):
         
-        time.sleep(0)
+        # time.sleep(40)
         log.debug(f"Updating book: {self.title}")
 
         self.clean()
@@ -115,7 +115,7 @@ class Book(models.Model):
     def delete(self, *args, **kwargs):
         """insert a delay for testing async processing
         """
-        time.sleep(0)
+        # time.sleep(40)
         log.debug(f"Deleting book: {self.title}")
         return super().delete(*args, **kwargs)
 
