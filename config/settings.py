@@ -222,3 +222,6 @@ Q_CLUSTER = {
     'save_limit': 250,
     'queue_limit': 500,
 }
+
+# increase to allow max selected_ids for bulk ops
+# DATA_UPLOAD_MAX_NUMBER_FIELDS = 10000

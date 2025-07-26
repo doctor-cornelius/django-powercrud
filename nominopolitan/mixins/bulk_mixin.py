@@ -302,23 +302,39 @@ class BulkMixin:
             return HttpResponseBadRequest("Bulk edit only supported via HTMX requests.")
 
         # Get selected IDs from the request
-        selected_ids = request.POST.getlist('selected_ids[]') or request.GET.getlist('selected_ids[]')
-
-        if not selected_ids:
-            # If no IDs provided via POST/GET, try to get from session first
-            selected_ids = self.get_selected_ids_from_session(request)
+        selected_ids = []
+        try:
+            selected_ids = request.POST.getlist('selected_ids[]') or request.GET.getlist('selected_ids[]')
 
             if not selected_ids:
-                # If still no IDs, try to get from JSON body
-                try:
-                    if request.body and request.content_type == 'application/json':
-                        data = json.loads(request.body)
-                        selected_ids = data.get('selected_ids', [])
-                except:
-                    pass
-                # If still no IDs, check for individual selected_ids parameters (without [])
+                # If no IDs provided via POST/GET, try to get from session first
+                selected_ids = self.get_selected_ids_from_session(request)
+
                 if not selected_ids:
-                    selected_ids = request.POST.getlist('selected_ids') or request.GET.getlist('selected_ids')
+                    # If still no IDs, try to get from JSON body
+                    try:
+                        if request.body and request.content_type == 'application/json':
+                            data = json.loads(request.body)
+                            selected_ids = data.get('selected_ids', [])
+                    except:
+                        pass
+                    # If still no IDs, check for individual selected_ids parameters (without [])
+                    if not selected_ids:
+                        selected_ids = request.POST.getlist('selected_ids') or request.GET.getlist('selected_ids')
+        except SuspiciousOperation as e:
+            log.error(f"SuspiciousOperation during bulk edit parameter retrieval: {e}")
+            return render(
+                request,
+                f"{template_errors}#bulk_edit_error",
+                {"error": "Too many items selected for bulk edit. Please select fewer items or contact your administrator to increase DATA_UPLOAD_MAX_NUMBER_FIELDS."}
+            )
+        except Exception as e:
+            log.error(f"Unexpected error during bulk edit parameter retrieval: {e}")
+            return render(
+                request,
+                f"{template_errors}#bulk_edit_error",
+                {"error": f"An unexpected error occurred: {e}"}
+            )
 
         # If still no IDs, return an error
         if not selected_ids:

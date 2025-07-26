@@ -26,6 +26,17 @@ class BookCRUDView(NominopolitanMixin, CRUDView):
 
     Bulk operations require both `use_htmx = True` and `use_modal = True`.
 
+
+??? warning "Selecting More Than 1000 Records"
+
+    If you anticipate users selecting >= 1000 records at a time for bulk processing, you need to explicitly set the `DATA_UPLOAD_MAX_NUMBER_FIELDS` in `settings.py`. The default for this setting as per the [Django docs](https://docs.djangoproject.com/en/5.2/ref/settings/) is 1000.
+
+    For example: `DATA_UPLOAD_MAX_NUMBER_FIELDS = 10000`
+
+    Currently, if the the selected records exceeds the default setting, there is no error displayed on the front end (only in the server logs) and from the user's perspective they will get a misleading message saying "No items selected for bulk edit"
+
+
+
 ## How It Works
 
 - **Selection**: Checkboxes appear next to each record
