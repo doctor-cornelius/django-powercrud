@@ -1,6 +1,10 @@
 from django.http import HttpResponse, HttpResponseForbidden, HttpResponseServerError
 from typing import List, Tuple
 from django.conf import settings
+from django.http import HttpResponse, HttpResponseForbidden, HttpResponseBadRequest
+from django.shortcuts import render
+
+
 from django_q.tasks import async_task
 
 from ..models import BulkTask
@@ -195,7 +199,7 @@ class AsyncMixin:
         # No conflict, proceed with deletion
         return super().process_deletion(request, *args, **kwargs)
 
-    def _handle_async_bulk_operation(self, request, selected_ids, delete_selected, bulk_fields, fields_to_update):
+    def _handle_async_bulk_operation(self, request, selected_ids, delete_selected, bulk_fields, fields_to_update, field_data):
         """Handle async bulk operations - create task and queue it"""
         log.debug("running _handle_async_bulk_operation")
 
@@ -231,55 +235,61 @@ class AsyncMixin:
                 # Queue delete task
                 async_task('nominopolitan.tasks.bulk_delete_task', 
                         task.id, model_path, selected_ids, request.user.id)
+                return self.async_queue_success(request, task, selected_ids)
             else:
-                # Extract field data for update task
-                field_info = self._get_bulk_field_info(bulk_fields)
-                field_data = []
-                for field in fields_to_update:
-                    info = field_info.get(field, {})
-                    value = request.POST.get(field)
-                    
-                    # Extract M2M-specific data if this is an M2M field
-                    m2m_action = None
-                    m2m_values = []
-                    if info.get('is_m2m'):
-                        m2m_action = request.POST.get(f"{field}_action", "replace")
-                        m2m_values = request.POST.getlist(field)
-                    
-                    field_data.append({
-                        'field': field, 
-                        'value': value, 
-                        'info': info,
-                        'm2m_action': m2m_action,
-                        'm2m_values': m2m_values,
-                    })
-                
                 # Queue update task
                 async_task('nominopolitan.tasks.bulk_update_task',
                         task.id, model_path, selected_ids, request.user.id,
                         bulk_fields, fields_to_update, field_data)
             
-            # Return async success response
-            response = HttpResponse("")
-            response["HX-Trigger"] = json.dumps({
-                "bulkEditQueued": True, 
-                "taskId": task.id,
-                "message": f"Processing {len(selected_ids)} records in background."
-            })
-            return response
-            
+                # Successful queue handling
+                return self.async_queue_success(request, task, selected_ids)
+
         except Exception as e:
-            # ✅ Log the damn error and fail hard
-            log.error(f"Async task queueing failed for task {task.id}: {str(e)}", exc_info=True)
-            
-            # Mark task as failed
-            task.mark_completed(success=False, error_message=f"Failed to queue task: {str(e)}")
-            
-            # Return error response
-            response = HttpResponseServerError("Async processing failed")
-            response["HX-Trigger"] = json.dumps({
-                "bulkEditFailed": True,
-                "taskId": task.id,
-                "error": f"Failed to queue async operation: {str(e)}"
-            })
-            return response
+            return self.async_queue_failure(request, task=task, error=e, selected_ids=selected_ids)
+        
+    def async_queue_success(self, request, task: BulkTask, selected_ids: List[int]):
+        """
+        Processes successful async task queueing. Clears selection and returns success response.
+
+        Can be overridden to customize or extend success handling.
+        """
+
+        self.clear_selection_from_session(request)
+
+        # Return async success response
+        template = "nominopolitan/daisyUI/bulk_edit_form.html#async_queue_success"
+        response = render(request, template, context={})
+        response["HX-ReTarget"] = self.get_modal_target()
+        response["HX-Trigger"] = json.dumps({
+            "bulkEditQueued": True, 
+            "taskId": task.id,
+            "message": f"Processing {len(selected_ids)} records in background."
+        })
+        return response
+    
+    def async_queue_failure(self, request, task: BulkTask, error: str, selected_ids: List[int]):
+        """
+        Handles failure during async task queueing. Logs error and returns error response.
+        Note there is no BulkTask instance since the task failed to be queued.
+
+        Can be overridden to customize or extend failure handling.
+        """
+        # ✅ Log the error and fail hard
+        log.error(f"Async task queueing failed for task {task.id}: {str(error)}", exc_info=True)
+        
+        # Mark task as failed
+        task.mark_completed(success=False, error_message=f"Failed to queue task: {str(error)}")
+
+        # Return error response
+        template_errors = f"{self.templates_path}/partial/bulk_edit_errors.html"
+
+        response = render(
+            request, f"{template_errors}#bulk_edit_error", context={
+                'error': f"Failed to queue background tasks for {len(selected_ids)} {self.model._meta.verbose_name_plural}:\n\n{str(error)}",
+                'task_id': task.id,
+                'task': task
+            }
+        )
+        response['HX-ReTarget'] = self.get_modal_target()
+        return response

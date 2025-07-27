@@ -32,30 +32,35 @@ class NominopolitanMixin:
 ## Backend Implementation Plan
 
 **Phase 1: Database Backend (django-q2)**
+
 - Include `django-q2` as standard dependency
 - No additional infrastructure required for downstream users
 - Uses existing database for task storage and processing
 - Suitable for most use cases up to medium scale
 
 **Future Phases:**
+
 - **Celery Backend**: For high-volume production environments
 - **ASGI Backend**: For Django 4.1+ async views (single-server deployments)
 
 ## User Experience Flow
 
 1. **Small Operations** (< `bulk_min_async_records`):
-  - Process synchronously as current behavior
-  - Immediate feedback and completion
+
+     - Process synchronously as current behavior
+     - Immediate feedback and completion
 
 2. **Large Operations** (≥ `bulk_min_async_records`):
-  - Queue task in background
-  - Show immediate confirmation: "Processing X records in background. [View Status]"
-  - User can continue working or monitor progress
-  - Completion notification via configured method
+
+     - Queue task in background
+     - Show immediate confirmation: "Processing X records in background. [View Status]"
+     - User can continue working or monitor progress
+     - Completion notification via configured method
 
 ## Status Tracking System
 
 **BulkTask Model:**
+
 ```python
 class BulkTask(models.Model):
    user = ForeignKey(AUTH_USER_MODEL)
@@ -71,6 +76,7 @@ class BulkTask(models.Model):
 ```
 
 **Status Page Features:**
+
 - List of user's bulk operations with progress
 - Real-time status updates (pending, in progress, completed, failed)
     - use `htmx` for this (haha if htmx enabled) with potential to use [celery-progress](https://www.saaspegasus.com/guides/django-celery-progress-bars/)
@@ -116,31 +122,36 @@ class BulkTask(models.Model):
 ## Notification Options
 
 1. **Status Page** (Recommended Default):
-  - Dedicated page showing all user's bulk operations
-  - Persistent across sessions
-  - Detailed progress and error information
-  - Best UX for power users
-  - Consider whether to go direct to this page when calling task ends, or not, or provide alert or django message, etc. Consider parameterising this or providing a hook. Discuss when we get to the relevant task.
+
+      - Dedicated page showing all user's bulk operations
+      - Persistent across sessions
+      - Detailed progress and error information
+      - Best UX for power users
+      - Consider whether to go direct to this page when calling task ends, or not, or provide alert or django message, etc. Consider parameterising this or providing a hook. Discuss when we get to the relevant task.
 
 2. **Django Messages**:
-  - Good for small operations
-  - May be missed if user navigates away
-  - Simple to implement
+
+      - Good for small operations
+      - May be missed if user navigates away
+      - Simple to implement
 
 3. **Email Notifications**:
-  - Good for very long operations
-  - Works when user is offline
-  - Requires email configuration
+
+      - Good for very long operations
+      - Works when user is offline
+      - Requires email configuration
 
 4. **Custom Callback**:
-  - For advanced integrations
-  - Allows custom notification logic
+
+      - For advanced integrations
+      - Allows custom notification logic
 
 ## Error Handling and Atomicity
 
 **Current Behavior**: Bulk operations are atomic - either all records succeed or none are modified.
 
 **Async Behavior**: 
+
 - Maintain atomicity within reasonable batch sizes
 - For very large operations, consider chunked processing with partial success reporting
 - Detailed error reporting showing which records failed and why
@@ -167,17 +178,21 @@ def bulk_edit_process_post(self, request, queryset, bulk_fields):
        async_task('nominopolitan.tasks.bulk_edit_task', 
                  task.id, selected_ids, field_data)
         
-       return JsonResponse({
-           'status': 'queued',
-           'task_id': task.id,
-           'message': f'Processing {selected_count} records in background.'
+       # Return async success response via HX-Trigger
+       response = HttpResponse("")
+       response["HX-Trigger"] = json.dumps({
+           "bulkEditQueued": True, 
+           "taskId": task.id,
+           "message": f"Processing {len(selected_ids)} records in background."
        })
+       return response
    else:
        # Process synchronously (current behavior)
        return self._bulk_edit_sync(request, queryset, bulk_fields)
 ```
 
 **Progress Updates:**
+
 - Update `BulkTask.processed_records` periodically during processing
 - Use database transactions appropriately to ensure consistency
 - Provide percentage completion for UI progress bars
@@ -185,11 +200,13 @@ def bulk_edit_process_post(self, request, queryset, bulk_fields):
 ## Dependencies and Setup
 
 **For Package Maintainers:**
+
 - Add `django-q2>=1.4.0` to package dependencies
 - Include migration for `BulkTask` model
 - Add default templates for status page
 
 **For Downstream Users:**
+
 - **Zero additional setup** required for basic async functionality
 - Optional: Configure `Q_CLUSTER` settings in Django settings for advanced tuning
 - Optional: Set up email backend for email notifications
@@ -198,34 +215,34 @@ def bulk_edit_process_post(self, request, queryset, bulk_fields):
 
 1. **Add django-q2 dependency**
 
-  - Update `pyproject.toml` or `setup.py`
-  - Add to package requirements
+    - Update `pyproject.toml` or `setup.py`
+    - Add to package requirements
 
 2. **Create BulkTask model**
 
-  - Define model with all required fields
-  - Create and test migrations
-  - Add model admin interface for debugging
+    - Define model with all required fields
+    - Create and test migrations
+    - Add model admin interface for debugging
 
 3. **Implement async detection logic**
 
-  - `should_process_async()` method
-  - `get_bulk_async_enabled()` method
-  - Backend availability checking
+      - `should_process_async()` method
+      - `get_bulk_async_enabled()` method
+      - Backend availability checking
 
 4. **Create async task functions**
 
-  - `bulk_edit_task()` function for django-q2
-  - `bulk_delete_task()` function for django-q2
-  - Progress tracking and error handling
-  - Task completion and status updates
+      - `bulk_edit_task()` function for django-q2
+      - `bulk_delete_task()` function for django-q2
+      - Progress tracking and error handling
+      - Task completion and status updates
 
 5. **Modify bulk_edit_process_post method**
 
-  - ✅ Add async/sync routing logic
-  - ✅ Task creation and queuing
-  - ✅ Duplicate request detection
-  - Response handling for async operations
+     - ✅ Add async/sync routing logic
+     - ✅ Task creation and queuing
+     - ✅ Duplicate request detection
+     - Response handling for async operations
 
     5.1 **Duplicate request detection**
 
@@ -247,50 +264,69 @@ def bulk_edit_process_post(self, request, queryset, bulk_fields):
     14. ✅ Test HTMX vs non-HTMX responses
     15. Test with Redis for concurrency
 
+    5.2 **Response handling for async operations**
+
+    5.2.1 ✅ Implement HTMX event listeners for async queuing success.
+
+      - Add JavaScript in `object_list.html` to listen for `bulkEditQueued` HTMX trigger. All it does is call `clearSelectionOptimistic`
+      - Create new partial `aync_queue_success` in `nominopolitan/templates/nominopolitan/daisyUI/bulk_edit_form.html` for success message.
+      - From `_handle_async_bulk_operation` return the partial with trigger `bulkEditQueued` and target `self.get_modal_target()`
+
+    5.2.2 ✅ Implement HTMX event listeners for async queuing failure.
+
+      - No need for a handler since modal will stay open and `selected_ids` will not be cleared
+      - Create new partial `aync_queue_failure` in `nominopolitan/templates/nominopolitan/daisyUI/bulk_edit_errors.html` for failure message.
+      - From `_handle_async_bulk_operation` return the partial with trigger `bulkEditFailed` and target `self.get_modal_target()`
+
+    5.2.3 ✅ Implement async operation completion hook.
+
+      - implement `async_queue_success` and `async_queue_failure` as separate methods to facilitate override if needed.
+
 6. **Create BulkTask status views**
 
-  - List view for user's bulk operations
-  - Detail view for individual task status
-  - HTMX integration for real-time updates
-  - URL patterns and navigation
+     - List view for user's bulk operations
+     - Detail view for individual task status
+     - HTMX integration for real-time updates
+     - URL patterns and navigation
 
 7. **Create status page templates**
 
-  - List template with progress indicators
-  - Detail template with error reporting
-  - HTMX partials for live updates
-  - Integration with existing modal system
+     - List template with progress indicators
+     - Detail template with error reporting
+     - HTMX partials for live updates
+     - Integration with existing modal system
+     - Ensure the "View Status" link in the `bulkEditQueued` success message correctly points to the future `BulkTask` status page (passing `taskId`).
 
 8. **Update bulk edit form responses**
 
-  - Handle async responses in JavaScript
-  - Show "processing in background" messages
-  - Provide links to status page
-  - Update modal behavior for async operations
+     - Handle async responses in JavaScript
+     - Show "processing in background" messages
+     - Provide links to status page
+     - Update modal behavior for async operations
 
 9.  **Add notification system**
 
-  - Django messages integration
-  - Status page notifications
-  - Framework for future email/callback notifications
+      - Django messages integration
+      - Status page notifications
+      - Framework for future email/callback notifications
 
 10. **Testing and documentation**
 
-   - Unit tests for async functionality
-   - Integration tests with django-q2
-   - Update README with async configuration options
-   - Add example configurations for different use cases
+       - Unit tests for async functionality
+       - Integration tests with django-q2
+       - Update README with async configuration options
+       - Add example configurations for different use cases
 
 11. **Error handling and edge cases**
 
-   - Handle django-q2 unavailability gracefully
-   - Test with various record counts and thresholds
-   - Validate duplicate request prevention
-   - Test progress tracking accuracy
+       - Handle django-q2 unavailability gracefully
+       - Test with various record counts and thresholds
+       - Validate duplicate request prevention
+       - Test progress tracking accuracy
 
 12. **UI/UX improvements**
 
-   - Progress bars or indicators
-   - Better feedback for queued operations
-   - Status page styling and usability
-   - Mobile-responsive design for status pages
+       - Progress bars or indicators
+       - Better feedback for queued operations
+       - Status page styling and usability
+       - Mobile-responsive design for status pages

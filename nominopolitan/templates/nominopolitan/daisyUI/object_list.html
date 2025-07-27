@@ -468,7 +468,12 @@
             pushURL: true, // To update the URL in the browser history
             vals: getCurrentFilters() // Include current filters
         });
-    });     
+    });
+
+   document.body.addEventListener('bulkEditQueued', function(evt) {
+       const { taskId, message } = evt.detail;
+       clearSelectionOptimistic();
+   });
  </script>
 
 {% endpartialdef nm_content %}

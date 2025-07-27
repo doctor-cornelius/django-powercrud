@@ -224,4 +224,4 @@ Q_CLUSTER = {
 }
 
 # increase to allow max selected_ids for bulk ops
-# DATA_UPLOAD_MAX_NUMBER_FIELDS = 10000
+DATA_UPLOAD_MAX_NUMBER_FIELDS = 10000

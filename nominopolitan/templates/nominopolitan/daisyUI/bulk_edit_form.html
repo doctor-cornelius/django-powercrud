@@ -228,3 +228,22 @@
 
 </script>
 {% endpartialdef full_form %}
+
+
+{# partial to display in modal on successful async queuing #}
+{% partialdef async_queue_success %}
+<div class="p-4 text-center">
+    <h2 class="text-xl font-bold mb-4">Bulk Operation Queued</h2>
+    <p class="text-lg mb-4">{{ message }}</p>
+    <p class="text-sm text-base-content/70 mb-4">
+        Your bulk operation is being processed in the background.
+    </p>
+    <a href="/bulk-task-status-placeholder/{{ task_id }}/" class="btn btn-primary"
+        hx-get="/bulk-task-status-placeholder/{{ task_id }}/"
+        hx-target="#nominopolitanModalContent"
+        hx-swap="innerHTML"
+        onclick="nominopolitanBaseModal.showModal()">
+        View Status (not implemented yet)
+    </a>
+</div>
+{% endpartialdef async_queue_success %}

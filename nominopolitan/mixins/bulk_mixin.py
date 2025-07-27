@@ -7,7 +7,7 @@ from django.core.exceptions import ValidationError
 from django.http import HttpResponse, HttpResponseForbidden, HttpResponseBadRequest
 from django.shortcuts import render
 from django.urls import path
-from django.core.exceptions import ObjectDoesNotExist
+from django.core.exceptions import ObjectDoesNotExist, SuspiciousOperation
 
 log = logging.getLogger("nominopolitan")
 
@@ -477,6 +477,8 @@ class BulkMixin:
                     obj = update['object']
                     changes = update['changes']
 
+                    log.debug(f"_perform_bulk_update on {obj}")
+
                     # Apply all changes to the object
                     for field, change_info in changes.items():
                         info = change_info['info']
@@ -516,7 +518,9 @@ class BulkMixin:
 
                     # Validate and save the object
                     if getattr(self, 'bulk_full_clean', True):
+                        log.debug("running full_clean()")
                         obj.full_clean()  # This will raise ValidationError if validation fails
+                    log.debug("running save()")
                     obj.save()
                     updated_count += 1
 
@@ -607,7 +611,7 @@ class BulkMixin:
                 return self._handle_async_bulk_operation(
                     request, selected_ids, 
                     delete_selected, 
-                    bulk_fields, fields_to_update
+                    bulk_fields, fields_to_update, field_data = []
                 )
 
             # Synchronous processing
@@ -671,7 +675,7 @@ class BulkMixin:
             return self._handle_async_bulk_operation(
                 request, selected_ids, 
                 delete_selected,  # This will be None/False
-                bulk_fields, fields_to_update
+                bulk_fields, fields_to_update, field_data
             )
         result = self._perform_bulk_update(
             queryset, bulk_fields, fields_to_update, field_data
