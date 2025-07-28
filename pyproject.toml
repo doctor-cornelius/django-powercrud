@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "django-nominopolitan"
-version = "0.2.26"
+version = "0.2.27"
 description = "Neapolitan with namespaces - Django CRUD views"
 authors = ["doctor-cornelius"]
 readme = "README.md"

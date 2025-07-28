@@ -1,3 +1,58 @@
+## 0.2.27 (2025-07-28)
+
+### Fix
+
+- **(bulk_edit_process_post)**:  clear session of selected_ids after successful delete
+- **(object_list)**:  add handlers for hx-triggers refreshTable and bulkEditSuccess
+- **(form_mixin)**:  ensure _apply_widget_classes method is applied properly for form opens
+- **(bulk_edit_process)**:  correct location of template file
+- **(sessions)**:  fix bugs in previous backend work
+- **(sessions)**:  revert to complete first draft of tasks 1 & 2
+- **(object_confirm_delete)**:  fix behavkiour for async conflict detection
+- **(nm_help)**:  add docs url
+- **(pagination)**:  ensure page change persists existing filter, sort and pagination params
+
+### Refactor
+
+- **(various)**:  remove log.debug statements
+- **(sessions)**:  partial incorrect implementation of task 4
+- **(bulk_mixin)**:  complete first draft of tasks 1 and 2
+- **(config)**:  refactor to support rename of django_nominopolitan to config directory
+- **(sample)**:  move templates and home view to sample app
+- **(bulk)**:  extract required info from request so not required in _perform_bulk_update
+- **(bulk)**:  separate delete and update into separate methods called by bulk_edit_process_post
+- **(mixins)**:  simplify mixins as a package with component feature mixins
+
+### Build
+
+- **(docker)**:  dockerize project to allow postgres, redis for full async testing
+
+### Continuous Integration
+
+- **(new_release.sh)**:  remove requirement to be inside poetry shell since now in docker
+
+### Documentation
+
+- **(bulk_operations.md)**:  explain re setting DATA_UPLOAD_MAX_NUMBER_FIELDS
+- **(sample_app.md)**:  update docs on create_sample_data mgmt command
+- **(blog)**:  document current 405 problem with toggles
+- **(sessions)**:  revise plan and document it for simpler approach
+- **(sessions)**:  finalise task list for sessions refactor
+- **(sessions)**:  write blog post plan for using django sessions
+- **(mkdocs)**:  add link to docs site on github pages
+- **(mkdocs)**:  move docs from readme to mkdocs
+
+### Feature
+
+- **(async)**:  provide modal response to user on async queue success or failure
+- **(sample.create_sample_data)**:  allow --books-per-author and use faker for unlimited
+- **(BulkActions)**:  implement BulkActions enum for url routing of bulk toggle actions
+
+### Style
+
+- **(object_list)**:  restyle bulk buttons and make them smaller
+- **(form_mixin)**:  remove css style blocks from templates & use tailwind classes
+
 ## 0.2.26 (2025-07-05)
 
 ### Fix
