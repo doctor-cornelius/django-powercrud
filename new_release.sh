@@ -14,13 +14,6 @@ if [[ $1 != "patch" && $1 != "minor" && $1 != "major" ]]; then
   exit 1
 fi
 
-# Check if current environment is within the poetry shell venv
-# meaning the venv is equal to $PWD/.venv
-if [[ $VIRTUAL_ENV != $PWD/.venv ]]; then
-  echo "You must be within the poetry shell venv to create a new release."
-  exit 1
-fi
-
 # Check that there are no unstaged files
 if [[ -n $(git status -s) ]]; then
   echo "You have unstaged files. Please commit or stash them before creating a release."
