@@ -10,10 +10,10 @@ pip install django-nominopolitan
 ```
 
 This automatically installs:
+
 - `django`
 - `django-template-partials`
 - `pydantic`
-- `django_htmx`
 
 ### install Frontend Dependencies
 
@@ -24,11 +24,18 @@ You'll need to include these JavaScript libraries in your base template:
 - **Alpine.js** - If using modals
 
 **Default styling:**
-- daisyUI v5 with Tailwind CSS v4
-- Bootstrap 5 CSS and JS (if using bootstrap5 framework)
-- Bootstrap Icons (for sorting indicators when using bootstrap5)
 
-*Note: There are many ways to include JavaScript (CDN, npm, Vite, etc.) - use whatever works for your project.*
+- daisyUI v5 with Tailwind CSS v4
+- Bootstrap Icons (for sorting indicators)
+- Bootstrap 5 CSS and JS (if using bootstrap5 framework)
+
+!!! note "Choose Your Frontend Install Methods"
+
+    There are many ways to include JavaScript (CDN, npm, Vite, etc.) - use whatever works for your project.*
+
+!!! warning "Bootstrap Templates Outdated"
+
+    Bootstrap templates are currently out of date as all recent development has focused on `daisyUI`. Once async support is finalised and tested, Bootstrap templates will either be updated or removed.
 
 See the example base template in `django_nominopolitan/templates/django_nominopolitan/base.html` for a complete implementation with CDN links.
 

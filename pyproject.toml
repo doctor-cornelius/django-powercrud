@@ -12,10 +12,8 @@ packages = [
 
 [tool.poetry.dependencies]
 python = "^3.12"
-django = "^5.1"
 django-template-partials = "^24.4"
 pydantic = "^2.10.6"
-django_htmx = "^1.21"
 
 [tool.poetry.group.dev.dependencies]
 commitizen = "^3"
@@ -29,6 +27,7 @@ validators = "^0.28.3"
 faker = "^37.4.2"
 
 # for testing sample app during development
+django = "^5.1"
 neapolitan = "^24.8"
 django-crispy-forms = "^2.3"
 crispy-bootstrap5 = "^2024.10"

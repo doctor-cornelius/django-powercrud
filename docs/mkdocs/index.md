@@ -1,6 +1,6 @@
 # Django Nominopolitan
 
-**An opinionated extension for neapolitan that adds the advanced CRUD features you usually have to build yourself.**
+**An opinionated extension for [`neapolitan`](https://github.com/carltongibson/neapolitan) that adds the advanced CRUD features you usually have to build yourself.**
 
 ## What is Nominopolitan?
 
@@ -10,6 +10,8 @@ Nominopolitan comes with these features built-in, specifically for user-facing C
 
 !!! warning "Early Alpha Release"
     This is a **very early alpha** release with limited tests and documentation. Expect breaking changes. You might prefer to fork or copy what you need.
+
+See the [full documentation](https://doctor-cornelius.github.io/django-nominopolitan/).
 
 ## Key Features
 
@@ -68,7 +70,3 @@ class ProjectView(NominopolitanMixin, CRUDView):
 - **daisyUI/Tailwind CSS** - Modern utility-first styling (default)
 - **Bootstrap 5** - Production-ready components
 - **Custom frameworks** - Bring your own CSS
-
-## Documentation
-
-See full documentation at https://doctor-cornelius.github.io/django-nominopolitan/.
