@@ -35,8 +35,8 @@ Complete alphabetical reference of all available configuration options with defa
 | `form_fields_exclude` | list | `[]` | Fields to exclude from forms | [Form Handling](../configuration/form_handling.md#specify-form-fields) |
 | `hx_trigger` | str/dict | `None` | Custom HTMX triggers for responses | [HTMX & Modals](../configuration/htmx_modals.md#htmx-triggers) |
 | `m2m_filter_and_logic` | bool | `False` | Use AND logic for M2M filters (default is OR) | [Filtering](../configuration/filtering.md#many-to-many-filter-logic) |
-| `modal_id` | str | `"nominopolitanBaseModal"` | ID of modal container | [HTMX & Modals](../configuration/htmx_modals.md#modal-customization) |
-| `modal_target` | str | `"nominopolitanModalContent"` | Target for modal content (no # prefix) | [HTMX & Modals](../configuration/htmx_modals.md#modal-customization) |
+| `modal_id` | str | `"powercrudBaseModal"` | ID of modal container | [HTMX & Modals](../configuration/htmx_modals.md#modal-customization) |
+| `modal_target` | str | `"powercrudModalContent"` | Target for modal content (no # prefix) | [HTMX & Modals](../configuration/htmx_modals.md#modal-customization) |
 | `model` | Model | **Required** | Django model class for the CRUD view | [Core Config](../configuration/core_config.md) |
 | `namespace` | str | `None` | URL namespace (must match app_name in urls.py) | [Core Config](../configuration/core_config.md#namespacing) |
 | `paginate_by` | int | `None` | Default page size (enables pagination) | [Pagination](../configuration/pagination.md#basic-setup) |
@@ -47,7 +47,7 @@ Complete alphabetical reference of all available configuration options with defa
 | `table_max_col_width` | int | `25` | Maximum column width in characters | [Styling](../configuration/styling.md#column-width-control) |
 | `table_max_height` | int | `70` | Max table height as percentage of remaining viewport | [Styling](../configuration/styling.md#table-height-control) |
 | `table_pixel_height_other_page_elements` | int/float | `0` | Height of other page elements in pixels | [Styling](../configuration/styling.md#table-height-control) |
-| `templates_path` | str | `"nominopolitan/{framework}"` | Path to override templates | [Core Config](../configuration/core_config.md#template-overrides) |
+| `templates_path` | str | `"powercrud/{framework}"` | Path to override templates | [Core Config](../configuration/core_config.md#template-overrides) |
 | `url_base` | str | Model name | Base for URL patterns | [Core Config](../configuration/core_config.md#custom-url-base) |
 | `use_crispy` | bool | `True` if installed | Enable crispy forms styling | [Form Handling](../configuration/form_handling.md#crispy-forms-integration) |
 | `use_htmx` | bool | `None` | Enable HTMX for reactive updates | [HTMX & Modals](../configuration/htmx_modals.md#enable-htmx) |

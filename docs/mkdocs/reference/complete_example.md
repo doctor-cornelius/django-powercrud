@@ -4,10 +4,10 @@ Below is an example of a class definition for a CRUD view with an unrealistic nu
 
 
 ```python
-from nominopolitan.mixins import NominopolitanMixin
+from powercrud.mixins import PowerCRUDMixin
 from neapolitan.views import CRUDView
 
-class ProjectCRUDView(NominopolitanMixin, CRUDView):
+class ProjectCRUDView(PowerCRUDMixin, CRUDView):
     # *******************************************************************
     # Standard neapolitan attributes
     model = models.Project # this is mandatory
@@ -21,7 +21,7 @@ class ProjectCRUDView(NominopolitanMixin, CRUDView):
     # check the code in neapolitan.views.CRUDView for all available attributes
 
     # ******************************************************************
-    # nominopolitan attributes
+    # PowerCRUD attributes
     namespace = "my_app_name" # specify the namespace (optional)
         # if your urls.py has app_name = "my_app_name"
 
@@ -60,7 +60,7 @@ class ProjectCRUDView(NominopolitanMixin, CRUDView):
 
     # filtersets
     filterset_fields = ["name", "project_owner", "project_manager", "due_date",]
-        # this is a standard neapolitan parameter, but nominopolitan converts this 
+        # this is a standard neapolitan parameter, but PowerCRUD converts this 
         # to a more elaborate filterset class
 
     # Forms
@@ -69,10 +69,10 @@ class ProjectCRUDView(NominopolitanMixin, CRUDView):
         # if you set it to False with crispy-forms installed, it will resolve to False
 
     # Templates
-    base_template_path = "core/base.html" # defaults to inbuilt "nominopolitan/base.html"
+    base_template_path = "core/base.html" # defaults to inbuilt "powercrud/base.html"
     templates_path = "myapp" # if you want to override all the templates in another app
-        # or include one of your own apps; eg templates_path = "my_app_name/nominopolitan" 
-        # and then place in my_app_name/templates/my_app_name/nominopolitan
+        # or include one of your own apps; eg templates_path = "my_app_name/PowerCRUD" 
+        # and then place in my_app_name/templates/my_app_name/PowerCRUD
 
     # table display parameters
     table_pixel_height_other_page_elements = 100 # this will be expressed in pixels
@@ -105,17 +105,17 @@ class ProjectCRUDView(NominopolitanMixin, CRUDView):
 
 
     use_modal = True #If you want to use the modal specified in object_list.html for all action links.
-        # This will target the modal (id="nominopolitanModalContent") specified in object_list.html
+        # This will target the modal (id="powercrudModalContent") specified in object_list.html
         # Requires:
             # use_htmx = True
             # Alpine installed in your base template
             # htmx installed in your base template
             # django_htmx installed and configured in your settings
 
-    modal_id = "myCustomModalId" # Allows override of the default modal id "nominopolitanBaseModal"
+    modal_id = "myCustomModalId" # Allows override of the default modal id "powercrudBaseModal"
 
     modal_target = "myCustomModalContent" # Allows override of the default modal target
-        # which is #nominopolitanModalContent. Useful if for example
+        # which is #powercrudModalContent. Useful if for example
         # the project has a modal with a different id available
         # eg in the base template. This is where the modal content will be rendered.
 
@@ -125,7 +125,7 @@ class ProjectCRUDView(NominopolitanMixin, CRUDView):
             "url_name": "fstp:home",        # namespace:url_pattern
             "text": "Home Again",           # text to display on button
             "button_class": "btn-success",  # intended as semantic colour for button
-                # defaults to NominopolitanMixin.get_framework_styles()['extra_default']
+                # defaults to PowerCRUDMixin.get_framework_styles()['extra_default']
             "htmx_target": "content",       # relevant only if use_htmx is True. Disregarded if display_modal is True
             "display_modal": True,         # if the button should display a modal.
                 # Note: modal will auto-close after any form submission
@@ -135,7 +135,7 @@ class ProjectCRUDView(NominopolitanMixin, CRUDView):
             # extra class attributes will override automatically determined class attrs if duplicated
             "extra_class_attrs": "rounded-pill border border-dark", 
         },
-        # below example if want to use own modal not nominopolitan's
+        # below example if want to use own modal not PowerCRUD's
         {
             "url_name": "fstp:home",
             "text": "Home in Own Modal!",

@@ -1,24 +1,24 @@
-# Django Nominopolitan
+# Django PowerCRUD
 
-**An opinionated extension for [`neapolitan`](https://github.com/carltongibson/neapolitan) that adds the advanced CRUD features you usually have to build yourself.**
+**Advanced CRUD for perfectionists with deadlines. An opinionated [`Neapolitan`](https://github.com/carltongibson/neapolitan) extension, with sprinkles.**
 
-## What is Nominopolitan?
+## What is PowerCRUD?
 
 The [`neapolitan`](https://github.com/carltongibson/neapolitan/) package gives you a solid foundation for Django CRUD views. But you still need to add filtering, bulk operations, modern UX features, and styling yourself.
 
-Nominopolitan comes with these features built-in, specifically for user-facing CRUD interfaces. Use what you need, customize what you want.
+PowerCRUD comes with these features built-in, specifically for user-facing CRUD interfaces. Use what you need, customize what you want.
 
-!!! warning "Early Alpha Release"
-    This is a **very early alpha** release with limited tests and documentation. Expect breaking changes. You might prefer to fork or copy what you need.
+[!WARNING]
+This is a **very early alpha** release with limited tests and documentation. Expect breaking changes. You might prefer to fork or copy what you need.
 
-See the [full documentation](https://doctor-cornelius.github.io/django-nominopolitan/).
+See the [full documentation](https://doctor-cornelius.github.io/django-powercrud/).
 
 ## Key Features
 
-🎯 **Advanced CRUD Operations** - Filtering, bulk edit/delete, and pagination out of the box  
+🎯 **Advanced CRUD Operations** - Filtering, pagination, bulk edit/delete (with async) out of the box  
 ⚡ **Modern Web UX** - HTMX integration, modals, and reactive updates  
-🎨 **Multiple CSS Frameworks** - daisyUI/Tailwind (default) and Bootstrap 5 support  
 🔧 **Developer Friendly** - Convention over configuration with full customization options  
+🎨 **Multiple CSS Frameworks** - daisyUI/Tailwind (default) and Bootstrap 5 support  
 
 ## Quick Example
 
@@ -30,11 +30,11 @@ class ProjectView(CRUDView):
     model = Project
 ```
 
-Add Nominopolitan for advanced features:
+Add PowerCRUD for advanced features:
 
 ```python
-# With Nominopolitan
-class ProjectView(NominopolitanMixin, CRUDView):
+# With PowerCRUD
+class ProjectView(PowerCRUDMixin, CRUDView):
     model = Project
     fields = ["name", "owner", "status"]
     base_template_path = "core/base.html"
@@ -57,5 +57,5 @@ class ProjectView(NominopolitanMixin, CRUDView):
 ## Getting Started
 
 1. **[Installation](getting_started.md#installation-dependencies)** - Install and configure in minutes
-2. **[Quick Start](getting_started.md#quick-start-tutorial)** - Your first Nominopolitan view
+2. **[Quick Start](getting_started.md#quick-start-tutorial)** - Your first PowerCRUD view
 3. **[Configuration](configuration/core_config.md)** - Explore the features

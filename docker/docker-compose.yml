@@ -1,7 +1,7 @@
 services:
 
   pgadmin:
-    container_name: django_nominopolitan_pgadmin_${DEPLOYMENT_ENV}
+    container_name: ${DOCKER_PREFIX}_pgadmin_${DEPLOYMENT_ENV}
     image: dpage/pgadmin4:latest
     restart: always
     ports:
@@ -11,21 +11,23 @@ services:
     env_file:
       - ./${DEPLOYMENT_ENV}/${DEPLOYMENT_ENV}.secret
 
-  django_nominopolitan_postgres:
+  powercrud_postgres:
     image: postgres:16
-    container_name: django_nominopolitan_postgres_${DEPLOYMENT_ENV}
+    container_name: ${DOCKER_PREFIX}_postgres_${DEPLOYMENT_ENV}
     restart: always
     environment:
       - POSTGRES_DB=${DOCKER_PREFIX}_postgres_${DEPLOYMENT_ENV}
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=Testing123
     ports:
-      - 5432:5432
+      - 5433:5433 # avoid clash with normal postgres port
     volumes:
-      - django_nominopolitan_pgdata:/var/lib/postgresql/data
-    command: postgres -c 'max_connections=200'
+      - ${DOCKER_PREFIX}_pgdata:/var/lib/postgresql/data
+      # mount the config file
+      - ./postgresql.conf:/var/lib/postgresql/data/postgresql.conf
+    command: postgres
 
-  django_nominopolitan_django:
+  powercrud_django:
     image: ${DOCKER_PREFIX}_django:${DEPLOYMENT_ENV}
     container_name: ${DOCKER_PREFIX}_django_${DEPLOYMENT_ENV}
     env_file:
@@ -38,7 +40,6 @@ services:
         HOST_POETRY_FILES: .
         DOCKER_DIRECTORY: docker
         USER: ${DEPLOYMENT_ENV}user
-        # Remove API credentials - not needed for nominopolitan
     environment:
       PROJECT_DIR: ${PROJECT_DIR}
       env: DISPLAY
@@ -53,7 +54,7 @@ services:
       - 8001:8001
       - 10005:10005  # for mkdocs serve
     depends_on:
-      - django_nominopolitan_postgres
+      - powercrud_postgres
     stdin_open: true
     tty: true
     command: /bin/bash
@@ -63,7 +64,7 @@ services:
       - "${HOME}/.ssh:/home/${DEPLOYMENT_ENV}user/.ssh"
       - "${HOME}/.gitconfig:/home/${DEPLOYMENT_ENV}user/.gitconfig"
 
-  django_nominopolitan_vite:
+  powercrud_vite:
     image: ${DOCKER_PREFIX}_django:${DEPLOYMENT_ENV}
     container_name: ${DOCKER_PREFIX}_vite_${DEPLOYMENT_ENV}
     env_file:
@@ -72,7 +73,7 @@ services:
       PROJECT_DIR: ${PROJECT_DIR}
       DJANGO_LIFECYCLE_ENV: ${DEPLOYMENT_ENV}
       DJANGO_SETTINGS_MODULE: config.settings
-    working_dir: /home/${DEPLOYMENT_ENV}user/${PROJECT_DIR}
+    working_dir: /home/${DEPLOYMENT_ENV}user/${PROJECT_DIR}/src
     ports:
       - 5174:5174
     volumes:
@@ -100,17 +101,17 @@ services:
   #   container_name: ${DOCKER_PREFIX}_celery_worker_${DEPLOYMENT_ENV}
   #   depends_on:
   #     - redis
-  #     - django_nominopolitan_postgres
+  #     - django_powercrud_postgres
   #   environment:
   #     - DJANGO_LIFECYCLE_ENV=${DEPLOYMENT_ENV}
-  #     - DJANGO_SETTINGS_MODULE=django_nominopolitan.settings
+  #     - DJANGO_SETTINGS_MODULE=django_powercrud.settings
   #     - DJANGO_PROJECT_NAME=${PROJECT_DIR}
   #     - DATABASE_NAME=${DOCKER_PREFIX}_postgres_${DEPLOYMENT_ENV}
   #     - DATABASE_HOST=${DOCKER_PREFIX}_postgres_${DEPLOYMENT_ENV}
   #     - CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP=True
   #     - REDIS_PASSWORD=${REDIS_PASSWORD}
   #   working_dir: /home/${DEPLOYMENT_ENV}user/${PROJECT_DIR}
-  #   command: celery -A django_nominopolitan worker -l INFO
+  #   command: celery -A django_powercrud worker -l INFO
   #   volumes:
   #     - "${PWD}:/home/${DEPLOYMENT_ENV}user/${PROJECT_DIR}"
   #     - "${HOME}/.ssh:/home/${DEPLOYMENT_ENV}user/.ssh"
@@ -121,26 +122,26 @@ services:
   #   container_name: ${DOCKER_PREFIX}_celery_beat_${DEPLOYMENT_ENV}
   #   depends_on:
   #     - redis
-  #     - django_nominopolitan_postgres
+  #     - ${DOCKER_PREFIX}_postgres
   #   environment:
   #     - DJANGO_LIFECYCLE_ENV=${DEPLOYMENT_ENV}
-  #     - DJANGO_SETTINGS_MODULE=django_nominopolitan.settings
+  #     - DJANGO_SETTINGS_MODULE=django_powercrud.settings
   #     - DJANGO_PROJECT_NAME=${PROJECT_DIR}
   #     - DATABASE_NAME=${DOCKER_PREFIX}_postgres_${DEPLOYMENT_ENV}
   #     - DATABASE_HOST=${DOCKER_PREFIX}_postgres_${DEPLOYMENT_ENV}
   #     - CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP=True
   #     - REDIS_PASSWORD=${REDIS_PASSWORD}
   #   working_dir: /home/${DEPLOYMENT_ENV}user/${PROJECT_DIR}
-  #   command: celery -A django_nominopolitan beat -l INFO
+  #   command: celery -A django_powercrud beat -l INFO
   #   volumes:
   #     - "${PWD}:/home/${DEPLOYMENT_ENV}user/${PROJECT_DIR}"
 
 volumes:
   pgadmin-data:
-    name: django_nominopolitan_pgadmin_data
+    name: ${DOCKER_PREFIX}_pgadmin_data
   redis_data:
-    name: django_nominopolitan_redis_data
-  django_nominopolitan_pgdata:
+    name: ${DOCKER_PREFIX}_redis_data
+  powercrud_pgdata:
     driver: local
-    name: django_nominopolitan_pgdata
+    name: ${DOCKER_PREFIX}_pgdata
 

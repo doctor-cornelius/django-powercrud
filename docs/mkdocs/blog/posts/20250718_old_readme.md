@@ -18,8 +18,8 @@ It is a **very early alpha** release. No tests. Limited docs. Expect many breaki
 
 **Templates**
 - Allow specification of `base_template_path` (to your `base.html` template)
-- Allow override of all `nominopolitan` templates by specifying `templates_path`
-- Management command `nm_mktemplate` to copy required `nominopolitan` template (analagous to `neapolitan`'s `mktemplate`)
+- Allow override of all `PowerCRUD` templates by specifying `templates_path`
+- Management command `pcrud_mktemplate` to copy required `PowerCRUD` template (analagous to `neapolitan`'s `mktemplate`)
 
 **Display**
 - Display related field name (using `str()`) in lists and details (instead of numeric id)
@@ -92,7 +92,7 @@ It is a **very early alpha** release. No tests. Limited docs. Expect many breaki
 - Supports `daisyUI` (v5, which uses tailwindcss v4) as default framework and `bootstrap5`. To use a different CSS framework:
     - Set `NOMINOPOLITAN_CSS_FRAMEWORK = '<framework_name>'` in `settings.py`
     - Create corresponding templates in your `templates_path` directory
-    - Override `NominopolitanMixin.get_framework_styles()` in your view to add your framework's styles,  
+    - Override `PowerCRUDMixin.get_framework_styles()` in your view to add your framework's styles,  
       set the `framework` key to the name of your framework and add the required values.
 
 **Pagination**
@@ -138,26 +138,26 @@ It is a **very early alpha** release. No tests. Limited docs. Expect many breaki
 
 Tailwind needs to scan all the classes used in your project. To do this @TODO
 
-If using a `tailwindcss` framework (including `daisyUI`) then you need to make sure that the classes from this package `nominopolitan` are included in your project's tailwind build. There are two ways to do this.
+If using a `tailwindcss` framework (including `daisyUI`) then you need to make sure that the classes from this package `PowerCRUD` are included in your project's tailwind build. There are two ways to do this.
 
 1. **Explicitly add using @source**. For `tailwindcss` v4, as per [these instructions](https://tailwindcss.com/docs/detecting-classes-in-source-files#explicitly-registering-sources), you need to use the `@source` command in your `tailwind.css` (or `main.css` or whatever you've called it).
 
     To detect the correct path for your package, you can use:
 
     ```python
-    >>>import django_nominopolitan 
-    >>>print(django_nominopolitan.__path__)
-    ['/usr/local/lib/python3.12/site-packages/nominopolitan']
+    >>>import django_powercrud 
+    >>>print(django_powercrud.__path__)
+    ['/usr/local/lib/python3.12/site-packages/PowerCRUD']
     ```
 
-    In which case you would enter `@source: "/usr/local/lib/python3.12/site-packages/nominopolitan";`, so the top part of your `tailwind.css` file would look like this:
+    In which case you would enter `@source: "/usr/local/lib/python3.12/site-packages/PowerCRUD";`, so the top part of your `tailwind.css` file would look like this:
 
     ```css
     @import "tailwindcss";`
-    @source "/usr/local/lib/python3.12/site-packages/nominopolitan";
+    @source "/usr/local/lib/python3.12/site-packages/PowerCRUD";
     ```
 
-2. **Management Command**. If you prefer not to follow the tailwindcss instructions (!) then you can run the included management command `nm_extract_tailwind_classes` as discussed in the management commands section below.
+2. **Management Command**. If you prefer not to follow the tailwindcss instructions (!) then you can run the included management command `pcrud_extract_tailwind_classes` as discussed in the management commands section below.
 
 **Forms**
 - if `form_class` is specified, it will be used 
@@ -182,7 +182,7 @@ Support for `crispy-forms` is enabled if it's installed in your project and the 
   - Generate its own `<form>` tag (causing nested forms)
   - Add its own CSRF token (causing duplicate tokens)
 
-- To prevent duplicating `<form>` and CSRF token issues, `nominopolitan` automatically adds a FormHelper to your form class with:
+- To prevent duplicating `<form>` and CSRF token issues, `PowerCRUD` automatically adds a FormHelper to your form class with:
   
   ```python
   self.helper = FormHelper()
@@ -190,14 +190,14 @@ Support for `crispy-forms` is enabled if it's installed in your project and the 
   self.helper.disable_csrf = True  # Don't add a CSRF token
   ```
 
-- **Important**: You do NOT need to add a FormHelper to your form class. Nominopolitan will add one for you.
+- **Important**: You do NOT need to add a FormHelper to your form class. PowerCRUD will add one for you.
 
 - **More Important**: If you DO have a FormHelper in your form class, be aware that `mixins._apply_crispy_helper()` will override your settings for `form_tag` and `disable_csrf`, **even if you have set them explicitly**
 
     - If you need to retain the default FormHelper settings for `form_tag` and `disable_csrf`, override the `_apply_crispy_helper()` method:
 
     ```python
-    class MyClassName(NominopolitanMixin, CRUDView):
+    class MyClassName(PowerCRUDMixin, CRUDView):
         def _apply_crispy_helper(self, form_class):
             # Either skip the parent method entirely:
             return form_class
@@ -259,12 +259,12 @@ Support for `crispy-forms` is enabled if it's installed in your project and the 
     - *current issue where if filters are displayed and you sort, the filters are hidden; just redisplay them with the button*
 
 **`sample` App**
-- `sample` app is a simple example of how to use `django_nominopolitan`. It's available in the repository and not part of the package.
+- `sample` app is a simple example of how to use `django_powercrud`. It's available in the repository and not part of the package.
 - it includes management commands `create_sample_data` and `delete_sample_data`
 
 **Management Commands**
 
-- `nm_extract_tailwind_classes`:
+- `pcrud_extract_tailwind_classes`:
     - Extracts all Tailwind CSS class names used in your templates and Python files
     - Useful for generating a safelist of classes that Tailwind should not purge during build
     - Scans both HTML templates and Python files for class="..." patterns
@@ -273,20 +273,20 @@ Support for `crispy-forms` is enabled if it's installed in your project and the 
         - `--output` command line parameter
     - Basic syntax:
         ```bash
-        python manage.py nm_extract_tailwind_classes [options]
+        python manage.py pcrud_extract_tailwind_classes [options]
         ```
     - Options:
         ```bash
         --pretty          # Print the output in a formatted, readable way
         --output PATH     # Specify custom output path (relative or absolute)
-                         # If directory is specified, nominopolitan_tailwind_safelist.json will be created inside it
+                         # If directory is specified, PowerCRUD_tailwind_safelist.json will be created inside it
                          # Examples:
-                         #   --output ./config            # Creates ./config/nominopolitan_tailwind_safelist.json
+                         #   --output ./config            # Creates ./config/PowerCRUD_tailwind_safelist.json
                          #   --output config/safelist.json # Uses exact filename
         ```
     - Output location priority:
         1. Custom path if `--output` is specified
-           - If directory: creates nominopolitan_tailwind_safelist.json inside it
+           - If directory: creates PowerCRUD_tailwind_safelist.json inside it
            - If file path: uses exact path
         2. Location specified in `NM_TAILWIND_SAFELIST_JSON_LOC` setting (relative to BASE_DIR)
         3. Raises an error if neither location is specified
@@ -297,15 +297,15 @@ Support for `crispy-forms` is enabled if it's installed in your project and the 
           content: [
             // ... your content paths
           ],
-          safelist: require('./nominopolitan_tailwind_safelist.json')
+          safelist: require('./PowerCRUD_tailwind_safelist.json')
         }
         ```
 
-- `nm_mktemplate`:
-    - Bootstraps CRUD templates from `nominopolitan` templates instead of `neapolitan` templates
+- `pcrud_mktemplate`:
+    - Bootstraps CRUD templates from `PowerCRUD` templates instead of `neapolitan` templates
     - Basic syntax:
         ```bash
-        python manage.py nm_mktemplate <target>
+        python manage.py pcrud_mktemplate <target>
         ```
     - The `target` can be either:
         - An app name (e.g., `myapp`) to copy the entire template structure
@@ -314,33 +314,33 @@ Support for `crispy-forms` is enabled if it's installed in your project and the 
     - Options for model-specific templates:
         ```bash
         # Copy all CRUD templates for a model
-        python manage.py nm_mktemplate myapp.Book --all
+        python manage.py pcrud_mktemplate myapp.Book --all
 
         # Copy individual templates
-        python manage.py nm_mktemplate myapp.Book --list      # List view template
-        python manage.py nm_mktemplate myapp.Book --detail    # Detail view template
-        python manage.py nm_mktemplate myapp.Book --form      # Form template
-        python manage.py nm_mktemplate myapp.Book --delete    # Delete confirmation template
+        python manage.py pcrud_mktemplate myapp.Book --list      # List view template
+        python manage.py pcrud_mktemplate myapp.Book --detail    # Detail view template
+        python manage.py pcrud_mktemplate myapp.Book --form      # Form template
+        python manage.py pcrud_mktemplate myapp.Book --delete    # Delete confirmation template
         ```
 
     - Templates will be copied to your app's template directory following Django's template naming conventions
     - If the target directory already exists, files will be overwritten with a warning
 
-- `nm_help`
-    - Displays the Nominopolitan README.md documentation in a paginated format
+- `pcrud_help`
+    - Displays the PowerCRUD README.md documentation in a paginated format
     - `--lines` to specify number of lines to display per page (default: 20)
     - `--all` to display entire content without pagination
 
 
 ## Installation and Dependencies
 
-Check [`pypoetry.toml`](https://github.com/doctor-cornelius/django-nominopolitan/blob/main/pyproject.toml) for the versions being used.
+Check [`pypoetry.toml`](https://github.com/doctor-cornelius/django-powercrud/blob/main/pyproject.toml) for the versions being used.
 
 ### Basic Installation
 
 Basic installation with pip:
 ```bash
-pip install django-nominopolitan
+pip install django-PowerCRUD
 ```
 
 This will automatically install:
@@ -352,24 +352,24 @@ This will automatically install:
 
 You must install `neapolitan` (version 24.8) as it's required for core functionality:
 ```bash
-pip install "django-nominopolitan[neapolitan]"
+pip install "django-PowerCRUD[neapolitan]"
 ```
 
 ### Optional Dependencies
 
 - HTMX support:
 ```bash
-pip install "django-nominopolitan[htmx]"
+pip install "django-PowerCRUD[htmx]"
 ```
 
 - Crispy Forms support (includes both `django-crispy-forms` and `crispy-bootstrap5`):
 ```bash
-pip install "django-nominopolitan[crispy]"
+pip install "django-PowerCRUD[crispy]"
 ```
 
 You can combine multiple optional dependencies:
 ```bash
-pip install "django-nominopolitan[neapolitan,htmx,crispy]"
+pip install "django-PowerCRUD[neapolitan,htmx,crispy]"
 ```
 
 ### Frontend Dependencies
@@ -384,7 +384,7 @@ These JavaScript and CSS libraries must be included in your base template:
    - DaisyUI
    - Bootstrap Icons (for sorting indicators)
 
-See the example base template in `django_nominopolitan/templates/django_nominopolitan/base.html` for a complete implementation with CDN links.
+See the example base template in `django_powercrud/templates/django_powercrud/base.html` for a complete implementation with CDN links.
 
 ## Configuration
 
@@ -393,7 +393,7 @@ Add to your `settings.py`:
 # Required settings
 INSTALLED_APPS = [
     ...
-    "nominopolitan",
+    "PowerCRUD",
     "neapolitan",
     "django_htmx",    # if using htmx features
     ...
@@ -401,13 +401,13 @@ INSTALLED_APPS = [
 
 # Optional: Configure Tailwind safelist location (relative to BASE_DIR)
 # Example: if BASE_DIR = '/home/user/myproject'
-NM_TAILWIND_SAFELIST_JSON_LOC = 'config/templates/nominopolitan/'  
-# This will create: /home/user/myproject/config/templates/nominopolitan/nominopolitan_tailwind_safelist.json
+NM_TAILWIND_SAFELIST_JSON_LOC = 'config/templates/powercrud/'  
+# This will create: /home/user/myproject/config/templates/powercrud/PowerCRUD_tailwind_safelist.json
 # when the management command ./manage.oy 
 
 # Important: After adding the setting, you must manually run the following command
 # to extract Tailwind classes from your templates and prevent them from being purged:
-python manage.py nm_extract_tailwind_classes --pretty
+python manage.py pcrud_extract_tailwind_classes --pretty
 
 # Note: This command requires either:
 # 1. The NM_TAILWIND_SAFELIST_JSON_LOC setting above, or
@@ -434,13 +434,13 @@ class ProjectView(CRUDView):
     fields = ["name", "owner", "last_review", "has_tests", "has_docs", "status"]
 ```
 
-The `nominopolitan` mixin adds a number of features to this. The values below are indicative examples.
+The `PowerCRUD` mixin adds a number of features to this. The values below are indicative examples.
 
 ```python
-from nominopolitan.mixins import NominopolitanMixin
+from powercrud.mixins import PowerCRUDMixin
 from neapolitan.views import CRUDView
 
-class ProjectCRUDView(NominopolitanMixin, CRUDView):
+class ProjectCRUDView(PowerCRUDMixin, CRUDView):
     # *******************************************************************
     # Standard neapolitan attributes
     model = models.Project # this is mandatory
@@ -454,7 +454,7 @@ class ProjectCRUDView(NominopolitanMixin, CRUDView):
     # check the code in neapolitan.views.CRUDView for all available attributes
 
     # ******************************************************************
-    # nominopolitan attributes
+    # PowerCRUD attributes
     namespace = "my_app_name" # specify the namespace (optional)
         # if your urls.py has app_name = "my_app_name"
 
@@ -493,7 +493,7 @@ class ProjectCRUDView(NominopolitanMixin, CRUDView):
 
     # filtersets
     filterset_fields = ["name", "project_owner", "project_manager", "due_date",]
-        # this is a standard neapolitan parameter, but nominopolitan converts this 
+        # this is a standard neapolitan parameter, but PowerCRUD converts this 
         # to a more elaborate filterset class
 
     # Forms
@@ -502,10 +502,10 @@ class ProjectCRUDView(NominopolitanMixin, CRUDView):
         # if you set it to False with crispy-forms installed, it will resolve to False
 
     # Templates
-    base_template_path = "core/base.html" # defaults to inbuilt "nominopolitan/base.html"
+    base_template_path = "core/base.html" # defaults to inbuilt "powercrud/base.html"
     templates_path = "myapp" # if you want to override all the templates in another app
-        # or include one of your own apps; eg templates_path = "my_app_name/nominopolitan" 
-        # and then place in my_app_name/templates/my_app_name/nominopolitan
+        # or include one of your own apps; eg templates_path = "my_app_name/PowerCRUD" 
+        # and then place in my_app_name/templates/my_app_name/PowerCRUD
 
     # table display parameters
     table_pixel_height_other_page_elements = 100 # this will be expressed in pixels
@@ -538,17 +538,17 @@ class ProjectCRUDView(NominopolitanMixin, CRUDView):
 
 
     use_modal = True #If you want to use the modal specified in object_list.html for all action links.
-        # This will target the modal (id="nominopolitanModalContent") specified in object_list.html
+        # This will target the modal (id="powercrudModalContent") specified in object_list.html
         # Requires:
             # use_htmx = True
             # Alpine installed in your base template
             # htmx installed in your base template
             # django_htmx installed and configured in your settings
 
-    modal_id = "myCustomModalId" # Allows override of the default modal id "nominopolitanBaseModal"
+    modal_id = "myCustomModalId" # Allows override of the default modal id "powercrudBaseModal"
 
     modal_target = "myCustomModalContent" # Allows override of the default modal target
-        # which is #nominopolitanModalContent. Useful if for example
+        # which is #powercrudModalContent. Useful if for example
         # the project has a modal with a different id available
         # eg in the base template. This is where the modal content will be rendered.
 
@@ -558,7 +558,7 @@ class ProjectCRUDView(NominopolitanMixin, CRUDView):
             "url_name": "fstp:home",        # namespace:url_pattern
             "text": "Home Again",           # text to display on button
             "button_class": "btn-success",  # intended as semantic colour for button
-                # defaults to NominopolitanMixin.get_framework_styles()['extra_default']
+                # defaults to PowerCRUDMixin.get_framework_styles()['extra_default']
             "htmx_target": "content",       # relevant only if use_htmx is True. Disregarded if display_modal is True
             "display_modal": True,         # if the button should display a modal.
                 # Note: modal will auto-close after any form submission
@@ -568,7 +568,7 @@ class ProjectCRUDView(NominopolitanMixin, CRUDView):
             # extra class attributes will override automatically determined class attrs if duplicated
             "extra_class_attrs": "rounded-pill border border-dark", 
         },
-        # below example if want to use own modal not nominopolitan's
+        # below example if want to use own modal not PowerCRUD's
         {
             "url_name": "fstp:home",
             "text": "Home in Own Modal!",

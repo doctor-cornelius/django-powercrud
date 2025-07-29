@@ -2,7 +2,7 @@
 
 ## Overview
 
-The `sample` app provides a comprehensive demonstration of django-nominopolitan features using a realistic book/author management system. It serves as both a testing environment during development and a reference implementation for developers learning the package.
+The `sample` app provides a comprehensive demonstration of django-PowerCRUD features using a realistic book/author management system. It serves as both a testing environment during development and a reference implementation for developers learning the package.
 
 ## Models
 
@@ -40,12 +40,12 @@ The sample app includes four interconnected models that showcase different relat
 
 ## CRUD Views
 
-Each model has a dedicated CRUD view demonstrating different nominopolitan features:
+Each model has a dedicated CRUD view demonstrating different PowerCRUD features:
 
 ### BookCRUDView - Full Feature Demo
 
 ```python
-class BookCRUDView(NominopolitanMixin, CRUDView):
+class BookCRUDView(PowerCRUDMixin, CRUDView):
     # Comprehensive configuration showing:
     bulk_fields = ['title', 'published_date', 'bestseller', 'pages', 'author', 'genres']
     bulk_delete = True
@@ -168,9 +168,9 @@ class BookCRUDView(NominopolitanMixin, CRUDView):
 
 The sample app is designed to be:
 
-- **Comprehensive**: Covers all major nominopolitan features
+- **Comprehensive**: Covers all major PowerCRUD features
 - **Realistic**: Uses believable domain models and relationships  
 - **Educational**: Clear examples of configuration patterns
 - **Extensible**: Easy to add new models or features for testing
 
-When developing new nominopolitan features, add corresponding examples to the sample app to ensure comprehensive testing coverage.
+When developing new PowerCRUD features, add corresponding examples to the sample app to ensure comprehensive testing coverage.

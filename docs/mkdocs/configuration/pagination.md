@@ -5,7 +5,7 @@ Enable pagination with user-selectable page sizes and HTMX integration.
 ## Basic Setup
 
 ```python
-class BookCRUDView(NominopolitanMixin, CRUDView):
+class BookCRUDView(PowerCRUDMixin, CRUDView):
     model = models.Book
     base_template_path = "core/base.html"
     fields = ["title", "author", "published_date"]
@@ -28,7 +28,7 @@ When pagination is enabled:
 With `use_htmx = True`, pagination updates without page reloads:
 
 ```python
-class BookCRUDView(NominopolitanMixin, CRUDView):
+class BookCRUDView(PowerCRUDMixin, CRUDView):
     model = models.Book
     base_template_path = "core/base.html"
     paginate_by = 25

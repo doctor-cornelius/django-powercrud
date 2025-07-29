@@ -4,11 +4,11 @@ Essential settings that control field display, templates, and basic view behavio
 
 ## Convention Over Configuration
 
-Nominopolitan follows Django's "convention over configuration" philosophy. You only need to specify what differs from sensible defaults:
+PowerCRUD follows Django's "convention over configuration" philosophy. You only need to specify what differs from sensible defaults:
 
 ```python
 # Minimum configuration - just specify your model
-class ProjectCRUDView(NominopolitanMixin, CRUDView):
+class ProjectCRUDView(PowerCRUDMixin, CRUDView):
     model = models.Project
     base_template_path = "core/base.html"
     # Everything else has sensible defaults
@@ -17,7 +17,7 @@ class ProjectCRUDView(NominopolitanMixin, CRUDView):
 There are two required parameters:
 
 - `model`. All other settings have defaults that work for most cases.
-- `base_template_path` , which defaults to the inbuilt `nominopolitan/base.html`. But this is unlikely to be relevant to your project or app. So it's important to specify the path to your actual base template.
+- `base_template_path` , which defaults to the inbuilt `powercrud/base.html`. But this is unlikely to be relevant to your project or app. So it's important to specify the path to your actual base template.
 
 ## Field Control
 
@@ -26,7 +26,7 @@ There are two required parameters:
 Control which model fields appear in your views:
 
 ```python
-class ProjectCRUDView(NominopolitanMixin, CRUDView):
+class ProjectCRUDView(PowerCRUDMixin, CRUDView):
     model = models.Project
     
     # Include specific fields
@@ -46,7 +46,7 @@ class ProjectCRUDView(NominopolitanMixin, CRUDView):
 Include model `@property` methods alongside regular fields:
 
 ```python
-class ProjectCRUDView(NominopolitanMixin, CRUDView):
+class ProjectCRUDView(PowerCRUDMixin, CRUDView):
     model = models.Project
     fields = ["name", "owner", "status"]
     
@@ -69,7 +69,7 @@ class ProjectCRUDView(NominopolitanMixin, CRUDView):
 Show different fields in detail views than in list views:
 
 ```python
-class ProjectCRUDView(NominopolitanMixin, CRUDView):
+class ProjectCRUDView(PowerCRUDMixin, CRUDView):
     model = models.Project
     fields = ["name", "owner", "status"]  # List view
     
@@ -100,35 +100,35 @@ class ProjectCRUDView(NominopolitanMixin, CRUDView):
 Point to your project's base template:
 
 ```python
-class ProjectCRUDView(NominopolitanMixin, CRUDView):
+class ProjectCRUDView(PowerCRUDMixin, CRUDView):
     model = models.Project
     base_template_path = "core/base.html"  # Default: framework-specific base
 ```
 
 ### Template Overrides
 
-Override Nominopolitan templates with your own:
+Override PowerCRUD templates with your own:
 
 ```python
-class ProjectCRUDView(NominopolitanMixin, CRUDView):
+class ProjectCRUDView(PowerCRUDMixin, CRUDView):
     model = models.Project
     templates_path = "myapp/custom"  # Look in myapp/templates/myapp/custom/
 ```
 
-This looks for templates in your specified path instead of the default Nominopolitan templates.
+This looks for templates in your specified path instead of the default PowerCRUD templates.
 
 ### Bootstrap Templates
 
-Copy Nominopolitan templates to your project for customization:
+Copy PowerCRUD templates to your project for customization:
 
 ```bash
 # Copy all templates for an app
-python manage.py nm_mktemplate myapp
+python manage.py pcrud_mktemplate myapp
 
 # Copy specific model templates
-python manage.py nm_mktemplate myapp.Project --all
-python manage.py nm_mktemplate myapp.Project --list    # Just list view
-python manage.py nm_mktemplate myapp.Project --form    # Just form templates
+python manage.py pcrud_mktemplate myapp.Project --all
+python manage.py pcrud_mktemplate myapp.Project --list    # Just list view
+python manage.py pcrud_mktemplate myapp.Project --form    # Just form templates
 ```
 
 Templates are copied to your app's template directory following Django conventions.
@@ -140,7 +140,7 @@ Templates are copied to your app's template directory following Django conventio
 Organize URLs to avoid conflicts:
 
 ```python
-class ProjectCRUDView(NominopolitanMixin, CRUDView):
+class ProjectCRUDView(PowerCRUDMixin, CRUDView):
     model = models.Project
     namespace = "projects"  # Must match app_name in urls.py
 ```
@@ -160,7 +160,7 @@ class ProjectCRUDView(NominopolitanMixin, CRUDView):
 Override the default URL pattern:
 
 ```python
-class ProjectCRUDView(NominopolitanMixin, CRUDView):
+class ProjectCRUDView(PowerCRUDMixin, CRUDView):
     model = models.Project
     url_base = "active_projects"  # Instead of default "project"
 ```
@@ -171,7 +171,7 @@ Useful when you have multiple CRUD views for the same model with different confi
 
 ### Automatic Improvements
 
-Nominopolitan automatically enhances display:
+PowerCRUD automatically enhances display:
 
 - **Related fields**: Shows `str(related_object)` instead of numeric IDs
 - **Reactive headers**: Page titles update without reload when using HTMX
@@ -183,14 +183,14 @@ These work automatically - no configuration needed.
 
 ### Minimal Configuration
 ```python
-class BookCRUDView(NominopolitanMixin, CRUDView):
+class BookCRUDView(PowerCRUDMixin, CRUDView):
     model = models.Book
     # Uses all defaults - shows all fields, no properties
 ```
 
 ### List vs Detail Fields
 ```python
-class BookCRUDView(NominopolitanMixin, CRUDView):
+class BookCRUDView(PowerCRUDMixin, CRUDView):
     model = models.Book
     
     # Minimal list view
@@ -203,7 +203,7 @@ class BookCRUDView(NominopolitanMixin, CRUDView):
 
 ### Custom Templates
 ```python
-class BookCRUDView(NominopolitanMixin, CRUDView):
+class BookCRUDView(PowerCRUDMixin, CRUDView):
     model = models.Book
     
     # Use custom base template
@@ -231,7 +231,7 @@ class Book(models.Model):
     reading_time.fget.short_description = "Est. Reading Time"
 
 # In your view
-class BookCRUDView(NominopolitanMixin, CRUDView):
+class BookCRUDView(PowerCRUDMixin, CRUDView):
     model = models.Book
     properties = ["reading_time"]  # Uses custom title
 ```
@@ -249,7 +249,7 @@ class BookCRUDView(NominopolitanMixin, CRUDView):
 | `detail_properties` | list/str | `None` | Properties to show in detail view |
 | `detail_properties_exclude` | list | `[]` | Properties to exclude from detail view |
 | `base_template_path` | str | Framework-specific | Path to your base template |
-| `templates_path` | str | `"nominopolitan/{framework}"` | Path to override templates |
+| `templates_path` | str | `"powercrud/{framework}"` | Path to override templates |
 | `namespace` | str | `None` | URL namespace (must match urls.py) |
 | `url_base` | str | Model name | Base for URL patterns |
 

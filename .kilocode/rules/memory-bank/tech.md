@@ -5,7 +5,7 @@
 ### Backend Framework
 - **Django 5.1+** - Primary web framework
 - **Python 3.12** - Programming language
-- **neapolitan 24.8+** - Base CRUD view package that Nominopolitan extends
+- **neapolitan 24.8+** - Base CRUD view package that PowerCRUD extends
 
 ### Frontend Technologies
 - **HTMX** - Reactive web interactions without complex JavaScript
@@ -96,7 +96,7 @@
 ```python
 # Required settings
 INSTALLED_APPS = [
-    "nominopolitan",
+    "PowerCRUD",
     "neapolitan", 
     "django_htmx",
     "template_partials",
@@ -113,7 +113,7 @@ NM_TAILWIND_SAFELIST_JSON_LOC = 'path/to/safelist/'
 
 # django-q2 settings
 Q_CLUSTER = {
-    'name': 'nominopolitan',
+    'name': 'PowerCRUD',
     'workers': 1,
     'recycle': 500,
     'timeout': 250,
@@ -165,7 +165,7 @@ TEMPLATES = [{
 
 ### Core Models
 ```python
-# nominopolitan/models.py
+# powercrud/models.py
 class BulkTask(models.Model):
     """Tracks bulk operations for progress monitoring"""
     user = models.ForeignKey(settings.AUTH_USER_MODEL)
@@ -180,7 +180,7 @@ class BulkTask(models.Model):
 ### Session Data Structure
 ```python
 # Session storage for bulk selections and state
-session['nominopolitan'] = {
+session['PowerCRUD'] = {
     'bulk_selected': [list_of_ids],
     'filter_state': {dict_of_filters},
     'pagination_preferences': {dict_of_settings}
@@ -192,14 +192,14 @@ session['nominopolitan'] = {
 ### Management Commands
 ```bash
 # Template bootstrapping
-python manage.py nm_mktemplate app.Model --all
-python manage.py nm_mktemplate app.Model --list
+python manage.py pcrud_mktemplate app.Model --all
+python manage.py pcrud_mktemplate app.Model --list
 
 # Tailwind class extraction
-python manage.py nm_extract_tailwind_classes --pretty
+python manage.py pcrud_extract_tailwind_classes --pretty
 
 # Documentation display
-python manage.py nm_help --lines 50
+python manage.py pcrud_help --lines 50
 ```
 
 ### Development Workflow

@@ -6,7 +6,7 @@
 
 ```bash
 pip install neapolitan
-pip install django-nominopolitan
+pip install django-PowerCRUD
 ```
 
 This automatically installs:
@@ -37,7 +37,7 @@ You'll need to include these JavaScript libraries in your base template:
 
     Bootstrap templates are currently out of date as all recent development has focused on `daisyUI`. Once async support is finalised and tested, Bootstrap templates will either be updated or removed.
 
-See the example base template in `django_nominopolitan/templates/django_nominopolitan/base.html` for a complete implementation with CDN links.
+See the example base template in `django_powercrud/templates/django_powercrud/base.html` for a complete implementation with CDN links.
 
 ## Settings Configuration
 
@@ -47,7 +47,7 @@ Add to your `settings.py`:
 # Required settings
 INSTALLED_APPS = [
     ...
-    "nominopolitan",
+    "PowerCRUD",
     "neapolitan",
     "django_htmx",
     ...
@@ -57,7 +57,7 @@ INSTALLED_APPS = [
 NOMINOPOLITAN_CSS_FRAMEWORK = 'daisyui'  # or 'bootstrap5'
 ```
 
-**Important:** If using Tailwind CSS (default), ensure Tailwind includes Nominopolitan's classes in its build process. See [Styling Configuration](configuration/styling.md#tailwind-css-setup) for details.
+**Important:** If using Tailwind CSS (default), ensure Tailwind includes PowerCRUD's classes in its build process. See [Styling Configuration](configuration/styling.md#tailwind-css-setup) for details.
 
 ## Quick Start Tutorial
 
@@ -66,11 +66,11 @@ NOMINOPOLITAN_CSS_FRAMEWORK = 'daisyui'  # or 'bootstrap5'
 The best starting point is [`neapolitan`'s docs](https://noumenal.es/neapolitan/). Start with a basic CRUD view:
 
 ```python
-from nominopolitan.mixins import NominopolitanMixin
+from powercrud.mixins import PowerCRUDMixin
 from neapolitan.views import CRUDView
 from . import models
 
-class ProjectCRUDView(NominopolitanMixin, CRUDView):
+class ProjectCRUDView(PowerCRUDMixin, CRUDView):
     model = models.Project
     fields = ["name", "owner", "last_review", "status"]
     base_template_path = "core/base.html"
@@ -91,10 +91,10 @@ urlpatterns = [
 
 ### Your First Enhanced View
 
-Add some Nominopolitan features:
+Add some PowerCRUD features:
 
 ```python
-class ProjectCRUDView(NominopolitanMixin, CRUDView):
+class ProjectCRUDView(PowerCRUDMixin, CRUDView):
     model = models.Project
     base_template_path = "core/base.html"
     

@@ -1,8 +1,8 @@
-# Django Nominopolitan - Product Overview
+# Django PowerCRUD - Product Overview
 
 ## Purpose & Vision
 
-Django Nominopolitan exists to bridge the gap between Django's basic CRUD functionality and modern web application requirements. It transforms the excellent but minimal `neapolitan` package into a production-ready toolkit for building responsive, feature-rich admin interfaces and data management systems.
+Django PowerCRUD exists to bridge the gap between Django's basic CRUD functionality and modern web application requirements. It transforms the excellent but minimal `neapolitan` package into a production-ready toolkit for building responsive, feature-rich admin interfaces and data management systems.
 
 ## Problems It Solves
 
@@ -25,10 +25,10 @@ Django Nominopolitan exists to bridge the gap between Django's basic CRUD functi
 ## How It Works
 
 ### Core Architecture
-Nominopolitan uses a **mixin-based architecture** that extends neapolitan's `CRUDView`:
+PowerCRUD uses a **mixin-based architecture** that extends neapolitan's `CRUDView`:
 
 ```python
-class MyView(NominopolitanMixin, CRUDView):
+class MyView(PowerCRUDMixin, CRUDView):
     model = MyModel
     # Rich configuration options available
 ```
@@ -116,4 +116,4 @@ class MyView(NominopolitanMixin, CRUDView):
 
 ## Future Vision
 
-Nominopolitan aims to become the go-to solution for Django CRUD interfaces, potentially contributing features back to the core `neapolitan` package. The goal is to provide a comprehensive toolkit that handles 80% of CRUD use cases out of the box while remaining flexible enough for custom requirements.
+PowerCRUD aims to become the go-to solution for Django CRUD interfaces, potentially contributing features back to the core `neapolitan` package. The goal is to provide a comprehensive toolkit that handles 80% of CRUD use cases out of the box while remaining flexible enough for custom requirements.

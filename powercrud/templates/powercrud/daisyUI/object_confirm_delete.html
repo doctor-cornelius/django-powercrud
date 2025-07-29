@@ -1,0 +1,70 @@
+{% extends base_template_path %}
+{% load PowerCRUD %}
+{% load partials %}
+
+{% block content %}
+    {% partial pcrud_content %}
+{% endblock %}
+
+{% partialdef pcrud_content %}
+    <div class="card bg-base-100 shadow-xl">
+        {% if conflict_detected %}
+            {% partial conflict_detected %}
+        {% else %}
+            {% partial normal_content %}
+        {% endif %}
+    </div>
+{% endpartialdef pcrud_content %}
+
+{% partialdef conflict_detected %}
+<div class="card-body text-center">
+    <div class="bg-warning text-warning-content px-4 py-2 rounded-lg mb-4">
+        <h3 class="text-lg font-semibold">Edit Conflict</h3>
+    </div>
+    <p class="text-lg">{{ conflict_message }}</p>
+    <h2 class="text-lg opacity-60 mt-4">{{ object }}</h2>
+
+    {% comment %}Only show button when NOT using modals{% endcomment %}
+    {% if not use_modal %}
+    <div class="card-actions justify-end mt-4">
+        {% if use_htmx %}
+        <button type="button" class="btn btn-outline" hx-get="{{ list_view_url }}"
+            hx-vals='{"page_size": "{{ request.GET.page_size|default:default_page_size }}"}' hx-target="{{ original_target }}"
+            hx-push-url="true">Return to List
+        </button>
+        {% else %}
+        <a href="{{ list_view_url }}" class="btn btn-outline">Return to List</a>
+
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endpartialdef conflict_detected %}
+
+{% partialdef normal_content %}
+<div class="card-body">
+    <p class="text-lg">Are you sure you want to delete the following {{ object_verbose_name }}?</p>
+    <h2 class="card-title justify-center my-2 text-error">{{ object }}</h2>
+
+    <form method="POST" action="{{ delete_view_url }}" {% if use_htmx and original_target %}
+        hx-post="{{ delete_view_url }}" hx-target="{{ original_target }}" hx-push-url="false"
+        hx-headers='{"X-Redisplay-Object-List": "true"}' {% endif %}>
+        {% csrf_token %}
+
+        {# Add hidden fields for all current GET params except csrf, page, and form fields #}
+        {% for key, values in request.GET.lists %}
+        {% if key != 'csrfmiddlewaretoken' and key != 'page' %}
+        {% for value in values %}
+        <input type="hidden" name="_PowerCRUD_filter_{{ key }}" value="{{ value }}">
+        {% endfor %}
+        {% endif %}
+        {% endfor %}
+
+
+        {{ form }}
+        <div class="card-actions justify-end">
+            <button type="submit" class="btn btn-error">Delete</button>
+        </div>
+    </form>
+</div>
+{% endpartialdef normal_content %}

@@ -1,5 +1,5 @@
 {
-  "name": "django_nominopolitan",
+  "name": "django_powercrud",
   "version": "1.0.0",
   "description": "This is an opinionated extension package for the excellent [`neapolitan`](https://github.com/carltongibson/neapolitan/tree/main) package.",
   "dependencies": {
@@ -171,13 +171,13 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/doctor-cornelius/django-nominopolitan.git"
+    "url": "git+https://github.com/doctor-cornelius/django-powercrud.git"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/doctor-cornelius/django-nominopolitan/issues"
+    "url": "https://github.com/doctor-cornelius/django-powercrud/issues"
   },
-  "homepage": "https://github.com/doctor-cornelius/django-nominopolitan#readme"
+  "homepage": "https://github.com/doctor-cornelius/django-PowerCRUD#readme"
 }

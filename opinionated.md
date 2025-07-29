@@ -6,7 +6,7 @@ I was thinking about the difference between opinionated and non-opinionated pack
 
 ### Understanding Opinionated Packages:
 - **Enforce specific workflows** based on strong conventions
-- Provide **prescriptive defaults** (like Bootstrap 5 in nominopolitan)
+- Provide **prescriptive defaults** (like Bootstrap 5 in PowerCRUD)
 - Make **integrated technology choices** (HTMX, Alpine.js, Crispy Forms)
 - **Reduce flexibility** but improve consistency and developer experience
 - Follow **convention over configuration**
@@ -27,7 +27,7 @@ I was thinking about the difference between opinionated and non-opinionated pack
 ## 2. Architecture for Extensions
 
 ### Respect the Base Package:
-- Extend rather than replace (like nominopolitan uses mixins with neapolitan)
+- Extend rather than replace (like PowerCRUD uses mixins with neapolitan)
 - Maintain compatibility with the parent package's API
 - Follow Django's "explicit is better than implicit" philosophy
 

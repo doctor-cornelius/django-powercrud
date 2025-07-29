@@ -22,7 +22,7 @@ The implementation will support multiple async backends while maintaining backwa
 ## Configuration Options
 
 ```python
-class NominopolitanMixin:
+class PowerCRUDMixin:
    bulk_async = True  # Default enabled since django-q2 included
    bulk_min_async_records = 20  # Sync for operations below this threshold
    bulk_async_backend = 'q2'  # 'q2', 'celery', 'asgi' (future)
@@ -175,7 +175,7 @@ def bulk_edit_process_post(self, request, queryset, bulk_fields):
        )
         
        # Queue async task
-       async_task('nominopolitan.tasks.bulk_edit_task', 
+       async_task('powercrud.tasks.bulk_edit_task', 
                  task.id, selected_ids, field_data)
         
        # Return async success response via HX-Trigger
@@ -269,13 +269,13 @@ def bulk_edit_process_post(self, request, queryset, bulk_fields):
     5.2.1 ✅ Implement HTMX event listeners for async queuing success.
 
       - Add JavaScript in `object_list.html` to listen for `bulkEditQueued` HTMX trigger. All it does is call `clearSelectionOptimistic`
-      - Create new partial `aync_queue_success` in `nominopolitan/templates/nominopolitan/daisyUI/bulk_edit_form.html` for success message.
+      - Create new partial `aync_queue_success` in `powercrud/templates/powercrud/daisyUI/bulk_edit_form.html` for success message.
       - From `_handle_async_bulk_operation` return the partial with trigger `bulkEditQueued` and target `self.get_modal_target()`
 
     5.2.2 ✅ Implement HTMX event listeners for async queuing failure.
 
       - No need for a handler since modal will stay open and `selected_ids` will not be cleared
-      - Create new partial `aync_queue_failure` in `nominopolitan/templates/nominopolitan/daisyUI/bulk_edit_errors.html` for failure message.
+      - Create new partial `aync_queue_failure` in `powercrud/templates/powercrud/daisyUI/bulk_edit_errors.html` for failure message.
       - From `_handle_async_bulk_operation` return the partial with trigger `bulkEditFailed` and target `self.get_modal_target()`
 
     5.2.3 ✅ Implement async operation completion hook.

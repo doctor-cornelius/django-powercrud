@@ -1,4 +1,4 @@
-site_name: Django Nominopolitan
+site_name: Django PowerCRUD
 site_author: Michael Foulds
 
 nav:
@@ -9,7 +9,7 @@ docs_dir: docs/mkdocs
 site_dir: docs/site
 
 dev_addr: 0.0.0.0:10005
-repo_url: https://github.com/doctor-cornelius/django-nominopolitan
+repo_url: https://github.com/doctor-cornelius/django-powercrud
 edit_uri: blob/mkdocs/docs/
 
 # ------------------------------------------------------------------

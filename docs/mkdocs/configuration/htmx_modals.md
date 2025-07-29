@@ -33,13 +33,13 @@ INSTALLED_APPS = [
 
 The default modal is defined in `object_list.html` with:
 
-- **Modal ID**: `nominopolitanBaseModal`
-- **Content target**: `nominopolitanModalContent`
+- **Modal ID**: `powercrudBaseModal`
+- **Content target**: `powercrudModalContent`
 
 To use your own modal, override these settings:
 
 ```python
-class ProjectCRUDView(NominopolitanMixin, CRUDView):
+class ProjectCRUDView(PowerCRUDMixin, CRUDView):
     model = models.Project
     use_htmx = True
     use_modal = True
@@ -52,14 +52,14 @@ class ProjectCRUDView(NominopolitanMixin, CRUDView):
 
 ### Enable HTMX
 ```python
-class ProjectCRUDView(NominopolitanMixin, CRUDView):
+class ProjectCRUDView(PowerCRUDMixin, CRUDView):
     model = models.Project
     use_htmx = True
 ```
 
 ### Enable Modals
 ```python
-class ProjectCRUDView(NominopolitanMixin, CRUDView):
+class ProjectCRUDView(PowerCRUDMixin, CRUDView):
     model = models.Project
     use_htmx = True   # Required
     use_modal = True  # All CRUD actions open in modals
@@ -71,7 +71,7 @@ class ProjectCRUDView(NominopolitanMixin, CRUDView):
 Control where HTMX responses are rendered:
 
 ```python
-class ProjectCRUDView(NominopolitanMixin, CRUDView):
+class ProjectCRUDView(PowerCRUDMixin, CRUDView):
     model = models.Project
     use_htmx = True
     
@@ -83,7 +83,7 @@ class ProjectCRUDView(NominopolitanMixin, CRUDView):
 HTMX triggers fire custom JavaScript events after server responses, enabling client-side reactions like notifications, UI updates, or data refreshes:
 
 ```python
-class ProjectCRUDView(NominopolitanMixin, CRUDView):
+class ProjectCRUDView(PowerCRUDMixin, CRUDView):
     model = models.Project
     use_htmx = True
     
@@ -111,15 +111,15 @@ document.addEventListener('showMessage', function(e) {
 Override default modal configuration:
 
 ```python
-class ProjectCRUDView(NominopolitanMixin, CRUDView):
+class ProjectCRUDView(PowerCRUDMixin, CRUDView):
     model = models.Project
     use_htmx = True
     use_modal = True
     
-    # Custom modal ID (default: "nominopolitanBaseModal")
+    # Custom modal ID (default: "powercrudBaseModal")
     modal_id = "projectModal"
     
-    # Custom content target (default: "nominopolitanModalContent")
+    # Custom content target (default: "powercrudModalContent")
     modal_target = "projectModalContent"
 ```
 
@@ -131,14 +131,14 @@ class ProjectCRUDView(NominopolitanMixin, CRUDView):
 | `use_modal` | bool | `None` | Enable modal dialogs for CRUD operations |
 | `default_htmx_target` | str | `'#content'` | Default target for HTMX responses |
 | `hx_trigger` | str/dict | `None` | Custom HTMX triggers for responses |
-| `modal_id` | str | `"nominopolitanBaseModal"` | ID of modal container |
-| `modal_target` | str | `"nominopolitanModalContent"` | Target for modal content |
+| `modal_id` | str | `"powercrudBaseModal"` | ID of modal container |
+| `modal_target` | str | `"powercrudModalContent"` | Target for modal content |
 
 ## Examples
 
 ### Basic Setup
 ```python
-class BookCRUDView(NominopolitanMixin, CRUDView):
+class BookCRUDView(PowerCRUDMixin, CRUDView):
     model = models.Book
     use_htmx = True
     use_modal = True
@@ -151,7 +151,7 @@ class BookCRUDView(NominopolitanMixin, CRUDView):
 
 ### Custom Modal Integration
 ```python
-class TaskCRUDView(NominopolitanMixin, CRUDView):
+class TaskCRUDView(PowerCRUDMixin, CRUDView):
     model = models.Task
     use_htmx = True
     use_modal = True

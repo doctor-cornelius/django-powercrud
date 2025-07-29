@@ -36,14 +36,14 @@ The development environment consists of five main services:
 
 === "Core Services"
 
-    **🐍 Django Application (`django_nominopolitan_django`)**
+    **🐍 Django Application (`django_powercrud_django`)**
 
     - Main application container running Django
     - Includes all Python dependencies via Poetry
     - Mounts project directory for live code changes
     - Exposes port 8001 for web access
 
-    **🗄️ PostgreSQL Database (`django_nominopolitan_postgres`)**
+    **🗄️ PostgreSQL Database (`django_powercrud_postgres`)**
 
     - Production-grade database for testing concurrency scenarios
     - Enables proper testing of async features and database locks
@@ -52,7 +52,7 @@ The development environment consists of five main services:
 
 === "Development Tools"
 
-    **⚡ Vite Dev Server (`django_nominopolitan_vite`)**
+    **⚡ Vite Dev Server (`django_powercrud_vite`)**
 
     - Dedicated container for frontend asset compilation
     - Hot Module Replacement (HMR) for instant CSS/JS updates
@@ -175,7 +175,7 @@ cz commit  # Interactive conventional commit
 
 ### Internal Network
 
-- **Django ↔ PostgreSQL**: `django_nominopolitan_postgres_dev:5432`
+- **Django ↔ PostgreSQL**: `django_powercrud_postgres_dev:5432`
 - **Django ↔ Redis**: `redis:6379` 
 - **Django ↔ Vite**: `localhost:5174` (via host networking)
 
@@ -192,8 +192,8 @@ cz commit  # Interactive conventional commit
 
 ```yaml
 volumes:
-  - "${PWD}:/home/devuser/django_nominopolitan"     # Live code editing
-  - "/home/devuser/django_nominopolitan/node_modules"  # Preserve npm packages
+  - "${PWD}:/home/devuser/django_powercrud"     # Live code editing
+  - "/home/devuser/django_powercrud/node_modules"  # Preserve npm packages
   - "${HOME}/.ssh:/home/devuser/.ssh"               # Git authentication
   - "${HOME}/.gitconfig:/home/devuser/.gitconfig"   # Git configuration
 ```
@@ -202,7 +202,7 @@ volumes:
 
 ```yaml
 volumes:
-  - django_nominopolitan_pgdata:/var/lib/postgresql/data  # Database persistence
+  - django_powercrud_pgdata:/var/lib/postgresql/data  # Database persistence
   - redis_data:/data                                      # Redis persistence  
   - pgadmin-data:/var/lib/pgadmin                        # pgAdmin settings
 ```
@@ -215,7 +215,7 @@ Key configuration stored in `docker/dev/dev.secret`:
 # Database
 POSTGRES_USER=postgres
 POSTGRES_PASSWORD=Testing123
-DATABASE_NAME=django_nominopolitan_postgres_dev
+DATABASE_NAME=django_powercrud_postgres_dev
 
 # pgAdmin
 PGADMIN_DEFAULT_EMAIL=admin@admin.com
@@ -254,17 +254,17 @@ REDIS_PASSWORD=redis_password_dev
 
 ```bash
 # Check Vite container status
-docker logs django_nominopolitan_vite_dev
+docker logs django_powercrud_vite_dev
 
 # Restart Vite service
-docker restart django_nominopolitan_vite_dev
+docker restart django_powercrud_vite_dev
 ```
 
 **Database Connection Failed**
 
 ```bash
 # Check PostgreSQL status
-docker logs django_nominopolitan_postgres_dev
+docker logs django_powercrud_postgres_dev
 
 # Verify database exists
 ./runproj postgres

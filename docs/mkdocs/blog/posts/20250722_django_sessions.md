@@ -71,16 +71,16 @@ The migration will change this to: Backend generates key → Backend stores sele
 def get_selected_ids_from_session(self, request):
   """Get selected IDs for current model from Django session"""
   key = self.get_storage_key()
-  selections = request.session.get('nominopolitan_selections', {})
+  selections = request.session.get('PowerCRUD_selections', {})
   return selections.get(key, [])
 
 def save_selected_ids_to_session(self, request, ids):
   """Save selected IDs for current model to Django session"""
-  if 'nominopolitan_selections' not in request.session:
-      request.session['nominopolitan_selections'] = {}
+  if 'PowerCRUD_selections' not in request.session:
+      request.session['PowerCRUD_selections'] = {}
     
   key = self.get_storage_key()
-  request.session['nominopolitan_selections'][key] = ids
+  request.session['PowerCRUD_selections'][key] = ids
   request.session.modified = True
 ```
 
@@ -210,7 +210,7 @@ path(f"{cls.url_base}/clear-selection/", ...)
 
 #### 1. Selection Status Partial Template
 
-**File**: `nominopolitan/templates/nominopolitan/daisyUI/partial/bulk_selection_status.html`
+**File**: `powercrud/templates/powercrud/daisyUI/partial/bulk_selection_status.html`
 
 **Purpose**: Update bulk actions container and selection counter
 
@@ -224,8 +224,8 @@ path(f"{cls.url_base}/clear-selection/", ...)
 <!-- Bulk actions container - show/hide based on selection count -->
 <div id="bulk-actions-container" class="join {% if selected_count == 0 %}hidden{% endif %}">
     <a href="{{ list_view_url }}bulk-edit/" class="join-item btn btn-primary {{ view.get_extra_button_classes }}"
-        hx-get="{{ list_view_url }}bulk-edit/" hx-target="#nominopolitanModalContent"
-        onclick="nominopolitanBaseModal.showModal();">
+        hx-get="{{ list_view_url }}bulk-edit/" hx-target="#powercrudModalContent"
+        onclick="powercrudBaseModal.showModal();">
         Bulk Edit <span id="selected-items-counter">{{ selected_count }}</span>
     </a>
     <button class="join-item btn btn-outline btn-error {{ view.get_extra_button_classes }}"
@@ -283,7 +283,7 @@ Returns empty bulk actions container
 
 #### Task 5: Create Selection Status Partial Template
 
-**File**: `nominopolitan/templates/nominopolitan/daisyUI/partial/bulk_selection_status.html`
+**File**: `powercrud/templates/powercrud/daisyUI/partial/bulk_selection_status.html`
 
 **Requirements**:
 - Show/hide bulk actions based on `selected_count`
@@ -293,7 +293,7 @@ Returns empty bulk actions container
 
 #### Task 6: Update Checkbox Rendering
 
-**File**: `nominopolitan/templates/nominopolitan/daisyUI/partial/list.html`
+**File**: `powercrud/templates/powercrud/daisyUI/partial/list.html`
 
 **Changes Required**:
 - Remove `onchange="toggleRowSelection(this)"` from individual checkboxes (line 101)
@@ -325,7 +325,7 @@ Returns empty bulk actions container
 
 #### Task 7: Replace sessionStorage JavaScript
 
-**Files**: `nominopolitan/templates/nominopolitan/daisyUI/object_list.html`
+**Files**: `powercrud/templates/powercrud/daisyUI/object_list.html`
 
 **Functions to Remove**:
 - `getStorageKey()` (lines 461-463)
@@ -345,22 +345,22 @@ Returns empty bulk actions container
 ```html
 <!-- Remove JavaScript onclick handler -->
 <a href="{{ list_view_url }}bulk-edit/" class="join-item btn btn-primary {{ view.get_extra_button_classes }}"
-    hx-get="{{ list_view_url }}bulk-edit/" hx-target="#nominopolitanModalContent"
-    onclick="nominopolitanBaseModal.showModal();">
+    hx-get="{{ list_view_url }}bulk-edit/" hx-target="#powercrudModalContent"
+    onclick="powercrudBaseModal.showModal();">
     Bulk Edit <span id="selected-items-counter">{{ selected_count }}</span>
 </a>
 ```
 
 #### Task 8: Update Bulk Actions Container
 
-**File**: `nominopolitan/templates/nominopolitan/daisyUI/object_list.html`
+**File**: `powercrud/templates/powercrud/daisyUI/object_list.html`
 
 **Current Container (lines 98-108)**:
 ```html
 <div id="bulk-actions-container" class="join hidden">
     <a href="{{ list_view_url }}bulk-edit/" class="join-item btn btn-primary {{ view.get_extra_button_classes }}"
-        hx-get="{{ list_view_url }}bulk-edit/" hx-target="#nominopolitanModalContent"
-        onclick="this.setAttribute('hx-vals', JSON.stringify({'selected_ids': getSelectedIds()})); nominopolitanBaseModal.showModal();">
+        hx-get="{{ list_view_url }}bulk-edit/" hx-target="#powercrudModalContent"
+        onclick="this.setAttribute('hx-vals', JSON.stringify({'selected_ids': getSelectedIds()})); powercrudBaseModal.showModal();">
         Bulk Edit <span id="selected-items-counter">0</span>
     </a>
     <button class="join-item btn btn-outline btn-error {{ view.get_extra_button_classes }}" onclick="clearSelection()">

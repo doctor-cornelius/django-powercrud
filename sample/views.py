@@ -3,7 +3,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse
 
 from neapolitan.views import CRUDView
-from nominopolitan.mixins import NominopolitanMixin
+from powercrud.mixins import PowerCRUDMixin
 
 from django import forms
 from . import models
@@ -17,7 +17,7 @@ def home(request):
         return render(request, f"{template_name}#content", context)
     return render(request, template_name, context)
     
-class BookCRUDView(NominopolitanMixin, CRUDView):
+class BookCRUDView(PowerCRUDMixin, CRUDView):
     model = models.Book
     namespace = "sample"
     base_template_path = "sample/base.html"
@@ -120,7 +120,7 @@ class BookCRUDView(NominopolitanMixin, CRUDView):
     extra_actions = [
         {
             "url_name": "sample:book-update-view",  # namespace:url_pattern
-            "text": "Normal Edit", # bypasses nominopolitan & uses regular view
+            "text": "Normal Edit", # bypasses PowerCRUD & uses regular view
             "needs_pk": True,  # if the URL needs the object's primary key
             "button_class": "btn-info",
             "htmx_target": "content",
@@ -140,7 +140,7 @@ class BookCRUDView(NominopolitanMixin, CRUDView):
     #     return super().get_bulk_choices_for_field(field_name, field)
 
 
-class GenreCRUDView(NominopolitanMixin, CRUDView):
+class GenreCRUDView(PowerCRUDMixin, CRUDView):
     model = models.Genre
     namespace = "sample"
     base_template_path = "sample/base.html"
@@ -154,7 +154,7 @@ class GenreCRUDView(NominopolitanMixin, CRUDView):
     fields = ['name', 'numeric_string']
 
 
-class ProfileCRUDView(NominopolitanMixin, CRUDView):
+class ProfileCRUDView(PowerCRUDMixin, CRUDView):
     model = models.Profile
     namespace = "sample"
     base_template_path = "sample/base.html"
@@ -177,7 +177,7 @@ class ProfileCRUDView(NominopolitanMixin, CRUDView):
     ]
 
 
-class AuthorCRUDView(NominopolitanMixin, CRUDView):
+class AuthorCRUDView(PowerCRUDMixin, CRUDView):
     model = models.Author
     namespace = "sample"
     base_template_path = "sample/base.html"

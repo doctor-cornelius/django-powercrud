@@ -5,10 +5,10 @@ Configure form field selection, validation, and styling for create/edit operatio
 ## Basic Form Field Control
 
 ### Auto-Generated Forms
-By default, Nominopolitan creates forms automatically from your model:
+By default, PowerCRUD creates forms automatically from your model:
 
 ```python
-class AuthorCRUDView(NominopolitanMixin, CRUDView):
+class AuthorCRUDView(PowerCRUDMixin, CRUDView):
     model = models.Author
     # No form_fields specified = editable fields from detail_fields
     # No detail_fields specified = uses fields
@@ -19,7 +19,7 @@ class AuthorCRUDView(NominopolitanMixin, CRUDView):
 Control which fields appear in forms:
 
 ```python
-class AuthorCRUDView(NominopolitanMixin, CRUDView):
+class AuthorCRUDView(PowerCRUDMixin, CRUDView):
     model = models.Author
     
     # Include specific fields
@@ -60,7 +60,7 @@ class AuthorForm(forms.ModelForm):
         }
 
 # views.py
-class AuthorCRUDView(NominopolitanMixin, CRUDView):
+class AuthorCRUDView(PowerCRUDMixin, CRUDView):
     model = models.Author
     form_class = AuthorForm  # This overrides form_fields
 ```
@@ -70,7 +70,7 @@ class AuthorCRUDView(NominopolitanMixin, CRUDView):
 Auto-generated forms include HTML5 widgets for better UX:
 
 ```python
-class BookCRUDView(NominopolitanMixin, CRUDView):
+class BookCRUDView(PowerCRUDMixin, CRUDView):
     model = models.Book
     form_fields = ["title", "author", "published_date"]
     # published_date automatically gets type="date" widget
@@ -87,7 +87,7 @@ class BookCRUDView(NominopolitanMixin, CRUDView):
 Control how dropdown options are sorted in forms:
 
 ```python
-class BookCRUDView(NominopolitanMixin, CRUDView):
+class BookCRUDView(PowerCRUDMixin, CRUDView):
     model = models.Book
     form_fields = ["title", "author", "genres"]
     
@@ -106,7 +106,7 @@ class BookCRUDView(NominopolitanMixin, CRUDView):
 Crispy Forms styling is automatically enabled if installed:
 
 ```python
-class BookCRUDView(NominopolitanMixin, CRUDView):
+class BookCRUDView(PowerCRUDMixin, CRUDView):
     model = models.Book
     form_fields = ["title", "author", "published_date"]
     
@@ -115,13 +115,13 @@ class BookCRUDView(NominopolitanMixin, CRUDView):
 
 !!! note "Automatic Configuration"
 
-    Nominopolitan automatically configures crispy forms to work with HTMX and modals by setting `form_tag = False` and `disable_csrf = True`.
+    PowerCRUD automatically configures crispy forms to work with HTMX and modals by setting `form_tag = False` and `disable_csrf = True`.
 
 ### Custom Crispy Configuration
 If you need different crispy settings:
 
 ```python
-class BookCRUDView(NominopolitanMixin, CRUDView):
+class BookCRUDView(PowerCRUDMixin, CRUDView):
     model = models.Book
     form_class = BookForm  # Define your own FormHelper in the form class
     
@@ -146,7 +146,7 @@ Dropdown sorting configuration applies to filter dropdowns. See [Filtering](filt
 === "Basic Configuration"
 
     ```python
-    class GenreCRUDView(NominopolitanMixin, CRUDView):
+    class GenreCRUDView(PowerCRUDMixin, CRUDView):
         model = models.Genre
         
         # Simple form configuration
@@ -157,7 +157,7 @@ Dropdown sorting configuration applies to filter dropdowns. See [Filtering](filt
 === "Advanced Configuration"
 
     ```python
-    class BookCRUDView(NominopolitanMixin, CRUDView):
+    class BookCRUDView(PowerCRUDMixin, CRUDView):
         model = models.Book
         
         # Custom form class for complex validation
@@ -173,7 +173,7 @@ Dropdown sorting configuration applies to filter dropdowns. See [Filtering](filt
 === "Profile with Relationships"
 
     ```python
-    class ProfileCRUDView(NominopolitanMixin, CRUDView):
+    class ProfileCRUDView(PowerCRUDMixin, CRUDView):
         model = models.Profile
         
         # Include related fields
@@ -204,7 +204,7 @@ Dropdown sorting configuration applies to filter dropdowns. See [Filtering](filt
             }
 
     # views.py
-    class BookCRUDView(NominopolitanMixin, CRUDView):
+    class BookCRUDView(PowerCRUDMixin, CRUDView):
         model = models.Book
         form_class = BookForm
     ```

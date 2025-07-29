@@ -9,7 +9,7 @@ Add powerful filtering and sorting capabilities to your CRUD views with automati
 Enable filtering by specifying which fields should be filterable:
 
 ```python
-class ProjectCRUDView(NominopolitanMixin, CRUDView):
+class ProjectCRUDView(PowerCRUDMixin, CRUDView):
     model = models.Project
     base_template_path = "core/base.html"
     fields = ["name", "owner", "status", "created_date"]
@@ -30,7 +30,7 @@ This automatically generates filter forms with appropriate widgets:
 When `use_htmx = True`, filters update results reactively without page reloads:
 
 ```python
-class ProjectCRUDView(NominopolitanMixin, CRUDView):
+class ProjectCRUDView(PowerCRUDMixin, CRUDView):
     model = models.Project
     base_template_path = "core/base.html"
     use_htmx = True
@@ -43,7 +43,7 @@ For advanced filtering, provide your own filterset class:
 
 ```python
 import django_filters
-from nominopolitan.mixins import HTMXFilterSetMixin
+from powercrud.mixins import HTMXFilterSetMixin
 
 class ProjectFilterSet(HTMXFilterSetMixin, django_filters.FilterSet):
     class Meta:
@@ -55,7 +55,7 @@ class ProjectFilterSet(HTMXFilterSetMixin, django_filters.FilterSet):
         # Setup HTMX attributes for reactive filtering
         self.setup_htmx_attrs()
 
-class ProjectCRUDView(NominopolitanMixin, CRUDView):
+class ProjectCRUDView(PowerCRUDMixin, CRUDView):
     model = models.Project
     base_template_path = "core/base.html"
     filterset_class = ProjectFilterSet
@@ -71,7 +71,7 @@ Tables support clickable column headers for sorting:
 Sorting is enabled by default for all displayed fields:
 
 ```python
-class ProjectCRUDView(NominopolitanMixin, CRUDView):
+class ProjectCRUDView(PowerCRUDMixin, CRUDView):
     model = models.Project
     base_template_path = "core/base.html"
     fields = ["name", "owner", "status", "created_date"]
@@ -99,7 +99,7 @@ Sorting uses URL parameters that can be bookmarked:
 Restrict which options appear in filter dropdowns:
 
 ```python
-class ProjectCRUDView(NominopolitanMixin, CRUDView):
+class ProjectCRUDView(PowerCRUDMixin, CRUDView):
     model = models.Project
     base_template_path = "core/base.html"
     filterset_fields = ["owner", "status", "category"]
@@ -125,7 +125,7 @@ class ProjectCRUDView(NominopolitanMixin, CRUDView):
 Control how dropdown options are sorted for foreign key fields:
 
 ```python
-class ProjectCRUDView(NominopolitanMixin, CRUDView):
+class ProjectCRUDView(PowerCRUDMixin, CRUDView):
     model = models.Project
     base_template_path = "core/base.html"
     filterset_fields = ["owner", "category", "priority"]
@@ -142,7 +142,7 @@ class ProjectCRUDView(NominopolitanMixin, CRUDView):
 Control M2M filter logic. The default logic is `AND` (all selected options must match); this can be overridden to use `OR` logic (any selected option must match).
 
 ```python
-class BookCRUDView(NominopolitanMixin, CRUDView):
+class BookCRUDView(PowerCRUDMixin, CRUDView):
     model = models.Book
     base_template_path = "core/base.html"
     filterset_fields = ["authors", "genres"]
@@ -158,7 +158,7 @@ class BookCRUDView(NominopolitanMixin, CRUDView):
 Override `get_filter_queryset_for_field()` to restrict available options for specific filter fields:
 
 ```python
-class ProjectCRUDView(NominopolitanMixin, CRUDView):
+class ProjectCRUDView(PowerCRUDMixin, CRUDView):
     model = models.Project
     base_template_path = "core/base.html"
     filterset_fields = ["owner", "status"]
@@ -192,7 +192,7 @@ class ProjectCRUDView(NominopolitanMixin, CRUDView):
 === "Basic Project Filtering"
 
     ```python
-    class ProjectCRUDView(NominopolitanMixin, CRUDView):
+    class ProjectCRUDView(PowerCRUDMixin, CRUDView):
         model = models.Project
         base_template_path = "core/base.html"
         fields = ["name", "owner", "status", "created_date"]
@@ -211,7 +211,7 @@ class ProjectCRUDView(NominopolitanMixin, CRUDView):
 === "Advanced Book Filtering"
 
     ```python
-    class BookCRUDView(NominopolitanMixin, CRUDView):
+    class BookCRUDView(PowerCRUDMixin, CRUDView):
         model = models.Book
         base_template_path = "core/base.html"
         fields = ["title", "author", "genres", "published_date"]
@@ -249,7 +249,7 @@ class ProjectCRUDView(NominopolitanMixin, CRUDView):
 
     ```python
     import django_filters
-    from nominopolitan.mixins import HTMXFilterSetMixin
+    from powercrud.mixins import HTMXFilterSetMixin
 
     class ProjectFilterSet(HTMXFilterSetMixin, django_filters.FilterSet):
         # Custom filter with choices
@@ -270,7 +270,7 @@ class ProjectCRUDView(NominopolitanMixin, CRUDView):
             # Setup HTMX attributes for reactive filtering
             self.setup_htmx_attrs()
 
-    class ProjectCRUDView(NominopolitanMixin, CRUDView):
+    class ProjectCRUDView(PowerCRUDMixin, CRUDView):
         model = models.Project
         base_template_path = "core/base.html"
         filterset_class = ProjectFilterSet

@@ -38,7 +38,7 @@ The implementation will support multiple async backends while maintaining backwa
 ### Configuration Options
 
 ```python
-class NominopolitanMixin:
+class PowerCRUDMixin:
    bulk_async = True  # Default enabled since django-q2 included
    bulk_min_async_records = 20  # Sync for operations below this threshold
    bulk_async_backend = 'database'  # 'database', 'celery', 'asgi' (future)
@@ -158,7 +158,7 @@ def bulk_edit_process_post(self, request, queryset, bulk_fields):
        )
         
        # Queue async task
-       async_task('nominopolitan.tasks.bulk_edit_task', 
+       async_task('powercrud.tasks.bulk_edit_task', 
                  task.id, selected_ids, field_data)
         
        return JsonResponse({

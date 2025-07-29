@@ -4,7 +4,7 @@ from django.core.exceptions import ValidationError
 
 import time
 import logging
-log = logging.getLogger("nominopolitan")
+log = logging.getLogger("PowerCRUD")
 
 class Author(models.Model):
     class Meta:

@@ -7,11 +7,11 @@ from crispy_forms.bootstrap import Div
 from crispy_forms import bootstrap, layout
 
 from .models import Book, Author
-from nominopolitan.mixins import HTMXFilterSetMixin
+from powercrud.mixins import HTMXFilterSetMixin
 
 class AuthorFilterSet(HTMXFilterSetMixin, FilterSet):
     """Filterset class used for the Author model.
-        It uses the Nominopolitan.HTMXFilterSetMixin to add HTMX attributes
+        It uses the powercrud.HTMXFilterSetMixin to add HTMX attributes
         to the form fields.
     """
     name = CharFilter(lookup_expr='icontains')

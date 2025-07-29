@@ -2,11 +2,11 @@
 
 ## Core Architecture Pattern
 
-Django Nominopolitan uses a modular **mixin-based architecture** that extends Django's class-based views through the `neapolitan` package. The system is built around a single primary mixin (`NominopolitanMixin`) that combines multiple specialized mixins.
+Django PowerCRUD uses a modular **mixin-based architecture** that extends Django's class-based views through the `neapolitan` package. The system is built around a single primary mixin (`PowerCRUDMixin`) that combines multiple specialized mixins.
 
 ## Source Code Structure
 
-### Primary Package: `/nominopolitan/`
+### Primary Package: `/powercrud/`
 
 #### Core Components
 - **`__init__.py`** - Package initialization (empty)
@@ -15,7 +15,7 @@ Django Nominopolitan uses a modular **mixin-based architecture** that extends Dj
 - **`apps.py`** - Django app configuration
 - **`validators.py`** - Pydantic validators for configuration validation
 
-#### Mixin Architecture: `/nominopolitan/mixins/`
+#### Mixin Architecture: `/powercrud/mixins/`
 The system uses a modular mixin approach:
 
 1. **`core_mixin.py`** - `CoreMixin`
@@ -48,10 +48,10 @@ The system uses a modular mixin approach:
 8. **`url_mixin.py`** - URL generation and namespace handling
 9. **`async_mixin.py`** - Async processing for bulk operations
 
-#### Template System: `/nominopolitan/templates/`
+#### Template System: `/powercrud/templates/`
 Framework-specific template organization:
 ```
-templates/nominopolitan/
+templates/powercrud/
 ├── bootstrap5/           # Bootstrap 5 templates
 │   ├── base.html
 │   ├── object_list.html
@@ -75,20 +75,20 @@ templates/nominopolitan/
         └── bulk_edit_form.html
 ```
 
-#### Template Tags: `/nominopolitan/templatetags/`
-- **`nominopolitan.py`** - Custom template tags for rendering
+#### Template Tags: `/powercrud/templatetags/`
+- **`powercrud.py`** - Custom template tags for rendering
   - `action_links()` - Generate CRUD action buttons
   - `object_detail()` - Render object detail views
   - `object_list()` - Render object list tables
   - `extra_buttons()` - Generate additional action buttons
   - `get_proper_elided_page_range()` - Pagination helper
 
-#### Management Commands: `/nominopolitan/management/commands/`
-- **`nm_mktemplate.py`** - Bootstrap CRUD templates
-- **`nm_extract_tailwind_classes.py`** - Extract Tailwind classes for safelist
-- **`nm_help.py`** - Display README documentation
+#### Management Commands: `/powercrud/management/commands/`
+- **`pcrud_mktemplate.py`** - Bootstrap CRUD templates
+- **`pcrud_extract_tailwind_classes.py`** - Extract Tailwind classes for safelist
+- **`pcrud_help.py`** - Display README documentation
 
-#### Asset Management: `/nominopolitan/assets/`
+#### Asset Management: `/powercrud/assets/`
 - **`manifest.json`** - Asset manifest for Vite integration
 - **`django_assets/`** - Compiled CSS/JS assets
 
@@ -101,7 +101,7 @@ Comprehensive example implementation:
 - **Management commands for sample data**
 
 ### Django Project: `/config/`
-Development/demo Django project (renamed from `django_nominopolitan/`):
+Development/demo Django project (renamed from `django_powercrud/`):
 - **`settings.py`** - Configuration for development with PostgreSQL and async support
 - **`urls.py`** - URL routing
 - **`wsgi.py`** - WSGI application
@@ -151,7 +151,7 @@ Development/demo Django project (renamed from `django_nominopolitan/`):
 
 ### Primary Flow
 ```
-NominopolitanMixin
+PowerCRUDMixin
 ├── CoreMixin (base functionality)
 ├── HtmxMixin (HTMX/modal support)
 ├── FilteringMixin (dynamic filters)

@@ -1,12 +1,12 @@
 [tool.poetry]
-name = "django-nominopolitan"
+name = "django-powercrud"
 version = "0.2.27"
-description = "Neapolitan with namespaces - Django CRUD views"
+description = "Advanced CRUD for perfectionists with deadlines. An opinionated Neapolitan extension, with sprinkles."
 authors = ["doctor-cornelius"]
 readme = "README.md"
 
 packages = [
-    {include = "nominopolitan"},
+    {include = "powercrud"},
     {include = "README.md"}
 ]
 
@@ -14,6 +14,7 @@ packages = [
 python = "^3.12"
 django-template-partials = "^24.4"
 pydantic = "^2.10.6"
+django-htmx = "^1.23.2"
 
 [tool.poetry.group.dev.dependencies]
 commitizen = "^3"
@@ -47,8 +48,6 @@ django-redis = "^5.4.0"
 # celery
 celery = "^5.4.0"
 django-celery-beat = "^2.7.0"
-
-
 
 [tool.poetry.group.docs.dependencies]
 # mkdocs

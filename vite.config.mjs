@@ -9,8 +9,8 @@ export default defineConfig({
     port: 5174,
     cors: true,         // Add this
     allowedHosts: [
-      'django_nominopolitan_vite_dev',  // Add container name
-      'localhost'                       // Keep localhost for local access
+      'powercrud_vite_dev',  // Add container name
+      'localhost'            // Keep localhost for local access
     ],
     watch: {
       usePolling: true  // Add this
@@ -23,11 +23,11 @@ export default defineConfig({
   },
   build: {
     manifest: "manifest.json",
-    outDir: resolve("nominopolitan/assets"),
+    outDir: resolve("powercrud/assets"),
     assetsDir: "django_assets",
     rollupOptions: {
       input: {
-        nominopolitan: resolve('config/static/js/main.js')
+        powercrud: resolve('config/static/js/main.js')
       }
     }
   },

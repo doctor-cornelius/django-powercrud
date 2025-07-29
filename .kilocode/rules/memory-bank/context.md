@@ -7,7 +7,7 @@
 
 ### Recent Development (Last 10 Releases)
 1. **Async Processing Implementation** - Added django-q2 and Celery support for bulk operations
-2. **Infrastructure Modernization** - Moved Django project from `django_nominopolitan/` to `config/`
+2. **Infrastructure Modernization** - Moved Django project from `django_powercrud/` to `config/`
 3. **Database Enhancement** - Added PostgreSQL support with Docker configuration
 4. **Bulk Operations Enhancement** - Improved bulk edit/delete functionality with better error handling
 5. **Dropdown Sorting** - Added `dropdown_sort_options` for related field sorting in filters and forms

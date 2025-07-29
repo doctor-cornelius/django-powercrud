@@ -1,0 +1,276 @@
+{% extends base_template_path %}
+{% load partials %}
+{% load PowerCRUD %}
+{% if use_crispy %}
+    {% load crispy_forms_tags %}
+{% endif %}
+
+{% block content %}
+{% partial pcrud_content %}
+{% endblock %}
+
+{% partialdef pcrud_content %}
+    <style>
+        #filter-form label {
+            font-weight: bold;
+            text-align: center;
+            display: block;
+            font-size: {{ table_font_size }};
+        }
+        .table-font-size {
+            font-size: {{ table_font_size }};
+        }
+        .table-column-width {
+            width: min-content;
+            word-wrap: break-word;
+            max-width: {{ table_max_col_width }};
+        }
+        th.table-column-width {
+            width: min-content;
+            white-space: normal;
+            hyphens: auto;
+        }
+        /* Custom tooltip styles */
+        .custom-tooltip {
+        --bs-tooltip-bg: var(--bs-dark);
+        --bs-tooltip-color: var(--bs-white);
+        }
+    </style>
+
+    <title id="header_title">{{header_title}}</title>
+    <div class="d-flex flex-column">
+        <h1 class="flex-grow-1 fw-bold h4">{{ object_verbose_name_plural|capfirst }}</h1>
+    
+        <div class="d-flex gap-2 my-2">
+            {% if filterset %}
+                <button class="btn btn-sm btn-secondary  {{ view.get_extra_button_classes }}" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#filterCollapse" aria-expanded="false" aria-controls="filterCollapse" id="filterToggleBtn">
+                    <i class="bi bi-funnel"></i>
+                    <span>Show Filters</span>
+                </button>
+                
+                {% if not use_htmx %}
+                    <button onclick="event.preventDefault(); submitFilterForm();"
+                        class="btn btn-sm btn-info  {{ view.get_extra_button_classes }}">Filter</button>
+                {% endif %}
+
+                <a href="." class="btn btn-sm btn-outline-secondary  {{ view.get_extra_button_classes }}" 
+                    hx-get="." hx-target="#filtered_results"
+                    hx-headers='{"X-Filter-Sort-Request": "true"}' 
+                    onclick="resetFilterForm()">Reset</a>
+
+            {% endif %}
+            {% if create_view_url %}
+                {% if use_htmx and htmx_target %}
+                    <a class="btn btn-sm btn-primary  {{ view.get_extra_button_classes }}" href="{{ create_view_url }}" hx-get="{{ create_view_url }}"
+                        hx-target="{{htmx_target}}" {% if use_modal %}data-bs-toggle="modal"
+                        data-bs-target="#powercrudBaseModal" {% endif %}>
+                        Create {{ object_verbose_name }}
+                    </a>
+                {% else %}
+                    <a class="btn btn-sm btn-primary  {{ view.get_extra_button_classes }}" href="{{ create_view_url }}">
+                        Create {{ object_verbose_name }}
+                    </a>
+                {% endif %}
+            {% endif %}
+
+            {% extra_buttons view %}
+        </div>
+    
+        {% if filterset %}
+        <div class="collapse" id="filterCollapse">
+            <form id="filter-form" method="get" class="row g-3" 
+                hx-target="#filtered_results"
+                hx-headers='{"X-Filter-Sort-Request": "true"}'>
+                {% for field in filterset.form %}
+                <div class="col-auto mb-0">
+                    {% if use_crispy %}
+                    {{ field|as_crispy_field }}
+                    {% else %}
+                    {{ field.label_tag }} {{ field }}
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </form>
+        </div>
+        {% endif %}
+
+        <div id="filtered_results">
+            {% partial filtered_results %}
+        </div>
+    </div>
+
+{# Bootstrap modal #}
+<div class="modal fade" id="powercrudBaseModal" 
+    tabindex="-1" style="z-index: 1055"
+    aria-labelledby="modalTitle" aria-hidden="true"
+    data-bs-backdrop="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content" style="z-index: 1056">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="modalTitle">{{ header_title }}</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                    aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="powercrudModalContent">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Handles modal form submissions - automatically closes the modal when a form inside it is submitted
+    document.addEventListener('submit', function (event) {
+        if (event.target.closest('#powercrudBaseModal')) {
+            const modalElement = document.getElementById('powercrudBaseModal');
+            const modal = bootstrap.Modal.getInstance(modalElement);
+            if (modal) {
+                modal.hide();
+            }
+        }
+    });
+
+    // Initializes tooltips only for text that overflows its container
+    function initializeTooltips() {
+        // Get all elements with tooltip attribute
+        const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+
+        // Create invisible span to measure text width
+        const measureSpan = document.createElement('span');
+        measureSpan.style.visibility = 'hidden';
+        measureSpan.style.position = 'absolute';
+        measureSpan.style.whiteSpace = 'nowrap';
+        document.body.appendChild(measureSpan);
+
+        // For each tooltip element, check if text overflows
+        const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => {
+            // Get text and styling
+            const text = tooltipTriggerEl.textContent.trim();
+            const computedStyle = window.getComputedStyle(tooltipTriggerEl);
+
+            // Match measurement span to element's text style
+            measureSpan.style.fontSize = computedStyle.fontSize;
+            measureSpan.style.fontFamily = computedStyle.fontFamily;
+            measureSpan.textContent = text;
+
+            // Calculate if text width exceeds available space
+            const textWidth = measureSpan.offsetWidth;
+            const maxWidth = parseFloat(computedStyle.maxWidth);
+            const paddingLeft = parseFloat(computedStyle.paddingLeft);
+            const paddingRight = parseFloat(computedStyle.paddingRight);
+            const availableWidth = maxWidth - paddingLeft - paddingRight;
+
+            // Only create tooltip if text overflows
+            if (textWidth > availableWidth) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            }
+            return null;
+        }).filter(Boolean);
+
+        // Clean up measurement span
+        document.body.removeChild(measureSpan);
+    }
+
+    // Handles filter form submission while preserving filter section expanded state
+    function submitFilterForm() {
+        const filterCollapse = document.getElementById('filterCollapse');
+        localStorage.setItem('filterExpanded', filterCollapse.classList.contains('show'));
+        document.getElementById('filter-form').submit();
+    }
+
+    // Resets all filter form fields to their default values
+    function resetFilterForm() {
+        const form = document.getElementById('filter-form');
+        form.querySelectorAll('input, select').forEach(field => {
+            if (field.type === 'select-one') {
+                field.selectedIndex = 0;
+            } else {
+                field.value = '';
+            }
+        });
+        return true;
+    }
+
+    // Sets up event listeners for filter section collapse/expand button text
+    function initializeFilterToggle() {
+        const filterCollapse = document.getElementById('filterCollapse');
+        const filterBtn = document.getElementById('filterToggleBtn');
+
+        filterCollapse.addEventListener('show.bs.collapse', function () {
+            filterBtn.querySelector('span').textContent = 'Hide Filters';
+        });
+
+        filterCollapse.addEventListener('hide.bs.collapse', function () {
+            filterBtn.querySelector('span').textContent = 'Show Filters';
+        });
+    }
+
+    // Initialize everything on page load
+    document.addEventListener('DOMContentLoaded', () => {
+        initializeTooltips();
+        initializeFilterToggle();
+        // Restore filter section expanded state if previously saved
+        if (localStorage.getItem('filterExpanded') === 'true') {
+            const filterCollapse = document.getElementById('filterCollapse');
+            new bootstrap.Collapse(filterCollapse, { show: true });
+            localStorage.removeItem('filterExpanded');
+        }
+    });
+
+    // Re-initialize tooltips and filter toggle after HTMX content updates
+    document.body.addEventListener('htmx:afterSwap', () => {
+        initializeTooltips();
+        initializeFilterToggle();
+    });
+</script>
+
+{% endpartialdef pcrud_content %}
+
+{% partialdef filtered_results %}
+    {% if object_list %}
+        {% object_list object_list view %}
+        {% partial pagination %}
+    {% else %}
+        <p class="mt-4">There are no {{ object_verbose_name_plural }}. Create one now?</p>
+    {% endif %}
+{% endpartialdef filtered_results %}
+
+
+{% partialdef pagination %}
+{% if is_paginated %}
+<nav aria-label="Page navigation" class="mt-4">
+    <ul class="pagination pagination-sm justify-content-center">
+        {% if page_obj.has_previous %}
+        <li class="page-item">
+            <a class="page-link" href="?page={{ page_obj.previous_page_number }}" {% if use_htmx and original_target %}
+                hx-get="?page={{ page_obj.previous_page_number }}" hx-target="{{original_target}}" hx-replace-url="true"
+                hx-push-url="true" {% endif %}>Previous</a>
+        </li>
+        {% endif %}
+
+        {% get_proper_elided_page_range paginator page_obj.number as page_range %}
+        {% for i in page_range %}
+        {% if i == "..." %}
+        <li class="page-item disabled"><span class="page-link">&hellip;</span></li>
+        {% else %}
+        <li class="page-item {% if page_obj.number == i %}active{% endif %}">
+            <a class="page-link" href="?page={{ i }}" {% if use_htmx and original_target %} hx-get="?page={{ i }}"
+                hx-target="{{original_target}}" hx-replace-url="true" hx-push-url="true" {% endif %}>{{ i }}
+            </a>
+        </li>
+        {% endif %}
+        {% endfor %}
+
+        {% if page_obj.has_next %}
+        <li class="page-item">
+            <a class="page-link" href="?page={{ page_obj.next_page_number }}" {% if use_htmx and original_target %}
+                hx-get="?page={{ page_obj.next_page_number }}" hx-target="{{original_target}}" hx-replace-url="true"
+                hx-push-url="true" {% endif %}>Next</a>
+        </li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+{% endpartialdef pagination %}

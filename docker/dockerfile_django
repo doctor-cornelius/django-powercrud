@@ -1,7 +1,7 @@
 FROM python:3.12-slim-bullseye AS base
 
 ARG DEBIAN_FRONTEND=noninteractive
-ARG PROJECT_DIR=django_nominopolitan
+ARG PROJECT_DIR=django_powercrud
 ARG USER=devuser
 ARG USERHOME=/home/${USER}
 ARG PROMPT_CODE='\n\[\e[0m\]🐳 \[\e[0m\][\[\e[0;38;5;226m\]$(git branch 2>/dev/null | grep '"'"'^*'"'"' | colrm 1 2)\[\e[0m\]] \[\e[0;91m\]\u\[\e[0m\]: \[\e[0;96m\]\w\n\[\e[0m\]\$\[\e[0m\] '
@@ -41,13 +41,14 @@ RUN useradd -m -s /bin/bash --create-home ${USER} && \
 
 WORKDIR ${USERHOME}/${PROJECT_DIR}
 
-# Install poetry (FROM YOUR WORKING VERSION - note: python not python3)
-COPY pyproject.toml ./
-RUN curl -sSL https://install.python-poetry.org/ | python -
-RUN $POETRY_HOME/bin/poetry install --no-root
-
+# Install node packages
 COPY package*.json ./
 RUN npm install && chown -R ${USER}:${USER} node_modules
+
+# Install poetry (note: python not python3)
+RUN curl -sSL https://install.python-poetry.org/ | python -
+COPY pyproject.toml ./
+RUN $POETRY_HOME/bin/poetry install --no-root
 
 USER ${USER}
 COPY --chown=${USER}:${USER} . .

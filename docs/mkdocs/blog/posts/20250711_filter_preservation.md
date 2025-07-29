@@ -38,7 +38,7 @@ And before we get into how params are preserved, let's start with what we have g
 
 - View classes specify `filterset_fields = [...]` to enable filtering
 - `HTMXFilterSetMixin` adds HTMX attributes to filter fields (`hx-get`, `hx-include="[name]"`, `hx-trigger`)
-- `NominopolitanMixin.get_filterset()` creates django-filter FilterSet with HTMX support
+- `PowerCRUDMixin.get_filterset()` creates django-filter FilterSet with HTMX support
 - Filter field widgets get appropriate triggers (keyup for text, change for selects)
 - `list()` method processes filterset and applies filtering to queryset
 - **Key files**: `mixins.py` (HTMXFilterSetMixin, get_filterset method)
@@ -60,7 +60,7 @@ And before we get into how params are preserved, let's start with what we have g
 - Template tag `object_list` processes sort parameter and generates headers with sort state
 - Sorting includes secondary sort by primary key for stable pagination
 - Sort parameter cleaned and passed to pagination/filtering to maintain state
-- **Key files**: `templatetags/nominopolitan.py` (object_list function), `mixins.py` (list method)
+- **Key files**: `templatetags/powercrud.py` (object_list function), `mixins.py` (list method)
 
 ### Pagination
 
@@ -95,19 +95,19 @@ And before we get into how params are preserved, let's start with what we have g
 
 **Frontend (object_form.html)**:
 - Edit form includes hidden fields for all current GET parameters (except csrf, page)
-- Parameters are prefixed with `_nominopolitan_filter_` to avoid conflicts:
+- Parameters are prefixed with `_PowerCRUD_filter_` to avoid conflicts:
 ```html
 {% for key, values in request.GET.lists %}
     {% if key != 'csrfmiddlewaretoken' and key != 'page' %}
         {% for value in values %}
-            <input type="hidden" name="_nominopolitan_filter_{{ key }}" value="{{ value }}">
+            <input type="hidden" name="_PowerCRUD_filter_{{ key }}" value="{{ value }}">
         {% endfor %}
     {% endif %}
 {% endfor %}
 ```
 
 **Backend (form_valid method)**:
-1. **Extract parameters**: Parse POST data for `_nominopolitan_filter_` prefixed fields
+1. **Extract parameters**: Parse POST data for `_PowerCRUD_filter_` prefixed fields
 2. **Build canonical URL**: Create clean URL with filter/sort parameters
 3. **Patch request**: Temporarily replace `request.GET` with extracted filter parameters
 4. **Role switch**: Change role to `Role.LIST` and call `list()` method to reuse filtering logic
@@ -155,7 +155,7 @@ document.body.addEventListener('htmx:afterOnLoad', function (event) {
     // Handle form success - close modal and refresh list
     if (triggers.formSuccess || triggers.bulkEditSuccess) {
         // Close the modal if it exists
-        const modalElement = document.getElementById('nominopolitanBaseModal');
+        const modalElement = document.getElementById('powercrudBaseModal');
         if (modalElement) modalElement.close();
 
         // Check if we should refresh the table
@@ -258,7 +258,7 @@ At this point page number selection does not preserve parameters. This is a shor
 
 **Method**: Template-constructed URLs → Explicit parameter inclusion → HTMX request with preserved state
 
-**Backend Parameter Preparation (nominopolitan.py template tag)**:
+**Backend Parameter Preparation (powercrud.py template tag)**:
 
 ```python
 # Get all current filter parameters
@@ -482,7 +482,7 @@ def form_valid(self, form):
     if hasattr(self, 'request') and getattr(self.request, 'htmx', False):            
         # Complex parameter extraction from POST
         filter_params = QueryDict('', mutable=True)
-        filter_prefix = '_nominopolitan_filter_'
+        filter_prefix = '_PowerCRUD_filter_'
         for k, v in self.request.POST.lists():
             if k.startswith(filter_prefix):
                 real_key = k[len(filter_prefix):]
@@ -516,7 +516,7 @@ The existing JavaScript handler already responds correctly to formSuccess trigge
 // Handle form success - close modal and refresh list
 if (triggers.formSuccess || triggers.bulkEditSuccess) {
     // Close the modal if it exists
-    const modalElement = document.getElementById('nominopolitanBaseModal');
+    const modalElement = document.getElementById('powercrudBaseModal');
     if (modalElement) modalElement.close();
 
     // Check if we should refresh the table

@@ -321,8 +321,8 @@ def toggle_all_selection_view(self, request, *args, **kwargs):
 <!-- Bulk actions container - show/hide based on selection count -->
 <div id="bulk-actions-container" class="join {% if selected_count == 0 %}hidden{% endif %}">
     <a href="{{ list_view_url }}bulk-edit/" class="join-item btn btn-primary {{ view.get_extra_button_classes }}"
-        hx-get="{{ list_view_url }}bulk-edit/" hx-target="#nominopolitanModalContent"
-        onclick="nominopolitanBaseModal.showModal();">
+        hx-get="{{ list_view_url }}bulk-edit/" hx-target="#powercrudModalContent"
+        onclick="powercrudBaseModal.showModal();">
         Bulk Edit <span id="selected-items-counter">{{ selected_count }}</span>
     </a>
     <button class="join-item btn btn-outline btn-error {{ view.get_extra_button_classes }}"
@@ -487,13 +487,13 @@ class SelectionState:
     
     def _load_state(self):
         """Load selection state from session."""
-        if 'nominopolitan_selections' not in self.request.session:
-            self.request.session['nominopolitan_selections'] = {}
-        self.selected_ids = self.request.session['nominopolitan_selections'].get(self.storage_key, [])
+        if 'PowerCRUD_selections' not in self.request.session:
+            self.request.session['PowerCRUD_selections'] = {}
+        self.selected_ids = self.request.session['PowerCRUD_selections'].get(self.storage_key, [])
     
     def save(self):
         """Save selection state to session."""
-        self.request.session['nominopolitan_selections'][self.storage_key] = self.selected_ids
+        self.request.session['PowerCRUD_selections'][self.storage_key] = self.selected_ids
         self.request.session.modified = True
     
     # Additional methods for toggle, clear, toggle_all, etc.
@@ -621,13 +621,13 @@ Following the Architect's hybrid approach, here's the comprehensive task plan br
 
 #### Delegation 1A: Restore Original Architecture
 - **Task**: Remove the consolidated `post` method from BulkMixin and restore original separate view methods
-- **Files**: `nominopolitan/mixins/bulk_mixin.py`
+- **Files**: `powercrud/mixins/bulk_mixin.py`
 - **Documentation**: Read sections "Debug Module Changes Assessment" and "Recommended Solution" from `@/docs/mkdocs/blog/posts/20250723_session_frontend.md`
 - **Testing Point**: ⚠️ **STOP FOR MANUAL TESTING** - Verify individual checkbox toggles work without errors
 
 #### Delegation 1B: Fix HTMX Target Strategy
 - **Task**: Revert HTMX targets from `#filtered_results` back to `#bulk-actions-container` in templates
-- **Files**: `nominopolitan/templates/nominopolitan/daisyUI/partial/list.html`
+- **Files**: `powercrud/templates/powercrud/daisyUI/partial/list.html`
 - **Documentation**: Read "HTMX Target Strategy Analysis" section from `@/docs/mkdocs/blog/posts/20250723_session_frontend.md`
 - **Testing Point**: ⚠️ **STOP FOR MANUAL TESTING** - Verify bulk actions container updates correctly
 
@@ -635,7 +635,7 @@ Following the Architect's hybrid approach, here's the comprehensive task plan br
 
 #### Delegation 2A: Preserve get_context_data Method
 - **Task**: Ensure the `get_context_data` method added by Debug module is properly integrated and working
-- **Files**: `nominopolitan/mixins/bulk_mixin.py`
+- **Files**: `powercrud/mixins/bulk_mixin.py`
 - **Documentation**: Read "Debug Module Changes Assessment" section from `@/docs/mkdocs/blog/posts/20250723_session_frontend.md`
 - **Testing Point**: ⚠️ **STOP FOR MANUAL TESTING** - Verify bulk actions buttons show/hide correctly on page load
 
@@ -643,7 +643,7 @@ Following the Architect's hybrid approach, here's the comprehensive task plan br
 
 #### Delegation 3A: Add toggle_all_selection_view Method
 - **Task**: Implement the missing `toggle_all_selection_view` method in BulkMixin
-- **Files**: `nominopolitan/mixins/bulk_mixin.py`
+- **Files**: `powercrud/mixins/bulk_mixin.py`
 - **Documentation**: Read "Implementation Plan" section from `@/docs/mkdocs/blog/posts/20250723_session_frontend.md` and original context from `@/docs/mkdocs/blog/posts/20250722_django_sessions.md`
 - **Testing Point**: ⚠️ **STOP FOR MANUAL TESTING** - Verify select-all checkbox functionality works
 
@@ -651,7 +651,7 @@ Following the Architect's hybrid approach, here's the comprehensive task plan br
 
 #### Delegation 4A: Update URL Patterns
 - **Task**: Ensure all URL patterns are properly configured for the restored separate view methods
-- **Files**: `nominopolitan/mixins/url_mixin.py`
+- **Files**: `powercrud/mixins/url_mixin.py`
 - **Documentation**: Read "URL Pattern Analysis" section from `@/docs/mkdocs/blog/posts/20250723_session_frontend.md`
 - **Testing Point**: ⚠️ **STOP FOR MANUAL TESTING** - Verify all selection endpoints return 200 status codes
 
@@ -659,7 +659,7 @@ Following the Architect's hybrid approach, here's the comprehensive task plan br
 
 #### Delegation 5A: Add Out-of-Band Swap Support
 - **Task**: Modify view methods to return HTMX out-of-band swaps for UI synchronization
-- **Files**: `nominopolitan/mixins/bulk_mixin.py`
+- **Files**: `powercrud/mixins/bulk_mixin.py`
 - **Documentation**: Read "HTMX Out-of-Band Swap Implementation" section from `@/docs/mkdocs/blog/posts/20250723_session_frontend.md`
 - **Testing Point**: ⚠️ **STOP FOR MANUAL TESTING** - Verify checkboxes and bulk actions update simultaneously
 
@@ -667,7 +667,7 @@ Following the Architect's hybrid approach, here's the comprehensive task plan br
 
 #### Delegation 6A: Update Template HTMX Attributes
 - **Task**: Add proper HTMX attributes and IDs for out-of-band swap targeting
-- **Files**: `nominopolitan/templates/nominopolitan/daisyUI/object_list.html`, `nominopolitan/templates/nominopolitan/daisyUI/partial/list.html`
+- **Files**: `powercrud/templates/powercrud/daisyUI/object_list.html`, `powercrud/templates/powercrud/daisyUI/partial/list.html`
 - **Documentation**: Read "Template Implementation Details" section from `@/docs/mkdocs/blog/posts/20250723_session_frontend.md`
 - **Testing Point**: ⚠️ **STOP FOR MANUAL TESTING** - Verify complete UI synchronization works
 

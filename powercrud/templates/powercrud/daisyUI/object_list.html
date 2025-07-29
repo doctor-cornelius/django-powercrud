@@ -1,0 +1,571 @@
+{% extends base_template_path %}
+{% load partials %}
+{% load powercrud %}
+
+{% block content %}
+    {% partial pcrud_content %}
+{% endblock %}
+
+{% partialdef pcrud_content %}
+    <style>
+        /* Style the options inside multi-selects - cannot be controlled via Python widget attrs */
+        #filter-form select[multiple] option {
+        padding: 0.25rem 0.5rem !important;
+        line-height: 1.5 !important;
+        }
+
+        .table-column-width {
+            /* Set a reasonable default width and max-width, override with inline style if needed */
+            width: fit-content;
+            max-width: 25ch;
+        }
+        th.table-column-width {
+            white-space: normal;
+            max-width: 25ch;
+        }
+
+        #filter-form label {
+            @apply font-bold text-center block;
+        }
+
+        /* Super specific selectors to override existing styles */
+        #filter-form select.select,
+        #filter-form .select select {
+            height: 2rem !important;
+            min-height: 2rem !important;
+            font-size: 0.875rem !important;
+        }
+        
+        #filter-form input,
+        #filter-form select {
+        height: 2.2rem !important; 
+        min-height: 2.2rem !important;
+        max-height: 2.2rem !important;
+        padding-top: 0.25rem !important;
+        padding-bottom: 0.25rem !important;
+        line-height: 1.2 !important;
+        }
+        
+        /* Make all filter elements the same width */
+        #filter-form .form-control {
+            width: 14rem !important;
+            max-width: 14rem !important;
+        }
+
+        /* Make standard inputs/selects taller to prevent letter cutting */
+        #filter-form input:not([type="checkbox"]),
+        #filter-form select:not([multiple]) {
+        height: 2.5rem !important;
+        min-height: 2.5rem !important;
+        max-height: 2.5rem !important;
+        line-height: 1.2 !important;
+        }
+
+        /* Special styling for multi-select (M2M) fields */
+        #filter-form select[multiple] {
+        height: auto !important;
+        min-height: 8rem !important;
+        padding: 0.25rem !important;
+        }
+
+        /* Style the options inside multi-selects */
+        #filter-form select[multiple] option {
+        padding: 0.25rem 0.5rem !important;
+        line-height: 1.5 !important;
+        }
+    </style>
+
+    <title id="header_title">{{header_title}}</title>
+    <div class="flex flex-col">
+        <h1 class="flex-1 font-bold text-xl text-primary">{{ object_verbose_name_plural|capfirst }}</h1>
+
+        <div class="flex gap-2 my-2 items-center flex-wrap">
+            {% if filterset %}
+                <div class="join">
+                    <button class="join-item btn btn-secondary {{ view.get_extra_button_classes }}" type="button" 
+                        onclick="document.getElementById('filterCollapse').classList.toggle('hidden')"
+                        id="filterToggleBtn">
+                        <i class="bi bi-funnel"></i>
+                        <span>Show Filters</span>
+                    </button>
+                    
+                    {% if not use_htmx %}
+                        <button onclick="event.preventDefault(); submitFilterForm();"
+                            class="join-item btn btn-info {{ view.get_extra_button_classes }}">Filter</button>
+                    {% endif %}
+
+                    <a href="." class="join-item btn btn-outline btn-secondary {{ view.get_extra_button_classes }}" 
+                        hx-get="." hx-target="#filtered_results"
+                        hx-headers='{"X-Filter-Sort-Request": "true"}' 
+                        onclick="resetFilterForm()">Reset</a>
+                </div>
+            {% endif %}
+
+            {% if enable_bulk_edit %}
+            {% partial bulk_selection_status %}
+            {% endif %}
+                        
+            {% if create_view_url %}
+                {% if use_htmx and htmx_target %}
+                    <a class="btn btn-primary {{ view.get_extra_button_classes }}" href="{{ create_view_url }}" 
+                        hx-get="{{ create_view_url }}"
+                        hx-target="{{htmx_target}}" 
+                        onclick="powercrudBaseModal.showModal()">
+                        Create {{ object_verbose_name }}
+                    </a>
+                {% else %}
+                    <a class="btn btn-primary {{ view.get_extra_button_classes }}" href="{{ create_view_url }}">
+                        Create {{ object_verbose_name }}
+                    </a>
+                {% endif %}
+            {% endif %}
+
+            {% extra_buttons view %}
+
+            <!-- Page Size Selector -->
+            <form id="page-size-form" class="inline ml-2" style="white-space:nowrap;"
+                hx-get="." hx-target="{{ original_target }}" hx-push-url="true"
+                hx-trigger="change" hx-include="[name]">
+                <label for="page-size-select" class="sr-only">Page size</label>
+                <select id="page-size-select" name="page_size"
+                    class="select select-bordered select-sm align-middle w-[10ch]">
+                    {% for size in page_size_options %}
+                        <option value="{{ size }}"
+                            {% if request.GET.page_size == size %}
+                                selected
+                            {% elif not request.GET.page_size and default_page_size == size %}
+                                selected
+                            {% endif %}>{{ size }}</option>
+                    {% endfor %}
+                    <option value="all" {% if request.GET.page_size == 'all' or default_page_size is None %}selected{% endif %}>
+                        All</option>
+                </select>
+                <span class="text-xs text-base-content/70 ml-1">per page</span>
+            </form>
+        </div>
+    
+        {% if filterset %}
+        <div class="hidden py-2" id="filterCollapse">
+            <form id="filter-form" method="get" class="flex flex-wrap gap-2" hx-target="#filtered_results" hx-push-url="true"
+                hx-replace-url="true" hx-headers='{"X-Filter-Sort-Request": "true", "X-Filter-Setting-Request": "true"}'
+                action="{{ request.path }}"
+                onsubmit="return removeEmptyFields(this)">
+                {% for field in filterset.form %}
+                <div class="form-control w-full w-56 max-w-56">
+                    <label class="label py-0">
+                        <span class="label-text text-xs font-semibold font-bold text-center block">{{ field.label }}</span>
+                    </label>
+
+                    {% if field.field.widget.allow_multiple_selected %}
+                    <!-- Special case for multi-select -->
+                    <div class="mb-4">
+                        {{ field }}
+                    </div>
+                    {% else %}
+                    <!-- Normal case for regular inputs and selects -->
+                    <div class="h-[38px] flex items-center">
+                        {{ field }}
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </form>
+        </div>
+        {% endif %}
+
+        <!-- Hidden fields to preserve current filter and sort parameters -->
+        {% for key, value in request.GET.items %}
+            {% if key != 'page_size' and key != 'page' %}
+                {% if filterset and key not in filterset.form.fields %}
+                    <input type="hidden" name="{{ key }}" value="{{ value }}">
+                {% elif not filterset %}
+                    <input type="hidden" name="{{ key }}" value="{{ value }}">
+                {% endif %}
+            {% endif %}
+        {% endfor %}
+
+        <div id="filtered_results">
+            {% partial filtered_results %}
+        </div>
+    </div>
+
+    <!-- Modal -->
+    <dialog id="powercrudBaseModal" class="modal">
+        <div class="modal-box">
+            <!-- Header with primary background -->
+            <!-- <div class="bg-primary text-primary-content p-4 -m-6 mb-6 rounded-t-lg">
+                <h3 class="font-bold text-lg">{{ header_title }}</h3>
+                <form method="dialog">
+                    <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
+                </form>
+            </div> -->
+            
+            <!-- Body -->
+            <div class="py-4">
+                <div id="powercrudModalContent"></div>
+            </div>
+            
+            <!-- Footer -->
+            <!-- <div class="flex justify-end gap-2">
+                <form method="dialog">
+                    <button class="btn btn-warning" onclick="baseModal.close()">Close</button>
+                    
+                </form>
+            </div> -->
+        </div>
+        <form method="dialog" class="modal-backdrop">
+            <button>close</button>
+        </form>
+    </dialog>
+
+    <script>
+        // Initializes tooltips only for text that overflows its container
+        function initializeTooltips() {
+            const tooltipTriggerList = document.querySelectorAll('[data-tippy-content]');
+            const measureSpan = document.createElement('span');
+            measureSpan.style.visibility = 'hidden';
+            measureSpan.style.position = 'absolute';
+            measureSpan.style.whiteSpace = 'nowrap';
+            document.body.appendChild(measureSpan);
+
+            [...tooltipTriggerList].forEach(tooltipTriggerEl => {
+                const text = tooltipTriggerEl.textContent.trim();
+                const computedStyle = window.getComputedStyle(tooltipTriggerEl);
+                measureSpan.style.fontSize = computedStyle.fontSize;
+                measureSpan.style.fontFamily = computedStyle.fontFamily;
+                measureSpan.textContent = text;
+
+                const textWidth = measureSpan.offsetWidth;
+                const maxWidth = parseFloat(computedStyle.maxWidth);
+                const paddingLeft = parseFloat(computedStyle.paddingLeft);
+                const paddingRight = parseFloat(computedStyle.paddingRight);
+                const availableWidth = maxWidth - paddingLeft - paddingRight;
+
+                // Remove any existing tippy instance
+                if (tooltipTriggerEl._tippy) {
+                    tooltipTriggerEl._tippy.destroy();
+                }
+
+                // Only initialize tooltip if text is actually truncated
+                if (textWidth > availableWidth) {
+                    tippy(tooltipTriggerEl, {
+                        theme: 'dark',
+                        placement: 'top'
+                    });
+                }
+            });
+
+            document.body.removeChild(measureSpan);
+        }
+
+        // Resets all filter form fields to their default values
+        function resetFilterForm() {
+            const form = document.getElementById('filter-form');
+            form.querySelectorAll('input, select').forEach(field => {
+                if (field.type === 'select-one') {
+                    field.selectedIndex = 0;
+                } else if (field.type === 'select-multiple') {
+                    // For multi-select fields, deselect all options
+                    for (let i = 0; i < field.options.length; i++) {
+                        field.options[i].selected = false;
+                    }
+                } else {
+                    field.value = '';
+                }
+            });
+            // Let the link handle the navigation
+            return true;
+        }
+
+        // Sets up event listeners for filter section collapse/expand button text
+        function initializeFilterToggle() {
+            const filterCollapse = document.getElementById('filterCollapse');
+            const filterBtn = document.getElementById('filterToggleBtn');
+
+            // Only proceed if elements exist
+            if (!filterCollapse || !filterBtn) return;
+
+            filterCollapse.addEventListener('show.bs.collapse', function () {
+                filterBtn.querySelector('span').textContent = 'Hide Filters';
+            });
+
+            filterCollapse.addEventListener('hide.bs.collapse', function () {
+                filterBtn.querySelector('span').textContent = 'Show Filters';
+            });
+        }
+
+        // Initialize everything on page load with a slight delay to ensure styles are applied
+        document.addEventListener('DOMContentLoaded', () => {
+            // Delay tooltip initialization to ensure styles are fully applied
+            setTimeout(initializeTooltips, 100);
+            initializeFilterToggle();
+
+            // Restore filter section expanded state if previously saved
+            if (localStorage.getItem('filterExpanded') === 'true') {
+                const filterCollapse = document.getElementById('filterCollapse');
+                if (filterCollapse) {
+                    filterCollapse.classList.remove('hidden');
+                    const filterBtn = document.getElementById('filterToggleBtn');
+                    if (filterBtn) {
+                        filterBtn.querySelector('span').textContent = 'Hide Filters';
+                    }
+                }
+                localStorage.removeItem('filterExpanded');
+            }
+        });
+
+        // Add window resize handler to recalculate tooltips when window size changes
+        window.addEventListener('resize', () => {
+            // Debounce the resize event
+            if (window.resizeTimer) {
+                clearTimeout(window.resizeTimer);
+            }
+            window.resizeTimer = setTimeout(initializeTooltips, 100);
+        });
+
+
+
+    // Removes empty fields from the filter form before submission
+    function removeEmptyFields(form) {
+        Array.from(form.elements).forEach(el => {
+            if ((el.tagName === "INPUT" || el.tagName === "SELECT") && !el.value && !el.multiple) {
+                el.disabled = true;
+            }
+            // For multi-selects, if no option is selected, disable
+            if (el.tagName === "SELECT" && el.multiple) {
+                const anySelected = Array.from(el.options).some(opt => opt.selected && opt.value);
+                if (!anySelected) {
+                    el.disabled = true;
+                }
+            }
+        });
+        // Re-enable fields after submit for future use
+        setTimeout(() => {
+            Array.from(form.elements).forEach(el => el.disabled = false);
+        }, 100);
+        return true;
+    }
+
+    // Get current filter/sort/pagesize parameters for pagination
+    function getCurrentFilters() {
+        const params = new URLSearchParams(window.location.search);
+        const clean = {};
+        // console.log("DEBUG object_list: current filters = ", params);
+        for (const [key, value] of params) {
+            if (value && key !== 'page') {
+                clean[key] = value;
+                // console.log("DEBUG object_list: adding to clean: {", key, value, "}");
+            }
+        }
+        // console.log("DEBUG object_list: current filters provided as input to hx-vals= ", clean);
+        return clean;
+    }
+
+    // Delay form submit until after M2M select value for filters is properly updated in DOM
+    document.addEventListener('DOMContentLoaded', function () {
+        // Handle M2M select changes with proper timing
+        document.querySelectorAll('#filter-form select[multiple]').forEach(select => {
+            select.addEventListener('change', function () {
+                // Small delay to ensure DOM is updated
+                setTimeout(() => {
+                    // Use HTMX to submit the form
+                    const form = document.getElementById('filter-form');
+                    htmx.ajax('GET', form.action, {
+                        source: form,
+                        target: '#filtered_results',
+                        headers: {
+                            'X-Filter-Sort-Request': 'true',
+                            'X-Filter-Setting-Request': 'true'
+                        },
+                        swap: 'innerHTML',
+                        pushURL: true
+                    });
+                }, 10);
+            });
+        });
+    });
+ 
+    // Select-all functionality with immediate UI updates
+    function toggleAllSelection() {
+        const selectAll = document.getElementById('select-all-checkbox');
+        const checkboxes = document.querySelectorAll('.row-select-checkbox');
+        
+        // Immediate UI update - JavaScript handles all visual changes
+        checkboxes.forEach(cb => cb.checked = selectAll.checked);
+        updateBulkActionsCounter(selectAll.checked ? checkboxes.length : 0);
+        
+        // Background session sync - backend only updates session
+        const allIds = Array.from(checkboxes).map(cb => cb.dataset.id);
+        htmx.ajax('POST', '{{ list_view_url }}toggle-all-selection/', {
+            values: {
+                'object_ids': allIds,
+                'action': selectAll.checked ? 'add' : 'remove'
+            },
+            target: '#bulk-actions-container'  // Update container with accurate count
+        });
+    }
+ 
+    function updateBulkActionsCounter(count) {
+        const counter = document.getElementById('selected-items-counter');
+        if (counter) counter.textContent = count;
+        
+        const container = document.getElementById('bulk-actions-container');
+        if (container) container.classList.toggle('hidden', count === 0);
+    }
+ 
+     function handleRowSelectionChange(checkbox) {
+         const selectAllCheckbox = document.getElementById('select-all-checkbox');
+         const checkboxes = document.querySelectorAll('.row-select-checkbox');
+         const selectedCheckboxes = Array.from(checkboxes).filter(cb => cb.checked);
+         const selectedCount = selectedCheckboxes.length;
+ 
+         // Update the "select all" checkbox state
+         if (selectedCount === 0) {
+             selectAllCheckbox.checked = false;
+             selectAllCheckbox.indeterminate = false;
+         } else if (selectedCount === checkboxes.length) {
+             selectAllCheckbox.checked = true;
+             selectAllCheckbox.indeterminate = false;
+         } else {
+             selectAllCheckbox.checked = false;
+             selectAllCheckbox.indeterminate = true;
+         }
+ 
+         // Update bulk actions counter and visibility
+         updateBulkActionsCounter(selectedCount);
+ 
+         // HTMX request is already handled by hx-post on the checkbox itself
+         // No need to explicitly trigger htmx.ajax here
+     }
+ 
+     // Optimistic clearing of selection
+     function clearSelectionOptimistic() {
+         // 1. Immediately clear all checkboxes on the page
+         document.querySelectorAll('.row-select-checkbox').forEach(cb => cb.checked = false);
+         document.getElementById('select-all-checkbox').checked = false;
+         document.getElementById('select-all-checkbox').indeterminate = false;
+ 
+         // 2. Update the bulk actions counter to 0
+         updateBulkActionsCounter(0);
+ 
+         // 3. Hide the bulk actions container (already handled by updateBulkActionsCounter)
+         // 4. Then allow the HTMX request to clear the Django session
+     }
+
+     document.body.addEventListener('bulkEditSuccess', function(evt) {
+         powercrudBaseModal.close();
+         // Also clear selection optimistically on success
+         clearSelectionOptimistic();
+     });
+
+    document.body.addEventListener('refreshTable', function (evt) {
+        htmx.ajax('GET', '{{ list_view_url }}', {
+            target: '#filtered_results',
+            headers: {
+                'X-Filter-Sort-Request': 'true'
+            },
+            swap: 'innerHTML',
+            pushURL: true, // To update the URL in the browser history
+            vals: getCurrentFilters() // Include current filters
+        });
+    });
+
+   document.body.addEventListener('bulkEditQueued', function(evt) {
+       const { taskId, message } = evt.detail;
+       clearSelectionOptimistic();
+   });
+ </script>
+
+{% endpartialdef pcrud_content %}
+
+{% partialdef bulk_selection_status %}
+<!-- Bulk actions container - show/hide based on selection count -->
+<div id="bulk-actions-container" 
+    class="join {% if selected_count == 0 %}hidden{% endif %}" 
+    hx-target="this" 
+    hx-swap="outerHTML" 
+    hx-trigger="bulkSelectionChanged from:body">
+    <a href="{{ list_view_url }}bulk-edit/" class="join-item btn btn-sm btn-primary {{ view.get_extra_button_classes }}"
+        hx-get="{{ list_view_url }}bulk-edit/" 
+        hx-target="#powercrudModalContent"
+        hx-swap="innerHTML"
+        onclick="powercrudBaseModal.showModal();">
+        Bulk Edit <span id="selected-items-counter">{{ selected_count }}</span>
+    </a>
+    <button class="join-item btn btn-sm btn-outline btn-error {{ view.get_extra_button_classes }}"
+            onclick="clearSelectionOptimistic()"
+            hx-post="{{ list_view_url }}clear-selection/"
+            hx-target="#bulk-actions-container"
+            hx-swap="outerHTML">
+        Clear Selection
+    </button>
+</div>
+{% endpartialdef bulk_selection_status %}
+
+{% partialdef filtered_results %}
+    {% if object_list %}
+        {% object_list object_list view %}
+        {% partial pagination %}
+    {% else %}
+        <p class="mt-4">There are no {{ object_verbose_name_plural }}. Create one now?</p>
+    {% endif %}
+{% endpartialdef filtered_results %}
+
+
+{% partialdef pagination %}
+{% if is_paginated %}
+<nav aria-label="Page navigation" class="mt-4">
+    <ul class="join flex justify-center">
+        {% if page_obj.has_previous %}
+        <li>
+            <a class="join-item btn btn-sm"
+                href="?page={{ page_obj.previous_page_number }}{% if request.GET.page_size %}&page_size={{ request.GET.page_size }}{% endif %}"
+                {% if use_htmx and original_target %} 
+                    hx-get="?page={{ page_obj.previous_page_number }}"
+                    hx-vals="js:{...getCurrentFilters()}" hx-headers='{"X-Filter-Sort-Request": "true"}'
+                    hx-target="#filtered_results" 
+                    hx-replace-url="true" hx-push-url="true" 
+                {% endif %}>Previous
+            </a>
+        </li>
+        
+        {% endif %}
+
+        {% get_proper_elided_page_range paginator page_obj.number as page_range %}
+        {% for i in page_range %}
+            {% if i == "..." %}
+            <li><span class="join-item btn btn-sm btn-disabled">…</span></li>
+            {% else %}
+            <li>
+                <a class="join-item btn btn-sm {% if page_obj.number == i %}btn-active{% endif %}"
+                    href="?page={{ i }}{% if request.GET.page_size %}&page_size={{ request.GET.page_size }}{% endif %}"
+                    {% if use_htmx and original_target %}
+                        hx-get="?page={{ i }}" 
+                        hx-vals="js:{...getCurrentFilters()}" hx-headers='{"X-Filter-Sort-Request": "true"}' 
+                        hx-target="#filtered_results" 
+                        hx-replace-url="true" hx-push-url="true" 
+                    {% endif %}>{{ i }}
+                </a>
+            </li>
+            
+            {% endif %}
+        {% endfor %}
+
+        {% if page_obj.has_next %}
+        <li>
+            <a class="join-item btn btn-sm"
+                href="?page={{ page_obj.next_page_number }}{% if request.GET.page_size %}&page_size={{ request.GET.page_size }}{% endif %}"
+                {% if use_htmx and original_target %} 
+                    hx-get="?page={{ page_obj.next_page_number }}"
+                    hx-vals="js:{...getCurrentFilters()}" hx-headers='{"X-Filter-Sort-Request": "true"}' 
+                    hx-target="#filtered_results" 
+                    hx-replace-url="true" hx-push-url="true" 
+                {%endif %}>Next
+            </a>
+        </li>
+        {%endif %}
+
+    </ul>
+</nav>
+{% endif %}
+{% endpartialdef pagination %}

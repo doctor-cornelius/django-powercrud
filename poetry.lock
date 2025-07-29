@@ -840,6 +840,22 @@ files = [
 Django = ">=4.2"
 
 [[package]]
+name = "django-htmx"
+version = "1.23.2"
+description = "Extensions for using Django with htmx."
+optional = false
+python-versions = ">=3.9"
+groups = ["main"]
+files = [
+    {file = "django_htmx-1.23.2-py3-none-any.whl", hash = "sha256:c288fe92bdcfa7c2ed9665d6d23cc55c6693a7cc8d22cf0a01e1e38318874030"},
+    {file = "django_htmx-1.23.2.tar.gz", hash = "sha256:65a8c8825fcae983b94aedce26af96a70717ab185d55cdb8a7a4bb68863ab079"},
+]
+
+[package.dependencies]
+asgiref = ">=3.6"
+django = ">=4.2"
+
+[[package]]
 name = "django-picklefield"
 version = "3.3"
 description = "Pickled object field for Django"
@@ -2661,4 +2677,4 @@ files = [
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.12"
-content-hash = "773f35e268497d09bfcf17156da305b502c8d3086a0a416893335c4cc23b81cc"
+content-hash = "faa8484904da3eacc3c56dd8641e5957f842d306689aebdde68a31369af16922"

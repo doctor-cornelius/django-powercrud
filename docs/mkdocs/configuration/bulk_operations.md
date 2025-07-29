@@ -7,7 +7,7 @@ Efficiently edit or delete multiple records at once with atomic transactions and
 Enable bulk editing and/or deletion:
 
 ```python
-class BookCRUDView(NominopolitanMixin, CRUDView):
+class BookCRUDView(PowerCRUDMixin, CRUDView):
     model = models.Book
     base_template_path = "core/base.html"
     
@@ -62,7 +62,7 @@ All Django field types work with bulk operations:
 By default, bulk operations will call the `full_clean()` and `save()` method for every selected object. You can override to skip the `full_clean()` step.
 
 ```python
-class BookCRUDView(NominopolitanMixin, CRUDView):
+class BookCRUDView(PowerCRUDMixin, CRUDView):
     model = models.Book
     base_template_path = "core/base.html"
     bulk_fields = ['title', 'author']
@@ -74,7 +74,7 @@ class BookCRUDView(NominopolitanMixin, CRUDView):
 ### Dropdown Sorting
 
 ```python
-class BookCRUDView(NominopolitanMixin, CRUDView):
+class BookCRUDView(PowerCRUDMixin, CRUDView):
     model = models.Book
     base_template_path = "core/base.html"
     bulk_fields = ['author', 'publisher']
@@ -92,7 +92,7 @@ class BookCRUDView(NominopolitanMixin, CRUDView):
 Override `get_bulk_choices_for_field()` to limit foreign key options:
 
 ```python
-class BookCRUDView(NominopolitanMixin, CRUDView):
+class BookCRUDView(PowerCRUDMixin, CRUDView):
     model = models.Book
     base_template_path = "core/base.html"
     bulk_fields = ['author', 'publisher']
@@ -126,7 +126,7 @@ All bulk operations are atomic - either all records are updated/deleted or none 
 === "Basic Setup"
 
     ```python
-    class BookCRUDView(NominopolitanMixin, CRUDView):
+    class BookCRUDView(PowerCRUDMixin, CRUDView):
         model = models.Book
         base_template_path = "core/base.html"
         
@@ -148,7 +148,7 @@ All bulk operations are atomic - either all records are updated/deleted or none 
 === "Advanced Configuration"
 
     ```python
-    class ProjectCRUDView(NominopolitanMixin, CRUDView):
+    class ProjectCRUDView(PowerCRUDMixin, CRUDView):
         model = models.Project
         base_template_path = "core/base.html"
         

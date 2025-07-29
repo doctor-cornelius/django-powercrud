@@ -2,11 +2,11 @@
 
 ## Overview
 
-Django Nominopolitan implements async processing for bulk operations to handle large datasets efficiently. The system supports multiple async backends and provides a unified interface for task management.
+Django PowerCRUD implements async processing for bulk operations to handle large datasets efficiently. The system supports multiple async backends and provides a unified interface for task management.
 
 ## Task Implementation
 
-### Core Task Functions (`nominopolitan/tasks.py`)
+### Core Task Functions (`powercrud/tasks.py`)
 
 The async processing is implemented through backend-agnostic task functions that can work with both django-q2 and Celery:
 
@@ -64,7 +64,7 @@ def bulk_update_task(task_id, model_path, selected_ids, user_id, bulk_fields, fi
 - Failure: Task marked as 'completed' with success=False and error message
 - Results available for UI feedback
 
-## Task Model (`nominopolitan/models.py`)
+## Task Model (`powercrud/models.py`)
 
 ### BulkTask Fields
 ```python
@@ -113,7 +113,7 @@ class BulkTask(models.Model):
 ```python
 # settings.py
 Q_CLUSTER = {
-    'name': 'nominopolitan',
+    'name': 'PowerCRUD',
     'workers': 1,
     'recycle': 500,
     'timeout': 250,
@@ -139,7 +139,7 @@ Q_CLUSTER = {
 - System stability maintained
 
 ### Logging
-- Comprehensive logging through nominopolitan logger
+- Comprehensive logging through PowerCRUD logger
 - Task lifecycle events tracked
 - Error details preserved for debugging
 - Performance metrics available
@@ -172,7 +172,7 @@ if should_use_async(selected_ids):
         operation='delete',
         total_records=len(selected_ids)
     )
-    async_task('nominopolitan.tasks.bulk_delete_task', 
+    async_task('powercrud.tasks.bulk_delete_task', 
                task.id, model_path, selected_ids, request.user.id)
 ```
 
@@ -188,7 +188,7 @@ progress = {
 }
 ## Create Sample Data
 
-**Last performed:** 2025-07-26
+**Last performed:** 2025-07-29
 **Files to modify:**
 - `/sample/management/commands/create_sample_data.py` - Updated to use Faker for data generation.
 

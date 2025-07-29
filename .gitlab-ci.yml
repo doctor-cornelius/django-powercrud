@@ -43,4 +43,4 @@ publish-package:
     - export POETRY_REPOSITORIES_NOMINOPOLITAN_URL="${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/pypi"
     - export POETRY_HTTP_BASIC_NOMINOPOLITAN_USERNAME="gitlab-ci-token"
     - export POETRY_HTTP_BASIC_NOMINOPOLITAN_PASSWORD="${CI_JOB_TOKEN}"
-    - poetry publish --build --repository nominopolitan
+    - poetry publish --build --repository PowerCRUD

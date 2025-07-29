@@ -1,6 +1,6 @@
 # Styling Configuration
 
-Configure visual appearance and styling for your Nominopolitan views.
+Configure visual appearance and styling for your PowerCRUD views.
 
 ## Framework Selection
 
@@ -32,7 +32,7 @@ NOMINOPOLITAN_CSS_FRAMEWORK = 'bootstrap5'  # Alternative
 Add CSS classes to your tables:
 
 ```python
-class ProjectCRUDView(NominopolitanMixin, CRUDView):
+class ProjectCRUDView(PowerCRUDMixin, CRUDView):
     model = models.Project
     table_classes = 'table-striped table-hover'  # Added to base 'table' class
 ```
@@ -42,7 +42,7 @@ class ProjectCRUDView(NominopolitanMixin, CRUDView):
 Style action and extra buttons:
 
 ```python
-class ProjectCRUDView(NominopolitanMixin, CRUDView):
+class ProjectCRUDView(PowerCRUDMixin, CRUDView):
     model = models.Project
     
     # Style buttons that appear for each record (edit, delete, etc.)
@@ -57,7 +57,7 @@ class ProjectCRUDView(NominopolitanMixin, CRUDView):
 Control how options are sorted in dropdowns:
 
 ```python
-class ProjectCRUDView(NominopolitanMixin, CRUDView):
+class ProjectCRUDView(PowerCRUDMixin, CRUDView):
     model = models.Project
     
     dropdown_sort_options = {
@@ -76,7 +76,7 @@ This affects dropdowns in filters, edit forms, and bulk edit forms.
 Control how table columns are sized:
 
 ```python
-class ProjectCRUDView(NominopolitanMixin, CRUDView):
+class ProjectCRUDView(PowerCRUDMixin, CRUDView):
     model = models.Project
     
     # Maximum column width in characters (default: 25)
@@ -97,7 +97,7 @@ class ProjectCRUDView(NominopolitanMixin, CRUDView):
 Control the maximum height of data tables:
 
 ```python
-class ProjectCRUDView(NominopolitanMixin, CRUDView):
+class ProjectCRUDView(PowerCRUDMixin, CRUDView):
     model = models.Project
     
     # Height of other page elements in pixels (default: 0)
@@ -117,7 +117,7 @@ max-height: calc((100vh - 100px) * 80 / 100);
 Tables automatically support clickable column sorting:
 
 ```python
-class ProjectCRUDView(NominopolitanMixin, CRUDView):
+class ProjectCRUDView(PowerCRUDMixin, CRUDView):
     model = models.Project
     use_htmx = True  # Enable reactive sorting without page reload
 ```
@@ -131,24 +131,24 @@ class ProjectCRUDView(NominopolitanMixin, CRUDView):
 
 ## Tailwind CSS Integration
 
-If using daisyUI or custom Tailwind-based framework, ensure Tailwind detects Nominopolitan's classes.
+If using daisyUI or custom Tailwind-based framework, ensure Tailwind detects PowerCRUD's classes.
 
 ### Method 1: Package Source (Recommended)
 
-Add Nominopolitan's package path to your `tailwind.css`:
+Add PowerCRUD's package path to your `tailwind.css`:
 
 ```css
 @import "tailwindcss";
-@source "/path/to/your/site-packages/nominopolitan";
+@source "/path/to/your/site-packages/PowerCRUD";
 ```
 
 **Find your package path:**
 
 ```bash
 python manage.py shell
->>> import django_nominopolitan 
->>> print(django_nominopolitan.__path__)
-['/usr/local/lib/python3.12/site-packages/nominopolitan']
+>>> import django_powercrud 
+>>> print(django_powercrud.__path__)
+['/usr/local/lib/python3.12/site-packages/PowerCRUD']
 ```
 
 ### Method 2: Safelist Generation
@@ -157,12 +157,12 @@ Generate a safelist of Tailwind classes:
 
 ```python
 # settings.py
-NM_TAILWIND_SAFELIST_JSON_LOC = 'config/templates/nominopolitan/'
+NM_TAILWIND_SAFELIST_JSON_LOC = 'config/templates/powercrud/'
 ```
 
 ```bash
 # Generate safelist
-python manage.py nm_extract_tailwind_classes --pretty
+python manage.py pcrud_extract_tailwind_classes --pretty
 ```
 
 Use in your `tailwind.config.js`:
@@ -171,20 +171,20 @@ module.exports = {
   content: [
     // your content paths
   ],
-  safelist: require('./config/templates/nominopolitan/nominopolitan_tailwind_safelist.json')
+  safelist: require('./config/templates/powercrud/PowerCRUD_tailwind_safelist.json')
 }
 ```
 
 ### Management Command: Extract Tailwind Classes
 
-Generate a safelist of Tailwind classes used by Nominopolitan which can be picked up by the `tailwindcss` tree-shaking process.
+Generate a safelist of Tailwind classes used by PowerCRUD which can be picked up by the `tailwindcss` tree-shaking process.
 
 ```bash
 # Basic usage (requires NM_TAILWIND_SAFELIST_JSON_LOC setting)
-python manage.py nm_extract_tailwind_classes
+python manage.py pcrud_extract_tailwind_classes
 
 # With options
-python manage.py nm_extract_tailwind_classes --pretty --output ./config/
+python manage.py pcrud_extract_tailwind_classes --pretty --output ./config/
 ```
 
 **Command options:**
@@ -213,12 +213,12 @@ NOMINOPOLITAN_CSS_FRAMEWORK = 'bulma'  # Your framework name
 - Add CSS/JS files to your base template
 - Include any JavaScript dependencies (for modals, dropdowns, etc.)
 - If using crispy forms, install appropriate crispy template packs for your framework
-- Ensure all framework-specific JavaScript is loaded before Nominopolitan interactions
+- Ensure all framework-specific JavaScript is loaded before PowerCRUD interactions
 
 **3. Create Custom Templates**
 ```bash
 # Copy all templates to customize with your CSS classes
-python manage.py nm_mktemplate myapp --all
+python manage.py pcrud_mktemplate myapp --all
 ```
 
 You'll need to update these templates with your framework's classes:
@@ -268,7 +268,7 @@ These components are used throughout both the template tags and HTMX mixins, so 
 === "Basic Table Styling"
 
     ```python
-    class BookCRUDView(NominopolitanMixin, CRUDView):
+    class BookCRUDView(PowerCRUDMixin, CRUDView):
         model = models.Book
         table_classes = 'table-striped table-hover'
         action_button_classes = 'btn-sm'
@@ -277,7 +277,7 @@ These components are used throughout both the template tags and HTMX mixins, so 
 === "Responsive Tables"
 
     ```python
-    class BookCRUDView(NominopolitanMixin, CRUDView):
+    class BookCRUDView(PowerCRUDMixin, CRUDView):
         model = models.Book
         
         # Control column width and wrapping
@@ -292,7 +292,7 @@ These components are used throughout both the template tags and HTMX mixins, so 
 === "Sorted Dropdowns"
 
     ```python
-    class BookCRUDView(NominopolitanMixin, CRUDView):
+    class BookCRUDView(PowerCRUDMixin, CRUDView):
         model = models.Book
         
         # Sort all dropdowns consistently
@@ -306,7 +306,7 @@ These components are used throughout both the template tags and HTMX mixins, so 
 === "Custom Framework Example"
 
     ```python
-    class BookCRUDView(NominopolitanMixin, CRUDView):
+    class BookCRUDView(PowerCRUDMixin, CRUDView):
         model = models.Book
         templates_path = "myapp/bulma"  # Custom Bulma templates
         
