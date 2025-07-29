@@ -61,8 +61,8 @@ class ProjectView(PowerCRUDMixin, CRUDView):
 
 ## Getting Started
 
-1. **[Installation](getting_started.md#installation-dependencies)** - Install and configure in minutes
-2. **[Quick Start](getting_started.md#quick-start-tutorial)** - Your first PowerCRUD view
+1. **[Installation](getting_started.md#installation)** - Install and configure in minutes
+2. **[Quick Start](getting_started.md)** - Your first PowerCRUD view
 3. **[Configuration](configuration/core_config.md)** - Explore the features
 
 ## Framework Support
