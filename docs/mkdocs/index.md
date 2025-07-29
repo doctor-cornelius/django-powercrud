@@ -1,6 +1,6 @@
 # Django PowerCRUD
 
-**Advanced CRUD for perfectionists with deadlines. An opinionated [`Neapolitan`](https://github.com/carltongibson/neapolitan) extension, with sprinkles.**
+**Advanced CRUD for perfectionists with deadlines. An opinionated extension of [`Neapolitan`](https://github.com/carltongibson/neapolitan), with sprinkles.**
 
 ## What is PowerCRUD?
 

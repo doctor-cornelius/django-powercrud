@@ -1,6 +1,6 @@
 # Django PowerCRUD
 
-**Advanced CRUD for perfectionists with deadlines. An opinionated [`Neapolitan`](https://github.com/carltongibson/neapolitan) extension, with sprinkles.**
+**Advanced CRUD for perfectionists with deadlines. An opinionated extension of [Neapolitan](https://github.com/carltongibson/neapolitan), with sprinkles.**
 
 ## What is PowerCRUD?
 
@@ -8,8 +8,8 @@ The [`neapolitan`](https://github.com/carltongibson/neapolitan/) package gives y
 
 PowerCRUD comes with these features built-in, specifically for user-facing CRUD interfaces. Use what you need, customize what you want.
 
-[!WARNING]
-This is a **very early alpha** release with limited tests and documentation. Expect breaking changes. You might prefer to fork or copy what you need.
+> [!WARNING]
+> This is a **very early alpha** release with limited tests and documentation. Expect breaking changes. You might prefer to fork or copy what you need.
 
 See the [full documentation](https://doctor-cornelius.github.io/django-powercrud/).
 
