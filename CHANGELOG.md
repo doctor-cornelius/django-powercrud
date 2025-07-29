@@ -1,3 +1,9 @@
+## 0.3.0 (2025-07-29)
+
+### Documentation
+
+- **(docs)**:  make slight changes to docs
+
 ## 0.2.27 (2025-07-28)
 
 ### Fix
@@ -9,7 +15,7 @@
 - **(sessions)**:  fix bugs in previous backend work
 - **(sessions)**:  revert to complete first draft of tasks 1 & 2
 - **(object_confirm_delete)**:  fix behavkiour for async conflict detection
-- **(pcrud_help)**:  add docs url
+- **(nm_help)**:  add docs url
 - **(pagination)**:  ensure page change persists existing filter, sort and pagination params
 
 ### Refactor
@@ -17,7 +23,7 @@
 - **(various)**:  remove log.debug statements
 - **(sessions)**:  partial incorrect implementation of task 4
 - **(bulk_mixin)**:  complete first draft of tasks 1 and 2
-- **(config)**:  refactor to support rename of django_powercrud to config directory
+- **(config)**:  refactor to support rename of django_nominopolitan to config directory
 - **(sample)**:  move templates and home view to sample app
 - **(bulk)**:  extract required info from request so not required in _perform_bulk_update
 - **(bulk)**:  separate delete and update into separate methods called by bulk_edit_process_post
@@ -154,7 +160,7 @@
 
 ### Style
 
-- **(PowerCRUD)**:  make modal based form errors appear in modal not template body
+- **(nominopolitan)**:  make modal based form errors appear in modal not template body
 
 ## 0.2.13 (2025-05-21)
 
@@ -194,7 +200,7 @@
 
 ### Refactor
 
-- **(pcrud_extract_tailwind_classes)**:  use generated css file instead of simulating
+- **(nm_extract_tailwind_classes)**:  use generated css file instead of simulating
 
 ## 0.2.7 (2025-05-06)
 
@@ -233,7 +239,7 @@
 
 ### Feature
 
-- **(PowerCRUDMixin)**:  amend get_queryset and add override paginate_queryset to allow filters and pagination to coexist
+- **(NominopolitanMixin)**:  amend get_queryset and add override paginate_queryset to allow filters and pagination to coexist
 
 ### Style
 
@@ -270,13 +276,13 @@
 
 ### Fix
 
-- **(powercrud.py)**:  add in missing models import from django.db
+- **(nominopolitan.py)**:  add in missing models import from django.db
 
 ## 0.1.40 (2025-04-09)
 
 ### Feature
 
-- **(PowerCRUDMixin, powercrud.py)**:  handle M2M fields in object list, forms and filtersets
+- **(NominopolitanMixin, nominopolitan.py)**:  handle M2M fields in object list, forms and filtersets
 
 ## 0.1.39 (2025-04-08)
 
@@ -323,7 +329,7 @@
 
 ### Fix
 
-- **(pcrud_extract_tailwind_classes)**:  include json and text files in scan
+- **(nm_extract_tailwind_classes)**:  include json and text files in scan
 
 ## 0.1.34 (2025-04-04)
 
@@ -345,31 +351,31 @@
 
 ### Refactor
 
-- **(post_install)**:  add post_install script to package to run pcrud_extract_tailwind_classes
+- **(post_install)**:  add post_install script to package to run nm_extract_tailwind_classes
 
 ## 0.1.31 (2025-04-02)
 
 ### Fix
 
-- **(pcrud_extract_tailwind_classes)**:  make --pretty option also save in pretty format
+- **(nm_extract_tailwind_classes)**:  make --pretty option also save in pretty format
 
 ## 0.1.30 (2025-04-02)
 
 ### Refactor
 
-- **(pcrud_extract_tailwind_classes)**:  change default filename to PowerCRUD_tailwind_safelist.json
+- **(nm_extract_tailwind_classes)**:  change default filename to nominopolitan_tailwind_safelist.json
 
 ## 0.1.29 (2025-04-02)
 
 ### Feature
 
-- **(pcrud_extract_tailwind_classes)**:  allow options --output and --package-dir to set file save destination
+- **(nm_extract_tailwind_classes)**:  allow options --output and --package-dir to set file save destination
 
 ## 0.1.28 (2025-04-02)
 
 ### Refactor
 
-- **(pcrud_extract_tailwind_classes)**:  save file in non-pretty format and allow print of file in normal or --pretty format
+- **(nm_extract_tailwind_classes)**:  save file in non-pretty format and allow print of file in normal or --pretty format
 
 ## 0.1.27 (2025-04-02)
 
@@ -379,7 +385,7 @@
 
 ### Feature
 
-- **(pcrud_extract_tailwind_classes)**:  create management command to extract classes for downstream to include in safelist
+- **(nm_extract_tailwind_classes)**:  create management command to extract classes for downstream to include in safelist
 
 ## 0.1.26 (2025-04-02)
 
@@ -390,13 +396,13 @@
 
 ### Feature
 
-- **(pcrud_generate_tailwind_config)**:  write mgmt command to identify locations of files with tw classes
+- **(nm_generate_tailwind_config)**:  write mgmt command to identify locations of files with tw classes
 
 ## 0.1.25 (2025-04-01)
 
 ### Feature
 
-- **(django_powercrud)**:  add parameters table_classes, action_button_classes, extra_button_classes and drop table_font_size
+- **(django_nominopolitan)**:  add parameters table_classes, action_button_classes, extra_button_classes and drop table_font_size
 
 ## 0.1.24 (2025-03-31)
 
@@ -448,7 +454,7 @@
 
 ### Fix
 
-- **(pcrud_help)**:  include README.md in package so it can be read when imported
+- **(nm_help)**:  include README.md in package so it can be read when imported
 
 ### Refactor
 
@@ -473,7 +479,7 @@
 
 ### Feature
 
-- **(pcrud_mktemplate)**:  enhance management command options with app_name --all and app_name.model --all
+- **(nm_mktemplate)**:  enhance management command options with app_name --all and app_name.model --all
 
 ## 0.1.14 (2025-03-10)
 
@@ -491,11 +497,11 @@
 
 ### Fix
 
-- **(render_to_response)**:  change all template partial names to pcrud_content and specify in response logic
+- **(render_to_response)**:  change all template partial names to nm_content and specify in response logic
 
 ### Refactor
 
-- **(refactor session key to single 'PowerCRUD' session key)**: 
+- **(refactor session key to single 'nominopolitan' session key)**: 
 
 ## 0.1.12 (2025-03-10)
 
@@ -514,7 +520,7 @@
 ### Fix
 
 - **(pypoetry)**:  correct extras syntax
-- **(PowerCRUDMixinValidator)**:  remove defaults from validator class and set custom validator for hx_trigger
+- **(NominopolitanMixinValidator)**:  remove defaults from validator class and set custom validator for hx_trigger
 
 ### Build
 
@@ -528,7 +534,7 @@
 
 ### Feature
 
-- **(PowerCRUDMixin)**:  validate all class attributes with pydantic PowerCRUDMixinValidator
+- **(NominopolitanMixin)**:  validate all class attributes with pydantic NominopolitanMixinValidator
 
 ## 0.1.8 (2025-03-07)
 
@@ -538,8 +544,8 @@
 
 ### Documentation
 
-- **(README)**:  update re pcrud_help
-- **(pcrud_help)**:  create management command to display README.md
+- **(README)**:  update re nm_help
+- **(nm_help)**:  create management command to display README.md
 - **(README)**:  add url for popper.js installation instructions page
 
 ### Feature
@@ -550,17 +556,17 @@
 
 ### Feature
 
-- **(django_powercrud)**:  add new parameters to calculate max-table-height css parameter in list.html
+- **(django_nominopolitan)**:  add new parameters to calculate max-table-height css parameter in list.html
 
 ## 0.1.6 (2025-03-06)
 
 ### Documentation
 
-- **(README)**:  update docs re pcrud_clear_session_keys
+- **(README)**:  update docs re nm_clear_session_keys
 
 ### Feature
 
-- **(pcrud_clear_session_keys)**:   add management command to clear PowerCRUD session keys
+- **(nm_clear_session_keys)**:   add management command to clear nominopolitan session keys
 
 ## 0.1.5 (2025-03-06)
 
@@ -588,7 +594,7 @@
 
 ### Feature
 
-- **(django_powercrud)**:  enable sort toggle on object list
+- **(django_nominopolitan)**:  enable sort toggle on object list
 
 ## 0.1.1 (2025-03-01)
 
@@ -709,7 +715,7 @@
 
 ### Feature
 
-- **(modal_id)**:  allow override of default modal_id 'powercrudBaseModal'
+- **(modal_id)**:  allow override of default modal_id 'nominopolitanBaseModal'
 
 ## 0.0.32 (2025-02-10)
 
@@ -731,7 +737,7 @@
 
 ### Feature
 
-- **(PowerCRUD)**:  support hx_trigger as value to pass as response['HX-Trigger'] with every response
+- **(Nominopolitan)**:  support hx_trigger as value to pass as response['HX-Trigger'] with every response
 
 ## 0.0.29 (2025-02-04)
 
@@ -812,55 +818,55 @@
 
 ### Feature
 
-- **(PowerCRUD)**:  exclude non-editable fields from forms if no form_class is specified
+- **(nominopolitan)**:  exclude non-editable fields from forms if no form_class is specified
 
 ## 0.0.20 (2024-12-05)
 
 ### Feature
 
-- **(PowerCRUD)**:  add parameters exclude, properties_exclude, detail_exclude, detail_properties_exclude
+- **(nominopolitan)**:  add parameters exclude, properties_exclude, detail_exclude, detail_properties_exclude
 
 ## 0.0.19 (2024-12-04)
 
 ### Style
 
-- **(PowerCRUD)**:  use template tag get_proper_elided_page_range for pagination list
+- **(nominopolitan)**:  use template tag get_proper_elided_page_range for pagination list
 
 ## 0.0.18 (2024-12-04)
 
 ### Feature
 
-- **(PowerCRUD)**:  add htmx pagination for object list template
+- **(nominopolitan)**:  add htmx pagination for object list template
 
 ## 0.0.17 (2024-12-04)
 
 ### Fix
 
-- **(PowerCRUD)**:  add htmx directives to object_confirm_delete template form
-- **(PowerCRUD)**:  add delete_view_url context variable and fix modal delete not working
+- **(nominopolitan)**:  add htmx directives to object_confirm_delete template form
+- **(nominopolitan)**:  add delete_view_url context variable and fix modal delete not working
 
 ### Style
 
-- **(PowerCRUD)**:  remove debug paragraph in object_confirm_delete.html
+- **(nominopolitan)**:  remove debug paragraph in object_confirm_delete.html
 
 ## 0.0.16 (2024-12-03)
 
 ### Refactor
 
-- **(PowerCRUD)**:  change parameters for fields, properties, detail_fields, detail_properties
+- **(nominopolitan)**:  change parameters for fields, properties, detail_fields, detail_properties
 
 ## 0.0.15 (2024-12-03)
 
 ### Feature
 
-- **(PowerCRUD)**:  Support fields or properties = 'all'; support detail_fields, detail_properties
+- **(nominopolitan)**:  Support fields or properties = 'all'; support detail_fields, detail_properties
 - **(support fields = 'all' and properties = 'all')**: 
 
 ## 0.0.14 (2024-12-02)
 
 ### Refactor
 
-- **(django-PowerCRUD)**:  prefix all modal names with PowerCRUD
+- **(django-nominopolitan)**:  prefix all modal names with nominopolitan
 
 ### Build
 
@@ -875,65 +881,65 @@
 
 ### Fix
 
-- **(PowerCRUD)**:  fix problem where non-htmx call initiated list for view where use_htmx is True
+- **(nominopolitan)**:  fix problem where non-htmx call initiated list for view where use_htmx is True
 
 ### Refactor
 
-- **(PowerCRUD)**:  remove debug statement
+- **(nominopolitan)**:  remove debug statement
 
 ### Feature
 
-- **(PowerCRUD)**:  Allow hx-post parameter on extra_actions
+- **(nominopolitan)**:  Allow hx-post parameter on extra_actions
 
 ## 0.0.12 (2024-11-27)
 
 ### Fix
 
-- **(PowerCRUD)**:  use elif in get_htmx_target to ensure non-htmx target is None not "#None"
+- **(nominopolitan)**:  use elif in get_htmx_target to ensure non-htmx target is None not "#None"
 
 ## 0.0.11 (2024-11-27)
 
 ### Refactor
 
-- **(PowerCRUD)**:  put object_list modal inside #content partial
+- **(nominopolitan)**:  put object_list modal inside #content partial
 
 ## 0.0.10 (2024-11-27)
 
 ### Style
 
-- **(PowerCRUD)**:  remove stray > from object_form template
+- **(nominopolitan)**:  remove stray > from object_form template
 
 ## 0.0.9 (2024-11-27)
 
 ### Fix
 
-- **(PowerCRUD)**:  get_success_url now correctly targets original hx-target of the list view if used
-- **(PowerCRUD)**:  get update_view_url correctly into context
+- **(nominopolitan)**:  get_success_url now correctly targets original hx-target of the list view if used
+- **(nominopolitan)**:  get update_view_url correctly into context
 - **(sample)**:  correct date widgets in forms
-- **(PowerCRUD)**:  fix up when to prepend # to htmx_target
+- **(nominopolitan)**:  fix up when to prepend # to htmx_target
 
 ### Documentation
 
-- **(PowerCRUD)**:  update docs with minimal detail on use_modal
+- **(nominopolitan)**:  update docs with minimal detail on use_modal
 
 ### Feature
 
-- **(PowerCRUD)**:  implement use_modal functionality for CRUD and other actions
+- **(nominopolitan)**:  implement use_modal functionality for CRUD and other actions
 
 ### Style
 
-- **(PowerCRUD)**:  style modal close X
+- **(nominopolitan)**:  style modal close X
 - **(sample)**:  load template builtins to save having to load tags each time
 
 ## 0.0.8 (2024-11-26)
 
 ### Refactor
 
-- **(PowerCRUD)**:  remove debug statement
+- **(nominopolitan)**:  remove debug statement
 
 ### Feature
 
-- **(PowerCRUD)**:  style action links as small buttons and allow extra_buttons to be specified
+- **(nominopolitan)**:  style action links as small buttons and allow extra_buttons to be specified
 - **(NominoPolitanMixin)**:  Allow specification of new actions
 
 ### Style
@@ -944,17 +950,17 @@
 
 ### Documentation
 
-- **(README)**:  minimally document pcrud_mktemplate command
+- **(README)**:  minimally document nm_mktemplate command
 
 ### Feature
 
-- **(pcrud_mktemplate)**:  pcrud_mktemplate to make copy of PowerCRUD templates using same syntax as mktemplate
+- **(nm_mktemplate)**:  nm_mktemplate to make copy of nominopolitan templates using same syntax as mktemplate
 
 ## 0.0.6 (2024-11-22)
 
 ### Refactor
 
-- **(PowerCRUDMixin)**:  set context for htmx_target in get_context_data
+- **(NominopolitanMixin)**:  set context for htmx_target in get_context_data
 
 ### Documentation
 
@@ -987,7 +993,7 @@
 
 ### Feature
 
-- **(PowerCRUDMixin)**:  add logic for use of crispy forms depending on whether installed or overridden via use_crispy
+- **(NominopolitanMixin)**:  add logic for use of crispy forms depending on whether installed or overridden via use_crispy
 
 ## 0.0.1 (2024-11-20)
 
@@ -999,5 +1005,5 @@
 
 ### Feature
 
-- **(PowerCRUD)**:  allow parameterisation of use_crispy
-- **(PowerCRUD)**:  Initial Commit
+- **(nominopolitan)**:  allow parameterisation of use_crispy
+- **(nominopolitan)**:  Initial Commit
