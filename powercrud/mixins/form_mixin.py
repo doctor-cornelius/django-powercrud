@@ -3,7 +3,8 @@ import json
 
 from django import forms
 from django.conf import settings
-from django.forms import models as model_forms
+from django.forms import models as form_models
+from django.db import models as db_models
 from django.core.exceptions import ImproperlyConfigured, ValidationError
 from django.http import HttpResponseRedirect, QueryDict
 from django.shortcuts import render
@@ -14,7 +15,6 @@ from urllib.parse import urlencode
 from crispy_forms.helper import FormHelper
 from neapolitan.views import Role
 
-
 log = logging.getLogger("PowerCRUD")
 
 
@@ -22,51 +22,6 @@ class FormMixin:
     """
     Provides form handling and Crispy Forms integration for PowerCRUD views.
     """
-
-    # --- Constants for Tailwind/DaisyUI Classes ---
-    DEFAULT_INPUT_CLASSES = "h-[2.2rem] min-h-[2.2rem] max-h-[2.2rem] py-[0.25rem] leading-[1.2]"
-    STANDARD_INPUT_CLASSES = "h-10 min-h-10 max-h-10 leading-tight"
-    MULTI_SELECT_CLASSES = "h-auto min-h-32 p-1"
-    SELECT_SM_CLASSES = "select-sm" # For DaisyUI select-sm
-
-    # --- New Method to Apply Widget Classes ---
-    def _apply_widget_classes(self, form):
-        """Applies default and specific Tailwind/DaisyUI classes to form widgets."""
-        for field_name, field_instance in form.fields.items():
-            widget = field_instance.widget
-            current_classes = widget.attrs.get('class', '')
-            new_classes = []
-
-            # Apply general input/select styling
-            new_classes.append(self.DEFAULT_INPUT_CLASSES)
-
-            # Apply specific classes for standard inputs/selects (taller)
-            # Exclude checkboxes and multi-selects from this specific height
-            if not isinstance(widget, (forms.CheckboxInput, forms.SelectMultiple)):
-                new_classes.append(self.STANDARD_INPUT_CLASSES)
-
-            # Apply specific classes for multi-selects
-            if isinstance(widget, forms.SelectMultiple):
-                new_classes.append(self.MULTI_SELECT_CLASSES)
-                # Note: Styling for <option> elements within multi-selects is not directly
-                # controllable via widget.attrs. This might still require a <style> block
-                # or a custom widget for precise control over options.
-
-            # Apply DaisyUI select-sm for single selects if applicable
-            if isinstance(widget, forms.Select) and not isinstance(widget, forms.SelectMultiple):
-                new_classes.append(self.SELECT_SM_CLASSES)
-
-            # Merge existing classes with new classes, ensuring no duplicates
-            # Preserve 'form-control' if it was already present (e.g., from date/time widgets)
-            existing_class_list = current_classes.split()
-            combined_classes = list(set(existing_class_list + new_classes))
-            
-            # Ensure 'form-control' is at the beginning if it was present
-            if 'form-control' in existing_class_list and 'form-control' in combined_classes:
-                combined_classes.remove('form-control')
-                combined_classes.insert(0, 'form-control')
-
-            widget.attrs['class'] = ' '.join(combined_classes).strip()
 
     def get_use_crispy(self):
         """
@@ -100,8 +55,6 @@ class FormMixin:
         if not self.get_use_crispy():
             # Apply dropdown sorting even if not using crispy
             self._apply_dropdown_sorting(form_class)
-            # If not using crispy, we still need to apply widget classes
-            # This will be done by modifying the __init__ of the form_class directly below
             return form_class
 
         # Create a new instance to check if it has a helper
@@ -119,8 +72,6 @@ class FormMixin:
                 self.helper = FormHelper()
                 self.helper.form_tag = False
                 self.helper.disable_csrf = True
-                # Call _apply_widget_classes from the captured mixin_instance
-                mixin_instance._apply_widget_classes(self)
             form_class.__init__ = new_init
         else:
             old_init = form_class.__init__
@@ -135,8 +86,6 @@ class FormMixin:
                 # Check if disable_csrf has been explicitly set to False
                 if self.helper.disable_csrf is False:
                     self.helper.disable_csrf = True
-                # Call _apply_widget_classes from the captured mixin_instance
-                mixin_instance._apply_widget_classes(self)
             form_class.__init__ = new_init
 
         # Apply dropdown sorting
@@ -159,7 +108,6 @@ class FormMixin:
 
         # Use explicitly defined form class if provided
         if self.form_class is not None:
-            # Ensure _apply_crispy_helper is called to inject widget classes
             return self._apply_crispy_helper(self.form_class)
 
         # Generate a default form class using form_fields
@@ -169,21 +117,21 @@ class FormMixin:
             for field in self.model._meta.get_fields():
                 if field.name not in self.form_fields:
                     continue
-                if isinstance(field, models.DateField):
+                if isinstance(field, db_models.DateField):
                     widgets[field.name] = forms.DateInput(
                         attrs={'type': 'date', 'class': 'form-control'}
                     )
-                elif isinstance(field, models.DateTimeField):
+                elif isinstance(field, db_models.DateTimeField):
                     widgets[field.name] = forms.DateTimeInput(
                         attrs={'type': 'datetime-local', 'class': 'form-control'}
                     )
-                elif isinstance(field, models.TimeField):
+                elif isinstance(field, db_models.TimeField):
                     widgets[field.name] = forms.TimeInput(
                         attrs={'type': 'time', 'class': 'form-control'}
                     )
 
             # Create the form class with our configured widgets
-            form_class = model_forms.modelform_factory(
+            form_class = form_models.modelform_factory(
                 self.model,
                 fields=self.form_fields,
                 widgets=widgets
@@ -198,10 +146,19 @@ class FormMixin:
                         form_field = form_class.base_fields[field_name]
                         form_field.queryset = model_field.related_model.objects.order_by(sort_field)
 
-            # Apply crispy forms and inject widget classes
-            # The _apply_crispy_helper method will now handle injecting the widget classes
-            # regardless of whether crispy forms is enabled or not.
-            return self._apply_crispy_helper(form_class)
+            # Apply crispy forms if enabled
+            if self.get_use_crispy():
+                old_init = form_class.__init__
+
+                def new_init(self, *args, **kwargs):
+                    old_init(self, *args, **kwargs)
+                    self.helper = FormHelper()
+                    self.helper.form_tag = False
+                    self.helper.disable_csrf = True
+
+                form_class.__init__ = new_init
+
+            return form_class
 
         msg = (
             "'%s' must either define 'form_class' or both 'model' and "
