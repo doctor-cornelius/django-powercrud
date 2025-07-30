@@ -1,3 +1,16 @@
+## 0.3.1 (2025-07-30)
+
+### Fix
+
+- **(FormMixin)**:  revert hard-coded tailwind widget classes; use correct imports
+- **(templates)**:  use correct powercrud templatetag name
+
+### Documentation
+
+- **(docs)**:  make small updates to docs content and formatting
+- **(README)**:  fix links to docs
+- **(README)**:  make slight edit to tag
+
 ## 0.3.0 (2025-07-29)
 
 ### Documentation
