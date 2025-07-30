@@ -18,9 +18,9 @@ See the [full documentation](https://doctor-cornelius.github.io/django-powercrud
 🎯 **Advanced CRUD Operations** - Filtering, pagination, bulk edit/delete (with async) out of the box  
 ⚡ **Modern Web UX** - HTMX integration, modals, and reactive updates  
 🔧 **Developer Friendly** - Convention over configuration with full customization options  
-🎨 **Multiple CSS Frameworks** - daisyUI/Tailwind (default) and Bootstrap 5 support  
+🎨 **Multiple CSS Frameworks** - `daisyUI` with `tailwindcss` (default) and Bootstrap 5 support  
 
-!!! warning "Bootstrap Templates Outdated"
+!!! warning "Bootstrap5 Templates Outdated"
 
     Bootstrap templates are currently out of date as all recent development has focused on `daisyUI`. Once async support is finalised and tested, Bootstrap templates will either be updated or removed.
 
@@ -59,14 +59,4 @@ class ProjectView(PowerCRUDMixin, CRUDView):
     properties = ["is_overdue", "days_remaining"]
 ```
 
-## Getting Started
-
-1. **[Installation](getting_started.md#installation)** - Install and configure in minutes
-2. **[Quick Start](getting_started.md)** - Your first PowerCRUD view
-3. **[Configuration](configuration/core_config.md)** - Explore the features
-
-## Framework Support
-
-- **daisyUI/Tailwind CSS** - Modern utility-first styling (default)
-- **Bootstrap 5** - Production-ready components
-- **Custom frameworks** - Bring your own CSS
+See the **[Getting Started](getting_started.md)** section for more details.

@@ -208,7 +208,7 @@ DATABASES = {
 # django-q2 settings
 Q_CLUSTER = {
     'name': 'PowerCRUD',
-    'workers': 1, # only 1 worker for sqlite
+    'workers': 4, 
     'recycle': 500,
     'timeout': 250,
     'retry': 300,

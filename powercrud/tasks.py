@@ -64,18 +64,18 @@ def bulk_update_task(
         task.mark_completed(success=False, error_message=str(e))
 
 
-# Future: Celery wrappers
-try:
-    from celery import shared_task
+# # Future: Celery wrappers
+# try:
+#     from celery import shared_task
     
-    @shared_task
-    def bulk_celery_delete_task(task_id, model_path, selected_ids, user_id):
-        return bulk_delete_task(task_id, model_path, selected_ids, user_id)
+#     @shared_task
+#     def bulk_celery_delete_task(task_id, model_path, selected_ids, user_id):
+#         return bulk_delete_task(task_id, model_path, selected_ids, user_id)
     
-    @shared_task  
-    def bulk_celery_update_task(task_id, model_path, selected_ids, user_id, bulk_fields, fields_to_update, field_data):
-        return bulk_update_task(task_id, model_path, selected_ids, user_id, bulk_fields, fields_to_update, field_data)
+#     @shared_task  
+#     def bulk_celery_update_task(task_id, model_path, selected_ids, user_id, bulk_fields, fields_to_update, field_data):
+#         return bulk_update_task(task_id, model_path, selected_ids, user_id, bulk_fields, fields_to_update, field_data)
         
-except ImportError:
-    # Celery not available
-    pass
+# except ImportError:
+#     # Celery not available
+#     pass

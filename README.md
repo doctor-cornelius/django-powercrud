@@ -56,7 +56,4 @@ class ProjectView(PowerCRUDMixin, CRUDView):
 
 ## Getting Started
 
-1. **[Installation](https://doctor-cornelius.github.io/django-powercrud/getting_started/#installation)** - Install and configure in minutes
-2. **[Quick Start](https://doctor-cornelius.github.io/django-powercrud/getting_started/)** - Your first PowerCRUD view
-3. **[Configuration](https://doctor-cornelius.github.io/django-powercrud/configuration/core_config/)** - Explore the features
-4. **[Full Documentation](https://doctor-cornelius.github.io/django-powercrud/)**
+See the **[Quick Start](https://doctor-cornelius.github.io/django-powercrud/getting_started/)** documentation

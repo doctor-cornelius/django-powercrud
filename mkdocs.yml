@@ -72,7 +72,7 @@ theme:
     - navigation.instant
     - navigation.indexes
     - navigation.tabs # puts major headings in horizontal menu
-    # - navigation.tabs.sticky # this makes headings ALSO in LHS
+    - navigation.tabs.sticky # sticky when scrolling down
     - navigation.sections # makes sections NOT collapsed
     - search.suggest
     - search.highlight
@@ -80,7 +80,7 @@ theme:
     - header.autohide
 
   palette:
-    - primary: teal
+    - primary: blue grey # teal
     # Palette toggle for light mode
     - scheme: default
       toggle:
@@ -94,7 +94,7 @@ theme:
         name: Switch to light mode
 
   icon:
-    repo: fontawesome/brands/gitlab
+    repo: fontawesome/brands/github
     admonition:
       note: octicons/tag-16
       abstract: octicons/checklist-16
