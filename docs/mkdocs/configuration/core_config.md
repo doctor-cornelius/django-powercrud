@@ -4,7 +4,7 @@ Essential settings that control field display, templates, and basic view behavio
 
 ## Convention Over Configuration
 
-PowerCRUD follows Django's "convention over configuration" philosophy. You only need to specify what differs from sensible defaults:
+powercrud follows Django's "convention over configuration" philosophy. You only need to specify what differs from sensible defaults:
 
 ```python
 # Minimum configuration - just specify your model
@@ -107,7 +107,7 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
 
 ### Template Overrides
 
-Override PowerCRUD templates with your own:
+Override powercrud templates with your own:
 
 ```python
 class ProjectCRUDView(PowerCRUDMixin, CRUDView):
@@ -115,11 +115,11 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
     templates_path = "myapp/custom"  # Look in myapp/templates/myapp/custom/
 ```
 
-This looks for templates in your specified path instead of the default PowerCRUD templates.
+This looks for templates in your specified path instead of the default powercrud templates.
 
 ### Bootstrap Templates
 
-Copy PowerCRUD templates to your project for customization:
+Copy powercrud templates to your project for customization:
 
 ```bash
 # Copy all templates for an app
@@ -171,7 +171,7 @@ Useful when you have multiple CRUD views for the same model with different confi
 
 ### Automatic Improvements
 
-PowerCRUD automatically enhances display:
+powercrud automatically enhances display:
 
 - **Related fields**: Shows `str(related_object)` instead of numeric IDs
 - **Reactive headers**: Page titles update without reload when using HTMX

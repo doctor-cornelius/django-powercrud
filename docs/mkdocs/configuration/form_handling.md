@@ -5,7 +5,7 @@ Configure form field selection, validation, and styling for create/edit operatio
 ## Basic Form Field Control
 
 ### Auto-Generated Forms
-By default, PowerCRUD creates forms automatically from your model:
+By default, powercrud creates forms automatically from your model:
 
 ```python
 class AuthorCRUDView(PowerCRUDMixin, CRUDView):
@@ -115,7 +115,7 @@ class BookCRUDView(PowerCRUDMixin, CRUDView):
 
 !!! note "Automatic Configuration"
 
-    PowerCRUD automatically configures crispy forms to work with HTMX and modals by setting `form_tag = False` and `disable_csrf = True`.
+    powercrud automatically configures crispy forms to work with HTMX and modals by setting `form_tag = False` and `disable_csrf = True`.
 
 ### Custom Crispy Configuration
 If you need different crispy settings:

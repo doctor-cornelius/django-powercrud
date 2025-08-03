@@ -6,11 +6,11 @@ from neapolitan.views import Role
 from .bulk_mixin import BulkEditRole, BulkActions
 
 import logging
-log = logging.getLogger("PowerCRUD")
+log = logging.getLogger("powercrud")
 
 class UrlMixin:
     """
-    Provides URL generation and reversing for PowerCRUD views.
+    Provides URL generation and reversing for powercrud views.
     """
     def get_prefix(self):
         """

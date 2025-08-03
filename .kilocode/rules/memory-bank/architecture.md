@@ -2,7 +2,7 @@
 
 ## Core Architecture Pattern
 
-Django PowerCRUD uses a modular **mixin-based architecture** that extends Django's class-based views through the `neapolitan` package. The system is built around a single primary mixin (`PowerCRUDMixin`) that combines multiple specialized mixins.
+Django powercrud uses a modular **mixin-based architecture** that extends Django's class-based views through the `neapolitan` package. The system is built around a single primary mixin (`PowerCRUDMixin`) that combines multiple specialized mixins.
 
 ## Source Code Structure
 

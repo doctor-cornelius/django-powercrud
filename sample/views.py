@@ -120,7 +120,7 @@ class BookCRUDView(PowerCRUDMixin, CRUDView):
     extra_actions = [
         {
             "url_name": "sample:book-update-view",  # namespace:url_pattern
-            "text": "Normal Edit", # bypasses PowerCRUD & uses regular view
+            "text": "Normal Edit", # bypasses powercrud & uses regular view
             "needs_pk": True,  # if the URL needs the object's primary key
             "button_class": "btn-info",
             "htmx_target": "content",

@@ -9,7 +9,7 @@ from django.shortcuts import render
 from django.urls import path
 from django.core.exceptions import ObjectDoesNotExist, SuspiciousOperation
 
-log = logging.getLogger("PowerCRUD")
+log = logging.getLogger("powercrud")
 
 # Create a standalone BulkEditRole class
 class BulkEditRole:
@@ -85,7 +85,7 @@ class BulkActions(enum.Enum):
 
 class BulkMixin:
     """
-    Provides all bulk editing functionality for PowerCRUD views.
+    Provides all bulk editing functionality for powercrud views.
     """
 
     def get_context_data(self, **kwargs):
@@ -161,7 +161,7 @@ class BulkMixin:
         """
         Return the storage key for the bulk selection.
         """
-        return f"PowerCRUD_bulk_{self.model.__name__.lower()}_{self.get_bulk_selection_key_suffix()}"
+        return f"powercrud_bulk_{self.model.__name__.lower()}_{self.get_bulk_selection_key_suffix()}"
 
     def get_bulk_selection_key_suffix(self):
         """
@@ -178,7 +178,7 @@ class BulkMixin:
         Get selected IDs for the current model from the Django session.
         """
         session_key = self.get_storage_key()
-        selected_ids = request.session.get('PowerCRUD_selections', {}).get(session_key, [])
+        selected_ids = request.session.get('powercrud_selections', {}).get(session_key, [])
         return selected_ids
 
     def save_selected_ids_to_session(self, request, ids):
@@ -186,9 +186,9 @@ class BulkMixin:
         Save selected IDs for the current model to the Django session.
         """
         session_key = self.get_storage_key()
-        if 'PowerCRUD_selections' not in request.session:
-            request.session['PowerCRUD_selections'] = {}
-        request.session['PowerCRUD_selections'][session_key] = list(map(str, ids))
+        if 'powercrud_selections' not in request.session:
+            request.session['powercrud_selections'] = {}
+        request.session['powercrud_selections'][session_key] = list(map(str, ids))
         request.session.modified = True
 
     def toggle_selection_in_session(self, request, obj_id):
@@ -230,9 +230,9 @@ class BulkMixin:
         Clear all selections for the current model from the Django session.
         """
         session_key = self.get_storage_key()
-        if 'PowerCRUD_selections' in request.session:
-            if session_key in request.session['PowerCRUD_selections']:
-                del request.session['PowerCRUD_selections'][session_key]
+        if 'powercrud_selections' in request.session:
+            if session_key in request.session['powercrud_selections']:
+                del request.session['powercrud_selections'][session_key]
                 request.session.modified = True
 
     def clear_selection_view(self, request, *args, **kwargs):

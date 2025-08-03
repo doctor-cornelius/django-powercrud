@@ -69,7 +69,7 @@
         {% for key, values in request.GET.lists %}
             {% if key != 'csrfmiddlewaretoken' and key != 'page' %}
                 {% for value in values %}
-                    <input type="hidden" name="_PowerCRUD_filter_{{ key }}" value="{{ value }}">
+                    <input type="hidden" name="_powercrud_filter_{{ key }}" value="{{ value }}">
                 {% endfor %}
             {% endif %}
         {% endfor %}

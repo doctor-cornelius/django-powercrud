@@ -95,19 +95,19 @@ And before we get into how params are preserved, let's start with what we have g
 
 **Frontend (object_form.html)**:
 - Edit form includes hidden fields for all current GET parameters (except csrf, page)
-- Parameters are prefixed with `_PowerCRUD_filter_` to avoid conflicts:
+- Parameters are prefixed with `_powercrud_filter_` to avoid conflicts:
 ```html
 {% for key, values in request.GET.lists %}
     {% if key != 'csrfmiddlewaretoken' and key != 'page' %}
         {% for value in values %}
-            <input type="hidden" name="_PowerCRUD_filter_{{ key }}" value="{{ value }}">
+            <input type="hidden" name="_powercrud_filter_{{ key }}" value="{{ value }}">
         {% endfor %}
     {% endif %}
 {% endfor %}
 ```
 
 **Backend (form_valid method)**:
-1. **Extract parameters**: Parse POST data for `_PowerCRUD_filter_` prefixed fields
+1. **Extract parameters**: Parse POST data for `_powercrud_filter_` prefixed fields
 2. **Build canonical URL**: Create clean URL with filter/sort parameters
 3. **Patch request**: Temporarily replace `request.GET` with extracted filter parameters
 4. **Role switch**: Change role to `Role.LIST` and call `list()` method to reuse filtering logic
@@ -482,7 +482,7 @@ def form_valid(self, form):
     if hasattr(self, 'request') and getattr(self.request, 'htmx', False):            
         # Complex parameter extraction from POST
         filter_params = QueryDict('', mutable=True)
-        filter_prefix = '_PowerCRUD_filter_'
+        filter_prefix = '_powercrud_filter_'
         for k, v in self.request.POST.lists():
             if k.startswith(filter_prefix):
                 real_key = k[len(filter_prefix):]

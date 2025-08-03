@@ -18,8 +18,8 @@ It is a **very early alpha** release. No tests. Limited docs. Expect many breaki
 
 **Templates**
 - Allow specification of `base_template_path` (to your `base.html` template)
-- Allow override of all `PowerCRUD` templates by specifying `templates_path`
-- Management command `pcrud_mktemplate` to copy required `PowerCRUD` template (analagous to `neapolitan`'s `mktemplate`)
+- Allow override of all `powercrud` templates by specifying `templates_path`
+- Management command `pcrud_mktemplate` to copy required `powercrud` template (analagous to `neapolitan`'s `mktemplate`)
 
 **Display**
 - Display related field name (using `str()`) in lists and details (instead of numeric id)
@@ -138,7 +138,7 @@ It is a **very early alpha** release. No tests. Limited docs. Expect many breaki
 
 Tailwind needs to scan all the classes used in your project. To do this @TODO
 
-If using a `tailwindcss` framework (including `daisyUI`) then you need to make sure that the classes from this package `PowerCRUD` are included in your project's tailwind build. There are two ways to do this.
+If using a `tailwindcss` framework (including `daisyUI`) then you need to make sure that the classes from this package `powercrud` are included in your project's tailwind build. There are two ways to do this.
 
 1. **Explicitly add using @source**. For `tailwindcss` v4, as per [these instructions](https://tailwindcss.com/docs/detecting-classes-in-source-files#explicitly-registering-sources), you need to use the `@source` command in your `tailwind.css` (or `main.css` or whatever you've called it).
 
@@ -147,14 +147,14 @@ If using a `tailwindcss` framework (including `daisyUI`) then you need to make s
     ```python
     >>>import django_powercrud 
     >>>print(django_powercrud.__path__)
-    ['/usr/local/lib/python3.12/site-packages/PowerCRUD']
+    ['/usr/local/lib/python3.12/site-packages/powercrud']
     ```
 
-    In which case you would enter `@source: "/usr/local/lib/python3.12/site-packages/PowerCRUD";`, so the top part of your `tailwind.css` file would look like this:
+    In which case you would enter `@source: "/usr/local/lib/python3.12/site-packages/powercrud";`, so the top part of your `tailwind.css` file would look like this:
 
     ```css
     @import "tailwindcss";`
-    @source "/usr/local/lib/python3.12/site-packages/PowerCRUD";
+    @source "/usr/local/lib/python3.12/site-packages/powercrud";
     ```
 
 2. **Management Command**. If you prefer not to follow the tailwindcss instructions (!) then you can run the included management command `pcrud_extract_tailwind_classes` as discussed in the management commands section below.
@@ -182,7 +182,7 @@ Support for `crispy-forms` is enabled if it's installed in your project and the 
   - Generate its own `<form>` tag (causing nested forms)
   - Add its own CSRF token (causing duplicate tokens)
 
-- To prevent duplicating `<form>` and CSRF token issues, `PowerCRUD` automatically adds a FormHelper to your form class with:
+- To prevent duplicating `<form>` and CSRF token issues, `powercrud` automatically adds a FormHelper to your form class with:
   
   ```python
   self.helper = FormHelper()
@@ -190,7 +190,7 @@ Support for `crispy-forms` is enabled if it's installed in your project and the 
   self.helper.disable_csrf = True  # Don't add a CSRF token
   ```
 
-- **Important**: You do NOT need to add a FormHelper to your form class. PowerCRUD will add one for you.
+- **Important**: You do NOT need to add a FormHelper to your form class. powercrud will add one for you.
 
 - **More Important**: If you DO have a FormHelper in your form class, be aware that `mixins._apply_crispy_helper()` will override your settings for `form_tag` and `disable_csrf`, **even if you have set them explicitly**
 
@@ -279,14 +279,14 @@ Support for `crispy-forms` is enabled if it's installed in your project and the 
         ```bash
         --pretty          # Print the output in a formatted, readable way
         --output PATH     # Specify custom output path (relative or absolute)
-                         # If directory is specified, PowerCRUD_tailwind_safelist.json will be created inside it
+                         # If directory is specified, powercrud_tailwind_safelist.json will be created inside it
                          # Examples:
-                         #   --output ./config            # Creates ./config/PowerCRUD_tailwind_safelist.json
+                         #   --output ./config            # Creates ./config/powercrud_tailwind_safelist.json
                          #   --output config/safelist.json # Uses exact filename
         ```
     - Output location priority:
         1. Custom path if `--output` is specified
-           - If directory: creates PowerCRUD_tailwind_safelist.json inside it
+           - If directory: creates powercrud_tailwind_safelist.json inside it
            - If file path: uses exact path
         2. Location specified in `NM_TAILWIND_SAFELIST_JSON_LOC` setting (relative to BASE_DIR)
         3. Raises an error if neither location is specified
@@ -297,12 +297,12 @@ Support for `crispy-forms` is enabled if it's installed in your project and the 
           content: [
             // ... your content paths
           ],
-          safelist: require('./PowerCRUD_tailwind_safelist.json')
+          safelist: require('./powercrud_tailwind_safelist.json')
         }
         ```
 
 - `pcrud_mktemplate`:
-    - Bootstraps CRUD templates from `PowerCRUD` templates instead of `neapolitan` templates
+    - Bootstraps CRUD templates from `powercrud` templates instead of `neapolitan` templates
     - Basic syntax:
         ```bash
         python manage.py pcrud_mktemplate <target>
@@ -327,7 +327,7 @@ Support for `crispy-forms` is enabled if it's installed in your project and the 
     - If the target directory already exists, files will be overwritten with a warning
 
 - `pcrud_help`
-    - Displays the PowerCRUD README.md documentation in a paginated format
+    - Displays the powercrud README.md documentation in a paginated format
     - `--lines` to specify number of lines to display per page (default: 20)
     - `--all` to display entire content without pagination
 
@@ -340,7 +340,7 @@ Check [`pypoetry.toml`](https://github.com/doctor-cornelius/django-powercrud/blo
 
 Basic installation with pip:
 ```bash
-pip install django-PowerCRUD
+pip install django-powercrud
 ```
 
 This will automatically install:
@@ -352,24 +352,24 @@ This will automatically install:
 
 You must install `neapolitan` (version 24.8) as it's required for core functionality:
 ```bash
-pip install "django-PowerCRUD[neapolitan]"
+pip install "django-powercrud[neapolitan]"
 ```
 
 ### Optional Dependencies
 
 - HTMX support:
 ```bash
-pip install "django-PowerCRUD[htmx]"
+pip install "django-powercrud[htmx]"
 ```
 
 - Crispy Forms support (includes both `django-crispy-forms` and `crispy-bootstrap5`):
 ```bash
-pip install "django-PowerCRUD[crispy]"
+pip install "django-powercrud[crispy]"
 ```
 
 You can combine multiple optional dependencies:
 ```bash
-pip install "django-PowerCRUD[neapolitan,htmx,crispy]"
+pip install "django-powercrud[neapolitan,htmx,crispy]"
 ```
 
 ### Frontend Dependencies
@@ -393,7 +393,7 @@ Add to your `settings.py`:
 # Required settings
 INSTALLED_APPS = [
     ...
-    "PowerCRUD",
+    "powercrud",
     "neapolitan",
     "django_htmx",    # if using htmx features
     ...
@@ -402,7 +402,7 @@ INSTALLED_APPS = [
 # Optional: Configure Tailwind safelist location (relative to BASE_DIR)
 # Example: if BASE_DIR = '/home/user/myproject'
 NM_TAILWIND_SAFELIST_JSON_LOC = 'config/templates/powercrud/'  
-# This will create: /home/user/myproject/config/templates/powercrud/PowerCRUD_tailwind_safelist.json
+# This will create: /home/user/myproject/config/templates/powercrud/powercrud_tailwind_safelist.json
 # when the management command ./manage.oy 
 
 # Important: After adding the setting, you must manually run the following command
@@ -434,7 +434,7 @@ class ProjectView(CRUDView):
     fields = ["name", "owner", "last_review", "has_tests", "has_docs", "status"]
 ```
 
-The `PowerCRUD` mixin adds a number of features to this. The values below are indicative examples.
+The `powercrud` mixin adds a number of features to this. The values below are indicative examples.
 
 ```python
 from powercrud.mixins import PowerCRUDMixin
@@ -454,7 +454,7 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
     # check the code in neapolitan.views.CRUDView for all available attributes
 
     # ******************************************************************
-    # PowerCRUD attributes
+    # powercrud attributes
     namespace = "my_app_name" # specify the namespace (optional)
         # if your urls.py has app_name = "my_app_name"
 
@@ -493,7 +493,7 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
 
     # filtersets
     filterset_fields = ["name", "project_owner", "project_manager", "due_date",]
-        # this is a standard neapolitan parameter, but PowerCRUD converts this 
+        # this is a standard neapolitan parameter, but powercrud converts this 
         # to a more elaborate filterset class
 
     # Forms
@@ -504,8 +504,8 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
     # Templates
     base_template_path = "core/base.html" # defaults to inbuilt "powercrud/base.html"
     templates_path = "myapp" # if you want to override all the templates in another app
-        # or include one of your own apps; eg templates_path = "my_app_name/PowerCRUD" 
-        # and then place in my_app_name/templates/my_app_name/PowerCRUD
+        # or include one of your own apps; eg templates_path = "my_app_name/powercrud" 
+        # and then place in my_app_name/templates/my_app_name/powercrud
 
     # table display parameters
     table_pixel_height_other_page_elements = 100 # this will be expressed in pixels
@@ -568,7 +568,7 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
             # extra class attributes will override automatically determined class attrs if duplicated
             "extra_class_attrs": "rounded-pill border border-dark", 
         },
-        # below example if want to use own modal not PowerCRUD's
+        # below example if want to use own modal not powercrud's
         {
             "url_name": "fstp:home",
             "text": "Home in Own Modal!",

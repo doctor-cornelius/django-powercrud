@@ -6,7 +6,7 @@
 
 ```bash
 pip install neapolitan
-pip install django-PowerCRUD
+pip install django-powercrud
 ```
 
 This automatically installs:
@@ -47,7 +47,7 @@ Add to your `settings.py`:
 # Required settings
 INSTALLED_APPS = [
     ...
-    "PowerCRUD",
+    "powercrud",
     "neapolitan",
     "django_htmx",
     ...
@@ -57,13 +57,13 @@ INSTALLED_APPS = [
 NOMINOPOLITAN_CSS_FRAMEWORK = 'daisyui'  # or 'bootstrap5'
 ```
 
-**Important:** If using Tailwind CSS (default), ensure Tailwind includes PowerCRUD's classes in its build process. See [Styling Configuration](configuration/styling.md#tailwind-css-setup) for details.
+**Important:** If using Tailwind CSS (default), ensure Tailwind includes powercrud's classes in its build process. See [Styling Configuration](configuration/styling.md#tailwind-css-setup) for details.
 
 ## Quick Start Tutorial
 
 ### Basic Setup
 
-The best starting point is [`neapolitan`'s docs](https://noumenal.es/neapolitan/). Start with a basic CRUD view:
+Start with a basic CRUD view. For reference see [`neapolitan`'s docs](https://noumenal.es/neapolitan/).
 
 ```python
 from powercrud.mixins import PowerCRUDMixin
@@ -91,7 +91,7 @@ urlpatterns = [
 
 ### Your First Enhanced View
 
-Add some PowerCRUD features:
+Add some powercrud features:
 
 ```python
 class ProjectCRUDView(PowerCRUDMixin, CRUDView):

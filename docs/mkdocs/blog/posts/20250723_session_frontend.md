@@ -487,13 +487,13 @@ class SelectionState:
     
     def _load_state(self):
         """Load selection state from session."""
-        if 'PowerCRUD_selections' not in self.request.session:
-            self.request.session['PowerCRUD_selections'] = {}
-        self.selected_ids = self.request.session['PowerCRUD_selections'].get(self.storage_key, [])
+        if 'powercrud_selections' not in self.request.session:
+            self.request.session['powercrud_selections'] = {}
+        self.selected_ids = self.request.session['powercrud_selections'].get(self.storage_key, [])
     
     def save(self):
         """Save selection state to session."""
-        self.request.session['PowerCRUD_selections'][self.storage_key] = self.selected_ids
+        self.request.session['powercrud_selections'][self.storage_key] = self.selected_ids
         self.request.session.modified = True
     
     # Additional methods for toggle, clear, toggle_all, etc.

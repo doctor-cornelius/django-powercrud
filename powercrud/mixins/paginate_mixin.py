@@ -5,7 +5,7 @@ from django.db.models import QuerySet
 
 class PaginateMixin:
     """
-    Provides pagination functionality for PowerCRUD views.
+    Provides pagination functionality for powercrud views.
     """
     def get_paginate_by(self):
         """Override of parent method to enable dealing with user-specified

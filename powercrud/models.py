@@ -3,7 +3,7 @@ from django.conf import settings
 from django.utils import timezone
 from django_q.models import Task
 import logging
-log = logging.getLogger("PowerCRUD")
+log = logging.getLogger("powercrud")
 
 class BulkTask(models.Model):
     """

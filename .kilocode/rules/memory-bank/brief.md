@@ -1,7 +1,7 @@
-# Django PowerCRUD - Project Description
+# Django powercrud - Project Description
 
 ## Overview
-Django PowerCRUD is an opinionated extension package for the excellent `neapolitan` Django package, designed to enhance CRUD (Create, Read, Update, Delete) operations with advanced features and modern web technologies.
+Django powercrud is an opinionated extension package for the excellent `neapolitan` Django package, designed to enhance CRUD (Create, Read, Update, Delete) operations with advanced features and modern web technologies.
 
 ## Main Objectives
 - Extend neapolitan's capabilities with production-ready features

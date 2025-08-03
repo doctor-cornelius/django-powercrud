@@ -13,14 +13,14 @@ from django.template.response import TemplateResponse
 
 import json
 import logging
-log = logging.getLogger("PowerCRUD")
+log = logging.getLogger("powercrud")
 
 from neapolitan.views import Role
 
 
 class HtmxMixin:
     """
-    Provides htmx (including modal) and other styling functionality for PowerCRUD views.
+    Provides htmx (including modal) and other styling functionality for powercrud views.
     """
     def get_framework_styles(self):
         """

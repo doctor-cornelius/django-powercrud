@@ -5,7 +5,7 @@
 ### Backend Framework
 - **Django 5.1+** - Primary web framework
 - **Python 3.12** - Programming language
-- **neapolitan 24.8+** - Base CRUD view package that PowerCRUD extends
+- **neapolitan 24.8+** - Base CRUD view package that powercrud extends
 
 ### Frontend Technologies
 - **HTMX** - Reactive web interactions without complex JavaScript
@@ -96,7 +96,7 @@
 ```python
 # Required settings
 INSTALLED_APPS = [
-    "PowerCRUD",
+    "powercrud",
     "neapolitan", 
     "django_htmx",
     "template_partials",
@@ -113,7 +113,7 @@ NM_TAILWIND_SAFELIST_JSON_LOC = 'path/to/safelist/'
 
 # django-q2 settings
 Q_CLUSTER = {
-    'name': 'PowerCRUD',
+    'name': 'powercrud',
     'workers': 1,
     'recycle': 500,
     'timeout': 250,
@@ -180,7 +180,7 @@ class BulkTask(models.Model):
 ### Session Data Structure
 ```python
 # Session storage for bulk selections and state
-session['PowerCRUD'] = {
+session['powercrud'] = {
     'bulk_selected': [list_of_ids],
     'filter_state': {dict_of_filters},
     'pagination_preferences': {dict_of_settings}

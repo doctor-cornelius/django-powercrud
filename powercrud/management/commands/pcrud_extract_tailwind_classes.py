@@ -6,7 +6,7 @@ from pathlib import Path
 from django.core.management.base import BaseCommand, CommandError
 from django.conf import settings
 
-DEFAULT_FILENAME = 'PowerCRUD_tailwind_safelist.json'
+DEFAULT_FILENAME = 'powercrud_tailwind_safelist.json'
 
 def get_help_message():
     return (
@@ -15,10 +15,10 @@ def get_help_message():
         "2. Use --output to specify the output location\n\n"
         "Examples:\n"
         "  Settings:\n"
-        "    NM_TAILWIND_SAFELIST_JSON_LOC = 'config'  # Creates BASE_DIR/config/PowerCRUD_tailwind_safelist.json\n"
+        "    NM_TAILWIND_SAFELIST_JSON_LOC = 'config'  # Creates BASE_DIR/config/powercrud_tailwind_safelist.json\n"
         "    NM_TAILWIND_SAFELIST_JSON_LOC = 'config/safelist.json'  # Uses exact filename\n"
         "  Command line:\n"
-        "    --output ./config  # Creates ./config/PowerCRUD_tailwind_safelist.json\n"
+        "    --output ./config  # Creates ./config/powercrud_tailwind_safelist.json\n"
         "    --output ./config/safelist.json  # Uses exact filename"
     )
 

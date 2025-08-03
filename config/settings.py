@@ -83,7 +83,7 @@ INSTALLED_APPS = [
 # NOMINOPOLITAN_CSS_FRAMEWORK = 'bootstrap5'
 # CRISPY_TEMPLATE_PACK = 'bootstrap5'
 
-NOMINOPOLITAN_CSS_FRAMEWORK = 'daisyUI' # this is for the rendering of PowerCRUD forms
+NOMINOPOLITAN_CSS_FRAMEWORK = 'daisyUI' # this is for the rendering of powercrud forms
 
 # NB we use crispy_tailwind because crispy_daisyui classes don't seem to work with daisyUI v5
 # (and they don't come through to the tailwind tree shaker either even when you include the repo files in templates)
@@ -207,7 +207,7 @@ DATABASES = {
 
 # django-q2 settings
 Q_CLUSTER = {
-    'name': 'PowerCRUD',
+    'name': 'powercrud',
     'workers': 4, 
     'recycle': 500,
     'timeout': 250,

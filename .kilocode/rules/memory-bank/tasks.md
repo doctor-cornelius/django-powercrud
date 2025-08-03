@@ -2,7 +2,7 @@
 
 ## Overview
 
-Django PowerCRUD implements async processing for bulk operations to handle large datasets efficiently. The system supports multiple async backends and provides a unified interface for task management.
+Django powercrud implements async processing for bulk operations to handle large datasets efficiently. The system supports multiple async backends and provides a unified interface for task management.
 
 ## Task Implementation
 
@@ -113,7 +113,7 @@ class BulkTask(models.Model):
 ```python
 # settings.py
 Q_CLUSTER = {
-    'name': 'PowerCRUD',
+    'name': 'powercrud',
     'workers': 1,
     'recycle': 500,
     'timeout': 250,
@@ -139,7 +139,7 @@ Q_CLUSTER = {
 - System stability maintained
 
 ### Logging
-- Comprehensive logging through PowerCRUD logger
+- Comprehensive logging through powercrud logger
 - Task lifecycle events tracked
 - Error details preserved for debugging
 - Performance metrics available

@@ -1,10 +1,10 @@
 # Management Commands
 
-PowerCRUD provides several management commands to help with setup, template customization, and Tailwind CSS integration.
+powercrud provides several management commands to help with setup, template customization, and Tailwind CSS integration.
 
 ## `pcrud_mktemplate` - Bootstrap CRUD Templates
 
-Copy PowerCRUD templates to your project for customization.
+Copy powercrud templates to your project for customization.
 
 ### Usage
 
@@ -89,7 +89,7 @@ Set the output location in your Django settings:
 
 ```python
 # settings.py
-NM_TAILWIND_SAFELIST_JSON_LOC = 'config'  # Creates BASE_DIR/config/PowerCRUD_tailwind_safelist.json
+NM_TAILWIND_SAFELIST_JSON_LOC = 'config'  # Creates BASE_DIR/config/powercrud_tailwind_safelist.json
 NM_TAILWIND_SAFELIST_JSON_LOC = 'config/safelist.json'  # Uses exact filename
 ```
 
@@ -115,7 +115,7 @@ module.exports = {
   content: [
     // your content paths
   ],
-  safelist: require('./config/PowerCRUD_tailwind_safelist.json')
+  safelist: require('./config/powercrud_tailwind_safelist.json')
 }
 ```
 
@@ -125,7 +125,7 @@ See [Tailwind CSS Integration](../configuration/styling.md#tailwind-css-integrat
 
 ## `pcrud_help` - Open Documentation
 
-Opens the PowerCRUD documentation in your default browser.
+Opens the powercrud documentation in your default browser.
 
 ### Usage
 
@@ -135,7 +135,7 @@ python manage.py pcrud_help
 
 ### Behavior
 
-Opens your default web browser to the PowerCRUD documentation at:
+Opens your default web browser to the powercrud documentation at:
 `https://your-docs-url.github.io/django-powercrud/` *(placeholder URL)*
 
 !!! note "Documentation URL"

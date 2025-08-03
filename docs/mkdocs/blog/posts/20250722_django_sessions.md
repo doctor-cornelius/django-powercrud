@@ -71,16 +71,16 @@ The migration will change this to: Backend generates key → Backend stores sele
 def get_selected_ids_from_session(self, request):
   """Get selected IDs for current model from Django session"""
   key = self.get_storage_key()
-  selections = request.session.get('PowerCRUD_selections', {})
+  selections = request.session.get('powercrud_selections', {})
   return selections.get(key, [])
 
 def save_selected_ids_to_session(self, request, ids):
   """Save selected IDs for current model to Django session"""
-  if 'PowerCRUD_selections' not in request.session:
-      request.session['PowerCRUD_selections'] = {}
+  if 'powercrud_selections' not in request.session:
+      request.session['powercrud_selections'] = {}
     
   key = self.get_storage_key()
-  request.session['PowerCRUD_selections'][key] = ids
+  request.session['powercrud_selections'][key] = ids
   request.session.modified = True
 ```
 

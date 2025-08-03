@@ -6,8 +6,7 @@ from django.apps import apps
 from .models import BulkTask
 from .mixins.bulk_mixin import BulkMixin
 
-log = logging.getLogger("PowerCRUD")
-
+log = logging.getLogger("powercrud")
 
 def bulk_delete_task(
         task_id, model_path, selected_ids, 

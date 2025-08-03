@@ -13,7 +13,7 @@ I was thinking about the difference between opinionated and non-opinionated pack
 ### Understanding Opinionated Packages:
 
 - **Enforce specific workflows** based on strong conventions
-- Provide **prescriptive defaults** (like `daisyUI` in PowerCRUD)
+- Provide **prescriptive defaults** (like `daisyUI` in powercrud)
 - Make **integrated technology choices** (eg HTMX,  Crispy Forms)
 - **Reduce flexibility** but improve consistency and developer experience
 - Follow **convention over configuration**
@@ -37,7 +37,7 @@ I was thinking about the difference between opinionated and non-opinionated pack
 
 ### Respect the Base Package:
 
-- Extend rather than replace (like PowerCRUD uses mixins with neapolitan)
+- Extend rather than replace (like powercrud uses mixins with neapolitan)
 - Maintain compatibility with the parent package's API
 - Follow Django's "explicit is better than implicit" philosophy
 

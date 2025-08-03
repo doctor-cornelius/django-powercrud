@@ -11,7 +11,7 @@ from ..models import BulkTask
 
 import json
 import logging
-log = logging.getLogger("PowerCRUD")
+log = logging.getLogger("powercrud")
 
 
 class AsyncMixin:
@@ -156,7 +156,7 @@ class AsyncMixin:
     def _generate_task_key(self, user, selected_ids, operation):
         """Generate task key for duplicate prevention"""
         # Use the storage key + operation as base
-        storage_key = self.get_storage_key()  # e.g., "PowerCRUD_bulk_book_"
+        storage_key = self.get_storage_key()  # e.g., "powercrud_bulk_book_"
         operation_type = "delete" if operation == BulkTask.DELETE else "update"
         
         # Add timestamp to make it unique per attempt

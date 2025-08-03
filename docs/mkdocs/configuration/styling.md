@@ -1,6 +1,6 @@
 # Styling Configuration
 
-Configure visual appearance and styling for your PowerCRUD views.
+Configure visual appearance and styling for your powercrud views.
 
 ## Framework Selection
 
@@ -131,15 +131,15 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
 
 ## Tailwind CSS Integration
 
-If using daisyUI or custom Tailwind-based framework, ensure Tailwind detects PowerCRUD's classes.
+If using daisyUI or custom Tailwind-based framework, ensure Tailwind detects powercrud's classes.
 
 ### Method 1: Package Source (Recommended)
 
-Add PowerCRUD's package path to your `tailwind.css`:
+Add powercrud's package path to your `tailwind.css`:
 
 ```css
 @import "tailwindcss";
-@source "/path/to/your/site-packages/PowerCRUD";
+@source "/path/to/your/site-packages/powercrud";
 ```
 
 **Find your package path:**
@@ -148,7 +148,7 @@ Add PowerCRUD's package path to your `tailwind.css`:
 python manage.py shell
 >>> import django_powercrud 
 >>> print(django_powercrud.__path__)
-['/usr/local/lib/python3.12/site-packages/PowerCRUD']
+['/usr/local/lib/python3.12/site-packages/powercrud']
 ```
 
 ### Method 2: Safelist Generation
@@ -171,13 +171,13 @@ module.exports = {
   content: [
     // your content paths
   ],
-  safelist: require('./config/templates/powercrud/PowerCRUD_tailwind_safelist.json')
+  safelist: require('./config/templates/powercrud/powercrud_tailwind_safelist.json')
 }
 ```
 
 ### Management Command: Extract Tailwind Classes
 
-Generate a safelist of Tailwind classes used by PowerCRUD which can be picked up by the `tailwindcss` tree-shaking process.
+Generate a safelist of Tailwind classes used by powercrud which can be picked up by the `tailwindcss` tree-shaking process.
 
 ```bash
 # Basic usage (requires NM_TAILWIND_SAFELIST_JSON_LOC setting)
@@ -213,7 +213,7 @@ NOMINOPOLITAN_CSS_FRAMEWORK = 'bulma'  # Your framework name
 - Add CSS/JS files to your base template
 - Include any JavaScript dependencies (for modals, dropdowns, etc.)
 - If using crispy forms, install appropriate crispy template packs for your framework
-- Ensure all framework-specific JavaScript is loaded before PowerCRUD interactions
+- Ensure all framework-specific JavaScript is loaded before powercrud interactions
 
 **3. Create Custom Templates**
 ```bash

@@ -21,7 +21,7 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
     # check the code in neapolitan.views.CRUDView for all available attributes
 
     # ******************************************************************
-    # PowerCRUD attributes
+    # powercrud attributes
     namespace = "my_app_name" # specify the namespace (optional)
         # if your urls.py has app_name = "my_app_name"
 
@@ -60,7 +60,7 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
 
     # filtersets
     filterset_fields = ["name", "project_owner", "project_manager", "due_date",]
-        # this is a standard neapolitan parameter, but PowerCRUD converts this 
+        # this is a standard neapolitan parameter, but powercrud converts this 
         # to a more elaborate filterset class
 
     # Forms
@@ -71,8 +71,8 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
     # Templates
     base_template_path = "core/base.html" # defaults to inbuilt "powercrud/base.html"
     templates_path = "myapp" # if you want to override all the templates in another app
-        # or include one of your own apps; eg templates_path = "my_app_name/PowerCRUD" 
-        # and then place in my_app_name/templates/my_app_name/PowerCRUD
+        # or include one of your own apps; eg templates_path = "my_app_name/powercrud" 
+        # and then place in my_app_name/templates/my_app_name/powercrud
 
     # table display parameters
     table_pixel_height_other_page_elements = 100 # this will be expressed in pixels
@@ -135,7 +135,7 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
             # extra class attributes will override automatically determined class attrs if duplicated
             "extra_class_attrs": "rounded-pill border border-dark", 
         },
-        # below example if want to use own modal not PowerCRUD's
+        # below example if want to use own modal not powercrud's
         {
             "url_name": "fstp:home",
             "text": "Home in Own Modal!",

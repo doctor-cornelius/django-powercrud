@@ -1,8 +1,8 @@
-# Django PowerCRUD - Product Overview
+# Django powercrud - Product Overview
 
 ## Purpose & Vision
 
-Django PowerCRUD exists to bridge the gap between Django's basic CRUD functionality and modern web application requirements. It transforms the excellent but minimal `neapolitan` package into a production-ready toolkit for building responsive, feature-rich admin interfaces and data management systems.
+Django powercrud exists to bridge the gap between Django's basic CRUD functionality and modern web application requirements. It transforms the excellent but minimal `neapolitan` package into a production-ready toolkit for building responsive, feature-rich admin interfaces and data management systems.
 
 ## Problems It Solves
 
@@ -25,7 +25,7 @@ Django PowerCRUD exists to bridge the gap between Django's basic CRUD functional
 ## How It Works
 
 ### Core Architecture
-PowerCRUD uses a **mixin-based architecture** that extends neapolitan's `CRUDView`:
+powercrud uses a **mixin-based architecture** that extends neapolitan's `CRUDView`:
 
 ```python
 class MyView(PowerCRUDMixin, CRUDView):
@@ -116,4 +116,4 @@ class MyView(PowerCRUDMixin, CRUDView):
 
 ## Future Vision
 
-PowerCRUD aims to become the go-to solution for Django CRUD interfaces, potentially contributing features back to the core `neapolitan` package. The goal is to provide a comprehensive toolkit that handles 80% of CRUD use cases out of the box while remaining flexible enough for custom requirements.
+powercrud aims to become the go-to solution for Django CRUD interfaces, potentially contributing features back to the core `neapolitan` package. The goal is to provide a comprehensive toolkit that handles 80% of CRUD use cases out of the box while remaining flexible enough for custom requirements.

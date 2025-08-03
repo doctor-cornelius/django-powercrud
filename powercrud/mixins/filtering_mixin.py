@@ -9,7 +9,7 @@ from django_filters import (
 from django.db import models
 from django.conf import settings
 
-log = logging.getLogger("PowerCRUD")
+log = logging.getLogger("powercrud")
 
 
 class AllValuesModelMultipleChoiceFilter(ModelMultipleChoiceFilter):
@@ -59,7 +59,7 @@ class HTMXFilterSetMixin:
 
 class FilteringMixin:
     """
-    Provides dynamic FilterSet generation for PowerCRUD views.
+    Provides dynamic FilterSet generation for powercrud views.
     """
     def get_filter_queryset_for_field(self, field_name, model_field):
         """Get an efficiently filtered and sorted queryset for filter options."""

@@ -7,7 +7,7 @@ from django.conf import settings
 from ..validators import PowerCRUDMixinValidator
 from django.http import Http404
 
-log = logging.getLogger("PowerCRUD")
+log = logging.getLogger("powercrud")
 
 class CoreMixin:
     """

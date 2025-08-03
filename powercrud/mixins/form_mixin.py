@@ -15,12 +15,12 @@ from urllib.parse import urlencode
 from crispy_forms.helper import FormHelper
 from neapolitan.views import Role
 
-log = logging.getLogger("PowerCRUD")
+log = logging.getLogger("powercrud")
 
 
 class FormMixin:
     """
-    Provides form handling and Crispy Forms integration for PowerCRUD views.
+    Provides form handling and Crispy Forms integration for powercrud views.
     """
 
     def get_use_crispy(self):
@@ -228,7 +228,7 @@ class FormMixin:
             # unpack hidden filter parameters
             filter_params = QueryDict('', mutable=True)
             # prefix is set in object_form.html
-            filter_prefix = '_PowerCRUD_filter_'
+            filter_prefix = '_powercrud_filter_'
 
             for k, v in self.request.POST.lists():
                 if k.startswith(filter_prefix):

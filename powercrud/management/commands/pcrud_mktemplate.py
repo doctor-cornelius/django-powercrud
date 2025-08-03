@@ -118,16 +118,16 @@ class Command(BaseCommand):
 
     def _copy_template_structure(self, target_dir, app_template_dir):
         """Copy the entire template structure to the target app."""
-        # Find the source template directory in the PowerCRUD package
+        # Find the source template directory in the powercrud package
         try:
-            # Get the PowerCRUD package directory
-            PowerCRUD_dir = Path(__file__).resolve().parent.parent.parent
-            source_dir = PowerCRUD_dir / "templates" / self.template_prefix
+            # Get the powercrud package directory
+            powercrud_dir = Path(__file__).resolve().parent.parent.parent
+            source_dir = powercrud_dir / "templates" / self.template_prefix
 
             if not source_dir.exists():
                 raise CommandError(
                     f"Could not find template directory: {source_dir}\n"
-                    f"Make sure PowerCRUD is installed correctly and templates are available."
+                    f"Make sure powercrud is installed correctly and templates are available."
                 )
 
             # Create target directories if they don't exist
@@ -176,9 +176,9 @@ class Command(BaseCommand):
         source_template_name = f"{self.template_prefix}/object{suffix}"
 
         try:
-            # Get the PowerCRUD package directory
-            PowerCRUD_dir = Path(__file__).resolve().parent.parent.parent
-            source_path = PowerCRUD_dir / "templates" / f"{self.template_prefix}/object{suffix}"
+            # Get the powercrud package directory
+            powercrud_dir = Path(__file__).resolve().parent.parent.parent
+            source_path = powercrud_dir / "templates" / f"{self.template_prefix}/object{suffix}"
 
             if not source_path.exists():
                 raise CommandError(f"Template not found: {source_path}")
@@ -216,9 +216,9 @@ class Command(BaseCommand):
 
         for template_type, suffix in templates.items():
             try:
-                # Get the PowerCRUD package directory
-                PowerCRUD_dir = Path(__file__).resolve().parent.parent.parent
-                source_path = PowerCRUD_dir / "templates" / f"{self.template_prefix}/object{suffix}"
+                # Get the powercrud package directory
+                powercrud_dir = Path(__file__).resolve().parent.parent.parent
+                source_path = powercrud_dir / "templates" / f"{self.template_prefix}/object{suffix}"
 
                 if not source_path.exists():
                     self.stdout.write(
