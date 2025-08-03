@@ -1,3 +1,9 @@
+## 0.3.3 (2025-08-03)
+
+### Fix
+
+- **(object_list)**:  fix reset not updating page size and sort not working
+
 ## 0.3.2 (2025-08-03)
 
 ### Refactor

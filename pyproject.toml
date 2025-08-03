@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "django-powercrud"
-version = "0.3.2"
+version = "0.3.3"
 description = "Advanced CRUD for perfectionists with deadlines. An opinionated Neapolitan extension, with sprinkles."
 authors = ["doctor-cornelius"]
 readme = "README.md"
