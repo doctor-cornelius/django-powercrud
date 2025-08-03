@@ -77,7 +77,7 @@
                         {% if use_htmx %}
                         hx-get="?sort={% if current_sort == field_name %}-{% elif current_sort == '-'|add:field_name %}{% else %}{% endif %}{{ field_name }}{% if request.GET.page_size %}&page_size={{ request.GET.page_size }}{% endif %}{% if filter_params %}&{{ filter_params }}{% endif %}"
                         hx-headers='{"X-Filter-Sort-Request": "true"}'
-                        hx-target="#bulk-actions-container"
+                        hx-target="#filtered_results"
                         hx-push-url="true"
                         hx-trigger="click"
                         {% else %}

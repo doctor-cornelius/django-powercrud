@@ -1,12 +1,12 @@
-# Django powercrud
+# Django PowerCRUD
 
 **Advanced CRUD for perfectionists with deadlines. An opinionated extension of [Neapolitan](https://github.com/carltongibson/neapolitan), with sprinkles.**
 
-## What is powercrud?
+## What is PowerCRUD?
 
 The [`neapolitan`](https://github.com/carltongibson/neapolitan/) package gives you a solid foundation for Django CRUD views. But you still need to add filtering, bulk operations, modern UX features, and styling yourself.
 
-powercrud comes with these features built-in, specifically for user-facing CRUD interfaces. Use what you need, customize what you want.
+PowerCRUD comes with these features built-in, specifically for user-facing CRUD interfaces. Use what you need, customize what you want.
 
 > [!WARNING]
 > This is a **very early alpha** release with limited tests and documentation. Expect breaking changes. You might prefer to fork or copy what you need.

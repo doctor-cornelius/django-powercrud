@@ -94,10 +94,12 @@
                             class="join-item btn btn-info {{ view.get_extra_button_classes }}">Filter</button>
                     {% endif %}
 
+                    <div class="tooltip tooltip-bottom tooltip-info" data-tip="Reset filters, sort & page size">
                     <a href="." class="join-item btn btn-outline btn-secondary {{ view.get_extra_button_classes }}" 
-                        hx-get="." hx-target="#filtered_results"
-                        hx-headers='{"X-Filter-Sort-Request": "true"}' 
-                        onclick="resetFilterForm()">Reset</a>
+                        hx-get="." hx-target="{{ original_target }}" hx-push-url="true"
+                        onclick="resetFilterForm()">Reset
+                    </a>
+                    </div>
                 </div>
             {% endif %}
 
