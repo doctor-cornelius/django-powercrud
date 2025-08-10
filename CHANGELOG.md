@@ -1,3 +1,10 @@
+## 0.3.4 (2025-08-10)
+
+### Build
+
+- **(docker-compose)**:  add q2 container
+- **(docker-compose)**:  isolate project with project name and prefixed volume names
+
 ## 0.3.3 (2025-08-03)
 
 ### Fix
