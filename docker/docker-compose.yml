@@ -51,7 +51,6 @@ services:
       DATABASE_NAME: ${DOCKER_PREFIX}_postgres_${DEPLOYMENT_ENV}
       DATABASE_HOST: ${DOCKER_PREFIX}_postgres_${DEPLOYMENT_ENV}
       CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP: True
-      REDIS_PASSWORD: ${REDIS_PASSWORD}
     ports:
       - 8001:8001
       - 10005:10005  # for mkdocs serve
@@ -93,9 +92,27 @@ services:
       - "6380:6379"
     volumes:
       - powercrud_redis_data:/data
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD}", "--save", "60", "1", "--loglevel", "debug"]
+
+  q2:
+    image: ${DOCKER_PREFIX}_django:${DEPLOYMENT_ENV}
+    container_name: ${DOCKER_PREFIX}_q2_${DEPLOYMENT_ENV}
+    depends_on:
+      - redis
+      - powercrud_postgres
+    restart: unless-stopped
+    env_file:
+      - ./${DEPLOYMENT_ENV}/${DEPLOYMENT_ENV}.secret
     environment:
-      - REDIS_PASSWORD=${REDIS_PASSWORD}
-    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD}", "--save", "60", "1", "--loglevel", "warning"]
+      - DJANGO_LIFECYCLE_ENV=${DEPLOYMENT_ENV}
+      - DJANGO_SETTINGS_MODULE=config.settings
+      - DJANGO_PROJECT_NAME=${PROJECT_DIR}
+      - DATABASE_NAME=${DOCKER_PREFIX}_postgres_${DEPLOYMENT_ENV}
+      - DATABASE_HOST=${DOCKER_PREFIX}_postgres_${DEPLOYMENT_ENV}
+    working_dir: /home/${DEPLOYMENT_ENV}user/${PROJECT_DIR}
+    command: sh -c "./manage.py qcluster"
+    volumes:
+      - "${PWD}:/home/${DEPLOYMENT_ENV}user/${PROJECT_DIR}"
 
 volumes:
   powercrud-pgadmin-data:

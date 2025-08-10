@@ -14,28 +14,33 @@ ALLOWED=("dev" "test" "prod")
 if [[ " ${ALLOWED[*]} " == *" $DEPLOYMENT_ENV "* ]]; then
     echo "ACTION = ${ACTION}; DEPLOYMENT_ENV=${DEPLOYMENT_ENV}"
 else
-    echo "Error: Invalid DEPLOYMENT_ENV parameter. Must be blank or in: [dev|test|prod]"
+    echo "Error: Invalid DEPLOYMENT_ENV parameter. Must be blank or in: [${ALLOWED[*]}]"
     exit 1
 fi
 
 # pick up the required env vars
 source ./docker/.env
+source ./docker/${DEPLOYMENT_ENV}/${DEPLOYMENT_ENV}.secret
 
 function exec_in {
     # exec into the first container that matches this image (the sed command restricts to 2nd line)
    
     # if called as `exec_in root` then it will enter as root user
     ROOTPARMS=""
-    container_name="${DOCKER_PREFIX}_django_${DEPLOYMENT_ENV}"
     if [[ $1 == "root" ]]; then
         ROOTPARMS=" -u root -w /home/${DEPLOYMENT_ENV}user/$PROJECT_DIR "
     fi
    
-    # CONTAINER=$(docker ps -a | grep "${DOCKER_PREFIX}_django" | tr -s " " | cut -d " " -f 1)
+    container_name="${DOCKER_PREFIX}_django_${DEPLOYMENT_ENV}"
     CONTAINER=$(docker ps -qf "name=${container_name}")
-    echo "CONTAINER = ${CONTAINER}"
+    echo "container_name = ${container_name}; CONTAINER = ${CONTAINER}"
     docker exec $ROOTPARMS -it $CONTAINER /bin/bash
 }
+
+# setup allowed containers for exec
+ALLOWED_EXEC=("postgres" "q2" "vite" "redis" "pgadmin")
+ALPINE_CONTAINERS=("redis")
+
 if [[ ${ACTION} == "up" ]]
 then
     DEPLOYMENT_ENV=${DEPLOYMENT_ENV} \
@@ -59,22 +64,24 @@ then
 elif [[ $ACTION == "root" ]];
 then
     exec_in root
-elif [[ $ACTION == "postgres" ]];
+elif [[ " ${ALLOWED_EXEC[*]} " == *" $ACTION "* ]];
 then
-    # FIXED: Use specific container name instead of grep
-    container_name="${DOCKER_PREFIX}_postgres_${DEPLOYMENT_ENV}"
+    container_name="${DOCKER_PREFIX}_${ACTION}_${DEPLOYMENT_ENV}"
     CONTAINER=$(docker ps -qf "name=${container_name}")
-    echo "CONTAINER = ${CONTAINER}"
-    docker exec -it $CONTAINER /bin/bash
-elif [[ $ACTION == "pgadmin" ]];
-then
-    # FIXED: Use specific container name instead of grep
-    container_name="${DOCKER_PREFIX}_pgadmin_${DEPLOYMENT_ENV}"
-    CONTAINER=$(docker ps -qf "name=${container_name}")
-    echo "CONTAINER = ${CONTAINER}"
-    # it's an Alpine image, so must use sh not bash
-    docker exec -it $CONTAINER /bin/sh
+    echo "container_name = ${container_name}; CONTAINER = ${CONTAINER}"
+
+    if [[ $ACTION == "redis" ]]; then
+        SHELL="redis-cli -a $REDIS_PASSWORD"
+    elif [[ " ${ALPINE_CONTAINERS[*]} " == *" $ACTION "* ]]; then
+        # alpine containers use sh instead of bash
+        SHELL="/bin/sh"
+    else
+        SHELL="/bin/bash"
+    fi
+
+    # enter the container
+    docker exec -it $CONTAINER $SHELL
 else
-    echo "You must have only 1 parameter from ['up', 'down', 'exec', 'root', 'postgres', 'pgadmin' ]"
+    echo "You must have only 1 parameter from ['up', 'down', 'exec', 'root', ${${ALLOWED_EXEC[*]}} ]"
     echo "last two in case you need to re-enter the relevant container service]"
 fi
