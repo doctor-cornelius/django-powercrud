@@ -234,13 +234,13 @@ class AsyncMixin:
                 log.debug(f"Queueing async bulk delete task for {len(selected_ids)} records")
                 # Queue delete task
                 async_task('powercrud.tasks.bulk_delete_task', 
-                        task.id, model_path, selected_ids, request.user.id)
+                        task_id=task.id, model_path=model_path, selected_ids=selected_ids, user_id=request.user.id)
                 return self.async_queue_success(request, task, selected_ids)
             else:
                 # Queue update task
                 async_task('powercrud.tasks.bulk_update_task',
-                        task.id, model_path, selected_ids, request.user.id,
-                        bulk_fields, fields_to_update, field_data)
+                        task_id=task.id, model_path=model_path, selected_ids=selected_ids, user_id=request.user.id,
+                        bulk_fields=bulk_fields, fields_to_update=fields_to_update, field_data=field_data)
             
                 # Successful queue handling
                 return self.async_queue_success(request, task, selected_ids)

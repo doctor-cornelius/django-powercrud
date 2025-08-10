@@ -1,3 +1,5 @@
+name: powercrud-${DEPLOYMENT_ENV}
+
 services:
 
   pgadmin:
@@ -5,9 +7,9 @@ services:
     image: dpage/pgadmin4:latest
     restart: always
     ports:
-      - "5050:80"
+      - "5051:80"
     volumes:
-      - pgadmin-data:/var/lib/pgadmin
+      - powercrud-pgadmin-data:/var/lib/pgadmin
     env_file:
       - ./${DEPLOYMENT_ENV}/${DEPLOYMENT_ENV}.secret
 
@@ -88,58 +90,17 @@ services:
       - ./${DEPLOYMENT_ENV}/${DEPLOYMENT_ENV}.secret
     image: redis:7-alpine
     ports:
-      - "6379:6379"
+      - "6380:6379"
     volumes:
-      - redis_data:/data
+      - powercrud_redis_data:/data
     environment:
       - REDIS_PASSWORD=${REDIS_PASSWORD}
     command: ["redis-server", "--requirepass", "${REDIS_PASSWORD}", "--save", "60", "1", "--loglevel", "warning"]
 
-  # COMMENTED OUT - Can add back later if needed
-  # celery_worker:
-  #   image: ${DOCKER_PREFIX}_django:${DEPLOYMENT_ENV}
-  #   container_name: ${DOCKER_PREFIX}_celery_worker_${DEPLOYMENT_ENV}
-  #   depends_on:
-  #     - redis
-  #     - django_powercrud_postgres
-  #   environment:
-  #     - DJANGO_LIFECYCLE_ENV=${DEPLOYMENT_ENV}
-  #     - DJANGO_SETTINGS_MODULE=django_powercrud.settings
-  #     - DJANGO_PROJECT_NAME=${PROJECT_DIR}
-  #     - DATABASE_NAME=${DOCKER_PREFIX}_postgres_${DEPLOYMENT_ENV}
-  #     - DATABASE_HOST=${DOCKER_PREFIX}_postgres_${DEPLOYMENT_ENV}
-  #     - CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP=True
-  #     - REDIS_PASSWORD=${REDIS_PASSWORD}
-  #   working_dir: /home/${DEPLOYMENT_ENV}user/${PROJECT_DIR}
-  #   command: celery -A django_powercrud worker -l INFO
-  #   volumes:
-  #     - "${PWD}:/home/${DEPLOYMENT_ENV}user/${PROJECT_DIR}"
-  #     - "${HOME}/.ssh:/home/${DEPLOYMENT_ENV}user/.ssh"
-  #     - "${HOME}/.gitconfig:/home/${DEPLOYMENT_ENV}user/.gitconfig"
-
-  # celery_beat:
-  #   image: ${DOCKER_PREFIX}_django:${DEPLOYMENT_ENV}
-  #   container_name: ${DOCKER_PREFIX}_celery_beat_${DEPLOYMENT_ENV}
-  #   depends_on:
-  #     - redis
-  #     - ${DOCKER_PREFIX}_postgres
-  #   environment:
-  #     - DJANGO_LIFECYCLE_ENV=${DEPLOYMENT_ENV}
-  #     - DJANGO_SETTINGS_MODULE=django_powercrud.settings
-  #     - DJANGO_PROJECT_NAME=${PROJECT_DIR}
-  #     - DATABASE_NAME=${DOCKER_PREFIX}_postgres_${DEPLOYMENT_ENV}
-  #     - DATABASE_HOST=${DOCKER_PREFIX}_postgres_${DEPLOYMENT_ENV}
-  #     - CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP=True
-  #     - REDIS_PASSWORD=${REDIS_PASSWORD}
-  #   working_dir: /home/${DEPLOYMENT_ENV}user/${PROJECT_DIR}
-  #   command: celery -A django_powercrud beat -l INFO
-  #   volumes:
-  #     - "${PWD}:/home/${DEPLOYMENT_ENV}user/${PROJECT_DIR}"
-
 volumes:
-  pgadmin-data:
+  powercrud-pgadmin-data:
     name: ${DOCKER_PREFIX}_pgadmin_data
-  redis_data:
+  powercrud_redis_data:
     name: ${DOCKER_PREFIX}_redis_data
   powercrud_pgdata:
     driver: local
