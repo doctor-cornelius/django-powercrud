@@ -110,7 +110,7 @@ services:
       - DATABASE_NAME=${DOCKER_PREFIX}_postgres_${DEPLOYMENT_ENV}
       - DATABASE_HOST=${DOCKER_PREFIX}_postgres_${DEPLOYMENT_ENV}
     working_dir: /home/${DEPLOYMENT_ENV}user/${PROJECT_DIR}
-    command: sh -c "./manage.py qcluster"
+    command: sh -c "./src/manage.py qcluster"
     volumes:
       - "${PWD}:/home/${DEPLOYMENT_ENV}user/${PROJECT_DIR}"
 

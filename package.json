@@ -166,8 +166,8 @@
     "vite": "^6.3.5"
   },
   "scripts": {
-    "dev": "vite",
-    "build": "vite build"
+    "dev": "cd src && vite",
+    "build": "cd src && vite build"
   },
   "repository": {
     "type": "git",
