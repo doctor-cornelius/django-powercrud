@@ -105,7 +105,27 @@ class Book(models.Model):
         log.debug(f"Updating book: {self.title}: completed operation")
 
         self.clean()
-        return super().save(*args, **kwargs)
+        response = super().save(*args, **kwargs)
+
+        if in_parent_async and context:
+            descendant_ids = list(self.genres.values_list("id", flat=True))
+            if descendant_ids:
+                register_descendant_conflicts("sample.Genre", descendant_ids)
+
+            manager = AsyncManager()
+            total = len(descendant_ids) if descendant_ids else 5
+
+            for idx in range(1, total + 1):
+                time.sleep(0.2)
+                manager.update_progress(
+                    context.task_name,
+                    f"Saving book {self.pk}: processed child {idx}/{total}",
+                )
+        else:
+            # Preserve the original artificial delay for synchronous saves.
+            time.sleep(2)
+
+        return response
     
     def delete(self, *args, **kwargs):
         """insert a delay for testing async processing
