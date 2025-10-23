@@ -1,12 +1,11 @@
 """
 Async task functions for django-q2 (and future backends like Celery)
 """
-import logging
 from django.apps import apps
 from .mixins.bulk_mixin import BulkMixin
 from .async_manager import AsyncManager
 
-log = logging.getLogger("powercrud")
+log = get_logger(__name__)
 
 def bulk_delete_task(
         model_path, selected_ids,

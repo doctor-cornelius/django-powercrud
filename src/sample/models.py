@@ -4,8 +4,9 @@ from django.utils import timezone
 from django.core.exceptions import ValidationError
 
 import time
-import logging
-log = logging.getLogger("powercrud")
+from powercrud.logging import get_logger
+
+log = get_logger(__name__)
 
 class Author(models.Model):
     class Meta:

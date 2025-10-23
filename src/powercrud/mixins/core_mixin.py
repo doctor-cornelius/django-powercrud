@@ -1,5 +1,3 @@
-import logging
-
 from django.core.exceptions import ImproperlyConfigured
 from django.db.models.fields.reverse_related import ManyToOneRel
 from django.conf import settings

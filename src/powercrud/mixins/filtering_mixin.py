@@ -1,5 +1,3 @@
-import logging
-
 from django import forms
 from django_filters import (
     FilterSet, CharFilter, DateFilter, NumberFilter, 

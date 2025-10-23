@@ -7,8 +7,7 @@ from django.urls import reverse
 from ..async_manager import AsyncManager
 
 import json
-import logging
-log = logging.getLogger("powercrud")
+log = get_logger(__name__)
 
 
 class AsyncMixin:

@@ -12,8 +12,9 @@ from django.shortcuts import render
 from django.template.response import TemplateResponse
 
 import json
-import logging
-log = logging.getLogger("powercrud")
+from powercrud.logging import get_logger
+
+log = get_logger(__name__)
 
 from neapolitan.views import Role
 

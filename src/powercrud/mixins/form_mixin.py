@@ -1,4 +1,3 @@
-import logging
 import json
 
 from django import forms
@@ -14,8 +13,9 @@ from urllib.parse import urlencode
 
 from crispy_forms.helper import FormHelper
 from neapolitan.views import Role
+from powercrud.logging import get_logger
 
-log = logging.getLogger("powercrud")
+log = get_logger(__name__)
 
 
 class FormMixin:

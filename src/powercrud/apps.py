@@ -1,4 +1,10 @@
 from django.apps import AppConfig
+from django.conf import settings
+
+from powercrud.conf import get_powercrud_setting
+from powercrud.logging import get_logger
+
+log = get_logger(__name__)
 
 from powercrud.conf import get_powercrud_setting
 from django.core.exceptions import ImproperlyConfigured

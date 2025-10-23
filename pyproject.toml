@@ -55,6 +55,13 @@ mkdocs-mermaid2-plugin = "^0"
 mkdocs-enumerate-headings-plugin = "^0.6"
 mkdocs-awesome-pages-plugin = "^2.9"
 
+[tool.pytest.ini_options]
+addopts = [
+    "--cov=", # all apps
+    "--cov-report=html",
+    "--cov-report=term-missing"
+]
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"

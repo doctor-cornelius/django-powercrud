@@ -5,8 +5,9 @@ from neapolitan.views import Role
 
 from .bulk_mixin import BulkEditRole, BulkActions
 
-import logging
-log = logging.getLogger("powercrud")
+from powercrud.logging import get_logger
+
+log = get_logger(__name__)
 
 class UrlMixin:
     """
