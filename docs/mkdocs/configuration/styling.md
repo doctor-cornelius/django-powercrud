@@ -6,12 +6,15 @@ Configure visual appearance and styling for your powercrud views.
 
 ### Supported Frameworks
 
-The current default framework is `daisyUI` (version 4.x). You don't need to specify anything to get `daisyUI` support. However if you want to specify a new framework, set `NOMINOPOLITAN_CSS_FRAMEWORK` in `settings.py`:
+The current default framework is `daisyUI` (version 4.x). You don't need to specify anything to get `daisyUI` support. However if you want to specify a new framework, set `POWERCRUD_CSS_FRAMEWORK` in `settings.py`:
 
 ```python
 # settings.py
-NOMINOPOLITAN_CSS_FRAMEWORK = 'daisyui'    # Default (with Tailwind CSS v4)
-NOMINOPOLITAN_CSS_FRAMEWORK = 'bootstrap5'  # Alternative
+POWERCRUD_SETTINGS = {
+    POWERCRUD_CSS_FRAMEWORK = 'daisyui'    # Default (with Tailwind CSS v4)
+    # POWERCRUD_CSS_FRAMEWORK = 'bootstrap5'  # Alternative
+    # ... other settings
+}
 ```
 
 !!! warning "Bootstrap Templates Are Outdated"
@@ -157,7 +160,10 @@ Generate a safelist of Tailwind classes:
 
 ```python
 # settings.py
-NM_TAILWIND_SAFELIST_JSON_LOC = 'config/templates/powercrud/'
+POWERCRUD_SETTINGS = {
+    TAILWIND_SAFELIST_JSON_LOC = 'config/templates/powercrud/'
+    # ... other settings
+}
 ```
 
 ```bash
@@ -180,7 +186,7 @@ module.exports = {
 Generate a safelist of Tailwind classes used by powercrud which can be picked up by the `tailwindcss` tree-shaking process.
 
 ```bash
-# Basic usage (requires NM_TAILWIND_SAFELIST_JSON_LOC setting)
+# Basic usage (requires TAILWIND_SAFELIST_JSON_LOC setting)
 python manage.py pcrud_extract_tailwind_classes
 
 # With options
@@ -205,7 +211,7 @@ Implementing a custom CSS framework is a substantial undertaking that requires r
 
 ```python
 # settings.py
-NOMINOPOLITAN_CSS_FRAMEWORK = 'bulma'  # Your framework name
+POWERCRUD_CSS_FRAMEWORK = 'bulma'  # Your framework name
 ```
 
 **2. Install Your Framework**
@@ -340,8 +346,8 @@ These components are used throughout both the template tags and HTMX mixins, so 
 
 | Setting | Default | Purpose |
 |---------|---------|---------|
-| `NOMINOPOLITAN_CSS_FRAMEWORK` | `'daisyui'` | CSS framework choice |
-| `NM_TAILWIND_SAFELIST_JSON_LOC` | `None` | Location for Tailwind safelist file |
+| `POWERCRUD_CSS_FRAMEWORK` | `'daisyui'` | CSS framework choice |
+| `TAILWIND_SAFELIST_JSON_LOC` | `None` | Location for Tailwind safelist file |
 
 ## Related Configuration
 

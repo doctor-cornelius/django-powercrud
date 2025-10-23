@@ -5,6 +5,7 @@ from django.contrib import admin
 from django.urls import path, include
 
 from sample import views
+from powercrud.async_manager import AsyncManager
 
 urlpatterns = [
     path(
@@ -12,5 +13,6 @@ urlpatterns = [
     ),
     path("", views.home, name="home"),
     path("admin/", admin.site.urls),
+    path("powercrud/", include("powercrud.urls", namespace="powercrud")),
     path("sample/", include("sample.urls", namespace="sample")),
 ]

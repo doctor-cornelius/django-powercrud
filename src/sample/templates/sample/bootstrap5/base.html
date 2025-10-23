@@ -51,6 +51,15 @@
                     Author List (reload)
                 </a>
             </div>
+            <div class="btn-group" role="group" aria-label="Async dashboard buttons">
+                <a class="btn btn-secondary" hx-get="{% url 'sample:async_dashboard' %}" hx-target="#content" hx-swap="innerHTML"
+                    hx-replace-url="true" hx-push-url="true">
+                    Async Dashboard (htmx)
+                </a>
+                <a class="btn btn-info" href="{% url 'sample:async_dashboard' %}">
+                    Async Dashboard (reload)
+                </a>
+            </div>
         </div>
         <div id="content" >
         {% block content %}{% endblock content %}

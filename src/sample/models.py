@@ -1,4 +1,5 @@
 from django.db import models
+from django.utils import timezone
 
 from django.core.exceptions import ValidationError
 
@@ -99,7 +100,7 @@ class Book(models.Model):
     def save(self, *args, **kwargs):
         
         log.debug(f"Updating book: {self.title}: about to start sleep")
-        time.sleep(10)
+        time.sleep(2)
         log.debug(f"Updating book: {self.title}: completed operation")
 
         self.clean()
@@ -109,9 +110,52 @@ class Book(models.Model):
         """insert a delay for testing async processing
         """
         log.debug(f"Delete book: {self.title}: about to start sleep")
-        time.sleep(10)
+        time.sleep(2)
         log.debug(f"Delete book: {self.title}: completed operation")
         return super().delete(*args, **kwargs)
 
     def __str__(self):
         return self.title
+
+
+class AsyncTaskRecord(models.Model):
+    class STATUS(models.TextChoices):
+        PENDING = "pending", "Pending"
+        IN_PROGRESS = "in_progress", "In progress"
+        SUCCESS = "success", "Success"
+        FAILED = "failed", "Failed"
+        UNKNOWN = "unknown", "Unknown"
+
+    task_name = models.CharField(max_length=64, unique=True)
+    status = models.CharField(max_length=32, choices=STATUS.choices, default=STATUS.PENDING)
+    message = models.TextField(blank=True)
+    progress_payload = models.TextField(blank=True)
+    user_label = models.CharField(max_length=255, blank=True)
+    affected_objects = models.TextField(blank=True)
+    task_kwargs = models.JSONField(blank=True, null=True)
+    task_args = models.JSONField(blank=True, null=True)
+    result_payload = models.TextField(blank=True)
+    cleaned_up = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    completed_at = models.DateTimeField(blank=True, null=True)
+    failed_at = models.DateTimeField(blank=True, null=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["status"]),
+            models.Index(fields=["-created_at"]),
+        ]
+
+    def __str__(self):
+        return f"{self.task_name} ({self.status})"
+
+    def mark_completed(self, timestamp=None):
+        self.status = self.STATUS.SUCCESS
+        self.completed_at = timestamp or timezone.now()
+
+    def mark_failed(self, message, timestamp=None):
+        self.status = self.STATUS.FAILED
+        self.message = message
+        self.failed_at = timestamp or timezone.now()

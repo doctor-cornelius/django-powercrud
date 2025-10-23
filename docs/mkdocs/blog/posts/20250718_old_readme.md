@@ -90,7 +90,7 @@ It is a **very early alpha** release. No tests. Limited docs. Expect many breaki
 
 **Styled Templates**
 - Supports `daisyUI` (v5, which uses tailwindcss v4) as default framework and `bootstrap5`. To use a different CSS framework:
-    - Set `NOMINOPOLITAN_CSS_FRAMEWORK = '<framework_name>'` in `settings.py`
+    - Set `POWERCRUD_CSS_FRAMEWORK = '<framework_name>'` in `settings.py`
     - Create corresponding templates in your `templates_path` directory
     - Override `PowerCRUDMixin.get_framework_styles()` in your view to add your framework's styles,  
       set the `framework` key to the name of your framework and add the required values.
@@ -269,7 +269,7 @@ Support for `crispy-forms` is enabled if it's installed in your project and the 
     - Useful for generating a safelist of classes that Tailwind should not purge during build
     - Scans both HTML templates and Python files for class="..." patterns
     - IMPORTANT: Requires output location to be specified via either:
-        - `NM_TAILWIND_SAFELIST_JSON_LOC` in Django settings (recommended), or
+        - `TAILWIND_SAFELIST_JSON_LOC` in Django settings (recommended), or
         - `--output` command line parameter
     - Basic syntax:
         ```bash
@@ -288,7 +288,7 @@ Support for `crispy-forms` is enabled if it's installed in your project and the 
         1. Custom path if `--output` is specified
            - If directory: creates powercrud_tailwind_safelist.json inside it
            - If file path: uses exact path
-        2. Location specified in `NM_TAILWIND_SAFELIST_JSON_LOC` setting (relative to BASE_DIR)
+        2. Location specified in `TAILWIND_SAFELIST_JSON_LOC` setting (relative to BASE_DIR)
         3. Raises an error if neither location is specified
     - The generated safelist file can be used in your `tailwind.config.js`:
         ```javascript
@@ -401,7 +401,7 @@ INSTALLED_APPS = [
 
 # Optional: Configure Tailwind safelist location (relative to BASE_DIR)
 # Example: if BASE_DIR = '/home/user/myproject'
-NM_TAILWIND_SAFELIST_JSON_LOC = 'config/templates/powercrud/'  
+TAILWIND_SAFELIST_JSON_LOC = 'config/templates/powercrud/'  
 # This will create: /home/user/myproject/config/templates/powercrud/powercrud_tailwind_safelist.json
 # when the management command ./manage.oy 
 
@@ -410,7 +410,7 @@ NM_TAILWIND_SAFELIST_JSON_LOC = 'config/templates/powercrud/'
 python manage.py pcrud_extract_tailwind_classes --pretty
 
 # Note: This command requires either:
-# 1. The NM_TAILWIND_SAFELIST_JSON_LOC setting above, or
+# 1. The TAILWIND_SAFELIST_JSON_LOC setting above, or
 # 2. The --output parameter
 # See the "Management Commands" section below for detailed usage and options.
 ```

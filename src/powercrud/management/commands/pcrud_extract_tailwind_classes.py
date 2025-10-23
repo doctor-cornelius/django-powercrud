@@ -6,17 +6,21 @@ from pathlib import Path
 from django.core.management.base import BaseCommand, CommandError
 from django.conf import settings
 
+from powercrud.conf import get_powercrud_setting
+
 DEFAULT_FILENAME = 'powercrud_tailwind_safelist.json'
 
 def get_help_message():
     return (
         "Output location not specified. Either:\n"
-        "1. Set NM_TAILWIND_SAFELIST_JSON_LOC in your Django settings (relative to BASE_DIR), or\n"
+        "1. Set TAILWIND_SAFELIST_JSON_LOC in your POWERCRUD_SETTINGS (relative to BASE_DIR), or\n"
         "2. Use --output to specify the output location\n\n"
         "Examples:\n"
         "  Settings:\n"
-        "    NM_TAILWIND_SAFELIST_JSON_LOC = 'config'  # Creates BASE_DIR/config/powercrud_tailwind_safelist.json\n"
-        "    NM_TAILWIND_SAFELIST_JSON_LOC = 'config/safelist.json'  # Uses exact filename\n"
+        "    POWERCRUD_SETTINGS = {\n"
+        "          'TAILWIND_SAFELIST_JSON_LOC': 'config'  # Creates BASE_DIR/config/powercrud_tailwind_safelist.json\n"
+        "          'TAILWIND_SAFELIST_JSON_LOC': 'config/safelist.json'  # Uses exact filename\n"
+        "    }\n"
         "  Command line:\n"
         "    --output ./config  # Creates ./config/powercrud_tailwind_safelist.json\n"
         "    --output ./config/safelist.json  # Uses exact filename"
@@ -40,6 +44,7 @@ class Command(BaseCommand):
     def handle(self, *args, **kwargs):
         # Determine output location
         output_path = None
+        location = get_powercrud_setting('TAILWIND_SAFELIST_JSON_LOC')
         if kwargs['output']:
             # For --output, treat path as relative to current directory
             path = Path(kwargs['output']).expanduser()
@@ -48,11 +53,11 @@ class Command(BaseCommand):
                 output_path = path / DEFAULT_FILENAME
             else:
                 output_path = path
-        elif hasattr(settings, 'NM_TAILWIND_SAFELIST_JSON_LOC') and settings.NM_TAILWIND_SAFELIST_JSON_LOC:
+        elif location:
             try:
                 # For settings value, treat path as relative to BASE_DIR
                 base_dir = Path(settings.BASE_DIR)
-                path = Path(settings.NM_TAILWIND_SAFELIST_JSON_LOC)
+                path = location
                 
                 # Combine with BASE_DIR if it's not absolute
                 if not path.is_absolute():
@@ -64,7 +69,7 @@ class Command(BaseCommand):
                 else:
                     output_path = path
             except Exception as e:
-                raise CommandError(f"Invalid NM_TAILWIND_SAFELIST_JSON_LOC setting: {str(e)}\n\n{get_help_message()}")
+                raise CommandError(f"Invalid TAILWIND_SAFELIST_JSON_LOC setting: {str(e)}\n\n{get_help_message()}")
         else:
             raise CommandError(get_help_message())
 

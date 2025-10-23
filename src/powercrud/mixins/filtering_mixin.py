@@ -9,6 +9,8 @@ from django_filters import (
 from django.db import models
 from django.conf import settings
 
+from powercrud.conf import get_powercrud_setting
+
 log = logging.getLogger("powercrud")
 
 
@@ -159,7 +161,7 @@ class FilteringMixin:
                 This class inherits from HTMXFilterSetMixin to add HTMX functionality
                 and FilterSet for Django filtering capabilities.
                 """
-                framework = getattr(settings, 'NOMINOPOLITAN_CSS_FRAMEWORK', 'daisyui')
+                framework =get_powercrud_setting('POWERCRUD_CSS_FRAMEWORK')
                 BASE_ATTRS = self.get_framework_styles()[framework]['filter_attrs']
 
                 # Dynamically create filter fields based on the model's fields

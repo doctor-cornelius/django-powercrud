@@ -1,7 +1,7 @@
 # Current Context
 
 ## Project Status
-**Early Alpha Release (v0.2.26)** - Active development with frequent releases and breaking changes expected.
+**Early Alpha Release (v0.2.27)** - Active development with frequent releases and breaking changes expected.
 
 ## Current Work Focus
 
@@ -24,16 +24,22 @@
 
 ## Recent Changes
 
-### Latest Release (0.2.26)
-- Fixed null parameter handling in object list URLs
-- Improved URL generation for filtered views
+### Latest Release (0.2.27)
+- Enhanced `BulkTask` model for comprehensive async task tracking.
+- Implemented `mark_started`, `mark_completed`, `update_progress` methods in `BulkTask`.
+- Added `task_key` and `unique_model_key` to `BulkTask` for duplicate prevention.
+- Improved `BulkTask` status tracking with `PENDING`, `STARTED`, `SUCCESS`, `FAILURE` states.
+- Added `clear_q2_queue` class method to `BulkTask` for debugging.
+- Ensured `BulkTask` deletion also removes associated django-q2 tasks.
 
 ### Key Recent Features
-- **Dropdown Sort Options**: Control sorting of related objects in dropdowns
-- **Bulk Delete**: Separate control for bulk edit vs bulk delete operations
-- **User Page Size Selection**: Persistent pagination preferences
-- **Enhanced Error Handling**: Better bulk operation error display in modals
-- **Filter Parameter Persistence**: Persist filter, pagination & sort params after single & bulk edit operations 
+- **Enhanced Async Task Tracking**: Comprehensive `BulkTask` model for monitoring bulk operations.
+- **Improved Bulk Operation Reliability**: Better status tracking, error handling, and duplicate prevention for async tasks.
+- **Dropdown Sort Options**: Control sorting of related objects in dropdowns.
+- **Bulk Delete**: Separate control for bulk edit vs bulk delete operations.
+- **User Page Size Selection**: Persistent pagination preferences.
+- **Enhanced Error Handling**: Better bulk operation error display in modals.
+- **Filter Parameter Persistence**: Persist filter, pagination & sort params after single & bulk edit operations.
 
 ## Next Steps
 

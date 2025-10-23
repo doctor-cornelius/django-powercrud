@@ -10,10 +10,11 @@ Django powercrud uses a modular **mixin-based architecture** that extends Django
 
 #### Core Components
 - **`__init__.py`** - Package initialization (empty)
-- **`models.py`** - BulkTask model for async operation tracking
+- **`models.py`** - BulkTask model for comprehensive async operation tracking, including status, progress, and error handling
 - **`admin.py`** - Django admin configuration
 - **`apps.py`** - Django app configuration
 - **`validators.py`** - Pydantic validators for configuration validation
+- **`async_manager.py`** - Manages async task creation and status updates
 
 #### Mixin Architecture: `/powercrud/mixins/`
 The system uses a modular mixin approach:
@@ -114,6 +115,7 @@ Development/demo Django project (renamed from `django_powercrud/`):
   - **`dockerfile_django`** - Django application container
   - **`postgresql.conf`** - PostgreSQL configuration
 - **`tasks.py`** - Async task functions for django-q2 and Celery backends
+- **`async_manager.py`** - Manages async task creation and status updates
 
 ## Key Technical Decisions
 

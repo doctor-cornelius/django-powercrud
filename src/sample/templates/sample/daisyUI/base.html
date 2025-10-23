@@ -64,6 +64,15 @@
                     Genre List (reload)
                 </a>
             </div>
+            <div class="join" role="group" aria-label="Async dashboard buttons">
+                <a class="btn btn-secondary join-item" hx-get="{% url 'sample:asynctaskrecord-list' %}" hx-target="#content"
+                    hx-swap="innerHTML" hx-replace-url="true" hx-push-url="true">
+                    Async Dashboard (htmx)
+                </a>
+                <a class="btn join-item btn-info" href="{% url 'sample:asynctaskrecord-list' %}">
+                    Async Dashboard (reload)
+                </a>
+            </div>
         </div>
         <div id="content">
             {% block content %}{% endblock content %}

@@ -57,7 +57,7 @@ Templates are copied to your app's template directory following Django conventio
 - **Source**: `powercrud/templates/powercrud/{framework}/`
 - **Target**: `{app}/templates/{app}/{template_name}`
 
-Where `{framework}` is determined by your `NOMINOPOLITAN_CSS_FRAMEWORK` setting.
+Where `{framework}` is determined by your `POWERCRUD_CSS_FRAMEWORK` setting.
 
 ---
 
@@ -68,7 +68,7 @@ Copy compiled CSS files and generate Tailwind safelist for your build process.
 ### Usage
 
 ```bash
-# Basic usage (requires NM_TAILWIND_SAFELIST_JSON_LOC setting)
+# Basic usage (requires TAILWIND_SAFELIST_JSON_LOC setting)
 python manage.py pcrud_extract_tailwind_classes
 
 # Specify output location
@@ -89,8 +89,11 @@ Set the output location in your Django settings:
 
 ```python
 # settings.py
-NM_TAILWIND_SAFELIST_JSON_LOC = 'config'  # Creates BASE_DIR/config/powercrud_tailwind_safelist.json
-NM_TAILWIND_SAFELIST_JSON_LOC = 'config/safelist.json'  # Uses exact filename
+POWERCRUD_SETTINGS = {
+    'TAILWIND_SAFELIST_JSON_LOC': 'config'  # Creates BASE_DIR/config/powercrud_tailwind_safelist.json
+    'TAILWIND_SAFELIST_JSON_LOC': 'config/safelist.json'  # Uses exact filename
+    # ... other settings
+}
 ```
 
 ### Examples

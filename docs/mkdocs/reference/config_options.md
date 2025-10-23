@@ -57,8 +57,8 @@ Complete alphabetical reference of all available configuration options with defa
 
 | Setting | Default | Description | Reference |
 |---------|---------|-------------|-----------|
-| `NOMINOPOLITAN_CSS_FRAMEWORK` | `'daisyui'` | CSS framework choice (`'daisyui'`, `'bootstrap5'`, or custom) | [Styling](../configuration/styling.md#framework-selection) |
-| `NM_TAILWIND_SAFELIST_JSON_LOC` | `None` | Location for Tailwind safelist file generation | [Styling](../configuration/styling.md#safelist-generation) |
+| `POWERCRUD_CSS_FRAMEWORK` | `'daisyui'` | CSS framework choice (`'daisyui'`, `'bootstrap5'`, or custom) | [Styling](../configuration/styling.md#framework-selection) |
+| `TAILWIND_SAFELIST_JSON_LOC` | `None` | Location for Tailwind safelist file generation | [Styling](../configuration/styling.md#safelist-generation) |
 
 ## Notes
 

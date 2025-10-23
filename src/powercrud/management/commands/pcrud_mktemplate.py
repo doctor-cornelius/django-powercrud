@@ -8,11 +8,13 @@ from django.template.engine import Engine
 from django.apps import apps
 from django.conf import settings
 
+from powercrud.conf import get_powercrud_setting
+
 
 class Command(BaseCommand):
     help = "Bootstrap CRUD templates, either individual templates or the complete framework structure."
 
-    template_prefix = f"powercrud/{getattr(settings, 'NOMINOPOLITAN_CSS_FRAMEWORK', 'bootstrap5')}"
+    template_prefix = f"powercrud/{get_powercrud_setting('POWERCRUD_CSS_FRAMEWORK')}"
 
     def add_arguments(self, parser):
         # Main argument group

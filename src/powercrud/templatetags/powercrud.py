@@ -23,6 +23,8 @@ from django.core.exceptions import FieldDoesNotExist
 from django.conf import settings
 from django.db import models 
 
+from powercrud.conf import get_powercrud_setting
+
 import logging
 log = logging.getLogger("powercrud")
 
@@ -39,7 +41,7 @@ def action_links(view: Any, object: Any) -> str:
     Returns:
         str: HTML string of action buttons
     """
-    framework: str = getattr(settings, 'NOMINOPOLITAN_CSS_FRAMEWORK', 'daisyui')
+    framework: str = get_powercrud_setting('POWERCRUD_CSS_FRAMEWORK')
     styles: Dict[str, Any] = view.get_framework_styles()[framework]
     action_button_classes = view.get_action_button_classes()
 
@@ -67,6 +69,7 @@ def action_links(view: Any, object: Any) -> str:
             action["url_name"],
             kwargs={"pk": object.pk} if action.get("needs_pk", True) else None,
         )
+
         if url is not None:
             htmx_target: str = action.get("htmx_target", default_target)
             if htmx_target and not htmx_target.startswith("#"):
@@ -94,14 +97,14 @@ def action_links(view: Any, object: Any) -> str:
 
     # set up links for all actions (regular and extra)
     links: List[str] = [
-        f"<div class='join'>" +
+        "<div class='join'>" +
         " ".join([
             # Append query string for modal actions (edit/create)
             f"<a href='{url if not show_modal else url + ('?' + view.request.GET.urlencode() if view.request.GET else '')}' "
             f"class='{styles['base']} join-item {button_class} {action_button_classes}' "
             + (f"hx-{'post' if hx_post else 'get'}='{url if not show_modal else url + ('?' + view.request.GET.urlencode() if view.request.GET else '')}' " if use_htmx else "")
             + (f"hx-target='{target}' " if use_htmx else "")
-            + (f"hx-replace-url='true' hx-push-url='true' " if use_htmx and not show_modal else "")
+            + ("hx-replace-url='true' hx-push-url='true' " if use_htmx and not show_modal else "")
             + (f"{modal_attrs} " if show_modal else "")
             + f">{anchor_text}</a>"
             for url, anchor_text, button_class, target, hx_post, show_modal, modal_attrs in actions
@@ -112,7 +115,7 @@ def action_links(view: Any, object: Any) -> str:
     return mark_safe(" ".join(links))
 
 
-@register.inclusion_tag(f"powercrud/{getattr(settings, 'NOMINOPOLITAN_CSS_FRAMEWORK', 'daisyui')}/partial/detail.html")
+@register.inclusion_tag(f"powercrud/{get_powercrud_setting('POWERCRUD_CSS_FRAMEWORK')}/partial/detail.html")
 def object_detail(object, view):
     """
     Display both fields and properties for an object detail view.
@@ -146,7 +149,7 @@ def object_detail(object, view):
 
 
 @register.inclusion_tag(
-        f"powercrud/{getattr(settings, 'NOMINOPOLITAN_CSS_FRAMEWORK', 'daisyui')}/partial/list.html", 
+        f"powercrud/{get_powercrud_setting('POWERCRUD_CSS_FRAMEWORK')}/partial/list.html", 
         takes_context=True
         )
 def object_list(context, objects, view):
@@ -320,7 +323,7 @@ def extra_buttons(view: Any) -> str:
     Returns:
         str: HTML string of extra buttons
     """
-    framework: str = getattr(settings, 'NOMINOPOLITAN_CSS_FRAMEWORK', 'daisyui')
+    framework: str = get_powercrud_setting('POWERCRUD_CSS_FRAMEWORK')
     styles: Dict[str, Any] = view.get_framework_styles()[framework]
 
     use_htmx: bool = view.get_use_htmx()

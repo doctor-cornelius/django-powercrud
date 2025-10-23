@@ -233,17 +233,89 @@
 {# partial to display in modal on successful async queuing #}
 {% partialdef async_queue_success %}
 <div class="p-4 text-center">
-    <h2 class="text-xl font-bold mb-4">Bulk Operation Queued</h2>
+    <h2 id="async-status-heading" class="text-xl font-bold mb-4">Bulk Operation Queued</h2>
     <p class="text-lg mb-4">{{ message }}</p>
     <p class="text-sm text-base-content/70 mb-4">
         Your bulk operation is being processed in the background.
     </p>
-    <a href="/bulk-task-status-placeholder/{{ task_id }}/" class="btn btn-primary"
-        hx-get="/bulk-task-status-placeholder/{{ task_id }}/"
-        hx-target="#powercrudModalContent"
-        hx-swap="innerHTML"
-        onclick="powercrudBaseModal.showModal()">
-        View Status (not implemented yet)
-    </a>
+
+    <!-- Progress Polling -->
+    <div id="progress-container">
+        <div id="progress-display"
+             hx-get="{% url 'powercrud:async_progress' %}"
+             hx-vals='{"task_name": "{{ task_name }}"}'
+             hx-trigger="every 1s"
+             hx-target="#progress-display"
+             hx-swap="innerHTML"
+             class="mb-4 p-4 bg-base-200 rounded-box">
+            <div class="loading loading-spinner loading-lg mx-auto"></div>
+            <p class="mt-2">Starting...</p>
+        </div>
+    </div>
+
+    <button type="button" class="btn btn-outline" onclick="powercrudBaseModal.close()">
+        Close
+    </button>
 </div>
+
+<script>
+document.body.addEventListener('htmx:afterSwap', function(evt) {
+    if (evt.detail.target.id === 'progress-display') {
+        try {
+            const data = JSON.parse(evt.detail.xhr.responseText);
+            const status = (data.status || '').toLowerCase();
+            const triggerEl = evt.detail.elt;
+            const heading = document.getElementById('async-status-heading');
+
+            if (status === 'success' || status === 'completed') {
+                if (heading) {
+                    heading.textContent = 'Bulk Operation Completed';
+                }
+                evt.detail.target.innerHTML = `
+                    <div class="alert alert-success">
+                        <p>${data.progress || 'Completed successfully!'}</p>
+                    </div>
+                `;
+                // Stop polling
+                triggerEl.removeAttribute('hx-trigger');
+                htmx.trigger(document.body, 'bulkEditSuccess', { taskName: data.task_name });
+                htmx.trigger(document.body, 'refreshTable', { taskName: data.task_name });
+            } else if (status === 'failed') {
+                if (heading) {
+                    heading.textContent = 'Bulk Operation Failed';
+                }
+                evt.detail.target.innerHTML = `
+                    <div class="alert alert-error">
+                        <p>${data.progress || 'Failed!'}</p>
+                    </div>
+                `;
+                // Stop polling
+                triggerEl.removeAttribute('hx-trigger');
+            } else if (status === 'pending') {
+                if (heading) {
+                    heading.textContent = 'Bulk Operation Starting';
+                }
+                evt.detail.target.innerHTML = `
+                    <div class="loading loading-spinner loading-lg mx-auto"></div>
+                    <p class="mt-2">${data.progress || 'Preparing asynchronous job...'}</p>
+                `;
+            } else if (status === 'in_progress') {
+                evt.detail.target.innerHTML = `
+                    <div class="progress progress-primary w-full mb-2">
+                        <div class="progress-bar" role="progressbar"></div>
+                    </div>
+                    <p>${data.progress || 'In progress...'}</p>
+                `;
+                // Adaptive polling if provided
+                if (data.poll_interval && data.poll_interval !== 1000) {
+                    triggerEl.setAttribute('hx-trigger', `every ${data.poll_interval}ms`);
+                }
+            }
+        } catch (e) {
+            console.error('Error parsing progress:', e);
+            evt.detail.target.innerHTML = '<p class="text-error">Error loading progress.</p>';
+        }
+    }
+});
+</script>
 {% endpartialdef async_queue_success %}

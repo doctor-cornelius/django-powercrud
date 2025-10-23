@@ -109,7 +109,7 @@ NOMINOPOLITAN_CSS_FRAMEWORK = 'bootstrap5'  # or 'daisyUI'
 CRISPY_TEMPLATE_PACK = 'bootstrap5'  # or 'tailwind'
 
 # Tailwind safelist location
-NM_TAILWIND_SAFELIST_JSON_LOC = 'path/to/safelist/'
+TAILWIND_SAFELIST_JSON_LOC = 'path/to/safelist/'
 
 # django-q2 settings
 Q_CLUSTER = {

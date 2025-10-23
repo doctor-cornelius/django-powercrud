@@ -221,11 +221,20 @@ class UrlMixin:
 
         This method extends the base context with additional data specific to the view,
         including URLs for CRUD operations, HTMX-related settings, and related object information.
+        
+        IMPORTANT: This method participates in Django's Method Resolution Order (MRO) chain.
+        It calls super().get_context_data(**kwargs) to get the parent context (typically from
+        neapolitan's base views), then adds URL-related context. Other mixins (like BulkMixin's
+        ViewMixin) may further extend this context by calling super() to chain from this method.
+        
+        MRO Flow: Base View → CoreMixin → UrlMixin (this method) → HtmxMixin → ... → BulkMixin
+        Each mixin adds its specific context without overwriting others, creating a complete
+        template context with URLs, bulk selection state, HTMX targets, etc.
 
         Args:
             **kwargs: Additional keyword arguments passed to the method.
                 - NB parent class neapolitan.views.get_context_data() expects:
-                    - 
+                    -
 
         Returns:
             dict: The context dictionary containing all the data for template rendering.

@@ -65,7 +65,8 @@ markdown_extensions:
 theme:
   name: material # pip install mkdocs-material
   font:
-    text: Playfair Display
+    text: Inter
+    code: Fira Code
   features:
     - content.code.copy
     - content.code.annotate

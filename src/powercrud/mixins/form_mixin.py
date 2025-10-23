@@ -169,12 +169,24 @@ class FormMixin:
     def show_form(self, request, *args, **kwargs):
         """Override to check for conflicts before showing edit form"""
         # Only check conflicts for UPDATE operations (not CREATE)
-        if (self.role == Role.UPDATE and 
+        pk = None
+        current_object = None
+        if self.role == Role.UPDATE:
+            try:
+                current_object = self.get_object()
+                pk = current_object.pk
+            except Exception:
+                pk = None
+
+        if (
+            self.role == Role.UPDATE and 
             self.get_conflict_checking_enabled() and 
-            self._check_for_conflicts()):
-            
-            # Set the object for context (like the parent does)
-            self.object = self.get_object()
+            pk is not None and 
+            self._check_for_conflicts(selected_ids=[pk])
+        ):
+            if current_object is None:
+                current_object = self.get_object()
+            self.object = current_object
 
             # Get filter params (like sort selection does)
             filter_params = request.GET.copy()
@@ -186,7 +198,10 @@ class FormMixin:
             # Return conflict response
             context = self.get_context_data(
                 conflict_detected=True,
-                conflict_message=f"Cannot update - bulk operation in progress on {self.model._meta.verbose_name_plural}. Please try again later.",
+                conflict_message=(
+                    f"Cannot update - bulk operation in progress on "
+                    f"{self.model._meta.verbose_name_plural}. Please try again later."
+                ),
                 filter_params=filter_params.urlencode() if filter_params else "",
             )
             return self.render_to_response(context)
@@ -221,6 +236,15 @@ class FormMixin:
         Returns:
             HttpResponse: Either a rendered list view or a redirect
         """
+        if (
+            self.role == Role.UPDATE
+            and self.get_conflict_checking_enabled()
+        ):
+            pk = getattr(form.instance, "pk", None) or self.kwargs.get(getattr(self, "pk_url_kwarg", "pk"))
+            if pk and self._check_for_conflicts(selected_ids=[pk]):
+                self.object = form.instance
+                return self._render_conflict_response(self.request, pk, "update")
+
         self.object = form.save()
 
         # If this is an HTMX request, handle it specially

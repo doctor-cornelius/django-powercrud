@@ -43,11 +43,9 @@ psycopg-binary = "^3.2.1"
 psycopg = "^3.2.1"
 
 # redis
-redis = "^5.2.0"
-django-redis = "^5.4.0"
+django-redis = "^6.0.0"
 # celery
-celery = "^5.4.0"
-django-celery-beat = "^2.7.0"
+pytest-django = "^4.11.1"
 
 [tool.poetry.group.docs.dependencies]
 # mkdocs

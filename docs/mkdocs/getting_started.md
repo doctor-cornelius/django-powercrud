@@ -54,7 +54,7 @@ INSTALLED_APPS = [
 ]
 
 # Optional: Set CSS framework (default is 'daisyui')
-NOMINOPOLITAN_CSS_FRAMEWORK = 'daisyui'  # or 'bootstrap5'
+POWERCRUD_CSS_FRAMEWORK = 'daisyui'  # or 'bootstrap5'
 ```
 
 **Important:** If using Tailwind CSS (default), ensure Tailwind includes powercrud's classes in its build process. See [Styling Configuration](configuration/styling.md#tailwind-css-setup) for details.

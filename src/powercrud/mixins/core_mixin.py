@@ -7,6 +7,8 @@ from django.conf import settings
 from ..validators import PowerCRUDMixinValidator
 from django.http import Http404
 
+from powercrud.conf import get_powercrud_setting
+
 log = logging.getLogger("powercrud")
 
 class CoreMixin:
@@ -18,7 +20,7 @@ class CoreMixin:
     namespace: str | None = None
 
     # template parameters
-    templates_path: str = f"powercrud/{getattr(settings, 'NOMINOPOLITAN_CSS_FRAMEWORK', 'daisyui')}"
+    templates_path: str = f"powercrud/{get_powercrud_setting('POWERCRUD_CSS_FRAMEWORK')}"
     base_template_path: str = f"{templates_path}/base.html"
 
     # forms

@@ -1,23 +1,33 @@
 import json
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse
+from django.views.generic import ListView
 
 from neapolitan.views import CRUDView
 from powercrud.mixins import PowerCRUDMixin
+from powercrud.conf import get_powercrud_setting
 
 from django import forms
 from . import models
 from . import forms
 from . import filters
+from .async_manager import SampleAsyncManager
+
+
+class SampleCRUDMixin(PowerCRUDMixin, CRUDView):
+    """Base mixin to ensure sample views use the dashboard-aware manager."""
+
+    def get_async_manager_class(self):
+        return SampleAsyncManager
 
 def home(request):
-    template_name = "sample/index.html"
+    template_name = f"sample/{get_powercrud_setting('POWERCRUD_CSS_FRAMEWORK')}/index.html"
     context = {'header_title': "Home"}
     if request.htmx:
         return render(request, f"{template_name}#content", context)
     return render(request, template_name, context)
     
-class BookCRUDView(PowerCRUDMixin, CRUDView):
+class BookCRUDView(SampleCRUDMixin):
     model = models.Book
     namespace = "sample"
     base_template_path = "sample/base.html"
@@ -119,12 +129,12 @@ class BookCRUDView(PowerCRUDMixin, CRUDView):
 
     extra_actions = [
         {
-            "url_name": "sample:book-update-view",  # namespace:url_pattern
+            "url_name": "sample:bigbook-update",  # namespace:url_pattern
             "text": "Normal Edit", # bypasses powercrud & uses regular view
             "needs_pk": True,  # if the URL needs the object's primary key
             "button_class": "btn-info",
-            "htmx_target": "content",
-            "display_modal": False,
+            "htmx_target": "powercrudModalContent",
+            "display_modal": True,
         },
     ]
 
@@ -140,7 +150,7 @@ class BookCRUDView(PowerCRUDMixin, CRUDView):
     #     return super().get_bulk_choices_for_field(field_name, field)
 
 
-class GenreCRUDView(PowerCRUDMixin, CRUDView):
+class GenreCRUDView(SampleCRUDMixin):
     model = models.Genre
     namespace = "sample"
     base_template_path = "sample/base.html"
@@ -154,7 +164,7 @@ class GenreCRUDView(PowerCRUDMixin, CRUDView):
     fields = ['name', 'numeric_string']
 
 
-class ProfileCRUDView(PowerCRUDMixin, CRUDView):
+class ProfileCRUDView(SampleCRUDMixin):
     model = models.Profile
     namespace = "sample"
     base_template_path = "sample/base.html"
@@ -177,7 +187,7 @@ class ProfileCRUDView(PowerCRUDMixin, CRUDView):
     ]
 
 
-class AuthorCRUDView(PowerCRUDMixin, CRUDView):
+class AuthorCRUDView(SampleCRUDMixin):
     model = models.Author
     namespace = "sample"
     base_template_path = "sample/base.html"
@@ -198,42 +208,66 @@ class AuthorCRUDView(PowerCRUDMixin, CRUDView):
     detail_fields = '__fields__'
     detail_properties = '__properties__'
 
-    # filterset_class = filters.AuthorFilterSet
-    filterset_fields = ['name', 'birth_date', 'bio']
-
-    # form_class = forms.AuthorForm
-
-    table_header_min_wrap_width = '15' # characters
-    table_max_col_width = '25' # characters
-
     extra_actions = [
         {
             "url_name": "home",  # namespace:url_pattern
             "text": "Home",
             "needs_pk": False,  # if the URL needs the object's primary key
             "button_class": "btn-warning",
-            "htmx_target": "content",
-            "display_modal": False,
+            "htmx_target": "powercrudModalContent",
+            "display_modal": True,
         },
         {
             "url_name": "sample:author-detail",
             "text": "View Again",
-            "needs_pk": True,  # if the URL doesn't need the object's primary key
+            "needs_pk": True,  # if the URL needs the object's primary key
+            "htmx_target": "powercrudModalContent",
+            "display_modal": True,
         },
     ]
 
-    extra_buttons = [
+class AsyncTaskRecordCRUDView(SampleCRUDMixin):
+    model = models.AsyncTaskRecord
+    namespace = "sample"
+    base_template_path = "sample/base.html"
+    use_htmx = True
+    use_modal = True
+    bulk_delete = True
+
+    fields = [
+        "id",
+        "task_name",
+        "user_label",
+        "status",
+        "cleaned_up",
+        "completed_at",
+        "failed_at",
+    ]
+    paginate_by = 25
+    table_header_min_wrap_width = '15' # characters
+    table_max_col_width = '5' # characters
+    view_action = False
+
+    extra_actions = [
         {
-            "url_name": "home",
-            "text": "Home Again",
-            "button_class": "btn-success",
-            "htmx_target": "content",
-            "needs_pk": False,
-            "display_modal": False,
+            "url_name": "sample:async-dashboard-detail",
+            "text": "View Progress",
+            "needs_pk": True,  # if the URL doesn't need the object's primary key
+            "htmx_target": "#powercrudModalContent",
+            "display_modal": True,
         },
     ]
 
-    def get_template_names(self):
-        names = super().get_template_names()
-        print("DEBUG: Looking for templates:", names)  # Debug print
-        return names
+
+def async_task_detail(request, pk):
+    record = get_object_or_404(models.AsyncTaskRecord, pk=pk)
+    framework = get_powercrud_setting('POWERCRUD_CSS_FRAMEWORK')
+    template = f"sample/{framework}/async_task_detail.html"
+    if request.htmx:
+        template += "#pcrud_content"
+    progress_url = reverse('sample:powercrud_async_progress')
+    context = {
+        "record": record,
+        "progress_url": progress_url,
+    }
+    return render(request, template, context)

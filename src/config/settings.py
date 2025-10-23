@@ -50,13 +50,10 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    "template_partials",
-    "sample",
 
-    "powercrud",
-    "neapolitan",
-    
     "django_vite",
+    "template_partials",
+    'django_htmx',
 
     "crispy_forms",
     # "crispy_bootstrap5",
@@ -65,22 +62,20 @@ INSTALLED_APPS = [
 
     # for async
     'django_q',
+    'django_redis',
 
-    'django_htmx',
+    # project apps
+    "powercrud",
+    "neapolitan",
+    "sample",
+    
 ]
 
-# CRISPY_ALLOWED_TEMPLATE_PACKS = 'bootstrap5'
-# NOMINOPOLITAN_CSS_FRAMEWORK = 'bootstrap5'
-# CRISPY_TEMPLATE_PACK = 'bootstrap5'
-
-NOMINOPOLITAN_CSS_FRAMEWORK = 'daisyUI' # this is for the rendering of powercrud forms
 
 # NB we use crispy_tailwind because crispy_daisyui classes don't seem to work with daisyUI v5
 # (and they don't come through to the tailwind tree shaker either even when you include the repo files in templates)
 CRISPY_ALLOWED_TEMPLATE_PACKS = ['tailwind', 'daisyui']
 CRISPY_TEMPLATE_PACK = 'tailwind'
-
-NM_TAILWIND_SAFELIST_JSON_LOC = 'sample/templates/sample/'
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
@@ -195,16 +190,58 @@ DATABASES = {
     }
 }
 
+
 # django-q2 settings
 Q_CLUSTER = {
-    'name': 'powercrud',
-    'workers': 4, 
-    'recycle': 500,
-    'timeout': 250,
-    'retry': 300,
-    'orm': 'default',  # Use database instead of Redis
-    'save_limit': 250,
-    'queue_limit': 500,
+    "name": "powercrud",
+    "workers": 4,
+    "recycle": 500,
+    "timeout": 250,
+    "retry": 300,
+    "save_limit": 250,
+    "queue_limit": 500,
+    # NB if you set orm then other backend settings (eg django_redis, redis) are ignored
+    "orm": "default",  # database connection to use
+    # 'django_redis': 'default',  # cache name
+}
+
+POWERCRUD_SETTINGS = {
+     # this is for the rendering of powercrud forms
+    'POWERCRUD_CSS_FRAMEWORK': 'daisyUI',
+    # location of the safelist json file for tailwind tree shaker)
+    'TAILWIND_SAFELIST_JSON_LOC': 'sample/templates/sample/', 
+
+    # async settings
+    'ASYNC_ENABLED': True,
+    'CONFLICT_TTL': 3600,  # 1 hour
+    'PROGRESS_TTL': 7200,  # 2 hours
+    'CLEANUP_GRACE_PERIOD': 86400,  # 24 hours
+    'MAX_TASK_DURATION': 3600,  # For detecting stuck tasks
+    'CLEANUP_SCHEDULE_INTERVAL': 300,  # 5 minutes for scheduled cleanup
+    'CACHE_NAME': 'default',  # Which cache from CACHES to use for async conflict/progress
+}
+
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": "redis://redis:6379/1",  # Use database 1 for default cache
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+            "PASSWORD": os.environ.get("REDIS_PASSWORD"),
+        },
+        "KEY_PREFIX": "powercrud",
+    },
+    "powercrud_async": {
+        "BACKEND": "django.core.cache.backends.db.DatabaseCache",
+        "LOCATION": "powercrud_async_cache",
+        "KEY_PREFIX": "powercrud",
+        "TIMEOUT": None,
+    },
+    "db_cache": {  # for testing db backed cache for conflict/progress
+        "BACKEND": "django.core.cache.backends.db.DatabaseCache",
+        "LOCATION": "async_cache_table", 
+        "KEY_PREFIX": "powercrud",
+    }
 }
 
 # increase to allow max selected_ids for bulk ops

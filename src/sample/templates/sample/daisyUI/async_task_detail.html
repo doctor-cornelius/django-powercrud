@@ -1,0 +1,96 @@
+{% extends './base.html' %}
+{% load partials %}
+
+{% block content %}
+    {% partial pcrud_content %}
+{% endblock %}
+
+{% partialdef pcrud_content %}
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body space-y-4">
+            <h2 class="card-title">Task {{ record.task_name }}</h2>
+
+            <div id="task-progress" hx-get="{{ progress_url }}" hx-vals='{"task_name": "{{ record.task_name }}"}'
+                hx-trigger="load, every 1s" hx-target="#task-progress" hx-swap="innerHTML" class="p-4 bg-base-200 rounded-lg">
+                <div class="loading loading-spinner loading-lg mx-auto"></div>
+                <p class="mt-2">{{ record.message|default:'Waiting for progress…' }}</p>
+            </div>
+
+
+            <dl class="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                <dt class="font-semibold">Task Name</dt>
+                <dd class="font-mono">{{ record.task_name }}</dd>
+                <dt class="font-semibold">Status</dt>
+                <dd>{{ record.get_status_display }}</dd>
+                <dt class="font-semibold">Message</dt>
+                <dd>{{ record.message|default:'—' }}</dd>
+                <dt class="font-semibold">Progress Payload</dt>
+                <dd><pre class="whitespace-pre-wrap text-xs">{{ record.progress_payload|default:'—' }}</pre></dd>
+                <dt class="font-semibold">User</dt>
+                <dd>{{ record.user_label|default:'—' }}</dd>
+                <dt class="font-semibold">Affected Objects</dt>
+                <dd><pre class="whitespace-pre-wrap text-xs">{{ record.affected_objects|default:'—' }}</pre></dd>
+                <dt class="font-semibold">Task kwargs</dt>
+                <dd><pre class="whitespace-pre-wrap text-xs">{{ record.task_kwargs|default:'—' }}</pre></dd>
+                <dt class="font-semibold">Task args</dt>
+                <dd><pre class="whitespace-pre-wrap text-xs">{{ record.task_args|default:'—' }}</pre></dd>
+                <dt class="font-semibold">Result payload</dt>
+                <dd><pre class="whitespace-pre-wrap text-xs">{{ record.result_payload|default:'—' }}</pre></dd>
+                <dt class="font-semibold">Cleaned up</dt>
+                <dd>{{ record.cleaned_up|yesno:"Yes,No" }}</dd>
+                <dt class="font-semibold">Created</dt>
+                <dd>{{ record.created_at|date:'Y-m-d H:i' }}</dd>
+                <dt class="font-semibold">Updated</dt>
+                <dd>{{ record.updated_at|date:'Y-m-d H:i' }}</dd>
+                <dt class="font-semibold">Completed</dt>
+                <dd>{{ record.completed_at|date:'Y-m-d H:i'|default:'—' }}</dd>
+                <dt class="font-semibold">Failed</dt>
+                <dd>{{ record.failed_at|date:'Y-m-d H:i'|default:'—' }}</dd>
+            </dl>
+
+        </div>
+    </div>
+
+    <script>
+    document.body.addEventListener('htmx:afterSwap', function(evt) {
+        if (evt.detail.target && evt.detail.target.id === 'task-progress') {
+            try {
+                const data = JSON.parse(evt.detail.xhr.responseText);
+                const triggerEl = evt.detail.elt;
+                if (['success', 'completed'].includes((data.status || '').toLowerCase())) {
+                    evt.detail.target.innerHTML = `
+                        <div class="alert alert-success">
+                            <p>${data.progress || 'Completed successfully!'}</p>
+                        </div>
+                    `;
+                    triggerEl.removeAttribute('hx-trigger');
+                } else if (data.status === 'failed') {
+                    evt.detail.target.innerHTML = `
+                        <div class="alert alert-error">
+                            <p>${data.progress || 'Failed!'}</p>
+                        </div>
+                    `;
+                    triggerEl.removeAttribute('hx-trigger');
+                } else if (data.status === 'pending') {
+                    evt.detail.target.innerHTML = `
+                        <div class="loading loading-spinner loading-lg mx-auto"></div>
+                        <p class="mt-2">${data.progress || 'Preparing asynchronous job…'}</p>
+                    `;
+                } else {
+                    evt.detail.target.innerHTML = `
+                        <div class="prose">
+                            <p>${data.progress || 'In progress…'}</p>
+                        </div>
+                    `;
+                }
+                if (data.poll_interval && data.poll_interval !== 1000) {
+                    triggerEl.setAttribute('hx-trigger', `every ${data.poll_interval}ms`);
+                }
+            } catch (error) {
+                console.error('Error parsing progress response', error);
+                evt.detail.target.innerHTML = '<p class="text-error">Error loading progress.</p>';
+            }
+        }
+    });
+    </script>
+{% endpartialdef %}
