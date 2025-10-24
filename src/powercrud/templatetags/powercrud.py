@@ -24,9 +24,9 @@ from django.conf import settings
 from django.db import models 
 
 from powercrud.conf import get_powercrud_setting
+from powercrud.logging import get_logger
 
-import logging
-log = logging.getLogger("powercrud")
+log = get_logger(__name__)
 
 register = template.Library()
 

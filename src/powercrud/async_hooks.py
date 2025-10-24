@@ -8,43 +8,50 @@ which can be overridden by downstream projects.
 
 import ast
 import json
-import logging
 from typing import Optional
 
 from django_q.models import Task
 
-log = logging.getLogger(__name__)
+from powercrud.logging import get_logger
+
+log = get_logger(__name__)
 
 
-def _extract_manager_class_path(task: Task) -> Optional[str]:
-    """
-    Attempt to pull the manager_class path out of the stored task kwargs.
-    django-q2 persists kwargs as JSON in Task.kwargs, but we play defensively
-    in case a different serializer is configured.
-    """
+def _parse_task_kwargs(task: Task) -> dict:
     raw_kwargs = getattr(task, "kwargs", None)
     if not raw_kwargs:
-        return None
+        return {}
 
     if isinstance(raw_kwargs, dict):
-        return raw_kwargs.get("manager_class")
+        return raw_kwargs
 
-    parsed_kwargs = None
     if isinstance(raw_kwargs, str):
         for parser in (json.loads, ast.literal_eval):
             try:
                 parsed_kwargs = parser(raw_kwargs)
-                break
+                if isinstance(parsed_kwargs, dict):
+                    return parsed_kwargs
             except Exception:
                 continue
-
-    if isinstance(parsed_kwargs, dict):
-        return parsed_kwargs.get("manager_class")
 
     log.debug(
         "task_completion_hook could not parse Task.kwargs for task %s; defaulting to base AsyncManager",
         getattr(task, "name", "unknown"),
     )
+    return {}
+
+
+def _extract_manager_class_path(task: Task) -> Optional[str]:
+    """Return stored manager class path from task kwargs (if any)."""
+    kwargs_dict = _parse_task_kwargs(task)
+    return kwargs_dict.get("manager_class")
+
+
+def _extract_manager_config(task: Task) -> Optional[dict]:
+    kwargs_dict = _parse_task_kwargs(task)
+    config = kwargs_dict.get("manager_config")
+    if isinstance(config, dict):
+        return config
     return None
 
 
@@ -73,7 +80,8 @@ def task_completion_hook(task: Task) -> None:
         log.debug(f"async_hooks.task_completion_hook triggered for task_name: {task_name}")
         # Delegate to AsyncManager method (can be overridden by subclasses)
         manager_class_path = _extract_manager_class_path(task)
-        manager = AsyncManager.resolve_manager(manager_class_path)
+        manager_config = _extract_manager_config(task)
+        manager = AsyncManager.resolve_manager(manager_class_path, config=manager_config)
         manager.handle_task_completion(task, task_name)
         
     except Exception as e:

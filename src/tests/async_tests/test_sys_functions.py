@@ -1,10 +1,14 @@
+import json
+
 from django.conf import settings
 from unittest.mock import Mock, patch
 from datetime import date
 from types import SimpleNamespace
 
-from django.test import TestCase, TransactionTestCase, RequestFactory
+from django.test import TestCase, TransactionTestCase, RequestFactory, override_settings
+from django.utils import timezone
 from django_q.cluster import Cluster
+from django_q.models import Task
 import threading
 import time
 import uuid
@@ -12,11 +16,13 @@ import uuid
 import pytest
 
 from powercrud.async_manager import AsyncManager
+from powercrud.async_dashboard import AsyncDashboardConfig, ModelTrackingAsyncManager
 from powercrud.async_hooks import _extract_manager_class_path, task_completion_hook
 from powercrud.mixins.async_mixin import AsyncMixin
 
 from tests.async_tests.workers import simple_test_worker
-from sample.models import Book, Author, Genre
+from sample.models import Book, Author, Genre, AsyncTaskRecord
+from sample.async_manager import SampleAsyncManager
 
 
 class AsyncManagerTestMixin:
@@ -312,6 +318,49 @@ class TestConcurrentAccess(AsyncManagerTestMixin, TestCase):
         lock = self.async_manager.cache.get("powercrud:conflict:model:myapp.Book:42")
         self.assertEqual(lock, task_1, "Only first task should hold the lock")
 
+
+class TestCleanupUtilities(AsyncManagerTestMixin, TestCase):
+
+    def _prepare_active_task(self, task_name: str, conflict_ids: dict[str, set[int]]):
+        self.async_manager.add_conflict_ids(task_name, conflict_ids)
+        self.async_manager.add_active_task(task_name)
+
+    def test_cleanup_completed_tasks_removes_artifacts(self):
+        task_name = "cleanup-task-success"
+        conflict_ids = {'sample.Book': {42}}
+        self._prepare_active_task(task_name, conflict_ids)
+
+        with patch("powercrud.async_manager.Task") as mock_task_model:
+            mock_task_model.objects.filter.return_value.first.return_value = SimpleNamespace(
+                success=True,
+                result={"ok": True},
+            )
+            summary = self.async_manager.cleanup_completed_tasks()
+
+        self.assertIn(task_name, summary["cleaned"])
+        clean_details = summary["cleaned"][task_name]
+        self.assertEqual(clean_details["conflict_lock_keys"], 1)
+        self.assertEqual(clean_details["progress_entries"], 1)
+        self.assertIsNone(
+            self.async_manager.cache.get(f"{self.async_manager.conflict_model_prefix}sample.Book:42")
+        )
+        self.assertNotIn(task_name, self.async_manager.get_active_tasks())
+
+    def test_cleanup_skips_running_tasks(self):
+        task_name = "cleanup-task-running"
+        conflict_ids = {'sample.Book': {99}}
+        self._prepare_active_task(task_name, conflict_ids)
+
+        with patch("powercrud.async_manager.Task") as mock_task_model:
+            mock_task_model.objects.filter.return_value.first.return_value = SimpleNamespace(
+                success=None,
+                started=timezone.now(),
+            )
+            summary = self.async_manager.cleanup_completed_tasks()
+
+        self.assertIn(task_name, summary["skipped"])
+        self.assertIn(task_name, self.async_manager.get_active_tasks())
+
     def test_cache_add_atomicity(self):
         """Test that cache.add() provides true atomic test-and-set behavior."""
         key = "powercrud:conflict:model:myapp.Book:999"
@@ -457,6 +506,14 @@ class TestTask3LaunchPattern(AsyncManagerTestMixin, TestCase):
         path = f"{DummyCustomManager.__module__}.{DummyCustomManager.__name__}"
         instance = AsyncManager.resolve_manager(path)
         self.assertIsInstance(instance, DummyCustomManager)
+
+    def test_resolve_manager_with_config(self):
+        path = "powercrud.async_dashboard.ModelTrackingAsyncManager"
+        instance = AsyncManager.resolve_manager(
+            path,
+            config={"record_model_path": "sample.AsyncTaskRecord"},
+        )
+        self.assertIsInstance(instance, ModelTrackingAsyncManager)
 
     def test_resolve_manager_fallback(self):
         instance = AsyncManager.resolve_manager("non.existent.Manager")
@@ -1122,7 +1179,7 @@ class TestAsyncHookHelpers(TestCase):
 
         task_completion_hook(task)
 
-        mock_async_manager.resolve_manager.assert_called_once_with('sample.async_manager.SampleAsyncManager')
+        mock_async_manager.resolve_manager.assert_called_once_with('sample.async_manager.SampleAsyncManager', config=None)
         mock_manager.handle_task_completion.assert_called_once_with(task, "task123")
 
     @patch("powercrud.async_manager.AsyncManager")
@@ -1134,9 +1191,242 @@ class TestAsyncHookHelpers(TestCase):
 
         task_completion_hook(task)
 
-        mock_async_manager.resolve_manager.assert_called_once_with(None)
+        mock_async_manager.resolve_manager.assert_called_once_with(None, config=None)
         mock_manager.handle_task_completion.assert_called_once_with(task, "task456")
+
+    @patch("powercrud.async_manager.AsyncManager")
+    def test_task_completion_hook_passes_manager_config(self, mock_async_manager):
+        mock_manager = Mock()
+        mock_async_manager.resolve_manager.return_value = mock_manager
+
+        cfg = {"record_model_path": "sample.AsyncTaskRecord"}
+        task = SimpleNamespace(
+            name="task789",
+            kwargs={
+                'manager_class': 'powercrud.async_dashboard.ModelTrackingAsyncManager',
+                'manager_config': cfg,
+            }
+        )
+
+        task_completion_hook(task)
+
+        mock_async_manager.resolve_manager.assert_called_once_with(
+            'powercrud.async_dashboard.ModelTrackingAsyncManager',
+            config=cfg,
+        )
+        mock_manager.handle_task_completion.assert_called_once_with(task, "task789")
+
+
+class TestModelTrackingAsyncManager(TestCase):
+
+    def setUp(self):
+        AsyncTaskRecord.objects.all().delete()
+        self.manager = ModelTrackingAsyncManager(
+            config=AsyncDashboardConfig(record_model_path="sample.AsyncTaskRecord"),
+        )
+
+    def test_create_event_initialises_dashboard_record(self):
+        self.manager.async_task_lifecycle(
+            event="create",
+            task_name="dash-create",
+            user=SimpleNamespace(username="sarah"),
+            affected_objects=["Book:1"],
+            task_kwargs={"example": True},
+            task_args=["arg1"],
+            message="Task queued",
+            status=AsyncTaskRecord.STATUS.PENDING,
+        )
+
+        record = AsyncTaskRecord.objects.get(task_name="dash-create")
+        self.assertEqual(record.status, AsyncTaskRecord.STATUS.PENDING)
+        self.assertEqual(record.user_label, "sarah")
+        self.assertIn("Book:1", record.affected_objects)
+        stored_kwargs = record.task_kwargs
+        if isinstance(stored_kwargs, str):
+            stored_kwargs = json.loads(stored_kwargs)
+        self.assertEqual(stored_kwargs, {"example": True})
+        self.assertEqual(record.task_args, ["arg1"])
+
+    def test_progress_event_updates_progress_without_overwriting_message(self):
+        self.manager.async_task_lifecycle(
+            event="create",
+            task_name="dash-progress",
+            message="Queued",
+            status=AsyncTaskRecord.STATUS.PENDING,
+        )
+        self.manager.async_task_lifecycle(
+            event="progress",
+            task_name="dash-progress",
+            message="Working",  # should not clobber existing message
+            progress_payload="50%",
+        )
+
+        record = AsyncTaskRecord.objects.get(task_name="dash-progress")
+        self.assertEqual(record.status, AsyncTaskRecord.STATUS.IN_PROGRESS)
+        self.assertEqual(record.progress_payload, "50%")
+        self.assertEqual(record.message, "Queued")
+
+    def test_completion_event_sets_result_and_timestamp(self):
+        self.manager.async_task_lifecycle(event="create", task_name="dash-complete")
+        ts = timezone.now()
+        self.manager.async_task_lifecycle(
+            event="complete",
+            task_name="dash-complete",
+            result={"count": 3},
+            timestamp=ts,
+        )
+
+        record = AsyncTaskRecord.objects.get(task_name="dash-complete")
+        self.assertEqual(record.status, AsyncTaskRecord.STATUS.SUCCESS)
+        stored_result = record.result_payload
+        if isinstance(stored_result, str):
+            stored_result = json.loads(stored_result)
+        self.assertEqual(stored_result, {"count": 3})
+        self.assertEqual(record.completed_at, ts)
+
+    def test_fail_event_marks_failure_and_preserves_timestamp(self):
+        self.manager.async_task_lifecycle(event="create", task_name="dash-fail")
+        ts = timezone.now()
+        self.manager.async_task_lifecycle(
+            event="fail",
+            task_name="dash-fail",
+            result="boom",
+            message="Exploded",
+            timestamp=ts,
+        )
+
+        record = AsyncTaskRecord.objects.get(task_name="dash-fail")
+        self.assertEqual(record.status, AsyncTaskRecord.STATUS.FAILED)
+        self.assertEqual(record.result_payload, "boom")
+        self.assertEqual(record.failed_at, ts)
+        self.assertEqual(record.message, "Exploded")
+
+    def test_cleanup_event_marks_flag_without_status_regression(self):
+        self.manager.async_task_lifecycle(event="create", task_name="dash-cleanup")
+        self.manager.async_task_lifecycle(event="complete", task_name="dash-cleanup")
+        self.manager.async_task_lifecycle(event="cleanup", task_name="dash-cleanup")
+
+        record = AsyncTaskRecord.objects.get(task_name="dash-cleanup")
+        self.assertTrue(record.cleaned_up)
+        self.assertEqual(record.status, AsyncTaskRecord.STATUS.SUCCESS)
+
+    def test_custom_formatters_are_applied(self):
+        def format_user(user):
+            return getattr(user, "email", "")
+
+        def format_affected(objs):
+            return "|".join(str(x) for x in objs) if objs else ""
+
+        manager = ModelTrackingAsyncManager(
+            config=AsyncDashboardConfig(
+                record_model_path="sample.AsyncTaskRecord",
+                format_user=format_user,
+                format_affected=format_affected,
+                format_payload=lambda payload: {"wrapped": payload},
+            )
+        )
+        payload = {"key": "value"}
+        manager.async_task_lifecycle(
+            event="create",
+            task_name="dash-format",
+            user=SimpleNamespace(email="user@example.com"),
+            affected_objects=["A", "B"],
+            task_kwargs=payload,
+        )
+
+        record = AsyncTaskRecord.objects.get(task_name="dash-format")
+        self.assertEqual(record.user_label, "user@example.com")
+        self.assertEqual(record.affected_objects, "A|B")
+        self.assertEqual(record.task_kwargs, {"wrapped": payload})
 
 
 class DummyCustomManager(AsyncManager):
     pass
+
+
+class AsyncMixinManagerResolutionTests(TestCase):
+    class DummyView(AsyncMixin):
+        bulk_async = True
+        bulk_min_async_records = 1
+        bulk_async_backend = "q2"
+        bulk_async_notification = "none"
+        bulk_async_conflict_checking = True
+        templates_path = "sample/daisyUI"
+        model = Book
+
+    def test_direct_manager_class_attribute(self):
+        view = self.DummyView()
+        view.async_manager_class = SampleAsyncManager
+        view.async_manager_class_path = None
+
+        manager_cls = view.get_async_manager_class()
+        self.assertIs(manager_cls, SampleAsyncManager)
+        self.assertEqual(
+            view.get_async_manager_class_path(),
+            "sample.async_manager.SampleAsyncManager",
+        )
+
+    def test_manager_class_path_attribute(self):
+        view = self.DummyView()
+        view.async_manager_class = None
+        view.async_manager_class_path = "powercrud.async_dashboard.ModelTrackingAsyncManager"
+
+        manager_cls = view.get_async_manager_class()
+        from powercrud.async_dashboard import ModelTrackingAsyncManager
+
+        self.assertIs(manager_cls, ModelTrackingAsyncManager)
+        self.assertEqual(
+            view.get_async_manager_class_path(),
+            "powercrud.async_dashboard.ModelTrackingAsyncManager",
+        )
+
+    def test_view_supplies_manager_config(self):
+        view = self.DummyView()
+        view.async_manager_class = None
+        view.async_manager_class_path = "powercrud.async_dashboard.ModelTrackingAsyncManager"
+        view.async_manager_config = {"record_model_path": "sample.AsyncTaskRecord"}
+
+        manager = view.get_async_manager()
+        self.assertIsInstance(manager, ModelTrackingAsyncManager)
+        self.assertEqual(manager._config.record_model_path, "sample.AsyncTaskRecord")
+
+    @override_settings(
+        POWERCRUD_SETTINGS={
+            "ASYNC_MANAGER_DEFAULT": {
+                "manager_class": "sample.async_manager.SampleAsyncManager",
+            }
+        }
+    )
+    def test_settings_default_manager_class(self):
+        view = self.DummyView()
+        view.async_manager_class = None
+        view.async_manager_class_path = None
+
+        manager_cls = view.get_async_manager_class()
+        self.assertIs(manager_cls, SampleAsyncManager)
+        self.assertEqual(
+            view.get_async_manager_class_path(),
+            "sample.async_manager.SampleAsyncManager",
+        )
+
+    @override_settings(
+        POWERCRUD_SETTINGS={
+            "ASYNC_MANAGER_DEFAULT": {
+                "manager_class": "powercrud.async_dashboard.ModelTrackingAsyncManager",
+                "config": {"record_model_path": "sample.AsyncTaskRecord"},
+            }
+        }
+    )
+    def test_settings_default_manager_config(self):
+        view = self.DummyView()
+        view.async_manager_class = None
+        view.async_manager_class_path = None
+
+        manager = view.get_async_manager()
+        self.assertIsInstance(manager, ModelTrackingAsyncManager)
+        self.assertEqual(manager._config.record_model_path, "sample.AsyncTaskRecord")
+
+        self.assertEqual(
+            view.get_async_manager_class_path(),
+            "powercrud.async_dashboard.ModelTrackingAsyncManager",
+        )

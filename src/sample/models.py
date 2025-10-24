@@ -5,6 +5,12 @@ from django.core.exceptions import ValidationError
 
 import time
 from powercrud.logging import get_logger
+from powercrud.async_context import (
+    get_current_task,
+    skip_nested_async,
+    register_descendant_conflicts,
+)
+from powercrud.async_manager import AsyncManager
 
 log = get_logger(__name__)
 
@@ -100,9 +106,13 @@ class Book(models.Model):
 
     def save(self, *args, **kwargs):
         
-        log.debug(f"Updating book: {self.title}: about to start sleep")
-        time.sleep(2)
-        log.debug(f"Updating book: {self.title}: completed operation")
+        context = get_current_task()
+        in_parent_async = bool(context) and skip_nested_async()
+
+        if in_parent_async:
+            log.debug("Book %s running inside parent async task", self.pk or "<unsaved>")
+        else:
+            log.debug("Book %s running without async context", self.pk or "<unsaved>")
 
         self.clean()
         response = super().save(*args, **kwargs)

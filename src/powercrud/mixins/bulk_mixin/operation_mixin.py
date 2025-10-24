@@ -1,10 +1,11 @@
-import logging
 from typing import Any, Callable, Dict, List, Optional
 
 from django.db import models, transaction
 from django.core.exceptions import ValidationError, ObjectDoesNotExist
 
-log = logging.getLogger("powercrud")
+from powercrud.logging import get_logger
+
+log = get_logger(__name__)
 
 
 class OperationMixin:

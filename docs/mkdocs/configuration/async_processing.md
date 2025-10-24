@@ -1,335 +1,177 @@
 ## Async Processing
 
-PowerCRUD’s async support lets long-running bulk actions move out of the request
-thread while keeping the UX responsive:
+PowerCRUD can hand long-running bulk work off to `django-q2`, keeping the UI responsive while still showing progress and preventing conflicting edits. This guide walks you through the flow from “turn it on” to “customise the dashboard”, with the technical details tucked into focused sections.
 
-- destroy the "spinner of doom": launch the work, return control to the user in seconds.
-- show meaningful progress (`updating 7/25`, `completed 25 processed`) in the bulk edit modal while the worker runs if the user elects to wait. More usually, user will close the modal and continue working
-- prevent accidental collisions: conflict locks stop users from editing or deleting records that an async job is already touching
+---
 
-These gains are delivered by an opinionated pipeline that builds on django-q2
-workers, a shared cache, and HTMX-powered polling. This guide explains how to
-enable the pipeline, how each component works, and what parts downstream
-projects can override (or simply reuse).
+### Quick start
 
-### Overview
+Follow these steps in order:
 
-PowerCRUD’s async support consists of three cooperating layers:
+1. **Install and run django-q2**
+   ```bash
+   pip install django-q2
+   python manage.py migrate django_q
+   python manage.py qcluster
+   ```
+   Add `"django_q"` to `INSTALLED_APPS` and keep a worker process running alongside your web server.
 
-1. **AsyncManager (`powercrud.async_manager.AsyncManager`)** handles launch orchestration, conflict locking, progress keys, lifecycle callbacks, and the HTMX progress endpoint.
-2. **AsyncMixin (`powercrud.mixins.async_mixin.AsyncMixin`)** adds async options to CRUD views: deciding when to queue jobs, checking for conflicts, rendering conflict messages, and dispatching the work to AsyncManager.
-3. **Templates & HTMX snippets** such as `bulk_edit_form.html`, `object_form.html`, and their partials render progress updates, conflict messages, and completion notifications while staying inside the modal UI.
+2. **Configure a shared cache**
+   ```python title="settings.py"
+   CACHES = {
+       "default": {...},
+       "powercrud_async": {
+           "BACKEND": "django.core.cache.backends.db.DatabaseCache",
+           "LOCATION": "powercrud_async_cache",
+           "KEY_PREFIX": "powercrud",
+           "TIMEOUT": None,
+       },
+   }
 
-### Prerequisites
+   POWERCRUD_SETTINGS = {
+       "ASYNC_ENABLED": True,
+       "CACHE_NAME": "powercrud_async",
+       "PROGRESS_TTL": 7200,
+       "CONFLICT_TTL": 3600,
+       "CLEANUP_GRACE_PERIOD": 86400,
+   }
+   ```
+   ```bash
+   python manage.py createcachetable powercrud_async_cache
+   ```
+   Any backend (Redis, Memcached, DatabaseCache) works as long as both web and worker processes share it. A `LocMem`/`Dummy` cache will silently break locks and progress, so avoid those.
 
-- **django-q2** must be installed, added to `INSTALLED_APPS`, and running via `python manage.py qcluster`.
-- **Shared cache** that both the web process and qcluster workers can reach. AsyncManager defaults to a `DatabaseCache` alias named `powercrud_async`, but Redis or Memcached works as long as it is shared. LocMem/Dummy caches will raise `ImproperlyConfigured`.
-- **POWERCRUD_SETTINGS** entries controlling cache alias, TTLs, and optional tuning (see below).
+3. **Tell views which async manager to use**
+   ```python title="settings.py"
+   POWERCRUD_SETTINGS = {
+       # ...
+       "ASYNC_MANAGER_DEFAULT": {
+           "manager_class": "powercrud.async_dashboard.ModelTrackingAsyncManager",
+           "config": {"record_model_path": "yourapp.AsyncTaskRecord"},
+       }
+   }
+   ```
+   or per-view:
+   ```python title="views.py"
+   class OrderView(PowerCRUDMixin, CRUDView):
+       async_manager_class_path = "yourapp.async_manager.OrderDashboardManager"
+   ```
+   The reusable `ModelTrackingAsyncManager` covers most dashboards. Supply `record_model_path` so it knows where to persist lifecycle events.
 
-### Configuration Checklist
+4. **Expose the HTMX progress endpoint**
+   ```python title="urls.py"
+   from powercrud.async_manager import AsyncManager
 
-#### 1. Shared cache alias
+   urlpatterns = [
+       AsyncManager.get_url(),  # /powercrud/async/progress/
+       ...
+   ]
+   ```
 
-The cache stores two critical pieces of state:
+5. **Enable async bulk actions in your view**
+   ```python
+   class OrderView(PowerCRUDMixin, CRUDView):
+       bulk_async = True
+       bulk_min_async_records = 10  # optional threshold
+       bulk_async_conflict_checking = True
+   ```
 
-- **Conflict locks** (`powercrud:conflict:model:app_label.Model:pk`) so only one async job can operate on a record at a time
-- **Progress payloads** (`powercrud:async:progress:{task_name}`) so the UI can show per-record updates
+That’s enough to launch a bulk edit, keep the modal open with live progress, and surface the task on your dashboard.
 
-Both the web process and the qcluster worker must read and write the same cache. If you use `LocMemCache` (the default Django dev backend) the worker and web process each see their own in-memory copy—no locks, no progress. That’s why PowerCRUD enforces a shared cache.
+---
 
-```python title="settings.py"
-CACHES = {
-    "default": {
-        # your existing cache configuration
-    },
-    "powercrud_async": {
-        "BACKEND": "django.core.cache.backends.db.DatabaseCache",
-        "LOCATION": "powercrud_async_cache",
-        "KEY_PREFIX": "powercrud",
-        "TIMEOUT": None,
-    },
-}
+### Architecture at a glance
 
-POWERCRUD_SETTINGS = {
-    # ...
-    "CACHE_NAME": "powercrud_async",
-    "PROGRESS_TTL": 7200,
-    "CONFLICT_TTL": 3600,
-    "CLEANUP_GRACE_PERIOD": 86400,
-}
+| Layer | Responsibility | You customise by… |
+|-------|----------------|-------------------|
+| `AsyncMixin` | Decides when to go async, checks for conflicts, starts the job, passes manager metadata to workers and hooks. | Toggling `bulk_async`, `bulk_min_async_records`, or overriding helper methods in your view. |
+| `AsyncManager` | Adds/removes cache locks, tracks progress, raises lifecycle events, exposes the polling endpoint, performs cleanup. | Providing a different manager class/config or overriding lifecycle/misc hooks. |
+| Dashboard / UI | HTMX modal + optional dashboard view showing running/completed jobs. | Using the provided templates, or pointing the manager at your own dashboard model for richer data. |
+
+---
+
+### Task lifecycle
+
+1. **Launch** – `AsyncMixin` generates a UUID, reserves locks (`add_conflict_ids`), creates a progress key, and enqueues the worker via `django_q.tasks.async_task`. The manager class path plus optional config are stored with the job.
+2. **Worker execution** – Functions in `powercrud.tasks` rehydrate the same manager (`AsyncManager.resolve_manager`) so progress updates and lifecycle hooks go to the right place. Progress updates simply call `manager.update_progress(task_key, "updating 3/10")`.
+3. **Completion** – The django-q2 completion hook loads the job’s kwargs, resolves the manager again, and calls `handle_task_completion`. Locks, progress keys, and any dashboard records are cleaned up; lifecycle callbacks fire with final status/result.
+4. **Cleanup command / schedule** – `python manage.py pcrud_cleanup_async` (or the scheduled helper in `powercrud.schedules`) reconciles cached “active” tasks with django-q2, removing stale locks/progress if a worker died mid-job.
+
+Diagrammatically:
+
+```
+view → AsyncMixin → AsyncManager.launch_async_task
+     → django-q2 worker → AsyncManager.update_progress(...)
+     → completion hook → AsyncManager.handle_task_completion(...)
+     → optional scheduled cleanup → AsyncManager.cleanup_completed_tasks()
 ```
 
-```bash
-python manage.py createcachetable powercrud_async_cache
-```
+---
 
-The database cache is shown here because it works everywhere—but Redis or Memcached are fine choices too. The key requirement is that both the web process and the qcluster worker connect to the **same** cache instance.
+### Progress UI and conflict handling
 
-!!! warning "Avoid LocMem/Dummy Cache"
-    If you point `POWERCRUD_SETTINGS["CACHE_NAME"]` at a `LocMemCache` or `DummyCache`, conflict detection silently fails and progress stays blank because each process reads its own private in-memory data. Always choose a cache backend that is shared across processes.
+- The modal polls `/powercrud/async/progress/` every second. When the manager returns HTTP 286 the polling stops and the modal emits `bulkEditSuccess`/`refreshTable`.
+- `AsyncManager.get_task_status_cache_only()` keeps most checks in the cache; the heavier `get_task_status_nowait()` is only used when the cache indicates completion.
+- Single-record forms reuse the same conflict logic: attempting to edit/delete a locked row returns a conflict partial instead of proceeding.
 
-```python title="settings.py"
-CACHES = {
-    "default": {
-        # your existing cache configuration
-    },
-    "powercrud_async": {
-        "BACKEND": "django.core.cache.backends.db.DatabaseCache",
-        "LOCATION": "powercrud_async_cache",
-        "KEY_PREFIX": "powercrud",
-        "TIMEOUT": None,
-    },
-}
-
-POWERCRUD_SETTINGS = {
-    # ...
-    "CACHE_NAME": "powercrud_async",
-    "PROGRESS_TTL": 7200,
-    "CONFLICT_TTL": 3600,
-    "CLEANUP_GRACE_PERIOD": 86400,
-}
-```
+---
 
-Create the database-backed cache table once:
+### Choosing a dashboard manager
 
-```bash
-python manage.py createcachetable powercrud_async_cache
-```
+**Recommended:** configure the built-in `ModelTrackingAsyncManager`.
 
-Prefer Redis/Memcached? Use those backends instead, as long as the alias named in `POWERCRUD_SETTINGS["CACHE_NAME"]` is shared.
+- Set it globally via `POWERCRUD_SETTINGS["ASYNC_MANAGER_DEFAULT"]`.
+- Or in a view: `async_manager_class_path = "powercrud.async_dashboard.ModelTrackingAsyncManager"` and optionally `async_manager_config = {"record_model_path": "yourapp.AsyncTaskRecord"}`.
+- Extend it only to tweak formatting:
+  ```python
+  from powercrud.async_dashboard import ModelTrackingAsyncManager
 
-#### 2. Ensure qcluster reads the same settings
+  class MyDashboardManager(ModelTrackingAsyncManager):
+      record_model_path = "yourapp.AsyncTaskEvent"
 
-When running `python manage.py qcluster`, make sure the environment exports the same `DJANGO_SETTINGS_MODULE` so the worker loads the cache alias. If you use a Procfile or systemd service, include the same env vars as the web process.
+      def format_user(self, user):
+          return user.email if user else ""
 
-#### 3. Optional validation hooks
+      def format_affected(self, affected):
+          return ", ".join(affected) if isinstance(affected, list) else str(affected)
+  ```
 
-AsyncManager exposes inexpensive health checks:
+**Advanced:** override `async_task_lifecycle`. You still can (and sometimes should) when you need behaviour beyond storing rows—for example firing a notification, pushing metrics, or logging to an audit trail. The lifecycle event carries:
 
-```python
-from powercrud.async_manager import AsyncManager
+- `event`: `"create"`, `"progress"`, `"complete"`, `"fail"`, `"cleanup"`
+- `status`: normalised value (`pending`, `in_progress`, `success`, `failed`, `unknown`)
+- `message`, `progress_payload`, `result`
+- `user`, `affected_objects`, `task_args`, `task_kwargs`
+- Timestamp (`timezone.now()` if none supplied)
 
-def check_powercrud_async():
-    manager = AsyncManager()
-    ok_cache = manager.validate_async_cache()
-    ok_cluster = manager.validate_async_qcluster()
-    return ok_cache and ok_cluster
-```
+The reusable manager consumes this payload to update the dashboard model; your override can call `super()` then add extra behaviour.
 
-Run this in a readiness probe or management command to catch misconfiguration before users do.
-
-### Launch & Conflict Flow
-
-1. **AsyncMixin.should_process_async(record_count)** compares the selected record count against `bulk_min_async_records`. If `False`, operations fall back to synchronous behaviour.
-2. **Conflict detection** `_check_for_conflicts(selected_ids)` calls `AsyncManager.check_conflict()` with per-object cache keys. Conflicts return the list of clashing ids; bulk views render `bulk_edit_conflict`, single record views render the `object_form`/`object_confirm_delete` conflict partial.
-3. **Launch** `_handle_async_bulk_operation()` (bulk) and `confirm_delete`/`form_valid` (single record) use AsyncManager to:
-    - generate a task UUID
-    - reserve conflict locks (`add_conflict_ids`)
-    - seed the progress key with status `pending`
-    - enqueue the task through `django_q.tasks.async_task`
-    - record lifecycle metadata (future dashboard hook)
+---
 
-4. **Worker execution** – The worker functions in `powercrud/tasks.py` receive `task_key` via kwargs, so they can push progress updates with `AsyncManager.update_progress(task_key, message)`. If you override `AsyncMixin.get_async_manager_class()` in your view mixin, that manager class path is forwarded to the worker and instantiated there as well, so lifecycle callbacks (progress/completion/failure) run through your subclass.
+### Maintenance & troubleshooting
 
-### Progress Updates & HTMX Polling
+- **Health checks** – Use `AsyncManager.validate_async_cache()` and `validate_async_qcluster()` in a readiness probe.
+- **Cleanup** – Run `python manage.py pcrud_cleanup_async` to clear stale locks/progress/dashboard rows. The command prints (or, with `--json`, returns) a summary of what it removed or skipped.
+- **Scheduled cleanup** – Add `powercrud.schedules.cleanup_async_artifacts` to your django-q2 schedule if you want automatic cleanup.
+- **Important settings**:
+  | Setting | Purpose |
+  |---------|---------|
+  | `CACHE_NAME` | Shared cache alias for locks/progress. |
+  | `PROGRESS_TTL` / `CONFLICT_TTL` | How long cache entries live if cleanup never runs (seconds). |
+  | `CLEANUP_GRACE_PERIOD` | How long to keep a task in the active set before scheduled cleanup revisits it. |
+  | `MAX_TASK_DURATION` | Optional limit used by cleanup to force-remove stuck tasks. |
 
-PowerCRUD exposes a small JSON endpoint that the modal polls while the worker runs. You can register it in two ways:
+If the modal keeps polling forever, check the qcluster logs. A worker crash can leave locks behind, in which case running `pcrud_cleanup_async` will free them.
 
-- **`AsyncManager.get_url()` helper (recommended)** returns a ready-made `path()` entry so you can drop it straight into your `urlpatterns`:
-
-    ```python title="urls.py"
-    from powercrud.async_manager import AsyncManager
+---
 
-    urlpatterns = [
-        AsyncManager.get_url(),  # → /powercrud/async/progress/
-    ]
-    ```
-
-- **`AsyncManager.as_view()`** returns the underlying view function in case you need to customise the URL or wrap it yourself:
-
-    ```python title="urls.py"
-    from django.urls import path
-    from powercrud.async_manager import AsyncManager
-
-    progress_view = AsyncManager.as_view()
-
-    urlpatterns = [
-        path("custom/progress/", progress_view, name="my_async_progress"),
-    ]
-    ```
-
-Inside the templates (see `bulk_edit_form.html`) HTMX polls this endpoint every second:
-
-```html
-<div id="progress-display"
-     hx-get="{% url 'powercrud:async_progress' %}"
-     hx-vals='{"task_name": "{{ task_name }}"}'
-     hx-trigger="every 1s"
-     hx-target="#progress-display"
-     hx-swap="innerHTML">
-    <div class="loading loading-spinner loading-lg mx-auto"></div>
-    <p class="mt-2">Starting...</p>
-</div>
-```
-
-Responses include:
-
-- `status: "in_progress"` with progress text (worker-supplied string)
-- `status: "pending"` while the worker spins up
-- `status: "success"` (HTTP 286) once complete, stopping the poller
-- `status: "failed"` for worker exceptions
-- `status: "unknown"` if neither cache nor cluster knows about the task (falls
-    back to generic messaging)
-
-When the modal receives `success`/`failed`, the JS stops polling, updates the heading (e.g., “Bulk Operation Completed”), fires `bulkEditSuccess`/`refreshTable` events, and closes the modal.
-
-### Single Record Safeguards
-
-Single-record forms now share the same conflict logic:
-
-- `show_form` checks `_check_for_conflicts([obj.pk])`, rendering the conflict
-    partial when the record is locked by an async job.
-- `form_valid` re-checks the conflict immediately before saving; if the object
-    is locked, it renders the conflict partial instead of saving.
-- `confirm_delete` and `process_deletion` consult the same lock to prevent
-    delete while a bulk job is touching the record.
-
-### Lifecycle callbacks
-
-PowerCRUD fires lifecycle callbacks whenever task state changes. Override
-`AsyncManager.async_task_lifecycle(event, task_name, **payload)` to integrate
-with dashboards, notifications, or audit logs.
-
-| Event      | Typical status      | Trigger                                             |
-|------------|---------------------|-----------------------------------------------------|
-| `create`   | `pending`           | Task queued successfully (includes user/object metadata) |
-| `progress` | `in_progress`       | Worker calls `update_progress()` with a new message |
-| `complete` | `success` or `unknown` | Worker reports `success=True` or `success=None`        |
-| `fail`     | `failed`            | Worker reports `success=False` (message includes error) |
-| `cleanup`  | `unknown`           | After completion/failure, when locks are cleared     |
-
-Each payload includes:
-
-- `status`: normalised value from `AsyncManager.STATUSES`
-- `message`: human-readable text (`"Task queued"`, progress message, or error)
-- `progress_payload`: raw progress string (when applicable)
-- `user`: user object or identifier provided at launch
-- `affected_objects`: optional descriptor passed at launch
-- `task_kwargs`: snapshot of kwargs sent to the worker (best-effort)
-- `task_args`: list of positional arguments passed to the worker
-- `result`: worker result or error payload on completion
-- `timestamp`: timezone-aware timestamp (defaults to `timezone.now()`)
-
-Lifecycle callbacks never raise—exceptions are logged as warnings—so it is safe
-to plug in downstream integrations without affecting task execution.
-
-#### Downstream integration pattern
-
-Downstream projects typically subclass `AsyncManager` and persist lifecycle data to their own model. The `sample` app ships with `SampleAsyncManager`, which you can adapt:
-
-```python title="sample/async_manager.py"
-from powercrud.async_manager import AsyncManager
-from .models import AsyncTaskRecord
-
-class SampleAsyncManager(AsyncManager):
-    def async_task_lifecycle(self, event, task_name, **kwargs):
-        incoming_status = kwargs.get("status")
-        message = kwargs.get("message") or ""
-        timestamp = kwargs.get("timestamp")
-
-        record, created = AsyncTaskRecord.objects.get_or_create(
-            task_name=task_name,
-            defaults={
-                "status": incoming_status or AsyncTaskRecord.STATUS.UNKNOWN,
-                "message": message,
-                "user_label": self._user_label(kwargs.get("user")),
-                "affected_objects": self._serialise_objects(kwargs.get("affected_objects")),
-                "task_kwargs": kwargs.get("task_kwargs"),
-                "task_args": kwargs.get("task_args"),
-            },
-        )
-
-        if not created:
-            if incoming_status is not None:
-                record.status = incoming_status
-            if message:
-                record.message = message
-
-        if event == "progress":
-            record.status = AsyncTaskRecord.STATUS.IN_PROGRESS
-            record.progress_payload = kwargs.get("progress_payload") or message
-        elif event == "complete":
-            record.status = AsyncTaskRecord.STATUS.SUCCESS
-            record.result_payload = kwargs.get("result")
-            record.completed_at = timestamp
-        elif event == "fail":
-            record.status = AsyncTaskRecord.STATUS.FAILED
-            record.result_payload = kwargs.get("result")
-            record.failed_at = timestamp
-        elif event == "cleanup":
-            record.cleaned_up = True
-
-        record.save(update_fields=[
-            "status",
-            "message",
-            "progress_payload",
-            "user_label",
-            "affected_objects",
-            "task_kwargs",
-            "task_args",
-            "result_payload",
-            "cleaned_up",
-            "completed_at",
-            "failed_at",
-            "updated_at",
-        ])
-```
-
-Key takeaways:
-
-- `status` and `message` should only be overwritten when new values are supplied—cleanup runs with `status=None`.
-- Persist the UUID `task_name`; completion hooks use it to rehydrate the same manager class.
-- Use `update_fields` so audit signals remain efficient.
-
-#### Manager resolution in workers
-
-When `AsyncMixin` launches a task it passes `manager_class="<module path>"`. Worker functions call `AsyncManager.resolve_manager()` with that path so lifecycle events use the same subclass. The completion hook (`powercrud.async_hooks.task_completion_hook`) reads the stored kwargs from `django_q.Task` and resolves the manager again for the final `complete`/`fail`/`cleanup` events. No extra wiring is needed downstream—just override `get_async_manager_class()` in your view mixin.
-
-#### Testing your lifecycle integration
-
-The repository contains tests you can mirror:
-
-- `src/tests/async_tests/test_sys_functions.py::TestAsyncHookHelpers` covers manager resolution inside the hook.
-- `sample/tests.py::SampleAsyncDashboardTests` checks that `SampleAsyncManager` records create/progress/complete/fail/cleanup events correctly.
-
-For your project, add tests that:
-
-- trigger each lifecycle event and assert your dashboard model reflects the change;
-- ensure cleanup events do not reset success/failure statuses;
-- run a real async bulk update end-to-end (if practical) and assert the dashboard view renders the expected status.
-
-### Settings Reference
-
-`POWERCRUD_SETTINGS` keys relevant to async operations:
-
-- `CACHE_NAME` – shared cache alias for locks/progress (default `powercrud_async`)
-- `PROGRESS_TTL` – seconds to keep progress entries alive (default 7200)
-- `CONFLICT_TTL` – seconds before conflict locks expire automatically (default 3600)
-- `CLEANUP_GRACE_PERIOD` – grace period for active task cleanup (default 86400)
-- `MAX_TASK_DURATION`, `CLEANUP_SCHEDULE_INTERVAL` – advanced timers for future
-    scheduled cleanup
-
-### Behaviour Without Shared Cache
-
-If you skip the shared cache, async jobs still run and complete, but the UI cannot display incremental progress—workers and web processes hold separate LocMem stores. The modal will show only the initial “Preparing asynchronous job…” message until the completion hook fires. For best UX, always configure a shared cache.
-
-### Sample dashboard (preview)
-
-The `sample` project includes a reference implementation:
-
-- `sample.models.AsyncTaskRecord` stores lifecycle data.
-- `sample.async_manager.SampleAsyncManager` overrides the lifecycle hook to persist records.
-- `sample.views.AsyncTaskRecordListView` renders an HTMX-friendly dashboard at `/sample/async-dashboard/`.
-- `python manage.py cleanup_async_tasks` purges old records.
-
-Use it as a blueprint: copy the model, override `get_async_manager()`, and tailor the dashboard views for your project.
+### Sample app reference
+
+The `sample` project demonstrates a complete integration:
+
+- `sample.async_manager.SampleAsyncManager` subclasses `ModelTrackingAsyncManager` and customises formatting.
+- `sample.views.SampleCRUDMixin` sets `async_manager_class_path` so every sample CRUD view uses the configured manager.
+- `sample.models.AsyncTaskRecord` is the dashboard model populated by the reusable manager.
+- `sample/tests.py::SampleAsyncDashboardTests` exercises the lifecycle flow, ensuring create/progress/complete/fail/cleanup land in the dashboard as expected.
+
+Copy or adapt those pieces for your own project—or point your own manager config at your bespoke dashboard model and you’re done.

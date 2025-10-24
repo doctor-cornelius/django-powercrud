@@ -11,14 +11,10 @@ from django import forms
 from . import models
 from . import forms
 from . import filters
-from .async_manager import SampleAsyncManager
-
-
 class SampleCRUDMixin(PowerCRUDMixin, CRUDView):
     """Base mixin to ensure sample views use the dashboard-aware manager."""
 
-    def get_async_manager_class(self):
-        return SampleAsyncManager
+    async_manager_class_path = "sample.async_manager.SampleAsyncManager"
 
 def home(request):
     template_name = f"sample/{get_powercrud_setting('POWERCRUD_CSS_FRAMEWORK')}/index.html"

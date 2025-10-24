@@ -3,6 +3,7 @@ import uuid
 from typing import Dict, List, Set, Any, Callable, Optional, Hashable
 from datetime import timedelta
 import importlib
+import json
 from django.conf import settings
 from django.core.cache import caches
 from django.core.exceptions import ImproperlyConfigured
@@ -664,6 +665,103 @@ class AsyncManager:
         # Clean up expired progress keys
         self.clear_expired_progress_keys()
 
+    def cleanup_completed_tasks(self) -> dict[str, Any]:
+        """Remove stale artifacts (locks, progress, dashboard) for finished tasks."""
+        summary: dict[str, Any] = {
+            "active_tasks": 0,
+            "cleaned": {},
+            "skipped": {},
+        }
+
+        active_tasks = list(self.get_active_tasks())
+        summary["active_tasks"] = len(active_tasks)
+
+        now = timezone.now()
+        max_duration = timedelta(seconds=self.max_task_duration) if self.max_task_duration else None
+
+        for task_name in active_tasks:
+            try:
+                task = Task.objects.filter(name=task_name).first()
+            except Exception as exc:
+                summary["skipped"][task_name] = f"task lookup failed: {exc}"
+                continue
+
+            if task is None:
+                summary["cleaned"][task_name] = self._cleanup_task_artifacts(
+                    task_name,
+                    reason="django-q2 task missing",
+                    status=self.STATUSES.UNKNOWN,
+                )
+                continue
+
+            success_flag = getattr(task, "success", None)
+            if success_flag is None:
+                started = getattr(task, "started", None)
+                if started and max_duration and (started + max_duration) < now:
+                    summary["cleaned"][task_name] = self._cleanup_task_artifacts(
+                        task_name,
+                        reason="max duration exceeded",
+                        status=self.STATUSES.UNKNOWN,
+                    )
+                else:
+                    summary["skipped"][task_name] = "task still running"
+                continue
+
+            reason = "completed successfully" if success_flag else "completed with failure"
+            status = self.STATUSES.SUCCESS if success_flag else self.STATUSES.FAILED
+            result_payload = getattr(task, "result", None)
+
+            summary["cleaned"][task_name] = self._cleanup_task_artifacts(
+                task_name,
+                reason=reason,
+                status=status,
+                result=result_payload,
+            )
+
+        return summary
+
+    def _cleanup_task_artifacts(
+        self,
+        task_name: str,
+        reason: str,
+        status: Optional[str],
+        result: Any = None,
+    ) -> dict[str, Any]:
+        """Internal helper to remove cache + dashboard data for a task."""
+        tracking_key = f"{self.conflict_prefix}{task_name}"
+        conflict_keys = self.cache.get(tracking_key, set()) or set()
+
+        progress_key = f"{self.progress_prefix}{task_name}"
+        had_progress = False
+        try:
+            progress_value = self.cache.get(progress_key, None)
+            if progress_value is not None:
+                had_progress = True
+            elif hasattr(self.cache, "has_key") and self.cache.has_key(progress_key):  # type: ignore[attr-defined]
+                had_progress = True
+        except Exception:
+            pass
+
+        # remove_active_task also clears conflicts & progress keys
+        self.remove_active_task(task_name)
+
+        dashboard_removed = self.cleanup_dashboard_data(task_name) or 0
+
+        self._emit_lifecycle(
+            event="cleanup",
+            task_name=task_name,
+            status=status or self.STATUSES.UNKNOWN,
+            message=reason,
+            result=result,
+        )
+
+        return {
+            "reason": reason,
+            "conflict_lock_keys": len(conflict_keys),
+            "progress_entries": 1 if had_progress else 0,
+            "dashboard_records": dashboard_removed,
+        }
+
 
     def add_conflict_ids(self, task_name: str, conflict_ids: dict[str, set[Hashable]]) -> bool:
         """Atomically reserve exclusive locks on objects for a task.
@@ -989,13 +1087,13 @@ class AsyncManager:
         from django.urls import path
         return path(pattern, cls.as_view(), name=name)
 
-    def cleanup_dashboard_data(self, task_name: str) -> None:
+    def cleanup_dashboard_data(self, task_name: str) -> int:
         """Clean up any dashboard artifacts tracked for a task.
 
         Args:
             task_name: The task identifier to clean dashboard artifacts for.
         """
-        pass
+        return 0
 
     def handle_task_completion(self, task, task_name: str) -> None:
         """
@@ -1052,7 +1150,7 @@ class AsyncManager:
         except Exception as e:
             log.error(f"Error in handle_task_completion for {task_name}: {e}")
     @classmethod
-    def resolve_manager(cls, manager_class_path: str | None):
+    def resolve_manager(cls, manager_class_path: str | None, config: dict | None = None):
         if not manager_class_path:
             return cls()
         try:
@@ -1062,7 +1160,30 @@ class AsyncManager:
             if not issubclass(manager_cls, AsyncManager):
                 raise TypeError
             log.debug(f"AsyncManager resolving manager class '{manager_class_path}'")
+            if config is not None:
+                coerced_config = cls._coerce_manager_config(manager_cls, config)
+                if coerced_config is not None:
+                    try:
+                        return manager_cls(config=coerced_config)
+                    except TypeError:
+                        log.debug("Resolved manager class does not accept config kwarg; falling back to default constructor")
             return manager_cls()
         except Exception as exc:
             log.warning(f"Failed to import manager '{manager_class_path}': {exc}. Falling back to AsyncManager")
             return cls()
+
+    @staticmethod
+    def _coerce_manager_config(manager_cls, config):
+        if config is None:
+            return None
+
+        if isinstance(config, dict):
+            try:
+                from powercrud.async_dashboard import AsyncDashboardConfig, ModelTrackingAsyncManager
+
+                if issubclass(manager_cls, ModelTrackingAsyncManager):
+                    return AsyncDashboardConfig(**config)
+            except Exception:
+                return config
+
+        return config

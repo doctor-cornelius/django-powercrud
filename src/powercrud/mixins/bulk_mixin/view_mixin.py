@@ -7,7 +7,9 @@ from django.shortcuts import render
 from django.core.exceptions import SuspiciousOperation
 from django.db import models
 
-log = logging.getLogger("powercrud")
+from powercrud.logging import get_logger
+
+log = get_logger(__name__)
 
 
 class ViewMixin:

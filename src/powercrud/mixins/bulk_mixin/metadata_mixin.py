@@ -1,8 +1,9 @@
-import logging
 from typing import Dict, List, Optional
 from django.db import models
 
-log = logging.getLogger("powercrud")
+from powercrud.logging import get_logger
+
+log = get_logger(__name__)
 
 
 class MetadataMixin:

@@ -5,6 +5,7 @@ from django.shortcuts import render
 from django.urls import reverse
 
 from ..async_manager import AsyncManager
+from powercrud.logging import get_logger
 
 import json
 log = get_logger(__name__)
@@ -112,17 +113,102 @@ class AsyncMixin:
         )
 
  
+    async_manager_class_path: str | None = None
+    async_manager_config: dict | None = None
+
     def get_async_manager_class(self):
-        """Return the AsyncManager class to use for this view."""
+        """Return the AsyncManager class to use for this view.
+
+        Resolution order:
+        1. Explicit `async_manager_class` attribute (class/callable)
+        2. Import path via `async_manager_class_path`
+        3. Global `POWERCRUD_SETTINGS["ASYNC_MANAGER_DEFAULT"]["manager_class"]`
+        4. Base `AsyncManager`
+        """
+        manager_cls = getattr(self, "async_manager_class", None)
+        if manager_cls:
+            return manager_cls
+
+        path = getattr(self, "async_manager_class_path", None)
+        if path:
+            return self._import_manager(path)
+
+        from powercrud.conf import get_powercrud_setting
+
+        default_cfg = get_powercrud_setting("ASYNC_MANAGER_DEFAULT", {}) or {}
+        default_path = default_cfg.get("manager_class")
+        if default_path:
+            return self._import_manager(default_path)
+
         return AsyncManager
 
+    def _import_manager(self, dotted_path: str):
+        from importlib import import_module
+
+        module_path, class_name = dotted_path.rsplit(".", 1)
+        module = import_module(module_path)
+        return getattr(module, class_name)
+
     def get_async_manager_class_path(self) -> str:
+        path = getattr(self, "async_manager_class_path", None)
+        if path:
+            return path
+
+        manager_class = getattr(self, "async_manager_class", None)
+        if manager_class:
+            return f"{manager_class.__module__}.{manager_class.__name__}"
+
+        from powercrud.conf import get_powercrud_setting
+
+        default_cfg = get_powercrud_setting("ASYNC_MANAGER_DEFAULT", {}) or {}
+        default_path = default_cfg.get("manager_class")
+        if default_path:
+            return default_path
+
         manager_class = self.get_async_manager_class()
         return f"{manager_class.__module__}.{manager_class.__name__}"
 
+    def get_async_manager_config(self):
+        if self.async_manager_config is not None:
+            return self.async_manager_config
+        from powercrud.conf import get_powercrud_setting
+
+        default_cfg = get_powercrud_setting("ASYNC_MANAGER_DEFAULT", {}) or {}
+        return default_cfg.get("config")
+
     def get_async_manager(self):
         manager_class = self.get_async_manager_class()
-        return manager_class()
+        config = self.get_async_manager_config()
+
+        if config is None:
+            return manager_class()
+
+        try:
+            coerced_config = self._coerce_manager_config(manager_class, config)
+            if coerced_config is None:
+                return manager_class()
+            return manager_class(config=coerced_config)
+        except TypeError:
+            # Some manager classes may not accept config kwarg
+            return manager_class()
+
+    def _coerce_manager_config(self, manager_class, config):
+        if config is None:
+            return None
+
+        if isinstance(config, dict):
+            try:
+                from powercrud.async_dashboard import (
+                    AsyncDashboardConfig,
+                    ModelTrackingAsyncManager,
+                )
+
+                if issubclass(manager_class, ModelTrackingAsyncManager):
+                    return AsyncDashboardConfig(**config)
+            except Exception:
+                return config
+
+        return config
 
     def _check_for_conflicts(self, selected_ids=None):
         """Check for conflicts using new AsyncManager conflict detection system."""
@@ -282,6 +368,7 @@ class AsyncMixin:
                     user=user,
                     affected_objects=f"{len(selected_ids)} {self.model._meta.verbose_name_plural}",
                     manager_class=self.get_async_manager_class_path(),
+                    manager_config=self.get_async_manager_config(),
                 )
             else:
                 log.debug(f"Launching async bulk update task for {len(selected_ids)} records")
@@ -300,6 +387,7 @@ class AsyncMixin:
                     user=user,
                     affected_objects=f"{len(selected_ids)} {self.model._meta.verbose_name_plural}",
                     manager_class=self.get_async_manager_class_path(),
+                    manager_config=self.get_async_manager_config(),
                 )            
             # Success - return response with task_key for progress polling
             return self.async_queue_success(request, task_name, selected_ids)

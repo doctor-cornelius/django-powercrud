@@ -2,6 +2,9 @@
 Async task functions for django-q2 (and future backends like Celery)
 """
 from django.apps import apps
+
+from powercrud.logging import get_logger
+
 from .mixins.bulk_mixin import BulkMixin
 from .async_manager import AsyncManager
 
@@ -20,6 +23,7 @@ def bulk_delete_task(
     - Uses BulkMixin business logic for deletion.
     """
     manager_class_path = kwargs.pop('manager_class', None)
+    manager_config = kwargs.pop('manager_config', None)
     # Retrieve task identifier injected by AsyncManager
     task_name = kwargs.pop('task_key', None) or kwargs.get('task_name')
 
@@ -31,7 +35,7 @@ def bulk_delete_task(
     log.debug(f"[WORKER] kwargs keys={list(kwargs.keys())}")
 
     try:
-        manager = AsyncManager.resolve_manager(manager_class_path)
+        manager = AsyncManager.resolve_manager(manager_class_path, config=manager_config)
         if task_name:
             manager.update_progress(task_name, "starting delete")
 
@@ -78,6 +82,7 @@ def bulk_update_task(
     - Uses BulkMixin business logic for updates.
     """
     manager_class_path = kwargs.pop('manager_class', None)
+    manager_config = kwargs.pop('manager_config', None)
     # Retrieve task identifier injected by AsyncManager
     task_name = kwargs.pop('task_key', None) or kwargs.get('task_name')
 
@@ -89,7 +94,7 @@ def bulk_update_task(
     log.debug(f"[WORKER] kwargs keys={list(kwargs.keys())}")
 
     try:
-        manager = AsyncManager.resolve_manager(manager_class_path)
+        manager = AsyncManager.resolve_manager(manager_class_path, config=manager_config)
         if task_name:
             manager.update_progress(task_name, "starting update")
 

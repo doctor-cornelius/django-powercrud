@@ -1,10 +1,11 @@
-import logging
 from typing import List, Any
 
 from django.http import HttpRequest, HttpResponse, HttpResponseBadRequest
 from django.shortcuts import render
 
-log = logging.getLogger("powercrud")
+from powercrud.logging import get_logger
+
+log = get_logger(__name__)
 
 class SelectionMixin:
     """Mixin for managing bulk selection state, providing session-based persistence and HTMX handlers."""
