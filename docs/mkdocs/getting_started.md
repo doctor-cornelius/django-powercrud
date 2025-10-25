@@ -1,5 +1,9 @@
 # Getting Started
 
+!!! tip "Ready after setup?"
+
+    Once you have the basics installed, continue with [01 Setup & Core CRUD basics](guides/01_setup_core_crud.md) for the full walkthrough.
+
 ## Installation
 
 ### Install Core Dependencies
@@ -11,7 +15,7 @@ pip install django-powercrud
 
 This automatically installs:
 
-- `django`
+- `django-htmx`
 - `django-template-partials`
 - `pydantic`
 
@@ -57,7 +61,7 @@ INSTALLED_APPS = [
 POWERCRUD_CSS_FRAMEWORK = 'daisyui'  # or 'bootstrap5'
 ```
 
-**Important:** If using Tailwind CSS (default), ensure Tailwind includes powercrud's classes in its build process. See [Styling Configuration](configuration/styling.md#tailwind-css-setup) for details.
+**Important:** If using Tailwind CSS (default), ensure Tailwind includes powercrud's classes in its build process. See the [Styling guide](guides/06_styling_tailwind.md#tailwind-integration) for details.
 
 ## Quick Start Tutorial
 
@@ -120,7 +124,7 @@ That's it! You now have a fully-featured CRUD interface with filtering, paginati
 
 ## Next Steps
 
-- **[Core Configuration](configuration/core_config.md)** - Field control and basic settings
-- **[HTMX & Modals](configuration/htmx_modals.md)** - Interactive features
-- **[Filtering](configuration/filtering.md)** - Advanced search and filter options
-- **[Bulk Operations](configuration/bulk_operations.md)** - Edit multiple records at once
+- **[Core configuration](guides/01_setup_core_crud.md#7-common-adjustments)** - Field control and basic settings
+- **[HTMX & Modals](guides/01_setup_core_crud.md#modals)** - Interactive features
+- **[Filtering](guides/01_setup_core_crud.md#filtering-sorting)** - Advanced search and filter options
+- **[Bulk operations](guides/02_bulk_edit_sync.md)** - Edit multiple records at once

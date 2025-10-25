@@ -5,7 +5,7 @@ categories:
   - django
   - dashboard
 ---
-# Async Dashboard Subclass
+# ✅ Async Dashboard Subclass
 
 I implemented a dashboard but the steps in the downstream project to wire everything up are a bit clunky. This post outlines a possible reusable subclass to allow easier setup of the dashboard.
 <!-- more -->

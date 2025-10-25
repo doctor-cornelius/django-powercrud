@@ -4,7 +4,7 @@ categories:
   - async
   - django
 ---
-# Async Task Context
+# ✅ Async Task Context
 
 This is to provision functionality which addresses this issue:
 

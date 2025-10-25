@@ -1,6 +1,5 @@
 arrange:
   - index.md
   - getting_started.md
-  - configuration
+  - guides
   - reference
-  - blog

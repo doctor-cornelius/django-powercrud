@@ -26,7 +26,7 @@ Powercrud already has robust model field introspection that maps Django field ty
 
 ### Display Rendering (Read-Only)
 
-The [`object_list()` template tag](../../src/powercrud/templatetags/powercrud.py#L154) performs comprehensive field introspection for table display:
+The [`object_list()` template tag](https://github.com/doctor-cornelius/django-powercrud/blob/main/src/powercrud/templatetags/powercrud.py#L154) performs comprehensive field introspection for table display:
 
 - **M2M Fields**: Joins related object names with commas
 - **Boolean Fields**: Renders as tick/cross SVG icons
@@ -34,11 +34,11 @@ The [`object_list()` template tag](../../src/powercrud/templatetags/powercrud.py
 - **Related Fields**: Displays the string representation of related objects
 - **Other Types**: Falls back to Django's `value_to_string()`
 
-The [`object_detail()` template tag](../../src/powercrud/templatetags/powercrud.py#L118) handles both model fields and properties, using appropriate methods for relations vs non-relations.
+The [`object_detail()` template tag](https://github.com/doctor-cornelius/django-powercrud/blob/main/src/powercrud/templatetags/powercrud.py#L118) handles both model fields and properties, using appropriate methods for relations vs non-relations.
 
 ### Form Rendering (Editable)
 
-The [`FormMixin.get_form_class()`](../../src/powercrud/mixins/form_mixin.py#L107) method dynamically generates ModelForms with appropriate widgets:
+The [`FormMixin.get_form_class()`](https://github.com/doctor-cornelius/django-powercrud/blob/main/src/powercrud/mixins/form_mixin.py#L107) method dynamically generates ModelForms with appropriate widgets:
 
 - **Date Fields**: HTML5 `<input type="date">`
 - **DateTime Fields**: HTML5 `<input type="datetime-local">`
@@ -52,7 +52,7 @@ Additional features include:
 
 ## Framework-Aware Styling
 
-The project includes a pattern for applying CSS framework-specific attributes through [`HtmxMixin.get_framework_styles()`](../../src/powercrud/mixins/htmx_mixin.py#L25).
+The project includes a pattern for applying CSS framework-specific attributes through [`HtmxMixin.get_framework_styles()`](https://github.com/doctor-cornelius/django-powercrud/blob/main/src/powercrud/mixins/htmx_mixin.py#L25).
 
 The 'filter_attrs' section demonstrates how different input types get daisyUI classes:
 - Text inputs: `input input-bordered input-sm`
@@ -70,7 +70,7 @@ This approach leverages the existing form generation infrastructure:
 
 **Advantages:**
 
-- Reuses [`FormMixin.get_form_class()`](../../src/powercrud/mixins/form_mixin.py#L107) for widget selection
+- Reuses [`FormMixin.get_form_class()`](https://github.com/doctor-cornelius/django-powercrud/blob/main/src/powercrud/mixins/form_mixin.py#L107) for widget selection
 - Inherits HTML5 input types for date/time fields
 - Gets crispy forms integration automatically
 - Benefits from existing dropdown sorting functionality
@@ -78,9 +78,9 @@ This approach leverages the existing form generation infrastructure:
 
 **Existing Integration Points:**
 
-- Form success handling in [`FormMixin.form_valid()`](../../src/powercrud/mixins/form_mixin.py#L197)
-- Error handling in [`FormMixin.form_invalid()`](../../src/powercrud/mixins/form_mixin.py#L277)
-- HTMX partial rendering in [`HtmxMixin.render_to_response()`](../../src/powercrud/mixins/htmx_mixin.py#L255)
+- Form success handling in [`FormMixin.form_valid()`](https://github.com/doctor-cornelius/django-powercrud/blob/main/src/powercrud/mixins/form_mixin.py#L197)
+- Error handling in [`FormMixin.form_invalid()`](https://github.com/doctor-cornelius/django-powercrud/blob/main/src/powercrud/mixins/form_mixin.py#L277)
+- HTMX partial rendering in [`HtmxMixin.render_to_response()`](https://github.com/doctor-cornelius/django-powercrud/blob/main/src/powercrud/mixins/htmx_mixin.py#L255)
 - Existing daisyUI form templates for consistency
 
 ### Option 2: Template Tag
@@ -90,7 +90,7 @@ This would create a new template tag for inline row editing:
 **Advantages:**
 
 - More direct control over HTML output
-- Can follow patterns from existing [`object_list()`](../../src/powercrud/templatetags/powercrud.py#L154) tag
+- Can follow patterns from existing [`object_list()`](https://github.com/doctor-cornelius/django-powercrud/blob/main/src/powercrud/templatetags/powercrud.py#L154) tag
 - Potentially simpler for basic use cases
 
 **Implementation Notes:**
@@ -103,14 +103,14 @@ This would create a new template tag for inline row editing:
 
 ### Field and Property Management
 
-- [`CoreMixin._get_all_fields()`](../../src/powercrud/mixins/core_mixin.py#L239) - Get all model fields
-- [`CoreMixin._get_all_editable_fields()`](../../src/powercrud/mixins/core_mixin.py#L249) - Filter to editable fields
-- Field/property configuration processing in [`CoreMixin.__init__()`](../../src/powercrud/mixins/core_mixin.py#L83)
+- [`CoreMixin._get_all_fields()`](https://github.com/doctor-cornelius/django-powercrud/blob/main/src/powercrud/mixins/core_mixin.py#L239) - Get all model fields
+- [`CoreMixin._get_all_editable_fields()`](https://github.com/doctor-cornelius/django-powercrud/blob/main/src/powercrud/mixins/core_mixin.py#L249) - Filter to editable fields
+- Field/property configuration processing in [`CoreMixin.__init__()`](https://github.com/doctor-cornelius/django-powercrud/blob/main/src/powercrud/mixins/core_mixin.py#L83)
 
 ### Template Structure
 
-- [daisyUI list partial](../../src/powercrud/templates/powercrud/daisyUI/partial/list.html) - Current table rendering
-- [daisyUI object_list](../../src/powercrud/templates/powercrud/daisyUI/object_list.html) - HTMX targets and containers
+- [daisyUI list partial](https://github.com/doctor-cornelius/django-powercrud/blob/main/src/powercrud/templates/powercrud/daisyUI/partial/list.html) - Current table rendering
+- [daisyUI object_list](https://github.com/doctor-cornelius/django-powercrud/blob/main/src/powercrud/templates/powercrud/daisyUI/object_list.html) - HTMX targets and containers
 
 ### HTMX Infrastructure
 
@@ -128,4 +128,3 @@ The main gap is a dedicated "inline row editor" component that can:
 - Revert to display mode on success/cancel
 
 Everything else needed for inline editing (field introspection, widget selection, styling patterns, and HTMX plumbing) already exists in the codebase and can be reused.
-

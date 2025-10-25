@@ -95,7 +95,7 @@ That’s enough to launch a bulk edit, keep the modal open with live progress, a
 1. **Launch** – `AsyncMixin` generates a UUID, reserves locks (`add_conflict_ids`), creates a progress key, and enqueues the worker via `django_q.tasks.async_task`. The manager class path plus optional config are stored with the job.
 2. **Worker execution** – Functions in `powercrud.tasks` rehydrate the same manager (`AsyncManager.resolve_manager`) so progress updates and lifecycle hooks go to the right place. Progress updates simply call `manager.update_progress(task_key, "updating 3/10")`.
 3. **Completion** – The django-q2 completion hook loads the job’s kwargs, resolves the manager again, and calls `handle_task_completion`. Locks, progress keys, and any dashboard records are cleaned up; lifecycle callbacks fire with final status/result.
-4. **Cleanup command / schedule** – `python manage.py pcrud_cleanup_async` (or the scheduled helper in `powercrud.schedules`) reconciles cached “active” tasks with django-q2, removing stale locks/progress if a worker died mid-job.
+4. **Cleanup command / schedule** – `python manage.py pcrud_cleanup_async` (or the scheduled helper in `powercrud.schedules`) reconciles cached “active tasks” with `django_q.Task`, removing stale locks/progress if a worker died mid-job.
 
 Diagrammatically:
 

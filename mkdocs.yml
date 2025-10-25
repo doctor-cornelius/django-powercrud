@@ -1,10 +1,6 @@
 site_name: Django PowerCRUD
 site_author: Michael Foulds
 
-nav:
-  - "Home": "index.md"
-  - ... # To allow awesom-plugin to automatically pick up folders
-    
 docs_dir: docs/mkdocs
 site_dir: docs/site
 

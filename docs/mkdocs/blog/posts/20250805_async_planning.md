@@ -6,7 +6,7 @@ categories:
   - django
   - async
 ---
-# Async Planning
+# ✅ Async Planning
 
 This is a detailed architectural and implementation plan for async support for `PowerCRUD`. 
 
@@ -460,7 +460,7 @@ This section clarifies the final dual-key design used in PowerCRUD’s async con
     - This cleanup is idempotent and safe to repeat; missing keys are simply ignored by the cache
 
 - Code locations
-    - Async manager implementation and docstrings reside in [src/powercrud/async_manager.py](src/powercrud/async_manager.py)
+    - Async manager implementation and docstrings reside in [src/powercrud/async_manager.py](https://github.com/doctor-cornelius/django-powercrud/blob/main/src/powercrud/async_manager.py)
 
 - Pseudocode reference
 
@@ -502,4 +502,4 @@ This section clarifies the final dual-key design used in PowerCRUD’s async con
     - Conflict checks are O(n) direct lookups: To check whether a set of objects is locked, we look up the object lock keys directly. No scanning of all tasks is required.
     - Consistent cleanup: The object tracking set guarantees we can always remove the exact set of object locks we created for a task.
 
-This final design is implemented and tested. See [src/powercrud/async_manager.py](src/powercrud/async_manager.py) for the production code with detailed docstrings that align with this document.
+This final design is implemented and tested. See [src/powercrud/async_manager.py](https://github.com/doctor-cornelius/django-powercrud/blob/main/src/powercrud/async_manager.py) for the production code with detailed docstrings that align with this document.

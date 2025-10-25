@@ -1,6 +1,6 @@
-# Django powercrud
+# Home
 
-**Advanced CRUD for perfectionists with deadlines. An opinionated extension of [`Neapolitan`](https://github.com/carltongibson/neapolitan), with sprinkles.**
+**Advanced CRUD for perfectionists with deadlines. An opinionated extension of [`Neapolitan`](https://github.com/carltongibson/neapolitan).**
 
 ## What is powercrud?
 
@@ -23,6 +23,11 @@ See the [full documentation](https://doctor-cornelius.github.io/django-powercrud
 !!! warning "Bootstrap5 Templates Outdated"
 
     Bootstrap templates are currently out of date as all recent development has focused on `daisyUI`. Once async support is finalised and tested, Bootstrap templates will either be updated or removed.
+
+## Start Here
+
+- First time? Begin with [Getting Started](getting_started.md) for installation and prerequisites, then continue with [01 Setup & Core CRUD basics](guides/01_setup_core_crud.md).
+- Already up and running? Jump straight to the chapter that matches what you need next in the “Guides” section of the sidebar.
 
 ## Quick Example
 

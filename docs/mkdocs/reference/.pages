@@ -1,6 +1,6 @@
 arrange:
-  -  config_options.md
-  -  complete_example.md
-  -  dockerised_dev.md
-  -  sample_app.md
-  -  mgmt_commands.md
+  - config_options.md
+  - complete_example.md
+  - dockerised_dev.md
+  - sample_app.md
+  - mgmt_commands.md

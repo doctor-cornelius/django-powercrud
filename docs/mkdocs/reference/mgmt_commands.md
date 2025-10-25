@@ -122,7 +122,46 @@ module.exports = {
 }
 ```
 
-See [Tailwind CSS Integration](../configuration/styling.md#tailwind-css-integration) for more details.
+See [Section 06](../guides/06_styling_tailwind.md) for more details.
+
+---
+
+## `pcrud_cleanup_async` - Cleanup Async Artifacts
+
+Remove stale locks, progress keys, and dashboard rows left behind by completed or abandoned async tasks.
+
+### Usage
+
+```bash
+# Human-readable summary
+python manage.py pcrud_cleanup_async
+
+# Structured output for scripts/monitoring
+python manage.py pcrud_cleanup_async --json
+```
+
+### Behaviour
+
+- Skips execution when `POWERCRUD_SETTINGS["ASYNC_ENABLED"]` is `False`.
+- Inspects the cache of active tasks, checking `django_q.Task` for completion.
+- Removes conflict locks and progress entries when safe, then calls the configured async manager’s `cleanup_dashboard_data`.
+- Returns a summary dictionary (or JSON) detailing cleaned and skipped tasks.
+
+### Example summary
+
+```
+PowerCRUD Async Cleanup Summary
+Active tasks inspected: 3
+
+Cleaned 2 task(s):
+  - 9f2b... (completed successfully) [locks=5, progress=1, dashboard=1]
+  - 174c... (completed with failure) [locks=3, progress=1, dashboard=1]
+
+Skipped 1 active task(s):
+  - 2cd0...: task still running
+```
+
+Use the JSON mode to feed the data into logging or alerting pipelines.
 
 ---
 
@@ -176,4 +215,7 @@ python manage.py pcrud_extract_tailwind_classes
 
 # Add to your tailwind.config.js safelist
 # Rebuild your CSS
+
+# Optional: clear stale async state
+python manage.py pcrud_cleanup_async --json
 ```
