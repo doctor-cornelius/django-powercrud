@@ -58,3 +58,14 @@ class ProjectView(PowerCRUDMixin, CRUDView):
 ## Getting Started
 
 See the **[Quick Start](https://doctor-cornelius.github.io/django-powercrud/getting_started/)** documentation
+
+## Development Setup
+
+PowerCRUD’s development environment is Docker-first. From the project root:
+
+```bash
+./runproj up          # build images, start services, enter the Django container
+pytest                # run the full test suite, including Playwright smoke tests
+```
+
+Dependencies are managed with [`uv`](https://github.com/astral-sh/uv); the Docker image installs them into the system interpreter so you never need to activate a virtual environment inside the container. See the [Dockerised Development Environment guide](https://doctor-cornelius.github.io/django-powercrud/reference/dockerised_dev/) for full details.

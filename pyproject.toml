@@ -1,61 +1,62 @@
-[tool.poetry]
+[project]
 name = "django-powercrud"
 version = "0.3.4"
 description = "Advanced CRUD for perfectionists with deadlines. An opinionated Neapolitan extension, with sprinkles."
-authors = ["doctor-cornelius"]
 readme = "README.md"
-
-packages = [
-    {include = "powercrud"},
-    {include = "README.md"}
+authors = [
+    { name = "doctor-cornelius" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "django-template-partials>=24.4,<25.0",
+    "pydantic>=2.10.6,<3.0",
+    "django-htmx>=1.23.2,<2.0"
 ]
 
-[tool.poetry.dependencies]
-python = "^3.12"
-django-template-partials = "^24.4"
-pydantic = "^2.10.6"
-django-htmx = "^1.23.2"
+[project.optional-dependencies]
+dev = [
+    "commitizen>=3,<4",
+    "ipykernel>=6,<7",
+    "pytest>=8.2.1,<9",
+    "coverage>=7,<8",
+    "pytest-mock>=3.14.0,<4",
+    "validators>=0.28.3,<1",
+    "faker>=37.4.2,<38",
+    "django>=5.1,<6",
+    "neapolitan>=24.8,<25",
+    "django-crispy-forms>=2.3,<3",
+    "crispy-bootstrap5>=2024.10,<2025",
+    "crispy-tailwind>=1.0.3,<2",
+    "crispy-daisyui>=0.7.0,<1",
+    "django-vite>=3.1.0,<4",
+    "django-q2>=1.8.0,<2",
+    "pytest-playwright>=0.7.1,<1",
+    "playwright>=1.55.0,<2",
+    "psycopg-binary>=3.2.1,<4",
+    "psycopg>=3.2.1,<4",
+    "django-redis>=6.0.0,<7",
+    "pytest-django>=4.11.1,<5"
+]
+docs = [
+    "mkdocs>=1,<2",
+    "mkdocs-material>=9,<10",
+    "mkdocs-mermaid2-plugin>=0,<1",
+    "mkdocs-enumerate-headings-plugin>=0.6,<0.7",
+    "mkdocs-awesome-pages-plugin>=2.9,<3"
+]
 
-[tool.poetry.group.dev.dependencies]
-commitizen = "^3"
-ipykernel = "^6"
-pytest = "^8.2.1"
-coverage = "^7"
-pytest-mock = "^3.14.0"
-validators = "^0.28.3"
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
-# faker for the sample app mgmt commands
-faker = "^37.4.2"
+[tool.hatch.build.targets.sdist]
+include = [
+    "powercrud/**",
+    "README.md"
+]
 
-# for testing sample app during development
-django = "^5.1"
-neapolitan = "^24.8"
-django-crispy-forms = "^2.3"
-crispy-bootstrap5 = "^2024.10"
-crispy-tailwind = "^1.0.3"
-crispy-daisyui = "^0.7.0"
-django-vite = "^3.1.0"
-django-q2 = "^1.8.0"
-pytest-playwright = "^0.7.1"
-playwright = "^1.55.0"
-# postgres
-# need to do both of these to get same effect as psycopg[binary]
-# see https://learndjango.com/tutorials/psycopg3-binary-and-django-42-installation-quick-t
-psycopg-binary = "^3.2.1"
-psycopg = "^3.2.1"
-
-# redis
-django-redis = "^6.0.0"
-# celery
-pytest-django = "^4.11.1"
-
-[tool.poetry.group.docs.dependencies]
-# mkdocs
-mkdocs = "^1"
-mkdocs-material = "^9"
-mkdocs-mermaid2-plugin = "^0"
-mkdocs-enumerate-headings-plugin = "^0.6"
-mkdocs-awesome-pages-plugin = "^2.9"
+[tool.hatch.build.targets.wheel]
+packages = ["powercrud"]
 
 [tool.pytest.ini_options]
 addopts = [
@@ -63,7 +64,3 @@ addopts = [
     "--cov-report=html",
     "--cov-report=term-missing"
 ]
-
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"

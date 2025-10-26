@@ -39,7 +39,7 @@ The development environment consists of five main services:
     **🐍 Django Application (`django_powercrud_django`)**
 
     - Main application container running Django
-    - Includes all Python dependencies via Poetry
+    - Syncs all Python dependencies with `uv` during the image build
     - Mounts project directory for live code changes
     - Exposes port 8001 for web access
 
@@ -75,6 +75,12 @@ The development environment consists of five main services:
     - Future-ready for Celery task queue integration
     - Password-protected for security
     - Exposes port 6379
+
+    **🧵 Q2 Worker (`django_powercrud_q2`)**
+
+    - Runs `manage.py qcluster` so async tasks are always available
+    - Shares the project volume and uv-managed dependencies with the Django container
+    - Restarts automatically alongside Redis and PostgreSQL
 
 ## Why Docker for Development?
 
@@ -141,7 +147,18 @@ For additional Django container access (new terminal window):
 ./runproj exec  # Opens new bash session in Django container
 ```
 
-### 5. **Testing Async Features** 
+### 5. **Dependency Management with `uv`**
+
+- Dependencies are installed into the system Python via `uv` during the Docker build.
+- To refresh them manually inside the container (after editing `pyproject.toml` or `uv.lock`), run:
+
+  ```bash
+  uv sync --all-extras
+  ```
+
+- The Playwright browsers are cached in `/usr/local/ms-playwright`, so re-running the sync does not redownload them unless the Playwright version changes.
+
+### 6. **Testing Async Features** 
 
 In a separate terminal (after `./runproj exec`):
 
@@ -149,7 +166,7 @@ In a separate terminal (after `./runproj exec`):
 ./manage.py qcluster  # Start async task processor for django-q2
 ```
 
-### 6. **Git Workflow**
+### 7. **Git Workflow**
 
 Commitizen is installed for conventional commits:
 

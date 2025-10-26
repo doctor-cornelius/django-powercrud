@@ -15,14 +15,18 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Install Dependencies
-        run: |
-          pip install poetry commitizen
-          poetry lock
-          poetry install
       - name: Get Version
         id: get_version
-        run: echo "version=$(poetry version -s)" >> "$GITHUB_OUTPUT"
+        run: |
+          python - <<'PY'
+import os
+import pathlib
+import tomllib
+
+data = tomllib.loads(pathlib.Path("pyproject.toml").read_text())
+with open(os.environ["GITHUB_OUTPUT"], "a") as fh:
+    print(f"version={data['project']['version']}", file=fh)
+PY
       - name: Create GitHub Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -40,13 +44,14 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Install Poetry
-        run: pip install poetry
+      - uses: astral-sh/setup-uv@v1
+        with:
+          version: "0.9.5"
+      - name: Sync dependencies
+        run: uv sync --all-extras
       - name: Build and publish
         env:
           PYPI_TOKEN_CI: ${{ secrets.PYPI_TOKEN_CI }}
         run: |
-          poetry config pypi-token.pypi $PYPI_TOKEN_CI
-          poetry build
-          poetry publish
-
+          uv build
+          TWINE_USERNAME=__token__ TWINE_PASSWORD=$PYPI_TOKEN_CI uvx twine upload --non-interactive dist/*

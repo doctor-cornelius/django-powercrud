@@ -5,7 +5,8 @@ commitizen:
 
   # version management
   version_scheme: pep440
-  version_provider: poetry
+  version_provider: pep621
+  version_file: pyproject.toml
   tag_format: "$version"  #without leading "v"
   update_changelog_on_bump: true
   major_version_zero: true

@@ -10,10 +10,7 @@ ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=off \
     PIP_DISABLE_PIP_VERSION_CHECK=on \
-    PIP_DEFAULT_TIMEOUT=100 \
-    POETRY_HOME="/opt/poetry" \
-    POETRY_VIRTUALENVS_CREATE=false \
-    POETRY_NO_INTERACTION=1
+    PIP_DEFAULT_TIMEOUT=100
 
 # Install git, node.js and clean up
 RUN apt-get update -y && \
@@ -31,12 +28,11 @@ RUN apt-get update -y && \
 RUN useradd -m -s /bin/bash --create-home ${USER} && \
     cd ${USERHOME} && mkdir .local && mkdir .local/bin && mkdir .local/scripts && mkdir ${USERHOME}/${PROJECT_DIR} && \
     chown -R ${USER}: ${USERHOME} && chown -R ${USER}: ${USERHOME}/${PROJECT_DIR} && \
-    echo "export PATH=\"$POETRY_HOME/bin:${USERHOME}/.local/scripts:\$PATH\"" >> ${USERHOME}/.bashrc && \
+    echo "export PATH=\"${USERHOME}/.local/bin:${USERHOME}/.local/scripts:\$PATH\"" >> ${USERHOME}/.bashrc && \
     echo "PS1='${PROMPT_CODE}'" >> /home/${USER}/.bashrc && \
     echo "cd ~/${PROJECT_DIR}" >> /home/${USER}/.bashrc && \
     echo "PROJECT_DIR=${PROJECT_DIR}" >> /root/.bashrc && \
-    echo "PS1='${PROMPT_CODE}'" >> /root/.bashrc && \
-    echo "PATH=\$PATH:$POETRY_HOME/bin" >> /root/.bashrc
+    echo "PS1='${PROMPT_CODE}'" >> /root/.bashrc
 
 
 WORKDIR ${USERHOME}/${PROJECT_DIR}
@@ -45,13 +41,17 @@ WORKDIR ${USERHOME}/${PROJECT_DIR}
 COPY package*.json ./
 RUN npm install && chown -R ${USER}:${USER} node_modules
 
-# Install poetry (note: python not python3)
-RUN curl -sSL https://install.python-poetry.org/ | python -
-COPY pyproject.toml ./
-RUN $POETRY_HOME/bin/poetry install --no-root
-
-# Install playwright (must be done after it is installed using poetry)
-RUN $POETRY_HOME/bin/poetry run playwright install --with-deps
+# Install uv
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh && \
+    install -Dm755 /root/.local/bin/uv /usr/local/bin/uv && \
+    install -Dm755 /root/.local/bin/uvx /usr/local/bin/uvx
+ENV UV_PROJECT_ENVIRONMENT=/usr/local \
+    PLAYWRIGHT_BROWSERS_PATH=/usr/local/ms-playwright
+# Install Playwright package and browsers early so we avoid redownloading when dependencies change.
+RUN uv pip install --system playwright && \
+    uvx playwright install --with-deps
+COPY pyproject.toml README.md ./
+RUN uv sync --all-extras
 
 USER ${USER}
 COPY --chown=${USER}:${USER} . .

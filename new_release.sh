@@ -22,9 +22,46 @@ fi
 
 BUMP_TYPE=$1
 
-# increment version number
-poetry version $BUMP_TYPE
-NEW_VERSION=$(poetry version -s)
+# increment version number in pyproject.toml
+NEW_VERSION=$(python3 - "$BUMP_TYPE" <<'PY'
+import pathlib
+import re
+import sys
+
+path = pathlib.Path("pyproject.toml")
+text = path.read_text()
+match = re.search(r'version\s*=\s*"(\d+)\.(\d+)\.(\d+)"', text)
+if not match:
+    raise SystemExit("Could not find project version in pyproject.toml")
+
+major, minor, patch = map(int, match.groups())
+bump = sys.argv[1]
+if bump == "major":
+    major += 1
+    minor = 0
+    patch = 0
+elif bump == "minor":
+    minor += 1
+    patch = 0
+elif bump == "patch":
+    patch += 1
+else:
+    raise SystemExit(f"Unknown bump type: {bump}")
+
+new_version = f"{major}.{minor}.{patch}"
+new_text = re.sub(
+    r'(version\s*=\s*")(\d+\.\d+\.\d+)(")',
+    lambda m: f'{m.group(1)}{new_version}{m.group(3)}',
+    text,
+    count=1,
+)
+path.write_text(new_text)
+print(new_version)
+PY
+)
+
+# refresh lock file to ensure dependencies are in sync before release
+uv lock
 
 # Check if tag already exists
 if git rev-parse "refs/tags/$NEW_VERSION" >/dev/null 2>&1; then

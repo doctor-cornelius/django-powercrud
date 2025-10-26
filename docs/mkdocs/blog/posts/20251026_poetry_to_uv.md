@@ -31,26 +31,30 @@ PowerCRUD currently relies on Poetry for dependency management, packaging, and t
 
 ## Migration plan
 
-1. **Rewrite project metadata**
-   - Convert `pyproject.toml` to PEP 621 (`[project]`, `[project.optional-dependencies]`, `[tool.uv]` if needed).
-   - Recreate dev/test extras that mimic the current Poetry groups.
-   - Generate `uv.lock`; drop `poetry.lock`.
+1. ✅ **Rewrite project metadata**
+   - ✅ Convert `pyproject.toml` to PEP 621 (`[project]`, `[project.optional-dependencies]`, `[tool.uv]` if needed).
+   - ✅ Translate Poetry-specific fields (`readme`, package includes, scripts) into their PEP 621/`tool.hatch` equivalents so `pip install .` keeps working.
+   - ✅ Choose a non-Poetry build backend (`hatchling`) and wire it into `[build-system]`.
+   - ✅ Recreate dev/test extras that mimic the current Poetry groups.
+   - ✅ Generate the first `uv.lock` (after metadata rewrite) and remove `poetry.lock`.
 
-2. **Update runtime tooling**
-   - Replace Poetry install/commands in `docker/dockerfile_django` with `uv` (`uv sync`, `uv run playwright install --with-deps`).
-   - Adjust helper scripts and docs to use `uv run pytest`, etc.
-   - Ensure Playwright install still happens during the Docker build.
+2. ☐ **Update runtime tooling**
+   - ✅ Replace Poetry install/commands in `docker/dockerfile_django` with `uv` (`UV_PROJECT_ENVIRONMENT=/usr/local`, preinstall Playwright + browsers before `uv sync` to keep cached layers).
+   - ☐ Decide whether to let `uv` manage Python versions locally and inside Docker (potentially swap the base image for an `uv`-managed Python install).
+   - ✅ Adjust helper scripts, Docker compose build args, and docs to use `uv …` instead of Poetry.
+   - ✅ Ensure Playwright install still happens during the Docker build.
 
-3. **Refresh GitHub workflows**
-   - Modify `publish.yml` to build and upload artifacts without Poetry (use uv’s build step or `python -m build` + `twine` with uv managing deps).
-   - Optionally update `deploy_docs.yml` to install MkDocs dependencies via `uv pip` (or leave as plain `pip` if simpler).
+3. ☐ **Refresh GitHub workflows**
+   - ✅ Modify `publish.yml` to build and upload artifacts without Poetry (use uv’s build step and `uvx twine`).
+   - ✅ Replace `poetry version -s` with a new version-discovery step (inline Python using `tomllib`).
+   - ☐ Optionally update `deploy_docs.yml` to install MkDocs dependencies via `uv pip` (or leave as plain `pip` if simpler).
 
-4. **Validation**
-   - Run `uv sync`, `uv run pytest`, and `uv run pytest -m playwright` on a clean checkout.
-   - Build the Docker image to confirm nothing is missing.
-   - Test PyPI packaging end-to-end (build wheel/sdist, upload to TestPyPI if necessary).
+4. ☐ **Validation**
+   - ✅ Run `pytest` (coverage-enabled) inside the container to confirm dependencies resolve.
+   - ☐ Build the Docker image to confirm nothing is missing.
+   - ☐ Test PyPI packaging end-to-end (build wheel/sdist, upload to TestPyPI if necessary).
 
-5. **Communicate & clean up**
-   - Update README/index/testing docs to reflect `uv` commands.
-   - Remove stray references to Poetry across the repo.
-   - Note in the testing roadmap blog post that Poetry→uv migration is complete (once delivered).
+5. ☐ **Communicate & clean up**
+   - ✅ Update README/index/testing docs to reflect `uv` commands.
+   - ☐ Remove stray references to Poetry across the repo.
+   - ☐ Note in the testing roadmap blog post that Poetry→uv migration is complete (once delivered).

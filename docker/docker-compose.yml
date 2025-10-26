@@ -39,7 +39,6 @@ services:
       context: "${PWD}"
       args:
         PROJECT_DIR: $PROJECT_DIR
-        HOST_POETRY_FILES: .
         DOCKER_DIRECTORY: docker
         USER: ${DEPLOYMENT_ENV}user
     environment:
@@ -122,4 +121,3 @@ volumes:
   powercrud_pgdata:
     driver: local
     name: ${DOCKER_PREFIX}_pgdata
-
