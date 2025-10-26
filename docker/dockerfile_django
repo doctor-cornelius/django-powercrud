@@ -50,6 +50,9 @@ RUN curl -sSL https://install.python-poetry.org/ | python -
 COPY pyproject.toml ./
 RUN $POETRY_HOME/bin/poetry install --no-root
 
+# Install playwright (must be done after it is installed using poetry)
+RUN $POETRY_HOME/bin/poetry run playwright install --with-deps
+
 USER ${USER}
 COPY --chown=${USER}:${USER} . .
 

@@ -8,9 +8,9 @@ The [`neapolitan`](https://github.com/carltongibson/neapolitan/) package gives y
 
 PowerCRUD comes with these features built-in, specifically for user-facing CRUD interfaces. Use what you need, customize what you want.
 
-> ⚠️ **WARNING**
+> ℹ️ **Status**
 > 
-> This is a **very early alpha** release with limited tests and documentation. Expect breaking changes. You might prefer to fork or copy what you need.
+> PowerCRUD is still evolving, but now ships with a comprehensive pytest suite (including Playwright UI smoke tests). Expect rough edges while APIs settle, and pin the package if you rely on current behaviour.
 
 See the [full documentation](https://doctor-cornelius.github.io/django-powercrud/).
 

@@ -36,6 +36,8 @@ crispy-tailwind = "^1.0.3"
 crispy-daisyui = "^0.7.0"
 django-vite = "^3.1.0"
 django-q2 = "^1.8.0"
+pytest-playwright = "^0.7.1"
+playwright = "^1.55.0"
 # postgres
 # need to do both of these to get same effect as psycopg[binary]
 # see https://learndjango.com/tutorials/psycopg3-binary-and-django-42-installation-quick-t
@@ -65,4 +67,3 @@ addopts = [
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
-

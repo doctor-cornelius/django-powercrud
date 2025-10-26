@@ -83,16 +83,15 @@ class CoreMixin:
         super().__init__(*args, **kwargs)
 
         # Get all attributes that should be validated
-        config_dict = {
-            attr: getattr(self, attr)
-            for attr in PowerCRUDMixinValidator.__fields__.keys()
-            if hasattr(self, attr)
-        }
+        config_dict = {}
+        for attr in PowerCRUDMixinValidator.model_fields.keys():
+            if hasattr(self, attr):
+                config_dict[attr] = getattr(self, attr)
 
         try:
             validated_settings = PowerCRUDMixinValidator(**config_dict)
             # Update instance attributes with validated values
-            for field_name, value in validated_settings.dict().items():
+            for field_name, value in validated_settings.model_dump().items():
                 setattr(self, field_name, value)
         except ValueError as e:
             class_name = self.__class__.__name__

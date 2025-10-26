@@ -2,17 +2,24 @@ import os
 
 SECRET_KEY = "just-for-testing-secret-key"
 
-DATABASES = {
-    # postgres
-    "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": os.environ.get("DATABASE_NAME"),
-        "USER": os.environ.get("POSTGRES_USER"),
-        "PASSWORD": os.environ.get("POSTGRES_PASSWORD"),
-        "HOST": os.environ.get("DATABASE_HOST"),
-        "PORT": "5433",
+if os.environ.get("DATABASE_NAME"):
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": os.environ.get("DATABASE_NAME"),
+            "USER": os.environ.get("POSTGRES_USER"),
+            "PASSWORD": os.environ.get("POSTGRES_PASSWORD"),
+            "HOST": os.environ.get("DATABASE_HOST"),
+            "PORT": "5433",
+        }
     }
-}
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": os.path.join(os.path.dirname(__file__), "test.sqlite3"),
+        }
+    }
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
@@ -67,6 +74,7 @@ INSTALLED_APPS = [
 
     "template_partials",
     'django_htmx',
+    "django_filters",
 
     # for async
     'django_q',
@@ -74,6 +82,7 @@ INSTALLED_APPS = [
 
     "neapolitan",
     "powercrud",
+    "sample",
     "tests",
 ]
 

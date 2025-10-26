@@ -1,8 +1,9 @@
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, ConfigDict
 from typing import Union, Optional, List, Literal
 
 class PowerCRUDMixinValidator(BaseModel):
     """Validation model for PowerCRUDMixin settings"""
+    model_config = ConfigDict(validate_assignment=True)
     # namespace settings
     namespace: Optional[str]
     
@@ -87,6 +88,3 @@ class PowerCRUDMixinValidator(BaseModel):
         if not all(isinstance(x, str) for x in v):
             raise ValueError("form_fields_exclude must contain only strings")
         return v
-
-    class Config:
-        validate_assignment = True

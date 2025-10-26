@@ -4,3 +4,4 @@ arrange:
   - dockerised_dev.md
   - sample_app.md
   - mgmt_commands.md
+  - testing.md
