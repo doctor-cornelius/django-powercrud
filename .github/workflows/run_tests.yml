@@ -10,6 +10,8 @@ env:
 jobs:
   tests:
     runs-on: ubuntu-latest
+    env:
+      DJANGO_SETTINGS_MODULE: tests.settings
     strategy:
       fail-fast: false
       matrix:

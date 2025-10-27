@@ -206,19 +206,18 @@ Q_CLUSTER = {
 }
 
 POWERCRUD_SETTINGS = {
-     # this is for the rendering of powercrud forms
-    'POWERCRUD_CSS_FRAMEWORK': 'daisyUI',
+    # this is for the rendering of powercrud forms
+    "POWERCRUD_CSS_FRAMEWORK": "daisyUI",
     # location of the safelist json file for tailwind tree shaker)
-    'TAILWIND_SAFELIST_JSON_LOC': 'sample/templates/sample/', 
-
+    "TAILWIND_SAFELIST_JSON_LOC": "sample/templates/sample/",
     # async settings
-    'ASYNC_ENABLED': True,
-    'CONFLICT_TTL': 3600,  # 1 hour
-    'PROGRESS_TTL': 7200,  # 2 hours
-    'CLEANUP_GRACE_PERIOD': 86400,  # 24 hours
-    'MAX_TASK_DURATION': 3600,  # For detecting stuck tasks
-    'CLEANUP_SCHEDULE_INTERVAL': 300,  # 5 minutes for scheduled cleanup
-    'CACHE_NAME': 'default',  # Which cache from CACHES to use for async conflict/progress
+    "ASYNC_ENABLED": True,
+    "CONFLICT_TTL": 3600,  # 1 hour
+    "PROGRESS_TTL": 7200,  # 2 hours
+    "CLEANUP_GRACE_PERIOD": 86400,  # 24 hours
+    "MAX_TASK_DURATION": 3600,  # For detecting stuck tasks
+    "CLEANUP_SCHEDULE_INTERVAL": 300,  # 5 minutes for scheduled cleanup
+    "CACHE_NAME": "default",  # Which cache from CACHES to use for async conflict/progress
 }
 
 CACHES = {

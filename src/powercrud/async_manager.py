@@ -191,9 +191,14 @@ class AsyncManager:
                 
             return success
 
-        task_id = None
+        task_id: Optional[str] = None
         try:
-            task_id = async_task('math.floor', 1, group=group, task_name=task_name)
+            task_id = async_task(
+                'math.floor',
+                1,
+                group=group,
+                task_name=task_name,
+            )
             start = time.perf_counter()
             log.debug(f"Enqueued probe task {task_name} with ID {task_id} at {start:.2f} seconds")
 
