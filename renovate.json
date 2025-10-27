@@ -1,0 +1,81 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    ":dependencyDashboard",
+    ":semanticCommits",
+    ":maintainLockFilesWeekly"
+  ],
+  "labels": [
+    "dependencies"
+  ],
+  "timezone": "UTC",
+  "schedule": [
+    "after 01:00 on monday"
+  ],
+  "prConcurrentLimit": 5,
+  "prHourlyLimit": 2,
+  "rangeStrategy": "bump",
+  "rebaseWhen": "conflicted",
+  "dependencyDashboardAutoclose": true,
+  "enabledManagers": [
+    "poetry",
+    "npm",
+    "dockerfile",
+    "github-actions"
+  ],
+  "packageRules": [
+    {
+      "matchManagers": [
+        "poetry"
+      ],
+      "groupName": "python-packages",
+      "groupSlug": "python-packages",
+      "additionalBranchPrefix": "python-"
+    },
+    {
+      "matchManagers": [
+        "npm"
+      ],
+      "groupName": "js-packages",
+      "groupSlug": "js-packages",
+      "additionalBranchPrefix": "js-"
+    },
+    {
+      "matchManagers": [
+        "github-actions"
+      ],
+      "groupName": "github-actions",
+      "groupSlug": "github-actions"
+    },
+    {
+      "matchManagers": [
+        "dockerfile"
+      ],
+      "groupName": "docker-images",
+      "groupSlug": "docker-images"
+    },
+    {
+      "matchUpdateTypes": [
+        "patch",
+        "minor"
+      ],
+      "addLabels": [
+        "automerge-candidate"
+      ]
+    },
+    {
+      "matchUpdateTypes": [
+        "major"
+      ],
+      "prCreation": "not-pending",
+      "addLabels": [
+        "major-upgrade"
+      ]
+    }
+  ],
+  "lockFileMaintenance": {
+    "enabled": true,
+    "automerge": false
+  }
+}
