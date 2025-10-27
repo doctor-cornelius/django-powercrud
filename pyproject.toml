@@ -66,9 +66,6 @@ packages = ["powercrud"]
 [tool.pytest.ini_options]
 addopts = [
     "--cov=", # all apps
-    "--cov-report=html",
-    "--cov-report=term-missing",
-    "--cov-report=xml"
 ]
 
 # Groups mirror optional extras so uv can install targeted stacks.

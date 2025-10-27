@@ -3,7 +3,9 @@ set -euo pipefail
 # Run core + async suite under lightweight test settings
 export DJANGO_SETTINGS_MODULE=tests.settings
 pytest -m "not playwright"
+coverage html
+coverage xml
 
 # Playwright UI checks expect full app stack
 export DJANGO_SETTINGS_MODULE=config.settings
-pytest -m playwright
+pytest -m playwright --no-cov
