@@ -494,6 +494,16 @@ dependencies = [
 [package.optional-dependencies]
 dev = [
     { name = "commitizen" },
+    { name = "ipykernel" },
+]
+docs = [
+    { name = "mkdocs" },
+    { name = "mkdocs-awesome-pages-plugin" },
+    { name = "mkdocs-enumerate-headings-plugin" },
+    { name = "mkdocs-material" },
+    { name = "mkdocs-mermaid2-plugin" },
+]
+tests-core = [
     { name = "coverage" },
     { name = "crispy-bootstrap5" },
     { name = "crispy-daisyui" },
@@ -504,58 +514,110 @@ dev = [
     { name = "django-redis" },
     { name = "django-vite" },
     { name = "faker" },
-    { name = "ipykernel" },
     { name = "neapolitan" },
-    { name = "playwright" },
     { name = "psycopg" },
     { name = "psycopg-binary" },
     { name = "pytest" },
     { name = "pytest-django" },
     { name = "pytest-mock" },
-    { name = "pytest-playwright" },
     { name = "validators" },
 ]
-docs = [
-    { name = "mkdocs" },
-    { name = "mkdocs-awesome-pages-plugin" },
-    { name = "mkdocs-enumerate-headings-plugin" },
-    { name = "mkdocs-material" },
-    { name = "mkdocs-mermaid2-plugin" },
+tests-ui = [
+    { name = "playwright" },
+    { name = "pytest-playwright" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "commitizen" },
+    { name = "ipykernel" },
+]
+tests-core = [
+    { name = "coverage" },
+    { name = "crispy-bootstrap5" },
+    { name = "crispy-daisyui" },
+    { name = "crispy-tailwind" },
+    { name = "django" },
+    { name = "django-crispy-forms" },
+    { name = "django-q2" },
+    { name = "django-redis" },
+    { name = "django-vite" },
+    { name = "faker" },
+    { name = "neapolitan" },
+    { name = "psycopg" },
+    { name = "psycopg-binary" },
+    { name = "pytest" },
+    { name = "pytest-django" },
+    { name = "pytest-mock" },
+    { name = "validators" },
+]
+tests-ui = [
+    { name = "playwright" },
+    { name = "pytest-playwright" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "commitizen", marker = "extra == 'dev'", specifier = ">=3,<4" },
-    { name = "coverage", marker = "extra == 'dev'", specifier = ">=7,<8" },
-    { name = "crispy-bootstrap5", marker = "extra == 'dev'", specifier = ">=2024.10,<2025" },
-    { name = "crispy-daisyui", marker = "extra == 'dev'", specifier = ">=0.7.0,<1" },
-    { name = "crispy-tailwind", marker = "extra == 'dev'", specifier = ">=1.0.3,<2" },
-    { name = "django", marker = "extra == 'dev'", specifier = ">=5.1,<6" },
-    { name = "django-crispy-forms", marker = "extra == 'dev'", specifier = ">=2.3,<3" },
+    { name = "coverage", marker = "extra == 'tests-core'", specifier = ">=7,<8" },
+    { name = "crispy-bootstrap5", marker = "extra == 'tests-core'", specifier = ">=2024.10,<2025" },
+    { name = "crispy-daisyui", marker = "extra == 'tests-core'", specifier = ">=0.7.0,<1" },
+    { name = "crispy-tailwind", marker = "extra == 'tests-core'", specifier = ">=1.0.3,<2" },
+    { name = "django", marker = "extra == 'tests-core'", specifier = ">=4.2,<6" },
+    { name = "django-crispy-forms", marker = "extra == 'tests-core'", specifier = ">=2.3,<3" },
     { name = "django-htmx", specifier = ">=1.23.2,<2.0" },
-    { name = "django-q2", marker = "extra == 'dev'", specifier = ">=1.8.0,<2" },
-    { name = "django-redis", marker = "extra == 'dev'", specifier = ">=6.0.0,<7" },
+    { name = "django-q2", marker = "extra == 'tests-core'", specifier = ">=1.8.0,<2" },
+    { name = "django-redis", marker = "extra == 'tests-core'", specifier = ">=6.0.0,<7" },
     { name = "django-template-partials", specifier = ">=24.4,<25.0" },
-    { name = "django-vite", marker = "extra == 'dev'", specifier = ">=3.1.0,<4" },
-    { name = "faker", marker = "extra == 'dev'", specifier = ">=37.4.2,<38" },
+    { name = "django-vite", marker = "extra == 'tests-core'", specifier = ">=3.1.0,<4" },
+    { name = "faker", marker = "extra == 'tests-core'", specifier = ">=37.4.2,<38" },
     { name = "ipykernel", marker = "extra == 'dev'", specifier = ">=6,<7" },
     { name = "mkdocs", marker = "extra == 'docs'", specifier = ">=1,<2" },
     { name = "mkdocs-awesome-pages-plugin", marker = "extra == 'docs'", specifier = ">=2.9,<3" },
     { name = "mkdocs-enumerate-headings-plugin", marker = "extra == 'docs'", specifier = ">=0.6,<0.7" },
     { name = "mkdocs-material", marker = "extra == 'docs'", specifier = ">=9,<10" },
     { name = "mkdocs-mermaid2-plugin", marker = "extra == 'docs'", specifier = ">=0,<1" },
-    { name = "neapolitan", marker = "extra == 'dev'", specifier = ">=24.8,<25" },
-    { name = "playwright", marker = "extra == 'dev'", specifier = ">=1.55.0,<2" },
-    { name = "psycopg", marker = "extra == 'dev'", specifier = ">=3.2.1,<4" },
-    { name = "psycopg-binary", marker = "extra == 'dev'", specifier = ">=3.2.1,<4" },
+    { name = "neapolitan", marker = "extra == 'tests-core'", specifier = ">=24.8,<25" },
+    { name = "playwright", marker = "extra == 'tests-ui'", specifier = ">=1.55.0,<2" },
+    { name = "psycopg", marker = "extra == 'tests-core'", specifier = ">=3.2.1,<4" },
+    { name = "psycopg-binary", marker = "extra == 'tests-core'", specifier = ">=3.2.1,<4" },
     { name = "pydantic", specifier = ">=2.10.6,<3.0" },
-    { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.2.1,<9" },
-    { name = "pytest-django", marker = "extra == 'dev'", specifier = ">=4.11.1,<5" },
-    { name = "pytest-mock", marker = "extra == 'dev'", specifier = ">=3.14.0,<4" },
-    { name = "pytest-playwright", marker = "extra == 'dev'", specifier = ">=0.7.1,<1" },
-    { name = "validators", marker = "extra == 'dev'", specifier = ">=0.28.3,<1" },
+    { name = "pytest", marker = "extra == 'tests-core'", specifier = ">=8.2.1,<9" },
+    { name = "pytest-django", marker = "extra == 'tests-core'", specifier = ">=4.11.1,<5" },
+    { name = "pytest-mock", marker = "extra == 'tests-core'", specifier = ">=3.14.0,<4" },
+    { name = "pytest-playwright", marker = "extra == 'tests-ui'", specifier = ">=0.7.1,<1" },
+    { name = "validators", marker = "extra == 'tests-core'", specifier = ">=0.28.3,<1" },
 ]
-provides-extras = ["dev", "docs"]
+provides-extras = ["tests-core", "tests-ui", "dev", "docs"]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "commitizen", specifier = ">=3,<4" },
+    { name = "ipykernel", specifier = ">=6,<7" },
+]
+tests-core = [
+    { name = "coverage", specifier = ">=7,<8" },
+    { name = "crispy-bootstrap5", specifier = ">=2024.10,<2025" },
+    { name = "crispy-daisyui", specifier = ">=0.7.0,<1" },
+    { name = "crispy-tailwind", specifier = ">=1.0.3,<2" },
+    { name = "django", specifier = ">=4.2,<6" },
+    { name = "django-crispy-forms", specifier = ">=2.3,<3" },
+    { name = "django-q2", specifier = ">=1.8.0,<2" },
+    { name = "django-redis", specifier = ">=6.0.0,<7" },
+    { name = "django-vite", specifier = ">=3.1.0,<4" },
+    { name = "faker", specifier = ">=37.4.2,<38" },
+    { name = "neapolitan", specifier = ">=24.8,<25" },
+    { name = "psycopg", specifier = ">=3.2.1,<4" },
+    { name = "psycopg-binary", specifier = ">=3.2.1,<4" },
+    { name = "pytest", specifier = ">=8.2.1,<9" },
+    { name = "pytest-django", specifier = ">=4.11.1,<5" },
+    { name = "pytest-mock", specifier = ">=3.14.0,<4" },
+    { name = "validators", specifier = ">=0.28.3,<1" },
+]
+tests-ui = [
+    { name = "playwright", specifier = ">=1.55.0,<2" },
+    { name = "pytest-playwright", specifier = ">=0.7.1,<1" },
+]
 
 [[package]]
 name = "django-q2"

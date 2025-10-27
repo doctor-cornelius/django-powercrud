@@ -1,6 +1,7 @@
 import re
 
 import pytest
+pytest.importorskip("playwright.sync_api")
 from playwright.sync_api import expect
 
 pytestmark = [pytest.mark.playwright, pytest.mark.django_db]

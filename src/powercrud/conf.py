@@ -9,6 +9,7 @@ DEFAULTS = {
     'MAX_TASK_DURATION': 3600,
     'CLEANUP_SCHEDULE_INTERVAL': 300,
     'CACHE_NAME': 'default',
+    'QCLUSTER_PROBE_TIMEOUT_MS': 300,
 
     'POWERCRUD_CSS_FRAMEWORK': 'daisyUI', # this is for the rendering of powercrud forms
     'TAILWIND_SAFELIST_JSON_LOC': '.',  # location of the safelist json file for tailwind tree shaker

@@ -33,13 +33,17 @@ MIDDLEWARE = [
 ]
 
 
-# ROOT_URLCONF = "neapolitan_tests.test_neapolitan"
+ROOT_URLCONF = "config.urls"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # Session Settings
-SESSION_ENGINE = 'django.contrib.sessions.backends.db'  # Default, using database
+SESSION_ENGINE = "django.contrib.sessions.backends.db"  # Default, using database
 SESSION_COOKIE_AGE = 300  # 5 minutes in seconds
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True  # Sessions expire when browser closes
 SESSION_SAVE_EVERY_REQUEST = True  # Update session expiry on every request
+
+STATIC_URL = "/static/"
+STATIC_ROOT = os.path.join(os.path.dirname(__file__), "staticfiles")
+os.makedirs(STATIC_ROOT, exist_ok=True)
 
 TEMPLATES = [
     {
@@ -79,6 +83,7 @@ INSTALLED_APPS = [
     # for async
     'django_q',
     'django_redis',
+    "django_vite",
 
     "neapolitan",
     "powercrud",
@@ -89,15 +94,18 @@ INSTALLED_APPS = [
 
 TEST_CACHE_DIR = os.path.join(os.path.dirname(__file__), "cache")
 os.makedirs(TEST_CACHE_DIR, exist_ok=True)
+os.makedirs(os.path.join(TEST_CACHE_DIR, "default"), exist_ok=True)
+os.makedirs(os.path.join(TEST_CACHE_DIR, "async"), exist_ok=True)
 
 CACHES = {
     "default": {
-        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
-        "LOCATION": "powercrud-default",
+        "BACKEND": "django.core.cache.backends.filebased.FileBasedCache",
+        "LOCATION": os.path.join(TEST_CACHE_DIR, "default"),
+        "TIMEOUT": None,
     },
     "powercrud_async": {
         "BACKEND": "django.core.cache.backends.filebased.FileBasedCache",
-        "LOCATION": TEST_CACHE_DIR,
+        "LOCATION": os.path.join(TEST_CACHE_DIR, "async"),
         "TIMEOUT": None,
     },
 }
@@ -117,6 +125,7 @@ POWERCRUD_SETTINGS = {
     'MAX_TASK_DURATION': 3600,  # For detecting stuck tasks
     'CLEANUP_SCHEDULE_INTERVAL': 300,  # 5 minutes for scheduled cleanup
     'CACHE_NAME': 'powercrud_async',  # Which cache from CACHES to use for conflict/progress
+    'QCLUSTER_PROBE_TIMEOUT_MS': 1500,
 }
 
 # django-q2 settings
@@ -128,6 +137,7 @@ Q_CLUSTER = {
     'retry': 300,
     'save_limit': 250,
     'queue_limit': 500,
+    'sync': True,
     # NB if you set orm then other backend settings (eg django_redis, redis) are ignored
     'orm': 'default',  # database connection to use
     'django_redis': 'default',  # cache name

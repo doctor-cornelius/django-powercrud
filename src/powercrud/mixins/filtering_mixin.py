@@ -168,7 +168,10 @@ class FilteringMixin:
                     model_field = self.model._meta.get_field(field_name)
 
                     # Handle GeneratedField special case
-                    field_to_check = model_field.output_field if isinstance(model_field, models.GeneratedField) else model_field
+                    if hasattr(models, "GeneratedField") and isinstance(model_field, models.GeneratedField):
+                        field_to_check = model_field.output_field
+                    else:
+                        field_to_check = model_field
                     # Check if BASE_ATTRS is structured by field type
                     if isinstance(BASE_ATTRS, dict) and ('text' in BASE_ATTRS or 'select' in BASE_ATTRS):
                         # Get appropriate attributes based on field type

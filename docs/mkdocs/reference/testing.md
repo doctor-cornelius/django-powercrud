@@ -8,6 +8,16 @@ PowerCRUD ships with an end-to-end test suite that exercises both the Python sur
 # run the full suite (pytest-django)
 pytest
 
+# run the matrix cell that matches CI (Python/Django selected via current environment)
+uv sync --group tests-core
+pytest -m "not playwright"
+
+# run the Playwright UI suite locally (requires built assets)
+uv sync --group tests-core --group tests-ui
+npm install
+npm run build
+pytest -m playwright
+
 # UI smoke tests only (Playwright)
 pytest -m playwright
 ```

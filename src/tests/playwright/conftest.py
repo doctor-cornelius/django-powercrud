@@ -2,6 +2,7 @@ import os
 from datetime import date
 
 import pytest
+pytest.importorskip("playwright.sync_api")
 from django.urls import reverse
 
 from sample.models import Author, Book

@@ -152,7 +152,7 @@ class AsyncManager:
     # System Detection
     # =============================================================================
 
-    def validate_async_qcluster(self, timeout_ms: int = 300) -> bool:
+    def validate_async_qcluster(self, timeout_ms: Optional[int] = None) -> bool:
         """Validate that django-q2 workers are running by executing a probe.
 
         Args:
@@ -165,6 +165,9 @@ class AsyncManager:
             Uses a unique group/name to avoid collisions and attempts cleanup of
             Task rows and cached entries afterwards.
         """
+        if timeout_ms is None:
+            timeout_ms = get_powercrud_setting('QCLUSTER_PROBE_TIMEOUT_MS', 300)
+
         group = "qcluster_testing"
         task_name = f"q2_probe_{uuid.uuid4().hex}"
 

@@ -14,15 +14,13 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = [
-    "commitizen>=3,<4",
-    "ipykernel>=6,<7",
+tests-core = [
     "pytest>=8.2.1,<9",
     "coverage>=7,<8",
     "pytest-mock>=3.14.0,<4",
     "validators>=0.28.3,<1",
     "faker>=37.4.2,<38",
-    "django>=5.1,<6",
+    "django>=4.2,<6",
     "neapolitan>=24.8,<25",
     "django-crispy-forms>=2.3,<3",
     "crispy-bootstrap5>=2024.10,<2025",
@@ -30,12 +28,18 @@ dev = [
     "crispy-daisyui>=0.7.0,<1",
     "django-vite>=3.1.0,<4",
     "django-q2>=1.8.0,<2",
-    "pytest-playwright>=0.7.1,<1",
-    "playwright>=1.55.0,<2",
     "psycopg-binary>=3.2.1,<4",
     "psycopg>=3.2.1,<4",
     "django-redis>=6.0.0,<7",
     "pytest-django>=4.11.1,<5"
+]
+tests-ui = [
+    "pytest-playwright>=0.7.1,<1",
+    "playwright>=1.55.0,<2"
+]
+dev = [
+    "commitizen>=3,<4",
+    "ipykernel>=6,<7"
 ]
 docs = [
     "mkdocs>=1,<2",
@@ -63,4 +67,34 @@ addopts = [
     "--cov=", # all apps
     "--cov-report=html",
     "--cov-report=term-missing"
+]
+
+# Groups mirror optional extras so uv can install targeted stacks.
+[dependency-groups]
+tests-core = [
+    "pytest>=8.2.1,<9",
+    "coverage>=7,<8",
+    "pytest-mock>=3.14.0,<4",
+    "validators>=0.28.3,<1",
+    "faker>=37.4.2,<38",
+    "django>=4.2,<6",
+    "neapolitan>=24.8,<25",
+    "django-crispy-forms>=2.3,<3",
+    "crispy-bootstrap5>=2024.10,<2025",
+    "crispy-tailwind>=1.0.3,<2",
+    "crispy-daisyui>=0.7.0,<1",
+    "django-vite>=3.1.0,<4",
+    "django-q2>=1.8.0,<2",
+    "psycopg-binary>=3.2.1,<4",
+    "psycopg>=3.2.1,<4",
+    "django-redis>=6.0.0,<7",
+    "pytest-django>=4.11.1,<5"
+]
+tests-ui = [
+    "pytest-playwright>=0.7.1,<1",
+    "playwright>=1.55.0,<2"
+]
+dev = [
+    "commitizen>=3,<4",
+    "ipykernel>=6,<7"
 ]

@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 
 # Make a commit to trigger creation of a new release during CI process
 
@@ -62,6 +63,9 @@ PY
 
 # refresh lock file to ensure dependencies are in sync before release
 uv lock
+
+# run full test suite (including Playwright) before proceeding
+./runtests
 
 # Check if tag already exists
 if git rev-parse "refs/tags/$NEW_VERSION" >/dev/null 2>&1; then

@@ -30,26 +30,31 @@ This is about implementing a testing matrix approach for running all tests for a
 - **Django versions**: 4.2 LTS, 5.0/5.1 (current stable); plan to bump as new releases appear.
 - **Optional dimension**: `playwright` tag (full UI suite) vs `core` (unit/integration only).
 
+> **Status**: README now documents support for Python 3.12/3.13 with Django 4.2/5.1; the CI workflow will enforce this grid once built.
+
 ## Plan
 
-1. ☐ **Define support policy**
-    - ☐ Document the official Python/Django version grid in `docs/mkdocs/blog/posts/20251026_test_matrix.md` and surface it in README.
-    - ☐ Add safeguards so `uv.lock` stays compatible with each supported combo (e.g., resolver checks or per-cell lock snapshots).
+1. ✅ **Define support policy**
+    - ✅ Document the official Python 3.12/3.13 and Django 4.2/5.1 grid in docs + README so expectations are explicit.
+    - ✅ Tie `uv.lock` health to the CI matrix: each matrix job runs `uv sync` against the pinned lock, so failures surface immediately for any Python/Django combo. Release scripts already call `uv lock`, ensuring the lock is refreshed before publishes.
 
-2. ☐ **Refine dependency groups**
-    - ☐ Split `pyproject.toml` optional dependencies into logical groups (`tests-core`, `tests-ui`) to reduce redundant installs.
-    - ☐ Ensure any Django-specific pins (e.g., `django-template-partials`) resolve cleanly across supported versions.
+2. ✅ **Refine dependency groups**
+    - ✅ Split `pyproject.toml` optional dependencies into logical groups (`tests-core`, `tests-ui`) to reduce redundant installs.
+    - ✅ Ensure any Django-specific pins (e.g., `django-template-partials`) resolve cleanly across supported versions.
 
-3. ☐ **Update CI workflows**
-    - ☐ Convert the publish workflow into a reusable job or composite action that accepts Python/Django inputs.
-    - ☐ Introduce a dedicated `tests.yml` workflow with a `strategy.matrix` covering Python/Django, caching `.uv` and Playwright assets per cell.
-    - ☐ Decide which cells run the Playwright suite vs the core suite; document the rationale.
+3. ✅ **Add modular CI workflow**
+    - ✅ Create `.github/workflows/run_tests.yml` (manual `workflow_dispatch`) with the Python/Django matrix so we can run the suite on demand.
+    - ✅ Configure matrix for Python 3.12/3.13 × Django 4.2/5.1 (browser suite remains local-only to keep CI lean).
+    - ✅ Expose it via `workflow_call` so `publish.yml` can require it before shipping.
 
-4. ☐ **Local matrix tooling**
-    - ☐ Provide `uv run` snippets (or a Makefile) that let developers execute a single matrix cell locally.
-    - ☐ Update docs to explain how to run `pytest` with `DJANGO_SETTINGS_MODULE` overrides per Django version if needed.
+4. ✅ **Update existing workflows**
+    - ✅ Wire `publish.yml` to depend on the reusable test matrix so releases only ship after the suite passes.
+    - ✅ Decide whether docs workflows require any awareness of the matrix (no change needed).
 
-5. ☐ **Validation & rollout**
-    - ☐ Trial the matrix in CI to gather timing data, adjust caching, and tune parallelism.
+5. ☐ **Local matrix tooling**
+    - ✅ Document raw `uv sync` + `pytest` commands so developers can replay each matrix cell locally. Note they cannot run "matrix" cells because that's not how it works. That would be a future [enhancement](../../reference/enhancements.md).
+
+6. ☐ **Validation & rollout**
+    - ☐ Trial the matrix on `main` to gather timing data, adjust caching, and tune parallelism.
     - ☐ Once stable, update the testing roadmap blog post with the new guarantees.
     - ☐ Monitor the first few dependency bumps to ensure the matrix catches regressions (dependency sync workflow).
