@@ -40,7 +40,11 @@ jobs:
       - name: Run pytest
         run: pytest -m "not playwright"
 
+      - name: Generate coverage XML
+        run: python -m coverage xml
+
       - name: Upload coverage to Codecov
+        if: matrix.python-version == '3.14' && matrix.django == '5.2'
         uses: codecov/codecov-action@v5
         with:
           files: coverage.xml
