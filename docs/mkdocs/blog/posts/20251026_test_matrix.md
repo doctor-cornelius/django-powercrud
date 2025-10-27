@@ -18,7 +18,7 @@ This is about implementing a testing matrix approach for running all tests for a
 
 ## Constraints & open questions
 
-- Matrix should cover at least Python 3.12 + 3.13 and Django 4.2 + 5.1 (adjust as release cadence changes).
+- Matrix should cover at least Python 3.12 + 3.13 + 3.14 and Django 4.2 + 5.2 (adjust as release cadence changes).
 - Playwright/UI tests add cost; decide whether to run them on every matrix entry or only on the latest pair.
 - GitHub-hosted runners are limited; need caching and concurrency limits to avoid timeouts.
 - Need a lightweight path for contributors without Docker to run a single matrix cell locally.
@@ -26,16 +26,16 @@ This is about implementing a testing matrix approach for running all tests for a
 
 ## Proposed matrix
 
-- **Python versions**: 3.12, 3.13 (align with `requires-python` floor and Docker default).
-- **Django versions**: 4.2 LTS, 5.0/5.1 (current stable); plan to bump as new releases appear.
+- **Python versions**: 3.12, 3.13, 3.14 (align with `requires-python` floor and Docker default).
+- **Django versions**: 4.2 LTS, 5.2 LTS (current stable); plan to bump as new releases appear.
 - **Optional dimension**: `playwright` tag (full UI suite) vs `core` (unit/integration only).
 
-> **Status**: README now documents support for Python 3.12/3.13 with Django 4.2/5.1; the CI workflow will enforce this grid once built.
+> **Status**: README now documents support for Python 3.12/3.13/3.14 with Django 4.2/5.2; the CI workflow will enforce this grid once built.
 
 ## Plan
 
 1. ✅ **Define support policy**
-    - ✅ Document the official Python 3.12/3.13 and Django 4.2/5.1 grid in docs + README so expectations are explicit.
+    - ✅ Document the official Python 3.12/3.13/3.14 and Django 4.2/5.2 grid in docs + README so expectations are explicit.
     - ✅ Tie `uv.lock` health to the CI matrix: each matrix job runs `uv sync` against the pinned lock, so failures surface immediately for any Python/Django combo. Release scripts already call `uv lock`, ensuring the lock is refreshed before publishes.
 
 2. ✅ **Refine dependency groups**
@@ -44,7 +44,7 @@ This is about implementing a testing matrix approach for running all tests for a
 
 3. ✅ **Add modular CI workflow**
     - ✅ Create `.github/workflows/run_tests.yml` (manual `workflow_dispatch`) with the Python/Django matrix so we can run the suite on demand.
-    - ✅ Configure matrix for Python 3.12/3.13 × Django 4.2/5.1 (browser suite remains local-only to keep CI lean).
+    - ✅ Configure matrix for Python 3.12/3.13/3.14 × Django 4.2/5.2 (browser suite remains local-only to keep CI lean).
     - ✅ Expose it via `workflow_call` so `publish.yml` can require it before shipping.
 
 4. ✅ **Update existing workflows**
