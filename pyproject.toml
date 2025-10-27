@@ -8,7 +8,7 @@ authors = [
 ]
 requires-python = ">=3.12"
 dependencies = [
-    "django-template-partials>=24.4,<25.0",
+    "django-template-partials>=25.2,<25.3",
     "pydantic>=2.10.6,<3.0",
     "django-htmx>=1.23.2,<2.0"
 ]
@@ -17,14 +17,14 @@ dependencies = [
 tests-core = [
     "pytest>=8.2.1,<9",
     "coverage>=7,<8",
-    "pytest-cov>=5,<6",
+    "pytest-cov>=7.0.0,<8",
     "pytest-mock>=3.14.0,<4",
     "validators>=0.28.3,<1",
     "faker>=37.4.2,<38",
-    "django>=4.2,<6",
-    "neapolitan>=24.8,<25",
+    "django>=5.2.7,<6",
+    "neapolitan>=25.1,<26",
     "django-crispy-forms>=2.3,<3",
-    "crispy-bootstrap5>=2024.10,<2025",
+    "crispy-bootstrap5>=2025.6,<2026",
     "crispy-tailwind>=1.0.3,<2",
     "crispy-daisyui>=0.7.0,<1",
     "django-vite>=3.1.0,<4",
@@ -39,13 +39,13 @@ tests-ui = [
     "playwright>=1.55.0,<2"
 ]
 dev = [
-    "commitizen>=3,<4",
-    "ipykernel>=6,<7"
+    "commitizen>=4.9.1,<5",
+    "ipykernel>=7.1.0,<8"
 ]
 docs = [
     "mkdocs>=1,<2",
     "mkdocs-material>=9,<10",
-    "mkdocs-mermaid2-plugin>=0,<1",
+    "mkdocs-mermaid2-plugin>=1.2.3,<2",
     "mkdocs-enumerate-headings-plugin>=0.6,<0.7",
     "mkdocs-awesome-pages-plugin>=2.9,<3"
 ]
