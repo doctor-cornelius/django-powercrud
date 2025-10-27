@@ -19,14 +19,14 @@ jobs:
         id: get_version
         run: |
           python - <<'PY'
-import os
-import pathlib
-import tomllib
+          import os
+          import pathlib
+          import tomllib
 
-data = tomllib.loads(pathlib.Path("pyproject.toml").read_text())
-with open(os.environ["GITHUB_OUTPUT"], "a") as fh:
-    print(f"version={data['project']['version']}", file=fh)
-PY
+          data = tomllib.loads(pathlib.Path("pyproject.toml").read_text())
+          with open(os.environ["GITHUB_OUTPUT"], "a") as fh:
+              print(f"version={data['project']['version']}", file=fh)
+          PY
       - name: Create GitHub Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
