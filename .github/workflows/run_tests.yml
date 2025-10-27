@@ -40,13 +40,10 @@ jobs:
           uv pip install --python "$PYTHON" ".[tests-core]" "django==${{ matrix.django }}.*"
 
       - name: Run pytest
-        run: pytest -m "not playwright"
-
-      - name: Generate coverage XML
-        run: python -m coverage xml
+        run: pytest -m "not playwright" --cov= --cov-report=term-missing --cov-report=xml
 
       - name: Upload coverage to Codecov
-        if: matrix.python-version == '3.14' && matrix.django == '5.2'
+        if: matrix.python-version == '3.14' && matrix.django == '5.2' && hashFiles('coverage.xml') != ''
         uses: codecov/codecov-action@v5
         with:
           files: coverage.xml
