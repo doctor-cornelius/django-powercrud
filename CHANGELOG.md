@@ -1,3 +1,29 @@
+## 0.3.5 (2025-10-27)
+
+### Fix
+
+- **(get_logger)**:  refactor all programs to use powercrud.get_logger
+- **(async)**:  fix test problems. BEFORE check completeness
+- **(async_dashboard)**:  get user label displaying correctly
+
+### Build
+
+- **(powercrud)**:  migrate from poetry to uv
+
+### Documentation
+
+- **(docs)**:  restructure and update docs
+
+### Feature
+
+- **(async)**:  implement async task context
+- **(async)**:  implement async cleanup cli and schedule
+- **(async)**:  implement refactored async with dashboard and lifecycle hooks
+
+### Tests
+
+- **(powercrud)**:  write full passing test suite including playwright smoke tests
+
 ## 0.3.4 (2025-08-10)
 
 ### Build
