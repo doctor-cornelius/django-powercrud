@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 /* explicitly include imported packages with tailwind classes*/ 
-@source "/usr/local/lib/python3.12/site-packages/crispy_tailwind";
+@source "/usr/local/lib/python3.13/site-packages/crispy_tailwind";
 
 @plugin "daisyui" {
     /* themes: light --default, dark --prefersdark, corporate; */

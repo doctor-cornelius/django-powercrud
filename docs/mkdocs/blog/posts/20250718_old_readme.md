@@ -147,14 +147,14 @@ If using a `tailwindcss` framework (including `daisyUI`) then you need to make s
     ```python
     >>>import django_powercrud 
     >>>print(django_powercrud.__path__)
-    ['/usr/local/lib/python3.12/site-packages/powercrud']
+    ['/usr/local/lib/python3.13/site-packages/powercrud']
     ```
 
-    In which case you would enter `@source: "/usr/local/lib/python3.12/site-packages/powercrud";`, so the top part of your `tailwind.css` file would look like this:
+    In which case you would enter `@source: "/usr/local/lib/python3.13/site-packages/powercrud";`, so the top part of your `tailwind.css` file would look like this:
 
     ```css
     @import "tailwindcss";`
-    @source "/usr/local/lib/python3.12/site-packages/powercrud";
+    @source "/usr/local/lib/python3.13/site-packages/powercrud";
     ```
 
 2. **Management Command**. If you prefer not to follow the tailwindcss instructions (!) then you can run the included management command `pcrud_extract_tailwind_classes` as discussed in the management commands section below.

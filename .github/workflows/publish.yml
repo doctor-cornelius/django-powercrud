@@ -8,13 +8,17 @@ jobs:
   release:
     if: contains(github.event.head_commit.message, 'release(')
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.12', '3.13']
     outputs:
       version: ${{ steps.get_version.outputs.version }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
+          python-version: "${{ matrix.python-version }}"
       - name: Get Version
         id: get_version
         run: |
@@ -39,11 +43,15 @@ jobs:
     needs: release
     if: contains(github.event.head_commit.message, 'release(')
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.12', '3.13']
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
+          python-version: "${{ matrix.python-version }}"
       - uses: astral-sh/setup-uv@v1
         with:
           version: "0.9.5"

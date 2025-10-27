@@ -70,7 +70,7 @@ Find the exact path in a shell:
 python manage.py shell
 >>> import powercrud
 >>> powercrud.__path__
-['/venv/lib/python3.12/site-packages/powercrud']
+['/venv/lib/python3.13/site-packages/powercrud']
 ```
 
 ### Method B · Safelist generator

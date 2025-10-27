@@ -151,7 +151,7 @@ Add powercrud's package path to your `tailwind.css`:
 python manage.py shell
 >>> import django_powercrud 
 >>> print(django_powercrud.__path__)
-['/usr/local/lib/python3.12/site-packages/powercrud']
+['/usr/local/lib/python3.13/site-packages/powercrud']
 ```
 
 ### Method 2: Safelist Generation
