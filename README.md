@@ -1,5 +1,12 @@
 # Django PowerCRUD
 
+[![Run Test Matrix](https://github.com/doctor-cornelius/django_powercrud/actions/workflows/pr_tests.yml/badge.svg)](https://github.com/doctor-cornelius/django_powercrud/actions/workflows/pr_tests.yml)
+[![Python](https://img.shields.io/badge/python-3.12%20%7C%203.13%20%7C%203.14-blue)](#supported-versions)
+[![Django](https://img.shields.io/badge/django-4.2%20%7C%205.2-0C4B33)](#supported-versions)
+[![PyPI](https://img.shields.io/pypi/v/django-powercrud.svg)](https://pypi.org/project/django-powercrud/)
+[![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+[![Renovate](https://img.shields.io/badge/renovate-enabled-brightgreen?logo=renovatebot)](https://developer.mend.io/github/doctor-cornelius/django-powercrud)
+
 **Advanced CRUD for perfectionists with deadlines. An opinionated extension of [Neapolitan](https://github.com/carltongibson/neapolitan).**
 
 ## What is PowerCRUD?
