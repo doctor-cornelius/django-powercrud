@@ -1,5 +1,6 @@
-title: Guides
+title: Getting Started
 arrange:
+  - getting_started.md
   - 01_setup_core_crud.md
   - 02_bulk_edit_sync.md
   - 03_async_manager.md

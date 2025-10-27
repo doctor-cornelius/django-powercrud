@@ -1,7 +1,10 @@
 arrange:
   - config_options.md
   - complete_example.md
-  - dockerised_dev.md
-  - sample_app.md
   - mgmt_commands.md
+  - sample_app.md
+  - async.md
+  - dockerised_dev.md
   - testing.md
+  - renovate.md
+  - enhancements.md
