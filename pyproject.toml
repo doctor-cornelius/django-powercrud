@@ -26,11 +26,11 @@ tests-core = [
     "django-crispy-forms>=2.3,<3",
     "crispy-bootstrap5>=2025.6,<2026",
     "crispy-tailwind>=1.0.3,<2",
-    "crispy-daisyui>=0.7.0,<1",
+    "crispy-daisyui>=0.8.0,<1",
     "django-vite>=3.1.0,<4",
     "django-q2>=1.8.0,<2",
-    "psycopg-binary>=3.2.1,<4",
-    "psycopg>=3.2.1,<4",
+    "psycopg-binary>=3.2.12,<4",
+    "psycopg>=3.2.12,<4",
     "django-redis>=6.0.0,<7",
     "pytest-django>=4.11.1,<5"
 ]

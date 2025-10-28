@@ -72,6 +72,11 @@
       "addLabels": [
         "major-upgrade"
       ]
+    },
+    {
+      "matchManagers": ["poetry"],
+      "matchPackageNames": ["django"],
+      "allowedVersions": ">=4.2 <6"
     }
   ],
   "lockFileMaintenance": {
