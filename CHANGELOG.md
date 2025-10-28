@@ -1,3 +1,24 @@
+## 0.4.0 (2025-10-28)
+
+### Fix
+
+- **(deps)**:  lock file maintenance js-packages
+- **(deps)**:  lock file maintenance js-packages
+
+### Continuous Integration
+
+- **(renovate.js)**:  preserve django constraints and only refresh lockfile
+- **(renovate.json)**:  add package rule keep lower bound of django at 4.2
+- **(run_tests)**:  put guards around coverage file failure
+- **(run_tests.yml)**:  ensure we run coverage report production
+- **(renovate)**:  install and configure renovate for automatic dependency updates
+
+### Tests
+
+- **(runtests)**:  run coverage html inside runtests
+- **(runtests)**:  make runtests orchestrate use of correct settings file for tests
+- **(powercrud)**:  implement test matrix in CI process (python vs django versions)
+
 ## 0.3.6 (2025-10-27)
 
 ## 0.3.5 (2025-10-27)
