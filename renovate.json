@@ -76,8 +76,9 @@
     {
       "matchManagers": ["poetry"],
       "matchPackageNames": ["django"],
-      "allowedVersions": ">=4.2 <6"
+      "rangeStrategy": "update-lockfile"
     }
+
   ],
   "lockFileMaintenance": {
     "enabled": true,
