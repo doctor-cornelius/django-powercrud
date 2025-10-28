@@ -1,11 +1,11 @@
 {
   "config/static/js/main.js": {
-    "file": "django_assets/powercrud-CSgUZpd1.js",
+    "file": "django_assets/powercrud-tkgREnz4.js",
     "name": "powercrud",
     "src": "config/static/js/main.js",
     "isEntry": true,
     "css": [
-      "django_assets/powercrud-Cwsl6NLh.css"
+      "django_assets/powercrud-CayxCxCu.css"
     ]
   }
 }
