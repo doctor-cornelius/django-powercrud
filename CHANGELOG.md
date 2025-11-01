@@ -1,3 +1,11 @@
+## 0.4.2 (2025-11-01)
+
+### Continuous Integration
+
+- **(publish.yml)**:  remove matrix release and release lowest tested python version
+
+## 0.4.1 (2025-10-28)
+
 ## 0.4.0 (2025-10-28)
 
 ### Fix
