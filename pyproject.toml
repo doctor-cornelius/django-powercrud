@@ -63,10 +63,18 @@ include = [
 [tool.hatch.build.targets.wheel]
 packages = ["powercrud"]
 
-[tool.pytest.ini_options]
-addopts = [
-    "--cov=", # all apps
+[tool.coverage.run]
+source = ["powercrud"]
+
+[tool.coverage.report]
+include = [
+    "*/src/powercrud/*"
 ]
+# omit = [
+#     "*/src/sample/*",
+#     "*/src/tests/*",
+#     "*/src/core"
+# ]
 
 # Groups mirror optional extras so uv can install targeted stacks.
 [dependency-groups]

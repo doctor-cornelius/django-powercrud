@@ -1,10 +1,16 @@
+# for running tests locally and reporting coverage only on powercrud
 set -euo pipefail
 
-# Run core + async suite under lightweight test settings
+# delete any existing coverage reports
+coverage erase
+rm -rf htmlcov
+rm coverage.xml
+
+# Run the powercrud core + async suite under lightweight test settings
 export DJANGO_SETTINGS_MODULE=tests.settings
-pytest -m "not playwright"
-coverage html
-coverage xml
+
+# run pytest and generate html report
+pytest -m "not playwright" --cov-report=html
 
 # Playwright UI checks expect full app stack
 export DJANGO_SETTINGS_MODULE=config.settings
