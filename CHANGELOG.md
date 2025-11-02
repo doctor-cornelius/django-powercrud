@@ -1,3 +1,21 @@
+## 0.4.3 (2025-11-02)
+
+### Continuous Integration
+
+- **(codecov)**:  use correct badge url in README
+- **(coverage)**:  clean out redundant coverage2.xml
+- **(publish.yml)**:  ensure secrets inherited for coverage token
+- **(CODECOV_TOKEN)**:  add as secret
+
+### Documentation
+
+- **(README.md)**:  correct link to codecov
+
+### Tests
+
+- **(powercrud)**:  expand coverage to 80%
+- **(pytest.ini)**:  change config of tests for coverage
+
 ## 0.4.2 (2025-11-01)
 
 ### Continuous Integration
