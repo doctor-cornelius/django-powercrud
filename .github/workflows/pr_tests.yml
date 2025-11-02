@@ -8,3 +8,4 @@ on:
 jobs:
   tests:
     uses: ./.github/workflows/run_tests.yml
+    secrets: inherit
