@@ -4,7 +4,7 @@ set -euo pipefail
 # delete any existing coverage reports
 coverage erase
 rm -rf htmlcov
-rm coverage.xml
+rm -f coverage.xml
 
 # Run the powercrud core + async suite under lightweight test settings
 export DJANGO_SETTINGS_MODULE=tests.settings
