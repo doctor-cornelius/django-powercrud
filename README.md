@@ -1,7 +1,7 @@
 # Django PowerCRUD
 
 [![Run Test Matrix](https://github.com/doctor-cornelius/django_powercrud/actions/workflows/pr_tests.yml/badge.svg)](https://github.com/doctor-cornelius/django_powercrud/actions/workflows/pr_tests.yml)
-[![codecov](https://codecov.io/github/doctor-cornelius/django-powercrud/branch/main/graph/badge.svg)](https://codecov.io/gh/doctor-cornelius/django_powercrud)
+[![codecov](https://codecov.io/github/doctor-cornelius/django-powercrud/branch/main/graph/badge.svg)](https://codecov.io/github/doctor-cornelius/django-powercrud)
 [![Python](https://img.shields.io/badge/python-3.12%20%7C%203.13%20%7C%203.14-blue)](#supported-versions)
 [![Django](https://img.shields.io/badge/django-4.2%20%7C%205.2-0C4B33)](#supported-versions)
 [![PyPI](https://img.shields.io/pypi/v/django-powercrud.svg)](https://pypi.org/project/django-powercrud/)
