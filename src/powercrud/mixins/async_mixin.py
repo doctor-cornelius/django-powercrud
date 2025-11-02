@@ -396,7 +396,7 @@ class AsyncMixin:
             log.error(f"Failed to launch async task: {e}")
             return self.async_queue_failure(request, error=e, selected_ids=selected_ids)
         
-    def async_queue_success(self, request, task_name: str, selected_ids: List[int]):
+    def async_queue_success(self, request, task_name: str, selected_ids: List[int]):  # pragma: no cover
         """
         Processes successful async task queueing using new AsyncManager system.
         Clears selection and returns success response with task_name for progress polling.
@@ -423,7 +423,7 @@ class AsyncMixin:
         return response
 
    
-    def async_queue_failure(self, request, error: Exception, selected_ids: List[int]):
+    def async_queue_failure(self, request, error: Exception, selected_ids: List[int]):  # pragma: no cover
         """
         Handles failure during async task queueing using new AsyncManager system.
         

@@ -56,6 +56,34 @@ def test_core_mixin_respects_excludes_and_form_fields():
     assert "title" in view.form_fields
 
 
+@pytest.mark.django_db
+def test_core_mixin_all_fields_and_excludes():
+    class AllFieldsView(CoreMixin):
+        model = Author
+        fields = "__all__"
+        properties = "__all__"
+        properties_exclude = ["has_bio"]
+        detail_fields = "__all__"
+        detail_properties = "__properties__"
+        detail_properties_exclude = ["has_bio"]
+        bulk_fields = ["name"]
+
+    view = AllFieldsView()
+    assert "books" not in view.fields
+    assert "has_bio" not in view.properties
+    assert "has_bio" not in view.detail_properties
+
+
+def test_core_mixin_invalid_property_raises():
+    class InvalidPropertyView(CoreMixin):
+        model = Author
+        fields = ["name"]
+        properties = ["missing"]
+
+    with pytest.raises(ValueError):
+        InvalidPropertyView()
+
+
 def test_core_mixin_invalid_fields_raise_value_error():
     class BrokenView(CoreMixin):
         model = Author

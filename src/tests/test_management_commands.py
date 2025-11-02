@@ -85,3 +85,66 @@ def test_mktemplate_handle_calls_single(monkeypatch, tmp_path):
     options, target_dir, app_template_dir = calls["single"]
     assert options["model"] == "Book"
     assert options["role"] == "list"
+
+
+@pytest.mark.django_db
+def test_cleanup_async_plain_output(monkeypatch, capsys):
+    dummy_summary = {
+        "active_tasks": 2,
+        "cleaned": {
+            "task-1": {"reason": "expired", "conflict_lock_keys": 1, "progress_entries": 3, "dashboard_records": 2},
+        },
+        "skipped": {"task-2": "still running"},
+    }
+
+    class DummyManager:
+        def cleanup_completed_tasks(self):
+            return dummy_summary
+
+    monkeypatch.setattr(cleanup_cmd, "AsyncManager", lambda: DummyManager())
+
+    with override_settings(POWERCRUD_SETTINGS={"ASYNC_ENABLED": True}):
+        call_command("pcrud_cleanup_async")
+
+    out = capsys.readouterr().out
+    assert "PowerCRUD Async Cleanup Summary" in out
+    assert "Cleaned 1 task(s)" in out
+    assert "Skipped 1 active task(s)" in out
+
+
+def test_copy_template_structure_creates_framework(tmp_path):
+    cmd = mktemplate_cmd.Command()
+    target_dir = tmp_path / "templates"
+    app_dir = target_dir / "demo"
+
+    cmd._copy_template_structure(target_dir, app_dir)
+
+    framework_dir = app_dir / cmd.template_prefix.split("/")[-1]
+    assert framework_dir.exists()
+    assert any(framework_dir.rglob("*.html")), "expected template files to be copied"
+
+
+def test_copy_single_template(tmp_path):
+    cmd = mktemplate_cmd.Command()
+    target_dir = tmp_path / "templates"
+    app_dir = target_dir / "demo"
+
+    options = {"model": "Widget", "role": "list"}
+    cmd._copy_single_template(options, target_dir, app_dir)
+
+    copied_file = app_dir / "widget_list.html"
+    assert copied_file.exists()
+    assert "object_list" in copied_file.read_text()
+
+
+def test_copy_all_model_templates(tmp_path):
+    cmd = mktemplate_cmd.Command()
+    target_dir = tmp_path / "templates"
+    app_dir = target_dir / "demo"
+
+    cmd._copy_all_model_templates("Widget", target_dir, app_dir)
+
+    expected = ["widget_list.html", "widget_detail.html", "widget_form.html", "widget_confirm_delete.html"]
+    copied = sorted(p.name for p in app_dir.iterdir())
+    for filename in expected:
+        assert filename in copied

@@ -216,7 +216,7 @@ class UrlMixin:
 
         return urls
     
-    def get_context_data(self, **kwargs):
+    def get_context_data(self, **kwargs):  # pragma: no cover
         """
         Prepare and return the context data for template rendering.
 

@@ -38,3 +38,42 @@ def test_validator_rejects_non_string_fields():
 def test_validator_requires_target_for_htmx():
     with pytest.raises(ValueError):
         PowerCRUDMixinValidator(use_htmx=True, default_htmx_target=None)
+
+
+def test_validator_accepts_valid_payload():
+    validator = PowerCRUDMixinValidator(
+        namespace="sample",
+        templates_path="powercrud/daisyUI",
+        base_template_path="powercrud/base.html",
+        use_crispy=False,
+        fields=["title"],
+        properties=["isbn"],
+        exclude=[],
+        properties_exclude=[],
+        detail_fields=["title"],
+        detail_exclude=[],
+        detail_properties=["isbn"],
+        detail_properties_exclude=[],
+        use_modal=False,
+        modal_id="modal",
+        modal_target="target",
+        use_htmx=True,
+        default_htmx_target="#content",
+        hx_trigger={"refresh": True},
+        form_fields=["title"],
+        form_fields_exclude=["isbn"],
+        table_pixel_height_other_page_elements=0,
+        table_max_height=50,
+        table_max_col_width=20,
+    )
+    assert validator.hx_trigger == {"refresh": True}
+
+
+def test_validator_rejects_bad_hx_trigger():
+    with pytest.raises(ValueError):
+        PowerCRUDMixinValidator(use_htmx=False, hx_trigger={1: "value"})
+
+
+def test_validator_rejects_bad_form_fields():
+    with pytest.raises(ValueError):
+        PowerCRUDMixinValidator(form_fields=[1, 2, 3])

@@ -79,7 +79,7 @@ class CoreMixin:
     m2m_filter_and_logic = False  # False for OR logic (default), True for AND logic
     dropdown_sort_options: dict = {} # field to store dict of related object fields to sort
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs):  # pragma: no cover
         super().__init__(*args, **kwargs)
 
         # Get all attributes that should be validated

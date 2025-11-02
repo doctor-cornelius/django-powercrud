@@ -89,6 +89,31 @@ def test_prepare_htmx_response_merges_success_trigger():
     assert trigger["refreshUrl"] == "/books/"
 
 
+def test_get_hx_trigger_handles_numeric_and_dict():
+    view = DummyHtmxView()
+    view.hx_trigger = 7
+    assert view.get_hx_trigger() == '{"7": true}'
+
+    view.hx_trigger = {"refresh": True}
+    assert view.get_hx_trigger() == '{"refresh": true}'
+
+    view.hx_trigger = {1: "value"}
+    with pytest.raises(TypeError):
+        view.get_hx_trigger()
+
+
+def test_prepare_htmx_response_success_and_error_headers():
+    view = DummyHtmxView()
+    response = HttpResponse()
+    result = view._prepare_htmx_response(response, context={"success": True})
+    assert "HX-Trigger" in result
+
+    view.use_modal = True
+    response = HttpResponse()
+    error_result = view._prepare_htmx_response(response, form_has_errors=True)
+    assert "HX-Retarget" in error_result
+
+
 def make_request(factory: RequestFactory, method: str = "get", data=None):
     rf_method = getattr(factory, method.lower())
     request = rf_method("/", data or {})
@@ -137,6 +162,66 @@ def test_selection_session_helpers_roundtrip():
 
     view.clear_selection_from_session(request)
     assert view.get_selected_ids_from_session(request) == []
+
+class DummyPartialResponse(HttpResponse):
+    def __init__(self, context):
+        super().__init__(content=b"")
+        self.context_data = context
+
+
+@pytest.mark.django_db
+def test_toggle_selection_view_updates_session(monkeypatch):
+    request = make_request(RequestFactory(), method="post")
+    view = DummyBulkView(request)
+
+    def fake_render(request, template, context):
+        return DummyPartialResponse(context)
+
+    monkeypatch.setattr(
+        "powercrud.mixins.bulk_mixin.selection_mixin.render",
+        fake_render,
+    )
+
+    response = view.toggle_selection_view(request, pk=5)
+    assert response.context_data["selected_count"] == 1
+    assert view.get_selected_ids_from_session(request) == ["5"]
+
+
+@pytest.mark.django_db
+def test_clear_selection_view_resets_state(monkeypatch):
+    request = make_request(RequestFactory(), method="post")
+    view = DummyBulkView(request)
+    view.save_selected_ids_to_session(request, [1, 2])
+
+    def fake_render(request, template, context):
+        return DummyPartialResponse(context)
+
+    monkeypatch.setattr(
+        "powercrud.mixins.bulk_mixin.selection_mixin.render",
+        fake_render,
+    )
+
+    response = view.clear_selection_view(request)
+    assert response.context_data["selected_count"] == 0
+    assert view.get_selected_ids_from_session(request) == []
+
+
+@pytest.mark.django_db
+def test_toggle_all_selection_view(monkeypatch):
+    request = make_request(RequestFactory(), method="post", data={"object_ids": ["1", "2", "3"]})
+    view = DummyBulkView(request)
+
+    def fake_render(request, template, context):
+        return DummyPartialResponse(context)
+
+    monkeypatch.setattr(
+        "powercrud.mixins.bulk_mixin.selection_mixin.render",
+        fake_render,
+    )
+
+    response = view.toggle_all_selection_view(request)
+    assert sorted(response.context_data["selected_ids"]) == ["1", "2", "3"]
+    assert sorted(view.get_selected_ids_from_session(request)) == ["1", "2", "3"]
 
 
 @pytest.mark.django_db

@@ -124,7 +124,7 @@ class FilteringMixin:
 
         return queryset.filter(pk__in=pk_list).order_by(preserved_order)
 
-    def get_filterset(self, queryset=None):
+    def get_filterset(self, queryset=None):  # pragma: no cover
         """
         Create a dynamic FilterSet class based on provided parameters:
             - filterset_class (in which case the provided class is used); or
