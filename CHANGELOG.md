@@ -1,3 +1,13 @@
+## 0.4.5 (2025-11-03)
+
+### Refactor
+
+- **(AsyncManager)**:  have get_urls also include powercrud namespace
+
+### Documentation
+
+- **(enhancements)**:  remove completed enhancements testing matrix and renovate
+
 ## 0.4.4 (2025-11-03)
 
 ## 0.4.3 (2025-11-02)
