@@ -44,7 +44,7 @@ dev = [
 ]
 docs = [
     "mkdocs>=1.6.1,<2",
-    "mkdocs-material>=9.6.22,<10",
+    "mkdocs-material>=9.6.23,<10",
     "mkdocs-mermaid2-plugin>=1.2.3,<2",
     "mkdocs-enumerate-headings-plugin>=0.6.2,<0.7",
     "mkdocs-awesome-pages-plugin>=2.10.1,<3"
