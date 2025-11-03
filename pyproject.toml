@@ -56,12 +56,12 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.sdist]
 include = [
-    "powercrud/**",
+    "src/powercrud/**",
     "README.md"
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["powercrud"]
+packages = ["src/powercrud"]
 
 [tool.coverage.run]
 source = ["powercrud"]
