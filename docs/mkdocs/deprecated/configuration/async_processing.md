@@ -63,7 +63,7 @@ Follow these steps in order:
    from powercrud.async_manager import AsyncManager
 
    urlpatterns = [
-       AsyncManager.get_url(),  # /powercrud/async/progress/
+       AsyncManager.get_urlpatterns(),  # registers /powercrud/async/progress/ under powercrud namespace
        ...
    ]
    ```

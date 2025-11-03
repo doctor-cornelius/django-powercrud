@@ -1008,7 +1008,7 @@ class AsyncManager:
             In urls.py:
             from powercrud.async_manager import AsyncManager
             urlpatterns = [
-                AsyncManager.get_url(),
+                AsyncManager.get_urlpatterns(),
                 # ...
             ]
         
@@ -1091,9 +1091,35 @@ class AsyncManager:
                 AsyncManager.get_url(),
                 # ...
             ]
+
+        Note:
+            This helper returns a bare ``path`` without registering the ``powercrud``
+            namespace. Prefer :meth:`get_urlpatterns` in downstream projects so the
+            bundled templates and mixins can reverse ``powercrud:async_progress``.
         """
         from django.urls import path
         return path(pattern, cls.as_view(), name=name)
+
+    @classmethod
+    def get_urlpatterns(cls, prefix: str = "powercrud/"):
+        """
+        Return a namespaced include for the async progress endpoint.
+
+        Downstream projects should add the helper once to their root ``urlpatterns``:
+
+        ```
+        urlpatterns = [
+            AsyncManager.get_urlpatterns(),
+            ...
+        ]
+        ```
+
+        This ensures the ``powercrud`` namespace exists so internal templates and mixins
+        can reverse ``powercrud:async_progress`` without additional configuration.
+        """
+        from django.urls import include, path
+
+        return path(prefix, include(("powercrud.urls", "powercrud"), namespace="powercrud"))
 
     def cleanup_dashboard_data(self, task_name: str) -> int:
         """Clean up any dashboard artifacts tracked for a task.

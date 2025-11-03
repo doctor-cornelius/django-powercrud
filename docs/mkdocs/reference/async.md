@@ -80,7 +80,7 @@ manager.validate_async_system()    # cache + qcluster
 
 ## Progress & HTMX endpoint
 
-The polling endpoint uses `AsyncManager.as_view()` (or `get_url`). Polling stops when the manager returns HTTP 286 with a final status:
+The polling endpoint uses `AsyncManager.as_view()` (exposed via `AsyncManager.get_url()` or the namespaced `get_urlpatterns()`). Polling stops when the manager returns HTTP 286 with a final status:
 
 ```json
 {

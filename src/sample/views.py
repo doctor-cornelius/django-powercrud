@@ -261,7 +261,7 @@ def async_task_detail(request, pk):
     template = f"sample/{framework}/async_task_detail.html"
     if request.htmx:
         template += "#pcrud_content"
-    progress_url = reverse('sample:powercrud_async_progress')
+    progress_url = reverse('powercrud:async_progress')
     context = {
         "record": record,
         "progress_url": progress_url,

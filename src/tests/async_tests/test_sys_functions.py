@@ -992,6 +992,15 @@ class TestProgressPolling(AsyncManagerTestMixin, TestCase):
         self.assertEqual(str(path_obj.pattern), 'powercrud/async/progress/')
         self.assertEqual(path_obj.name, 'powercrud_async_progress')
         self.assertTrue(callable(path_obj.callback))
+
+    def test_get_urlpatterns_returns_resolver(self):
+        """Ensure get_urlpatterns provides a namespaced include."""
+        resolver = AsyncManager.get_urlpatterns()
+
+        from django.urls import URLResolver
+        self.assertIsInstance(resolver, URLResolver)
+        self.assertEqual(str(resolver.pattern), 'powercrud/')
+        self.assertEqual(resolver.namespace, 'powercrud')
     
     def test_as_view_error_handling(self):
         """Test as_view handles internal errors gracefully."""

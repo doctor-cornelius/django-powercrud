@@ -108,7 +108,7 @@ Even when the work is not tied to a PowerCRUD view, you can reuse the HTMX polli
 
 ```python
 urlpatterns = [
-    AsyncManager.get_url(name="async-progress"),
+    AsyncManager.get_urlpatterns(),
 ]
 ```
 
