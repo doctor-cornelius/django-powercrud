@@ -92,6 +92,9 @@ The polling endpoint uses `AsyncManager.as_view()` (exposed via `AsyncManager.ge
 
 If you need to integrate the progress API elsewhere, import the view and mount it under your own URL. The modal markup in PowerCRUD’s templates is an example you can copy.
 
+!!! important
+    Add `AsyncManager.get_urlpatterns()` once in your **project-level** `urlpatterns` so Django registers the `powercrud` namespace. Only fall back to `get_url()` if you also wire the namespace yourself.
+
 ---
 
 ## Cleanup utilities

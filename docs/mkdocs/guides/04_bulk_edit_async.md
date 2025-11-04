@@ -57,23 +57,30 @@ python manage.py createcachetable powercrud_async_cache
 
 See the [async architecture reference](../reference/async.md#cache-design) for deeper background on how PowerCRUD uses the cache.
 
+???+ note "Redis Backend"
+
+    Prefer a Redis (or other network) backend once you move beyond local demos. For example:
+
+    ```python title="settings.py"
+    CACHES = {
+        "powercrud_async": {
+            "BACKEND": "django_redis.cache.RedisCache",
+            "LOCATION": f"redis://:{REDIS_PASSWORD}@redis.example.com:6379/3",
+            "OPTIONS": {
+                "CLIENT_CLASS": "django_redis.client.DefaultClient",
+                "SERIALIZER": "django_redis.serializers.json.JSONSerializer",
+            },
+            "KEY_PREFIX": "powercrud",
+            "TIMEOUT": None,
+        },
+    }
+    ```
+
 ---
 
-## 3. Point PowerCRUD at the async manager
+## 3. Optional: configure dashboard persistence
 
-Set the default manager so both the web view and worker agree on lifecycle behaviour:
-
-```python
-POWERCRUD_SETTINGS = {
-    # …
-    "ASYNC_MANAGER_DEFAULT": {
-        "manager_class": "powercrud.async_dashboard.ModelTrackingAsyncManager",
-        "config": {"record_model_path": "myapp.AsyncTaskRecord"},
-    },
-}
-```
-
-Alternatively, set `async_manager_class_path` (and optional `async_manager_config`) on specific views if you have multiple dashboards.
+You can add dashboard tracking later—async queueing works without it. When you are ready, point `ASYNC_MANAGER_DEFAULT` at `ModelTrackingAsyncManager` and follow [Section 05](05_async_dashboard.md) to create the dashboard model. For per-view overrides use `async_manager_class_path` / `async_manager_config`.
 
 ---
 
@@ -93,7 +100,7 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
 
 ---
 
-## 5. Expose the progress endpoint
+## 5. Expose the progress endpoint in project-level `urls.py`
 
 ```python
 # urls.py
@@ -106,6 +113,10 @@ urlpatterns = [
 ```
 
 The modal polls this endpoint automatically and stops once it receives HTTP 286.
+
+!!! warning "Project Level Not App Level"
+
+    Add this once in your **project-level** `urlpatterns` so Django registers the `powercrud` namespace. Do not also call `get_url()` separately; the include already exposes `/powercrud/async/progress/`.
 
 ---
 
@@ -128,16 +139,20 @@ You can run the cleanup manually or add `powercrud.schedules.cleanup_async_artif
 | “Conflict detected” message | Another async job holds locks on the same records; the dashboard shows the culprit. |
 | `ImproperlyConfigured` about cache | Ensure `CACHE_NAME` points to a shared backend (not LocMem/Dummy). |
 | Manager class errors | Confirm the manager path is importable and subclasses `AsyncManager`. |
+| `'powercrud' is not a registered namespace` | Include `AsyncManager.get_urlpatterns()` (or `powercrud.urls`) once in the project-level `urlpatterns`. |
+| `bulk_update_task() got an unexpected keyword argument 'manager_class'` | The worker is running an older PowerCRUD version—upgrade the package in the worker environment and restart `qcluster`. |
+
+Whenever you change async settings, update PowerCRUD, or adjust cache configuration, restart the `qcluster` worker so it reloads the latest code and settings.
 
 ---
 
-## 8. Dashboard optional (preview)
+## 8. Optional Async Task Dashboard
 
 If you configured `ModelTrackingAsyncManager`, you already have basic dashboard persistence—[Section 05](05_async_dashboard.md) dives into customising it. If you rolled your own manager, make sure lifecycle events (`create`, `progress`, `complete`, `fail`, `cleanup`) are handled or at least logged.
 
 Full command/reference details live in [configuration reference](../reference/config_options.md) and [management commands](../reference/mgmt_commands.md).
 
-### Key options
+## Key options
 
 | Setting | Default | Typical values | Purpose |
 |---------|---------|----------------|---------|
@@ -150,7 +165,7 @@ Full command/reference details live in [configuration reference](../reference/co
 | `CLEANUP_GRACE_PERIOD` | `86400` | seconds | How long to keep tasks in the active set. |
 | `MAX_TASK_DURATION` | `3600` | seconds | Consider tasks “stuck” after this time. |
 | `CLEANUP_SCHEDULE_INTERVAL` | `300` | seconds | Suggested interval when scheduling cleanup jobs. |
-| `ASYNC_MANAGER_DEFAULT` / `async_manager_class_path` | manager path | string | Ensure views and workers use the same manager. |
+| `ASYNC_MANAGER_DEFAULT` / `async_manager_class_path` | manager path | string | Optional: point at `ModelTrackingAsyncManager` (or a subclass) when you add dashboard persistence. |
 
 _Details for each option live in the [configuration reference](../reference/config_options.md)._ 
 
