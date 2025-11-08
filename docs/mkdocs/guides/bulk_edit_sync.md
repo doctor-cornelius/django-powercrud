@@ -1,4 +1,4 @@
-# 02. Bulk editing (synchronous)
+# Bulk Editing (Synchronous)
 
 Let users edit or delete multiple records at once without bringing async into the picture yet. This chapter shows the minimum configuration, common tweaks, and guardrails. Async queuing, progress, and conflict locks arrive in the next chapter.
 
@@ -6,9 +6,9 @@ Let users edit or delete multiple records at once without bringing async into th
 
 ## Prerequisites
 
-- [Section 01](./01_setup_core_crud.md) completed (PowerCRUD view up and running).
+- [Setup & Core CRUD basics](./setup_core_crud.md) completed (PowerCRUD view up and running).
 - HTMX + modals enabled (`use_htmx = True`, `use_modal = True`).
-- Your templates include the HTMX script and modal markup (as per [Section 01](./01_setup_core_crud.md)).
+- Your templates include the HTMX script and modal markup (as per [Setup & Core CRUD basics](./setup_core_crud.md)).
 
 ---
 
@@ -128,4 +128,4 @@ _See the [configuration reference](../reference/config_options.md) for full defi
 
 ## Next steps
 
-Bulk editing is now running synchronously. Continue with [04 Bulk editing (async)](04_bulk_edit_async.md) to move long-running operations into the background.
+Bulk editing is now running synchronously. Continue with [Bulk editing (async)](bulk_edit_async.md) to move long-running operations into the background.

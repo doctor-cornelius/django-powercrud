@@ -1,4 +1,4 @@
-# 03. Async Manager
+# Async Manager
 
 PowerCRUD ships a full async infrastructure (conflict locks, progress cache, lifecycle hooks) that you can reuse in plain Django code—no PowerCRUD views required. This chapter shows the building blocks so you can launch background work from management commands, signals, admin actions, or bespoke views. For a deeper architectural walkthrough, see the [async architecture reference](../reference/async.md).
 
@@ -159,4 +159,4 @@ Refer back to this guide or the API reference when wiring bespoke integrations.
 
 ## Next steps
 
-Use the manager to power any asynchronous workflow you need. When you are ready to queue bulk operations inside PowerCRUD, continue with [04 Bulk editing (async)](04_bulk_edit_async.md). For dashboards and lifecycle persistence, see [05 Async dashboard add-on](05_async_dashboard.md). Grab deeper architectural detail in the [async architecture reference](../reference/async.md).
+Use the manager to power any asynchronous workflow you need. When you are ready to queue bulk operations inside PowerCRUD, continue with [Bulk editing (async)](bulk_edit_async.md). For dashboards and lifecycle persistence, see [Async dashboard add-on](async_dashboard.md). Grab deeper architectural detail in the [async architecture reference](../reference/async.md).

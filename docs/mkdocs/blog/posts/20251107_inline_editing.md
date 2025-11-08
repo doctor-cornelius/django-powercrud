@@ -122,10 +122,10 @@ Inline editing lets operators tweak individual rows without breaking context or 
         3. Playwright: extend the existing suite with the inline scenarios (happy path, validation, guard, dependency, lock) and reuse current fixtures so we can run `pytest -m playwright`.
         4. Verification: run `pytest` (non-Playwright) then `pytest -m playwright`, and capture coverage deltas against `coverage.xml` for the inline mixin + templates.
 8. ☐ **Docs**
-    - ☐ Add cookbook-style docs showing configuration snippets, dependency examples, lock states, and the new inline JS hooks.
+    - ✅ Add cookbook-style docs showing configuration snippets, dependency examples, lock states, and the new inline JS hooks.
     - ☐ Call out that inline forms reuse the view’s `form_class` (or generated form), so any custom fields/widgets/omissions carry over; inline field lists must stay aligned with whatever that form actually exposes.
 9. ☐ **Future UX polish**
     - ☐ Explore lighter-weight discoverability (e.g., helper tooltip, iconography, first-run banner) so users realize cells are editable without guesswork.
-    - ☐ **URGENT** Fix the horrible jumping around of the whole table that happens when you click to open a row for inline editing. 
+    - ✅ **URGENT** Fix the horrible jumping around of the whole table that happens when you click to open a row for inline editing. 
 
 > 📝 **Sample dependency follow-up:** Right now `BookCRUDView`’s author→genre dependency is purely declarative—the models never limit genres per author. We still need a lightweight relationship (like an `Author.available_genres` M2M) plus form/queryset filtering so the inline widget visibly narrows its options when the parent field changes. Once that exists, the inline demo becomes self-validating and doubles as coverage for the dependency refresh endpoint.

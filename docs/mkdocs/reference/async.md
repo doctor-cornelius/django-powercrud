@@ -15,7 +15,7 @@ PowerCRUD’s async support consists of four cooperating pieces:
 | Worker functions (`powercrud.tasks`) | Execute the bulk update/delete in the background, calling `update_progress` and returning a result payload. | Writing your own worker functions or adding custom behavior. |
 | Dashboard / lifecycle consumers | Persist task status, show progress, notify users. | Using `ModelTrackingAsyncManager`, building your own manager, or wiring lifecycle events elsewhere. |
 
-The guides (Sections 03–05) explain how to configure these layers in your project. This reference dives into the architecture, cache layout, lifecycle flow, and troubleshooting patterns.
+The guides (Async Manager → Bulk editing (async) → Async dashboard add-on) explain how to configure these layers in your project. This reference dives into the architecture, cache layout, lifecycle flow, and troubleshooting patterns.
 
 ---
 
@@ -170,8 +170,8 @@ When in doubt, rerun the health checks (`validate_async_system`) to make sure bo
 
 ## Further reading
 
-- [Section 04 – Bulk editing (async)](../guides/04_bulk_edit_async.md) – end-to-end setup in a PowerCRUD view.
-- [Section 03 – Async manager outside PowerCRUD](../guides/03_async_manager.md) – using the helpers in custom code.
-- [Section 05 – Async dashboard add-on](../guides/05_async_dashboard.md) – persisting lifecycle data.
+- [Bulk editing (async)](../guides/bulk_edit_async.md) – end-to-end setup in a PowerCRUD view.
+- [Async Manager](../guides/async_manager.md) – using the helpers in custom code.
+- [Async dashboard add-on](../guides/async_dashboard.md) – persisting lifecycle data.
 - [Management commands](../reference/mgmt_commands.md) – cleanup and template utilities.
 - [Configuration options](../reference/config_options.md) – full list of async-related settings and defaults.

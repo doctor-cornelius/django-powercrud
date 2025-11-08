@@ -1,4 +1,4 @@
-# 06. Styling & Tailwind
+# Styling & Tailwind
 
 PowerCRUD ships with daisyUI/Tailwind defaults but you can bring your own CSS framework or customise tables/buttons/layout. This chapter covers the common knobs and Tailwind integration; deeper options live in the reference.
 
@@ -16,7 +16,7 @@ POWERCRUD_SETTINGS = {
 
 - **daisyUI** (Tailwind v4) is the maintained path.
 - Bootstrap 5 templates exist but lag behind—expect to tweak them.
-- Custom frameworks are possible by copying templates (see [Section 07](./07_customisation_tips.md)).
+- Custom frameworks are possible by copying templates (see [Customisation tips](./customisation_tips.md)).
 
 ---
 
@@ -48,7 +48,7 @@ These values control truncation/popovers and scrollable table height.
 
 ### Dropdown sorting
 
-`dropdown_sort_options` affects choices in forms, filters, and bulk editing (see [Section 02](./02_bulk_edit_sync.md)).
+`dropdown_sort_options` affects choices in forms, filters, and bulk editing (see [Bulk editing (synchronous)](./bulk_edit_sync.md)).
 
 ---
 
@@ -144,5 +144,5 @@ _See the [configuration reference](../reference/config_options.md) for full deta
 
 ## Next steps
 
-- Need to override templates or extend components? Head to [07 Customisation tips](07_customisation_tips.md).
+- Need to override templates or extend components? Head to [Customisation tips](customisation_tips.md).
 - Looking for exhaustive settings? Check the [configuration reference](../reference/config_options.md).

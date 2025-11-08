@@ -122,7 +122,7 @@ module.exports = {
 }
 ```
 
-See [Section 06](../guides/06_styling_tailwind.md) for more details.
+See [Styling & Tailwind](../guides/styling_tailwind.md) for more details.
 
 ---
 

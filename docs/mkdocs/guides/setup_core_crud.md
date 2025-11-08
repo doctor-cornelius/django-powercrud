@@ -1,4 +1,4 @@
-# 01. Setup & Core CRUD basics
+# Setup & Core CRUD basics
 
 Kick off your project by wiring PowerCRUD into an existing Django site, creating the first CRUD view, and enabling the core niceties (filtering, modals, pagination). Everything that follows in later chapters builds on this foundation.
 
@@ -10,7 +10,7 @@ Kick off your project by wiring PowerCRUD into an existing Django site, creating
 - Python 3.12+ (Docker images currently default to Python 3.14).
 - Optional but recommended: virtual environment to isolate dependencies.
 
-If you have not yet installed PowerCRUD and its base dependencies, complete the steps in [Getting Started](../getting_started.md) first.
+If you have not yet installed PowerCRUD and its base dependencies, complete the steps in [Getting Started](./getting_started.md) first.
 
 ---
 
@@ -26,7 +26,7 @@ PowerCRUD pulls in a few helpers automatically:
 - `pydantic`
 - `django-htmx`
 
-For styling we assume the default daisyUI/Tailwind stack; you can switch later (see [this section](./06_styling_tailwind.md)).
+For styling we assume the default daisyUI/Tailwind stack; you can switch later (see [Styling & Tailwind](./styling_tailwind.md)).
 
 ---
 
@@ -63,7 +63,7 @@ POWERCRUD_SETTINGS = {
 }
 ```
 
-If you plan to use async later, you’ll add more keys in [Section 03](./03_async_manager.md) but nothing else is required now.
+If you plan to use async later, you’ll add more keys in [Async Manager](./async_manager.md) but nothing else is required now.
 
 ### HTMX middleware
 
@@ -124,7 +124,7 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
   - load the HTMX script (and any other front-end assets you rely on),
   - include the modal markup/powercrud partials (see the example in `powercrud/base.html`),
   - provide the standard `{% block content %}` that PowerCRUD will populate.
-- If you want to override PowerCRUD’s templates later, set `templates_path` or copy them with `pcrud_mktemplate` (covered in Section 07).
+- If you want to override PowerCRUD’s templates later, set `templates_path` or copy them with `pcrud_mktemplate` (covered in [Customisation tips](./customisation_tips.md)).
 
 ---
 
@@ -192,7 +192,7 @@ Pagination works with or without HTMX; when HTMX is enabled it loads pages into 
 | Show computed values | `properties = ["is_overdue"]` | Use `property.fget.short_description` to rename columns. |
 | Custom detail view | `detail_fields`, `detail_properties` | Accept `__all__`, `__fields__`, `__properties__`, or explicit lists. Defaults mirror list settings. |
 | Custom URL prefix | `url_base = "active-projects"` | Useful if multiple CRUD views share a model. |
-| Additional actions | `extra_buttons`, `extra_actions` | Add top-level or per-row buttons; see [Section 07](./07_customisation_tips.md). |
+| Additional actions | `extra_buttons`, `extra_actions` | Add top-level or per-row buttons; see [Customisation tips](./customisation_tips.md). |
 
 ### Field & property options
 
@@ -206,7 +206,7 @@ Pagination works with or without HTMX; when HTMX is enabled it loads pages into 
 
 ### Buttons & extra actions
 
-`extra_buttons` and `extra_actions` dictionaries describe additional top-level buttons or per-row actions (URL name, label, modal behaviour, extra attributes). See [Section 07](./07_customisation_tips.md) for full examples.
+`extra_buttons` and `extra_actions` dictionaries describe additional top-level buttons or per-row actions (URL name, label, modal behaviour, extra attributes). See [Customisation tips](./customisation_tips.md) for full examples.
 
 ### Key options
 
@@ -253,5 +253,5 @@ If something renders incorrectly, double-check:
 
 ## Next steps
 
-- Move on to [02 Bulk editing (synchronous)](02_bulk_edit_sync.md) to enable multi-record edit/delete.
+- Move on to [Bulk editing (synchronous)](./bulk_edit_sync.md) to enable multi-record edit/delete.
 - Need more detail on individual settings? See the [Configuration reference](../reference/config_options.md).

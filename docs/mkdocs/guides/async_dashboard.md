@@ -1,4 +1,4 @@
-# 05. Async dashboard add-on
+# Async dashboard add-on
 
 Turn lifecycle events into visible status. Whether you use the bundled `ModelTrackingAsyncManager` or build your own, this chapter covers how to persist task metadata, expose it in a dashboard, and customise formats.
 
@@ -153,4 +153,4 @@ See the sample app and reference for full implementations.
 
 ## Next steps
 
-If you want to tweak the look and feel—modals, tables, Tailwind safelist—continue with [06 Styling & Tailwind](06_styling_tailwind.md). Otherwise, consult the [reference](../reference/mgmt_commands.md) for clean-up commands and settings.
+If you want to tweak the look and feel—modals, tables, Tailwind safelist—continue with [Styling & Tailwind](styling_tailwind.md). Otherwise, consult the [reference](../reference/mgmt_commands.md) for clean-up commands and settings.

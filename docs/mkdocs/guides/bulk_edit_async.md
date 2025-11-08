@@ -1,13 +1,13 @@
-# 04. Bulk editing (async)
+# Bulk Editing (Async)
 
-When bulk updates take too long for a request/response cycle, move them to the background with django-q2. This chapter builds on [Section 02](./02_bulk_edit_sync.md) by adding async queueing, conflict locks, progress polling, and cleanup.
+When bulk updates take too long for a request/response cycle, move them to the background with django-q2. This chapter builds on [Bulk editing (synchronous)](./bulk_edit_sync.md) by adding async queueing, conflict locks, progress polling, and cleanup.
 
 ---
 
 ## Prerequisites
 
-- [Section 02](./02_bulk_edit_sync.md) completed (synchronous bulk editing works).
-- [Section 03](./03_async_manager.md) reviewed so you understand the async infrastructure.
+- [Bulk editing (synchronous)](./bulk_edit_sync.md) completed.
+- [Async Manager](./async_manager.md) reviewed so you understand the infrastructure.
 - `django-q2` installed and a worker process ready (`python manage.py qcluster`).
 - Shared cache configured (Redis, DatabaseCache, etc.). LocMem/Dummy caches will not work.
 
@@ -80,7 +80,7 @@ See the [async architecture reference](../reference/async.md#cache-design) for d
 
 ## 3. Optional: configure dashboard persistence
 
-You can add dashboard tracking later—async queueing works without it. When you are ready, point `ASYNC_MANAGER_DEFAULT` at `ModelTrackingAsyncManager` and follow [Section 05](05_async_dashboard.md) to create the dashboard model. For per-view overrides use `async_manager_class_path` / `async_manager_config`.
+You can add dashboard tracking later—async queueing works without it. When you are ready, point `ASYNC_MANAGER_DEFAULT` at `ModelTrackingAsyncManager` and follow [Async dashboard add-on](async_dashboard.md) to create the dashboard model. For per-view overrides use `async_manager_class_path` / `async_manager_config`.
 
 ---
 
@@ -148,7 +148,7 @@ Whenever you change async settings, update PowerCRUD, or adjust cache configurat
 
 ## 8. Optional Async Task Dashboard
 
-If you configured `ModelTrackingAsyncManager`, you already have basic dashboard persistence—[Section 05](05_async_dashboard.md) dives into customising it. If you rolled your own manager, make sure lifecycle events (`create`, `progress`, `complete`, `fail`, `cleanup`) are handled or at least logged.
+If you configured `ModelTrackingAsyncManager`, you already have basic dashboard persistence—[Async dashboard add-on](async_dashboard.md) dives into customising it. If you rolled your own manager, make sure lifecycle events (`create`, `progress`, `complete`, `fail`, `cleanup`) are handled or at least logged.
 
 Full command/reference details live in [configuration reference](../reference/config_options.md) and [management commands](../reference/mgmt_commands.md).
 
@@ -175,11 +175,11 @@ _Details for each option live in the [configuration reference](../reference/conf
 
 ### Nested workflows
 
-If child objects perform additional work during `save()` while the parent task is running async, call `skip_nested_async()` and `register_descendant_conflicts()` (Section 03) to avoid launching new tasks inside the existing job and to bring descendant IDs under the same conflict lock. The sample project’s `Book.save()` shows this pattern in practice.
+If child objects perform additional work during `save()` while the parent task is running async, call `skip_nested_async()` and `register_descendant_conflicts()` (see [Async Manager](./async_manager.md)) to avoid launching new tasks inside the existing job and to bring descendant IDs under the same conflict lock. The sample project’s `Book.save()` shows this pattern in practice.
 
 ---
 
 ## Next steps
 
-- Need a refresher on the underlying helpers? Revisit [03 Async manager outside PowerCRUD](03_async_manager.md).
-- Ready to surface lifecycle data? Continue with [05 Async dashboard add-on](05_async_dashboard.md).
+- Need a refresher on the underlying helpers? Revisit [Async Manager](async_manager.md).
+- Ready to surface lifecycle data? Continue with [Async dashboard add-on](async_dashboard.md).

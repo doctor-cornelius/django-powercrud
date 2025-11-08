@@ -2,7 +2,7 @@
 
 !!! tip "Ready after setup?"
 
-    Once you have the basics installed, continue with [01 Setup & Core CRUD basics](guides/01_setup_core_crud.md) for the full walkthrough.
+    Once you have the basics installed, continue with [Setup & Core CRUD basics](./setup_core_crud.md) for the full walkthrough.
 
 ## Installation
 
@@ -61,7 +61,7 @@ INSTALLED_APPS = [
 POWERCRUD_CSS_FRAMEWORK = 'daisyui'  # or 'bootstrap5'
 ```
 
-**Important:** If using Tailwind CSS (default), ensure Tailwind includes powercrud's classes in its build process. See the [Styling guide](guides/06_styling_tailwind.md#tailwind-integration) for details.
+**Important:** If using Tailwind CSS (default), ensure Tailwind includes powercrud's classes in its build process. See the [Styling guide](./styling_tailwind.md#tailwind-integration) for details.
 
 ## Quick Start Tutorial
 
@@ -124,7 +124,7 @@ That's it! You now have a fully-featured CRUD interface with filtering, paginati
 
 ## Next Steps
 
-- **[Core configuration](guides/01_setup_core_crud.md#7-common-adjustments)** - Field control and basic settings
-- **[HTMX & Modals](guides/01_setup_core_crud.md#modals)** - Interactive features
-- **[Filtering](guides/01_setup_core_crud.md#filtering-sorting)** - Advanced search and filter options
-- **[Bulk operations](guides/02_bulk_edit_sync.md)** - Edit multiple records at once
+- **[Core configuration](./setup_core_crud.md#7-common-adjustments)** - Field control and basic settings
+- **[HTMX & Modals](./setup_core_crud.md#modals)** - Interactive features
+- **[Filtering](./setup_core_crud.md#filtering-sorting)** - Advanced search and filter options
+- **[Bulk operations](./bulk_edit_sync.md)** - Edit multiple records at once

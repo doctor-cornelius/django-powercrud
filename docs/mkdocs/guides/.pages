@@ -1,10 +1,11 @@
-title: Getting Started
+title: Setup Guides
 arrange:
   - getting_started.md
-  - 01_setup_core_crud.md
-  - 02_bulk_edit_sync.md
-  - 03_async_manager.md
-  - 04_bulk_edit_async.md
-  - 05_async_dashboard.md
-  - 06_styling_tailwind.md
-  - 07_customisation_tips.md
+  - setup_core_crud.md
+  - inline_editing.md
+  - bulk_edit_sync.md
+  - async_manager.md
+  - bulk_edit_async.md
+  - async_dashboard.md
+  - styling_tailwind.md
+  - customisation_tips.md

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import copy
 import json
-from typing import Any, Optional
+from typing import Any, Optional, Sequence
 
 from django.http import (Http404, HttpResponse, HttpResponseBadRequest,
                          HttpResponseForbidden)
@@ -13,6 +13,9 @@ from django.utils.formats import date_format
 from django.forms.forms import NON_FIELD_ERRORS
 
 from powercrud.templatetags import powercrud as powercrud_tags
+from powercrud.logging import get_logger
+
+log = get_logger(__name__)
 
 
 class InlineEditingMixin:
@@ -171,6 +174,184 @@ class InlineEditingMixin:
             context,
             request=self.request,
         )
+
+    def _resolve_inline_field_list(self, source: Sequence[str] | None) -> list[str]:
+        if not source:
+            return []
+        all_editable = set(self._get_all_editable_fields())
+        return [field for field in source if field in all_editable]
+
+    def _get_inline_form_field_names(self) -> list[str]:
+        """
+        Return the set of field names exposed by the view's form.
+        """
+        try:
+            form_class = self.get_form_class()
+        except Exception:
+            return []
+
+        base_fields = getattr(form_class, "base_fields", None)
+        if base_fields:
+            return list(base_fields.keys())
+
+        try:
+            form = form_class()
+        except Exception:
+            return []
+        fields = getattr(form, "fields", None)
+        if fields:
+            return list(fields.keys())
+        return []
+
+    def _filter_inline_fields_by_form(self, fields: list[str]) -> list[str]:
+        if not fields:
+            return []
+        form_field_names = set(self._get_inline_form_field_names())
+        if not form_field_names:
+            return fields
+
+        filtered = [field for field in fields if field in form_field_names]
+        missing = sorted(set(fields) - set(filtered))
+        if missing:
+            log.warning(
+                "Inline edit fields %s ignored because they are not present on the form_class for %s",
+                missing,
+                self.__class__.__name__,
+            )
+        return filtered
+
+    def get_inline_edit_fields(self) -> list[str]:
+        """
+        Return the list of fields that should be editable inline.
+        Falls back to the form_fields list so inline and modal forms stay aligned.
+        """
+        if not self.get_inline_editing():
+            return []
+
+        config = self.inline_edit_fields
+        if not config:
+            return self._filter_inline_fields_by_form(self._resolve_inline_field_list(self.form_fields))
+
+        if config == '__all__':
+            return self._filter_inline_fields_by_form(self._get_all_editable_fields())
+
+        if config == '__fields__':
+            return self._filter_inline_fields_by_form(self._resolve_inline_field_list(self.fields))
+
+        return self._filter_inline_fields_by_form(self._resolve_inline_field_list(config))
+
+    def _resolve_inline_endpoint(self, endpoint_name: str | None) -> str | None:
+        """
+        Convert a named endpoint into a URL if possible.
+        """
+        if not endpoint_name:
+            return None
+        resolver = getattr(self, "safe_reverse", None)
+        if not callable(resolver):
+            return None
+        try:
+            return resolver(endpoint_name)
+        except Exception:
+            return None
+
+    def get_inline_field_dependencies(self) -> dict[str, dict[str, Any]]:
+        """
+        Return dependency metadata for inline fields, including resolved endpoints.
+        """
+        dependencies = self.inline_field_dependencies or {}
+        inline_fields = set(self.get_inline_edit_fields())
+        endpoint_getter = getattr(self, "get_inline_dependency_endpoint_name", None)
+        default_endpoint_name = endpoint_getter() if callable(endpoint_getter) else None
+        default_endpoint_url = self._resolve_inline_endpoint(default_endpoint_name)
+
+        resolved: dict[str, dict[str, Any]] = {}
+        for field, meta in dependencies.items():
+            if not isinstance(meta, dict):
+                continue
+            if inline_fields and field not in inline_fields:
+                log.warning(
+                    "Inline dependency for '%s' ignored because the field is not inline-editable on %s",
+                    field,
+                    self.__class__.__name__,
+                )
+                continue
+            entry = dict(meta)
+            endpoint_name = entry.get("endpoint_name") or default_endpoint_name
+            entry["endpoint_name"] = endpoint_name
+            entry["endpoint_url"] = (
+                self._resolve_inline_endpoint(endpoint_name) or default_endpoint_url
+            )
+
+            depends_on = entry.get("depends_on") or []
+            valid_parents = [parent for parent in depends_on if not inline_fields or parent in inline_fields]
+            missing_parents = sorted(set(depends_on) - set(valid_parents))
+            if missing_parents:
+                log.warning(
+                    "Inline dependency for '%s' references non-inline parent fields %s on %s",
+                    field,
+                    missing_parents,
+                    self.__class__.__name__,
+                )
+            entry["depends_on"] = valid_parents
+            if not valid_parents:
+                log.warning(
+                    "Inline dependency for '%s' ignored because it has no valid parent fields on %s",
+                    field,
+                    self.__class__.__name__,
+                )
+                continue
+            resolved[field] = entry
+        return resolved
+
+    def can_inline_edit(self, obj, request) -> bool:
+        """
+        Determine whether the provided object can be edited inline for this request.
+        """
+        if not self.get_inline_editing():
+            return False
+
+        if obj is None:
+            return False
+
+        if self.is_inline_row_locked(obj):
+            return False
+
+        perm = getattr(self, "inline_edit_requires_perm", None)
+        user = getattr(request, 'user', None)
+
+        if perm:
+            if not user or not user.has_perm(perm):
+                return False
+
+        allowed_callable = getattr(self, "inline_edit_allowed", None)
+        if callable(allowed_callable):
+            return bool(allowed_callable(obj, request))
+
+        return True
+
+    def is_inline_row_locked(self, obj) -> bool:
+        """
+        Check whether the provided object is currently locked by an async conflict.
+        """
+        if obj is None:
+            return False
+
+        pk = getattr(obj, 'pk', None)
+        if pk in (None, ''):
+            return False
+
+        conflict_enabled = getattr(self, 'get_conflict_checking_enabled', None)
+        if not callable(conflict_enabled) or not conflict_enabled():
+            return False
+
+        checker = getattr(self, '_check_single_record_conflict', None)
+        if not callable(checker):
+            return False
+
+        try:
+            return bool(checker(pk))
+        except Exception:
+            return False
 
     def _build_inline_row_payload(self, obj) -> dict[str, Any]:
         object_list_context = powercrud_tags.object_list(

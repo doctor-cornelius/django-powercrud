@@ -24,7 +24,7 @@ powercrud comes with these features built-in, specifically for user-facing CRUD 
 
 ## Start Here
 
-- First time? Begin with [Getting Started](getting_started.md) for installation and prerequisites, then continue with [01 Setup & Core CRUD basics](guides/01_setup_core_crud.md).
+- First time? Begin with [Getting Started](guides/getting_started.md) for installation and prerequisites, then continue with [Setup & Core CRUD basics](guides/setup_core_crud.md).
 - Already up and running? Jump straight to the chapter that matches what you need next in the “Guides” section of the sidebar.
 
 ## Quick Example
@@ -61,4 +61,4 @@ class ProjectView(powercrudMixin, CRUDView):
     properties = ["is_overdue", "days_remaining"]
 ```
 
-See the **[Getting Started](getting_started.md)** section for more details.
+See the **[Getting Started](guides/getting_started.md)** section for more details.

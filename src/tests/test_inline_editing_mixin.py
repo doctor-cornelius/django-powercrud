@@ -11,6 +11,7 @@ from django.test import RequestFactory
 from django.utils import timezone
 
 from powercrud.mixins.core_mixin import CoreMixin
+from powercrud.mixins.form_mixin import FormMixin
 from powercrud.mixins.inline_editing_mixin import InlineEditingMixin
 from sample.models import Author, Book, Genre
 
@@ -369,7 +370,7 @@ def test_inline_dependency_requires_field_param(sample_book):
     assert response.status_code == 400
 
 
-class CoreHarness(CoreMixin):
+class CoreHarness(FormMixin, InlineEditingMixin, CoreMixin):
     """Lightweight CoreMixin harness to exercise inline helpers."""
 
     model = Book
@@ -411,10 +412,56 @@ def test_inline_edit_fields_default_to_form_fields():
 @pytest.mark.django_db
 def test_inline_field_dependencies_resolve_endpoint():
     view = CoreHarness()
+    view.inline_edit_fields = ["title", "isbn", "author", "genres"]
+    view.form_fields = ["title", "isbn", "author", "genres"]
     view.inline_field_dependencies = {"genres": {"depends_on": ["author"]}}
     deps = view.get_inline_field_dependencies()
     assert deps["genres"]["endpoint_url"] == "/resolved/"
     assert deps["genres"]["depends_on"] == ["author"]
+
+
+@pytest.mark.django_db
+def test_inline_edit_fields_intersects_form_fields(caplog):
+    class InlineMismatchHarness(CoreHarness):
+        inline_edit_fields = ["title", "isbn"]
+        form_fields = ["title"]
+
+    view = InlineMismatchHarness()
+    with caplog.at_level("WARNING"):
+        fields = view.get_inline_edit_fields()
+
+    assert fields == ["title"]
+    assert "isbn" in caplog.text
+
+
+@pytest.mark.django_db
+def test_inline_dependency_warns_when_child_not_inline(caplog):
+    view = CoreHarness()
+    view.inline_field_dependencies = {"genres": {"depends_on": ["author"]}}
+
+    with caplog.at_level("WARNING"):
+        deps = view.get_inline_field_dependencies()
+
+    assert deps == {}
+    assert "ignored because the field is not inline-editable" in caplog.text
+
+
+@pytest.mark.django_db
+def test_inline_dependency_filters_invalid_parents(caplog):
+    view = CoreHarness()
+    view.inline_edit_fields = ["title", "isbn", "author", "genres"]
+    view.form_fields = ["title", "isbn", "author", "genres"]
+    view.inline_field_dependencies = {
+        "genres": {
+            "depends_on": ["author", "missing"],
+        }
+    }
+
+    with caplog.at_level("WARNING"):
+        deps = view.get_inline_field_dependencies()
+
+    assert deps["genres"]["depends_on"] == ["author"]
+    assert "non-inline parent fields" in caplog.text
 
 
 class DummyCache(dict):
@@ -483,5 +530,3 @@ def test_inline_lock_metadata_includes_user_and_label(sample_book):
     assert metadata["task"] == "task-123"
     assert metadata["lock_key"] == lock_key
     assert "Casey" in metadata["label"]
-
-

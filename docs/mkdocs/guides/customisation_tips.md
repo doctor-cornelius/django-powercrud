@@ -1,4 +1,4 @@
-# 07. Customisation tips
+# Customisation tips
 
 Once the basics are in place you may want to tailor templates, extend mixins, or integrate PowerCRUD into broader workflows. This chapter rounds up the common tweaks and points to deeper references.
 
@@ -81,7 +81,7 @@ Button dictionaries support additional keys (HTMX targets, extra attributes)—s
 
 ## 4. Integrate with other workflows
 
-- **Signals or admin** – Import the same async helpers ([Section 03](./03_async_manager.md)) to queue work or enforce locks outside PowerCRUD.
+- **Signals or admin** – Import the same async helpers ([Async Manager](./async_manager.md)) to queue work or enforce locks outside PowerCRUD.
 - **Notifications** – Override `async_task_lifecycle` in your manager to send emails/slack messages on `fail`/`complete`.
 - **Audit logging** – Hook into lifecycle events or override CRUD methods to push entries to your logging system.
 
