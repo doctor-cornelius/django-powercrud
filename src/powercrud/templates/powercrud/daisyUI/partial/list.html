@@ -1,4 +1,4 @@
-{% load partials %}
+{% load partials powercrud %}
 
 {% if use_crispy %}
     {% load crispy_forms_tags %}
@@ -50,13 +50,83 @@
         will-change: transform;
         backface-visibility: hidden;
     }
+
+    .inline-edit-trigger {
+        cursor: pointer;
+        border-radius: 0.25rem;
+        padding: 0.25rem 0.15rem;
+        padding-right: calc(0.15rem + var(--pc-inline-icon-buffer, 2.25ch));
+        transition: background-color 0.1s ease;
+    }
+
+    td[data-inline-cell="true"] {
+        min-width: calc(var(--pc-inline-icon-buffer, 2.25ch) + 2ch);
+    }
+
+    .inline-edit-trigger:focus-visible,
+    .inline-edit-trigger:hover {
+        outline: 2px solid hsl(var(--p));
+        outline-offset: 2px;
+        background-color: hsl(var(--b2));
+    }
+
+    .pc-actions-inline.hidden {
+        display: none;
+    }
+
+    tr[data-inline-active="true"] {
+        position: relative;
+        outline: 2px solid rgba(251, 191, 36, 0.85);
+        outline-offset: -2px;
+        background-color: rgba(251, 191, 36, 0.12);
+        box-shadow: inset 0 0 0 999px rgba(251, 191, 36, 0.05);
+    }
+
+    tr[data-inline-active="true"] .inline-field-widget {
+        background-color: rgba(251, 191, 36, 0.15);
+        border-radius: 0.35rem;
+        box-shadow: inset 0 0 0 1px rgba(251, 191, 36, 0.35);
+        display: flex;
+        align-items: center;
+        width: 100%;
+        min-width: 0;
+    }
+
+    tr[data-inline-active="true"] .inline-field-widget input,
+    tr[data-inline-active="true"] .inline-field-widget select,
+    tr[data-inline-active="true"] .inline-field-widget textarea {
+        background-color: transparent;
+        width: 100%;
+        min-width: 0;
+        max-width: 100%;
+    }
+
+    tr[data-inline-active="true"] > td {
+        overflow: hidden;
+        box-sizing: border-box;
+    }
+
+    .inline-row-attention {
+        animation: inline-row-pulse 0.8s ease;
+    }
+
+    @keyframes inline-row-pulse {
+        0% {
+            box-shadow: 0 0 0 0 hsla(var(--p) / 0.35);
+        }
+        100% {
+            box-shadow: 0 0 0 12px hsla(var(--p) / 0);
+        }
+    }
 </style>
+{% with inline_enabled=inline_edit.enabled %}
 
 <div class="overflow-x-auto table-max-height"
     style="overflow-y: auto; width: fit-content; padding-right: 20px;"
     {% if enable_bulk_edit %}data-selection-key="{{ keyBase }}_{{ selection_key_suffix }}_selected"{% endif %}
     >
-    <table class="table {{ table_classes }} w-auto">
+    <table class="table {{ table_classes }} w-auto"
+        {% if inline_enabled %}data-inline-enabled="true"{% endif %}>
         <thead>
             <tr>
                 {% if enable_bulk_edit %}
@@ -106,30 +176,81 @@
             </tr>
         </thead>
             <tbody>
-                {% for object in object_list %}
-                <tr class="text-center hover {% if object.is_selected %}bg-base-200{% endif %}">
+                {% for row in object_list %}
+                <tr
+                    {% if row.row_id %}id="{{ row.row_id }}"{% endif %}
+                    class="text-center hover {% if row.is_selected %}bg-base-200{% endif %}"
+                    data-inline-row="true"
+                    {% if row.inline_blocked_reason %}data-inline-status="{{ row.inline_blocked_reason }}"{% endif %}
+                    {% if row.inline_url %}data-inline-row-url="{{ row.inline_url }}"{% endif %}
+                >
                     {% if enable_bulk_edit %}
                     <!-- Row selection checkbox -->
-                    <td class="py-0 align-middle">
-                        <input type="checkbox"
-                               class="checkbox checkbox-sm row-select-checkbox"
-                               data-id="{{ object.id }}"
-                               {% if object.id|stringformat:"s" in selected_ids %}checked{% endif %}
-                               onchange="handleRowSelectionChange(this)"
-                               hx-post="{{ list_view_url }}toggle-selection/{{ object.id }}/"
-                               hx-target="#bulk-actions-container">
-                    </td>
+        <td class="py-0 align-middle">
+            <input type="checkbox"
+                   class="checkbox checkbox-sm row-select-checkbox"
+                   data-id="{{ row.id }}"
+                   {% if row.id|stringformat:"s" in selected_ids %}checked{% endif %}
+                   onchange="handleRowSelectionChange(this)"
+                   hx-post="{{ list_view_url }}toggle-selection/{{ row.id }}/"
+                   hx-target="#bulk-actions-container">
+        </td>
                     {% endif %}
                     
-                    {% for field in object.fields %}
+                    {% for cell in row.cells %}
+                        {% with value_str=cell.value|stringformat:"s" %}
                     <td class="{% if forloop.first %}font-medium{% endif %} py-0 align-middle px-2 truncate table-column-width"
-                        {% if not field|safe|stringformat:"s"|first in "<" %}data-tippy-content="{{field}}"{% endif %}>
-                        {{ field }}
+                        data-field-name="{{ cell.name }}"
+                        {% if value_str|slice:":1" != "<" %}data-tippy-content="{{ cell.value }}"{% endif %}
+                        {% if cell.is_inline_editable %}data-inline-cell="true"{% endif %}
+                        {% if cell.dependency %}
+                            data-inline-dependent-field="{{ cell.name }}"
+                            {% if cell.dependency.depends_on %}
+                                data-inline-depends-on="{{ cell.dependency.depends_on|join:',' }}"
+                            {% endif %}
+                            data-inline-endpoint="{{ cell.dependency.endpoint_url|default:inline_edit.dependency_endpoint_url }}"
+                        {% endif %}
+                    >
+        {% if inline_enabled and row.inline_allowed and cell.is_inline_editable %}
+            {% with align_class=cell.align %}
+            <button type="button"
+                    class="inline-edit-trigger w-full px-0 {% if align_class == 'center' %}flex justify-center text-center{% else %}text-left{% endif %}"
+                    data-inline-field="{{ cell.name }}"
+                    {% if row.inline_url %}
+                        hx-get="{{ row.inline_url }}"
+                        hx-target="#{{ row.row_id }}"
+                        hx-swap="outerHTML"
+                    {% endif %}
+                    hx-trigger="click, keyup[key=='Enter'], keyup[key==' ']"
+                    >
+                <span class="inline-flex whitespace-nowrap {% if align_class == 'center' %}items-center justify-center{% else %}w-full{% endif %}">
+                    {{ cell.value }}
+                </span>
+            </button>
+            {% endwith %}
+        {% else %}
+            <div class="w-full {% if cell.align == 'center' %}text-center{% else %}text-left{% endif %}">
+                {{ cell.value }}
+            </div>
+        {% endif %}
                     </td>
+                        {% endwith %}
                     {% endfor %}
-                    <td class="text-right py-1 align-middle">
-                        {{ object.actions }}
-                    </td>
+    <td class="text-right py-1 align-middle" data-inline-actions="true">
+        <div class="pc-actions-default">
+            {{ row.actions }}
+        </div>
+        {% if inline_enabled %}
+        <div class="pc-actions-inline hidden items-center justify-end gap-2" data-inline-action-panel>
+            <button type="button" class="btn btn-xs btn-primary" data-inline-save>
+                Save
+            </button>
+            <button type="button" class="btn btn-xs btn-ghost" data-inline-cancel>
+                Cancel
+            </button>
+        </div>
+        {% endif %}
+    </td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -139,3 +260,167 @@
 {% if enable_bulk_edit %}
 <!-- No selection restore JS here; handled globally in object_list.html -->
 {% endif %}
+{% endwith %}
+
+{% partialdef inline_row_display %}
+{% with inline_enabled=inline_config.enabled %}
+<tr
+    {% if row.row_id %}id="{{ row.row_id }}"{% endif %}
+    class="text-center hover"
+    data-inline-row="true"
+    {% if row.inline_blocked_reason %}data-inline-status="{{ row.inline_blocked_reason }}"{% endif %}
+    {% if row.inline_url %}data-inline-row-url="{{ row.inline_url }}"{% endif %}
+>
+    {% if enable_bulk_edit %}
+    <td class="py-0 align-middle">
+        <input type="checkbox"
+               class="checkbox checkbox-sm row-select-checkbox"
+               data-id="{{ row.id }}"
+               {% if row.id|stringformat:"s" in selected_ids %}checked{% endif %}
+               onchange="handleRowSelectionChange(this)"
+               hx-post="{{ list_view_url }}toggle-selection/{{ row.id }}/"
+               hx-target="#bulk-actions-container">
+    </td>
+    {% endif %}
+    {% for cell in row.cells %}
+        {% with value_str=cell.value|stringformat:"s" %}
+    <td class="py-0 align-middle px-2 truncate table-column-width"
+        style="text-align:{% if cell.align == 'center' %}center{% else %}left{% endif %};"
+        data-field-name="{{ cell.name }}"
+        {% if value_str|slice:":1" != "<" %}data-tippy-content="{{ cell.value }}"{% endif %}
+        {% if cell.is_inline_editable %}data-inline-cell="true"{% endif %}
+        >
+        {% if inline_enabled and row.inline_allowed and cell.is_inline_editable %}
+            {% with align_class=cell.align %}
+            <button type="button"
+                    class="inline-edit-trigger w-full px-0 {% if align_class == 'center' %}flex justify-center text-center{% else %}text-left{% endif %}"
+                    data-inline-field="{{ cell.name }}"
+                    {% if row.inline_url %}
+                        hx-get="{{ row.inline_url }}"
+                        hx-target="#{{ row.row_id }}"
+                        hx-swap="outerHTML"
+                    {% endif %}
+                    hx-trigger="click, keyup[key=='Enter'], keyup[key==' ']"
+                    >
+                <span class="inline-flex whitespace-nowrap {% if align_class == 'center' %}items-center justify-center{% else %}w-full{% endif %}">
+                    {{ cell.value }}
+                </span>
+            </button>
+            {% endwith %}
+        {% else %}
+            <div class="w-full {% if cell.align == 'center' %}text-center{% else %}text-left{% endif %}">
+                {{ cell.value }}
+            </div>
+        {% endif %}
+    </td>
+        {% endwith %}
+    {% endfor %}
+    <td class="text-right py-1 align-middle" data-inline-actions="true">
+        <div class="pc-actions-default {% if row.inline_blocked_reason %}opacity-50 pointer-events-none{% endif %}"
+             {% if row.inline_blocked_label %}data-tippy-content="{{ row.inline_blocked_label }}"{% endif %}>
+            {{ row.actions }}
+        </div>
+        {% if inline_enabled %}
+        <div class="pc-actions-inline hidden items-center justify-end gap-2 {% if row.inline_blocked_reason %}opacity-50 pointer-events-none{% endif %}"
+             data-inline-action-panel
+             {% if row.inline_blocked_label %}data-tippy-content="{{ row.inline_blocked_label }}"{% endif %}>
+            <button type="button" class="btn btn-xs btn-primary" data-inline-save>
+                Save
+            </button>
+            <button type="button" class="btn btn-xs btn-ghost" data-inline-cancel>
+                Cancel
+            </button>
+        </div>
+        {% endif %}
+    </td>
+</tr>
+{% endwith %}
+{% endpartialdef inline_row_display %}
+
+{% partialdef inline_row_form %}
+<tr
+    {% if row.row_id %}id="{{ row.row_id }}"{% endif %}
+    class="text-center bg-base-200"
+    data-inline-row="true"
+    data-inline-active="true"
+    {% if inline_cancel_url or row.inline_url %}
+        data-inline-row-url="{{ inline_cancel_url|default:row.inline_url }}"
+    {% endif %}
+>
+    {% if enable_bulk_edit %}
+    <td class="py-0 align-middle">
+        <input type="checkbox"
+               class="checkbox checkbox-sm row-select-checkbox"
+               data-id="{{ row.id }}"
+               disabled>
+    </td>
+    {% endif %}
+    {% for cell in row.cells %}
+    <td class="py-0 align-middle px-2 truncate table-column-width" data-field-name="{{ cell.name }}">
+        {% if cell.is_inline_editable and form %}
+            {% with inline_field=form|get_form_field:cell.name %}
+            {% if inline_field %}
+                <label class="sr-only" for="{{ inline_field.id_for_label }}">{{ inline_field.label|default:cell.name|title }}</label>
+                <div
+                    class="inline-field-widget w-full"
+                    data-inline-field="{{ cell.name }}"
+                    {% if cell.dependency %}
+                        data-inline-dependent="true"
+                        {% if cell.dependency.depends_on %}
+                            data-inline-depends-on="{{ cell.dependency.depends_on|join:',' }}"
+                        {% endif %}
+                        data-inline-endpoint="{{ cell.dependency.endpoint_url|default:inline_config.dependency_endpoint_url }}"
+                    {% endif %}
+                >
+                    {{ inline_field }}
+                </div>
+                {% if inline_field.errors %}
+                <div class="text-error text-xs mt-1">
+                    {{ inline_field.errors|join:", " }}
+                </div>
+                {% endif %}
+            {% else %}
+                {{ cell.value }}
+            {% endif %}
+            {% endwith %}
+        {% else %}
+            <div class="text-sm text-base-content/70 truncate text-left">{{ cell.value }}</div>
+        {% endif %}
+    </td>
+    {% endfor %}
+    <td class="text-right py-1 align-middle">
+        <input type="hidden" name="pk" value="{{ row.id }}">
+        {% csrf_token %}
+        {% if form.non_field_errors %}
+        <div class="alert alert-error shadow-sm mb-2 py-1 px-2 text-left text-sm">
+            {{ form.non_field_errors|join:", " }}
+        </div>
+        {% endif %}
+        <div class="flex flex-wrap sm:flex-nowrap items-center justify-end gap-2 text-left sm:text-right">
+            <span class="badge badge-warning badge-outline badge-sm uppercase tracking-wide">
+                Editing
+            </span>
+            <button type="button"
+                    class="btn btn-sm btn-primary"
+                    data-inline-save
+                    hx-post="{{ inline_save_url|default:row.inline_url }}"
+                    hx-target="#{{ row.row_id }}"
+                    hx-swap="outerHTML"
+                    hx-include="#{{ row.row_id }} [name]">
+                Save
+            </button>
+            <button type="button"
+                    class="btn btn-sm btn-ghost"
+                    data-inline-cancel
+                    hx-get="{{ inline_cancel_url|default:row.inline_url }}"
+                    hx-target="#{{ row.row_id }}"
+                    hx-swap="outerHTML"
+                    hx-vals='{"inline_display": true}'
+                    hx-trigger="click, keyup[key=='Escape'] from:closest tr"
+                    >
+                Cancel
+            </button>
+        </div>
+    </td>
+</tr>
+{% endpartialdef inline_row_form %}

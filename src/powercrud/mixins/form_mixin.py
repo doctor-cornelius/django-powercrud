@@ -166,6 +166,27 @@ class FormMixin:
         )
         raise ImproperlyConfigured(msg % self.__class__.__name__)
 
+    def get_inline_form_kwargs(self, *, instance, data=None, files=None):
+        """
+        Build kwargs for an inline form instance so inline endpoints can reuse the
+        standard form pipeline without duplicating logic.
+        """
+        kwargs = {'instance': instance}
+        if data is not None:
+            kwargs['data'] = data
+        if files is not None:
+            kwargs['files'] = files
+        return kwargs
+
+    def build_inline_form(self, *, instance, data=None, files=None):
+        """
+        Construct a ModelForm for inline editing using the same configuration as
+        regular edit forms.
+        """
+        form_class = self.get_form_class()
+        form_kwargs = self.get_inline_form_kwargs(instance=instance, data=data, files=files)
+        return form_class(**form_kwargs)
+
     def show_form(self, request, *args, **kwargs):
         """Override to check for conflicts before showing edit form"""
         # Only check conflicts for UPDATE operations (not CREATE)

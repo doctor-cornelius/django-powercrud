@@ -19,6 +19,7 @@ import re  # Add this import at the top with other imports
 
 from django import template
 from django.utils.safestring import mark_safe
+from django.utils.translation import gettext_lazy as _
 from django.core.exceptions import FieldDoesNotExist
 from django.conf import settings
 from django.db import models 
@@ -29,6 +30,45 @@ from powercrud.logging import get_logger
 log = get_logger(__name__)
 
 register = template.Library()
+
+
+def _should_center_field(model_field: models.Field) -> bool:
+    """
+    Return True when the column should default to centered alignment.
+    Treat text-like, dropdown (FK), and M2M fields as left-aligned.
+    """
+    if not model_field:
+        return False
+    if getattr(model_field, "many_to_many", False):
+        return False
+    if model_field.is_relation:
+        return False
+
+    field_type = model_field.get_internal_type()
+    text_types = {
+        "CharField",
+        "TextField",
+        "SlugField",
+        "EmailField",
+        "URLField",
+    }
+    if field_type in text_types:
+        return False
+    # Default to centered for numerics, booleans, and other non-text columns.
+    return True
+
+@register.filter
+def get_form_field(form, field_name):
+    """
+    Safely fetch a bound form field by name.
+    Returns None if the field does not exist.
+    """
+    if not form or not field_name:
+        return None
+    try:
+        return form[field_name]
+    except KeyError:
+        return None
 
 def action_links(view: Any, object: Any) -> str:
     """
@@ -52,15 +92,31 @@ def action_links(view: Any, object: Any) -> str:
     default_target: str = view.get_htmx_target() # this will be prepended with a #
 
     # Standard actions with framework-specific button classes
-    actions: List[Tuple[str, str, str, str, bool, str]] = [
-        (url, name, styles['actions'][name], default_target, False, use_modal, styles["modal_attrs"])
-        for url, name in [
-            (view.safe_reverse(f"{prefix}-detail", kwargs={"pk": object.pk}), "View"),
-            (view.safe_reverse(f"{prefix}-update", kwargs={"pk": object.pk}), "Edit"),
-            (view.safe_reverse(f"{prefix}-delete", kwargs={"pk": object.pk}), "Delete"),
-        ]
-        if url is not None
+    lock_reason = getattr(object, "_blocked_reason", None)
+    lock_label = getattr(object, "_blocked_label", None)
+
+    actions: List[Tuple[str, str, str, str, bool, str, bool]] = []
+    standard_actions = [
+        ("View", view.safe_reverse(f"{prefix}-detail", kwargs={"pk": object.pk})),
+        ("Edit", view.safe_reverse(f"{prefix}-update", kwargs={"pk": object.pk})),
+        ("Delete", view.safe_reverse(f"{prefix}-delete", kwargs={"pk": object.pk})),
     ]
+    for name, url in standard_actions:
+        if url is None:
+            continue
+        disable = bool(lock_reason and name in {"Edit", "Delete"})
+        actions.append(
+            (
+                url,
+                name,
+                styles['actions'][name],
+                default_target,
+                False,
+                use_modal,
+                styles["modal_attrs"],
+                disable,
+            )
+        )
 
     # Add extra actions if defined
     extra_actions: List[Dict[str, Any]] = getattr(view, "extra_actions", [])
@@ -85,6 +141,8 @@ def action_links(view: Any, object: Any) -> str:
             if show_modal and hasattr(view.request, 'GET') and view.request.GET:
                 query_string = '?' + view.request.GET.urlencode()
             
+            disable_extra = bool(lock_reason and action.get("lock_sensitive", False))
+
             actions.append((
                 url + query_string if show_modal else url, 
                 action["text"], 
@@ -92,7 +150,8 @@ def action_links(view: Any, object: Any) -> str:
                 htmx_target, 
                 action.get("hx_post", False),
                 show_modal,
-                modal_attrs
+                modal_attrs,
+                disable_extra,
             ))
 
     # set up links for all actions (regular and extra)
@@ -101,13 +160,15 @@ def action_links(view: Any, object: Any) -> str:
         " ".join([
             # Append query string for modal actions (edit/create)
             f"<a href='{url if not show_modal else url + ('?' + view.request.GET.urlencode() if view.request.GET else '')}' "
-            f"class='{styles['base']} join-item {button_class} {action_button_classes}' "
+            f"class='{styles['base']} join-item {button_class} {action_button_classes}{' btn-disabled opacity-50 pointer-events-none' if disable else ''}' "
             + (f"hx-{'post' if hx_post else 'get'}='{url if not show_modal else url + ('?' + view.request.GET.urlencode() if view.request.GET else '')}' " if use_htmx else "")
             + (f"hx-target='{target}' " if use_htmx else "")
             + ("hx-replace-url='true' hx-push-url='true' " if use_htmx and not show_modal else "")
             + (f"{modal_attrs} " if show_modal else "")
+            + (f"aria-disabled='true' data-tippy-content='{lock_label}' " if disable and lock_label else "")
+            + f"data-inline-action='{anchor_text.lower()}'"
             + f">{anchor_text}</a>"
-            for url, anchor_text, button_class, target, hx_post, show_modal, modal_attrs in actions
+            for url, anchor_text, button_class, target, hx_post, show_modal, modal_attrs, disable in actions
         ]) +
         "</div>"
     ]
@@ -161,11 +222,18 @@ def object_list(context, objects, view):
     fields = view.fields
     properties = getattr(view, "properties", []) or []
 
+    inline_config = context.get('inline_edit') or {}
+    inline_enabled = bool(inline_config.get('enabled'))
+    inline_fields = inline_config.get('fields') or []
+    inline_fields = set(inline_fields)
+    inline_row_endpoint = inline_config.get('row_endpoint_name')
+    inline_dependencies = inline_config.get('dependencies') or {}
+
     # Check if bulk edit is enabled
     enable_bulk_edit = hasattr(view, 'get_bulk_edit_enabled') and view.get_bulk_edit_enabled()
     
     # Get currently selected IDs from session if bulk edit is enabled
-    request = context.get('request')
+    request = context.get('request') or getattr(view, 'request', None)
     selected_ids = []
     if request and enable_bulk_edit and hasattr(view, 'get_selected_ids_from_session'):
         selected_ids = view.get_selected_ids_from_session(request)
@@ -206,47 +274,133 @@ def object_list(context, objects, view):
     TICK_SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="green" class="size-4 inline-block"><path fill-rule="evenodd" d="M8 15A7 7 0 1 0 8 1a7 7 0 0 0 0 14Zm3.844-8.791a.75.75 0 0 0-1.188-.918l-3.7 4.79-1.649-1.833a.75.75 0 1 0-1.114 1.004l2.25 2.5a.75.75 0 0 0 1.15-.043l4.25-5.5Z" clip-rule="evenodd" /></svg>'
     CROSS_SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="crimson" class="size-4 inline-block"><path fill-rule="evenodd" d="M8 15A7 7 0 1 0 8 1a7 7 0 0 0 0 14Zm2.78-4.22a.75.75 0 0 1-1.06 0L8 9.06l-1.72 1.72a.75.75 0 1 1-1.06-1.06L6.94 8 5.22 6.28a.75.75 0 0 1 1.06-1.06L8 6.94l1.72-1.72a.75.75 0 1 1 1.06 1.06L9.06 8l1.72 1.72a.75.75 0 0 1 0 1.06Z" clip-rule="evenodd" /></svg>'
 
-    object_list = [
-        {
-            "object": object,
-            "id": str(object.pk),  # Add ID for selection tracking
-            "is_selected": str(object.pk) in selected_ids if enable_bulk_edit else False,  # Check if this object is selected
-            "fields": [
-                (
-                    # M2M field
-                    ", ".join(str(obj) for obj in getattr(object, f).all()) if object._meta.get_field(f).many_to_many
-                    # boolean True
-                    else mark_safe(TICK_SVG) if object._meta.get_field(f).get_internal_type() == 'BooleanField' and getattr(object, f) is True
-                    # boolean False
-                    else mark_safe(CROSS_SVG) if object._meta.get_field(f).get_internal_type() == 'BooleanField' and getattr(object, f) is False
-                    # date type
-                    else str(getattr(object, f).strftime('%d/%m/%Y')) if object._meta.get_field(f).get_internal_type() == 'DateField' and getattr(object, f) is not None
-                    # related field
-                    else str(getattr(object, f)) if object._meta.get_field(f).is_relation
-                    # any other type gets applied as string
-                    else object._meta.get_field(f).value_to_string(object)
-                )
-                for f in fields
-            ]
-            # properties
-            + [
-                # boolean True
-                mark_safe(TICK_SVG)
-                    if isinstance(getattr(object.__class__, prop), property) and getattr(object, prop) is True
-                # boolean False
-                else mark_safe(CROSS_SVG)
-                    if isinstance(getattr(object.__class__, prop), property) and getattr(object, prop) is False
-                # date type
-                else str(getattr(object, prop).strftime('%d/%m/%Y'))
-                    if isinstance(getattr(object, prop), (date, datetime)) and getattr(object, prop) is not None
-                # any other type gets applied as string
-                else str(getattr(object, prop))
-                for prop in properties
-            ],
-            "actions": action_links(view, object),
+    object_list = []
+    for obj in objects:
+        row_id = getattr(view, "get_inline_row_id", None)
+        if callable(row_id):
+            row_id = row_id(obj)
+        else:
+            row_id = None
+
+        inline_row_url = None
+        if inline_enabled and inline_row_endpoint:
+            inline_row_url = view.safe_reverse(inline_row_endpoint, kwargs={"pk": obj.pk})
+
+        inline_blocked_reason = None
+        inline_blocked_label = None
+        inline_blocked_meta = {}
+        inline_allowed = False
+
+        if inline_enabled and inline_row_url:
+            lock_checker = getattr(view, "is_inline_row_locked", None)
+            is_locked = False
+            if callable(lock_checker):
+                try:
+                    is_locked = bool(lock_checker(obj))
+                except Exception:
+                    is_locked = False
+
+            can_inline_callable = getattr(view, "can_inline_edit", None)
+            can_inline = inline_enabled
+            if callable(can_inline_callable) and request is not None:
+                try:
+                    can_inline = bool(can_inline_callable(obj, request))
+                except Exception:
+                    can_inline = False
+            elif not callable(can_inline_callable):
+                can_inline = inline_enabled
+            else:
+                can_inline = False
+
+            if is_locked:
+                lock_details = {}
+                lock_detail_getter = getattr(view, "get_inline_lock_details", None)
+                if callable(lock_detail_getter):
+                    try:
+                        lock_details = lock_detail_getter(obj) or {}
+                    except Exception:
+                        lock_details = {}
+                inline_blocked_meta = lock_details
+                inline_blocked_reason = "locked"
+                inline_blocked_label = lock_details.get("label") or _("Inline editing blocked – record is locked.")
+            elif not can_inline:
+                inline_blocked_reason = "forbidden"
+                inline_blocked_label = _("Inline editing not permitted for this row.")
+            else:
+                inline_allowed = True
+
+        # Attach inline metadata to the object for downstream helpers (e.g., action_links)
+        setattr(obj, "_blocked_reason", inline_blocked_reason)
+        setattr(obj, "_blocked_label", inline_blocked_label)
+
+        record = {
+            "object": obj,
+            "id": str(obj.pk),  # Add ID for selection tracking
+            "is_selected": str(obj.pk) in selected_ids if enable_bulk_edit else False,  # Check if this object is selected
+            "row_id": row_id,
+            "inline_url": inline_row_url,
+            "inline_allowed": inline_allowed,
+            "inline_blocked_reason": inline_blocked_reason,
+            "inline_blocked_label": inline_blocked_label,
+            "inline_blocked_meta": inline_blocked_meta,
+            "cells": [],
+            "fields": [],
+            "actions": action_links(view, obj),
         }
-        for object in objects
-    ]
+
+        for f in fields:
+            model_field = obj._meta.get_field(f)
+            if model_field.many_to_many:
+                display_value = ", ".join(str(item) for item in getattr(obj, f).all())
+            elif model_field.get_internal_type() == 'BooleanField':
+                value = getattr(obj, f)
+                if value is True:
+                    display_value = mark_safe(TICK_SVG)
+                elif value is False:
+                    display_value = mark_safe(CROSS_SVG)
+                else:
+                    display_value = ''
+            elif model_field.get_internal_type() == 'DateField' and getattr(obj, f) is not None:
+                display_value = getattr(obj, f).strftime('%d/%m/%Y')
+            elif model_field.is_relation:
+                display_value = str(getattr(obj, f))
+            else:
+                display_value = model_field.value_to_string(obj)
+
+            cell_align = "center" if _should_center_field(model_field) else "left"
+
+            record["cells"].append({
+                "name": f,
+                "value": display_value,
+                "is_property": False,
+                "is_inline_editable": inline_enabled and f in inline_fields,
+                "dependency": inline_dependencies.get(f),
+                "align": cell_align,
+            })
+            record["fields"].append(display_value)
+
+        for prop in properties:
+            prop_value = getattr(obj, prop)
+            if isinstance(getattr(obj.__class__, prop), property) and prop_value is True:
+                display_value = mark_safe(TICK_SVG)
+            elif isinstance(getattr(obj.__class__, prop), property) and prop_value is False:
+                display_value = mark_safe(CROSS_SVG)
+            elif isinstance(prop_value, (date, datetime)) and prop_value is not None:
+                display_value = prop_value.strftime('%d/%m/%Y')
+            else:
+                display_value = str(prop_value)
+
+            record["cells"].append({
+                "name": prop,
+                "value": display_value,
+                "is_property": True,
+                "is_inline_editable": inline_enabled and prop in inline_fields,
+                "dependency": inline_dependencies.get(prop),
+                "align": "left",
+            })
+            record["fields"].append(display_value)
+
+        object_list.append(record)
 
     request = context.get('request')
     current_sort = request.GET.get('sort', '') if request else ''
@@ -283,12 +437,13 @@ def object_list(context, objects, view):
         "htmx_target": htmx_target,
         "request": request,
         # add bulk selection context
-        "selected_ids": view.get_selected_ids_from_session(request),
+        "selected_ids": selected_ids,
         # Add bulk edit related context
         "enable_bulk_edit": enable_bulk_edit,
         "selected_count": len(selected_ids) if enable_bulk_edit else 0,
         "model_name": view.model.__name__.lower() if hasattr(view, 'model') else '',
         "selection_key_suffix": selection_key_suffix,
+        "inline_edit": inline_config,
     }
 
 @register.simple_tag

@@ -21,16 +21,24 @@ class TableMixin:
 
     def get_table_max_col_width(self):
         # The max width for the table columns in object_list.html - in characters
-        return f"{self.table_max_col_width}ch" or '25ch'
+        value = self.table_max_col_width
+        if not value:
+            return "25ch"
+        return f"{int(value)}ch"
 
     def get_table_header_min_wrap_width(self):
         # The max width for the table columns in object_list.html - in characters
-        if self.table_header_min_wrap_width is None:
-            return self.get_table_max_col_width()
-        elif int(self.table_header_min_wrap_width) > int(self.table_max_col_width):
-            return self.get_table_max_col_width()
-        else:
-            return f"{self.table_header_min_wrap_width}ch" #ch
+        max_width = self.get_table_max_col_width()
+        value = self.table_header_min_wrap_width
+        if value is None:
+            return max_width
+        try:
+            value_int = int(value)
+            max_int = int(max_width.rstrip("ch") or 0)
+            clamped = min(value_int, max_int) if max_int else value_int
+        except (TypeError, ValueError):
+            return max_width
+        return f"{clamped}ch" #ch
 
     def get_table_classes(self):
         """
@@ -49,3 +57,43 @@ class TableMixin:
         Get the extra button classes.
         """
         return self.extra_button_classes
+
+    # Inline editing helpers -------------------------------------------------
+    def get_inline_row_id_prefix(self) -> str:
+        """Base DOM id prefix for inline-editable rows."""
+        return "pc-row-"
+
+    def get_inline_row_id(self, obj) -> str | None:
+        """Return the DOM id for a given object's row."""
+        if obj is None:
+            return None
+        pk = getattr(obj, "pk", None)
+        if pk in (None, ""):
+            return None
+        return f"{self.get_inline_row_id_prefix()}{pk}"
+
+    def get_inline_row_target(self, obj) -> str | None:
+        """Return the HTMX target selector for the row container."""
+        row_id = self.get_inline_row_id(obj)
+        return f"#{row_id}" if row_id else None
+
+    def get_inline_context(self) -> dict:
+        """
+        Context payload consumed by templates to determine inline editing state.
+        """
+        enabled = self.get_inline_editing()
+        endpoint_name = getattr(self, "get_inline_row_endpoint_name", None)
+        dependency_endpoint = getattr(self, "get_inline_dependency_endpoint_name", None)
+        dependency_endpoint_name = (
+            dependency_endpoint() if callable(dependency_endpoint) else None
+        )
+        dependency_endpoint_url = self._resolve_inline_endpoint(dependency_endpoint_name)
+        return {
+            "enabled": enabled,
+            "fields": self.get_inline_edit_fields(),
+            "dependencies": self.get_inline_field_dependencies(),
+            "row_id_prefix": self.get_inline_row_id_prefix(),
+            "row_endpoint_name": endpoint_name() if callable(endpoint_name) else None,
+            "dependency_endpoint_name": dependency_endpoint_name,
+            "dependency_endpoint_url": dependency_endpoint_url,
+        }

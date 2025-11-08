@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field, field_validator, ConfigDict
-from typing import Union, Optional, List, Literal
+from typing import Union, Optional, List, Literal, Dict, Any, Callable
 
 class PowerCRUDMixinValidator(BaseModel):
     """Validation model for PowerCRUDMixin settings"""
@@ -30,7 +30,14 @@ class PowerCRUDMixinValidator(BaseModel):
     use_htmx: Optional[bool]
     default_htmx_target: Optional[str]
     hx_trigger: Optional[Union[str, int, float, dict]]
-    
+
+    # inline editing
+    inline_edit_enabled: Optional[bool] = None
+    inline_edit_fields: Optional[Union[List[str], Literal['__all__', '__fields__']]] = None
+    inline_field_dependencies: Optional[Dict[str, Dict[str, Any]]] = None
+    inline_edit_requires_perm: Optional[str] = None
+    inline_edit_allowed: Optional[Callable] = None
+
     # modals
     use_modal: Optional[bool]
     modal_id: Optional[str]
@@ -78,6 +85,29 @@ class PowerCRUDMixinValidator(BaseModel):
             return v
         if isinstance(v, list) and not all(isinstance(x, str) for x in v):
             raise ValueError("form_fields must contain only strings")
+        return v
+
+    @field_validator('inline_edit_fields')
+    @classmethod
+    def validate_inline_edit_fields(cls, v):
+        if v is None:
+            return v
+        if isinstance(v, list) and not all(isinstance(x, str) for x in v):
+            raise ValueError("inline_edit_fields must contain only strings")
+        return v
+
+    @field_validator('inline_field_dependencies')
+    @classmethod
+    def validate_inline_field_dependencies(cls, v):
+        if v is None:
+            return v
+        if not isinstance(v, dict):
+            raise ValueError("inline_field_dependencies must be a dictionary")
+        for field_name, config in v.items():
+            if not isinstance(field_name, str):
+                raise ValueError("inline_field_dependencies keys must be strings")
+            if not isinstance(config, dict):
+                raise ValueError("inline_field_dependencies values must be dictionaries")
         return v
 
     @field_validator('form_fields_exclude')

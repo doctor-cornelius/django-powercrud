@@ -8,6 +8,9 @@
 
 {% partialdef pcrud_content %}
     <style>
+        :root {
+            --pc-inline-icon-buffer: 2.25ch;
+        }
         /* Style the options inside multi-selects - cannot be controlled via Python widget attrs */
         #filter-form select[multiple] option {
         padding: 0.25rem 0.5rem !important;
@@ -15,13 +18,12 @@
         }
 
         .table-column-width {
-            /* Set a reasonable default width and max-width, override with inline style if needed */
             width: fit-content;
-            max-width: 25ch;
+            max-width: {{ table_max_col_width }};
         }
         th.table-column-width {
             white-space: normal;
-            max-width: 25ch;
+            max-width: {{ table_max_col_width }};
         }
 
         #filter-form label {
@@ -76,6 +78,7 @@
     </style>
 
     <title id="header_title">{{header_title}}</title>
+    <div id="pc-inline-alert" class="hidden mb-2"></div>
     <div class="flex flex-col">
         <h1 class="flex-1 font-bold text-xl text-primary">{{ object_verbose_name_plural|capfirst }}</h1>
 
@@ -460,7 +463,7 @@
          clearSelectionOptimistic();
      });
 
-    document.body.addEventListener('refreshTable', function (evt) {
+   document.body.addEventListener('refreshTable', function (evt) {
         htmx.ajax('GET', '{{ list_view_url }}', {
             target: '#filtered_results',
             headers: {
@@ -476,6 +479,533 @@
        const { taskId, message } = evt.detail;
        clearSelectionOptimistic();
    });
+
+    // Inline editing helpers ------------------------------------------------
+    (function initInlineEditingHelpers() {
+        const INIT_FLAG = "__pcInlineHelpersReady";
+
+        function mountInlineHelpers() {
+            if (window[INIT_FLAG]) {
+                return;
+            }
+            if (!window.htmx) {
+                window.setTimeout(mountInlineHelpers, 25);
+                return;
+            }
+
+            window[INIT_FLAG] = true;
+
+            const INLINE_ROW_SELECTOR = 'tr[data-inline-row="true"]';
+            const NOTICE_ELEMENT_ID = 'pc-inline-alert';
+            const INLINE_TABLE_SELECTOR = 'table[data-inline-enabled="true"]';
+            let activeRowId = null;
+            let inlineNoticeEl = null;
+            let pendingColumnWidths = null;
+            let activeColumnWidths = null;
+            let lockedTableRef = null;
+
+            function targetTouchesInlineRows(target) {
+                if (!(target instanceof HTMLElement)) {
+                    return false;
+                }
+                if (target.matches(INLINE_ROW_SELECTOR)) {
+                    return true;
+                }
+                if (typeof target.querySelector === 'function') {
+                    return Boolean(target.querySelector(INLINE_ROW_SELECTOR));
+                }
+                return false;
+            }
+
+        function isTableCell(el) {
+            return el && (el.tagName === 'TD' || el.tagName === 'TH');
+        }
+
+        function snapshotRowWidths(row) {
+            if (!row) {
+                return null;
+            }
+            const cells = Array.from(row.children).filter(isTableCell);
+            if (!cells.length) {
+                return null;
+            }
+            return cells.map(cell => cell.getBoundingClientRect().width || 0);
+        }
+
+        function applyRowWidths(row, widths) {
+            if (!row || !Array.isArray(widths) || !widths.length) {
+                return;
+            }
+            const cells = Array.from(row.children).filter(isTableCell);
+            if (cells.length !== widths.length) {
+                return;
+            }
+            cells.forEach((cell, idx) => {
+                const width = Math.max(0, Math.round(widths[idx]));
+                cell.style.width = `${width}px`;
+                cell.style.minWidth = `${width}px`;
+                cell.style.maxWidth = `${width}px`;
+                cell.dataset.inlineWidthLocked = 'true';
+            });
+            row.dataset.inlineWidthLocked = 'true';
+        }
+
+        function clearRowWidths(row) {
+            if (!row) {
+                return;
+            }
+            const cells = Array.from(row.children).filter(isTableCell);
+            cells.forEach(cell => {
+                if (cell.dataset.inlineWidthLocked === 'true') {
+                    delete cell.dataset.inlineWidthLocked;
+                }
+                cell.style.width = '';
+                cell.style.minWidth = '';
+                cell.style.maxWidth = '';
+            });
+            delete row.dataset.inlineWidthLocked;
+        }
+
+        function lockTableWidth(table) {
+            if (!table || table.dataset.inlineTableLocked === 'true') {
+                return;
+            }
+            table.dataset.inlineTableLocked = 'true';
+            table.style.width = `${table.offsetWidth}px`;
+            lockedTableRef = table;
+        }
+
+        function unlockTableWidth(table) {
+            const target = table || lockedTableRef;
+            if (!target || target.dataset.inlineTableLocked !== 'true') {
+                return;
+            }
+            target.style.width = '';
+            delete target.dataset.inlineTableLocked;
+            if (lockedTableRef === target) {
+                lockedTableRef = null;
+            }
+        }
+
+        function getActiveRow() {
+            return activeRowId ? document.getElementById(activeRowId) : null;
+        }
+
+        function setActiveRow(row) {
+            document
+                .querySelectorAll(`${INLINE_ROW_SELECTOR}[data-inline-active="true"]`)
+                .forEach(el => el.removeAttribute('data-inline-active'));
+
+            if (row && row.id) {
+                activeRowId = row.id;
+                row.setAttribute('data-inline-active', 'true');
+            } else {
+                activeRowId = null;
+            }
+        }
+
+        function clearActiveRow() {
+            activeRowId = null;
+            document
+                .querySelectorAll(`${INLINE_ROW_SELECTOR}[data-inline-active="true"]`)
+                .forEach(el => {
+                    el.removeAttribute('data-inline-active');
+                    clearRowWidths(el);
+                });
+        }
+
+        function focusRow(row) {
+            if (!row) {
+                return;
+            }
+            row.classList.add('inline-row-attention');
+            const focusTarget = row.querySelector('[data-inline-save], [data-inline-cancel], .inline-edit-trigger');
+            if (focusTarget) {
+                focusTarget.focus();
+            }
+            row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            setTimeout(() => row.classList.remove('inline-row-attention'), 600);
+        }
+
+        function wireInlineRow(row) {
+            if (!row) {
+                return;
+            }
+            wireInlineDependencies(row);
+        }
+
+        function wireInlineDependencies(container) {
+            const dependencyMap = buildDependencyMap(container);
+            Object.entries(dependencyMap).forEach(([parentField, dependents]) => {
+                const control = container.querySelector(`[name="${parentField}"]`);
+                if (!control) {
+                    return;
+                }
+                if (control.dataset.inlineDependencyBound === 'true') {
+                    return;
+                }
+                control.dataset.inlineDependencyBound = 'true';
+                control.addEventListener('change', () => {
+                    dependents.forEach(dep => refreshDependentField(container, dep));
+                });
+            });
+        }
+
+        function buildDependencyMap(container) {
+            const map = {};
+            container.querySelectorAll('.inline-field-widget[data-inline-dependent="true"]').forEach(widget => {
+                const fieldName = widget.dataset.inlineField;
+                const dependsOnRaw = widget.dataset.inlineDependsOn || '';
+                const endpoint = widget.dataset.inlineEndpoint;
+                if (!fieldName || !endpoint || !dependsOnRaw) {
+                    return;
+                }
+                dependsOnRaw
+                    .split(',')
+                    .map(name => name.trim())
+                    .filter(Boolean)
+                    .forEach(parent => {
+                        if (!map[parent]) {
+                            map[parent] = [];
+                        }
+                        map[parent].push({
+                            fieldName,
+                            endpoint,
+                        });
+                    });
+            });
+            return map;
+        }
+
+        function refreshDependentField(container, dep) {
+            const widget = container.querySelector(
+                `.inline-field-widget[data-inline-field="${dep.fieldName}"]`
+            );
+            if (!widget || !dep.endpoint) {
+                return;
+            }
+
+            window.htmx.ajax('POST', dep.endpoint, {
+                source: container,
+                target: widget,
+                swap: 'outerHTML',
+                values: {
+                    field: dep.fieldName,
+                },
+            });
+        }
+
+        function bootstrapInlineRow() {
+            const row = document.querySelector(`${INLINE_ROW_SELECTOR}[data-inline-active="true"]`);
+            if (row) {
+                setActiveRow(row);
+                wireInlineRow(row);
+            }
+        }
+
+        function getNoticeElement() {
+            if (inlineNoticeEl && document.body.contains(inlineNoticeEl)) {
+                return inlineNoticeEl;
+            }
+            inlineNoticeEl = document.getElementById(NOTICE_ELEMENT_ID);
+            return inlineNoticeEl;
+        }
+
+        function clearNotice() {
+            const host = getNoticeElement();
+            if (!host) {
+                return;
+            }
+            host.innerHTML = '';
+            host.classList.add('hidden');
+        }
+
+        function refreshInlineRow(refresh) {
+            if (!refresh || !refresh.url) {
+                return;
+            }
+            const targetId = refresh.row_id;
+            const ajaxOptions = {
+                target: targetId ? `#${targetId}` : '#filtered_results',
+                swap: targetId ? 'outerHTML' : 'innerHTML',
+            };
+            window.htmx.ajax('GET', refresh.url, ajaxOptions);
+        }
+
+        function showInlineNotice(options) {
+            const host = getNoticeElement();
+            if (!host) {
+                return;
+            }
+            const level = options.level || 'info';
+            const levelClasses = {
+                warning: 'alert-warning',
+                error: 'alert-error',
+                info: 'alert-info',
+            };
+            const alertClass = levelClasses[level] || levelClasses.info;
+            host.classList.remove('hidden');
+
+            const lockLabel = options.lockLabel ? `<div class="text-xs opacity-80">${options.lockLabel}</div>` : '';
+            const message = options.message || 'Inline editing unavailable.';
+            let actionButton = '';
+            if (options.refresh && options.refresh.url) {
+                actionButton = `
+                    <button type="button"
+                            class="btn btn-xs btn-outline"
+                            data-inline-refresh-btn>
+                        Refresh Row
+                    </button>
+                `;
+            }
+
+            host.innerHTML = `
+                <div class="alert ${alertClass} shadow-sm flex flex-wrap gap-2 items-center">
+                    <span class="flex-1">${message}</span>
+                    ${lockLabel}
+                    ${actionButton}
+                    <button type="button" class="btn btn-xs btn-ghost" data-inline-dismiss>
+                        Dismiss
+                    </button>
+                </div>
+            `;
+
+            const refreshBtn = host.querySelector('[data-inline-refresh-btn]');
+            if (refreshBtn) {
+                refreshBtn.addEventListener('click', () => refreshInlineRow(options.refresh));
+            }
+            const dismissBtn = host.querySelector('[data-inline-dismiss]');
+            if (dismissBtn) {
+                dismissBtn.addEventListener('click', clearNotice);
+            }
+        }
+
+        function handleInlineGuardEvent(event, level) {
+            const payload = event.detail && event.detail.value ? event.detail.value : (event.detail || {});
+            const refreshPayload = payload.refresh;
+            const lockMeta = payload.lock || {};
+            clearActiveRow();
+            showInlineNotice({
+                level,
+                message: payload.message,
+                lockLabel: lockMeta.label,
+                refresh: refreshPayload,
+            });
+            pendingColumnWidths = null;
+            activeColumnWidths = null;
+            unlockTableWidth();
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', bootstrapInlineRow);
+        } else {
+            bootstrapInlineRow();
+        }
+
+        const FORM_SPINNER_STATE = new WeakMap();
+
+        function startFormSpinner(form) {
+            if (!form || FORM_SPINNER_STATE.has(form)) {
+                return;
+            }
+            const saveBtn = form.querySelector('[data-form-save]');
+            if (!saveBtn) {
+                return;
+            }
+            FORM_SPINNER_STATE.set(form, {
+                button: saveBtn,
+                html: saveBtn.innerHTML,
+                width: saveBtn.offsetWidth,
+            });
+            saveBtn.disabled = true;
+            saveBtn.style.width = `${saveBtn.offsetWidth}px`;
+            saveBtn.innerHTML = '<span class="loading loading-spinner loading-sm text-center mx-auto"></span>';
+        }
+
+        function stopFormSpinner(form) {
+            const state = FORM_SPINNER_STATE.get(form);
+            if (!state) {
+                return;
+            }
+            state.button.disabled = false;
+            state.button.innerHTML = state.html;
+            state.button.style.width = '';
+            FORM_SPINNER_STATE.delete(form);
+        }
+
+        document.addEventListener('submit', event => {
+            const form = event.target.closest('[data-powercrud-form="object"]');
+            if (!form) {
+                return;
+            }
+            startFormSpinner(form);
+        }, true);
+
+        document.body.addEventListener('htmx:afterRequest', event => {
+            if (event.detail && event.detail.elt && event.detail.elt.matches && event.detail.elt.matches('[data-powercrud-form="object"]')) {
+                stopFormSpinner(event.detail.elt);
+            }
+        });
+
+        document.body.addEventListener('htmx:responseError', event => {
+            if (event.detail && event.detail.elt && event.detail.elt.matches && event.detail.elt.matches('[data-powercrud-form="object"]')) {
+                stopFormSpinner(event.detail.elt);
+            }
+        });
+
+        document.body.addEventListener('htmx:beforeRequest', event => {
+            const trigger = event.detail && event.detail.elt;
+            if (!trigger || !trigger.classList || !trigger.classList.contains('inline-edit-trigger')) {
+                return;
+            }
+            const row = trigger.closest(INLINE_ROW_SELECTOR);
+            const activeRow = getActiveRow();
+            if (activeRow && row && activeRow !== row) {
+                event.preventDefault();
+                console.debug('[powercrud] Inline guard prevented second row edit', {
+                    activeRowId,
+                    blockedRowId: row.id,
+                });
+                focusRow(activeRow);
+                return;
+            }
+            if (row) {
+                const table = row.closest(INLINE_TABLE_SELECTOR);
+                if (table) {
+                    lockTableWidth(table);
+                }
+                pendingColumnWidths = snapshotRowWidths(row);
+            }
+        });
+
+        document.body.addEventListener('htmx:afterSwap', event => {
+            const target = event.target;
+            if (!(target instanceof HTMLElement)) {
+                return;
+            }
+
+            if (targetTouchesInlineRows(target) && !target.matches(INLINE_ROW_SELECTOR)) {
+                clearActiveRow();
+                clearNotice();
+            }
+
+            if (target.matches(INLINE_ROW_SELECTOR)) {
+                if (target.dataset.inlineActive === 'true') {
+                    setActiveRow(target);
+                    wireInlineRow(target);
+                    const widthsToApply = pendingColumnWidths || activeColumnWidths;
+                    if (widthsToApply && widthsToApply.length) {
+                        applyRowWidths(target, widthsToApply);
+                        activeColumnWidths = widthsToApply.slice();
+                        pendingColumnWidths = null;
+                    }
+                } else if (activeRowId && target.id === activeRowId) {
+                    setActiveRow(null);
+                    clearRowWidths(target);
+                    unlockTableWidth(target.closest(INLINE_TABLE_SELECTOR));
+                    pendingColumnWidths = null;
+                    activeColumnWidths = null;
+                } else {
+                    clearRowWidths(target);
+                    if (!document.querySelector(`${INLINE_ROW_SELECTOR}[data-inline-active="true"]`)) {
+                        unlockTableWidth(target.closest(INLINE_TABLE_SELECTOR));
+                        activeColumnWidths = null;
+                        pendingColumnWidths = null;
+                    }
+                }
+                return;
+            }
+
+            if (activeRowId) {
+                const row = target.closest(INLINE_ROW_SELECTOR);
+                if (row && row.id === activeRowId && row.dataset.inlineActive === 'true') {
+                    wireInlineRow(row);
+                }
+            }
+        });
+
+        document.body.addEventListener('inline-row-locked', event => {
+            handleInlineGuardEvent(event, 'warning');
+        });
+
+        document.body.addEventListener('inline-row-forbidden', event => {
+            handleInlineGuardEvent(event, 'error');
+        });
+
+        function toggleInlineSaving(row, isSaving) {
+            if (!row) {
+                return;
+            }
+            const saveBtn = row.querySelector('[data-inline-save]');
+            if (!saveBtn) {
+                return;
+            }
+            saveBtn.disabled = isSaving;
+            if (isSaving) {
+                saveBtn.dataset.originalLabel = saveBtn.innerHTML;
+                saveBtn.dataset.originalWidth = saveBtn.offsetWidth;
+                saveBtn.style.width = `${saveBtn.dataset.originalWidth}px`;
+            saveBtn.innerHTML = '<span class="loading loading-spinner loading-xs text-center mx-auto"></span>';
+            } else if (saveBtn.dataset.originalLabel) {
+                saveBtn.innerHTML = saveBtn.dataset.originalLabel;
+                if (saveBtn.dataset.originalWidth) {
+                    saveBtn.style.width = '';
+                    delete saveBtn.dataset.originalWidth;
+                }
+                delete saveBtn.dataset.originalLabel;
+            }
+        }
+
+        document.body.addEventListener('htmx:beforeRequest', event => {
+            const target = event.detail && event.detail.elt;
+            if (target && target.matches('[data-inline-save]')) {
+                const row = target.closest(INLINE_ROW_SELECTOR);
+                toggleInlineSaving(row, true);
+            }
+        });
+
+        document.body.addEventListener('htmx:afterRequest', event => {
+            const target = event.detail && event.detail.elt;
+            if (target && target.matches('[data-inline-save]')) {
+                const row = target.closest(INLINE_ROW_SELECTOR);
+                toggleInlineSaving(row, false);
+            }
+        });
+
+        document.body.addEventListener('inline-row-error', event => {
+            const payload = event.detail && event.detail.value ? event.detail.value : (event.detail || {});
+            if (payload.row_id) {
+                const bannerRow = document.getElementById(payload.row_id);
+                if (bannerRow) {
+                    focusRow(bannerRow);
+                }
+            }
+            showInlineNotice({
+                level: 'error',
+                message: payload.message || 'Inline save failed. Check the highlighted fields.',
+            });
+        });
+
+        document.body.addEventListener('htmx:beforeSwap', event => {
+            if (!activeRowId) {
+                return;
+            }
+            const target = event.target;
+            if (targetTouchesInlineRows(target)) {
+                clearActiveRow();
+                clearNotice();
+            }
+        });
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', mountInlineHelpers);
+        } else {
+            mountInlineHelpers();
+        }
+    })();
+
+    
  </script>
 
 {% endpartialdef pcrud_content %}

@@ -9,8 +9,11 @@ Complete alphabetical reference of all available configuration options with defa
 | `action_button_classes` | str | `''` | Additional CSS classes for action buttons (edit, delete, etc.) | [Section 06](../guides/06_styling_tailwind.md) |
 | `base_template_path` | str | Framework-specific | Path to your project's base template | [Section 01](../guides/01_setup_core_crud.md) |
 | `bulk_async` | bool | `False` | Enable asynchronous processing for bulk operations | [Section 04](../guides/04_bulk_edit_async.md) |
+| `bulk_async_allow_anonymous` | bool | `True` | Permit anonymous users to trigger async bulk operations (set `False` to require authentication) | [Section 04](../guides/04_bulk_edit_async.md) |
 | `bulk_async_backend` | str | `'q2'` | Backend for async processing (currently only 'q2' supported) | [Section 04](../guides/04_bulk_edit_async.md) |
+| `bulk_async_conflict_checking` | bool | `True` | Guard against overlapping operations by checking conflict locks before queuing async jobs | [Section 04](../guides/04_bulk_edit_async.md) |
 | `bulk_async_notification` | str | `'status_page'` | Notification method for async operations ('status_page', 'email', 'messages') | [Section 04](../guides/04_bulk_edit_async.md) |
+| `bulk_async_allow_anonymous` | bool | `True` | Permit anonymous users to trigger async bulk operations (set `False` to require authentication) | [Section 04](../guides/04_bulk_edit_async.md) |
 | `bulk_delete` | bool | `False` | Enable bulk delete functionality | [Section 02](../guides/02_bulk_edit_sync.md) |
 | `bulk_fields` | list | `[]` | List of fields available for bulk editing | [Section 02](../guides/02_bulk_edit_sync.md) |
 | `bulk_full_clean` | bool | `True` | Run full_clean() on each object during bulk operations | [Section 02](../guides/02_bulk_edit_sync.md) |

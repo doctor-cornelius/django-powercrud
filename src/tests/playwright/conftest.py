@@ -5,7 +5,7 @@ import pytest
 pytest.importorskip("playwright.sync_api")
 from django.urls import reverse
 
-from sample.models import Author, Book
+from sample.models import Author, Book, Genre
 
 
 os.environ.setdefault("DJANGO_ALLOW_ASYNC_UNSAFE", "true")
@@ -26,6 +26,14 @@ def sample_author(db):
         name="Playwright Author",
         bio="",
         birth_date=None,
+    )
+
+
+@pytest.fixture
+def sample_genre(db):
+    return Genre.objects.create(
+        name="Playwright Mystery",
+        description="Created for Playwright tests",
     )
 
 

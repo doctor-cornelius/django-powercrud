@@ -1,6 +1,7 @@
 from django.core.exceptions import ImproperlyConfigured
 from django.db.models.fields.reverse_related import ManyToOneRel
 from django.conf import settings
+from typing import Any, Callable, Sequence
 
 from ..validators import PowerCRUDMixinValidator
 from django.http import Http404
@@ -57,6 +58,13 @@ class CoreMixin:
     use_htmx: bool | None = None
     default_htmx_target: str = '#content'
     hx_trigger: str | dict[str, str] | None = None
+
+    # inline editing
+    inline_edit_enabled: bool | None = None
+    inline_edit_fields: list[str] | str | None = None
+    inline_field_dependencies: dict[str, dict[str, Any]] | None = None
+    inline_edit_requires_perm: str | None = None
+    inline_edit_allowed: Callable[[Any, Any], bool] | None = None
 
     # modals (if htmx is active)
     use_modal: bool | None = None
@@ -256,6 +264,125 @@ class CoreMixin:
         return [name for name in dir(self.model)
                     if isinstance(getattr(self.model, name), property) and name != 'pk'
                 ]
+
+    def get_inline_editing(self) -> bool:
+        """
+        Determine whether inline editing should be active for this view.
+        Inline editing is only available when HTMX is enabled and the view
+        explicitly opts in.
+        """
+        return bool(self.inline_edit_enabled and self.get_use_htmx())
+
+    def _resolve_inline_field_list(self, source: Sequence[str] | None) -> list[str]:
+        if not source:
+            return []
+        all_editable = set(self._get_all_editable_fields())
+        return [field for field in source if field in all_editable]
+
+    def get_inline_edit_fields(self) -> list[str]:
+        """
+        Return the list of fields that should be editable inline.
+        Falls back to the form_fields list so inline and modal forms stay aligned.
+        """
+        if not self.get_inline_editing():
+            return []
+
+        config = self.inline_edit_fields
+        if not config:
+            return self._resolve_inline_field_list(self.form_fields)
+
+        if config == '__all__':
+            return self._get_all_editable_fields()
+
+        if config == '__fields__':
+            return self._resolve_inline_field_list(self.fields)
+
+        return self._resolve_inline_field_list(config)
+
+    def _resolve_inline_endpoint(self, endpoint_name: str | None) -> str | None:
+        """
+        Convert a named endpoint into a URL if possible.
+        """
+        if not endpoint_name:
+            return None
+        resolver = getattr(self, "safe_reverse", None)
+        if not callable(resolver):
+            return None
+        try:
+            return resolver(endpoint_name)
+        except Exception:
+            return None
+
+    def get_inline_field_dependencies(self) -> dict[str, dict[str, Any]]:
+        """
+        Return dependency metadata for inline fields, including resolved endpoints.
+        """
+        dependencies = self.inline_field_dependencies or {}
+        endpoint_getter = getattr(self, "get_inline_dependency_endpoint_name", None)
+        default_endpoint_name = endpoint_getter() if callable(endpoint_getter) else None
+        default_endpoint_url = self._resolve_inline_endpoint(default_endpoint_name)
+
+        resolved: dict[str, dict[str, Any]] = {}
+        for field, meta in dependencies.items():
+            if not isinstance(meta, dict):
+                continue
+            entry = dict(meta)
+            endpoint_name = entry.get("endpoint_name") or default_endpoint_name
+            entry["endpoint_name"] = endpoint_name
+            entry["endpoint_url"] = (
+                self._resolve_inline_endpoint(endpoint_name) or default_endpoint_url
+            )
+            resolved[field] = entry
+        return resolved
+
+    def can_inline_edit(self, obj, request) -> bool:
+        """
+        Determine whether the provided object can be edited inline for this request.
+        """
+        if not self.get_inline_editing():
+            return False
+
+        if obj is None:
+            return False
+
+        if self.is_inline_row_locked(obj):
+            return False
+
+        perm = self.inline_edit_requires_perm
+        user = getattr(request, 'user', None)
+
+        if perm:
+            if not user or not user.has_perm(perm):
+                return False
+
+        if callable(self.inline_edit_allowed):
+            return bool(self.inline_edit_allowed(obj, request))
+
+        return True
+
+    def is_inline_row_locked(self, obj) -> bool:
+        """
+        Check whether the provided object is currently locked by an async conflict.
+        """
+        if obj is None:
+            return False
+
+        pk = getattr(obj, 'pk', None)
+        if pk in (None, ''):
+            return False
+
+        conflict_enabled = getattr(self, 'get_conflict_checking_enabled', None)
+        if not callable(conflict_enabled) or not conflict_enabled():
+            return False
+
+        checker = getattr(self, '_check_single_record_conflict', None)
+        if not callable(checker):
+            return False
+
+        try:
+            return bool(checker(pk))
+        except Exception:
+            return False
     
     def get_queryset(self):
         """

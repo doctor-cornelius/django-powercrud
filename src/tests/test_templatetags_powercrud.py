@@ -191,6 +191,103 @@ def test_object_list_renders_booleans_dates_and_selection():
     assert result["filter_params"] == "filter=1"
 
 
+@pytest.mark.django_db
+def test_action_links_disable_when_locked():
+    author = Author.objects.create(name="Linnea")
+    book = Book.objects.create(
+        title="Locked",
+        author=author,
+        published_date=date(2024, 6, 1),
+        bestseller=True,
+        isbn="9876543210111",
+        pages=42,
+    )
+    book._blocked_reason = "locked"
+    book._blocked_label = "Row locked"
+
+    request = apply_session(RequestFactory().get("/"))
+    view = TemplateViewStub(request)
+    view.extra_actions[0]["lock_sensitive"] = True
+
+    html = powercrud.action_links(view, book)
+
+    assert html.count("btn-disabled opacity-50 pointer-events-none") >= 3
+    assert "data-tippy-content='Row locked'" in html
+    assert "Preview" in html  # sanity check extra action rendered
+
+
+@pytest.mark.django_db
+def test_object_list_sets_alignment_metadata():
+    author = Author.objects.create(name="Ada")
+    genre = Genre.objects.create(name="Speculative")
+    book = Book.objects.create(
+        title="Alignment Matters",
+        author=author,
+        published_date=date(2024, 3, 15),
+        bestseller=False,
+        isbn="9876543210222",
+        pages=999,
+    )
+    book.genres.add(genre)
+
+    request = apply_session(RequestFactory().get("/"))
+    view = TemplateViewStub(request)
+    view.fields = ["title", "pages", "bestseller"]
+
+    context = {
+        "request": request,
+        "use_htmx": True,
+        "original_target": "#content",
+        "htmx_target": "#content",
+    }
+    result = powercrud.object_list(context, [book], view)
+    row = result["object_list"][0]
+    cell_map = {cell["name"]: cell for cell in row["cells"]}
+
+    assert cell_map["title"]["align"] == "left"
+    assert cell_map["pages"]["align"] == "center"
+    assert cell_map["bestseller"]["align"] == "center"
+
+
+@pytest.mark.django_db
+def test_object_list_marks_locked_rows_with_metadata():
+    author = Author.objects.create(name="Jules")
+    book = Book.objects.create(
+        title="Locked Payload",
+        author=author,
+        published_date=date(2024, 7, 4),
+        bestseller=True,
+        isbn="9876543210333",
+        pages=77,
+    )
+
+    request = apply_session(RequestFactory().get("/"))
+    view = TemplateViewStub(request)
+    view.extra_actions[0]["lock_sensitive"] = True
+    view.is_inline_row_locked = lambda obj: True
+    view.get_inline_lock_details = lambda obj: {"label": "Locked by QA", "task": "task-007"}
+
+    inline_config = {
+        "enabled": True,
+        "fields": ["title"],
+        "dependencies": {},
+        "row_endpoint_name": "sample:book-inline-row",
+    }
+    context = {
+        "request": request,
+        "use_htmx": True,
+        "original_target": "#content",
+        "htmx_target": "#content",
+        "inline_edit": inline_config,
+    }
+
+    row = powercrud.object_list(context, [book], view)["object_list"][0]
+
+    assert row["inline_blocked_reason"] == "locked"
+    assert row["inline_blocked_meta"]["label"] == "Locked by QA"
+    assert "btn-disabled" in row["actions"]
+
+
 def test_extra_buttons_handles_modal_and_htmx():
     request = apply_session(RequestFactory().get("/"))
     view = TemplateViewStub(request)

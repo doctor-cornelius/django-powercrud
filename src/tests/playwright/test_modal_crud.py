@@ -10,7 +10,7 @@ from sample.models import Book
 pytestmark = [pytest.mark.playwright, pytest.mark.django_db]
 
 
-def test_create_book_via_modal(page, books_url, sample_author):
+def test_create_book_via_modal(page, books_url, sample_author, sample_genre):
     page.goto(books_url)
     page.wait_for_load_state("networkidle")
 
@@ -36,6 +36,7 @@ def test_create_book_via_modal(page, books_url, sample_author):
     form.locator("input[name='title']").fill(title)
     form.locator("select[name='author']").select_option(str(sample_author.pk))
     form.locator("input[name='published_date']").fill("2025-01-01")
+    form.locator("select[name='genres']").select_option(str(sample_genre.pk))
     form.locator("input[name='isbn']").fill(isbn)
     form.locator("input[name='pages']").fill("321")
     description = form.locator("textarea[name='description']")

@@ -73,6 +73,19 @@ class UrlMixin:
         except NoReverseMatch:
             return None
 
+    def get_inline_row_endpoint_name(self) -> str | None:
+        """
+        Name of the URL that serves inline row form rendering/saving.
+        Downstream projects can override this to point at custom endpoints.
+        """
+        return f"{self.get_prefix()}-inline-row"
+
+    def get_inline_dependency_endpoint_name(self) -> str | None:
+        """
+        Name of the URL that serves dependent field refresh requests.
+        """
+        return f"{self.get_prefix()}-inline-dependency"
+
     def reverse(self, role, view, object=None):
         """
         Override of neapolitan's reverse method.
@@ -214,6 +227,24 @@ class UrlMixin:
             urls.append(BulkActions.CLEAR_SELECTION.get_url(cls))
             urls.append(BulkActions.TOGGLE_ALL_SELECTION.get_url(cls))
 
+        # Inline editing endpoints
+        if getattr(cls, "inline_edit_enabled", None):
+            lookup_kwarg = getattr(cls, "lookup_url_kwarg", None) or getattr(cls, "lookup_field", "pk")
+            urls.append(
+                path(
+                    f"{cls.url_base}/<{lookup_kwarg}>/inline-row/",
+                    cls.as_view(role=Role.LIST, inline_action="inline_row"),
+                    name=f"{cls.url_base}-inline-row",
+                )
+            )
+            urls.append(
+                path(
+                    f"{cls.url_base}/<{lookup_kwarg}>/inline-dependency/",
+                    cls.as_view(role=Role.LIST, inline_action="inline_dependency"),
+                    name=f"{cls.url_base}-inline-dependency",
+                )
+            )
+
         return urls
     
     def get_context_data(self, **kwargs):  # pragma: no cover
@@ -303,6 +334,10 @@ class UrlMixin:
                 for field in self.model._meta.fields
                 if field.is_relation and getattr(self.object, field.name)
             }
+
+        # Inline editing config for templates
+        if hasattr(self, "get_inline_context"):
+            kwargs["inline_edit"] = self.get_inline_context()
 
         # Add sort parameter to context
         kwargs['sort'] = self.request.GET.get('sort', '')

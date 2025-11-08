@@ -851,9 +851,9 @@ class AsyncManager:
                     conflicts.add(obj_id)
         
         if conflicts:
-            log.debug(f"Conflict detected with IDs {conflicts}")
-        else:
-            log.debug("No conflicts detected")
+            log.warning(f"Conflict detected with IDs {conflicts}")
+        # else:
+        #     log.debug("No conflicts detected")
             
         return conflicts
 
