@@ -159,11 +159,14 @@ STATICFILES_DIRS = [
 
 STATIC_ROOT = BASE_DIR / "powercrud" / "staticfiles"
 
+VITE_HOST = os.getenv("DJANGO_VITE_HOST", "localhost")
+VITE_PORT = int(os.getenv("DJANGO_VITE_PORT", 5174))
+
 DJANGO_VITE = {
   "default": {
     "dev_mode": DEBUG, # set to use DEBUG variable (ie False in Production)
-    "dev_server_port": 5174, # match setting in server key of vite.config.mjs
-    "dev_server_host": "localhost",
+    "dev_server_port": VITE_PORT, # match setting in server key of vite.config.mjs
+    "dev_server_host": VITE_HOST,
   }
 }
 

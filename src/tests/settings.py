@@ -1,5 +1,9 @@
 import os
 
+BASE_DIR = os.path.dirname(os.path.dirname(__file__))
+DEBUG = True
+ALLOWED_HOSTS = ["*"]
+
 SECRET_KEY = "just-for-testing-secret-key"
 
 if os.environ.get("DATABASE_NAME"):
@@ -44,11 +48,16 @@ SESSION_SAVE_EVERY_REQUEST = True  # Update session expiry on every request
 STATIC_URL = "/static/"
 STATIC_ROOT = os.path.join(os.path.dirname(__file__), "staticfiles")
 os.makedirs(STATIC_ROOT, exist_ok=True)
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, "powercrud", "assets"),
+]
 
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],
+        "DIRS": [
+            os.path.join(BASE_DIR, "sample", "templates"),
+        ],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -76,6 +85,10 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
 
+    "crispy_forms",
+    "crispy_tailwind",
+    "crispy_daisyui",
+    "crispy_bootstrap5",
     "template_partials",
     'django_htmx',
     "django_filters",
@@ -90,6 +103,9 @@ INSTALLED_APPS = [
     "sample",
     "tests",
 ]
+
+CRISPY_ALLOWED_TEMPLATE_PACKS = ["tailwind", "daisyui", "bootstrap5"]
+CRISPY_TEMPLATE_PACK = "daisyui"
 
 
 TEST_CACHE_DIR = os.path.join(os.path.dirname(__file__), "cache")
@@ -126,6 +142,13 @@ POWERCRUD_SETTINGS = {
     'CLEANUP_SCHEDULE_INTERVAL': 300,  # 5 minutes for scheduled cleanup
     'CACHE_NAME': 'powercrud_async',  # Which cache from CACHES to use for conflict/progress
     'QCLUSTER_PROBE_TIMEOUT_MS': 1500,
+}
+
+DJANGO_VITE = {
+    "default": {
+        "dev_mode": False,
+        "manifest_path": os.path.join(BASE_DIR, "powercrud", "assets", "manifest.json"),
+    }
 }
 
 # django-q2 settings

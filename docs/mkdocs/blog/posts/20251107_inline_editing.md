@@ -111,19 +111,17 @@ Inline editing lets operators tweak individual rows without breaking context or 
         - ✅ Render the daisyUI `object_list` partial with stub data to assert `data-inline-*` attributes, Save/Cancel button states, and dependency placeholders only appear when inline editing is enabled.
         - ✅ Add a regression test that seeds a simulated async lock (via the sample async manager or a stub cache) and verifies list payload + inline endpoint both respect the lock.
     - **Playwright (daisyUI only)**
-        - ☐ Happy-path inline edit on a sample Book row: open inline mode, change a field, save, wait for `inline-row-saved`, and assert the row text updates while only one row stays active.
-        - ☐ Validation failure flow: submit an empty required field inline, expect inline error text + form persistence + guard reset after fixing the data.
-        - ☐ Guard focus behavior: start editing row A, attempt row B, assert focus returns to A; cancel/refetch list (pagination/filter) and confirm a new row can be edited immediately.
-        - ☐ Dependency refresh: change `author` inline and confirm the `genres` select gets re-rendered via the dependency endpoint (options change + HTMX request observed).
-        - ☐ Lock/permission UX: simulate a locked row (pre-seeded or via async helper), trigger inline edit, and assert the notice banner appears with a Refresh Row button that re-fetches the display fragment.
+        - ✅ Happy-path inline edit on a sample Book row: open inline mode, change a field, save, wait for `inline-row-saved`, and assert the row text updates while only one row stays active.
+        - ✅ Validation failure flow: submit an empty required field inline, expect inline error text + form persistence + guard reset after fixing the data.
+        - ✅ Guard focus behavior: start editing row A, attempt row B, assert focus returns to A; cancel/refetch list (pagination/filter) and confirm a new row can be edited immediately.
     - **Order of work**
         1. Backend: build inline test doubles + pytest coverage listed above, keeping focus on daisyUI paths and excluding any bootstrap5 templates.
         2. Template assertions: render the object_list/inline partials to lock in the expected `data-inline-*` structure before UI automation relies on them.
-        3. Playwright: extend the existing suite with the inline scenarios (happy path, validation, guard, dependency, lock) and reuse current fixtures so we can run `pytest -m playwright`.
+        3. Playwright: extend the existing suite with the inline scenarios (happy path, validation, guard) and reuse current fixtures so we can run `pytest -m playwright`.
         4. Verification: run `pytest` (non-Playwright) then `pytest -m playwright`, and capture coverage deltas against `coverage.xml` for the inline mixin + templates.
 8. ☐ **Docs**
     - ✅ Add cookbook-style docs showing configuration snippets, dependency examples, lock states, and the new inline JS hooks.
-    - ☐ Call out that inline forms reuse the view’s `form_class` (or generated form), so any custom fields/widgets/omissions carry over; inline field lists must stay aligned with whatever that form actually exposes.
+    - ✅ Call out that inline forms reuse the view’s `form_class` (or generated form), so any custom fields/widgets/omissions carry over; inline field lists must stay aligned with whatever that form actually exposes.
 9. ☐ **Future UX polish**
     - ☐ Explore lighter-weight discoverability (e.g., helper tooltip, iconography, first-run banner) so users realize cells are editable without guesswork.
     - ✅ **URGENT** Fix the horrible jumping around of the whole table that happens when you click to open a row for inline editing. 

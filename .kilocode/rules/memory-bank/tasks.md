@@ -201,3 +201,60 @@ progress = {
 -   `Faker` provides a wide range of realistic-looking data, significantly increasing the uniqueness of generated entries.
 -   The `isbn13()` method of `Faker` generates valid 13-digit ISBNs, helping to satisfy the unique ISBN constraint.
 -   The `sentence()` and `paragraph()` methods provide varied and realistic titles and descriptions.
+
+## Inline Row Editing Implementation
+
+**Last performed:** 2025-11-07
+**Files to modify:**
+- `src/powercrud/mixins/inline_editing_mixin.py` - Core inline editing functionality
+- `src/sample/views.py` - BookCRUDView and AuthorCRUDView with inline_edit_enabled = True
+- `src/tests/playwright/test_inline_editing.py` - Playwright tests for inline editing
+- `docs/mkdocs/blog/posts/20251107_inline_editing.md` - Implementation documentation
+
+**Steps:**
+1. Add InlineEditingMixin to PowerCRUDMixin composition
+2. Implement HTMX endpoints for inline row GET/POST operations
+3. Add conflict detection and permission checks for inline editing
+4. Support dependent field refresh via declarative metadata
+5. Create template partials for inline forms and display fragments
+6. Add keyboard navigation and accessibility features
+7. Implement one-active-row-at-a-time constraint
+8. Add comprehensive Playwright tests for happy path, validation, and guard scenarios
+
+**Important notes:**
+- Inline editing is opt-in per view with `inline_edit_enabled = True`
+- Only one row can be edited at a time; clicking another row cancels the current edit
+- Async conflict locks prevent editing locked records
+- Dependent fields refresh via HTMX when parent fields change
+- Keyboard shortcuts: Tab navigation, Enter/Space activation, Escape cancellation
+- Form validation errors display inline with row persistence
+
+## Async Processing Implementation
+
+**Last performed:** 2025-11-07
+**Files to modify:**
+- `src/powercrud/async_manager.py` - Core async manager with conflict detection
+- `src/powercrud/async_dashboard.py` - Model tracking async manager
+- `src/powercrud/async_hooks.py` - Completion hooks for task lifecycle
+- `src/powercrud/async_context.py` - Context management for nested operations
+- `src/sample/async_manager.py` - Sample implementation
+- `src/sample/models.py` - AsyncTaskRecord model for dashboard
+- `docs/mkdocs/guides/async_manager.md` - Usage guide
+- `docs/mkdocs/guides/async_dashboard.md` - Dashboard setup guide
+
+**Steps:**
+1. Implement AsyncManager with dual-key conflict detection system
+2. Add ModelTrackingAsyncManager for lifecycle persistence
+3. Create async task functions in tasks.py for bulk operations
+4. Implement completion hooks and context management
+5. Add management commands for cleanup and monitoring
+6. Create sample dashboard views and models
+7. Add comprehensive tests for async functionality
+
+**Important notes:**
+- Dual-key system: object locks + tracking sets for reliable cleanup
+- Supports both django-q2 and Celery backends
+- Lifecycle events: create, progress, complete, fail, cleanup
+- Atomic conflict reservation prevents race conditions
+- Progress tracking via cache with TTL management
+- Dashboard persistence with customizable field mapping

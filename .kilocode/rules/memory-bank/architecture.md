@@ -48,6 +48,7 @@ The system uses a modular mixin approach:
 7. **`table_mixin.py`** - Table styling and column management
 8. **`url_mixin.py`** - URL generation and namespace handling
 9. **`async_mixin.py`** - Async processing for bulk operations
+10. **`inline_editing_mixin.py`** - Inline row editing with HTMX endpoints
 
 #### Template System: `/powercrud/templates/`
 Framework-specific template organization:
@@ -116,6 +117,9 @@ Development/demo Django project (renamed from `django_powercrud/`):
   - **`postgresql.conf`** - PostgreSQL configuration
 - **`tasks.py`** - Async task functions for django-q2 and Celery backends
 - **`async_manager.py`** - Manages async task creation and status updates
+- **`async_dashboard.py`** - Model tracking async manager for lifecycle persistence
+- **`async_hooks.py`** - Completion hooks for task lifecycle management
+- **`async_context.py`** - Context management for nested async operations
 
 ## Key Technical Decisions
 
@@ -162,7 +166,8 @@ PowerCRUDMixin
 ├── PaginateMixin (pagination)
 ├── TableMixin (table styling)
 ├── UrlMixin (URL generation)
-└── AsyncMixin (async processing)
+├── AsyncMixin (async processing)
+└── InlineEditingMixin (inline row editing)
 ```
 
 ### Data Flow
@@ -199,6 +204,12 @@ PowerCRUDMixin
 - **Framework Detection**: Settings-based framework selection
 - **Template Paths**: `templates_path` → framework-specific directories
 - **Override System**: App-specific templates → fallback to package templates
+
+### 5. Inline Row Editing
+- **HTMX Endpoints**: GET returns inline form, POST validates/saves and returns display fragment
+- **Conflict Detection**: Async locks prevent editing locked records
+- **Dependent Fields**: Declarative metadata for cascading dropdown updates
+- **Permission Checks**: Per-row authorization with fallback to read-only mode
 
 ## Design Patterns Used
 

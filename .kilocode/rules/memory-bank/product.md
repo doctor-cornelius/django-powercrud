@@ -48,17 +48,31 @@ class MyView(PowerCRUDMixin, CRUDView):
 - Form validation with error display in modals
 - Seamless user experience without page reloads
 
-#### 3. **Bulk Operations**
+#### 3. **Inline Row Editing**
+- Edit individual rows directly in list views
+- HTMX-powered reactive updates without page reloads
+- Conflict detection to prevent editing locked records
+- Dependent field refresh for related dropdowns
+- Keyboard navigation and accessibility support
+
+#### 4. **Bulk Operations**
 - Multi-record selection with persistent state
 - Atomic bulk edit with validation
 - Bulk delete with confirmation
 - Progress tracking for large operations
+- Async processing for large datasets with conflict management
 
-#### 4. **Dynamic Filtering**
+#### 5. **Dynamic Filtering**
 - Auto-generated filtersets from field definitions
 - Custom filter logic for related fields
 - HTMX-enabled reactive filtering
 - Dropdown sorting and option restriction
+
+#### 6. **Async Processing & Dashboard**
+- Background task execution for bulk operations
+- Progress tracking and conflict management
+- Lifecycle event persistence and monitoring
+- Dashboard views for task status and history
 
 ## User Experience Goals
 

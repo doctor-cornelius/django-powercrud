@@ -17,8 +17,11 @@
 
 ### Active Features
 - **Bulk Edit/Delete**: Atomic operations with validation and error handling
+- **Inline Row Editing**: HTMX-powered inline editing with conflict detection and dependent fields
 - **Advanced Filtering**: Dynamic filtersets with M2M logic options
 - **Modal CRUD**: HTMX-powered modal forms for all CRUD operations
+- **Async Processing**: django-q2 support for bulk operations with progress tracking and conflict management
+- **Async Dashboard**: Lifecycle event persistence and monitoring for background tasks
 - **Template Flexibility**: Bootstrap5 and daisyUI framework support (NB bootstrap will be deprecated in future release)
 - **Management Commands**: Template bootstrapping and Tailwind class extraction
 
@@ -33,13 +36,16 @@
 - Ensured `BulkTask` deletion also removes associated django-q2 tasks.
 
 ### Key Recent Features
-- **Enhanced Async Task Tracking**: Comprehensive `BulkTask` model for monitoring bulk operations.
-- **Improved Bulk Operation Reliability**: Better status tracking, error handling, and duplicate prevention for async tasks.
-- **Dropdown Sort Options**: Control sorting of related objects in dropdowns.
-- **Bulk Delete**: Separate control for bulk edit vs bulk delete operations.
-- **User Page Size Selection**: Persistent pagination preferences.
-- **Enhanced Error Handling**: Better bulk operation error display in modals.
-- **Filter Parameter Persistence**: Persist filter, pagination & sort params after single & bulk edit operations.
+- **Inline Row Editing**: HTMX-powered inline editing with conflict detection, dependent fields, and keyboard navigation
+- **Async Processing**: Complete async backend implementation for bulk operations with django-q2 and Celery support
+- **Async Dashboard**: Model tracking for lifecycle event persistence and monitoring
+- **Enhanced Async Task Tracking**: Comprehensive `BulkTask` model for monitoring bulk operations
+- **Improved Bulk Operation Reliability**: Better status tracking, error handling, and duplicate prevention for async tasks
+- **Dropdown Sort Options**: Control sorting of related objects in dropdowns
+- **Bulk Delete**: Separate control for bulk edit vs bulk delete operations
+- **User Page Size Selection**: Persistent pagination preferences
+- **Enhanced Error Handling**: Better bulk operation error display in modals
+- **Filter Parameter Persistence**: Persist filter, pagination & sort params after single & bulk edit operations
 
 ## Next Steps
 

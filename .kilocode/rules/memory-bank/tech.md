@@ -37,6 +37,9 @@
 - **django-q2 1.8.0+** - Async task processing for bulk operations
 - **Celery 5.4.0+** - Alternative async task processing backend
 - **django-celery-beat 2.7.0+** - Periodic task scheduling for Celery
+- **Async Dashboard** - Model tracking for lifecycle event persistence
+- **Async Hooks** - Completion hooks for task lifecycle management
+- **Async Context** - Context management for nested async operations
 
 ### Database Systems
 - **PostgreSQL** - Primary database for development and production
@@ -175,6 +178,19 @@ class BulkTask(models.Model):
     processed_records = models.IntegerField(default=0)
     status = models.CharField(choices=STATUS_CHOICES)
     # ... additional fields for tracking and metadata
+
+# sample/models.py
+class AsyncTaskRecord(models.Model):
+    """Dashboard model for async task lifecycle persistence"""
+    task_name = models.CharField(max_length=64, unique=True)
+    status = models.CharField(max_length=20, choices=STATUS.choices, default=STATUS.PENDING)
+    message = models.TextField(blank=True)
+    progress_payload = models.TextField(blank=True)
+    user_label = models.CharField(max_length=255, blank=True)
+    affected_objects = models.TextField(blank=True)
+    result_payload = models.JSONField(blank=True, null=True)
+    cleaned_up = models.BooleanField(default=False)
+    # ... timestamps and completion tracking
 ```
 
 ### Session Data Structure

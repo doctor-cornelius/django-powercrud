@@ -6,12 +6,17 @@ coverage erase
 rm -rf htmlcov
 rm -f coverage.xml
 
-# Run the powercrud core + async suite under lightweight test settings
+# All suites run under the lightweight test settings (manifest uses built files)
 export DJANGO_SETTINGS_MODULE=tests.settings
 
-# run pytest and generate html report
-pytest -m "not playwright" --cov-report=html
+# Core + async suite with coverage (skips Playwright)
+pytest -m "not playwright" 
 
-# Playwright UI checks expect full app stack
-export DJANGO_SETTINGS_MODULE=config.settings
-pytest -m playwright --no-cov
+# Ensure the built bundle exists for manifest mode
+echo "Building static assets for Playwright suite..."
+npm run build
+
+# Playwright UI checks
+pytest -m playwright --cov-append --no-cov-on-fail
+
+coverage html
