@@ -61,7 +61,7 @@ jobs:
       - name: Install Python dependencies
         run: |
           PYTHON="$(python -c 'import sys; print(sys.executable)')"
-          uv pip install --python "$PYTHON" ".[tests-core]" "django==5.2.*"
+          uv pip install --python "$PYTHON" ".[tests-core]" ".[tests-ui]" "django==5.2.*"
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -70,6 +70,14 @@ jobs:
 
       - name: Install frontend dependencies
         run: npm ci
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-browsers-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            playwright-browsers-${{ runner.os }}-
 
       - name: Run backend suite with coverage
         run: pytest -m "not playwright"
