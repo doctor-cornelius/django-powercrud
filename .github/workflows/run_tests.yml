@@ -86,7 +86,7 @@ jobs:
         run: npm run build
 
       - name: Install Playwright browsers
-        run: npx playwright install --with-deps
+        run: python -m playwright install --with-deps chromium
 
       - name: Run Playwright suite with coverage append
         run: pytest -m playwright --cov-append --no-cov-on-fail
