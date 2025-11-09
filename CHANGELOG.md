@@ -1,3 +1,37 @@
+## 0.4.6 (2025-11-09)
+
+### Refactor
+
+- **(CoreMixin)**:  tighten up get_inline_edit_fields method
+- **(InlineEditingMixin)**:  move inline methods in
+- **(inline_editing_mixin)**:  consolidate all inline methods
+- **(InlineEditingMixin)**:  validate inline dependency fields against get_inline_editing_fields
+
+### Continuous Integration
+
+- **(run_tests.yml)**:  fix playwright install error
+- **(run_tests.yml)**:  install missing playwright deps and cache playwright binaries
+- **(run_tests.yml)**:  only upload coverage file once
+- **(run_tests.yaml)**:  specify required python interpreter for playwright tests
+- **(run_tests.yml)**:  include playwright tests in CI
+
+### Documentation
+
+- **(inline)**:  document inline editing and remove guide prefix numbers
+- **(docs)**:  fix up cross-referencing errors
+- **(inline_editing)**:  add more detail around how inline_edit_fields must match form fields
+- **(04_bulk_edit_async)**:  clarify docs for downstream configuration of bulk async
+
+### Feature
+
+- **(inline_editing)**:  implement inline editing in table of 1 row at a time
+
+### Tests
+
+- **(inline)**:  write passplaywright tests
+- **(inline_editing)**:  write passing inline editing tests and include all playwright tests in CI
+- **(inline_editing)**:  ensure all tests pass
+
 ## 0.4.5 (2025-11-03)
 
 ### Refactor
