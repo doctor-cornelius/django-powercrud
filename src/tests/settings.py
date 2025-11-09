@@ -86,9 +86,8 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
 
     "crispy_forms",
-    "crispy_tailwind",
     "crispy_daisyui",
-    "crispy_bootstrap5",
+    "crispy_tailwind",
     "template_partials",
     'django_htmx',
     "django_filters",
@@ -104,7 +103,7 @@ INSTALLED_APPS = [
     "tests",
 ]
 
-CRISPY_ALLOWED_TEMPLATE_PACKS = ["tailwind", "daisyui", "bootstrap5"]
+CRISPY_ALLOWED_TEMPLATE_PACKS = ["tailwind", "daisyui"]
 CRISPY_TEMPLATE_PACK = "daisyui"
 
 

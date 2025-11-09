@@ -10,7 +10,6 @@ from django.conf import settings
 
 from powercrud.conf import get_powercrud_setting
 
-
 class Command(BaseCommand):
     help = "Bootstrap CRUD templates, either individual templates or the complete framework structure."
 
@@ -137,7 +136,7 @@ class Command(BaseCommand):
             app_template_dir.mkdir(exist_ok=True)
 
             # Copy the entire template structure
-            framework_dir = Path(self.template_prefix).name  # gets 'bootstrap5' from 'powercrud/bootstrap5'
+            framework_dir = Path(self.template_prefix).name
             target_framework_dir = app_template_dir / framework_dir
             
             if target_framework_dir.exists():

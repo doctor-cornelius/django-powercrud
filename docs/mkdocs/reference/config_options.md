@@ -71,7 +71,7 @@ Complete alphabetical reference of all available configuration options with defa
 | `CLEANUP_GRACE_PERIOD` | `86400` | Grace period before scheduled cleanup reclaims tasks | [Async Manager](../guides/async_manager.md) |
 | `MAX_TASK_DURATION` | `3600` | Threshold for treating a task as stuck | [Async Manager](../guides/async_manager.md) |
 | `CLEANUP_SCHEDULE_INTERVAL` | `300` | Suggested interval (seconds) for scheduled cleanup jobs | [Async Manager](../guides/async_manager.md) |
-| `POWERCRUD_CSS_FRAMEWORK` | `'daisyui'` | CSS framework choice (`'daisyui'`, `'bootstrap5'`, or custom) | [Styling & Tailwind](../guides/styling_tailwind.md) |
+| `POWERCRUD_CSS_FRAMEWORK` | `'daisyui'` | CSS framework choice (`'daisyui'` or custom pack) | [Styling & Tailwind](../guides/styling_tailwind.md) |
 | `TAILWIND_SAFELIST_JSON_LOC` | `None` | Location for Tailwind safelist file generation | [Styling & Tailwind](../guides/styling_tailwind.md) |
 
 ## Filter controls

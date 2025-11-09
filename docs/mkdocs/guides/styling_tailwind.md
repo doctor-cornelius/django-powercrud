@@ -10,13 +10,11 @@ PowerCRUD ships with daisyUI/Tailwind defaults but you can bring your own CSS fr
 # settings.py
 POWERCRUD_SETTINGS = {
     "POWERCRUD_CSS_FRAMEWORK": "daisyui",   # default
-    # "POWERCRUD_CSS_FRAMEWORK": "bootstrap5",
 }
 ```
 
 - **daisyUI** (Tailwind v4) is the maintained path.
-- Bootstrap 5 templates exist but lag behind—expect to tweak them.
-- Custom frameworks are possible by copying templates (see [Customisation tips](./customisation_tips.md)).
+- Custom frameworks are possible by copying templates (see [Customisation tips](./customisation_tips.md)) and wiring in a new pack.
 
 ---
 
@@ -117,21 +115,11 @@ The quickest way is to copy the examples from `powercrud/templates/powercrud/bas
 
 ---
 
-## 5. Bootstrap (legacy) notes
-
-If you opt for Bootstrap 5:
-
-- Copy templates with `python manage.py pcrud_mktemplate myapp --all`.
-- Update them to match your bootstrap version (buttons, table classes, modal markup).
-- Many newer PowerCRUD features were built against daisyUI—test thoroughly.
-
----
-
 ### Key options
 
 | Setting | Default | Typical values | Purpose |
 |---------|---------|----------------|---------|
-| `POWERCRUD_CSS_FRAMEWORK` | `'daisyui'` | `'daisyui'`, `'bootstrap5'` | Choose the styling stack. |
+| `POWERCRUD_CSS_FRAMEWORK` | `'daisyui'` | `'daisyui'`, custom pack name | Choose the styling stack. |
 | `table_classes`, `action_button_classes`, `extra_button_classes` | `''` | CSS classes | Style tables and buttons. |
 | `table_max_col_width`, `table_header_min_wrap_width` | `25`, same as max | integers | Control column widths and truncation. |
 | `table_max_height`, `table_pixel_height_other_page_elements` | `70`, `0` | integers | Limit table height and scroll behaviour. |

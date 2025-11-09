@@ -31,15 +31,10 @@ You'll need to include these JavaScript libraries in your base template:
 
 - daisyUI v5 with Tailwind CSS v4
 - Bootstrap Icons (for sorting indicators)
-- Bootstrap 5 CSS and JS (if using bootstrap5 framework)
 
 !!! note "Choose Your Frontend Install Methods"
 
     There are many ways to include JavaScript (CDN, npm, Vite, etc.) - use whatever works for your project.*
-
-!!! warning "Bootstrap Templates Outdated"
-
-    Bootstrap templates are currently out of date as all recent development has focused on `daisyUI`. Once async support is finalised and tested, Bootstrap templates will either be updated or removed.
 
 See the example base template in `django_powercrud/templates/django_powercrud/base.html` for a complete implementation with CDN links.
 
@@ -57,8 +52,8 @@ INSTALLED_APPS = [
     ...
 ]
 
-# Optional: Set CSS framework (default is 'daisyui')
-POWERCRUD_CSS_FRAMEWORK = 'daisyui'  # or 'bootstrap5'
+# Optional: Set CSS framework (default is 'daisyui'); override if you build your own pack
+POWERCRUD_CSS_FRAMEWORK = 'daisyui'
 ```
 
 **Important:** If using Tailwind CSS (default), ensure Tailwind includes powercrud's classes in its build process. See the [Styling guide](./styling_tailwind.md#tailwind-integration) for details.

@@ -66,4 +66,4 @@ class BookFilterSet(HTMXFilterSetMixin,FilterSet):
         self.helper.form_tag = False
         self.helper.disable_csrf = True
         self.helper.wrapper_class = 'col-auto'
-        self.helper.template = 'bootstrap5/layout/inline_field.html'
+        self.helper.template = 'powercrud/daisyUI/layout/inline_field.html'

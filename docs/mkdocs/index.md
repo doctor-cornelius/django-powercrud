@@ -16,11 +16,7 @@ powercrud comes with these features built-in, specifically for user-facing CRUD 
 🎯 **Advanced CRUD Operations** - Filtering, pagination, bulk edit/delete (with async) out of the box  
 ⚡ **Modern Web UX** - HTMX integration, modals, and reactive updates  
 🔧 **Developer Friendly** - Convention over configuration with full customization options  
-🎨 **Multiple CSS Frameworks** - `daisyUI` with `tailwindcss` (default) and Bootstrap 5 support  
-
-!!! warning "Bootstrap5 Templates Outdated"
-
-    Bootstrap templates are currently out of date as all recent development has focused on `daisyUI`. Once async support is finalised and tested, Bootstrap templates will either be updated or removed.
+🎨 **Styling Engine** - `daisyUI` + `tailwindcss` templates today, with hooks for additional packs  
 
 ## Start Here
 

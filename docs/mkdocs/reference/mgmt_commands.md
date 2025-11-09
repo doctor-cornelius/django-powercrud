@@ -2,7 +2,7 @@
 
 powercrud provides several management commands to help with setup, template customization, and Tailwind CSS integration.
 
-## `pcrud_mktemplate` - Bootstrap CRUD Templates
+## `pcrud_mktemplate` - Copy CRUD Templates
 
 Copy powercrud templates to your project for customization.
 

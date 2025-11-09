@@ -27,7 +27,7 @@ See the [full documentation](https://doctor-cornelius.github.io/django-powercrud
 🎯 **Advanced CRUD Operations** - Filtering, pagination, bulk edit/delete (with async) out of the box  
 ⚡ **Modern Web UX** - HTMX integration, modals, and reactive updates  
 🔧 **Developer Friendly** - Convention over configuration with full customization options  
-🎨 **Multiple CSS Frameworks** - daisyUI/Tailwind (default) and Bootstrap 5 support  
+🎨 **Styling Engine** - DaisyUI + Tailwind template pack with an extensible structure for future frameworks  
 
 ## Quick Example
 

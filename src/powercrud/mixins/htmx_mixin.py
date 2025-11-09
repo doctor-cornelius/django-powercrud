@@ -33,34 +33,6 @@ class HtmxMixin:
         """
 
         return {
-            'bootstrap5': {
-                # base class for all buttons
-                'base': 'btn ',
-                # attributes for filter form fields
-                'filter_attrs': {
-                    'text': {'class': 'form-control form-control-sm small py-1'},
-                    'select': {'class': 'form-select form-select-sm small py-1'},
-                    'multiselect': {
-                        'class': 'form-select form-select-sm small', 
-                        'size': '5',
-                        'style': 'min-height: 8rem; padding: 0.25rem;'
-                    },
-                    'date': {'class': 'form-control form-control-sm small py-1', 'type': 'date'},
-                    'number': {'class': 'form-control form-control-sm small py-1', 'step': 'any'},
-                    'time': {'class': 'form-control form-control-sm small py-1', 'type': 'time'},
-                    'default': {'class': 'form-control form-control-sm small py-1'},
-                },
-                # set colours for the action buttons
-                'actions': {
-                    'View': 'btn-info',
-                    'Edit': 'btn-primary',
-                    'Delete': 'btn-danger'
-                },
-                # default colour for extra action buttons
-                'extra_default': 'btn-primary',
-                # modal class attributes
-                'modal_attrs': f'data-bs-toggle="modal" data-bs-target="{self.get_modal_id()}"',
-            },
             'daisyUI': {
                 # base class for all buttons
                 'base': 'btn ',

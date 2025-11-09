@@ -56,9 +56,8 @@ INSTALLED_APPS = [
     'django_htmx',
 
     "crispy_forms",
-    # "crispy_bootstrap5",
-    "crispy_tailwind",
     "crispy_daisyui",
+    "crispy_tailwind",
 
     # for async
     'django_q',
