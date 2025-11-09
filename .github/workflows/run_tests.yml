@@ -40,14 +40,7 @@ jobs:
           uv pip install --python "$PYTHON" ".[tests-core]" "django==${{ matrix.django }}.*"
 
       - name: Run pytest
-        run: pytest -m "not playwright" --cov=powercrud --cov-report=term-missing --cov-report=xml
-
-      - name: Upload backend coverage artifact
-        if: matrix.python-version == '3.14' && matrix.django == '5.2'
-        uses: actions/upload-artifact@v4
-        with:
-          name: backend-coverage
-          path: .coverage
+        run: pytest -m "not playwright"
 
   playwright:
     runs-on: ubuntu-latest
@@ -78,22 +71,17 @@ jobs:
       - name: Install frontend dependencies
         run: npm ci
 
+      - name: Run backend suite with coverage
+        run: pytest -m "not playwright"
+
       - name: Build static assets
         run: npm run build
 
       - name: Install Playwright browsers
         run: npx playwright install --with-deps
 
-      - name: Download backend coverage artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: backend-coverage
-          path: coverage-data
-
       - name: Run Playwright suite with coverage append
-        run: |
-          cp coverage-data/.coverage .coverage
-          pytest -m playwright --cov=powercrud --cov-append --no-cov-on-fail
+        run: pytest -m playwright --cov-append --no-cov-on-fail
 
       - name: Generate combined coverage report
         run: coverage xml
