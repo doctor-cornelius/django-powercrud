@@ -57,7 +57,7 @@ class BookCRUDView(SampleCRUDMixin):
     bulk_async = True
     bulk_min_async_records = 2
 
-    form_fields = ['title', 'author', 'bestseller', 'genres', 'published_date', 'isbn',]
+    form_fields = ['title', 'author', 'bestseller', 'pages', 'genres', 'published_date', 'isbn', 'description']
     # form_class = forms.BookForm
 
     # filterset_class = filters.BookFilterSet
