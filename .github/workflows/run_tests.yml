@@ -64,9 +64,9 @@ jobs:
           uv pip install --python "$PYTHON" ".[tests-core]" ".[tests-ui]" "django==5.2.*"
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
-          node-version: "20.19.5"
+          node-version: "24.11.0"
 
       - name: Install frontend dependencies
         run: npm ci
