@@ -79,6 +79,12 @@
       "matchManagers": ["poetry"],
       "matchPackageNames": ["django"],
       "rangeStrategy": "update-lockfile"
+    },
+    {
+      "matchManagers": ["poetry"],
+      "matchPackageNames": ["pytest"],
+      "matchUpdateTypes": ["major"],
+      "enabled": false
     }
 
   ],
