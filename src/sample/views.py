@@ -57,8 +57,8 @@ class BookCRUDView(SampleCRUDMixin):
     bulk_async = True
     bulk_min_async_records = 2
 
-    # form_fields = ['title', 'author', 'bestseller', 'genres', 'published_date', 'isbn',]
-    form_class = forms.BookForm
+    form_fields = ['title', 'author', 'bestseller', 'genres', 'published_date', 'isbn',]
+    # form_class = forms.BookForm
 
     # filterset_class = filters.BookFilterSet
     filterset_fields = ['author', 'title', 'published_date','isbn', 'pages', 'description', 'genres']
@@ -80,12 +80,13 @@ class BookCRUDView(SampleCRUDMixin):
     table_pixel_height_other_page_elements = 100
     table_max_height = 80
     table_header_min_wrap_width = '15' # characters
-    table_max_col_width = '35' # characters
+    table_max_col_width = '25' # characters
 
     table_classes = 'table-zebra table-sm'
     # action_button_classes = 'btn-sm min-h-0 h-6 leading-6'
     action_button_classes = 'btn-xs'
     extra_button_classes = 'btn-sm'
+
     inline_edit_enabled = True
     inline_edit_fields = [
         "title",
@@ -145,33 +146,6 @@ class BookCRUDView(SampleCRUDMixin):
             "lock_sensitive": True, # this will be greyed out if async locks in force
         },
     ]
-
-    def get_form_kwargs(self):
-        kwargs = super().get_form_kwargs()
-        return self._inject_author_dependent_kwargs(kwargs)
-
-    def get_inline_form_kwargs(self, *, instance, data=None, files=None):
-        kwargs = super().get_inline_form_kwargs(instance=instance, data=data, files=files)
-        return self._inject_author_dependent_kwargs(kwargs, instance=instance)
-
-    def _inject_author_dependent_kwargs(self, kwargs, instance=None):
-        author_pk = None
-        data = kwargs.get("data")
-        if data:
-            author_pk = data.get("author") or data.get("author_id")
-
-        if not author_pk:
-            inst = kwargs.get("instance") or instance
-            if inst is not None:
-                author_pk = getattr(inst, "author_id", None)
-
-        if not author_pk and hasattr(self, "request"):
-            author_pk = self.request.POST.get("author") or self.request.GET.get("author")
-
-        if author_pk:
-            kwargs["author_for_genres"] = author_pk
-        return kwargs
-
 
     # def get_bulk_choices_for_field(self, field_name, field):
     #     """Example of how to override to further restrict foreign key choices for 
