@@ -214,9 +214,7 @@ class InlineEditingMixin:
         missing = sorted(set(fields) - set(filtered))
         if missing:
             log.warning(
-                "Inline edit fields %s ignored because they are not present on the form_class for %s",
-                missing,
-                self.__class__.__name__,
+                f"Inline edit fields {missing} ignored because they are not present on the form_class for {self.__class__.__name__}"
             )
         return filtered
 
