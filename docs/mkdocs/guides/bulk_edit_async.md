@@ -173,13 +173,6 @@ _Details for each option live in the [configuration reference](../reference/conf
 
 ## Next steps
 
-### Nested workflows
-
-If child objects perform additional work during `save()` while the parent task is running async, call `skip_nested_async()` and `register_descendant_conflicts()` (see [Async Manager](./async_manager.md)) to avoid launching new tasks inside the existing job and to bring descendant IDs under the same conflict lock. The sample project’s `Book.save()` shows this pattern in practice.
-
----
-
-## Next steps
-
+- **Handle nested workflows** – If child objects do extra work during `save()` while a parent task runs async, call `skip_nested_async()` and `register_descendant_conflicts()` (see [Async Manager](./async_manager.md)) so descendant IDs share the same lock instead of spawning new jobs. The sample project’s `Book.save()` illustrates the pattern.
 - Need a refresher on the underlying helpers? Revisit [Async Manager](async_manager.md).
 - Ready to surface lifecycle data? Continue with [Async dashboard add-on](async_dashboard.md).

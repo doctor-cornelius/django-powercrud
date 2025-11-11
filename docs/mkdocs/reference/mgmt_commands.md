@@ -90,8 +90,9 @@ Set the output location in your Django settings:
 ```python
 # settings.py
 POWERCRUD_SETTINGS = {
-    'TAILWIND_SAFELIST_JSON_LOC': 'config'  # Creates BASE_DIR/config/powercrud_tailwind_safelist.json
-    'TAILWIND_SAFELIST_JSON_LOC': 'config/safelist.json'  # Uses exact filename
+    'TAILWIND_SAFELIST_JSON_LOC': 'config',           # BASE_DIR/config/powercrud_tailwind_safelist.json
+    # or, to pin a specific file path:
+    # 'TAILWIND_SAFELIST_JSON_LOC': 'config/safelist.json',
     # ... other settings
 }
 ```
@@ -178,10 +179,7 @@ python manage.py pcrud_help
 ### Behavior
 
 Opens your default web browser to the powercrud documentation at:
-`https://your-docs-url.github.io/django-powercrud/` *(placeholder URL)*
-
-!!! note "Documentation URL"
-    The actual documentation URL will be updated when the docs are published.
+`https://doctor-cornelius.github.io/django-powercrud/`
 
 ---
 

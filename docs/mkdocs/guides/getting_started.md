@@ -77,14 +77,43 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
 
 ### Add to URLs
 
-```python
-# urls.py
-from django.urls import path, include
+PowerCRUD’s `UrlMixin` (inherited from Neapolitan) exposes `get_urls()` so you do not have to hand-write the five CRUD routes. Pick the style that suits your project:
 
-app_name = "my_app"  # Optional namespace
+```python
+from django.urls import path, include
+from neapolitan.views import Role
+from .views import ProjectCRUDView
+
+app_name = "my_app"  # keep namespaces aligned with your include()
+
+urlpatterns = []
+urlpatterns += ProjectCRUDView.get_urls()
+```
+
+If you prefer the unpack pattern:
+
+```python
+urlpatterns = [
+    *ProjectCRUDView.get_urls(),
+]
+```
+
+Need fewer routes (and therefore fewer action buttons)? Limit the registered roles:
+
+```python
+urlpatterns = [
+    *ProjectCRUDView.get_urls(roles={Role.LIST, Role.DETAIL}),
+]
+```
+
+Only the List and View endpoints (and their buttons) will render in that case. Finally, include the app URLs at the project level as usual:
+
+```python
+# config/urls.py
+from django.urls import include, path
 
 urlpatterns = [
-    path("projects/", ProjectCRUDView.as_view(), name="project"),
+    path("projects/", include("my_app.urls")),
 ]
 ```
 
@@ -119,7 +148,7 @@ That's it! You now have a fully-featured CRUD interface with filtering, paginati
 
 ## Next Steps
 
-- **[Core configuration](./setup_core_crud.md#7-common-adjustments)** - Field control and basic settings
+- **[Core configuration](./setup_core_crud.md#3-shape-list-detail-and-form-scopes)** - Field control and basic settings
 - **[HTMX & Modals](./setup_core_crud.md#modals)** - Interactive features
 - **[Filtering](./setup_core_crud.md#filtering-sorting)** - Advanced search and filter options
 - **[Bulk operations](./bulk_edit_sync.md)** - Edit multiple records at once

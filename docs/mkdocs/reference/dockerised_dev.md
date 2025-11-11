@@ -175,7 +175,7 @@ git add -A
 cz commit  # Interactive conventional commit
 ```
 
-### 7. **Shutdown**
+### 8. **Shutdown**
 
 ```bash
 ./runproj down  # Stops and removes all containers

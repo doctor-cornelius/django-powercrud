@@ -10,62 +10,88 @@
 
 **Advanced CRUD for perfectionists with deadlines. An opinionated extension of [Neapolitan](https://github.com/carltongibson/neapolitan).**
 
-## What is PowerCRUD?
+PowerCRUD builds on Neapolitan’s view layer and adds the practical pieces you would otherwise wire up by hand.
 
-The [`neapolitan`](https://github.com/carltongibson/neapolitan/) package gives you a solid foundation for Django CRUD views. But you still need to add filtering, bulk operations, modern UX features, and styling yourself.
+## Why PowerCRUD
 
-PowerCRUD comes with these features built-in, specifically for user-facing CRUD interfaces. Use what you need, customize what you want.
+- **Production-ready CRUD – faster**  
+  HTMX responses, modal forms, inline row editing, and filter sidebars are configured through class attributes rather than custom templates.
+
+- **Bulk operations that scale**  
+  Start synchronously with selection persistence and validation controls, then opt into async queueing with conflict locks, progress polling, and an optional dashboard when jobs run longer.
+
+- **One async toolkit everywhere**  
+  The async manager, conflict handling, and progress API are reusable from admin actions, management commands, or bespoke launch sites so background work behaves consistently.
+
+- **Batteries included**  
+  Sample app, Docker dev stack, management commands, Tailwind safelist tooling, and a maintained pytest/Playwright suite keep the project teachable and testable.
 
 > ℹ️ **Status**
-> 
+>
 > PowerCRUD is still evolving, but now ships with a comprehensive pytest suite (including Playwright UI smoke tests). Expect rough edges while APIs settle, and pin the package if you rely on current behaviour.
 
 See the [full documentation](https://doctor-cornelius.github.io/django-powercrud/).
 
 ## Key Features
 
-🎯 **Advanced CRUD Operations** - Filtering, pagination, bulk edit/delete (with async) out of the box  
-⚡ **Modern Web UX** - HTMX integration, modals, and reactive updates  
-🔧 **Developer Friendly** - Convention over configuration with full customization options  
-🎨 **Styling Engine** - DaisyUI + Tailwind template pack with an extensible structure for future frameworks  
+- HTMX-enabled CRUD views with modal create/edit/delete flows.
+- Inline row editing with dependency-aware widgets, lock checks, and permission guards.
+- Bulk edit/delete with selection persistence and an optional async path.
+- Async infrastructure: conflict locks, progress cache, django-q2 workers, cleanup command, optional dashboard persistence.
+- Filtering, sorting, and pagination helpers backed by tuned templates.
+- Styling controls (daisyUI/Tailwind) plus template scaffolding and Tailwind safelist extraction.
+- Extension hooks for custom actions, buttons, and templates, illustrated in the bundled sample app.
+- Tooling support: Dockerised dev environment, management commands, pytest + Playwright coverage.
 
 ## Quick Example
 
-Start with basic neapolitan:
-
 ```python
-# Basic neapolitan
-class ProjectView(CRUDView):
-    model = Project
-```
+from neapolitan.views import CRUDView
+from powercrud.mixins import PowerCRUDMixin
 
-Add powercrud for advanced features:
 
-```python
-# With powercrud
-class ProjectView(PowerCRUDMixin, CRUDView):
+class ProjectCRUDView(PowerCRUDMixin, CRUDView):
     model = Project
-    fields = ["name", "owner", "status"]
     base_template_path = "core/base.html"
-    
-    # Modern features
+
+    # Core configuration
+    fields = ["name", "owner", "status", "created_date"]
+    properties = ["is_overdue"]
+    filterset_fields = ["owner", "status", "created_date"]
+    paginate_by = 25
+
+    # UX helpers
     use_htmx = True
     use_modal = True
-    
-    # Advanced filtering
-    filterset_fields = ["owner", "status", "created_date"]
-    
+    inline_edit_enabled = True
+    inline_edit_fields = ["status", "owner"]
+
     # Bulk operations
     bulk_fields = ["status", "owner"]
     bulk_delete = True
-    
-    # Enhanced display
-    properties = ["is_overdue", "days_remaining"]
+    bulk_async = True
+    bulk_min_async_records = 20
+    bulk_async_conflict_checking = True
+
+    # Async dashboard (optional)
+    async_manager_class_path = "myapp.async_manager.AppAsyncManager"
 ```
+
+This single view serves a filtered list, modal forms, inline edits, and queues long-running bulk updates through django-q2 while tracking conflicts and progress.
 
 ## Getting Started
 
-See the **[Quick Start](https://doctor-cornelius.github.io/django-powercrud/getting_started/)** documentation
+- Install `django-powercrud` and `neapolitan`, add `powercrud`, `neapolitan`, and `django_htmx`, then follow the [Getting Started](https://doctor-cornelius.github.io/django-powercrud/guides/getting_started/) guide for base template requirements.
+- Continue with [Setup & Core CRUD basics](https://doctor-cornelius.github.io/django-powercrud/guides/setup_core_crud/) to enable filters, pagination, and modals.
+- Add [Inline editing](https://doctor-cornelius.github.io/django-powercrud/guides/inline_editing/) and [Bulk editing (synchronous)](https://doctor-cornelius.github.io/django-powercrud/guides/bulk_edit_sync/), then move to [Async Manager](https://doctor-cornelius.github.io/django-powercrud/guides/async_manager/) and [Bulk editing (async)](https://doctor-cornelius.github.io/django-powercrud/guides/bulk_edit_async/) when you need background work.
+- Use [Styling & Tailwind](https://doctor-cornelius.github.io/django-powercrud/guides/styling_tailwind/) and [Customisation tips](https://doctor-cornelius.github.io/django-powercrud/guides/customisation_tips/) to adapt templates.
+
+## Tooling & References
+
+- **Sample app** – complete walkthrough of every feature.  
+- **Docker dev environment** – Django, Postgres, Redis, Vite, django-q2.  
+- **Management commands** – template scaffolding, Tailwind safelist extraction, async cleanup.  
+- **Testing** – pytest matrix plus Playwright smoke tests.
 
 ## Supported Versions
 

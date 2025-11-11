@@ -110,22 +110,6 @@ This keeps each user’s selection independent.
 
 For a full list of settings (including every bulk_* option) see the [configuration reference](../reference/config_options.md).
 
-### Key options
-
-| Setting | Default | Typical values | Purpose |
-|---------|---------|----------------|---------|
-| `bulk_fields` | `[]` | list of field names | Fields editable in the bulk form. |
-| `bulk_delete` | `False` | bool | Enable the “Delete selected” action. |
-| `bulk_full_clean` | `True` | bool | Skip per-object validation to speed up saves. |
-| `dropdown_sort_options` | `{}` | dict | Order bulk dropdown choices. |
-| `get_bulk_choices_for_field` | method | override | Filter/limit available options per field. |
-| `get_bulk_selection_key_suffix` | `None` | override | Scope selection persistence (per user/team). |
-| `DATA_UPLOAD_MAX_NUMBER_FIELDS` | `1000` | int | Increase if users submit very large selections. |
-
-_See the [configuration reference](../reference/config_options.md) for full definitions and additional settings._
-
----
-
 ## Next steps
 
 Bulk editing is now running synchronously. Continue with [Bulk editing (async)](bulk_edit_async.md) to move long-running operations into the background.

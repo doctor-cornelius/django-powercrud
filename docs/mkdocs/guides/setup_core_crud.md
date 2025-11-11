@@ -14,140 +14,94 @@ If you have not yet installed PowerCRUD and its base dependencies, complete the 
 
 ---
 
-## 1. Install packages
+## 1. Finish the basics
 
-```bash
-pip install django-powercrud neapolitan django-htmx crispy-tailwind
-```
+Before enabling the richer helpers, work through the [Getting Started](./getting_started.md) guide:
 
-PowerCRUD pulls in a few helpers automatically:
+- [Install the dependencies](./getting_started.md#installation) and wire up the base template assets you plan to use.
+- [Add the PowerCRUD apps/settings](./getting_started.md#settings-configuration), including `django_htmx`.
+- [Declare your first view](./getting_started.md#basic-setup) and confirm the list/template renders without HTMX extras.
+- [Expose the view somewhere in your project URLs](./getting_started.md#add-to-urls).
 
-- `django-template-partials`
-- `pydantic`
-- `django-htmx`
-
-For styling we assume the default daisyUI/Tailwind stack; you can switch later (see [Styling & Tailwind](./styling_tailwind.md)).
+When you can load the plain CRUD view end-to-end, come back here to turn on the opinionated defaults.
 
 ---
 
-## 2. Update `settings.py`
+## 2. Wire up URLs
 
-Add the required apps (order is flexible but keep it readable):
-
-```python
-INSTALLED_APPS = [
-    # Django core…
-    "django.contrib.admin",
-    "django.contrib.auth",
-    # …
-
-    # Third-party
-    "django_htmx",
-    "crispy_forms",
-    "crispy_tailwind",
-
-    # PowerCRUD stack
-    "powercrud",
-    "neapolitan", # neapolitan must be listed after powercrud
-]
-```
-
-### Global PowerCRUD settings
-
-Add (or extend) the `POWERCRUD_SETTINGS` dict:
-
-```python
-POWERCRUD_SETTINGS = {
-    "POWERCRUD_CSS_FRAMEWORK": "daisyui",  # default styling
-    # Optional: configure Tailwind safelist output later
-}
-```
-
-If you plan to use async later, you’ll add more keys in [Async Manager](./async_manager.md) but nothing else is required now.
-
-### HTMX middleware
-
-PowerCRUD relies on HTMX for reactive updates, so ensure the middleware is present:
-
-```python
-MIDDLEWARE = [
-    # …
-    "django_htmx.middleware.HtmxMiddleware",
-]
-```
-
----
-
-## 3. Create a model (if you do not already have one)
-
-```python
-# myapp/models.py
-from django.db import models
-
-class Project(models.Model):
-    name = models.CharField(max_length=200)
-    owner = models.CharField(max_length=200)
-    status = models.CharField(max_length=50, choices=[("active", "Active"), ("archived", "Archived")])
-    created_date = models.DateField(auto_now_add=True)
-
-    @property
-    def is_overdue(self):
-        return self.status != "archived"
-
-    def __str__(self):
-        return self.name
-```
-
-Run migrations if this is a brand new model.
-
----
-
-## 4. Define your first PowerCRUD view
-
-```python
-# myapp/views.py
-from neapolitan.views import CRUDView
-from powercrud.mixins import PowerCRUDMixin
-
-from . import models
-
-
-class ProjectCRUDView(PowerCRUDMixin, CRUDView):
-    model = models.Project
-    base_template_path = "myapp/base.html"  # point at your real base template
-    # use_htmx = True  # uncomment for reactive updates; leave out for classic page loads
-```
-
-### Template notes
-
-- `base_template_path` should reference the base template that provides your site chrome. PowerCRUD extends `<base_template_path>.html` and expects that template to:
-  - load the HTMX script (and any other front-end assets you rely on),
-  - include the modal markup/powercrud partials (see the example in `powercrud/base.html`),
-  - provide the standard `{% block content %}` that PowerCRUD will populate.
-- If you want to override PowerCRUD’s templates later, set `templates_path` or copy them with `pcrud_mktemplate` (covered in [Customisation tips](./customisation_tips.md)).
-
----
-
-## 5. Wire up URLs
+If you followed [Getting Started](./getting_started.md#add-to-urls) you already have the fundamentals in place, but here is a slightly fuller example that mirrors the sample project. PowerCRUD inherits Neapolitan’s `get_urls()` helper, so you never have to hand-write the per-role paths.
 
 ```python
 # myapp/urls.py
 from django.urls import path
+from neapolitan.views import Role
+from . import views
 
-from .views import ProjectCRUDView
-
-app_name = "projects"  # matches view.namespace if you set one
+app_name = "projects"
 
 urlpatterns = [
-    path("projects/", ProjectCRUDView.as_view(), name="project"),
+    *views.ProjectCRUDView.get_urls(),
+    path("projects/reports/", views.project_report, name="project-report"),
 ]
 ```
 
-Include the app URLs from your project-level `urls.py` as usual.
+Need to restrict the registered routes (and therefore the action buttons that appear)? Pass a subset of roles:
+
+```python
+urlpatterns = [
+    *views.ProjectCRUDView.get_urls(roles={Role.LIST, Role.DETAIL}),
+]
+```
+
+Include the app URLs from your project-level `urls.py` as usual:
+
+```python
+# config/urls.py
+from django.urls import include, path
+
+urlpatterns = [
+    path("projects/", include("myapp.urls")),
+]
+```
+
+For the full background, see Neapolitan’s [“URLs and view callables”](https://noumenal.es/neapolitan/crud-view/#urls-and-view-callables); PowerCRUD uses the same mechanics.
 
 ---
 
-## 6. Enable UI helpers
+## 3. Shape list, detail, and form scopes
+
+### Field, detail, and form scopes
+
+PowerCRUD layers a few convenient defaults so you can start with zero configuration and progressively override what appears in list, detail, and form views.
+
+**List fields**
+
+- If `fields` is unset or set to `"__all__"`, every concrete model field is included.
+- Use `exclude` to remove a handful of items while keeping the rest of the list intact.
+- `properties` is optional; adding a property name exposes it as a column. Use `"__all__"` to include every `@property` on the model and `properties_exclude` to hide specific ones.
+
+**Detail view**
+
+- The **View** button renders `detail_fields`, so this is the place to show extra context that you do not want in the table or edit forms.
+- `detail_fields` inherits the resolved `fields` list via the `"__fields__"` sentinel (the default). Override with `"__all__"` or an explicit list when the detail page needs more context than the list.
+- `detail_properties` defaults to an empty list, but you can reuse the list-view properties with `"__properties__"` or ask for all properties via `"__all__"`. You can also pass an explicit list such as `["is_overdue", "display_owner"]` (use the actual `@property` names, not model fields). Because detail pages are read-only, you can safely surface calculated properties that would never appear on a form.
+- `detail_exclude` and `detail_properties_exclude` mirror the list exclusions so you can tweak the detail layout without rewriting the full list of items.
+
+**Forms & inline editing**
+
+- When no `form_fields` are specified, the mixin selects every *editable* field from `detail_fields`. Set `form_fields = "__fields__"` to mirror the list exactly, or `form_fields = "__all__"` to include every editable field.
+- `form_fields_exclude` lets you remove sensitive or read-only fields while keeping the automatic selection logic.
+- Inline editing (enabled via `inline_edit_enabled = True` + HTMX) reuses the resolved `form_fields`. Override `inline_edit_fields` with `"__fields__"`, `"__all__"`, or an explicit list if you want inline editing to expose a different subset, and PowerCRUD will automatically ignore anything that is not part of the form.
+
+### Buttons & extra actions
+
+`extra_buttons` and `extra_actions` dictionaries describe additional top-level buttons or per-row actions (URL name, label, modal behaviour, extra attributes). See [Customisation tips](./customisation_tips.md) for full examples.
+
+_Need the full list of knobs? See the [configuration reference](../reference/config_options.md) for every attribute, default, and dependency._
+
+---
+
+## 4. Enable UI helpers
 
 Once the basic view works, turn on the built-in enhancements.
 
@@ -156,11 +110,23 @@ Once the basic view works, turn on the built-in enhancements.
 ```python
 class ProjectCRUDView(PowerCRUDMixin, CRUDView):
     # …
-    use_htmx = True                      # enables reactive updates
+    use_htmx = True
     filterset_fields = ["owner", "status", "created_date"]
 ```
 
-HTMX makes filters, pagination, and table sorting update without a full page reload.
+What happens by default:
+
+- With *no* `filterset_fields`, the view renders the list immediately and ignores any query parameters except `page`, `page_size`, and `sort`.
+- Setting `filterset_fields` automatically builds a `django-filter` `FilterSet` for those fields, including sensible widgets based on field type and optional HTMX attributes if `use_htmx` is True.
+
+Dial it up when you need more control:
+
+- Pass a custom `filterset_class` for hand-crafted filters (PowerCRUD still wires in HTMX helpers).
+- Use `filter_queryset_options` or `dropdown_sort_options` to scope/queryset-sort the choices in generated dropdowns.
+- Toggle `m2m_filter_and_logic = True` if many-to-many filters must match *all* selected values instead of the default OR behaviour.
+- Sorting is wired into the table headers. Clicking a column toggles `?sort=field` / `?sort=-field` on the URL (so you can share `/projects/?sort=status`). PowerCRUD applies that ordering server-side and always adds a secondary `pk` sort so pagination stays stable. Properties can be sorted too, as long as the property name is listed in `properties`.
+
+HTMX is optional but recommended: when enabled, filter submissions post back to the list endpoint and the results replace the table without a full reload. Pagination automatically resets to page 1 after each filter submit.
 
 ### Modals
 
@@ -170,7 +136,7 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
     use_modal = True
 ```
 
-Create/edit/delete forms now open in a modal overlay. You can customise modal IDs/targets later if your base template uses different names.
+Modal behaviour piggybacks on HTMX. Set `use_htmx = True` first, then `use_modal = True` to have create/edit/delete views load into the default dialog (`powercrudBaseModal` / `powercrudModalContent`). If your base template already defines modal markup, override `modal_id` / `modal_target` to match your DOM IDs. When forms fail validation, the mixin keeps the modal open and injects an HX-Trigger so the dialog re-renders with error feedback.
 
 ### Pagination
 
@@ -180,61 +146,15 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
     paginate_by = 25
 ```
 
-Pagination works with or without HTMX; when HTMX is enabled it loads pages into place without a refresh.
+The view renders every record when `paginate_by` is left unset (`None`). Supplying a number enables server-side pagination and exposes built-in tooling:
+
+- Users can override the page size at runtime with `?page_size=10` (or `?page_size=all` to disable pagination temporarily). A standard list of sizes (5/10/25/50/100 plus your default) powers the UI selector.
+- When filters change, the mixin automatically snaps back to page 1 so users do not land on empty pages.
+- Pagination works with or without HTMX. With HTMX enabled, only the table/pager fragment updates on navigation.
 
 ---
 
-## 7. Common adjustments
-
-| Task | Setting(s) | Notes |
-|------|------------|-------|
-| Hide internal fields | `exclude = ["internal_notes"]` | Works alongside `fields`. |
-| Show computed values | `properties = ["is_overdue"]` | Use `property.fget.short_description` to rename columns. |
-| Custom detail view | `detail_fields`, `detail_properties` | Accept `__all__`, `__fields__`, `__properties__`, or explicit lists. Defaults mirror list settings. |
-| Custom URL prefix | `url_base = "active-projects"` | Useful if multiple CRUD views share a model. |
-| Additional actions | `extra_buttons`, `extra_actions` | Add top-level or per-row buttons; see [Customisation tips](./customisation_tips.md). |
-
-### Field & property options
-
-- `fields` → defaults to `"__all__"`. Set to a list of field names or use `exclude` to hide specific ones.
-- `exclude` → list of field names to remove while keeping the rest.
-- `properties` → defaults to `None`. Supply a list of property names or `"__all__"`; use `properties_exclude` to hide specific properties.
-- `detail_fields` → defaults to `"__fields__"` (same as `fields`). Accepts `"__all__"`, `"__fields__"`, or an explicit list.
-- `detail_exclude` → remove fields from the detail view while leaving the rest intact.
-- `detail_properties` → defaults to `[]`. Use `"__properties__"`, `"__all__"`, or a list of property names.
-- `detail_properties_exclude` → remove selected properties from the detail view.
-
-### Buttons & extra actions
-
-`extra_buttons` and `extra_actions` dictionaries describe additional top-level buttons or per-row actions (URL name, label, modal behaviour, extra attributes). See [Customisation tips](./customisation_tips.md) for full examples.
-
-### Key options
-
-| Setting | Default | Typical values | Purpose |
-|---------|---------|----------------|---------|
-| `base_template_path` | framework base | Template path | Which base template PowerCRUD extends. |
-| `fields` | `"__all__"` | list / `"__all__"` | Columns shown in the list view. |
-| `exclude` | `[]` | list | Remove specific fields while keeping others. |
-| `properties` | `None` | list / `"__all__"` | Computed properties to display. |
-| `properties_exclude` | `[]` | list | Hide selected properties. |
-| `detail_fields` | `"__fields__"` | list / `"__all__"` | Fields shown in the detail view. |
-| `detail_exclude` | `[]` | list | Remove fields from the detail view. |
-| `detail_properties` | `[]` | list / `"__properties__"` | Properties shown in the detail view. |
-| `detail_properties_exclude` | `[]` | list | Remove properties from the detail view. |
-| `use_htmx` | `None` | bool | Enable HTMX for reactive updates. |
-| `use_modal` | `None` | bool | Open CRUD actions inside modals. |
-| `paginate_by` | `None` | int | Page size; enables pagination when set. |
-| `default_htmx_target` | `"#content"` | CSS selector | Target element for HTMX responses. |
-| `modal_id` / `modal_target` | defaults | strings | Align PowerCRUD with custom modal markup. |
-| `namespace`, `url_base` | `None`, model name | strings | Control generated URLs. |
-| `templates_path` | framework path | string | Override PowerCRUD templates. |
-| `hx_trigger` | `None` | string/dict | Emit custom HTMX events after responses. |
-
-_See the [configuration reference](../reference/config_options.md) for full definitions and additional settings._
-
----
-
-## 8. Verify the page
+## 5. Verify the page
 
 Run the development server and open `/projects/` (or whatever path you configured). You should see:
 
