@@ -1,5 +1,5 @@
 title: Setup Guides
-arrange:
+nav:
   - getting_started.md
   - setup_core_crud.md
   - inline_editing.md

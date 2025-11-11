@@ -1,4 +1,4 @@
-arrange:
+nav:
   - config_options.md
   - complete_example.md
   - mgmt_commands.md

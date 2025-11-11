@@ -8,11 +8,13 @@ dev_addr: 0.0.0.0:10005
 repo_url: https://github.com/doctor-cornelius/django-powercrud
 edit_uri: blob/mkdocs/docs/
 
-# ------------------------------------------------------------------
+  # ------------------------------------------------------------------
+watch:
+  - docs
+
 plugins:
   - search
-  - awesome-pages
-      # collapse_single_pages: true
+  - awesome-nav
   # - enumerate-headings:          # pip install mkdocs-enumerate-headings-plugin
   #     toc_depth: 6
   #     strict: false

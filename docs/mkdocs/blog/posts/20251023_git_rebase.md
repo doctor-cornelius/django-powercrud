@@ -3,15 +3,38 @@ date: 2025-10-23
 categories:
   - git
 ---
-# Replacing the misery of `merge --squash` with `git rebase -i`
+# Soft resets beat `merge --squash`
 
-I have had so many problems with `merge --squash`. Turns out there is a better way...
+`merge --squash` looked clean on paper but kept biting me with detached histories, lost commit metadata, and surprise conflicts that were hard to replay. The workflow that finally stuck is even simpler: fast-forward `main`, soft-reset the feature branch to that point, and create the single commit I actually want.
 <!-- more -->
-`git rebase -i main` rewrites my feature commits so they replay on top of the latest `main`, and it opens a todo list that lets me squash, reword, or drop commits before they land. After the rebase I can fast-forward `main` with a plain `git merge feature`, keeping history linear without losing context or hiding branches the way squashes do.
+`git reset --soft main` rewinds the branch pointer while keeping every change staged. One fresh commit later, `main` can be fast-forwarded with `git merge --ff-only feature`. I still have the old commits in the reflog if I need them, but day to day I land tidy, intentional changes without fighting the interactive rebase todo list.
 
-## Branch A then Branch B
+## TL;DR workflow
 
-Here’s the pattern I hit most: `main` is behind two stacked feature branches. `branch_a` is three commits long, and `branch_b` adds another three commits on top of that work.
+1. `git switch main && git pull --ff-only origin main`
+2. `git switch feature && git reset --soft main`
+3. `git commit -m "feat: describe the one thing you just built"`
+4. `git switch main && git merge --ff-only feature`
+
+That’s it—no detached commits, no accidental merges, no editing dozens of `pick` lines.
+
+## Why `merge --squash` kept hurting
+
+- It strands the branch tip, so you can’t reuse the branch or push it upstream after the squash.
+- A forgetful `git push` from the feature branch recreates the unsquashed history in the remote, confusing reviewers.
+- You lose the direct link between the squashed commit and its branch, which makes bisects and release notes harder.
+- The more you rely on squashes, the more likely you are to re-type the same commands (and mistakes) every time.
+
+## Why the soft reset is calmer
+
+- The staging area contains every change immediately after `git reset --soft main`, so you see exactly what is landing.
+- You get a brand-new commit with a fresh hash, author date, and message—but only one command produced it.
+- Need to adjust the message? Amend. Need the old commits back? `git reflog` still knows about them.
+- Fast-forwarding `main` keeps the history linear and mirrors what will hit `origin/main`.
+
+## Example: Branch A then Branch B
+
+Same setup as before: `branch_a` sits on `main` with three commits, `branch_b` stacks another three commits on top.
 
 ```
 main:     A --- B --- C
@@ -21,62 +44,21 @@ branch_a:               D --- E --- F
 branch_b:                            G --- H --- I
 ```
 
-### 1. Rebase + squash `branch_a`
-
-```
-git switch branch_a
-git rebase -i main
-```
-
-The todo list shows the three commits:
-
-```
-pick D groundwork for async manager
-pick E wire up progress cache
-pick F add cleanup scheduler
-```
-
-Change the second and third lines to `squash` so they fold into the first commit:
-
-```
-pick D groundwork for async manager
-squash E wire up progress cache
-squash F add cleanup scheduler
-```
-
-Save and exit. Git replays the trio on top of `C`, then drops you into the commit-message editor. By default you’ll see all three messages stacked together:
-
-```
-groundwork for async manager
-
-# This is a combination of 3 commits.
-# The first commit's message is:
-groundwork for async manager
-
-# This is the commit message #2:
-wire up progress cache
-
-# This is the commit message #3:
-add cleanup scheduler
-```
-
-Edit this buffer to whatever you want the final message to be (for example, keep only the bullet list below) and save:
-
-```
-feat(async): land async manager core
-
-- cache-backed progress updates
-- scheduled cleanup helper
-```
-
-That leaves you with one new commit `F'` on `branch_a`. Fast-forward `main`:
+### Step 1: land `branch_a`
 
 ```
 git switch main
-git merge branch_a       # moves main to F'
+git pull --ff-only origin main     # make sure C is current
+
+git switch branch_a
+git reset --soft main              # stage D/E/F as one blob
+git commit -m "feat(async): land async manager core"
+
+git switch main
+git merge --ff-only branch_a       # main now points at F'
 ```
 
-Now the history looks like:
+Result:
 
 ```
 main:     A --- B --- C --- F'
@@ -84,44 +66,42 @@ main:     A --- B --- C --- F'
 branch_b:                     G --- H --- I
 ```
 
-### 2. Rebase + squash `branch_b`
-
-`branch_b` still points to the old stack, so bring it up to date with the new `main`:
+### Step 2: land `branch_b`
 
 ```
 git switch branch_b
-git rebase -i main
-```
+git reset --soft main
+git commit -m "feat(async): extend async API"
 
-Todo list:
-
-```
-pick G extend async API
-pick H hook progress into dashboard
-pick I tidy docs
-```
-
-Again, keep the first line and squash the rest:
-
-```
-pick G extend async API
-squash H hook progress into dashboard
-squash I tidy docs
-```
-
-When Git opens the commit-message editor, trim the combined text to the final message you want (e.g. leave only the summary and bullets). Save to finish the rebase, giving you a single commit `I'` ahead of `main`.
-
-Fast-forward `main` a second time:
-
-```
 git switch main
-git merge branch_b       # moves main to I'
+git merge --ff-only branch_b       # main now points at I'
 ```
 
-Final graph:
+History stays linear:
 
 ```
 main: A --- B --- C --- F' --- I'
 ```
 
-No merge bubbles, no mystery squashed history—just two clean commits representing `branch_a` and `branch_b`. The interactive rebase steps made it easy to squash each stack, pick the final commit messages in the editor, and land them on `main` without the `merge --squash` chaos.
+Both branches produced exactly one commit, and I didn’t touch `merge --squash` or juggle interactive rebase instructions.
+
+## When I still reach for interactive rebase
+
+`git rebase -i` remains great when I need to:
+
+- Reshape multiple commits while keeping some of them separate.
+- Fold follow-up fixes with `git commit --fixup <hash>` and `git rebase -i --autosquash main`.
+- Reorder commits because reviewers want the dependency story told differently.
+
+Even then I avoid repetitive editing. `git commit --fixup` marks the commits ahead of time, and `--autosquash` converts the todo list for me. If I truly need to squash everything manually, a quick `:2,$s/^pick /squash /` inside `vim` flips the entire buffer after the first line.
+
+## Quick checklist before merging
+
+- [ ] `git fetch --all --prune`
+- [ ] `git switch main && git pull --ff-only origin main`
+- [ ] `git switch feature && git reset --soft main`
+- [ ] `git commit` once, amend if needed
+- [ ] `git switch main && git merge --ff-only feature`
+- [ ] `git push origin main`
+
+This keeps `main` pristine, gives every pull request a single, intentional commit, and saves me from ever typing `merge --squash` again.

@@ -79,7 +79,7 @@ Fine-tune what users can filter and how options are presented by combining `filt
 
 ## Form controls
 
-Override or refine the automatically generated forms with `form_class`, `form_fields`, and `form_fields_exclude`, and enable Crispy Forms support via `use_crispy`. See the form configuration examples in [Setup & Core CRUD basics](../guides/setup_core_crud.md#7-common-adjustments) and the complete view example in [reference/complete_example.md](complete_example.md).
+Override or refine the automatically generated forms with `form_class`, `form_fields`, and `form_fields_exclude`, and enable Crispy Forms support via `use_crispy`. See the form configuration examples in [Setup & Core CRUD basics](../guides/setup_core_crud.md#3-shape-list-detail-and-form-scopes) and the complete view example in [reference/complete_example.md](complete_example.md).
 
 ## Notes
 
