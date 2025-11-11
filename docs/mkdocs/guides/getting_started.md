@@ -25,7 +25,6 @@ You'll need to include these JavaScript libraries in your base template:
 
 - **HTMX** - [Install from htmx.org](https://htmx.org/docs/#installing)
 - **Popper.js** - For table column text truncation popovers
-- **Alpine.js** - If using modals
 
 **Default styling:**
 
@@ -35,8 +34,7 @@ You'll need to include these JavaScript libraries in your base template:
 !!! note "Choose Your Frontend Install Methods"
 
     There are many ways to include JavaScript (CDN, npm, Vite, etc.) - use whatever works for your project.*
-
-See the example base template in `django_powercrud/templates/django_powercrud/base.html` for a complete implementation with CDN links.
+    See the example base template in `sample/templates/sample/daisyUI/base.html` for a complete implementation with CDN links.
 
 ## Settings Configuration
 
@@ -49,6 +47,7 @@ INSTALLED_APPS = [
     "powercrud",
     "neapolitan",
     "django_htmx",
+    "template_partials",
     ...
 ]
 
