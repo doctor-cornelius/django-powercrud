@@ -28,62 +28,16 @@ Here is what works in CodePen.
     <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
 
     <div class="p-4 inline-picker" id="state-picker">
-        <span class="picker-summary" data-ts-summary>Select a state…</span>
-        <select id="select-state" name="state[]" multiple autocomplete="off">
-            <option value="AL">Alabama</option>
-            <option value="AK">Alaska</option>
-            <option value="AZ">Arizona</option>
-            <option value="AR">Arkansas</option>
-            <option value="CA" selected>California</option>
-            <option value="CO">Colorado</option>
-            <option value="CT">Connecticut</option>
-            <option value="DE">Delaware</option>
-            <option value="DC">District of Columbia</option>
-            <option value="FL">Florida</option>
-            <option value="GA">Georgia</option>
-            <option value="HI">Hawaii</option>
-            <option value="ID">Idaho</option>
-            <option value="IL">Illinois</option>
-            <option value="IN">Indiana</option>
-            <option value="IA">Iowa</option>
-            <option value="KS">Kansas</option>
-            <option value="KY">Kentucky</option>
-            <option value="LA">Louisiana</option>
-            <option value="ME">Maine</option>
-            <option value="MD">Maryland</option>
-            <option value="MA">Massachusetts</option>
-            <option value="MI">Michigan</option>
-            <option value="MN">Minnesota</option>
-            <option value="MS">Mississippi</option>
-            <option value="MO">Missouri</option>
-            <option value="MT">Montana</option>
-            <option value="NE">Nebraska</option>
-            <option value="NV">Nevada</option>
-            <option value="NH">New Hampshire</option>
-            <option value="NJ">New Jersey</option>
-            <option value="NM">New Mexico</option>
-            <option value="NY">New York</option>
-            <option value="NC">North Carolina</option>
-            <option value="ND">North Dakota</option>
-            <option value="OH">Ohio</option>
-            <option value="OK">Oklahoma</option>
-            <option value="OR">Oregon</option>
-            <option value="PA">Pennsylvania</option>
-            <option value="RI">Rhode Island</option>
-            <option value="SC">South Carolina</option>
-            <option value="SD">South Dakota</option>
-            <option value="TN">Tennessee</option>
-            <option value="TX">Texas</option>
-            <option value="UT">Utah</option>
-            <option value="VT">Vermont</option>
-            <option value="VA">Virginia</option>
-            <option value="WA">Washington</option>
-            <option value="WV">West Virginia</option>
-            <option value="WI">Wisconsin</option>
-            <option value="WY" selected>Wyoming</option>
-        </select>
-    </div>
-    ```
+    <span class="picker-summary" data-ts-summary>Select a state…</span> 
+    <select id="select-state" name="state[]" multiple autocomplete="off">
+        <option value="AL">Alabama</option>
+        <option value="AK">Alaska</option>
+        <option value="AZ">Arizona</option>
+        <option value="AR">Arkansas</option>
+        <option value="CA" selected>California</option>
+        <option value="WY" selected>Wyoming</option>
+    <option value="CO">Colorado</option> <option value="CT">Connecticut</option> <option value="DE">Delaware</option> <option value="DC">District of Columbia</option> <option value="FL">Florida</option> <option value="GA">Georgia</option> <option value="HI">Hawaii</option> <option value="ID">Idaho</option> <option value="IL">Illinois</option> <option value="IN">Indiana</option> <option value="IA">Iowa</option> <option value="KS">Kansas</option> <option value="KY">Kentucky</option> <option value="LA">Louisiana</option> <option value="ME">Maine</option> <option value="MD">Maryland</option> <option value="MA">Massachusetts</option> <option value="MI">Michigan</option> <option value="MN">Minnesota</option> <option value="MS">Mississippi</option> <option value="MO">Missouri</option> <option value="MT">Montana</option> <option value="NE">Nebraska</option> <option value="NV">Nevada</option> <option value="NH">New Hampshire</option> <option value="NJ">New Jersey</option> <option value="NM">New Mexico</option> <option value="NY">New York</option> <option value="NC">North Carolina</option> <option value="ND">North Dakota</option> <option value="OH">Ohio</option> <option value="OK">Oklahoma</option> <option value="OR">Oregon</option> <option value="PA">Pennsylvania</option> <option value="RI">Rhode Island</option> <option value="SC">South Carolina</option> <option value="SD">South Dakota</option> <option value="TN">Tennessee</option> <option value="TX">Texas</option> <option value="UT">Utah</option> <option value="VT">Vermont</option> <option value="VA">Virginia</option> <option value="WA">Washington</option> <option value="WV">West Virginia</option> <option value="WI">Wisconsin</option> <option value="WY" selected>Wyoming</option> </select></div>
+  ```
 
 === "css"
 
@@ -115,11 +69,13 @@ Here is what works in CodePen.
     }
 
     .picker-summary.is-empty {
-    color: #9ca3af; /* lighter text when zero selected */
+    color: #9ca3af;
     }
 
     .ts-wrapper {
-    width: 100%;
+    width: 15ch !important;
+    min-width: 15ch !important;
+    max-width: 15ch !important;
     }
 
     .ts-wrapper.multi .ts-control {
@@ -129,71 +85,14 @@ Here is what works in CodePen.
     align-items: center;
     flex-wrap: nowrap;
     overflow: hidden;
-    }
-
-    .ts-wrapper.multi .ts-control .item {
-    display: none;            /* hide the chips so height stays single-line */
-    }
-
-    .ts-wrapper.multi .ts-control input {
-    width: 0;
-    flex: 0 0 auto;
-    padding: 0;
-    margin: 0;
-    }
-
-    .ts-dropdown {
-    max-height: 240px;
-    overflow-y: auto;
-    }
-    .inline-picker {
-    position: relative;
-    max-width: 320px;
-    font-family: system-ui, sans-serif;
-    }
-
-    .picker-label {
-    display: block;
-    margin-bottom: 0.15rem;
-    font-size: 0.85rem;
-    color: #374151;
-    }
-
-    .picker-summary {
-    position: absolute;
-    top: 38px;
-    left: 14px;
-    pointer-events: none;
-    color: #111827;
-    font-size: 0.9rem;
-    font-weight: 500;
-    transition: color 0.15s ease;
-    z-index: 10;  /* Ensure it stays on top */
-    }
-
-    .picker-summary.is-empty {
-    color: #9ca3af; /* lighter text when zero selected */
-    }
-
-    .ts-wrapper {
-    width: 100%;
-    }
-
-    .ts-wrapper.multi .ts-control {
-    min-height: 42px;
-    padding: 10px 14px;
-    display: flex;
-    align-items: center;
-    flex-wrap: nowrap;
-    overflow: hidden;
-    background: white;  /* Ensure visible background */
-    border: 1px solid #d1d5db;  /* Add border for button-like appearance */
+    background: white;
+    border: 1px solid #d1d5db;
     border-radius: 0.375rem;
     cursor: pointer;
     }
 
     .ts-wrapper.multi .ts-control .item {
-    display: none;  /* Hide chips */
+    display: none;
     }
 
     .ts-wrapper.multi .ts-control input {
@@ -201,13 +100,13 @@ Here is what works in CodePen.
     flex: 0 0 auto;
     padding: 0;
     margin: 0;
-    opacity: 0;  /* Make input invisible */
-    position: absolute;  /* Remove from layout */
-    pointer-events: none;  /* Prevent interaction */
+    opacity: 0;
+    position: absolute;
+    pointer-events: none;
     }
 
     .ts-wrapper.multi .ts-control::after {
-    content: '▼';  /* Add dropdown arrow */
+    content: '▼';
     position: absolute;
     right: 10px;
     color: #6b7280;
@@ -218,6 +117,7 @@ Here is what works in CodePen.
     max-height: 240px;
     overflow-y: auto;
     }
+
     ```
 
 === "js"
