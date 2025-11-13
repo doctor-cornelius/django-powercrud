@@ -28,7 +28,6 @@ Here is what works in CodePen.
     <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
 
     <div class="p-4 inline-picker" id="state-picker">
-        <label class="picker-label">States</label>
         <span class="picker-summary" data-ts-summary>Select a state…</span>
         <select id="select-state" name="state[]" multiple autocomplete="off">
             <option value="AL">Alabama</option>
@@ -104,13 +103,15 @@ Here is what works in CodePen.
 
     .picker-summary {
     position: absolute;
-    top: 38px;
-    left: 14px;
+    top: 50%;
+    left: 20%;
+    transform: translate(-50%, -50%);
     pointer-events: none;
     color: #111827;
     font-size: 0.9rem;
     font-weight: 500;
     transition: color 0.15s ease;
+    z-index: 10;
     }
 
     .picker-summary.is-empty {
