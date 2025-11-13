@@ -153,6 +153,7 @@ class InlineEditingMixin:
             "enable_bulk_edit": self.get_bulk_edit_enabled(),
             "selected_ids": self._get_selected_ids(),
             "list_view_url": self._get_list_url(),
+            "action_button_classes": self.get_action_button_classes(),
         }
         return render_to_string(
             f"{self.templates_path}/partial/list.html#inline_row_form",

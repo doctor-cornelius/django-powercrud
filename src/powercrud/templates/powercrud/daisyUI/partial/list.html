@@ -125,7 +125,7 @@
     style="overflow-y: auto; width: fit-content; padding-right: 20px;"
     {% if enable_bulk_edit %}data-selection-key="{{ keyBase }}_{{ selection_key_suffix }}_selected"{% endif %}
     >
-    <table class="table {{ table_classes }} w-auto"
+    <table class="table {{ table_classes }} w-auto" 
         {% if inline_enabled %}data-inline-enabled="true"{% endif %}>
         <thead>
             <tr>
@@ -240,16 +240,6 @@
         <div class="pc-actions-default">
             {{ row.actions }}
         </div>
-        {% if inline_enabled %}
-        <div class="pc-actions-inline hidden items-center justify-end gap-2" data-inline-action-panel>
-            <button type="button" class="btn btn-xs btn-primary" data-inline-save>
-                Save
-            </button>
-            <button type="button" class="btn btn-xs btn-ghost" data-inline-cancel>
-                Cancel
-            </button>
-        </div>
-        {% endif %}
     </td>
                 </tr>
                 {% endfor %}
@@ -320,18 +310,6 @@
              {% if row.inline_blocked_label %}data-tippy-content="{{ row.inline_blocked_label }}"{% endif %}>
             {{ row.actions }}
         </div>
-        {% if inline_enabled %}
-        <div class="pc-actions-inline hidden items-center justify-end gap-2 {% if row.inline_blocked_reason %}opacity-50 pointer-events-none{% endif %}"
-             data-inline-action-panel
-             {% if row.inline_blocked_label %}data-tippy-content="{{ row.inline_blocked_label }}"{% endif %}>
-            <button type="button" class="btn btn-xs btn-primary" data-inline-save>
-                Save
-            </button>
-            <button type="button" class="btn btn-xs btn-ghost" data-inline-cancel>
-                Cancel
-            </button>
-        </div>
-        {% endif %}
     </td>
 </tr>
 {% endwith %}
@@ -401,7 +379,7 @@
                 Editing
             </span>
             <button type="button"
-                    class="btn btn-sm btn-primary"
+                    class="btn {{ action_button_classes }} btn-primary"
                     data-inline-save
                     hx-post="{{ inline_save_url|default:row.inline_url }}"
                     hx-target="#{{ row.row_id }}"
