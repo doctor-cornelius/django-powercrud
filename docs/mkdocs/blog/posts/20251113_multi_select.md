@@ -50,17 +50,7 @@ This works in CodePen (NB no CSS needed). It detects last row and makes the drop
                         <td>The Mystery of the Old Mill</td>
                         <td>Enid Blyton</td>
                         <td>
-                            <div class="dropdown">
-                                <div tabindex="0" role="button" class="btn btn-sm btn-outline w-32 text-left" onclick="toggleSmartDropdown('genres-1')">
-                                    <span id="summary-1">Selected: 2</span>
-                                </div>
-                                <ul tabindex="0" class="dropdown-content menu bg-base-100 rounded-box z-[1] w-52 p-2 shadow hidden" id="dropdown-1">
-                                    <li><label class="cursor-pointer"><input type="checkbox" class="checkbox checkbox-sm" value="1" checked onchange="updateSummary('genres-1', 1)"> Fiction</label></li>
-                                    <li><label class="cursor-pointer"><input type="checkbox" class="checkbox checkbox-sm" value="2" checked onchange="updateSummary('genres-1', 1)"> Mystery</label></li>
-                                    <li><label class="cursor-pointer"><input type="checkbox" class="checkbox checkbox-sm" value="3" onchange="updateSummary('genres-1', 1)"> Adventure</label></li>
-                                    <li><label class="cursor-pointer"><input type="checkbox" class="checkbox checkbox-sm" value="4" onchange="updateSummary('genres-1', 1)"> Children</label></li>
-                                </ul>
-                            </div>
+ing
                         </td>
                     </tr>
                     <tr>

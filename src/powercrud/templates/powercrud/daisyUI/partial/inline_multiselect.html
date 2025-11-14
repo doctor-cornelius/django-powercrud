@@ -15,7 +15,7 @@
     <ul tabindex="0" class="dropdown-content menu bg-base-100 rounded-box z-[1] w-52 p-2 shadow hidden" id="dropdown-{{ field.id_for_label }}">
         {% for choice_value, choice_label in field.field.choices %}
         <li><label class="cursor-pointer"><input type="checkbox" class="checkbox checkbox-sm" name="{{ field.html_name }}" value="{{ choice_value }}"
-            {% if choice_value|stringformat:"s" in field.value %}checked{% endif %}
+            {% for selected in field.initial %}{% if selected|stringformat:"s" == choice_value|stringformat:"s" %}checked{% endif %}{% endfor %}
             onchange="updateInlineMultiselectSummary('{{ field.id_for_label }}')"> {{ choice_label }}</label></li>
         {% endfor %}
     </ul>
