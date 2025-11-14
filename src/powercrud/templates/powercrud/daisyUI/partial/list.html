@@ -110,6 +110,14 @@
         animation: inline-row-pulse 0.8s ease;
     }
 
+    tr[data-inline-active="true"] > td.inline-cell-has-multiselect {
+        overflow: visible;
+    }
+
+    tr[data-inline-active="true"] > td.inline-cell-has-multiselect .inline-field-widget {
+        overflow: visible;
+    }
+
     @keyframes inline-row-pulse {
         0% {
             box-shadow: 0 0 0 0 hsla(var(--p) / 0.35);
@@ -334,13 +342,14 @@
     </td>
     {% endif %}
     {% for cell in row.cells %}
-    <td class="py-0 align-middle px-2 truncate table-column-width" data-field-name="{{ cell.name }}">
+    {% with inline_field=form|get_form_field:cell.name %}
+    {% if inline_field %}
+    {% with has_multiselect=inline_field.field.widget.attrs.data_inline_multiselect %}
+    <td class="py-0 align-middle px-2 truncate table-column-width {% if has_multiselect %}inline-cell-has-multiselect{% endif %}" data-field-name="{{ cell.name }}">
         {% if cell.is_inline_editable and form %}
-            {% with inline_field=form|get_form_field:cell.name %}
-            {% if inline_field %}
                 <label class="sr-only" for="{{ inline_field.id_for_label }}">{{ inline_field.label|default:cell.name|title }}</label>
                 <div
-                    class="inline-field-widget w-full"
+                    class="inline-field-widget w-full {% if has_multiselect %}inline-field-widget-multiselect{% endif %}"
                     data-inline-field="{{ cell.name }}"
                     {% if cell.dependency %}
                         data-inline-dependent="true"
@@ -350,7 +359,7 @@
                         data-inline-endpoint="{{ cell.dependency.endpoint_url|default:inline_config.dependency_endpoint_url }}"
                     {% endif %}
                 >
-                    {% if inline_field.field.widget.attrs.data_inline_multiselect %}
+                    {% if has_multiselect %}
                         <!-- Custom multiselect for M2M fields -->
                         {% include "powercrud/daisyUI/partial/inline_multiselect.html" with field=inline_field %}
                     {% else %}
@@ -362,14 +371,17 @@
                     {{ inline_field.errors|join:", " }}
                 </div>
                 {% endif %}
-            {% else %}
-                {{ cell.value }}
-            {% endif %}
-            {% endwith %}
         {% else %}
             <div class="text-sm text-base-content/70 truncate text-left">{{ cell.value }}</div>
         {% endif %}
     </td>
+    {% endwith %}
+    {% else %}
+    <td class="py-0 align-middle px-2 truncate table-column-width" data-field-name="{{ cell.name }}">
+        {{ cell.value }}
+    </td>
+    {% endif %}
+    {% endwith %}
     {% endfor %}
     <td class="text-right py-1 align-middle">
         <input type="hidden" name="pk" value="{{ row.id }}">
