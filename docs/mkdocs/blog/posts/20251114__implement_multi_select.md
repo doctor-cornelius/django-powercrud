@@ -28,12 +28,13 @@ Create `src/powercrud/templates/powercrud/daisyUI/partial/inline_multiselect.htm
     {% load crispy_forms_field %}
 {% endif %}
 
+{% with selections=field.value|default:[] %}
 <div class="dropdown">
     <button type="button" class="btn btn-sm btn-outline w-32 text-left"
             onclick="toggleInlineMultiselect('{{ field.id_for_label }}')">
         <span id="summary-{{ field.id_for_label }}">
-            {% if field.value %}
-                {% for value in field.value %}
+            {% if selections %}
+                {% for value in selections %}
                     {% if not forloop.first %}, {% endif %}
                     {% for choice_value, choice_label in field.field.choices %}
                         {% if choice_value|stringformat:"s" == value|stringformat:"s" %}{{ choice_label }}{% endif %}
@@ -51,7 +52,7 @@ Create `src/powercrud/templates/powercrud/daisyUI/partial/inline_multiselect.htm
             <label class="cursor-pointer">
                 <input type="checkbox" class="checkbox checkbox-sm"
                        name="{{ field.html_name }}" value="{{ choice_value }}"
-                       {% if choice_value|stringformat:"s" in field.value %}checked{% endif %}
+                       {% if choice_value|stringformat:"s" in selections %}checked{% endif %}
                        onchange="updateInlineMultiselectSummary('{{ field.id_for_label }}')">
                 {{ choice_label }}
             </label>
@@ -59,6 +60,7 @@ Create `src/powercrud/templates/powercrud/daisyUI/partial/inline_multiselect.htm
         {% endfor %}
     </ul>
 </div>
+{% endwith %}
 ```
 
 *Note: Conditionally loads crispy forms tags only if `use_crispy` is True, following the pattern used in `list.html` and `object_form.html`. The `bg-base-100` class provides the appropriate background color for the current daisyUI theme.*
@@ -273,11 +275,11 @@ def _render_inline_row_form(self, obj, form=None, error_summary: str | None = No
 
 The existing form processing in `InlineEditingMixin._dispatch_inline_row()` already handles multiple values correctly via `request.POST.getlist(field_name)`, so no changes needed there.
 
-### Current Widget System Integration
+## Current Widget System Integration
 
 The implementation extends powercrud's existing widget system rather than replacing it.
 
-#### FormMixin.get_form_class() Current Behavior
+### FormMixin.get_form_class() Current Behavior
 
 Currently, `FormMixin.get_form_class()` handles widgets in a basic way:
 
@@ -297,7 +299,7 @@ def get_form_class(self):
 
 This is a **static, hardcoded** system that only handles specific Django field types.
 
-#### Extended Framework-Agnostic Widget System
+### Extended Framework-Agnostic Widget System
 
 The new system extends this with framework-specific custom widgets:
 
@@ -316,11 +318,11 @@ def get_form_class(self):
     self._mark_fields_for_custom_rendering(form_class)
 ```
 
-#### Future: Framework-Agnostic Widget Registry
+### Future: Framework-Agnostic Widget Registry
 
 **Note**: The comprehensive widget registry system described below is **future enhancement work** that will be considered when implementing "A Better Way to Override Templates" (see `docs/mkdocs/reference/enhancements.md`). For now, we're implementing the multiselect widget as a specialized solution.
 
-### Conceptual Design (For Future Implementation)
+## Conceptual Design (For Future Implementation)
 
 A framework-agnostic widget registry would allow template packs to provide custom widgets for specific Django field types in specific contexts, providing a clean API for framework-specific implementations.
 
@@ -342,20 +344,20 @@ def get_framework_styles(self):
     }
 ```
 
-### Widget Configuration Properties
+## Widget Configuration Properties
 
-#### Required Properties
+### Required Properties
 - **`contexts`**: Array of contexts where widget applies (`['inline', 'modal', 'all']`)
 - **`template`**: Path to widget template partial
 - **`classes`**: Dict of CSS class names for widget elements
 
-#### Optional Properties
+### Optional Properties
 - **`description`**: Human-readable description of the widget
 - **`dependencies`**: Array of required JS/CSS dependencies
 - **`config`**: Widget-specific configuration options
 - **`field_types`**: Override which Django field types this applies to (rarely needed)
 
-### Context Specification
+## Context Specification
 
 Widgets can specify where they apply:
 
@@ -364,9 +366,9 @@ Widgets can specify where they apply:
 - **`'all'`**: Everywhere the field type appears
 - **`'list'`**: In list views (future use)
 
-### Implementation Guide for Template Packs
+## Implementation Guide for Template Packs
 
-#### Step 1: Identify Customization Opportunities
+### Step 1: Identify Customization Opportunities
 
 ```python
 # In your framework's HtmxMixin subclass
@@ -383,7 +385,7 @@ class MyFrameworkHtmxMixin(HtmxMixin):
         }
 ```
 
-#### Step 2: Create Widget Templates
+### Step 2: Create Widget Templates
 
 Create `powercrud/myFramework/partial/inline_multiselect.html`:
 
@@ -410,7 +412,7 @@ Create `powercrud/myFramework/partial/inline_multiselect.html`:
 </div>
 ```
 
-#### Step 3: Add JavaScript Functions
+### Step 3: Add JavaScript Functions
 
 In your framework's `object_list.html`, add widget-specific functions:
 
@@ -430,7 +432,7 @@ function updateMyFrameworkSummary(fieldId) {
 }
 ```
 
-#### Step 4: Handle Template Loading
+### Step 4: Handle Template Loading
 
 Ensure your widget templates load required tags:
 
@@ -441,7 +443,7 @@ Ensure your widget templates load required tags:
 <!-- Your widget HTML here -->
 ```
 
-### Validation and Error Handling
+## Validation and Error Handling
 
 The system validates widget definitions:
 
@@ -463,9 +465,9 @@ def _validate_widget_config(self, widget_config, field_type):
             raise ValueError(f"Invalid context '{context}' for {field_type} widget")
 ```
 
-### Best Practices for Template Packs
+## Best Practices for Template Packs
 
-#### 1. Start Minimal
+### 1. Start Minimal
 ```python
 # Don't try to customize everything at once
 'widgets': {
@@ -474,7 +476,7 @@ def _validate_widget_config(self, widget_config, field_type):
 }
 ```
 
-#### 2. Follow Framework Conventions
+### 2. Follow Framework Conventions
 ```python
 # Use your framework's naming conventions
 'classes': {
@@ -484,7 +486,7 @@ def _validate_widget_config(self, widget_config, field_type):
 }
 ```
 
-#### 3. Handle Edge Cases
+### 3. Handle Edge Cases
 ```python
 # Consider empty states, loading states, error states
 <span id="summary-{{ field.id_for_label }}">
@@ -496,7 +498,7 @@ def _validate_widget_config(self, widget_config, field_type):
 </span>
 ```
 
-#### 4. Test Across Contexts
+### 4. Test Across Contexts
 ```python
 # Ensure widgets work in all specified contexts
 'ManyToManyField': {
@@ -505,7 +507,7 @@ def _validate_widget_config(self, widget_config, field_type):
 }
 ```
 
-### Migration Path for Existing Template Packs
+## Migration Path for Existing Template Packs
 
 Existing template packs continue working unchanged:
 
@@ -536,7 +538,7 @@ def get_framework_styles(self):
     }
 ```
 
-### Future Widget Types
+## Future Widget Types
 
 This system supports future customizations:
 
