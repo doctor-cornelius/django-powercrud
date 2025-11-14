@@ -34,7 +34,10 @@ Create `src/powercrud/templates/powercrud/daisyUI/partial/inline_multiselect.htm
         <span id="summary-{{ field.id_for_label }}">
             {% if field.value %}
                 {% for value in field.value %}
-                    {% if forloop.first %}{{ value }}{% else %}, {{ value }}{% endif %}
+                    {% if not forloop.first %}, {% endif %}
+                    {% for choice_value, choice_label in field.field.choices %}
+                        {% if choice_value|stringformat:"s" == value|stringformat:"s" %}{{ choice_label }}{% endif %}
+                    {% endfor %}
                 {% endfor %}
             {% else %}
                 Select items
@@ -64,6 +67,8 @@ Create `src/powercrud/templates/powercrud/daisyUI/partial/inline_multiselect.htm
 
 Add widget preparation method to `src/powercrud/mixins/inline_editing_mixin.py`:
 
+**Note**: Add `from django.db import models` to the imports at the top of the file.
+
 ```python
 def _prepare_inline_multiselect_widgets(self, form):
     """Convert M2M fields to use custom inline multiselect rendering."""
@@ -80,8 +85,8 @@ def _prepare_inline_multiselect_widgets(self, form):
         if not isinstance(model_field, models.ManyToManyField):
             continue
 
-        # Mark the field for custom rendering
-        field.widget.attrs['data-inline-multiselect'] = 'true'
+        # Mark the field for custom rendering (use underscores for template access)
+        field.widget.attrs['data_inline_multiselect'] = 'true'
         # Ensure we have choices available for template rendering
         if hasattr(field, 'choices') and not field.choices:
             # Use the form field's queryset to avoid extra queries
@@ -111,7 +116,7 @@ Modify `src/powercrud/templates/powercrud/daisyUI/layout/inline_field.html` to d
                 {{ field.label }}
             </label>
         </div>
-    {% elif field.field.widget.attrs|get:'data-inline-multiselect' %}
+    {% elif field.field.widget.attrs.data_inline_multiselect|default_if_none:'' %}
         <!-- Custom multiselect for M2M fields -->
         {% include "powercrud/daisyUI/partial/inline_multiselect.html" %}
     {% else %}
@@ -144,12 +149,15 @@ Add interaction functions to the `<script>` section in `src/powercrud/templates/
         const dropdown = document.getElementById('dropdown-' + fieldId);
         const trigger = dropdown.previousElementSibling;
 
-        // Close any other open dropdowns first
-        document.querySelectorAll('[id^="dropdown-"]').forEach(d => {
-            if (d !== dropdown && !d.classList.contains('hidden')) {
-                d.classList.add('hidden');
-            }
-        });
+        // Close any other open dropdowns first (scoped to inline table)
+        const inlineTable = document.querySelector('[data-inline-enabled="true"]');
+        if (inlineTable) {
+            inlineTable.querySelectorAll('[id^="dropdown-"]').forEach(d => {
+                if (d !== dropdown && !d.classList.contains('hidden')) {
+                    d.classList.add('hidden');
+                }
+            });
+        }
 
         // Get trigger position relative to viewport
         const rect = trigger.getBoundingClientRect();
@@ -192,9 +200,12 @@ Add interaction functions to the `<script>` section in `src/powercrud/templates/
     // Close dropdowns when clicking outside
     document.addEventListener('click', function(event) {
         if (!event.target.closest('.dropdown')) {
-            document.querySelectorAll('[id^="dropdown-"]').forEach(dropdown => {
-                dropdown.classList.add('hidden');
-            });
+            const inlineTable = document.querySelector('[data-inline-enabled="true"]');
+            if (inlineTable) {
+                inlineTable.querySelectorAll('[id^="dropdown-"]').forEach(dropdown => {
+                    dropdown.classList.add('hidden');
+                });
+            }
         }
     });
 
