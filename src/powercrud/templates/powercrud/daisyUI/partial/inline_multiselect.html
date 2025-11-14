@@ -3,7 +3,7 @@
 {% endif %}
 
 {% with selected_values=field.value %}
-<div class="dropdown">
+<div class="dropdown w-full inline-multiselect">
     <button type="button" class="btn btn-sm btn-outline w-32 text-left"
             onclick="toggleInlineMultiselect('{{ field.id_for_label }}')">
         <span id="summary-{{ field.id_for_label }}">
@@ -18,7 +18,7 @@
         id="dropdown-{{ field.id_for_label }}">
         {% for choice_value, choice_label in field.field.choices %}
         <li>
-            <label class="cursor-pointer">
+            <label class="inline-flex items-center gap-2 py-1 px-2 cursor-pointer text-sm">
                 <input type="checkbox" class="checkbox checkbox-sm"
                        name="{{ field.html_name }}" value="{{ choice_value }}"
                        {% if selected_values %}
