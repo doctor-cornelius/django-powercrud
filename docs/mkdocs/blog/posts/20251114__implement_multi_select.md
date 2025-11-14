@@ -26,7 +26,7 @@ Create `src/powercrud/templates/powercrud/daisyUI/partial/inline_multiselect.htm
     {% load crispy_forms_field %}
 {% endif %}
 
-<div class="dropdown dropdown-bottom">
+<div class="dropdown">
     <div tabindex="0" role="button" class="btn btn-sm btn-outline w-32 text-left"
          onclick="toggleInlineMultiselect('{{ field.id_for_label }}')">
         <span id="summary-{{ field.id_for_label }}">Selected: {{ field.value|length }}</span>
@@ -118,16 +118,28 @@ Add interaction functions to the `<script>` section in `src/powercrud/templates/
 ```javascript
 function toggleInlineMultiselect(fieldId) {
     const dropdown = document.getElementById('dropdown-' + fieldId);
-    dropdown.classList.toggle('hidden');
+    const trigger = dropdown.previousElementSibling;
 
-    // Auto-adjust direction for last row
-    const row = dropdown.closest('tr');
-    const table = row.closest('table');
-    const rows = table.querySelectorAll('tbody tr');
-    if (row === rows[rows.length - 1]) {
-        dropdown.parentElement.classList.remove('dropdown-bottom');
-        dropdown.parentElement.classList.add('dropdown-top');
+    // Get trigger position relative to viewport
+    const rect = trigger.getBoundingClientRect();
+    const viewportHeight = window.innerHeight;
+    const spaceBelow = viewportHeight - rect.bottom;
+    const spaceAbove = rect.top;
+
+    // Remove existing direction classes
+    const container = dropdown.parentElement;
+    container.classList.remove('dropdown-bottom', 'dropdown-top');
+
+    // Decide direction: if less than 200px below AND more space above than below, drop up
+    const minSpaceNeeded = 200; // Minimum space for dropdown
+    if (spaceBelow < minSpaceNeeded && spaceAbove > spaceBelow) {
+        container.classList.add('dropdown-top');
+    } else {
+        container.classList.add('dropdown-bottom');
     }
+
+    // Toggle visibility
+    dropdown.classList.toggle('hidden');
 }
 
 function updateInlineMultiselectSummary(fieldId) {
@@ -167,7 +179,8 @@ The existing form processing in `InlineEditingMixin._dispatch_inline_row()` alre
 ### UX Behavior
 
 - Single-row height maintained in table
-- Dropdown expands downward (or upward for last row)
+- Dropdown expands downward by default
+- Automatically switches to upward expansion when insufficient viewport space below (< 200px) and more space available above
 - Checkboxes allow multiple selection
 - Summary shows count of selected items
 - Form submits all selected values as array

@@ -35,8 +35,8 @@ This works in CodePen (NB no CSS needed). It detects last row and makes the drop
         <script src="https://cdn.tailwindcss.com"></script>
     </head>
     <body class="p-4 bg-base-200">
-        <div class="container mx-auto">
-            <h1 class="text-2xl font-bold mb-4">Books Table</h1>
+        <div class="container mx-auto p-4 bg-base-200">
+            <h1 class="text-2xl font-bold mb-4">Books Table with Smart Dropdown Direction</h1>
             <table class="table table-zebra w-full">
                 <thead>
                     <tr>
@@ -50,8 +50,8 @@ This works in CodePen (NB no CSS needed). It detects last row and makes the drop
                         <td>The Mystery of the Old Mill</td>
                         <td>Enid Blyton</td>
                         <td>
-                            <div class="dropdown dropdown-bottom">
-                                <div tabindex="0" role="button" class="btn btn-sm btn-outline w-32 text-left" onclick="toggleDropdown('genres-1')">
+                            <div class="dropdown">
+                                <div tabindex="0" role="button" class="btn btn-sm btn-outline w-32 text-left" onclick="toggleSmartDropdown('genres-1')">
                                     <span id="summary-1">Selected: 2</span>
                                 </div>
                                 <ul tabindex="0" class="dropdown-content menu bg-base-100 rounded-box z-[1] w-52 p-2 shadow hidden" id="dropdown-1">
@@ -67,8 +67,8 @@ This works in CodePen (NB no CSS needed). It detects last row and makes the drop
                         <td>Pride and Prejudice</td>
                         <td>Jane Austen</td>
                         <td>
-                            <div class="dropdown dropdown-bottom">
-                                <div tabindex="0" role="button" class="btn btn-sm btn-outline w-32 text-left" onclick="toggleDropdown('genres-2')">
+                            <div class="dropdown">
+                                <div tabindex="0" role="button" class="btn btn-sm btn-outline w-32 text-left" onclick="toggleSmartDropdown('genres-2')">
                                     <span id="summary-2">Selected: 1</span>
                                 </div>
                                 <ul tabindex="0" class="dropdown-content menu bg-base-100 rounded-box z-[1] w-52 p-2 shadow hidden" id="dropdown-2">
@@ -83,8 +83,8 @@ This works in CodePen (NB no CSS needed). It detects last row and makes the drop
                         <td>The Hobbit</td>
                         <td>J.R.R. Tolkien</td>
                         <td>
-                            <div class="dropdown dropdown-top">
-                                <div tabindex="0" role="button" class="btn btn-sm btn-outline w-32 text-left" onclick="toggleDropdown('genres-3')">
+                            <div class="dropdown">
+                                <div tabindex="0" role="button" class="btn btn-sm btn-outline w-32 text-left" onclick="toggleSmartDropdown('genres-3')">
                                     <span id="summary-3">Selected: 3</span>
                                 </div>
                                 <ul tabindex="0" class="dropdown-content menu bg-base-100 rounded-box z-[1] w-52 p-2 shadow hidden" id="dropdown-3">
@@ -106,8 +106,30 @@ This works in CodePen (NB no CSS needed). It detects last row and makes the drop
 === "js"
 
     ```js
-    function toggleDropdown(id) {
-        const dropdown = document.getElementById('dropdown-' + id.split('-')[1]);
+    function toggleSmartDropdown(id) {
+        const dropdownId = 'dropdown-' + id.split('-')[1];
+        const dropdown = document.getElementById(dropdownId);
+        const trigger = dropdown.previousElementSibling;
+        
+        // Get trigger position relative to viewport
+        const rect = trigger.getBoundingClientRect();
+        const viewportHeight = window.innerHeight;
+        const spaceBelow = viewportHeight - rect.bottom;
+        const spaceAbove = rect.top;
+        
+        // Remove existing direction classes
+        const container = dropdown.parentElement;
+        container.classList.remove('dropdown-bottom', 'dropdown-top');
+        
+        // Decide direction: if less than 200px below AND more space above than below, drop up
+        const minSpaceNeeded = 200; // Minimum space for dropdown
+        if (spaceBelow < minSpaceNeeded && spaceAbove > spaceBelow) {
+            container.classList.add('dropdown-top');
+        } else {
+            container.classList.add('dropdown-bottom');
+        }
+        
+        // Toggle visibility
         dropdown.classList.toggle('hidden');
     }
 
@@ -116,7 +138,6 @@ This works in CodePen (NB no CSS needed). It detects last row and makes the drop
         const checkedCount = Array.from(checkboxes).filter(cb => cb.checked).length;
         document.getElementById(`summary-${rowId}`).textContent = `Selected: ${checkedCount}`;
     }
-
     ```
 
 Design goals below:
