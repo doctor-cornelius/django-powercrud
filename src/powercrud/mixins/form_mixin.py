@@ -185,6 +185,7 @@ class FormMixin:
         """
         form_class = self.get_form_class()
         form_kwargs = self.get_inline_form_kwargs(instance=instance, data=data, files=files)
+        form_kwargs.setdefault('auto_id', 'id_%s')
         return form_class(**form_kwargs)
 
     def show_form(self, request, *args, **kwargs):

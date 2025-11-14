@@ -10,6 +10,9 @@
                 {{ field.label }}
             </label>
         </div>
+    {% elif field.field.widget.attrs.data_inline_multiselect %}
+        <!-- Custom multiselect for M2M fields -->
+        {% include "powercrud/daisyUI/partial/inline_multiselect.html" %}
     {% else %}
         <div id="div_{{ field.auto_id }}"{% if wrapper_class %} class="{{ wrapper_class }}"{% endif %}>
             <label for="{{ field.id_for_label }}" class="sr-only">

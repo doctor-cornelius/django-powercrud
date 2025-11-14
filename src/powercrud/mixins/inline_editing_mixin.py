@@ -4,8 +4,9 @@ import copy
 import json
 from typing import Any, Optional, Sequence
 
+from django.db import models
 from django.http import (Http404, HttpResponse, HttpResponseBadRequest,
-                         HttpResponseForbidden)
+                          HttpResponseForbidden)
 from django.template.loader import render_to_string
 from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
@@ -59,6 +60,7 @@ class InlineEditingMixin:
 
             form = self.build_inline_form(instance=obj, data=request.POST, files=request.FILES)
             self._prepare_inline_number_widgets(form)
+            self._prepare_inline_multiselect_widgets(form)  # Add this line - before validation
             self._preserve_inline_raw_data(form, request.POST)
             if form.is_valid():
                 post_save_state = self._evaluate_inline_state(obj, request)
@@ -141,6 +143,7 @@ class InlineEditingMixin:
         row_payload = self._build_inline_row_payload(obj)
         inline_form = form or self.build_inline_form(instance=obj)
         self._prepare_inline_number_widgets(inline_form)
+        self._prepare_inline_multiselect_widgets(inline_form)  # Add this line
         summary = error_summary
         if summary is None:
             summary = self._get_inline_form_error_summary(inline_form)
@@ -578,6 +581,39 @@ class InlineEditingMixin:
             attrs.setdefault("data-inline-number", "true")
             cloned.attrs = attrs
             field.widget = cloned
+
+    def _prepare_inline_multiselect_widgets(self, form):
+        """Convert M2M fields to use custom inline multiselect rendering."""
+        if not form:
+            return
+
+        instance = getattr(form, "instance", None)
+
+        for field_name, field in form.fields.items():
+            try:
+                model_field = self.model._meta.get_field(field_name)
+            except Exception:
+                continue
+
+            if not isinstance(model_field, models.ManyToManyField):
+                continue
+
+            field.widget.attrs["data_inline_multiselect"] = "true"
+
+            # Ensure choices exist for rendering
+            queryset = getattr(field, "queryset", None)
+            if queryset is None:
+                related_model = model_field.remote_field.model
+                queryset = related_model.objects.all()
+            field.choices = [(obj.pk, str(obj)) for obj in queryset]
+
+            # Pre-populate initial selections from the instance
+            if instance and getattr(instance, "pk", None):
+                try:
+                    current_values = getattr(instance, field_name).values_list("pk", flat=True)
+                    field.initial = list(current_values)
+                except Exception:
+                    continue
 
     def _get_inline_form_error_summary(self, form) -> str:
         if not form or not getattr(form, "errors", None):

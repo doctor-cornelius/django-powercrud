@@ -480,7 +480,79 @@
        clearSelectionOptimistic();
    });
 
-    // Inline editing helpers ------------------------------------------------
+   // Inline multiselect functions - wrapped in IIFE to prevent redefinition
+   (function() {
+       if (window.powercrudMultiselectInitialized) return;
+       window.powercrudMultiselectInitialized = true;
+
+       function toggleInlineMultiselect(fieldId) {
+           const dropdown = document.getElementById('dropdown-' + fieldId);
+           const trigger = dropdown.previousElementSibling;
+
+           // Close any other open dropdowns first (scoped to inline table)
+           const inlineTable = document.querySelector('[data-inline-enabled="true"]');
+           if (inlineTable) {
+               inlineTable.querySelectorAll('[id^="dropdown-"]').forEach(d => {
+                   if (d !== dropdown && !d.classList.contains('hidden')) {
+                       d.classList.add('hidden');
+                   }
+               });
+           }
+
+           // Get trigger position relative to viewport
+           const rect = trigger.getBoundingClientRect();
+           const viewportHeight = window.innerHeight;
+           const spaceBelow = viewportHeight - rect.bottom;
+           const spaceAbove = rect.top;
+
+           // Remove existing direction classes
+           const container = dropdown.parentElement;
+           container.classList.remove('dropdown-bottom', 'dropdown-top');
+
+           // Decide direction: if less than 200px below AND more space above than below, drop up
+           const minSpaceNeeded = 200; // Minimum space for dropdown
+           if (spaceBelow < minSpaceNeeded && spaceAbove > spaceBelow) {
+               container.classList.add('dropdown-top');
+           } else {
+               container.classList.add('dropdown-bottom');
+           }
+
+           // Toggle visibility
+           dropdown.classList.toggle('hidden');
+       }
+
+       function updateInlineMultiselectSummary(fieldId) {
+           const dropdown = document.getElementById('dropdown-' + fieldId);
+           if (!dropdown) {
+               return;
+           }
+           const checkboxes = dropdown.querySelectorAll('input[type="checkbox"]:checked');
+           const summary = document.getElementById('summary-' + fieldId);
+           if (!summary) {
+               return;
+           }
+           const count = checkboxes.length;
+           summary.textContent = count > 0 ? `Selected: ${count}` : 'Select items';
+       }
+
+       // Close dropdowns when clicking outside
+       document.addEventListener('click', function(event) {
+           if (!event.target.closest('.dropdown')) {
+               const inlineTable = document.querySelector('[data-inline-enabled="true"]');
+               if (inlineTable) {
+                   inlineTable.querySelectorAll('[id^="dropdown-"]').forEach(dropdown => {
+                       dropdown.classList.add('hidden');
+                   });
+               }
+           }
+       });
+
+       // Export functions to global scope
+       window.toggleInlineMultiselect = toggleInlineMultiselect;
+       window.updateInlineMultiselectSummary = updateInlineMultiselectSummary;
+   })();
+
+   // Inline editing helpers ------------------------------------------------
     (function initInlineEditingHelpers() {
         const INIT_FLAG = "__pcInlineHelpersReady";
 

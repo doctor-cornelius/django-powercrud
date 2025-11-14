@@ -286,13 +286,14 @@ This implementation provides a **targeted solution** for the inline multi-select
 
 ## Task List
 
-1. [ ] Create the widget template partial at `src/powercrud/templates/powercrud/daisyUI/partial/inline_multiselect.html`
-2. [ ] Add `_prepare_inline_multiselect_widgets()` method to `src/powercrud/mixins/inline_editing_mixin.py`
-3. [ ] Add `from django.db import models` import to `src/powercrud/mixins/inline_editing_mixin.py`
-4. [ ] Modify `src/powercrud/templates/powercrud/daisyUI/layout/inline_field.html` to detect and render M2M fields
-5. [ ] Add JavaScript functions to `src/powercrud/templates/powercrud/daisyUI/object_list.html`
-6. [ ] Add widget preparation calls in `InlineEditingMixin._dispatch_inline_row()` (both GET and POST branches)
-7. [ ] Add widget preparation call in `InlineEditingMixin._render_inline_row_form()`
-8. [ ] Test with sample M2M fields to ensure proper form submission and display
-9. [ ] Verify no regressions in existing inline editing functionality
+1. [x] Create the widget template partial at `src/powercrud/templates/powercrud/daisyUI/partial/inline_multiselect.html`
+2. [x] Add `_prepare_inline_multiselect_widgets()` method to `src/powercrud/mixins/inline_editing_mixin.py`
+3. [x] Add `from django.db import models` import to `src/powercrud/mixins/inline_editing_mixin.py` (was already present)
+4. [x] Modify `src/powercrud/templates/powercrud/daisyUI/partial/list.html` to detect and render M2M fields (corrected - used list.html instead of layout/inline_field.html)
+5. [x] Add JavaScript functions to `src/powercrud/templates/powercrud/daisyUI/object_list.html`
+6. [x] Add widget preparation calls in `InlineEditingMixin._dispatch_inline_row()` (both GET and POST branches)
+7. [x] Add widget preparation call in `InlineEditingMixin._render_inline_row_form()`
+8. [x] Add `auto_id` to inline form creation in `FormMixin.build_inline_form()` (additional fix for field IDs)
+9. [ ] Test with sample M2M fields to ensure proper form submission and display
+10. [ ] Verify no regressions in existing inline editing functionality
 

@@ -1,0 +1,40 @@
+{% if use_crispy %}
+    {% load crispy_forms_field %}
+{% endif %}
+
+{% with selected_values=field.value %}
+<div class="dropdown">
+    <button type="button" class="btn btn-sm btn-outline w-32 text-left"
+            onclick="toggleInlineMultiselect('{{ field.id_for_label }}')">
+        <span id="summary-{{ field.id_for_label }}">
+            {% if selected_values %}
+                Selected: {{ selected_values|length }}
+            {% else %}
+                Select items
+            {% endif %}
+        </span>
+    </button>
+    <ul tabindex="0" class="dropdown-content menu bg-base-100 rounded-box z-[1] w-52 p-2 shadow hidden"
+        id="dropdown-{{ field.id_for_label }}">
+        {% for choice_value, choice_label in field.field.choices %}
+        <li>
+            <label class="cursor-pointer">
+                <input type="checkbox" class="checkbox checkbox-sm"
+                       name="{{ field.html_name }}" value="{{ choice_value }}"
+                       {% if selected_values %}
+                           {% for selected in selected_values %}
+                               {% with selected_pk=selected.pk|default:selected %}
+                                   {% if selected_pk|stringformat:"s" == choice_value|stringformat:"s" %}
+                                       checked
+                                   {% endif %}
+                               {% endwith %}
+                           {% endfor %}
+                       {% endif %}
+                       onchange="updateInlineMultiselectSummary('{{ field.id_for_label }}')">
+                {{ choice_label }}
+            </label>
+        </li>
+        {% endfor %}
+    </ul>
+</div>
+{% endwith %}

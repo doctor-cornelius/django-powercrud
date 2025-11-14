@@ -350,7 +350,12 @@
                         data-inline-endpoint="{{ cell.dependency.endpoint_url|default:inline_config.dependency_endpoint_url }}"
                     {% endif %}
                 >
-                    {{ inline_field }}
+                    {% if inline_field.field.widget.attrs.data_inline_multiselect %}
+                        <!-- Custom multiselect for M2M fields -->
+                        {% include "powercrud/daisyUI/partial/inline_multiselect.html" with field=inline_field %}
+                    {% else %}
+                        {{ inline_field }}
+                    {% endif %}
                 </div>
                 {% if inline_field.errors %}
                 <div class="text-error text-xs mt-1">
