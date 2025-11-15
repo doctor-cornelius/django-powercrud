@@ -297,3 +297,16 @@ This implementation provides a **targeted solution** for the inline multi-select
 9. [ ] Test with sample M2M fields to ensure proper form submission and display
 10. [ ] Verify no regressions in existing inline editing functionality
 
+## Lessons From `_fix_multi_select`
+
+We left this feature branch unmerged so the experiment is documented. Highlights:
+
+- **Template & data flow**: We now rely on a custom `to_string_list` filter (added to `powercrud/templatetags/powercrud.py`) to normalize form values to PK strings. This is what lets `inline_multiselect.html` compare checkbox state reliably.
+- **Mixin support**: `_prepare_inline_multiselect_widgets` stamps every ManyToMany inline field with `data_inline_multiselect`, populates choices from the field’s queryset, and seeds `field.initial` with `list(instance.m2m.values_list('pk', flat=True))`. That part worked.
+- **Styling reality**: The desired DaisyUI look-and-feel never materialized. To keep the dropdown usable we ended up adding a slab of custom CSS to `src/powercrud/templates/powercrud/daisyUI/partial/list.html` (overflow overrides, custom checkbox square/tick, absolute-positioned dropdown). Even then:
+  - The checkbox “boxes” are fake (just a border + ✓ pseudo-element).
+  - The dropdown cannot escape the table container cleanly; bottom rows require scrolling.
+  - Each template pack would need its own copy of this CSS/JS.
+- **Decision**: We are abandoning this hand-rolled approach and will pivot to vendoring Tom Select (or a similar maintained component) for inline editing across all template packs. The extra dependency is preferable to re-implementing checkbox UX per framework.
+
+The branch stays for posterity, but no further work is planned on the roll-your-own widget.
