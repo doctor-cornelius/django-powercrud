@@ -640,13 +640,51 @@
                 return;
             }
             row.classList.add('inline-row-attention');
-            const focusTarget = getInlineFocusTarget(row, preferredField || pendingInlineFocusField);
+            const triggerField = preferredField || pendingInlineFocusField;
+            const focusTarget = getInlineFocusTarget(row, triggerField);
             pendingInlineFocusField = null;
             if (focusTarget) {
                 focusTarget.focus();
+                maybeOpenSelectDropdown(focusTarget, triggerField);
             }
             row.scrollIntoView({ behavior: 'smooth', block: 'center' });
             setTimeout(() => row.classList.remove('inline-row-attention'), 600);
+        }
+
+        function maybeOpenSelectDropdown(focusTarget, triggerField) {
+            if (!focusTarget || !triggerField) {
+                return;
+            }
+            let candidate = focusTarget;
+            const owningWidget = candidate.closest('.inline-field-widget');
+            if (!owningWidget || owningWidget.dataset.inlineField !== triggerField) {
+                return;
+            }
+            if (candidate.tagName !== 'SELECT') {
+                candidate = owningWidget.querySelector('select');
+            }
+            if (!candidate || candidate.disabled) {
+                return;
+            }
+            requestAnimationFrame(() => {
+                if (typeof candidate.showPicker === 'function') {
+                    try {
+                        candidate.showPicker();
+                        return;
+                    } catch (err) {
+                        console.debug('[powercrud] showPicker fallback', err);
+                    }
+                }
+                ['mousedown', 'mouseup', 'click'].forEach(type => {
+                    candidate.dispatchEvent(
+                        new MouseEvent(type, {
+                            bubbles: true,
+                            cancelable: true,
+                            view: window,
+                        })
+                    );
+                });
+            });
         }
 
         function wireInlineRow(row) {

@@ -12,7 +12,7 @@ from django.utils import timezone
 
 from powercrud.mixins.core_mixin import CoreMixin
 from powercrud.mixins.form_mixin import FormMixin
-from powercrud.mixins.inline_editing_mixin import InlineEditingMixin
+from powercrud.mixins import InlineEditingMixin, TableMixin, HtmxMixin, CoreMixin
 from sample.models import Author, Book, Genre
 
 
@@ -72,7 +72,7 @@ class InlineTestForm(forms.ModelForm):
         fields = ["title", "author", "published_date", "isbn", "pages", "bestseller"]
 
 
-class InlineTestView(InlineEditingMixin):
+class InlineTestView(InlineEditingMixin, TableMixin, HtmxMixin, CoreMixin):
     """Minimal view harness to exercise InlineEditingMixin behaviour."""
 
     model = Book
