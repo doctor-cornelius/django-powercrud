@@ -176,18 +176,18 @@ Exactly the same demo that already works in `docs/mkdocs/blog/posts/tomselect.ht
 
 1. **Prepare assets**
 
-    [ ] Install Tom Select (`npm install tom-select@^2.3.1`).
-    [ ] Run `npm run build` to confirm Vite emits the bundled CSS/JS (the resulting assets land in `src/powercrud/assets` via `vite.config.mjs`).
+    [x] Install Tom Select (`npm install tom-select@^2.3.1`).
+    [x] Run `npm run build` to confirm Vite emits the bundled CSS/JS (the resulting assets land in `src/powercrud/assets` via `vite.config.mjs`).
 
 2. **Wire up templates**
 
-    [ ] Import the vendored CSS into `inline_field.html` (or wrap the select with `<div class="pc-tomselect-m2m">`) so HTMX swaps always carry the styling.
-    [ ] Initialize Tom Select for `.pc-inline-table .pc-tomselect-m2m select[multiple]` via a `<script type="module">` in `object_list.html` (this script will also attach `document.body.addEventListener('htmx:afterSwap', ...)`).
+    [x] Import the vendored CSS into `inline_field.html` (or wrap the select with `<div class="pc-tomselect-m2m">`) so HTMX swaps always carry the styling.
+    [x] Initialize Tom Select for `.pc-inline-table .pc-tomselect-m2m select[multiple]` via a `<script type="module">` in `object_list.html` (this script will also attach `document.body.addEventListener('htmx:afterSwap', ...)`).
 
 3. **Inline editing integration**
 
-    [ ] Update `inline_field.html` / `partial/inline_field.html` to add `class="pc-tomselect-m2m"` (only on `field.field.widget.allow_multiple_selected` controls) so the JS can detect them.
-    [ ] Adjust `_render_inline_row_form` (if needed) to pass context flags telling the template which fields are M2M; otherwise inspect `field.field.widget.allow_multiple_selected` inside the template and branch there.
+    [x] Update `inline_field.html` / `partial/inline_field.html` to add `class="pc-tomselect-m2m"` (only on `field.field.widget.allow_multiple_selected` controls) so the JS can detect them.
+    [x] Adjust `_render_inline_row_form` (if needed) to pass context flags telling the template which fields are M2M; otherwise inspect `field.field.widget.allow_multiple_selected` inside the template and branch there. (Not required: templates branch on `field.field.widget.allow_multiple_selected` directly.)
 
 4. **Renovate + docs**
 

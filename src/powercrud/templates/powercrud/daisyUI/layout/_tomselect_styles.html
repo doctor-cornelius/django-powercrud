@@ -1,0 +1,31 @@
+<style data-pc-inline-tomselect>
+    .pc-tomselect-m2m .ts-wrapper {
+        width: 150px !important;
+        max-width: 150px !important;
+    }
+
+    .pc-tomselect-m2m .ts-wrapper .ts-control {
+        min-height: 38px !important;
+        max-height: 38px !important;
+        height: 38px !important;
+        overflow: hidden !important;
+        padding: 8px 12px !important;
+        display: flex !important;
+        align-items: center !important;
+    }
+
+    .pc-tomselect-m2m .ts-wrapper.multi .ts-control > div,
+    .pc-tomselect-m2m .ts-wrapper.multi .ts-control input {
+        display: none !important;
+    }
+
+    .pc-tomselect-m2m .ts-wrapper.multi .ts-control:after {
+        content: attr(data-selected-text);
+        color: #333;
+        line-height: 1;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        width: 100%;
+    }
+</style>

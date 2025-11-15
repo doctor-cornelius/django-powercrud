@@ -457,11 +457,11 @@
          // 4. Then allow the HTMX request to clear the Django session
      }
 
-     document.body.addEventListener('bulkEditSuccess', function(evt) {
-         powercrudBaseModal.close();
-         // Also clear selection optimistically on success
-         clearSelectionOptimistic();
-     });
+document.body.addEventListener('bulkEditSuccess', function(evt) {
+    powercrudBaseModal.close();
+    // Also clear selection optimistically on success
+    clearSelectionOptimistic();
+});
 
    document.body.addEventListener('refreshTable', function (evt) {
         htmx.ajax('GET', '{{ list_view_url }}', {
@@ -1125,6 +1125,16 @@
             if (targetTouchesInlineRows(target)) {
                 clearActiveRow();
                 clearNotice();
+            }
+        });
+
+        if (window.initTomSelectWidgets) {
+            window.initTomSelectWidgets(document);
+        }
+        document.body.addEventListener('htmx:afterSwap', event => {
+            const target = event.target || document;
+            if (window.initTomSelectWidgets) {
+                window.initTomSelectWidgets(target);
             }
         });
         }
