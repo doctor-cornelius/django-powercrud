@@ -254,7 +254,7 @@ class AsyncTaskRecordCRUDView(SampleCRUDMixin):
     ]
     paginate_by = 25
     table_header_min_wrap_width = '15' # characters
-    table_max_col_width = '5' # characters
+    table_max_col_width = '35' # characters
     view_action = False
 
     extra_actions = [

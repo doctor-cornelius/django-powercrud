@@ -1,8 +1,8 @@
 name: Deploy Documentation
 
 on:
-  release:
-    types: [published]
+  push:
+    branches: [ main ]
 
 permissions:
   contents: read
@@ -15,11 +15,26 @@ concurrency:
 
 jobs:
   build:
+    if: contains(github.event.head_commit.message, 'release(')
     runs-on: ubuntu-latest
-    env:
-      RELEASE_VERSION: ${{ github.event.release.tag_name }}
     steps:
       - uses: actions/checkout@v5
+      
+      - name: Get Version
+        id: get_version
+        run: |
+          python - <<'PY'
+          import os
+          import pathlib
+          import tomllib
+
+          data = tomllib.loads(pathlib.Path("pyproject.toml").read_text())
+          with open(os.environ["GITHUB_OUTPUT"], "a") as fh:
+              print(f"version={data['project']['version']}", file=fh)
+          PY
+
+      - name: Export release version
+        run: echo "RELEASE_VERSION=${{ steps.get_version.outputs.version }}" >> "$GITHUB_ENV"
       
       - uses: actions/setup-python@v6
         with:
