@@ -87,6 +87,7 @@ class BookCRUDView(SampleCRUDMixin):
     action_button_classes = 'btn-xs'
     extra_button_classes = 'btn-sm'
 
+    inline_preserve_required_fields = True # toggle for testing
     inline_edit_enabled = True
     inline_edit_fields = [
         "title",
@@ -95,7 +96,7 @@ class BookCRUDView(SampleCRUDMixin):
         "published_date",
         "bestseller",
         "isbn",
-        "pages",
+        # "pages",
         "description",
     ]
 

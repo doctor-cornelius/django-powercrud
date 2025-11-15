@@ -38,6 +38,7 @@ Complete alphabetical reference of all available configuration options with defa
 | `inline_edit_allowed` | callable | `None` | Every row follows the standard permission checks | Optional predicate to allow/block inline editing per row. | [Inline editing](../guides/inline_editing.md) |
 | `inline_edit_enabled` | bool | `None` | Inline editing is disabled | Toggle inline row editing (requires `use_htmx = True`). | [Inline editing](../guides/inline_editing.md) |
 | `inline_edit_fields` | list/str | `None` | Inline editing reuses the resolved `form_fields` list | Fields editable inline (`'__fields__'`, `'__all__'`, or list). | [Inline editing](../guides/inline_editing.md) |
+| `inline_preserve_required_fields` | bool | `True` | Inline POSTs must include every required field manually | Reuse the object’s existing values for required form fields that aren’t rendered inline so saves keep working. | [Inline editing](../guides/inline_editing.md) |
 | `inline_edit_requires_perm` | str | `None` | Inline editing shows for anyone who can edit the object | Permission codename required before showing inline controls. | [Inline editing](../guides/inline_editing.md) |
 | `inline_field_dependencies` | dict \| None | `None` | Inline widgets do not declare dependencies | Dependency metadata for inline widgets (parent fields, endpoints). | [Inline editing](../guides/inline_editing.md) |
 | `m2m_filter_and_logic` | bool | `False` | Multi-select filters use OR logic | Switch ManyToMany filters to AND logic. | [Filter controls](#filter-controls) |

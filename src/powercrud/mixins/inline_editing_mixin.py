@@ -5,7 +5,7 @@ import json
 from typing import Any, Optional, Sequence
 
 from django.http import (Http404, HttpResponse, HttpResponseBadRequest,
-                         HttpResponseForbidden)
+                         HttpResponseForbidden, QueryDict)
 from django.template.loader import render_to_string
 from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
@@ -59,7 +59,9 @@ class InlineEditingMixin:
 
             form = self.build_inline_form(instance=obj, data=request.POST, files=request.FILES)
             self._prepare_inline_number_widgets(form)
+            self._prepare_inline_preservation(form, request.POST)
             self._preserve_inline_raw_data(form, request.POST)
+            self._restore_inline_preserved_dataset(form)
             if form.is_valid():
                 post_save_state = self._evaluate_inline_state(obj, request)
                 if post_save_state["status"] != "ok":
@@ -72,6 +74,25 @@ class InlineEditingMixin:
                     {"inline-row-saved": {"pk": self.object.pk}}
                 )
                 return response
+
+            # Log validation context to help downstream debugging.
+            posted_fields = [
+                key for key in request.POST.keys() if key != "csrfmiddlewaretoken"
+            ]
+            try:
+                error_details = form.errors.get_json_data()
+            except Exception:
+                error_details = form.errors
+            log.error(
+                "Inline save failed for pk %s (row id %s). Errors=%s | posted_fields=%s | inline_edit_fields=%s",
+                getattr(obj, "pk", None),
+                getattr(self, "get_inline_row_id", lambda _: None)(obj)
+                if callable(getattr(self, "get_inline_row_id", None))
+                else None,
+                error_details,
+                posted_fields,
+                getattr(self, "inline_edit_fields", None),
+            )
 
             error_summary = self._get_inline_form_error_summary(form)
             html = self._render_inline_row_form(obj, form=form, error_summary=error_summary)
@@ -133,6 +154,150 @@ class InlineEditingMixin:
             request=request,
         )
         return HttpResponse(widget_html)
+
+    # ------------------------------------------------------------------
+    # Required-field preservation
+    # ------------------------------------------------------------------
+    def build_inline_form(self, *, instance, data=None, files=None):
+        """Construct the inline form and prime preservation metadata.
+
+        Args:
+            instance: Model instance being edited inline.
+            data: POST payload when handling a save.
+            files: Uploaded files (unused for inline rows today).
+
+        Returns:
+            forms.ModelForm: Inline form wired with any required-field preservation
+            metadata so subsequent POSTs can be rehydrated.
+        """
+        form = super().build_inline_form(instance=instance, data=data, files=files)
+        self._prepare_inline_preservation(form, data)
+        return form
+
+    def get_inline_preserve_required_fields(self) -> bool:
+        """Flag controlling whether PowerCRUD auto-preserves missing required inputs."""
+        return bool(getattr(self, "inline_preserve_required_fields", False))
+
+    def _prepare_inline_preservation(self, form, data=None):
+        """Record which fields need preservation and hydrate initial POST clones.
+
+        Args:
+            form: Inline ModelForm instance.
+            data: POST data to seed the preserved QueryDict (may be None on GET).
+        """
+        if not self.get_inline_preserve_required_fields() or not form:
+            return
+
+        ready = getattr(form, "_inline_preservation_ready", False)
+        preserved = getattr(form, "_inline_preserved_fields", None)
+        if not ready or preserved is None:
+            preserved = self._configure_inline_preserved_fields(form)
+            form._inline_preservation_ready = True
+
+        if preserved and data is not None and not getattr(form, "_inline_preserved_data", None):
+            dataset = self._build_inline_preserved_dataset(form, data)
+            if dataset is not None:
+                form._inline_preserved_data = dataset
+
+    def _configure_inline_preserved_fields(self, form) -> list[str]:
+        """Determine which required fields must be silently re-posted.
+
+        Args:
+            form: Inline ModelForm instance.
+
+        Returns:
+            list[str]: Field names that will be cloned into hidden inputs.
+        """
+        if not form:
+            return []
+
+        inline_fields = set(self.get_inline_edit_fields())
+        if not inline_fields:
+            form._inline_preserved_fields = []
+            return []
+        preserved: list[str] = []
+        fields = getattr(form, "fields", {})
+        for name, field in fields.items():
+            if not getattr(field, "required", False):
+                continue
+            if inline_fields and name in inline_fields:
+                continue
+            widget = getattr(field, "widget", None)
+            if widget and getattr(widget, "is_hidden", False):
+                continue
+            preserved.append(name)
+
+        form._inline_preserved_fields = preserved
+        return preserved
+
+    def _build_inline_preserved_dataset(self, form, data):
+        """Create a mutable QueryDict containing preserved field values.
+
+        Args:
+            form: Inline ModelForm instance.
+            data: Original POST payload.
+
+        Returns:
+            QueryDict | None: Cloned data including preserved required fields, or
+            None if cloning failed.
+        """
+        preserved = getattr(form, "_inline_preserved_fields", None)
+        if not preserved or not data:
+            return None
+
+        mutable = self._clone_inline_post_data(data)
+        if mutable is None:
+            return None
+
+        for name in preserved:
+            field = form.fields.get(name)
+            if not field:
+                continue
+            values = self._format_inline_preserved_values(form, field, name)
+            key = form.add_prefix(name) if hasattr(form, "add_prefix") else name
+            mutable.setlist(key, values)
+
+        return mutable
+
+    def _restore_inline_preserved_dataset(self, form):
+        """Swap the inline form's data with the preserved QueryDict, if any."""
+        if not self.get_inline_preserve_required_fields():
+            return
+        dataset = getattr(form, "_inline_preserved_data", None)
+        if dataset is not None:
+            form.data = dataset
+
+    def _format_inline_preserved_values(self, form, field, name) -> list[str]:
+        """Serialize initial field values into POST-friendly strings."""
+        try:
+            raw_value = form.initial_for_field(field, name)
+        except Exception:
+            instance = getattr(form, "instance", None)
+            raw_value = getattr(instance, name, None) if instance is not None else None
+
+        try:
+            prepared = field.prepare_value(raw_value)
+        except Exception:
+            prepared = raw_value
+
+        if prepared is None:
+            return []
+        if isinstance(prepared, (list, tuple, set)):
+            return ["" if value is None else str(value) for value in prepared]
+        if isinstance(prepared, QueryDict):
+            combined: list[str] = []
+            for key in prepared.keys():
+                combined.extend(prepared.getlist(key))
+            return combined
+        return ["" if prepared is None else str(prepared)]
+
+    def _clone_inline_post_data(self, data):
+        """Return a mutable copy of the current POST data (if QueryDict)."""
+        if isinstance(data, QueryDict):
+            clone = data.copy()
+            clone._mutable = True
+            return clone
+        return None
 
     # ------------------------------------------------------------------
     # Rendering helpers

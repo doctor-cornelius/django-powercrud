@@ -66,6 +66,8 @@ class CoreMixin:
     inline_field_dependencies: dict[str, dict[str, Any]] | None = None
     inline_edit_requires_perm: str | None = None
     inline_edit_allowed: Callable[[Any, Any], bool] | None = None
+    # ensure any missing required fields are injected as hidden on the inline form
+    inline_preserve_required_fields: bool = True  
 
     # modals (if htmx is active)
     use_modal: bool | None = None

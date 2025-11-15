@@ -187,6 +187,10 @@ class InlineTestView(InlineEditingMixin, TableMixin, HtmxMixin, CoreMixin):
         return ""
 
 
+class InlineMissingFieldView(InlineTestView):
+    inline_edit_fields = ["title", "author", "published_date", "isbn", "bestseller"]
+
+
 def _make_request(method="get", path="/inline/", data=None):
     rf = RequestFactory()
     request = getattr(rf, method)(path, data=data or {})
@@ -230,6 +234,77 @@ def test_inline_post_success_swaps_display(sample_book, sample_author):
     assert payload == {"inline-row-saved": {"pk": sample_book.pk}}
     sample_book.refresh_from_db()
     assert sample_book.title == "Updated Inline Title"
+
+
+@pytest.mark.django_db
+def test_inline_post_missing_required_field_is_preserved(sample_book, sample_author):
+    request = _make_request(
+        "post",
+        data={
+            "title": "Updated Inline Title",
+            "author": str(sample_author.pk),
+            "published_date": "2024-01-01",
+            "isbn": "9780000000011",
+            "bestseller": "",
+        },
+    )
+    view = InlineMissingFieldView(request, sample_book)
+
+    response = view._dispatch_inline_row(request, pk=sample_book.pk)
+    payload = json.loads(response["HX-Trigger"])
+
+    assert response.status_code == 200
+    assert payload == {"inline-row-saved": {"pk": sample_book.pk}}
+    sample_book.refresh_from_db()
+    assert sample_book.pages == 321
+
+
+@pytest.mark.django_db
+def test_inline_post_preserved_fields_ignore_manual_input(sample_book, sample_author):
+    request = _make_request(
+        "post",
+        data={
+            "title": "Updated Inline Title",
+            "author": str(sample_author.pk),
+            "published_date": "2024-01-01",
+            "isbn": "9780000000011",
+            "pages": "1",
+            "bestseller": "",
+        },
+    )
+    view = InlineMissingFieldView(request, sample_book)
+
+    response = view._dispatch_inline_row(request, pk=sample_book.pk)
+    payload = json.loads(response["HX-Trigger"])
+
+    assert response.status_code == 200
+    assert payload == {"inline-row-saved": {"pk": sample_book.pk}}
+    sample_book.refresh_from_db()
+    assert sample_book.pages == 321
+
+
+@pytest.mark.django_db
+def test_inline_post_preserve_toggle_restores_validation(sample_book, sample_author):
+    class InlineMissingFieldNoPreserveView(InlineMissingFieldView):
+        inline_preserve_required_fields = False
+
+    request = _make_request(
+        "post",
+        data={
+            "title": "Updated Inline Title",
+            "author": str(sample_author.pk),
+            "published_date": "2024-01-01",
+            "isbn": "9780000000011",
+            "bestseller": "",
+        },
+    )
+    view = InlineMissingFieldNoPreserveView(request, sample_book)
+
+    response = view._dispatch_inline_row(request, pk=sample_book.pk)
+    payload = json.loads(response["HX-Trigger"])
+
+    assert response.status_code == 200
+    assert payload["inline-row-error"]["message"] == "This field is required."
 
 
 @pytest.mark.django_db

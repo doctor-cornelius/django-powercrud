@@ -27,8 +27,8 @@ class BookCRUDView(PowerCRUDMixin, CRUDView):
 - `inline_edit_enabled` toggles the feature per view.
 - `inline_edit_fields` controls which columns show the hover/focus shim and respond to clicks. Omit it to default to the form fields.
 - The mixin automatically injects inline metadata into the row payload and exposes two HTMX endpoints:
-  - `…-inline-row` – swaps the display/form row and handles POST saves.
-  - `…-inline-dependency` – rebuilds a single field widget for dependent dropdowns.
+    - `…-inline-row` – swaps the display/form row and handles POST saves.
+    - `…-inline-dependency` – rebuilds a single field widget for dependent dropdowns.
 
 The DaisyUI template already includes the triggers, Save/Cancel buttons, and `inline-row-*` events; no manual template work is required unless you are overriding the list partial.
 
@@ -92,6 +92,7 @@ inline-row-forbidden # payload: {"message": …}
 
 ## 5. UX notes & troubleshooting
 
+- **Required fields you don’t expose inline** – PowerCRUD keeps every inline POST valid by cloning the current values for required form fields that aren’t rendered in the row (e.g., `pages` in a Book example). When the user saves, those values are resubmitted as hidden inputs so the model form still passes validation and the record can close immediately. Set `inline_preserve_required_fields = False` if you want to surface the raw validation errors (useful for debugging) or override `get_inline_preserve_required_fields()` / `_configure_inline_preserved_fields()` for bespoke behavior.
 - **Column widths** – editable columns reserve a small width buffer so swapping to a widget (with icons or date pickers) does not push neighbouring columns. Non-editable columns keep their natural width.
 - **Multi-select fields** – a row can temporarily grow taller when editing ManyToMany fields (e.g., genres). This is expected; if you need a single-line control, swap the widget for a chips/combobox style component.
 - **HTMX targets** – inline rows target themselves (`hx-target="#pc-row-{{ pk }}"`) so partial updates do not reload the entire table.
