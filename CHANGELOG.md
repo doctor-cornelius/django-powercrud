@@ -1,3 +1,10 @@
+## 0.4.9 (2025-11-15)
+
+### Continuous Integration
+
+- **(pr_tests)**:  include [skip tests] logic for pr_tests also
+- **(deploy_docs)**:  ensure mkdocs-awesome-nav is included [skip tests]
+
 ## 0.4.8 (2025-11-15)
 
 ### Continuous Integration
