@@ -504,6 +504,7 @@
             let activeColumnWidths = null;
             let lockedTableRef = null;
             let pendingInlineFocusField = null;
+            let pendingInlineSelectHighlight = false;
 
             function targetTouchesInlineRows(target) {
                 if (!(target instanceof HTMLElement)) {
@@ -646,6 +647,8 @@
             if (focusTarget) {
                 focusTarget.focus();
                 maybeOpenSelectDropdown(focusTarget, triggerField);
+                maybeSelectInputValue(focusTarget, pendingInlineSelectHighlight);
+                pendingInlineSelectHighlight = false;
             }
             row.scrollIntoView({ behavior: 'smooth', block: 'center' });
             setTimeout(() => row.classList.remove('inline-row-attention'), 600);
@@ -685,6 +688,36 @@
                     );
                 });
             });
+        }
+
+        function maybeSelectInputValue(focusTarget, shouldHighlight) {
+            if (!focusTarget || !shouldHighlight) {
+                return;
+            }
+            if (!(focusTarget instanceof HTMLInputElement)) {
+                return;
+            }
+            if (focusTarget.disabled || focusTarget.readOnly) {
+                return;
+            }
+            const allowedTypes = ['text', 'number', 'search', 'tel', 'url', 'email', 'password'];
+            const type = (focusTarget.getAttribute('type') || 'text').toLowerCase();
+            if (!allowedTypes.includes(type)) {
+                return;
+            }
+            if (!focusTarget.value) {
+                return;
+            }
+            try {
+                focusTarget.select();
+            } catch (err) {
+                try {
+                    const length = focusTarget.value.length;
+                    focusTarget.setSelectionRange(0, length);
+                } catch (innerErr) {
+                    console.debug('[powercrud] select fallback failed', innerErr);
+                }
+            }
         }
 
         function wireInlineRow(row) {
@@ -954,6 +987,7 @@
                 return;
             }
             pendingInlineFocusField = trigger.dataset.inlineField || null;
+            pendingInlineSelectHighlight = true;
             const row = trigger.closest(INLINE_ROW_SELECTOR);
             const activeRow = getActiveRow();
             if (activeRow && row && activeRow !== row) {

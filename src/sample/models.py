@@ -133,7 +133,7 @@ class Book(models.Model):
                 )
         else:
             # Preserve the original artificial delay for synchronous saves.
-            time.sleep(2)
+            time.sleep(0)
 
         return response
     
