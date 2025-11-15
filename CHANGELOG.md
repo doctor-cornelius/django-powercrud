@@ -1,3 +1,17 @@
+## 0.4.10 (2025-11-15)
+
+### Documentation
+
+- **(README)**:  use correct url for ci tests badge [skip tests]
+
+### Feature
+
+- **(InlineEditingMixin)**:  add feature to inject missing required fields as hidden form fields
+
+### Style
+
+- **(inline)**:  force focus to select entire contents on first inline click [skip tests]
+
 ## 0.4.9 (2025-11-15)
 
 ### Continuous Integration
