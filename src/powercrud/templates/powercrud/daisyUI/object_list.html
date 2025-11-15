@@ -726,6 +726,14 @@ document.body.addEventListener('bulkEditSuccess', function(evt) {
             }
             wireInlineDependencies(row);
             bindInlineRowHotkeys(row);
+            if (window.initTomSelectWidgets) {
+                window.initTomSelectWidgets(row);
+                const firstSelect = row.querySelector('.pc-tomselect-m2m select[multiple]');
+                if (firstSelect && firstSelect._pcTomSelect) {
+                    firstSelect._pcTomSelect.focus();
+                    firstSelect._pcTomSelect.open();
+                }
+            }
         }
 
         function bindInlineRowHotkeys(row) {
