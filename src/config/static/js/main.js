@@ -1,6 +1,8 @@
 import '@/css/main.css'
 import htmx from 'htmx.org'
 // import 'htmx.org/dist/ext/multi-swap.js'
+import TomSelect from 'tom-select'
+import 'tom-select/dist/css/tom-select.css'
 
 window.htmx = htmx
 
