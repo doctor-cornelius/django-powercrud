@@ -1,3 +1,9 @@
+## 0.4.8 (2025-11-15)
+
+### Continuous Integration
+
+- **(deploy_docs)**:  set docs to deploy on every release
+
 ## 0.4.7 (2025-11-15)
 
 ### Fix
