@@ -503,6 +503,7 @@
             let pendingColumnWidths = null;
             let activeColumnWidths = null;
             let lockedTableRef = null;
+            let pendingInlineFocusField = null;
 
             function targetTouchesInlineRows(target) {
                 if (!(target instanceof HTMLElement)) {
@@ -614,12 +615,33 @@
                 });
         }
 
-        function focusRow(row) {
+        function getInlineFocusTarget(row, preferredField) {
+            if (!row) {
+                return null;
+            }
+            const baseFieldSelector =
+                '.inline-field-widget input:not([type="hidden"]):not([disabled]), .inline-field-widget select:not([disabled]), .inline-field-widget textarea:not([disabled]), .inline-field-widget [tabindex]:not([tabindex="-1"])';
+            if (preferredField) {
+                const scopedSelector = `.inline-field-widget[data-inline-field="${preferredField}"] input:not([type="hidden"]):not([disabled]), .inline-field-widget[data-inline-field="${preferredField}"] select:not([disabled]), .inline-field-widget[data-inline-field="${preferredField}"] textarea:not([disabled]), .inline-field-widget[data-inline-field="${preferredField}"] [tabindex]:not([tabindex="-1"])`;
+                const preferredTarget = row.querySelector(scopedSelector);
+                if (preferredTarget) {
+                    return preferredTarget;
+                }
+            }
+            const fallbackField = row.querySelector(baseFieldSelector);
+            if (fallbackField) {
+                return fallbackField;
+            }
+            return row.querySelector('[data-inline-save], [data-inline-cancel], .inline-edit-trigger');
+        }
+
+        function focusRow(row, preferredField) {
             if (!row) {
                 return;
             }
             row.classList.add('inline-row-attention');
-            const focusTarget = row.querySelector('[data-inline-save], [data-inline-cancel], .inline-edit-trigger');
+            const focusTarget = getInlineFocusTarget(row, preferredField || pendingInlineFocusField);
+            pendingInlineFocusField = null;
             if (focusTarget) {
                 focusTarget.focus();
             }
@@ -632,6 +654,41 @@
                 return;
             }
             wireInlineDependencies(row);
+            bindInlineRowHotkeys(row);
+        }
+
+        function bindInlineRowHotkeys(row) {
+            if (!row || row.dataset.inlineHotkeysBound === 'true') {
+                return;
+            }
+            row.dataset.inlineHotkeysBound = 'true';
+            row.addEventListener('keydown', event => {
+                if (event.defaultPrevented || event.key !== 'Enter') {
+                    return;
+                }
+                if (event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) {
+                    return;
+                }
+                const target = event.target;
+                if (!target || !(target instanceof HTMLElement)) {
+                    return;
+                }
+                if (target.tagName === 'TEXTAREA' || target.isContentEditable) {
+                    return;
+                }
+                if (target.matches('button, [role="button"], [data-inline-save], [data-inline-cancel]')) {
+                    return;
+                }
+                if (target.closest('[data-inline-actions="true"]')) {
+                    return;
+                }
+                const saveBtn = row.querySelector('[data-inline-save]');
+                if (!saveBtn || saveBtn.disabled) {
+                    return;
+                }
+                event.preventDefault();
+                saveBtn.click();
+            });
         }
 
         function wireInlineDependencies(container) {
@@ -858,6 +915,7 @@
             if (!trigger || !trigger.classList || !trigger.classList.contains('inline-edit-trigger')) {
                 return;
             }
+            pendingInlineFocusField = trigger.dataset.inlineField || null;
             const row = trigger.closest(INLINE_ROW_SELECTOR);
             const activeRow = getActiveRow();
             if (activeRow && row && activeRow !== row) {
@@ -893,6 +951,7 @@
                 if (target.dataset.inlineActive === 'true') {
                     setActiveRow(target);
                     wireInlineRow(target);
+                    focusRow(target);
                     const widthsToApply = pendingColumnWidths || activeColumnWidths;
                     if (widthsToApply && widthsToApply.length) {
                         applyRowWidths(target, widthsToApply);
