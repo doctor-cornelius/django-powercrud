@@ -7,5 +7,6 @@ on:
 
 jobs:
   tests:
+    if: ${{ !contains(github.event.head_commit.message, '[skip tests]') }}
     uses: ./.github/workflows/run_tests.yml
     secrets: inherit
