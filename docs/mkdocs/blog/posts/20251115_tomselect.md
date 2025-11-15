@@ -188,6 +188,12 @@ Exactly the same demo that already works in `docs/mkdocs/blog/posts/tomselect.ht
 
     [x] Update `inline_field.html` / `partial/inline_field.html` to add `class="pc-tomselect-m2m"` (only on `field.field.widget.allow_multiple_selected` controls) so the JS can detect them.
     [x] Adjust `_render_inline_row_form` (if needed) to pass context flags telling the template which fields are M2M; otherwise inspect `field.field.widget.allow_multiple_selected` inside the template and branch there. (Not required: templates branch on `field.field.widget.allow_multiple_selected` directly.)
+    [ ] Fix bugs:
+        [x] **auto-focus** and open dropdown when click m2m field to open inline row edit
+        [ ] **width** must be wide enough so options do not wrap in dropdown, but element width musy not be wider than before inline edit
+        [ ] **row** must not get taller because tom select element is too tall
+        [ ] **form errors** return a form with the default non-ts styling
+    
 
 4. **Renovate + docs**
 

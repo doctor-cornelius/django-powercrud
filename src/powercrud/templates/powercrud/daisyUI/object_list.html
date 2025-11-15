@@ -621,9 +621,9 @@ document.body.addEventListener('bulkEditSuccess', function(evt) {
                 return null;
             }
             const baseFieldSelector =
-                '.inline-field-widget input:not([type="hidden"]):not([disabled]), .inline-field-widget select:not([disabled]), .inline-field-widget textarea:not([disabled]), .inline-field-widget [tabindex]:not([tabindex="-1"])';
+                '.inline-field-widget input:not([type="hidden"]):not([disabled]), .inline-field-widget select:not([disabled]), .inline-field-widget textarea:not([disabled]), .inline-field-widget [tabindex]:not([tabindex="-1"]), .pc-tomselect-m2m .ts-control';
             if (preferredField) {
-                const scopedSelector = `.inline-field-widget[data-inline-field="${preferredField}"] input:not([type="hidden"]):not([disabled]), .inline-field-widget[data-inline-field="${preferredField}"] select:not([disabled]), .inline-field-widget[data-inline-field="${preferredField}"] textarea:not([disabled]), .inline-field-widget[data-inline-field="${preferredField}"] [tabindex]:not([tabindex="-1"])`;
+                const scopedSelector = `.inline-field-widget[data-inline-field="${preferredField}"] input:not([type="hidden"]):not([disabled]), .inline-field-widget[data-inline-field="${preferredField}"] select:not([disabled]), .inline-field-widget[data-inline-field="${preferredField}"] textarea:not([disabled]), .inline-field-widget[data-inline-field="${preferredField}"] [tabindex]:not([tabindex="-1"]), .inline-field-widget[data-inline-field="${preferredField}"] .ts-control`;
                 const preferredTarget = row.querySelector(scopedSelector);
                 if (preferredTarget) {
                     return preferredTarget;
@@ -662,6 +662,13 @@ document.body.addEventListener('bulkEditSuccess', function(evt) {
             const owningWidget = candidate.closest('.inline-field-widget');
             if (!owningWidget || owningWidget.dataset.inlineField !== triggerField) {
                 return;
+            }
+            if (candidate.classList.contains('ts-control')) {
+                const selectEl = owningWidget.querySelector('select[multiple]');
+                if (selectEl && selectEl._pcTomSelect) {
+                    selectEl._pcTomSelect.open();
+                    return;
+                }
             }
             if (candidate.tagName !== 'SELECT') {
                 candidate = owningWidget.querySelector('select');
@@ -730,6 +737,10 @@ document.body.addEventListener('bulkEditSuccess', function(evt) {
                 window.initTomSelectWidgets(row);
                 const firstSelect = row.querySelector('.pc-tomselect-m2m select[multiple]');
                 if (firstSelect && firstSelect._pcTomSelect) {
+                    const widget = firstSelect.closest('.pc-tomselect-m2m');
+                    if (widget && widget.dataset.inlineField) {
+                        pendingInlineFocusField = widget.dataset.inlineField;
+                    }
                     firstSelect._pcTomSelect.focus();
                     firstSelect._pcTomSelect.open();
                 }

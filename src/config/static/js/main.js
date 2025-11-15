@@ -7,6 +7,14 @@ import 'tom-select/dist/css/tom-select.css'
 window.htmx = htmx
 window.TomSelect = TomSelect
 
+function setTomSelectSummary(instance, text, isError = false) {
+    if (!instance || !instance.control) {
+        return
+    }
+    instance.control.setAttribute('data-selected-text', text)
+    instance.control.setAttribute('data-tomselect-error', isError ? 'true' : 'false')
+}
+
 function updateTomSelectSummary(instance) {
     if (!instance || !instance.control) {
         return
@@ -16,7 +24,7 @@ function updateTomSelectSummary(instance) {
         return option ? option.text : value
     })
     const text = selectedItems.length ? selectedItems.join(', ') : 'Select...'
-    instance.control.setAttribute('data-selected-text', text)
+    setTomSelectSummary(instance, text, false)
 }
 
 function initTomSelectWidgets(container) {
@@ -33,6 +41,10 @@ function initTomSelectWidgets(container) {
             if (select._pcTomSelect) {
                 select._pcTomSelect.sync()
                 updateTomSelectSummary(select._pcTomSelect)
+                if (select._pcTomSelect.dropdown) {
+                    select._pcTomSelect.dropdown.style.width = 'auto'
+                    select._pcTomSelect.dropdown.style.left = '0px'
+                }
             }
             return
         }
@@ -46,8 +58,23 @@ function initTomSelectWidgets(container) {
         })
         select.dataset.tomselectBound = 'true'
         select._pcTomSelect = instance
-        updateTomSelectSummary(instance)
-        instance.on('change', () => updateTomSelectSummary(instance))
+        const wrapper = select.closest('.pc-tomselect-m2m')
+        if (instance.dropdown) {
+            instance.dropdown.style.width = 'auto'
+            instance.dropdown.style.left = '0px'
+        }
+        const inlineError = wrapper && wrapper.dataset.inlineError
+        if (inlineError) {
+            setTomSelectSummary(instance, inlineError, true)
+        } else {
+            updateTomSelectSummary(instance)
+        }
+        instance.on('change', () => {
+            if (wrapper && wrapper.dataset.inlineError) {
+                delete wrapper.dataset.inlineError
+            }
+            updateTomSelectSummary(instance)
+        })
     })
 }
 
