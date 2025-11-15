@@ -1,3 +1,42 @@
+## 0.4.7 (2025-11-15)
+
+### Fix
+
+- **(sample.BookCRUDView)**:  add expected fields to form_fields
+- **(sample.BookCRUDView)**:  remove author and genre unused methods
+- **(deps)**:  lock file maintenance js-packages (#24)
+- **(deps)**:  lock file maintenance js-packages (#23)
+
+### Refactor
+
+- **(inline_editing)**:  reformat warning message
+
+### Continuous Integration
+
+- **(publish.yml)**:  enable flag to skip tests using skip [tests]
+- **(deploy_docs)**:  set doc build to only happen on new releases
+- **(renovate)**:  tell renovate to stop trying to bump pytest to v9
+- **(renovate.js)**:  enable auto-merge for renovate after CI tests pass
+
+### Documentation
+
+- **(inline multi)**:  document plan for customising inline multiselect element
+- **(getting_started.md)**:  correct minor discrepancies
+- **(powercrud)**:  rewrite and simplify docs
+- **(blog)**:  add post about possible enhancements
+
+### Feature
+
+- **(inline)**:  ensure clicked field gets edit focus and <Enter>, <Esc> mirror Save, Cancel
+
+### Style
+
+- **(InlineEditingMixin)**:  pass get_action_button_classes() as context var to make inline buttons uniform size
+
+### Tests
+
+- **(test_inline_editing_mixin)**:  ensure inclusion of correct mixins for test view
+
 ## 0.4.6 (2025-11-09)
 
 ### Refactor
