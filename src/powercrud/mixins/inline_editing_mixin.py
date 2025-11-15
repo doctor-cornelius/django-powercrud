@@ -607,11 +607,11 @@ class InlineEditingMixin:
                 queryset = related_model.objects.all()
             field.choices = [(obj.pk, str(obj)) for obj in queryset]
 
-            # Pre-populate initial selections from the instance
-            if instance and getattr(instance, "pk", None):
+            # Pre-populate initial selections from the instance when form is not bound
+            if not getattr(form, "is_bound", False) and instance and getattr(instance, "pk", None):
                 try:
                     current_values = getattr(instance, field_name).values_list("pk", flat=True)
-                    field.initial = list(current_values)
+                    field.initial = [str(pk) for pk in current_values]
                 except Exception:
                     continue
 

@@ -32,6 +32,48 @@ log = get_logger(__name__)
 register = template.Library()
 
 
+def _coerce_pk(value):
+    """
+    Helper to extract a string identifier from common Django form values.
+    """
+    if value is None:
+        return None
+    for attr in ("pk", "value", "id"):
+        if hasattr(value, attr):
+            try:
+                return str(getattr(value, attr))
+            except Exception:
+                continue
+    try:
+        return str(value)
+    except Exception:
+        return None
+
+
+@register.filter
+def to_string_list(value):
+    """
+    Convert iterables of model instances / form values into a list of string PKs.
+    Handles Django QuerySets, ModelChoiceIteratorValue objects, and plain scalars.
+    """
+    if value in (None, ""):
+        return []
+    # Treat single scalar as one-item list
+    if isinstance(value, (str, bytes)):
+        return [value]
+    try:
+        iterator = list(value)
+    except TypeError:
+        coerced = _coerce_pk(value)
+        return [coerced] if coerced is not None else []
+    result = []
+    for item in iterator:
+        coerced = _coerce_pk(item)
+        if coerced is not None:
+            result.append(coerced)
+    return result
+
+
 def _should_center_field(model_field: models.Field) -> bool:
     """
     Return True when the column should default to centered alignment.

@@ -118,6 +118,55 @@
         overflow: visible;
     }
 
+    .inline-field-widget-multiselect {
+        display: block;
+    }
+
+    .inline-field-widget-multiselect .dropdown {
+        width: max-content;
+        min-width: 8rem;
+    }
+
+    .inline-field-widget-multiselect .dropdown .btn {
+        min-width: 8rem;
+    }
+
+    .inline-field-widget-multiselect .dropdown-content {
+        max-height: 12rem;
+        overflow-y: auto;
+    }
+
+    .inline-field-widget-multiselect .inline-multiselect-option {
+        align-items: center;
+        gap: 0.35rem;
+        white-space: nowrap;
+        font-size: 0.85rem;
+    }
+
+    .inline-field-widget-multiselect .checkbox {
+        width: 0.95rem;
+        height: 0.95rem;
+        min-width: 0.95rem;
+        border-radius: 0.2rem;
+        border: 1.5px solid hsl(var(--bc));
+        background-color: hsl(var(--b1));
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+    }
+
+    .inline-field-widget-multiselect .checkbox:checked {
+        background-color: hsl(var(--p));
+        border-color: hsl(var(--p));
+        color: hsl(var(--pc));
+    }
+
+    .inline-field-widget-multiselect .checkbox:checked::after {
+        content: '✓';
+        font-size: 0.65rem;
+        line-height: 1;
+    }
 
     @keyframes inline-row-pulse {
         0% {

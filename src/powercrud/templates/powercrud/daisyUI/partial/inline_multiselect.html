@@ -1,22 +1,35 @@
 {% if use_crispy %}
     {% load crispy_forms_field %}
 {% endif %}
+{% load powercrud %}
 
-<div class="dropdown">
-    <button type="button" class="btn btn-sm btn-outline w-32 text-left" onclick="toggleInlineMultiselect('{{ field.id_for_label }}')">
+{% with selected_ids=field.value|to_string_list|default:field.initial|to_string_list %}
+<div class="dropdown w-full inline-multiselect">
+    <button type="button" class="btn btn-sm btn-outline w-32 text-left"
+            onclick="toggleInlineMultiselect('{{ field.id_for_label }}')">
         <span id="summary-{{ field.id_for_label }}">
-            {% if field.value %}
-                Selected: {{ field.value|length }}
+            {% if selected_ids %}
+                Selected: {{ selected_ids|length }}
             {% else %}
                 Select items
             {% endif %}
         </span>
     </button>
-    <ul tabindex="0" class="dropdown-content menu bg-base-100 rounded-box z-[1] w-52 p-2 shadow hidden" id="dropdown-{{ field.id_for_label }}">
+    <ul tabindex="0" class="dropdown-content menu bg-base-100 rounded-box z-[1] w-52 p-2 shadow hidden"
+        id="dropdown-{{ field.id_for_label }}">
         {% for choice_value, choice_label in field.field.choices %}
-        <li><label class="cursor-pointer"><input type="checkbox" class="checkbox checkbox-sm" name="{{ field.html_name }}" value="{{ choice_value }}"
-            {% for selected in field.initial %}{% if selected|stringformat:"s" == choice_value|stringformat:"s" %}checked{% endif %}{% endfor %}
-            onchange="updateInlineMultiselectSummary('{{ field.id_for_label }}')"> {{ choice_label }}</label></li>
+        <li>
+            <label class="inline-multiselect-option cursor-pointer">
+                <input type="checkbox" class="checkbox checkbox-sm"
+                       name="{{ field.html_name }}" value="{{ choice_value }}"
+                       {% if selected_ids and choice_value|stringformat:"s" in selected_ids %}
+                           checked
+                       {% endif %}
+                       onchange="updateInlineMultiselectSummary('{{ field.id_for_label }}')">
+                {{ choice_label }}
+            </label>
+        </li>
         {% endfor %}
     </ul>
 </div>
+{% endwith %}
