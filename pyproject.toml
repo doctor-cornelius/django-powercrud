@@ -8,7 +8,7 @@ authors = [
 ]
 requires-python = ">=3.12"
 dependencies = [
-    "django-template-partials>=25.2,<25.3",
+    "django-template-partials>=25.3,<25.4",
     "pydantic>=2.12.4,<3.0",
     "django-htmx>=1.26.0,<2.0"
 ]
@@ -16,7 +16,7 @@ dependencies = [
 [project.optional-dependencies]
 tests-core = [
     "pytest>=8.4.2,<9",
-    "coverage>=7.11.3,<8",
+    "coverage>=7.12.0,<8",
     "pytest-cov>=7.0.0,<8",
     "pytest-mock>=3.15.1,<4",
     "validators>=0.35.0,<1",
@@ -35,18 +35,18 @@ tests-core = [
 ]
 tests-ui = [
     "pytest-playwright>=0.7.1,<1",
-    "playwright>=1.55.0,<2"
+    "playwright>=1.56.0,<2"
 ]
 dev = [
-    "commitizen>=4.9.1,<5",
+    "commitizen>=4.10.0,<5",
     "ipykernel>=7.1.0,<8"
 ]
 docs = [
     "mkdocs>=1.6.1,<2",
-    "mkdocs-material>=9.6.23,<10",
+    "mkdocs-material>=9.7.0,<10",
     "mkdocs-mermaid2-plugin>=1.2.3,<2",
     "mkdocs-enumerate-headings-plugin>=0.6.2,<0.7",
-    "mkdocs-awesome-nav>=3,<4"
+    "mkdocs-awesome-nav>=3.2.0,<4"
 ]
 
 [build-system]
@@ -79,14 +79,14 @@ include = [
 [dependency-groups]
 tests-core = [
     "pytest>=8.4.2,<9",
-    "coverage>=7.11.0,<8",
+    "coverage>=7.12.0,<8",
     "pytest-cov>=7.0.0,<8",
     "pytest-mock>=3.15.1,<4",
     "validators>=0.35.0,<1",
     "faker>=37.12.0,<38",
     "django>=4.2.25,<6",
     "neapolitan>=25.1,<26",
-    "django-crispy-forms>=2.4,<3",
+    "django-crispy-forms>=2.5,<3",
     "crispy-tailwind>=1.0.3,<2",
     "crispy-daisyui>=0.8.0,<1",
     "django-vite>=3.1.0,<4",
@@ -98,9 +98,9 @@ tests-core = [
 ]
 tests-ui = [
     "pytest-playwright>=0.7.1,<1",
-    "playwright>=1.55.0,<2"
+    "playwright>=1.56.0,<2"
 ]
 dev = [
-    "commitizen>=4.9.1,<5",
+    "commitizen>=4.10.0,<5",
     "ipykernel>=7.1.0,<8"
 ]
