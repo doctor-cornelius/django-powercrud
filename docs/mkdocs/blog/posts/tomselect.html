@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tom Select Table Demo</title>
+
+    <!-- DaisyUI + Tailwind -->
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@4.4.19/dist/full.min.css" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Tom Select -->
+    <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
+
+    <style>
+        /* Force Tom Select to fixed dimensions */
+        .ts-wrapper {
+            width: 150px !important;
+            max-width: 150px !important;
+        }
+
+        .ts-wrapper .ts-control {
+            min-height: 38px !important;
+            max-height: 38px !important;
+            height: 38px !important;
+            overflow: hidden !important;
+            padding: 8px 12px !important;
+            display: flex !important;
+            align-items: center !important;
+        }
+
+        .ts-wrapper.multi .ts-control>div {
+            display: none !important;
+        }
+
+        .ts-wrapper.multi .ts-control input {
+            display: none !important;
+        }
+
+        .ts-wrapper.multi .ts-control:after {
+            content: attr(data-selected-text);
+            color: #333;
+            line-height: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            width: 100%;
+        }
+    </style>
+</head>
+
+<body class="p-8">
+    <h1 class="text-2xl font-bold mb-4">Tom Select Multi-Select in Table</h1>
+
+    <div class="overflow-x-auto">
+        <table class="table table-zebra">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Tags</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>1</td>
+                    <td>John Doe</td>
+                    <td>
+                        <select class="tag-select" multiple>
+                            <option value="python">Python</option>
+                            <option value="javascript">JavaScript</option>
+                            <option value="django">Django</option>
+                            <option value="react">React</option>
+                        </select>
+                    </td>
+                    <td><span class="badge badge-success">Active</span></td>
+                </tr>
+                <tr>
+                    <td>2</td>
+                    <td>Jane Smith</td>
+                    <td>
+                        <select class="tag-select" multiple>
+                            <option value="python">Python</option>
+                            <option value="javascript">JavaScript</option>
+                            <option value="django">Django</option>
+                            <option value="react">React</option>
+                        </select>
+                    </td>
+                    <td><span class="badge badge-error">Inactive</span></td>
+                </tr>
+                <tr>
+                    <td>3</td>
+                    <td>Bob Johnson</td>
+                    <td>
+                        <select class="tag-select" multiple>
+                            <option value="python">Python</option>
+                            <option value="javascript">JavaScript</option>
+                            <option value="django">Django</option>
+                            <option value="react">React</option>
+                        </select>
+                    </td>
+                    <td><span class="badge badge-success">Active</span></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        document.querySelectorAll('.tag-select').forEach(function (el) {
+            new TomSelect(el, {
+                plugins: ['checkbox_options'],
+                persist: false,
+                create: false,
+                hideSelected: false,
+                closeAfterSelect: false,
+                dropdownParent: 'body',
+                onChange: function () {
+                    const selectedItems = this.items.map(value => {
+                        const option = this.options[value];
+                        return option ? option.text : value;
+                    });
+
+                    const text = selectedItems.length > 0
+                        ? selectedItems.join(', ')
+                        : 'Select...';
+
+                    this.control.setAttribute('data-selected-text', text);
+                },
+                onInitialize: function () {
+                    this.control.setAttribute('data-selected-text', 'Select...');
+                }
+            });
+        });
+    </script>
+</body>
+
+</html>

@@ -1,3 +1,10 @@
-<div class="inline-field-widget">
-    {{ field }}
-</div>
+{% if field.field.widget.allow_multiple_selected %}
+    {% include "powercrud/daisyUI/layout/_tomselect_styles.html" %}
+    <div class="inline-field-widget pc-tomselect-m2m" data-tom-select="true">
+        {{ field }}
+    </div>
+{% else %}
+    <div class="inline-field-widget">
+        {{ field }}
+    </div>
+{% endif %}

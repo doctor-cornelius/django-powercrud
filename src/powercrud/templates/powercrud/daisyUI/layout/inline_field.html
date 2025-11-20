@@ -10,6 +10,19 @@
                 {{ field.label }}
             </label>
         </div>
+    {% elif field.field.widget.allow_multiple_selected %}
+        {% include "powercrud/daisyUI/layout/_tomselect_styles.html" %}
+        <div id="div_{{ field.auto_id }}" class="pc-tomselect-m2m{% if wrapper_class %} {{ wrapper_class }}{% endif %}" data-tom-select="true">
+            <label for="{{ field.id_for_label }}" class="sr-only">
+                {{ field.label }}
+            </label>
+            {% if field.errors %}
+                {% crispy_field field 'class' 'select select-bordered select-sm w-full' 'placeholder' field.label %}
+                <p class="text-error text-xs mt-1">{{ field.errors|join:", " }}</p>
+            {% else %}
+                {% crispy_field field 'class' 'select select-bordered select-sm w-full' 'placeholder' field.label %}
+            {% endif %}
+        </div>
     {% else %}
         <div id="div_{{ field.auto_id }}"{% if wrapper_class %} class="{{ wrapper_class }}"{% endif %}>
             <label for="{{ field.id_for_label }}" class="sr-only">

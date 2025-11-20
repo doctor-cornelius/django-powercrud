@@ -339,9 +339,14 @@
             {% with inline_field=form|get_form_field:cell.name %}
             {% if inline_field %}
                 <label class="sr-only" for="{{ inline_field.id_for_label }}">{{ inline_field.label|default:cell.name|title }}</label>
+                {% if inline_field.field.widget.allow_multiple_selected %}
+                    {% include "powercrud/daisyUI/layout/_tomselect_styles.html" %}
+                {% endif %}
                 <div
-                    class="inline-field-widget w-full"
+                    class="inline-field-widget w-full{% if inline_field.field.widget.allow_multiple_selected %} pc-tomselect-m2m{% endif %}"
                     data-inline-field="{{ cell.name }}"
+                    {% if inline_field.field.widget.allow_multiple_selected %}data-tom-select="true"{% endif %}
+                    {% if inline_field.field.widget.allow_multiple_selected and inline_field.errors %}data-inline-error="{{ inline_field.errors|join:'; ' }}"{% endif %}
                     {% if cell.dependency %}
                         data-inline-dependent="true"
                         {% if cell.dependency.depends_on %}
@@ -353,9 +358,15 @@
                     {{ inline_field }}
                 </div>
                 {% if inline_field.errors %}
-                <div class="text-error text-xs mt-1">
-                    {{ inline_field.errors|join:", " }}
-                </div>
+                    {% if inline_field.field.widget.allow_multiple_selected %}
+                    <div class="sr-only">
+                        {{ inline_field.errors|join:", " }}
+                    </div>
+                    {% else %}
+                    <div class="text-error text-xs mt-1">
+                        {{ inline_field.errors|join:", " }}
+                    </div>
+                    {% endif %}
                 {% endif %}
             {% else %}
                 {{ cell.value }}
@@ -374,7 +385,7 @@
             {{ form.non_field_errors|join:", " }}
         </div>
         {% endif %}
-        <div class="flex flex-wrap sm:flex-nowrap items-center justify-end gap-2 text-left sm:text-right"> -->
+        <div class="flex flex-wrap sm:flex-nowrap items-center justify-end gap-2 text-left sm:text-right">
             <button type="button"
                     class="btn {{ action_button_classes }} btn-primary"
                     data-inline-save

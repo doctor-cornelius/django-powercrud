@@ -437,11 +437,11 @@
          }
  
          // Update bulk actions counter and visibility
-         updateBulkActionsCounter(selectedCount);
- 
-         // HTMX request is already handled by hx-post on the checkbox itself
-         // No need to explicitly trigger htmx.ajax here
-     }
+        updateBulkActionsCounter(selectedCount);
+
+        // HTMX request is already handled by hx-post on the checkbox itself
+        // No Need to explicitly trigger htmx.ajax here
+    }
  
      // Optimistic clearing of selection
      function clearSelectionOptimistic() {
@@ -457,13 +457,13 @@
          // 4. Then allow the HTMX request to clear the Django session
      }
 
-     document.body.addEventListener('bulkEditSuccess', function(evt) {
-         powercrudBaseModal.close();
-         // Also clear selection optimistically on success
-         clearSelectionOptimistic();
-     });
+    document.body.addEventListener('bulkEditSuccess', function(evt) {
+        powercrudBaseModal.close();
+        // Also clear selection optimistically on success
+        clearSelectionOptimistic();
+    });
 
-   document.body.addEventListener('refreshTable', function (evt) {
+    document.body.addEventListener('refreshTable', function (evt) {
         htmx.ajax('GET', '{{ list_view_url }}', {
             target: '#filtered_results',
             headers: {
@@ -475,14 +475,141 @@
         });
     });
 
-   document.body.addEventListener('bulkEditQueued', function(evt) {
-       const { taskId, message } = evt.detail;
-       clearSelectionOptimistic();
-   });
+    document.body.addEventListener('bulkEditQueued', function(evt) {
+        const { taskId, message } = evt.detail;
+        clearSelectionOptimistic();
+    });
 
     // Inline editing helpers ------------------------------------------------
     (function initInlineEditingHelpers() {
         const INIT_FLAG = "__pcInlineHelpersReady";
+        const TOM_SELECT_FLAG = "__pcTomSelectReady";
+        window._pcPendingTomSelectField = window._pcPendingTomSelectField || null;
+
+        function mountTomSelectHelpers() {
+            if (window[TOM_SELECT_FLAG]) {
+                return;
+            }
+            if (!window.TomSelect) {
+                window.setTimeout(mountTomSelectHelpers, 25);
+                return;
+            }
+
+            window[TOM_SELECT_FLAG] = true;
+
+            window.setTomSelectSummary = function(instance, text, isError) {
+                if (!instance || !instance.control) {
+                    return;
+                }
+                instance.control.setAttribute('data-selected-text', text);
+                instance.control.setAttribute('data-tomselect-error', isError ? 'true' : 'false');
+            };
+
+            window.updateTomSelectSummary = function(instance) {
+                if (!instance || !instance.control) {
+                    return;
+                }
+                const selectedItems = instance.items.map((value) => {
+                    const option = instance.options[value];
+                    return option ? option.text : value;
+                });
+                const text = selectedItems.length ? selectedItems.join(', ') : 'Select...';
+                window.setTomSelectSummary(instance, text, false);
+            };
+
+            window.initTomSelectWidgets = function(container) {
+                const scope = container && container.querySelectorAll ? container : document;
+                const selects = scope.querySelectorAll('.pc-tomselect-m2m select[multiple]');
+                if (!selects.length) {
+                    return Promise.resolve();
+                }
+                
+                const promises = [];
+                selects.forEach((select) => {
+                    const wrapper = select.closest('.pc-tomselect-m2m');
+                    if (select.dataset.tomselectBound === 'true') {
+                        if (select._pcTomSelect) {
+                            select._pcTomSelect.sync();
+                            window.updateTomSelectSummary(select._pcTomSelect);
+                        }
+                        return;
+                    }
+
+                    const promise = new Promise((resolve) => {
+                        try {
+                            const fieldName = wrapper && wrapper.dataset.inlineField;
+                            const inlineError = wrapper && wrapper.dataset.inlineError;
+                            
+                            // Clean up any Tom Select classes from previous instances
+                            select.classList.remove('tomselected', 'ts-hidden-accessible', 'pc-tomselect-hidden');
+                            
+                            const instance = new window.TomSelect(select, {
+                                plugins: ['checkbox_options'],
+                                persist: false,
+                                create: false,
+                                hideSelected: false,
+                                closeAfterSelect: false,
+                                dropdownParent: 'body',
+                            });
+                            select.dataset.tomselectBound = 'true';
+                            select._pcTomSelect = instance;
+                            select.classList.add('pc-tomselect-hidden');
+                            if (instance.dropdown) {
+                                instance.dropdown.classList.add('pc-inline-dropdown');
+                            }
+                            
+                            // Set summary immediately after instance creation
+                            if (inlineError) {
+                                window.setTomSelectSummary(instance, inlineError, true);
+                            } else {
+                                window.updateTomSelectSummary(instance);
+                            }
+                            
+                            // Force control visibility
+                            if (instance.control) {
+                                instance.control.style.display = 'flex';
+                            }
+                            
+                            const pendingField = window._pcPendingTomSelectField;
+                            const shouldAutoOpen = (pendingField && fieldName === pendingField) || inlineError;
+                            if (shouldAutoOpen && typeof instance.focus === 'function' && typeof instance.open === 'function') {
+                                // Defer auto-open to next tick to ensure instance is fully ready
+                                requestAnimationFrame(() => {
+                                    instance.focus();
+                                    instance.open();
+                                    window._pcPendingTomSelectField = null;
+                                });
+                            }
+                            instance.on('dropdown_open', () => {
+                                if (instance.dropdown) {
+                                    instance.dropdown.style.width = 'auto';
+                                }
+                                const cell = wrapper ? wrapper.closest('td') : null;
+                                if (cell) {
+                                    cell.style.paddingRight = '1.5rem';
+                                }
+                            });
+                            instance.on('change', () => {
+                                if (wrapper && wrapper.dataset.inlineError) {
+                                    delete wrapper.dataset.inlineError;
+                                }
+                                window.updateTomSelectSummary(instance);
+                            });
+                            
+                            resolve();
+                        } catch (error) {
+                            console.error('[powercrud] Tom Select init failed', error);
+                            select.classList.remove('pc-tomselect-hidden');
+                            resolve();
+                        }
+                    });
+                    promises.push(promise);
+                });
+                
+                return Promise.all(promises);
+            };
+        }
+        window.mountTomSelectHelpers = mountTomSelectHelpers;
 
         function mountInlineHelpers() {
             if (window[INIT_FLAG]) {
@@ -493,6 +620,7 @@
                 return;
             }
 
+            mountTomSelectHelpers();
             window[INIT_FLAG] = true;
 
             const INLINE_ROW_SELECTOR = 'tr[data-inline-row="true"]';
@@ -504,6 +632,7 @@
             let activeColumnWidths = null;
             let lockedTableRef = null;
             let pendingInlineFocusField = null;
+            window._pcPendingTomSelectField = window._pcPendingTomSelectField || null;
             let pendingInlineSelectHighlight = false;
 
             function targetTouchesInlineRows(target) {
@@ -621,9 +750,9 @@
                 return null;
             }
             const baseFieldSelector =
-                '.inline-field-widget input:not([type="hidden"]):not([disabled]), .inline-field-widget select:not([disabled]), .inline-field-widget textarea:not([disabled]), .inline-field-widget [tabindex]:not([tabindex="-1"])';
+                '.inline-field-widget input:not([type="hidden"]):not([disabled]), .inline-field-widget select:not([disabled]), .inline-field-widget textarea:not([disabled]), .inline-field-widget [tabindex]:not([tabindex="-1"]), .pc-tomselect-m2m .ts-control';
             if (preferredField) {
-                const scopedSelector = `.inline-field-widget[data-inline-field="${preferredField}"] input:not([type="hidden"]):not([disabled]), .inline-field-widget[data-inline-field="${preferredField}"] select:not([disabled]), .inline-field-widget[data-inline-field="${preferredField}"] textarea:not([disabled]), .inline-field-widget[data-inline-field="${preferredField}"] [tabindex]:not([tabindex="-1"])`;
+                const scopedSelector = `.inline-field-widget[data-inline-field="${preferredField}"] input:not([type="hidden"]):not([disabled]), .inline-field-widget[data-inline-field="${preferredField}"] select:not([disabled]), .inline-field-widget[data-inline-field="${preferredField}"] textarea:not([disabled]), .inline-field-widget[data-inline-field="${preferredField}"] [tabindex]:not([tabindex="-1"]), .inline-field-widget[data-inline-field="${preferredField}"] .ts-control`;
                 const preferredTarget = row.querySelector(scopedSelector);
                 if (preferredTarget) {
                     return preferredTarget;
@@ -641,9 +770,9 @@
                 return;
             }
             row.classList.add('inline-row-attention');
-            const triggerField = preferredField || pendingInlineFocusField;
-            const focusTarget = getInlineFocusTarget(row, triggerField);
+            const triggerField = preferredField || window._pcPendingTomSelectField || pendingInlineFocusField;
             pendingInlineFocusField = null;
+            const focusTarget = getInlineFocusTarget(row, triggerField);
             if (focusTarget) {
                 focusTarget.focus();
                 maybeOpenSelectDropdown(focusTarget, triggerField);
@@ -662,6 +791,15 @@
             const owningWidget = candidate.closest('.inline-field-widget');
             if (!owningWidget || owningWidget.dataset.inlineField !== triggerField) {
                 return;
+            }
+            const selectEl = owningWidget.querySelector('select[multiple]');
+            if (selectEl && selectEl._pcTomSelect) {
+                selectEl._pcTomSelect.focus();
+                selectEl._pcTomSelect.open();
+                return;
+            }
+            if (candidate.classList.contains('ts-control')) {
+                // No Tom Select instance yet; fall back to native select behavior.
             }
             if (candidate.tagName !== 'SELECT') {
                 candidate = owningWidget.querySelector('select');
@@ -722,10 +860,14 @@
 
         function wireInlineRow(row) {
             if (!row) {
-                return;
+                return Promise.resolve();
             }
             wireInlineDependencies(row);
             bindInlineRowHotkeys(row);
+            if (window.initTomSelectWidgets) {
+                return window.initTomSelectWidgets(row);
+            }
+            return Promise.resolve();
         }
 
         function bindInlineRowHotkeys(row) {
@@ -987,15 +1129,12 @@
                 return;
             }
             pendingInlineFocusField = trigger.dataset.inlineField || null;
+            window._pcPendingTomSelectField = pendingInlineFocusField;
             pendingInlineSelectHighlight = true;
             const row = trigger.closest(INLINE_ROW_SELECTOR);
             const activeRow = getActiveRow();
             if (activeRow && row && activeRow !== row) {
                 event.preventDefault();
-                console.debug('[powercrud] Inline guard prevented second row edit', {
-                    activeRowId,
-                    blockedRowId: row.id,
-                });
                 focusRow(activeRow);
                 return;
             }
@@ -1021,9 +1160,12 @@
 
             if (target.matches(INLINE_ROW_SELECTOR)) {
                 if (target.dataset.inlineActive === 'true') {
+                    const preferredField = pendingInlineFocusField;
                     setActiveRow(target);
-                    wireInlineRow(target);
-                    focusRow(target);
+                    // Wait for Tom Select initialization before focusing
+                    wireInlineRow(target).then(() => {
+                        focusRow(target, preferredField);
+                    });
                     const widthsToApply = pendingColumnWidths || activeColumnWidths;
                     if (widthsToApply && widthsToApply.length) {
                         applyRowWidths(target, widthsToApply);
@@ -1050,7 +1192,7 @@
             if (activeRowId) {
                 const row = target.closest(INLINE_ROW_SELECTOR);
                 if (row && row.id === activeRowId && row.dataset.inlineActive === 'true') {
-                    wireInlineRow(row);
+                    wireInlineRow(row).catch(() => {});
                 }
             }
         });
@@ -1108,7 +1250,10 @@
             if (payload.row_id) {
                 const bannerRow = document.getElementById(payload.row_id);
                 if (bannerRow) {
-                    focusRow(bannerRow);
+                    // Defer focus to allow Tom Select initialization to complete
+                    requestAnimationFrame(() => {
+                        focusRow(bannerRow);
+                    });
                 }
             }
             showInlineNotice({
@@ -1127,14 +1272,35 @@
                 clearNotice();
             }
         });
+
+        if (window.initTomSelectWidgets) {
+            window.initTomSelectWidgets(document).catch(() => {});
+        }
         }
 
         if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', mountInlineHelpers);
+            document.addEventListener('DOMContentLoaded', () => {
+                mountInlineHelpers();
+            });
         } else {
             mountInlineHelpers();
         }
     })();
+
+    function bootstrapTomSelect() {
+        if (window.mountTomSelectHelpers) {
+            window.mountTomSelectHelpers();
+        }
+        if (window.initTomSelectWidgets) {
+            window.initTomSelectWidgets(document).catch(() => {});
+        }
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', bootstrapTomSelect);
+    } else {
+        bootstrapTomSelect();
+    }
 
     
  </script>

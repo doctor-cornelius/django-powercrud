@@ -1,0 +1,56 @@
+<style data-pc-inline-tomselect>
+    .pc-tomselect-m2m {
+        width: 100%;
+    }
+
+    .pc-tomselect-m2m .ts-wrapper {
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+
+    .pc-tomselect-m2m .ts-wrapper .ts-control {
+        min-height: 38px !important;
+        max-height: 38px !important;
+        height: 38px !important;
+        overflow: hidden !important;
+        padding: 8px 12px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: flex-start !important;
+    }
+
+    .pc-tomselect-m2m .ts-wrapper.multi .ts-control > div,
+    .pc-tomselect-m2m .ts-wrapper.multi .ts-control input {
+        display: none !important;
+    }
+
+    .pc-tomselect-m2m .ts-wrapper.multi .ts-control:after {
+        content: attr(data-selected-text);
+        color: #333;
+        line-height: 1;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        width: 100%;
+    }
+    
+    .pc-tomselect-m2m select[multiple],
+    .pc-tomselect-m2m select[multiple].pc-tomselect-hidden {
+        position: absolute !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
+        width: 1px !important;
+        height: 1px !important;
+    }
+
+    .pc-tomselect-m2m .ts-control[data-tomselect-error="true"] {
+        color: rgb(185, 28, 28) !important;
+        border-color: rgb(248, 113, 113) !important;
+    }
+
+    .pc-inline-dropdown {
+        width: auto !important;
+        min-width: 12rem;
+        max-width: 24rem;
+    }
+</style>
