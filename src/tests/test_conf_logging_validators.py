@@ -77,3 +77,41 @@ def test_validator_rejects_bad_hx_trigger():
 def test_validator_rejects_bad_form_fields():
     with pytest.raises(ValueError):
         PowerCRUDMixinValidator(form_fields=[1, 2, 3])
+
+
+def test_validator_rejects_invalid_bulk_fields():
+    with pytest.raises(ValueError):
+        PowerCRUDMixinValidator(bulk_fields=[123])
+
+
+def test_validator_rejects_invalid_dropdown_sort_options():
+    with pytest.raises(ValueError):
+        PowerCRUDMixinValidator(dropdown_sort_options={"author": 1})
+
+
+def test_validator_accepts_dropdown_sort_options():
+    validator = PowerCRUDMixinValidator(
+        namespace="sample",
+        templates_path="powercrud/daisyUI",
+        base_template_path="powercrud/base.html",
+        use_crispy=False,
+        fields=["title"],
+        properties=["isbn"],
+        exclude=[],
+        properties_exclude=[],
+        detail_fields=["title"],
+        detail_exclude=[],
+        detail_properties=["isbn"],
+        detail_properties_exclude=[],
+        use_modal=False,
+        modal_id="modal",
+        modal_target="target",
+        use_htmx=False,
+        form_fields=["title"],
+        form_fields_exclude=[],
+        table_pixel_height_other_page_elements=0,
+        table_max_height=50,
+        table_max_col_width=20,
+        dropdown_sort_options={"author": "-name"},
+    )
+    assert validator.dropdown_sort_options == {"author": "-name"}

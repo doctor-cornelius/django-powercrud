@@ -14,6 +14,7 @@ from django.forms.forms import NON_FIELD_ERRORS
 
 from powercrud.templatetags import powercrud as powercrud_tags
 from powercrud.logging import get_logger
+from .config_mixin import resolve_config
 
 log = get_logger(__name__)
 
@@ -91,7 +92,7 @@ class InlineEditingMixin:
                 else None,
                 error_details,
                 posted_fields,
-                getattr(self, "inline_edit_fields", None),
+                resolve_config(self).inline_edit_fields,
             )
 
             error_summary = self._get_inline_form_error_summary(form)
@@ -124,6 +125,7 @@ class InlineEditingMixin:
     def _dispatch_inline_dependency(self, request, *args, **kwargs):
         if not self.get_inline_editing():
             raise Http404("Inline editing disabled")
+        cfg = resolve_config(self)
 
         field = request.POST.get("field")
         if not field:
@@ -146,7 +148,7 @@ class InlineEditingMixin:
             return HttpResponseBadRequest("Invalid field")
 
         widget_html = render_to_string(
-            f"{self.templates_path}/partial/inline_field.html",
+            f"{cfg.templates_path}/partial/inline_field.html",
             {
                 "field": form[field],
                 "field_name": field,
@@ -176,7 +178,7 @@ class InlineEditingMixin:
 
     def get_inline_preserve_required_fields(self) -> bool:
         """Flag controlling whether PowerCRUD auto-preserves missing required inputs."""
-        return bool(getattr(self, "inline_preserve_required_fields", False))
+        return bool(resolve_config(self).inline_preserve_required_fields)
 
     def _prepare_inline_preservation(self, form, data=None):
         """Record which fields need preservation and hydrate initial POST clones.
@@ -303,6 +305,7 @@ class InlineEditingMixin:
     # Rendering helpers
     # ------------------------------------------------------------------
     def _render_inline_row_form(self, obj, form=None, error_summary: str | None = None) -> str:
+        cfg = resolve_config(self)
         row_payload = self._build_inline_row_payload(obj)
         inline_form = form or self.build_inline_form(instance=obj)
         self._prepare_inline_number_widgets(inline_form)
@@ -321,12 +324,13 @@ class InlineEditingMixin:
             "action_button_classes": self.get_action_button_classes(),
         }
         return render_to_string(
-            f"{self.templates_path}/partial/list.html#inline_row_form",
+            f"{cfg.templates_path}/partial/list.html#inline_row_form",
             context,
             request=self.request,
         )
 
     def _render_inline_row_display(self, obj) -> str:
+        cfg = resolve_config(self)
         row_payload = self._build_inline_row_payload(obj)
         context = {
             "row": row_payload,
@@ -336,7 +340,7 @@ class InlineEditingMixin:
             "list_view_url": self._get_list_url(),
         }
         return render_to_string(
-            f"{self.templates_path}/partial/list.html#inline_row_display",
+            f"{cfg.templates_path}/partial/list.html#inline_row_display",
             context,
             request=self.request,
         )
@@ -392,15 +396,20 @@ class InlineEditingMixin:
         if not self.get_inline_editing():
             return []
 
-        config = self.inline_edit_fields
+        cfg = resolve_config(self)
+        config = cfg.inline_edit_fields
         if not config:
-            return self._filter_inline_fields_by_form(self._resolve_inline_field_list(self.form_fields))
+            return self._filter_inline_fields_by_form(
+                self._resolve_inline_field_list(cfg.form_fields)
+            )
 
         if config == '__all__':
             return self._filter_inline_fields_by_form(self._get_all_editable_fields())
 
         if config == '__fields__':
-            return self._filter_inline_fields_by_form(self._resolve_inline_field_list(self.fields))
+            return self._filter_inline_fields_by_form(
+                self._resolve_inline_field_list(cfg.fields)
+            )
 
         return self._filter_inline_fields_by_form(self._resolve_inline_field_list(config))
 
@@ -422,7 +431,8 @@ class InlineEditingMixin:
         """
         Return dependency metadata for inline fields, including resolved endpoints.
         """
-        dependencies = self.inline_field_dependencies or {}
+        cfg = resolve_config(self)
+        dependencies = cfg.inline_field_dependencies or {}
         inline_fields = set(self.get_inline_edit_fields())
         endpoint_getter = getattr(self, "get_inline_dependency_endpoint_name", None)
         default_endpoint_name = endpoint_getter() if callable(endpoint_getter) else None
@@ -480,14 +490,15 @@ class InlineEditingMixin:
         if self.is_inline_row_locked(obj):
             return False
 
-        perm = getattr(self, "inline_edit_requires_perm", None)
+        cfg = resolve_config(self)
+        perm = cfg.inline_edit_requires_perm
         user = getattr(request, 'user', None)
 
         if perm:
             if not user or not user.has_perm(perm):
                 return False
 
-        allowed_callable = getattr(self, "inline_edit_allowed", None)
+        allowed_callable = cfg.inline_edit_allowed
         if callable(allowed_callable):
             return bool(allowed_callable(obj, request))
 

@@ -13,6 +13,7 @@ from django.template.response import TemplateResponse
 
 import json
 from powercrud.logging import get_logger
+from .config_mixin import resolve_config
 
 log = get_logger(__name__)
 
@@ -73,7 +74,7 @@ class HtmxMixin:
         Returns:
             str or None: The original HTMX target or None if not set
         """
-        return self.default_htmx_target
+        return resolve_config(self).default_htmx_target
 
     def get_use_htmx(self):
         """
@@ -86,7 +87,7 @@ class HtmxMixin:
         Returns:
             bool: True if HTMX should be used, False otherwise
         """
-        return self.use_htmx is True
+        return bool(resolve_config(self).use_htmx_enabled)
 
     def get_use_modal(self):
         """
@@ -98,8 +99,7 @@ class HtmxMixin:
         Returns:
             bool: True if modal should be used and HTMX is enabled, False otherwise
         """
-        result = self.use_modal is True and self.get_use_htmx()
-        return result
+        return bool(resolve_config(self).use_modal_enabled)
 
     def get_modal_id(self):
         """
@@ -110,8 +110,7 @@ class HtmxMixin:
         Returns:
             str: The modal ID with a '#' prefix
         """
-        modal_id = self.modal_id or 'powercrudBaseModal'
-        return f'#{modal_id}'
+        return f"#{resolve_config(self).modal_id_resolved}"
 
     def get_modal_target(self):
         """
@@ -123,8 +122,7 @@ class HtmxMixin:
         Returns:
             str: The modal target ID with a '#' prefix
         """
-        modal_target = self.modal_target or 'powercrudModalContent'
-        return f'#{modal_target}'
+        return f"#{resolve_config(self).modal_target_resolved}"
 
     def get_hx_trigger(self):
         """
@@ -137,18 +135,19 @@ class HtmxMixin:
         Returns:
             str or None: The HX-Trigger value as a JSON string, or None if not applicable
         """
-        if not self.get_use_htmx() or not self.hx_trigger:
+        cfg = resolve_config(self)
+        if not self.get_use_htmx() or not cfg.hx_trigger:
             return None
 
-        if isinstance(self.hx_trigger, (str, int, float)):
+        if isinstance(cfg.hx_trigger, (str, int, float)):
             # Convert simple triggers to JSON format
             # 'messagesChanged' becomes '{"messagesChanged":true}'
-            return json.dumps({str(self.hx_trigger): True})
-        elif isinstance(self.hx_trigger, dict):
+            return json.dumps({str(cfg.hx_trigger): True})
+        elif isinstance(cfg.hx_trigger, dict):
             # Validate all keys are strings
-            if not all(isinstance(k, str) for k in self.hx_trigger.keys()):
+            if not all(isinstance(k, str) for k in cfg.hx_trigger.keys()):
                 raise TypeError("HX-Trigger dict keys must be strings")
-            return json.dumps(self.hx_trigger)
+            return json.dumps(cfg.hx_trigger)
         else:
             raise TypeError("hx_trigger must be either a string or dict with string keys")
 
@@ -166,13 +165,13 @@ class HtmxMixin:
         # only if using htmx
         if not self.get_use_htmx():
             htmx_target = None
-        elif self.use_modal:
+        elif resolve_config(self).use_modal_enabled:
             htmx_target = self.get_modal_target()
         elif hasattr(self.request, 'htmx') and self.request.htmx.target:
             # return the target of the original list request
             htmx_target = self.get_original_target()
         else:
-            htmx_target = self.default_htmx_target  # Default target for htmx requests
+            htmx_target = resolve_config(self).default_htmx_target  # Default target for htmx requests
 
         return htmx_target
 

@@ -2,6 +2,7 @@ from typing import Dict, List, Optional
 from django.db import models
 
 from powercrud.logging import get_logger
+from ..config_mixin import resolve_config
 
 log = get_logger(__name__)
 
@@ -71,7 +72,7 @@ class MetadataMixin:
             qs = field.related_model.objects.all()
             
             # Apply dropdown sorting if configured
-            sort_options = getattr(self, 'dropdown_sort_options', {})
+            sort_options = resolve_config(self).dropdown_sort_options
             if field_name in sort_options:
                 sort_field = sort_options[field_name]  # Can be "name" or "-name"
                 qs = qs.order_by(sort_field)

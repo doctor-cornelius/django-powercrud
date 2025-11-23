@@ -14,6 +14,7 @@ from urllib.parse import urlencode
 from crispy_forms.helper import FormHelper
 from neapolitan.views import Role
 from powercrud.logging import get_logger
+from .config_mixin import resolve_config
 
 log = get_logger(__name__)
 
@@ -40,15 +41,7 @@ class FormMixin:
             - If use_crispy is not set, it returns True if crispy_forms is installed,
               False otherwise.
         """
-        use_crispy_set = self.use_crispy is not None
-        crispy_installed = "crispy_forms" in settings.INSTALLED_APPS
-
-        if use_crispy_set:
-            if self.use_crispy is True and not crispy_installed:
-                log.warning("use_crispy is set to True, but crispy_forms is not installed. Forcing to False.")
-                return False
-            return self.use_crispy
-        return crispy_installed
+        return bool(resolve_config(self).use_crispy_enabled)
 
     def _apply_crispy_helper(self, form_class):
         """Helper method to apply crispy form settings to a form class."""
@@ -95,7 +88,7 @@ class FormMixin:
 
     def _apply_dropdown_sorting(self, form_class):
         """Apply dropdown sorting to form fields."""
-        sort_options = getattr(self, 'dropdown_sort_options', {})
+        sort_options = resolve_config(self).dropdown_sort_options
         for field_name, sort_field in sort_options.items():
             if field_name in form_class.base_fields:
                 form_field = form_class.base_fields[field_name]
@@ -107,15 +100,16 @@ class FormMixin:
         """Override get_form_class to use form_fields for form generation."""
 
         # Use explicitly defined form class if provided
-        if self.form_class is not None:
-            return self._apply_crispy_helper(self.form_class)
+        cfg = resolve_config(self)
+        if cfg.form_class is not None:
+            return self._apply_crispy_helper(cfg.form_class)
 
         # Generate a default form class using form_fields
-        if self.model is not None and self.form_fields:
+        if self.model is not None and cfg.form_fields:
             # Configure HTML5 input widgets for date/time fields
             widgets = {}
             for field in self.model._meta.get_fields():
-                if field.name not in self.form_fields:
+                if field.name not in cfg.form_fields:
                     continue
                 if isinstance(field, db_models.DateField):
                     widgets[field.name] = forms.DateInput(
@@ -133,14 +127,14 @@ class FormMixin:
             # Create the form class with our configured widgets
             form_class = form_models.modelform_factory(
                 self.model,
-                fields=self.form_fields,
+                fields=cfg.form_fields,
                 widgets=widgets
             )
 
             # Apply dropdown sorting to form fields
-            sort_options = getattr(self, 'dropdown_sort_options', {})
+            sort_options = cfg.dropdown_sort_options
             for field_name, sort_field in sort_options.items():
-                if field_name in self.form_fields:
+                if field_name in cfg.form_fields:
                     model_field = self.model._meta.get_field(field_name)
                     if hasattr(model_field, 'related_model') and model_field.related_model:
                         form_field = form_class.base_fields[field_name]

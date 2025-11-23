@@ -6,6 +6,7 @@ from neapolitan.views import Role
 from .bulk_mixin import BulkEditRole, BulkActions
 
 from powercrud.logging import get_logger
+from .config_mixin import resolve_config
 
 log = get_logger(__name__)
 
@@ -22,7 +23,8 @@ class UrlMixin:
         Returns:
             str: A prefix string for URL names, including namespace if set.
         """
-        return f"{self.namespace}:{self.url_base}" if self.namespace else self.url_base
+        namespace = resolve_config(self).namespace
+        return f"{namespace}:{self.url_base}" if namespace else self.url_base
 
     def get_template_names(self):
         """
@@ -41,11 +43,12 @@ class UrlMixin:
             return [self.template_name]
 
         if self.model is not None and self.template_name_suffix is not None:
+            cfg = resolve_config(self)
             names = [
                 f"{self.model._meta.app_label}/"
                 f"{self.model._meta.object_name.lower()}"
                 f"{self.template_name_suffix}.html",
-                f"{self.templates_path}/object{self.template_name_suffix}.html",
+                f"{cfg.templates_path}/object{self.template_name_suffix}.html",
             ]
             return names
         msg = (
@@ -159,9 +162,10 @@ class UrlMixin:
             % self.__class__.__name__
         )
 
+        cfg = resolve_config(self)
         url_name = (
-            f"{self.namespace}:{self.url_base}-list"
-            if self.namespace
+            f"{cfg.namespace}:{self.url_base}-list"
+            if cfg.namespace
             else f"{self.url_base}-list"
         )
 
@@ -169,8 +173,8 @@ class UrlMixin:
             success_url = reverse(url_name)
         else:
             detail_url = (
-                f"{self.namespace}:{self.url_base}-detail"
-                if self.namespace
+                f"{cfg.namespace}:{self.url_base}-detail"
+                if cfg.namespace
                 else f"{self.url_base}-detail"
             )
             success_url = reverse(detail_url, kwargs={"pk": self.object.pk})
@@ -272,6 +276,7 @@ class UrlMixin:
             dict: The context dictionary containing all the data for template rendering.
         """
         kwargs = super().get_context_data(**kwargs)
+        cfg = resolve_config(self)
 
         # Generate and add URLs for create, update, and delete operations
 
@@ -286,8 +291,8 @@ class UrlMixin:
             kwargs["delete_view_url"] = self.safe_reverse(delete_view_name, kwargs={"pk": self.object.pk})
 
         # send list_view_url
-        if self.namespace:
-            list_url_name = f"{self.namespace}:{self.url_base}-list"
+        if cfg.namespace:
+            list_url_name = f"{cfg.namespace}:{self.url_base}-list"
         else:
             list_url_name = f"{self.url_base}-list"
         kwargs["list_view_url"] = reverse(list_url_name)
@@ -296,8 +301,8 @@ class UrlMixin:
         kwargs["header_title"] = f"{self.url_base.title()}-{self.role.value.title()}"
 
         # Add template and feature configuration
-        kwargs["base_template_path"] = self.base_template_path
-        kwargs['framework_template_path'] = self.templates_path
+        kwargs["base_template_path"] = cfg.base_template_path
+        kwargs['framework_template_path'] = cfg.templates_path
         kwargs["use_crispy"] = self.get_use_crispy()
         kwargs["use_htmx"] = self.get_use_htmx()
         kwargs['use_modal'] = self.get_use_modal()
@@ -344,7 +349,9 @@ class UrlMixin:
 
         # pagination variables
         kwargs['page_size_options'] = self.get_page_size_options()
-        kwargs['default_page_size'] = str(self.paginate_by) if self.paginate_by is not None else None
+        kwargs['default_page_size'] = (
+            str(cfg.paginate_by) if cfg.paginate_by is not None else None
+        )
 
         # If we have a form with errors and modals are enabled,
         # ensure the htmx_target is set to the modal target

@@ -9,6 +9,7 @@ from django.conf import settings
 
 from powercrud.conf import get_powercrud_setting
 from powercrud.logging import get_logger
+from .config_mixin import resolve_config
 
 log = get_logger(__name__)
 
@@ -98,7 +99,7 @@ class FilteringMixin:
             queryset = queryset.all()
 
         # Check if we should sort by a specific field
-        sort_options = getattr(self, 'dropdown_sort_options', {})
+        sort_options = resolve_config(self).dropdown_sort_options
         if field_name in sort_options:
             sort_field = sort_options[field_name]  # Can be "name" or "-name"
             return queryset.order_by(sort_field)
@@ -204,7 +205,11 @@ class FilteringMixin:
                         })
 
                         # Choose between OR logic (ModelMultipleChoiceFilter) or AND logic (AllValuesModelMultipleChoiceFilter)
-                        filter_class = AllValuesModelMultipleChoiceFilter if self.m2m_filter_and_logic else ModelMultipleChoiceFilter
+                        filter_class = (
+                            AllValuesModelMultipleChoiceFilter
+                            if resolve_config(self).m2m_filter_and_logic
+                            else ModelMultipleChoiceFilter
+                        )
 
                         locals()[field_name] = filter_class(
                             queryset=self.get_filter_queryset_for_field(field_name, model_field),

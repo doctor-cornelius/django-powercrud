@@ -2,6 +2,8 @@ from django.conf import settings
 from django.core.paginator import Paginator, Page
 from django.db.models import QuerySet
 
+from .config_mixin import resolve_config
+
 
 class PaginateMixin:
     """
@@ -17,11 +19,11 @@ class PaginateMixin:
         try:
             return int(page_size)
         except (TypeError, ValueError):
-            return self.paginate_by  # fallback to default
+            return resolve_config(self).paginate_by  # fallback to default
 
     def get_page_size_options(self):
         standard_sizes = [5, 10, 25, 50, 100]
-        default = self.paginate_by
+        default = resolve_config(self).paginate_by
         options = []
         for size in sorted(set(standard_sizes + ([default] if default and default not in standard_sizes else []))):
             if size is not None:

@@ -4,6 +4,7 @@ from django.db import models, transaction
 from django.core.exceptions import ValidationError, ObjectDoesNotExist
 
 from powercrud.logging import get_logger
+from ..config_mixin import resolve_config
 
 log = get_logger(__name__)
 
@@ -19,11 +20,7 @@ class OperationMixin:
             bool: True if bulk_fields are configured and modal/HTMX are enabled.
         """
 
-        allowed = bool(
-            (self.bulk_fields or self.bulk_delete)
-            and (self.use_modal and self.use_htmx)
-            )
-        return allowed
+        return bool(resolve_config(self).bulk_edit_enabled)
 
     def get_bulk_delete_enabled(self) -> bool:
         """
@@ -32,7 +29,7 @@ class OperationMixin:
         Returns:
             bool: True if bulk_delete is enabled and bulk edit is allowed.
         """
-        return self.bulk_delete and self.get_bulk_edit_enabled()
+        return bool(resolve_config(self).bulk_delete_enabled)
 
     def _perform_bulk_delete(
         self,

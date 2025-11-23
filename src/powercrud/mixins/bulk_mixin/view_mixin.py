@@ -8,6 +8,7 @@ from django.core.exceptions import SuspiciousOperation
 from django.db import models
 
 from powercrud.logging import get_logger
+from ..config_mixin import resolve_config
 
 log = get_logger(__name__)
 
@@ -73,8 +74,9 @@ class ViewMixin:
         Returns:
             HttpResponse: The response containing the form or processing result.
         """
-        template_name = f"{self.templates_path}/bulk_edit_form.html#full_form"
-        template_errors = f"{self.templates_path}/partial/bulk_edit_errors.html"
+        cfg = resolve_config(self)
+        template_name = f"{cfg.templates_path}/bulk_edit_form.html#full_form"
+        template_errors = f"{cfg.templates_path}/partial/bulk_edit_errors.html"
         # Ensure HTMX is being used for both GET and POST
         if not hasattr(request, 'htmx'):
             return HttpResponseBadRequest("Bulk edit only supported via HTMX requests.")
@@ -141,7 +143,7 @@ class ViewMixin:
             )
 
         # Get bulk fields (fields that can be bulk edited)
-        bulk_fields = getattr(self, 'bulk_fields', [])
+        bulk_fields = cfg.bulk_fields or []
         if not bulk_fields and not getattr(self, "bulk_delete", False):
             return render(
                 request,
@@ -196,6 +198,7 @@ class ViewMixin:
         Returns:
             HttpResponse: Success response or error form rendering.
         """
+        cfg = resolve_config(self)
         field_info = self._get_bulk_field_info(bulk_fields)        
         # extract necessary data from the request
         delete_selected = request.POST.get('delete_selected')
@@ -258,7 +261,7 @@ class ViewMixin:
                 }
                 response = render(
                     request,
-                    f"{self.templates_path}/bulk_edit_form.html",
+                    f"{cfg.templates_path}/bulk_edit_form.html",
                     context
                 )
 
@@ -323,7 +326,7 @@ class ViewMixin:
             }
             response = render(
                 request,
-                f"{self.templates_path}/bulk_edit_form.html",
+                f"{cfg.templates_path}/bulk_edit_form.html",
                 context
             )
 

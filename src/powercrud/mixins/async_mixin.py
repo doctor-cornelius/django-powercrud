@@ -6,6 +6,7 @@ from django.urls import reverse
 
 from ..async_manager import AsyncManager
 from powercrud.logging import get_logger
+from .config_mixin import resolve_config
 
 import json
 log = get_logger(__name__)
@@ -24,7 +25,8 @@ class AsyncMixin:
             bool: True if async processing is enabled and backend is available
         """
        
-        return self.bulk_async and self.is_async_backend_available()
+        cfg = resolve_config(self)
+        return bool(cfg.bulk_async and self.is_async_backend_available())
 
     def get_bulk_min_async_records(self) -> int:
         """
@@ -33,7 +35,7 @@ class AsyncMixin:
         Returns:
             int: Minimum record count for async processing
         """
-        return self.bulk_min_async_records
+        return resolve_config(self).bulk_min_async_records
 
     def get_bulk_async_backend(self) -> str:
         """
@@ -42,7 +44,7 @@ class AsyncMixin:
         Returns:
             str: Backend name ('q2', 'celery', 'asgi')
         """
-        return self.bulk_async_backend
+        return resolve_config(self).bulk_async_backend
 
     def get_bulk_async_notification(self) -> str:
         """
@@ -51,7 +53,7 @@ class AsyncMixin:
         Returns:
             str: Notification method ('status_page', 'messages', 'email', 'callback', 'none')
         """
-        return self.bulk_async_notification
+        return resolve_config(self).bulk_async_notification
 
     def should_process_async(self, record_count: int) -> bool:
         """
@@ -107,14 +109,8 @@ class AsyncMixin:
     def get_conflict_checking_enabled(self):
         """Check if conflict checking is enabled using new AsyncManager system."""
            
-        return (
-            self.bulk_async_conflict_checking
-            and self.get_bulk_async_enabled()
-        )
-
- 
-    async_manager_class_path: str | None = None
-    async_manager_config: dict | None = None
+        cfg = resolve_config(self)
+        return bool(cfg.bulk_async_conflict_checking and self.get_bulk_async_enabled())
 
     def get_async_manager_class(self):
         """Return the AsyncManager class to use for this view.
@@ -125,11 +121,12 @@ class AsyncMixin:
         3. Global `POWERCRUD_SETTINGS["ASYNC_MANAGER_DEFAULT"]["manager_class"]`
         4. Base `AsyncManager`
         """
-        manager_cls = getattr(self, "async_manager_class", None)
+        cfg = resolve_config(self)
+        manager_cls = getattr(self, "async_manager_class", None) or getattr(cfg, "async_manager_class", None)
         if manager_cls:
             return manager_cls
 
-        path = getattr(self, "async_manager_class_path", None)
+        path = getattr(self, "async_manager_class_path", None) or getattr(cfg, "async_manager_class_path", None)
         if path:
             return self._import_manager(path)
 
@@ -150,11 +147,12 @@ class AsyncMixin:
         return getattr(module, class_name)
 
     def get_async_manager_class_path(self) -> str:
-        path = getattr(self, "async_manager_class_path", None)
+        cfg = resolve_config(self)
+        path = getattr(self, "async_manager_class_path", None) or getattr(cfg, "async_manager_class_path", None)
         if path:
             return path
 
-        manager_class = getattr(self, "async_manager_class", None)
+        manager_class = getattr(self, "async_manager_class", None) or getattr(cfg, "async_manager_class", None)
         if manager_class:
             return f"{manager_class.__module__}.{manager_class.__name__}"
 
@@ -169,8 +167,9 @@ class AsyncMixin:
         return f"{manager_class.__module__}.{manager_class.__name__}"
 
     def get_async_manager_config(self):
-        if self.async_manager_config is not None:
-            return self.async_manager_config
+        cfg = resolve_config(self)
+        if cfg.async_manager_config is not None:
+            return cfg.async_manager_config
         from powercrud.conf import get_powercrud_setting
 
         default_cfg = get_powercrud_setting("ASYNC_MANAGER_DEFAULT", {}) or {}
@@ -325,9 +324,10 @@ class AsyncMixin:
         log.debug("running _handle_async_bulk_operation with new AsyncManager")
 
         # ✅ Check authentication if required
+        cfg = resolve_config(self)
         user = getattr(request, 'user', None)
         if not user or user.is_anonymous:
-            if not self.bulk_async_allow_anonymous:
+            if not cfg.bulk_async_allow_anonymous:
                 return HttpResponseForbidden("Authentication required for bulk operations")
             user = None  # Handle anonymous user
 

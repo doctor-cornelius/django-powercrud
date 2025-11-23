@@ -1,3 +1,6 @@
+from .config_mixin import resolve_config
+
+
 class TableMixin:
     """
     Provides methods for table styling and layout.
@@ -8,7 +11,7 @@ class TableMixin:
         the table height will be calculated (in a css style in list.html) as
         {{ get_table_max_height }}% of the remaining viewport height.
         """
-        return f"{self.table_pixel_height_other_page_elements or 0}px" #px
+        return resolve_config(self).table_pixel_height_px  # px
 
     def get_table_max_height(self) -> int:
         """Returns the proportion of visible space on the viewport after subtracting
@@ -17,46 +20,33 @@ class TableMixin:
 
         The table height is calculated in a css style for max-table-height in list.html.
         """
-        return self.table_max_height
+        return resolve_config(self).table_max_height
 
     def get_table_max_col_width(self):
         # The max width for the table columns in object_list.html - in characters
-        value = self.table_max_col_width
-        if not value:
-            return "25ch"
-        return f"{int(value)}ch"
+        return resolve_config(self).table_max_col_width_css
 
     def get_table_header_min_wrap_width(self):
         # The max width for the table columns in object_list.html - in characters
-        max_width = self.get_table_max_col_width()
-        value = self.table_header_min_wrap_width
-        if value is None:
-            return max_width
-        try:
-            value_int = int(value)
-            max_int = int(max_width.rstrip("ch") or 0)
-            clamped = min(value_int, max_int) if max_int else value_int
-        except (TypeError, ValueError):
-            return max_width
-        return f"{clamped}ch" #ch
+        return resolve_config(self).table_header_min_wrap_width_css
 
     def get_table_classes(self):
         """
         Get the table classes.
         """
-        return self.table_classes
+        return resolve_config(self).table_classes
 
     def get_action_button_classes(self):
         """
         Get the action button classes.
         """
-        return self.action_button_classes
+        return resolve_config(self).action_button_classes
 
     def get_extra_button_classes(self):
         """
         Get the extra button classes.
         """
-        return self.extra_button_classes
+        return resolve_config(self).extra_button_classes
 
     # Inline editing helpers -------------------------------------------------
     def get_inline_row_id_prefix(self) -> str:
