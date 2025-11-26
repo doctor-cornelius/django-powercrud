@@ -34,6 +34,8 @@ The fix needs to keep async optional: PowerCRUD should import cleanly without dj
 
 ## Phased Plan
 
+**NOTE**: Phase 2 is more "nice to have" than critical.
+
 1. [ ] Decouple async from the default mixin and add minimal test coverage.
    1.1. [X] Remove `AsyncMixin` from `PowerCRUDMixin` and introduce a `PowerCRUDAsyncMixin` (or similar) that composes `AsyncMixin` and `PowerCRUDMixin` for downstream convenience.
    1.2. [X] Update any tests that relied on async being present in the default `PowerCRUDMixin` (e.g. views that implicitly exercised async behaviour) so they explicitly include the async mixin/composite.
