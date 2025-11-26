@@ -51,8 +51,10 @@ INSTALLED_APPS = [
     ...
 ]
 
-# Optional: Set CSS framework (default is 'daisyui'); override if you build your own pack
-POWERCRUD_CSS_FRAMEWORK = 'daisyui'
+# Optional: POWERCRUD_SETTINGS overrides (all keys are optional and have defaults)
+POWERCRUD_SETTINGS = {
+    "POWERCRUD_CSS_FRAMEWORK": "daisyui",  # built-in default
+}
 ```
 
 **Important:** If using Tailwind CSS (default), ensure Tailwind includes powercrud's classes in its build process. See the [Styling guide](./styling_tailwind.md#tailwind-integration) for details.

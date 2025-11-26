@@ -1,8 +1,16 @@
 # Async Manager
 
-PowerCRUD ships a full async infrastructure (conflict locks, progress cache, lifecycle hooks) that you can reuse in plain Django code—no PowerCRUD views required. This chapter shows the building blocks so you can launch background work from management commands, signals, admin actions, or bespoke views. For a deeper architectural walkthrough, see the [async architecture reference](../reference/async.md).
+PowerCRUD ships a full async infrastructure (conflict locks, progress cache, lifecycle hooks) that you can reuse in plain Django code — no PowerCRUD views required. This chapter shows the building blocks so you can launch background work from management commands, signals, admin actions, or bespoke views. For a deeper architectural walkthrough, see the [async architecture reference](../reference/async.md).
 
 ---
+
+!!! info "Async is opt-in"
+
+    Core PowerCRUD views are synchronous by default. To use the async stack you must:
+
+    - Install and configure `django-q2` (`django_q` in `INSTALLED_APPS`, `Q_CLUSTER`, shared cache).
+    - Enable async in `POWERCRUD_SETTINGS["ASYNC_ENABLED"]` (optional but recommended for clarity).
+    - Opt into async at the view/composition level (for example, using `AsyncMixin` or `PowerCRUDAsyncMixin` for bulk views).
 
 ## Why reuse the manager?
 

@@ -1,5 +1,6 @@
 # powercrud/conf.py
 from django.conf import settings
+from django.core.exceptions import ImproperlyConfigured
 
 DEFAULTS = {
     'ASYNC_ENABLED': False,
@@ -15,12 +16,24 @@ DEFAULTS = {
     'TAILWIND_SAFELIST_JSON_LOC': '.',  # location of the safelist json file for tailwind tree shaker
 }
 
+
 def get_powercrud_setting(key: str, default=None):
-    """Retrieve settings from POWERCRUD_SETTINGS dict with defaults."""
-    user_settings = getattr(settings, 'POWERCRUD_SETTINGS', {})
+    """Retrieve settings from POWERCRUD_SETTINGS dict with defaults.
+
+    POWERCRUD_SETTINGS is expected to be a dict; if a project overrides it with
+    a non-mapping value, raise a clear ImproperlyConfigured error rather than
+    failing with a TypeError when looking up keys.
+    """
+    user_settings = getattr(settings, 'POWERCRUD_SETTINGS', None)
+    if user_settings is None:
+        user_settings = {}
+    elif not isinstance(user_settings, dict):
+        raise ImproperlyConfigured(
+            f"POWERCRUD_SETTINGS must be a dict if defined; found {type(user_settings).__name__} instead."
+        )
+
     if key in user_settings:
         return user_settings[key]
-    elif default is not None:
+    if default is not None:
         return default
-    else:
-        return DEFAULTS.get(key)
+    return DEFAULTS.get(key)

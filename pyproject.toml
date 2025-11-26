@@ -28,13 +28,13 @@ tests-core = [
     "crispy-daisyui>=0.8.0,<1",
     "django-vite>=3.1.0,<4",
     "django-q2>=1.8.0,<2",
-    "psycopg-binary>=3.2.13,<4",
-    "psycopg>=3.2.13,<4",
+    "psycopg-binary>=3.2.12,<4",
+    "psycopg>=3.2.12,<4",
     "django-redis>=6.0.0,<7",
     "pytest-django>=4.11.1,<5"
 ]
 tests-ui = [
-    "pytest-playwright>=0.7.2,<1",
+    "pytest-playwright>=0.7.1,<1",
     "playwright>=1.56.0,<2"
 ]
 dev = [
@@ -91,13 +91,13 @@ tests-core = [
     "crispy-daisyui>=0.8.0,<1",
     "django-vite>=3.1.0,<4",
     "django-q2>=1.8.0,<2",
-    "psycopg-binary>=3.2.13,<4",
-    "psycopg>=3.2.13,<4",
+    "psycopg-binary>=3.2.12,<4",
+    "psycopg>=3.2.12,<4",
     "django-redis>=6.0.0,<7",
     "pytest-django>=4.11.1,<5"
 ]
 tests-ui = [
-    "pytest-playwright>=0.7.2,<1",
+    "pytest-playwright>=0.7.1,<1",
     "playwright>=1.56.0,<2"
 ]
 dev = [

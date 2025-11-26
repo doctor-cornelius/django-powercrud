@@ -8,6 +8,7 @@ from django.views import View
 
 from neapolitan.views import Role
 
+from powercrud.mixins import url_mixin as url_module
 from powercrud.mixins.url_mixin import UrlMixin
 from sample.models import Author, Book
 
@@ -97,7 +98,12 @@ def test_get_template_names_and_prefix(monkeypatch):
     request.session = {"selected": [str(book.pk)]}
 
     view = UrlViewHarness(request, book)
-    monkeypatch.setattr("powercrud.mixins.url_mixin.reverse", lambda name, kwargs=None: f"/{name}" if kwargs is None else f"/{name}/{kwargs['pk']}", raising=False)
+    monkeypatch.setattr(
+        url_module,
+        "reverse",
+        lambda name, kwargs=None: f"/{name}" if kwargs is None else f"/{name}/{kwargs['pk']}",
+        raising=False,
+    )
 
     templates = view.get_template_names()
     assert templates[0] == "sample/book_detail.html"
@@ -108,7 +114,7 @@ def test_get_template_names_and_prefix(monkeypatch):
     def raise_no_reverse(*args, **kwargs):
         raise NoReverseMatch()
 
-    monkeypatch.setattr("powercrud.mixins.url_mixin.reverse", raise_no_reverse, raising=False)
+    monkeypatch.setattr(url_module, "reverse", raise_no_reverse, raising=False)
     assert view.safe_reverse("missing") is None
 
 
@@ -117,11 +123,15 @@ def test_get_success_url_uses_role(monkeypatch):
     request.session = {"selected": []}
     dummy_obj = SimpleNamespace(pk=5)
     view = UrlViewHarness(request, dummy_obj, role=Role.CREATE)
-    monkeypatch.setattr("powercrud.mixins.url_mixin.reverse", lambda name, kwargs=None: f"/{name}")
+    monkeypatch.setattr(url_module, "reverse", lambda name, kwargs=None: f"/{name}")
     assert view.get_success_url() == "/sample:book-list"
 
     view.role = Role.DETAIL
-    monkeypatch.setattr("powercrud.mixins.url_mixin.reverse", lambda name, kwargs=None: f"/{name}/{kwargs['pk']}" if kwargs else f"/{name}")
+    monkeypatch.setattr(
+        url_module,
+        "reverse",
+        lambda name, kwargs=None: f"/{name}/{kwargs['pk']}" if kwargs else f"/{name}",
+    )
     assert view.get_success_url() == "/sample:book-detail/5"
 
 
@@ -132,7 +142,7 @@ def test_safe_reverse_handles_failure(monkeypatch):
         from django.urls import NoReverseMatch
         raise NoReverseMatch()
 
-    monkeypatch.setattr("powercrud.mixins.url_mixin.reverse", boom)
+    monkeypatch.setattr(url_module, "reverse", boom)
     assert view.safe_reverse("missing") is None
 
 

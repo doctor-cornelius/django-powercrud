@@ -1,19 +1,19 @@
 import json
-
-from django.conf import settings
-from unittest.mock import Mock, patch
-from datetime import date
-from types import SimpleNamespace
-
-from django.test import TestCase, TransactionTestCase, RequestFactory, override_settings
-from django.utils import timezone
-from django_q.cluster import Cluster
-from django_q.models import Task
 import threading
 import time
 import uuid
+from datetime import date
+from types import SimpleNamespace
 
 import pytest
+from unittest.mock import Mock, patch
+from django.conf import settings
+from django.test import TestCase, TransactionTestCase, RequestFactory, override_settings
+from django.utils import timezone
+
+pytest.importorskip("django_q")
+from django_q.cluster import Cluster
+from django_q.models import Task
 
 from powercrud.async_manager import AsyncManager
 from powercrud.async_dashboard import AsyncDashboardConfig, ModelTrackingAsyncManager

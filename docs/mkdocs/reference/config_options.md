@@ -62,6 +62,8 @@ Complete alphabetical reference of all available configuration options with defa
 
 ## Settings Configuration
 
+All of the following keys live inside the optional `POWERCRUD_SETTINGS` dict in your Django settings. Every entry has a default; you only override what you need.
+
 | Setting | Default | When unset | Description | Reference |
 |---------|---------|------------|-------------|-----------|
 | `ASYNC_ENABLED` | `False` | Async helpers remain inactive | Master toggle for async features. | [Async Manager](../guides/async_manager.md) |
@@ -72,7 +74,7 @@ Complete alphabetical reference of all available configuration options with defa
 | `MAX_TASK_DURATION` | `3600` | Tasks longer than an hour are treated as stuck | Threshold for flagging slow async jobs. | [Async Manager](../guides/async_manager.md) |
 | `CLEANUP_SCHEDULE_INTERVAL` | `300` | Cleanup jobs should run roughly every 5 minutes | Suggested cadence (seconds) for any periodic cleanup runner. | [Async Manager](../guides/async_manager.md) |
 | `POWERCRUD_CSS_FRAMEWORK` | `'daisyui'` | Built-in templates and styles target daisyUI | CSS framework choice (`'daisyui'` or your custom pack). | [Styling & Tailwind](../guides/styling_tailwind.md) |
-| `TAILWIND_SAFELIST_JSON_LOC` | `None` | No safelist file is generated | File path for Tailwind safelist output (used by management commands). | [Styling & Tailwind](../guides/styling_tailwind.md) |
+| `TAILWIND_SAFELIST_JSON_LOC` | `None` | Must be set or passed via `--output` when running `pcrud_extract_tailwind_classes` | File path for Tailwind safelist output (used by management commands). | [Styling & Tailwind](../guides/styling_tailwind.md) |
 
 ## Filter controls
 

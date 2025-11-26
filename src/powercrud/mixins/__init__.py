@@ -1,5 +1,4 @@
 from .htmx_mixin import HtmxMixin
-from .async_mixin import AsyncMixin
 from .bulk_mixin import BulkEditRole, BulkMixin
 from .core_mixin import CoreMixin
 from .filtering_mixin import FilteringMixin, AllValuesModelMultipleChoiceFilter, HTMXFilterSetMixin
@@ -16,7 +15,6 @@ class PowerCRUDMixin(
     FormMixin,
     InlineEditingMixin,
     TableMixin,
-    AsyncMixin,
     BulkMixin,
     FilteringMixin,
     CoreMixin,
@@ -29,9 +27,26 @@ class PowerCRUDMixin(
     pass
 
 
+def __getattr__(name: str):
+    """
+    Provide lazy access to async-related mixins so importing powercrud.mixins
+    does not eagerly load async dependencies. Async classes are only imported
+    when explicitly requested.
+    """
+    if name == "AsyncMixin":
+        from .async_mixin import AsyncMixin
+        return AsyncMixin
+    if name == "PowerCRUDAsyncMixin":
+        from .async_crud_mixin import PowerCRUDAsyncMixin
+        return PowerCRUDAsyncMixin
+    raise AttributeError(f"module 'powercrud.mixins' has no attribute {name!r}")
+
+
 __all__ = [
     "PowerCRUDMixin",
     "HTMXFilterSetMixin",
     "BulkEditRole",
     "InlineEditingMixin",
+    "AsyncMixin",
+    "PowerCRUDAsyncMixin",
 ]

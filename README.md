@@ -43,7 +43,9 @@ See the [full documentation](https://doctor-cornelius.github.io/django-powercrud
 - Extension hooks for custom actions, buttons, and templates, illustrated in the bundled sample app.
 - Tooling support: Dockerised dev environment, management commands, pytest + Playwright coverage.
 
-## Quick Example
+## Quick Examples
+
+### Core CRUD (synchronous)
 
 ```python
 from neapolitan.views import CRUDView
@@ -66,18 +68,35 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
     inline_edit_enabled = True
     inline_edit_fields = ["status", "owner"]
 
-    # Bulk operations
+    # Bulk operations (synchronous)
+    bulk_fields = ["status", "owner"]
+    bulk_delete = True
+```
+
+This single view serves a filtered list, modal forms, inline edits, and synchronous bulk edits - no async stack required.
+
+### Async bulk (opt-in)
+
+```python
+from neapolitan.views import CRUDView
+from powercrud.mixins import PowerCRUDAsyncMixin
+
+
+class ProjectAsyncCRUDView(PowerCRUDAsyncMixin, CRUDView):
+    model = Project
+    base_template_path = "core/base.html"
+
     bulk_fields = ["status", "owner"]
     bulk_delete = True
     bulk_async = True
     bulk_min_async_records = 20
     bulk_async_conflict_checking = True
 
-    # Async dashboard (optional)
+    # Optional async dashboard manager
     async_manager_class_path = "myapp.async_manager.AppAsyncManager"
 ```
 
-This single view serves a filtered list, modal forms, inline edits, and queues long-running bulk updates through django-q2 while tracking conflicts and progress.
+Here async queueing is explicit: you opt in by using `PowerCRUDAsyncMixin`, enabling `bulk_async`, and configuring django-q2 (`django_q` in `INSTALLED_APPS`, `Q_CLUSTER`, and any `POWERCRUD_SETTINGS` overrides you need).
 
 ## Getting Started
 
@@ -109,7 +128,7 @@ PowerCRUD’s development environment is Docker-first. From the project root:
 
 ```bash
 ./runproj up          # build images, start services, enter the Django container
-pytest                # run the full test suite, including Playwright smoke tests
+./runtests                # run the full test suite, including Playwright smoke tests
 ```
 
 Dependencies are managed with [`uv`](https://github.com/astral-sh/uv); the Docker image installs them into the system interpreter so you never need to activate a virtual environment inside the container. See the [Dockerised Development Environment guide](https://doctor-cornelius.github.io/django-powercrud/reference/dockerised_dev/) for full details.

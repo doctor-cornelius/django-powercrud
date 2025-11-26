@@ -45,7 +45,10 @@ Each model has a dedicated CRUD view demonstrating different powercrud features:
 ### BookCRUDView - Full Feature Demo
 
 ```python
-class BookCRUDView(PowerCRUDMixin, CRUDView):
+from powercrud.mixins import PowerCRUDAsyncMixin
+
+
+class BookCRUDView(PowerCRUDAsyncMixin, CRUDView):
     # Comprehensive configuration showing:
     bulk_fields = ['title', 'published_date', 'bestseller', 'pages', 'author', 'genres']
     bulk_delete = True

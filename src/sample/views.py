@@ -4,14 +4,14 @@ from django.urls import reverse
 from django.views.generic import ListView
 
 from neapolitan.views import CRUDView
-from powercrud.mixins import PowerCRUDMixin
+from powercrud.mixins.async_crud_mixin import PowerCRUDAsyncMixin
 from powercrud.conf import get_powercrud_setting
 
 from django import forms
 from . import models
 from . import forms
 from . import filters
-class SampleCRUDMixin(PowerCRUDMixin, CRUDView):
+class SampleCRUDMixin(PowerCRUDAsyncMixin, CRUDView):
     """Base mixin to ensure sample views use the dashboard-aware manager."""
 
     async_manager_class_path = "sample.async_manager.SampleAsyncManager"

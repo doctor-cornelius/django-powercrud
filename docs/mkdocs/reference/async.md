@@ -4,6 +4,14 @@ This page collects the deeper details behind PowerCRUD’s async infrastructure 
 
 ---
 
+!!! info "Sync by default, async opt-in"
+
+    PowerCRUD does **not** enable async automatically. Async behaviour is only active when:
+
+    - You have installed and configured `django-q2` (`django_q` in `INSTALLED_APPS`, `Q_CLUSTER`, shared cache).
+    - Async is enabled in `POWERCRUD_SETTINGS["ASYNC_ENABLED"]` (or you deliberately call the async helpers).
+    - Your views or launch sites opt in via `AsyncMixin`, `PowerCRUDAsyncMixin`, or direct use of `AsyncManager`.
+
 ## Overview
 
 PowerCRUD’s async support consists of four cooperating pieces:

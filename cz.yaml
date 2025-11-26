@@ -16,8 +16,8 @@ commitizen:
     message_template: "{{change_type}}{% if scope %}({{ scope }}){% endif %}: {{subject}}{% if body %}\n\n{{body}}{% endif %}{% if footer %}\n\n{% if is_breaking_change %}BREAKING CHANGE: {% endif %}{{footer}}{% endif %}"
     # Schema for commits
     schema: "<type>(<scope>): <subject>\n<BLANK LINE>\n<body>\n<BLANK LINE>\n(BREAKING CHANGE: )<footer>"
-    # Regex pattern to validate commit messages
-    schema_pattern: "(feat|fix|style|refactor|perf|docs|test|build|ci|chore):(\\s.*)"
+    # Regex pattern to validate commit messages (all allowed types, optional scope)
+    schema_pattern: "^(feat|fix|style|refactor|perf|docs|test|build|ci|chore|wip)(\\([^)]*\\))?:\\s.+"
 
     # Pattern to determine how versions are bumped
     bump_pattern: "^(major|minor|patch)"
@@ -32,11 +32,9 @@ commitizen:
     info: |
       See cz.yaml for customised configuration of commitizen
     # The commit parser is a regex statement used to extract commits to **potentially** include in changelogs.
-    #   Scope and message will be included only if present; message is constructed based on message_template above 
-    # The extract is supposed to be subsequently restricted by changelog_pattern and ordered by change_type_order
-    #   But neither of these seem to work. So just configure to restrict what you don't want
-    #   Full list: feat|fix|style|refactor|perf|docs|test|build|ci|chore|wip
-    commit_parser: "^(?P<change_type>feat|fix|style|refactor|perf|docs|test|build|ci)(?P<scope>.*)?:(?P<message>.*)?"
+    # Only user-facing change types are included here; internal types (style/test/build/ci/chore/wip) are omitted
+    # so they don't clutter the changelog even though they remain valid commit types.
+    commit_parser: "^(?P<change_type>feat|fix|refactor|perf|docs)(?P<scope>\\([^)]*\\))?:\\s(?P<message>.+)$"
 
     # changelog_pattern is supposed to further restrict the commits to be included in the changelog, but doesn't seem to work
     # changelog_pattern: "^(feat|fix|style|refactor|perf|docs|test|build|ci)?(!)?"

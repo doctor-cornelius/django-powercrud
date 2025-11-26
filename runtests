@@ -1,6 +1,22 @@
 # for running tests locally and reporting coverage only on powercrud
 set -euo pipefail
 
+if [ "$#" -gt 0 ]; then
+    # Single-test mode: respect an existing DJANGO_SETTINGS_MODULE, or choose
+    # a default based on the test path. This avoids wiping coverage or running
+    # the full suite when you just want a quick check.
+    TEST_PATH="$1"
+    if [ -z "${DJANGO_SETTINGS_MODULE:-}" ]; then
+        if [[ "$TEST_PATH" == *"minimal"* ]]; then
+            export DJANGO_SETTINGS_MODULE=tests.settings_minimal
+        else
+            export DJANGO_SETTINGS_MODULE=tests.settings
+        fi
+    fi
+    pytest "$TEST_PATH"
+    exit $?
+fi
+
 # delete any existing coverage reports
 coverage erase
 rm -rf htmlcov
@@ -10,7 +26,7 @@ rm -f coverage.xml
 export DJANGO_SETTINGS_MODULE=tests.settings
 
 # Core + async suite with coverage (skips Playwright)
-pytest -m "not playwright" 
+pytest -m "not playwright"
 
 # Ensure the built bundle exists for manifest mode
 echo "Building static assets for Playwright suite..."

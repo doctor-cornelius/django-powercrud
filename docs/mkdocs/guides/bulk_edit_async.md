@@ -87,7 +87,10 @@ You can add dashboard tracking later—async queueing works without it. When you
 ## 4. Update the view
 
 ```python
-class ProjectCRUDView(PowerCRUDMixin, CRUDView):
+from powercrud.mixins import PowerCRUDAsyncMixin
+
+
+class ProjectCRUDView(PowerCRUDAsyncMixin, CRUDView):
     # … existing configuration …
 
     bulk_async = True                    # turn async on
@@ -97,6 +100,7 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
 
 - When a user selects >= `bulk_min_async_records`, the job is queued via django-q2.
 - Conflict checking prevents overlapping operations on the same objects.
+- Async is opt-in: inherit from `PowerCRUDAsyncMixin` (or add `AsyncMixin` yourself) and ensure `ASYNC_ENABLED=True` plus django-q2/Q_CLUSTER are configured.
 
 ---
 

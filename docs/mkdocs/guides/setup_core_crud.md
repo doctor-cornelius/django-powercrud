@@ -133,6 +133,7 @@ HTMX is optional but recommended: when enabled, filter submissions post back to 
 ```python
 class ProjectCRUDView(PowerCRUDMixin, CRUDView):
     # …
+    use_htmx = True
     use_modal = True
 ```
 

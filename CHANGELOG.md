@@ -4,6 +4,11 @@
 
 - **(README)**:  use correct url for ci tests badge [skip tests]
 
+### Fix
+
+- **(async)**:  treat POWERCRUD_SETTINGS as optional dict and raise clear ImproperlyConfigured when misconfigured
+- **(async)**:  require django-q2 via a friendly ImproperlyConfigured message when importing AsyncManager without the optional dependency installed
+
 ### Feature
 
 - **(InlineEditingMixin)**:  add feature to inject missing required fields as hidden form fields
@@ -14,16 +19,15 @@
 
 ## 0.4.9 (2025-11-15)
 
-### Continuous Integration
+### Internal
 
-- **(pr_tests)**:  include [skip tests] logic for pr_tests also
-- **(deploy_docs)**:  ensure mkdocs-awesome-nav is included [skip tests]
+- CI/test configuration tweaks for PR and docs workflows.
 
 ## 0.4.8 (2025-11-15)
 
-### Continuous Integration
+### Internal
 
-- **(deploy_docs)**:  set docs to deploy on every release
+- Simplified docs deployment so they publish on every release.
 
 ## 0.4.7 (2025-11-15)
 
@@ -37,13 +41,6 @@
 ### Refactor
 
 - **(inline_editing)**:  reformat warning message
-
-### Continuous Integration
-
-- **(publish.yml)**:  enable flag to skip tests using skip [tests]
-- **(deploy_docs)**:  set doc build to only happen on new releases
-- **(renovate)**:  tell renovate to stop trying to bump pytest to v9
-- **(renovate.js)**:  enable auto-merge for renovate after CI tests pass
 
 ### Documentation
 
@@ -72,14 +69,6 @@
 - **(InlineEditingMixin)**:  move inline methods in
 - **(inline_editing_mixin)**:  consolidate all inline methods
 - **(InlineEditingMixin)**:  validate inline dependency fields against get_inline_editing_fields
-
-### Continuous Integration
-
-- **(run_tests.yml)**:  fix playwright install error
-- **(run_tests.yml)**:  install missing playwright deps and cache playwright binaries
-- **(run_tests.yml)**:  only upload coverage file once
-- **(run_tests.yaml)**:  specify required python interpreter for playwright tests
-- **(run_tests.yml)**:  include playwright tests in CI
 
 ### Documentation
 
@@ -112,13 +101,6 @@
 
 ## 0.4.3 (2025-11-02)
 
-### Continuous Integration
-
-- **(codecov)**:  use correct badge url in README
-- **(coverage)**:  clean out redundant coverage2.xml
-- **(publish.yml)**:  ensure secrets inherited for coverage token
-- **(CODECOV_TOKEN)**:  add as secret
-
 ### Documentation
 
 - **(README.md)**:  correct link to codecov
@@ -129,10 +111,6 @@
 - **(pytest.ini)**:  change config of tests for coverage
 
 ## 0.4.2 (2025-11-01)
-
-### Continuous Integration
-
-- **(publish.yml)**:  remove matrix release and release lowest tested python version
 
 ## 0.4.1 (2025-10-28)
 
@@ -145,17 +123,7 @@
 
 ### Continuous Integration
 
-- **(renovate.js)**:  preserve django constraints and only refresh lockfile
-- **(renovate.json)**:  add package rule keep lower bound of django at 4.2
-- **(run_tests)**:  put guards around coverage file failure
-- **(run_tests.yml)**:  ensure we run coverage report production
-- **(renovate)**:  install and configure renovate for automatic dependency updates
-
-### Tests
-
-- **(runtests)**:  run coverage html inside runtests
-- **(runtests)**:  make runtests orchestrate use of correct settings file for tests
-- **(powercrud)**:  implement test matrix in CI process (python vs django versions)
+Internal CI, renovate, and test-matrix work to support automated releases and coverage.
 
 ## 0.3.6 (2025-10-27)
 

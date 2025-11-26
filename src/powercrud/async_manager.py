@@ -8,8 +8,6 @@ from django.conf import settings
 from django.core.cache import caches
 from django.core.exceptions import ImproperlyConfigured
 from django.http import JsonResponse
-from django_q.models import Task
-from django_q.tasks import async_task, fetch, delete_cached
 from django.utils import timezone
 
 from powercrud.conf import get_powercrud_setting
@@ -17,6 +15,16 @@ from powercrud.conf import get_powercrud_setting
 import logging
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
+
+try:
+    from django_q.models import Task
+    from django_q.tasks import async_task, fetch, delete_cached
+except ImportError as exc:  # pragma: no cover - import guard
+    raise ImproperlyConfigured(
+        "POWERCRUD async features require django-q2. Install 'django-q2' and "
+        "add 'django_q' to INSTALLED_APPS before using AsyncManager or "
+        "async-related mixins."
+    ) from exc
 
 class AsyncManager:
     """Manager for async task lifecycle with dual-key conflict detection system.
