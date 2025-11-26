@@ -11,7 +11,10 @@ from django.urls import reverse
 
 from urllib.parse import urlencode
 
-from crispy_forms.helper import FormHelper
+try:  # Optional dependency: crispy-forms
+    from crispy_forms.helper import FormHelper
+except ImportError:  # pragma: no cover - environments without crispy_forms
+    FormHelper = None  # type: ignore[assignment]
 from neapolitan.views import Role
 from powercrud.logging import get_logger
 from .config_mixin import resolve_config
