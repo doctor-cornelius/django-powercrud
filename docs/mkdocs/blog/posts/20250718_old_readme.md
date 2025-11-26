@@ -380,11 +380,11 @@ These JavaScript and CSS libraries must be included in your base template:
    - HTMX - Required if `use_htmx=True`
    - Alpine.js - Required if using modals
 
-2. If using default templates:
-   - DaisyUI
-   - Bootstrap Icons (for sorting indicators)
+2. If using PowerCRUD’s bundled DaisyUI templates:
+    - DaisyUI
+    - Bootstrap Icons (for sorting indicators)
 
-See the example base template in `django_powercrud/templates/django_powercrud/base.html` for a complete implementation with CDN links.
+Your project **must** provide its own base template (for example, the sample app’s `sample/templates/sample/daisyUI/base.html`) and set `base_template_path` on each CRUD view to point at it.
 
 ## Configuration
 
@@ -502,7 +502,7 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
         # if you set it to False with crispy-forms installed, it will resolve to False
 
     # Templates
-    base_template_path = "core/base.html" # defaults to inbuilt "powercrud/base.html"
+    base_template_path = "core/base.html"  # required: must point at your project’s real base template
     templates_path = "myapp" # if you want to override all the templates in another app
         # or include one of your own apps; eg templates_path = "my_app_name/powercrud" 
         # and then place in my_app_name/templates/my_app_name/powercrud

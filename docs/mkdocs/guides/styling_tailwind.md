@@ -111,7 +111,7 @@ Ensure your base template includes:
 - Popper.js (for truncated-table popovers).
 - Optional: tablesort or Alpine.js if you use them.
 
-The quickest way is to copy the examples from `powercrud/templates/powercrud/base.html` and adjust to taste.
+PowerCRUD does not ship a full HTML shell; instead, your project must define its own base template (for example, see the sample app’s `sample/templates/sample/daisyUI/base.html`) and point `base_template_path` at it.
 
 ---
 

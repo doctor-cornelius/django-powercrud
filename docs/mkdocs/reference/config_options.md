@@ -7,7 +7,7 @@ Complete alphabetical reference of all available configuration options with defa
 | Setting | Type | Default | When unset | Description | Reference |
 |---------|------|---------|------------|-------------|-----------|
 | `action_button_classes` | str | `""` | Buttons keep the built-in daisyUI/Material classes | Additional CSS classes for the View/Edit/Delete buttons. | [Styling & Tailwind](../guides/styling_tailwind.md) |
-| `base_template_path` | str | `powercrud/{POWERCRUD_CSS_FRAMEWORK}/base.html` | Extends PowerCRUD’s bundled base for the selected CSS framework | Template path PowerCRUD inherits from. Override to point at your site chrome. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
+| `base_template_path` | str | `None` (required) | Invalid when unset; must point at your project’s base template | Template path PowerCRUD inherits from (your site chrome). There is no bundled base layout. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
 | `bulk_async` | bool | `False` | Bulk actions run synchronously | Enable asynchronous processing for bulk operations. | [Bulk editing (async)](../guides/bulk_edit_async.md) |
 | `bulk_async_allow_anonymous` | bool | `True` | Anonymous users may trigger async jobs | Require authentication for async bulk operations by setting to `False`. | [Bulk editing (async)](../guides/bulk_edit_async.md) |
 | `bulk_async_backend` | str | `'q2'` | Uses the django-q2 backend | Backend identifier for async processing. | [Bulk editing (async)](../guides/bulk_edit_async.md) |

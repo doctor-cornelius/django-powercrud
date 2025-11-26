@@ -27,7 +27,9 @@ class ConfigMixin:
 
     # template parameters
     templates_path: str = f"powercrud/{get_powercrud_setting('POWERCRUD_CSS_FRAMEWORK')}"
-    base_template_path: str = f"{templates_path}/base.html"
+    # base_template_path must always be provided by the project; there is no
+    # built-in HTML shell. It should point at the app’s real base template.
+    base_template_path: str | None = None
 
     # forms
     use_crispy: bool | None = None
@@ -447,8 +449,8 @@ class _ConfigShim:
         if name == "templates_path":
             return self._raw("templates_path") or f"powercrud/{get_powercrud_setting('POWERCRUD_CSS_FRAMEWORK')}"
         if name == "base_template_path":
-            templates = self.__getattr__("templates_path")
-            return f"{templates}/base.html"
+            # Do not invent a default; projects must set this explicitly.
+            return self._raw("base_template_path")
         if name in {"bulk_fields", "form_fields", "fields", "detail_fields", "detail_properties"}:
             return self._raw(name, []) or []
         if name in {"dropdown_sort_options", "inline_field_dependencies"}:

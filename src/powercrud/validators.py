@@ -99,6 +99,19 @@ class PowerCRUDMixinValidator(BaseModel):
             raise ValueError("default_htmx_target is required when use_htmx is True")
         return v
 
+    @field_validator('base_template_path')
+    @classmethod
+    def validate_base_template_path(cls, v):
+        """
+        base_template_path should point at the project’s actual base template.
+        We allow None in low-level or test harnesses, but reject empty strings.
+        """
+        if v is None:
+            return v
+        if isinstance(v, str) and not v.strip():
+            raise ValueError("base_template_path must be a non-empty string when provided")
+        return v
+
     @field_validator('form_fields')
     @classmethod
     def validate_form_fields(cls, v):

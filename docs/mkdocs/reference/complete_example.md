@@ -68,7 +68,7 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
         # if you set it to False with crispy-forms installed, it will resolve to False
 
     # Templates
-    base_template_path = "core/base.html" # defaults to inbuilt "powercrud/base.html"
+    base_template_path = "core/base.html"  # required: must point at your project’s real base template
     templates_path = "myapp" # if you want to override all the templates in another app
         # or include one of your own apps; eg templates_path = "my_app_name/powercrud" 
         # and then place in my_app_name/templates/my_app_name/powercrud
@@ -165,4 +165,3 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
         },
     ]
 ```
-

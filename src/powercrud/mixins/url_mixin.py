@@ -278,6 +278,15 @@ class UrlMixin:
         kwargs = super().get_context_data(**kwargs)
         cfg = resolve_config(self)
 
+        # Enforce that real CRUD views provide a base template.
+        # Projects must set base_template_path to their actual site base; we no
+        # longer rely on an internal bundled shell.
+        if not getattr(cfg, "base_template_path", None):
+            raise ImproperlyConfigured(
+                f"Invalid configuration in class '{self.__class__.__name__}': "
+                "base_template_path is required and must point at your project's base template."
+            )
+
         # Generate and add URLs for create, update, and delete operations
 
         view_name = f"{self.get_prefix()}-{Role.CREATE.value}"
