@@ -20,10 +20,21 @@ DEFAULTS = {
 def get_powercrud_setting(key: str, default=None):
     """Retrieve settings from POWERCRUD_SETTINGS dict with defaults.
 
-    POWERCRUD_SETTINGS is expected to be a dict; if a project overrides it with
-    a non-mapping value, raise a clear ImproperlyConfigured error rather than
-    failing with a TypeError when looking up keys.
+    POWERCRUD_SETTINGS is expected to be a dict. When Django settings have not
+    yet been configured (for example in lightweight scripts or nanodjango-style
+    setups that import powercrud before initialising Django), this helper
+    silently falls back to PowerCRUD's internal defaults rather than raising
+    ImproperlyConfigured.
     """
+    # Avoid touching LazySettings before Django has been configured. Accessing
+    # arbitrary attributes on an unconfigured settings object would trigger
+    # settings._setup() and raise ImproperlyConfigured. In that early-import
+    # phase we only honour the library defaults and any explicit `default`.
+    if not getattr(settings, "configured", False):
+        if default is not None:
+            return default
+        return DEFAULTS.get(key)
+
     user_settings = getattr(settings, 'POWERCRUD_SETTINGS', None)
     if user_settings is None:
         user_settings = {}

@@ -21,9 +21,7 @@ It is a substantial refactor with real complexity and risk. The payoff depends o
 * Third-party adoption and community contribution is a goal
 * Long-term maintainability and clean architecture matter
 
-If PowerCRUD remains a one-client internal tool, this level of abstraction is not worth it.
-
-If the intent is:
+If the intent for PowerCRUD is:
 
 * general-purpose OSS library with real extensibility value
 * showcase engineering quality for credibility and adoption
