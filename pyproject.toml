@@ -38,7 +38,7 @@ tests-ui = [
     "playwright>=1.57.0,<2"
 ]
 dev = [
-    "commitizen>=4.10.0,<5",
+    "commitizen>=4.10.1,<5",
     "ipykernel>=7.1.0,<8"
 ]
 docs = [
@@ -101,6 +101,6 @@ tests-ui = [
     "playwright>=1.57.0,<2"
 ]
 dev = [
-    "commitizen>=4.10.0,<5",
+    "commitizen>=4.10.1,<5",
     "ipykernel>=7.1.0,<8"
 ]
