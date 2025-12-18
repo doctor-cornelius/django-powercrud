@@ -8,10 +8,10 @@
     "ajv": "^8.17.1",
     "ajv-formats": "^3.0.1",
     "ajv-keywords": "^5.1.0",
-    "alpinejs": "^3.15.2",
+    "alpinejs": "^3.15.3",
     "ansi-styles": "^6.2.3",
     "argparse": "^2.0.1",
-    "autoprefixer": "^10.4.22",
+    "autoprefixer": "^10.4.23",
     "boolbase": "^1.0.0",
     "bootstrap": "^5.3.8",
     "bootstrap-icons": "^1.13.1",
@@ -43,7 +43,7 @@
     "cssnano-preset-default": "^7.0.10",
     "cssnano-utils": "^5.0.1",
     "csso": "^5.0.5",
-    "daisyui": "^5.5.13",
+    "daisyui": "^5.5.14",
     "detect-libc": "^2.1.2",
     "dom-serializer": "^2.0.0",
     "domelementtype": "^2.3.0",
@@ -152,10 +152,10 @@
     "tippy": "^0.0.0",
     "tippy.js": "^6.3.7",
     "undici-types": "^7.16.0",
-    "update-browserslist-db": "^1.2.2",
+    "update-browserslist-db": "^1.2.3",
     "util-deprecate": "^1.0.2",
     "watchpack": "^2.4.4",
-    "webpack": "^5.103.0",
+    "webpack": "^5.104.0",
     "webpack-cli": "^6.0.1",
     "webpack-merge": "^6.0.1",
     "webpack-sources": "^3.3.3",
@@ -163,7 +163,7 @@
     "wildcard": "^2.0.1"
   },
   "devDependencies": {
-    "vite": "^7.2.7"
+    "vite": "^7.3.0"
   },
   "scripts": {
     "dev": "cd src && vite",
