@@ -19,7 +19,7 @@
     "buffer-from": "^1.1.2",
     "callsites": "^4.2.0",
     "caniuse-api": "^3.0.0",
-    "caniuse-lite": "^1.0.30001762",
+    "caniuse-lite": "^1.0.30001763",
     "chalk": "^5.6.2",
     "chrome-trace-event": "^1.0.4",
     "ci-info": "^4.3.1",
@@ -32,7 +32,7 @@
     "cosmiconfig": "^9.0.0",
     "cross-env": "^10.1.0",
     "cross-spawn": "^7.0.6",
-    "css-declaration-sorter": "^7.3.0",
+    "css-declaration-sorter": "^7.3.1",
     "css-loader": "^7.1.2",
     "css-minimizer-webpack-plugin": "^7.0.4",
     "css-select": "^6.0.0",
@@ -101,7 +101,7 @@
     "lodash.memoize": "^4.1.2",
     "lodash.merge": "^4.6.2",
     "lodash.uniq": "^4.5.0",
-    "mdn-data": "^2.25.0",
+    "mdn-data": "^2.26.0",
     "merge-stream": "^2.0.0",
     "mime-db": "^1.54.0",
     "mime-types": "^3.0.2",
@@ -151,7 +151,7 @@
     "terser-webpack-plugin": "^5.3.16",
     "tippy": "^0.0.0",
     "tippy.js": "^6.3.7",
-    "undici-types": "^7.16.0",
+    "undici-types": "^7.18.2",
     "update-browserslist-db": "^1.2.3",
     "util-deprecate": "^1.0.2",
     "watchpack": "^2.5.0",
@@ -163,7 +163,7 @@
     "wildcard": "^2.0.1"
   },
   "devDependencies": {
-    "vite": "^7.3.0"
+    "vite": "^7.3.1"
   },
   "scripts": {
     "dev": "cd src && vite",
