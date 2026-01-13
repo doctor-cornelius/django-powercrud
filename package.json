@@ -19,7 +19,7 @@
     "buffer-from": "^1.1.2",
     "callsites": "^4.2.0",
     "caniuse-api": "^3.0.0",
-    "caniuse-lite": "^1.0.30001763",
+    "caniuse-lite": "^1.0.30001764",
     "chalk": "^5.6.2",
     "chrome-trace-event": "^1.0.4",
     "ci-info": "^4.3.1",
