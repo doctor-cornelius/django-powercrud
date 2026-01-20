@@ -52,7 +52,7 @@ jobs:
           python-version: "3.14.2"
       - uses: astral-sh/setup-uv@v7
         with:
-          version: "0.9.24"
+          version: "0.9.26"
       - name: Sync dependencies
         run: uv sync --all-extras
       - name: Build and publish
