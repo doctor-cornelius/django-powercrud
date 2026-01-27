@@ -16,7 +16,7 @@ dependencies = [
 [project.optional-dependencies]
 tests-core = [
     "pytest>=8.4.2,<9",
-    "coverage>=7.13.1,<8",
+    "coverage>=7.13.2,<8",
     "pytest-cov>=7.0.0,<8",
     "pytest-mock>=3.15.1,<4",
     "validators>=0.35.0,<1",
@@ -38,7 +38,7 @@ tests-ui = [
     "playwright>=1.57.0,<2"
 ]
 dev = [
-    "commitizen>=4.12.0,<5",
+    "commitizen>=4.12.1,<5",
     "ipykernel>=7.1.0,<8"
 ]
 docs = [
@@ -79,7 +79,7 @@ include = [
 [dependency-groups]
 tests-core = [
     "pytest>=8.4.2,<9",
-    "coverage>=7.13.1,<8",
+    "coverage>=7.13.2,<8",
     "pytest-cov>=7.0.0,<8",
     "pytest-mock>=3.15.1,<4",
     "validators>=0.35.0,<1",
@@ -101,6 +101,6 @@ tests-ui = [
     "playwright>=1.57.0,<2"
 ]
 dev = [
-    "commitizen>=4.12.0,<5",
+    "commitizen>=4.12.1,<5",
     "ipykernel>=7.1.0,<8"
 ]
