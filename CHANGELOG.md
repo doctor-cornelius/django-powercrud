@@ -1,8 +1,14 @@
+## 0.4.13 (2025-11-26)
+
+### Chore
+
+- **(release)**: release to clean up duplicate release tag
+
 ## 0.4.12 (2025-11-26)
 
 ### Fix
 
-- **(FormMixin)**: do guarded import of rcrispy-forms in case not needed
+- **(FormMixin)**: do guarded import of crispy-forms in case not needed
 - **(conf.py)**: do not require presence of settings.POWERCRUD_SETTINGS
 
 ## 0.4.11 (2025-11-26)

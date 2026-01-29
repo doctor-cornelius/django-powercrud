@@ -210,7 +210,7 @@ Q_CLUSTER = {
 POWERCRUD_SETTINGS = {
     # this is for the rendering of powercrud forms
     "POWERCRUD_CSS_FRAMEWORK": "daisyUI",
-    # location of the safelist json file for tailwind tree shaker)
+    # location of the safelist json file for tailwind tree shaker
     "TAILWIND_SAFELIST_JSON_LOC": "sample/templates/sample/",
     # async settings
     "ASYNC_ENABLED": True,

@@ -6,9 +6,9 @@ readme = "README.md"
 authors = [
     { name = "doctor-cornelius" }
 ]
-requires-python = ">=3.12"
+requires-python = ">=3.14"
 dependencies = [
-    "django-template-partials>=25.3,<25.4",
+    "django-template-partials>=25.3",
     "pydantic>=2.12.5,<3.0",
     "django-htmx>=1.27.0,<2.0"
 ]
