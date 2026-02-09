@@ -1,14 +1,24 @@
+## 0.4.14 (2026-02-09)
+
+### Fix
+
+- **(config_mixin)**: put in guard and test for non-async config
+- **(deps)**: lock file maintenance js-packages (#61)
+- **(deps)**: update js-packages (#38)
+- **(deps)**: lock file maintenance js-packages (#54)
+- **(deps)**: lock file maintenance js-packages (#52)
+- **(deps)**: lock file maintenance js-packages (#50)
+- **(deps)**: lock file maintenance js-packages (#47)
+- **(deps)**: lock file maintenance js-packages (#45)
+- **(deps)**: lock file maintenance js-packages (#42)
+
 ## 0.4.13 (2025-11-26)
-
-### Chore
-
-- **(release)**: release to clean up duplicate release tag
 
 ## 0.4.12 (2025-11-26)
 
 ### Fix
 
-- **(FormMixin)**: do guarded import of crispy-forms in case not needed
+- **(FormMixin)**: do guarded import of rcrispy-forms in case not needed
 - **(conf.py)**: do not require presence of settings.POWERCRUD_SETTINGS
 
 ## 0.4.11 (2025-11-26)

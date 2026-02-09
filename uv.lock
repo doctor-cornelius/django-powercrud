@@ -347,19 +347,6 @@ wheels = [
 ]
 
 [[package]]
-name = "crispy-daisyui"
-version = "0.11.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "django" },
-    { name = "django-crispy-forms" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/2e/78/272708c2a519cebaf22815f352dff78fa82633a7136cfe0cc1f758e26af2/crispy_daisyui-0.11.0.tar.gz", hash = "sha256:36e673c00257621b58522b195eae3bb005c7578d42a4e3472766caf5bc8f6be5", size = 7126, upload-time = "2026-02-07T09:58:34.564Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/70/8a/6b4004404f44e65912971ace6dacc87963236dc14e676e3d46598227d64d/crispy_daisyui-0.11.0-py3-none-any.whl", hash = "sha256:cbff3f1f3b189f5ca37a26c142e234f76bdec843d3a198d18f56e0ae6244ba39", size = 7773, upload-time = "2026-02-07T09:58:33.245Z" },
-]
-
-[[package]]
 name = "crispy-tailwind"
 version = "1.0.3"
 source = { registry = "https://pypi.org/simple" }
@@ -488,7 +475,7 @@ wheels = [
 
 [[package]]
 name = "django-powercrud"
-version = "0.4.13"
+version = "0.4.14"
 source = { editable = "." }
 dependencies = [
     { name = "django-htmx" },
@@ -538,7 +525,6 @@ dev = [
 ]
 tests-core = [
     { name = "coverage" },
-    { name = "crispy-daisyui" },
     { name = "crispy-tailwind" },
     { name = "django" },
     { name = "django-crispy-forms" },
@@ -600,7 +586,6 @@ dev = [
 ]
 tests-core = [
     { name = "coverage", specifier = ">=7.13.2,<8" },
-    { name = "crispy-daisyui", specifier = ">=0.9.0,<1" },
     { name = "crispy-tailwind", specifier = ">=1.0.3,<2" },
     { name = "django", specifier = ">=4.2.25,<6" },
     { name = "django-crispy-forms", specifier = ">=2.5,<3" },
