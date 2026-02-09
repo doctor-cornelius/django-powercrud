@@ -127,6 +127,36 @@ class ConfigMixin:
         "paginate_by",
     }
 
+    # ------------------------------------------------------------------
+    # Sync-safe async defaults
+    # ------------------------------------------------------------------
+    # PowerCRUDMixin (sync stack) intentionally does not inherit AsyncMixin.
+    # These defaults let sync views call shared form/bulk code paths without
+    # requiring downstream projects to define async/conflict hooks.
+    def get_bulk_async_enabled(self) -> bool:
+        return False
+
+    def get_bulk_min_async_records(self) -> int:
+        return int(getattr(self, "bulk_min_async_records", 20))
+
+    def get_bulk_async_backend(self) -> str:
+        return str(getattr(self, "bulk_async_backend", "q2"))
+
+    def get_bulk_async_notification(self) -> str:
+        return str(getattr(self, "bulk_async_notification", "status_page"))
+
+    def should_process_async(self, record_count: int) -> bool:
+        return False
+
+    def get_conflict_checking_enabled(self) -> bool:
+        return False
+
+    def _check_for_conflicts(self, selected_ids=None) -> bool:
+        return False
+
+    def _check_single_record_conflict(self, pk) -> bool:
+        return False
+
     def __init__(self, *args, **kwargs):  # pragma: no cover
         super().__init__(*args, **kwargs)
         self._validated_config = None
