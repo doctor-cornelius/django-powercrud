@@ -86,7 +86,6 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
 
     "crispy_forms",
-    "crispy_daisyui",
     "crispy_tailwind",
     "template_partials",
     'django_htmx',
@@ -103,8 +102,8 @@ INSTALLED_APPS = [
     "tests",
 ]
 
-CRISPY_ALLOWED_TEMPLATE_PACKS = ["tailwind", "daisyui"]
-CRISPY_TEMPLATE_PACK = "daisyui"
+CRISPY_ALLOWED_TEMPLATE_PACKS = ["tailwind"]
+CRISPY_TEMPLATE_PACK = "tailwind"
 
 
 TEST_CACHE_DIR = os.path.join(os.path.dirname(__file__), "cache")

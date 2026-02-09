@@ -56,7 +56,7 @@ INSTALLED_APPS = [
     'django_htmx',
 
     "crispy_forms",
-    "crispy_daisyui",
+    # "crispy_daisyui",
     "crispy_tailwind",
 
     # for async
@@ -73,7 +73,7 @@ INSTALLED_APPS = [
 
 # NB we use crispy_tailwind because crispy_daisyui classes don't seem to work with daisyUI v5
 # (and they don't come through to the tailwind tree shaker either even when you include the repo files in templates)
-CRISPY_ALLOWED_TEMPLATE_PACKS = ['tailwind', 'daisyui']
+CRISPY_ALLOWED_TEMPLATE_PACKS = ['tailwind']
 CRISPY_TEMPLATE_PACK = 'tailwind'
 
 MIDDLEWARE = [
