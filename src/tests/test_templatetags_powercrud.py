@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from datetime import date
-from types import SimpleNamespace
 
 import pytest
 from django.test import RequestFactory
@@ -64,7 +63,11 @@ class TemplateViewStub:
         return {
             "daisyUI": {
                 "base": "btn",
-                "actions": {"View": "btn-info", "Edit": "btn-primary", "Delete": "btn-error"},
+                "actions": {
+                    "View": "btn-info",
+                    "Edit": "btn-primary",
+                    "Delete": "btn-error",
+                },
                 "extra_default": "btn-secondary",
                 "modal_attrs": 'onclick="modal.showModal()"',
             }
@@ -177,7 +180,12 @@ def test_object_list_renders_booleans_dates_and_selection():
     request.session["selected"] = ["1"]
     view = TemplateViewStub(request)
 
-    context = {"request": request, "use_htmx": True, "original_target": "#content", "htmx_target": "#content"}
+    context = {
+        "request": request,
+        "use_htmx": True,
+        "original_target": "#content",
+        "htmx_target": "#content",
+    }
     result = powercrud.object_list(context, [book], view)
 
     assert result["headers"][0][0] == "Title"
@@ -265,7 +273,10 @@ def test_object_list_marks_locked_rows_with_metadata():
     view = TemplateViewStub(request)
     view.extra_actions[0]["lock_sensitive"] = True
     view.is_inline_row_locked = lambda obj: True
-    view.get_inline_lock_details = lambda obj: {"label": "Locked by QA", "task": "task-007"}
+    view.get_inline_lock_details = lambda obj: {
+        "label": "Locked by QA",
+        "task": "task-007",
+    }
 
     inline_config = {
         "enabled": True,
@@ -294,7 +305,7 @@ def test_extra_buttons_handles_modal_and_htmx():
     html = powercrud.extra_buttons(view)
     assert "Reload" in html
     assert 'hx-target="#filters"' in html
-    assert "onclick=\"modal.showModal()\"" in html
+    assert 'onclick="modal.showModal()"' in html
 
 
 def test_get_powercrud_session_data_returns_value():

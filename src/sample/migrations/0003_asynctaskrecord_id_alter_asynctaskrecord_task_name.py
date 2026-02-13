@@ -4,9 +4,8 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('sample', '0002_asynctaskrecord'),
+        ("sample", "0002_asynctaskrecord"),
     ]
 
     operations = [

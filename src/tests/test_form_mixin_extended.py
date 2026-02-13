@@ -4,8 +4,8 @@ import json
 from types import SimpleNamespace
 
 import pytest
-from django.http import HttpResponse, HttpResponseRedirect
-from django.test import RequestFactory, override_settings
+from django.http import HttpResponse
+from django.test import RequestFactory
 from django.contrib.sessions.middleware import SessionMiddleware
 
 from neapolitan.views import Role
@@ -110,7 +110,9 @@ def test_get_form_class_uses_crispy(settings):
 
 @pytest.mark.django_db
 def test_get_form_class_without_crispy(settings):
-    settings.INSTALLED_APPS = tuple(app for app in settings.INSTALLED_APPS if app != "crispy_forms")
+    settings.INSTALLED_APPS = tuple(
+        app for app in settings.INSTALLED_APPS if app != "crispy_forms"
+    )
     request = attach_session(RequestFactory().get("/"))
     view = DummyFormView(request)
     view.use_crispy = True
@@ -172,7 +174,9 @@ def test_form_valid_htmx_returns_list(monkeypatch):
     view.object = book
     view.role = Role.UPDATE
 
-    monkeypatch.setattr("powercrud.mixins.form_mixin.reverse", lambda name, kwargs=None: f"/{name}")
+    monkeypatch.setattr(
+        "powercrud.mixins.form_mixin.reverse", lambda name, kwargs=None: f"/{name}"
+    )
 
     form = view.get_form_class()(
         instance=book,
@@ -206,8 +210,13 @@ def test_form_invalid_htmx_keeps_modal(monkeypatch):
     view.role = Role.UPDATE
     view.use_modal = True
 
-    monkeypatch.setattr("powercrud.mixins.form_mixin.render", lambda request, template_name, context: HttpResponse("invalid", headers={}))
-    monkeypatch.setattr("powercrud.mixins.form_mixin.reverse", lambda name, kwargs=None: f"/{name}")
+    monkeypatch.setattr(
+        "powercrud.mixins.form_mixin.render",
+        lambda request, template_name, context: HttpResponse("invalid", headers={}),
+    )
+    monkeypatch.setattr(
+        "powercrud.mixins.form_mixin.reverse", lambda name, kwargs=None: f"/{name}"
+    )
 
     form = view.get_form_class()(instance=book, data={})
     assert not form.is_valid()

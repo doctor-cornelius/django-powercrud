@@ -16,6 +16,8 @@ class BulkMixin(
     Composite BulkMixin for all bulk editing/deletion functionality.
     Order: Selection first (state), then metadata, operations, and views last (integration).
     """
+
     pass
+
 
 __all__ = ["BulkMixin", "BulkEditRole", "BulkActions"]  # Export key symbols

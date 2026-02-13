@@ -10,7 +10,6 @@ from django.contrib.sessions.middleware import SessionMiddleware
 from django.test import RequestFactory
 from django.utils import timezone
 
-from powercrud.mixins.core_mixin import CoreMixin
 from powercrud.mixins.form_mixin import FormMixin
 from powercrud.mixins import InlineEditingMixin, TableMixin, HtmxMixin, CoreMixin
 from sample.models import Author, Book, Genre

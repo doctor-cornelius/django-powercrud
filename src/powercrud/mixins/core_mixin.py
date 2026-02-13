@@ -15,18 +15,18 @@ class CoreMixin(ConfigMixin):
         explicitly opts in.
         """
         return bool(self.config().inline_editing_active)
-    
+
     def get_queryset(self):
         """
         Get the queryset for the view, applying sorting if specified.
         Always includes a secondary sort by primary key for stable pagination.
         """
         queryset = super().get_queryset()
-        sort_param = self.request.GET.get('sort')
+        sort_param = self.request.GET.get("sort")
 
         if sort_param:
             # Handle descending sort (prefixed with '-')
-            descending = sort_param.startswith('-')
+            descending = sort_param.startswith("-")
             field_name = sort_param[1:] if descending else sort_param
 
             # Get all valid field names and properties
@@ -47,15 +47,15 @@ class CoreMixin(ConfigMixin):
             if sort_field:
                 # Re-add the minus sign if it was descending
                 if descending:
-                    sort_field = f'-{sort_field}'
+                    sort_field = f"-{sort_field}"
                     # Add secondary sort by -pk for descending
-                    queryset = queryset.order_by(sort_field, '-pk')
+                    queryset = queryset.order_by(sort_field, "-pk")
                 else:
                     # Add secondary sort by pk for ascending
-                    queryset = queryset.order_by(sort_field, 'pk')
+                    queryset = queryset.order_by(sort_field, "pk")
         else:
             # If no sort specified, sort by pk as default
-            queryset = queryset.order_by('pk')
+            queryset = queryset.order_by("pk")
 
         return queryset
 
@@ -80,7 +80,7 @@ class CoreMixin(ConfigMixin):
                 is_paginated=False,
                 paginator=None,
                 filterset=filterset,
-                sort=request.GET.get('sort', ''),  # Add sort to context
+                sort=request.GET.get("sort", ""),  # Add sort to context
                 use_htmx=self.get_use_htmx(),
                 request=request,
             )
@@ -93,7 +93,7 @@ class CoreMixin(ConfigMixin):
                 is_paginated=page.has_other_pages(),
                 paginator=page.paginator,
                 filterset=filterset,
-                sort=request.GET.get('sort', ''),  # Add sort to context
+                sort=request.GET.get("sort", ""),  # Add sort to context
                 use_htmx=self.get_use_htmx(),
                 request=request,
             )

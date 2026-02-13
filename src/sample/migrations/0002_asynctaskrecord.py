@@ -4,32 +4,54 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('sample', '0001_initial'),
+        ("sample", "0001_initial"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='AsyncTaskRecord',
+            name="AsyncTaskRecord",
             fields=[
-                ('task_name', models.CharField(max_length=64, primary_key=True, serialize=False)),
-                ('status', models.CharField(choices=[('pending', 'Pending'), ('in_progress', 'In progress'), ('success', 'Success'), ('failed', 'Failed'), ('unknown', 'Unknown')], default='pending', max_length=32)),
-                ('message', models.TextField(blank=True)),
-                ('progress_payload', models.TextField(blank=True)),
-                ('user_label', models.CharField(blank=True, max_length=255)),
-                ('affected_objects', models.TextField(blank=True)),
-                ('task_kwargs', models.JSONField(blank=True, null=True)),
-                ('result_payload', models.TextField(blank=True)),
-                ('cleaned_up', models.BooleanField(default=False)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('completed_at', models.DateTimeField(blank=True, null=True)),
-                ('failed_at', models.DateTimeField(blank=True, null=True)),
+                (
+                    "task_name",
+                    models.CharField(max_length=64, primary_key=True, serialize=False),
+                ),
+                (
+                    "status",
+                    models.CharField(
+                        choices=[
+                            ("pending", "Pending"),
+                            ("in_progress", "In progress"),
+                            ("success", "Success"),
+                            ("failed", "Failed"),
+                            ("unknown", "Unknown"),
+                        ],
+                        default="pending",
+                        max_length=32,
+                    ),
+                ),
+                ("message", models.TextField(blank=True)),
+                ("progress_payload", models.TextField(blank=True)),
+                ("user_label", models.CharField(blank=True, max_length=255)),
+                ("affected_objects", models.TextField(blank=True)),
+                ("task_kwargs", models.JSONField(blank=True, null=True)),
+                ("result_payload", models.TextField(blank=True)),
+                ("cleaned_up", models.BooleanField(default=False)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                ("completed_at", models.DateTimeField(blank=True, null=True)),
+                ("failed_at", models.DateTimeField(blank=True, null=True)),
             ],
             options={
-                'ordering': ['-created_at'],
-                'indexes': [models.Index(fields=['status'], name='sample_asyn_status_9b6673_idx'), models.Index(fields=['-created_at'], name='sample_asyn_created_fc4e4b_idx')],
+                "ordering": ["-created_at"],
+                "indexes": [
+                    models.Index(
+                        fields=["status"], name="sample_asyn_status_9b6673_idx"
+                    ),
+                    models.Index(
+                        fields=["-created_at"], name="sample_asyn_created_fc4e4b_idx"
+                    ),
+                ],
             },
         ),
     ]

@@ -9,8 +9,8 @@ class PowerCRUDAsyncMixin(AsyncMixin, PowerCRUDMixin):
     should inherit from this (or include AsyncMixin explicitly) and ensure
     django-q2 / Q_CLUSTER are configured.
     """
+
     pass
 
 
 __all__ = ["PowerCRUDAsyncMixin"]
-

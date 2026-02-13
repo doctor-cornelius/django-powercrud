@@ -5,60 +5,129 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
-    dependencies = [
-    ]
+    dependencies = []
 
     operations = [
         migrations.CreateModel(
-            name='Author',
+            name="Author",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(max_length=200)),
-                ('bio', models.TextField(blank=True)),
-                ('birth_date', models.DateField(blank=True, null=True)),
-                ('an_integer_with_long_heading_text', models.IntegerField(default=0)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("name", models.CharField(max_length=200)),
+                ("bio", models.TextField(blank=True)),
+                ("birth_date", models.DateField(blank=True, null=True)),
+                ("an_integer_with_long_heading_text", models.IntegerField(default=0)),
             ],
             options={
-                'verbose_name': 'The Author Person',
+                "verbose_name": "The Author Person",
             },
         ),
         migrations.CreateModel(
-            name='Genre',
+            name="Genre",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(max_length=100)),
-                ('description', models.TextField(blank=True)),
-                ('numeric_string', models.CharField(blank=True, max_length=4)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("name", models.CharField(max_length=100)),
+                ("description", models.TextField(blank=True)),
+                ("numeric_string", models.CharField(blank=True, max_length=4)),
             ],
         ),
         migrations.CreateModel(
-            name='Profile',
+            name="Profile",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('nickname', models.CharField(max_length=100)),
-                ('author', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, related_name='profile', to='sample.author')),
-                ('favorite_genre', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to='sample.genre')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("nickname", models.CharField(max_length=100)),
+                (
+                    "author",
+                    models.OneToOneField(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="profile",
+                        to="sample.author",
+                    ),
+                ),
+                (
+                    "favorite_genre",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        to="sample.genre",
+                    ),
+                ),
             ],
         ),
         migrations.CreateModel(
-            name='Book',
+            name="Book",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('title', models.CharField(max_length=200)),
-                ('published_date', models.DateField()),
-                ('bestseller', models.BooleanField(default=False, help_text='Is this book a bestseller?')),
-                ('isbn', models.CharField(max_length=17, unique=True)),
-                ('pages', models.IntegerField()),
-                ('description', models.TextField(blank=True)),
-                ('uneditable_field', models.CharField(blank=True, editable=False, max_length=200, null=True)),
-                ('author', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='books', to='sample.author')),
-                ('genres', models.ManyToManyField(related_name='books', to='sample.genre')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("title", models.CharField(max_length=200)),
+                ("published_date", models.DateField()),
+                (
+                    "bestseller",
+                    models.BooleanField(
+                        default=False, help_text="Is this book a bestseller?"
+                    ),
+                ),
+                ("isbn", models.CharField(max_length=17, unique=True)),
+                ("pages", models.IntegerField()),
+                ("description", models.TextField(blank=True)),
+                (
+                    "uneditable_field",
+                    models.CharField(
+                        blank=True, editable=False, max_length=200, null=True
+                    ),
+                ),
+                (
+                    "author",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="books",
+                        to="sample.author",
+                    ),
+                ),
+                (
+                    "genres",
+                    models.ManyToManyField(related_name="books", to="sample.genre"),
+                ),
             ],
             options={
-                'constraints': [models.UniqueConstraint(fields=('title', 'author'), name='unique_title_author')],
+                "constraints": [
+                    models.UniqueConstraint(
+                        fields=("title", "author"), name="unique_title_author"
+                    )
+                ],
             },
         ),
     ]

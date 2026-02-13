@@ -4,8 +4,7 @@ import copy
 import json
 from typing import Any, Optional, Sequence
 
-from django.http import (Http404, HttpResponse, HttpResponseBadRequest,
-                         HttpResponseForbidden, QueryDict)
+from django.http import Http404, HttpResponse, HttpResponseBadRequest, QueryDict
 from django.template.loader import render_to_string
 from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
@@ -43,7 +42,9 @@ class InlineEditingMixin:
         self.request = request
         obj = self.get_object()
 
-        should_render_display = request.GET.get("inline_display") or request.POST.get("inline_display")
+        should_render_display = request.GET.get("inline_display") or request.POST.get(
+            "inline_display"
+        )
 
         auth_state = self._evaluate_inline_state(obj, request)
         if auth_state["status"] != "ok":
@@ -58,7 +59,9 @@ class InlineEditingMixin:
             if lock_state["status"] != "ok":
                 return self._build_inline_guard_response(obj, lock_state)
 
-            form = self.build_inline_form(instance=obj, data=request.POST, files=request.FILES)
+            form = self.build_inline_form(
+                instance=obj, data=request.POST, files=request.FILES
+            )
             self._prepare_inline_number_widgets(form)
             self._prepare_inline_preservation(form, request.POST)
             self._preserve_inline_raw_data(form, request.POST)
@@ -96,7 +99,9 @@ class InlineEditingMixin:
             )
 
             error_summary = self._get_inline_form_error_summary(form)
-            html = self._render_inline_row_form(obj, form=form, error_summary=error_summary)
+            html = self._render_inline_row_form(
+                obj, form=form, error_summary=error_summary
+            )
             response = HttpResponse(html)
             row_id = None
             row_id_getter = getattr(self, "get_inline_row_id", None)
@@ -110,7 +115,8 @@ class InlineEditingMixin:
                     "inline-row-error": {
                         "pk": obj.pk,
                         "row_id": row_id,
-                        "message": error_summary or str(_("Inline save failed. Fix the errors and try again.")),
+                        "message": error_summary
+                        or str(_("Inline save failed. Fix the errors and try again.")),
                     }
                 }
             )
@@ -143,7 +149,9 @@ class InlineEditingMixin:
             except Http404:
                 obj = None
 
-        form = self.build_inline_form(instance=obj, data=request.POST, files=request.FILES)
+        form = self.build_inline_form(
+            instance=obj, data=request.POST, files=request.FILES
+        )
         if field not in form.fields:
             return HttpResponseBadRequest("Invalid field")
 
@@ -196,7 +204,11 @@ class InlineEditingMixin:
             preserved = self._configure_inline_preserved_fields(form)
             form._inline_preservation_ready = True
 
-        if preserved and data is not None and not getattr(form, "_inline_preserved_data", None):
+        if (
+            preserved
+            and data is not None
+            and not getattr(form, "_inline_preserved_data", None)
+        ):
             dataset = self._build_inline_preserved_dataset(form, data)
             if dataset is not None:
                 form._inline_preserved_data = dataset
@@ -304,7 +316,9 @@ class InlineEditingMixin:
     # ------------------------------------------------------------------
     # Rendering helpers
     # ------------------------------------------------------------------
-    def _render_inline_row_form(self, obj, form=None, error_summary: str | None = None) -> str:
+    def _render_inline_row_form(
+        self, obj, form=None, error_summary: str | None = None
+    ) -> str:
         cfg = resolve_config(self)
         row_payload = self._build_inline_row_payload(obj)
         inline_form = form or self.build_inline_form(instance=obj)
@@ -403,15 +417,17 @@ class InlineEditingMixin:
                 self._resolve_inline_field_list(cfg.form_fields)
             )
 
-        if config == '__all__':
+        if config == "__all__":
             return self._filter_inline_fields_by_form(self._get_all_editable_fields())
 
-        if config == '__fields__':
+        if config == "__fields__":
             return self._filter_inline_fields_by_form(
                 self._resolve_inline_field_list(cfg.fields)
             )
 
-        return self._filter_inline_fields_by_form(self._resolve_inline_field_list(config))
+        return self._filter_inline_fields_by_form(
+            self._resolve_inline_field_list(config)
+        )
 
     def _resolve_inline_endpoint(self, endpoint_name: str | None) -> str | None:
         """
@@ -457,7 +473,11 @@ class InlineEditingMixin:
             )
 
             depends_on = entry.get("depends_on") or []
-            valid_parents = [parent for parent in depends_on if not inline_fields or parent in inline_fields]
+            valid_parents = [
+                parent
+                for parent in depends_on
+                if not inline_fields or parent in inline_fields
+            ]
             missing_parents = sorted(set(depends_on) - set(valid_parents))
             if missing_parents:
                 log.warning(
@@ -492,7 +512,7 @@ class InlineEditingMixin:
 
         cfg = resolve_config(self)
         perm = cfg.inline_edit_requires_perm
-        user = getattr(request, 'user', None)
+        user = getattr(request, "user", None)
 
         if perm:
             if not user or not user.has_perm(perm):
@@ -511,15 +531,15 @@ class InlineEditingMixin:
         if obj is None:
             return False
 
-        pk = getattr(obj, 'pk', None)
-        if pk in (None, ''):
+        pk = getattr(obj, "pk", None)
+        if pk in (None, ""):
             return False
 
-        conflict_enabled = getattr(self, 'get_conflict_checking_enabled', None)
+        conflict_enabled = getattr(self, "get_conflict_checking_enabled", None)
         if not callable(conflict_enabled) or not conflict_enabled():
             return False
 
-        checker = getattr(self, '_check_single_record_conflict', None)
+        checker = getattr(self, "_check_single_record_conflict", None)
         if not callable(checker):
             return False
 
@@ -568,7 +588,10 @@ class InlineEditingMixin:
         Return a dict describing whether inline editing is allowed.
         """
         if obj is None:
-            return {"status": "forbidden", "message": _("Inline editing unavailable for this row.")}
+            return {
+                "status": "forbidden",
+                "message": _("Inline editing unavailable for this row."),
+            }
 
         locker = getattr(self, "is_inline_row_locked", None)
         if callable(locker) and locker(obj):
@@ -648,11 +671,17 @@ class InlineEditingMixin:
 
         record = self._lookup_async_record(manager, task_name)
         if record is not None:
-            metadata["user"] = self._extract_record_field(manager, record, "user", "user_label")
+            metadata["user"] = self._extract_record_field(
+                manager, record, "user", "user_label"
+            )
             metadata["status"] = getattr(record, "status", None)
             metadata["message"] = getattr(record, "message", None)
-            created_iso, created_display = self._serialize_datetime(getattr(record, "created_at", None))
-            updated_iso, updated_display = self._serialize_datetime(getattr(record, "updated_at", None))
+            created_iso, created_display = self._serialize_datetime(
+                getattr(record, "created_at", None)
+            )
+            updated_iso, updated_display = self._serialize_datetime(
+                getattr(record, "updated_at", None)
+            )
             metadata["created_at"] = created_iso
             metadata["created_at_display"] = created_display
             metadata["updated_at"] = updated_iso
@@ -678,7 +707,9 @@ class InlineEditingMixin:
 
     def _extract_record_field(self, manager, record, logical_name: str, default: str):
         field_getter = getattr(manager, "_field", None)
-        field_name = field_getter(logical_name, default) if callable(field_getter) else default
+        field_name = (
+            field_getter(logical_name, default) if callable(field_getter) else default
+        )
         if not field_name:
             return None
         return getattr(record, field_name, None)
@@ -702,9 +733,14 @@ class InlineEditingMixin:
 
     def _format_lock_label(self, metadata: dict[str, Any]) -> str:
         user = metadata.get("user")
-        timestamp = metadata.get("created_at_display") or metadata.get("updated_at_display")
+        timestamp = metadata.get("created_at_display") or metadata.get(
+            "updated_at_display"
+        )
         if user and timestamp:
-            return _("Locked by %(user)s at %(timestamp)s") % {"user": user, "timestamp": timestamp}
+            return _("Locked by %(user)s at %(timestamp)s") % {
+                "user": user,
+                "timestamp": timestamp,
+            }
         if user:
             return _("Locked by %(user)s") % {"user": user}
         if timestamp:

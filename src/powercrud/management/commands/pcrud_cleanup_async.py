@@ -55,6 +55,8 @@ class Command(BaseCommand):
 
         if skipped:
             self.stdout.write("")
-            self.stdout.write(self.style.WARNING(f"Skipped {len(skipped)} active task(s):"))
+            self.stdout.write(
+                self.style.WARNING(f"Skipped {len(skipped)} active task(s):")
+            )
             for task_name, reason in skipped.items():
                 self.stdout.write(f"  - {task_name}: {reason}")

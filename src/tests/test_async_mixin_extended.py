@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
-import pytest
 from django.test import RequestFactory
 
 from powercrud.mixins.async_mixin import AsyncMixin
@@ -24,7 +23,6 @@ class CustomManager:
 
 
 class DummyAsyncView(AsyncMixin):
-
     bulk_async = True
     bulk_async_backend = "q2"
     bulk_async_conflict_checking = True
@@ -63,8 +61,12 @@ def test_handle_async_bulk_operation_enqueues(monkeypatch):
     view = DummyAsyncView()
     view.async_manager_class = Manager
     monkeypatch.setattr(view, "_check_for_conflicts", lambda ids: False)
-    monkeypatch.setattr(view, "clear_selection_from_session", lambda request: None, raising=False)
-    monkeypatch.setattr(view, "async_queue_success", lambda request, task_name, ids: "queued")
+    monkeypatch.setattr(
+        view, "clear_selection_from_session", lambda request: None, raising=False
+    )
+    monkeypatch.setattr(
+        view, "async_queue_success", lambda request, task_name, ids: "queued"
+    )
 
     result = view._handle_async_bulk_operation(
         SimpleNamespace(user=SimpleNamespace(is_anonymous=False, id=1)),
@@ -99,6 +101,7 @@ def test_handle_async_bulk_operation_failure(monkeypatch):
     view = DummyAsyncView()
     view.async_manager_class = CustomManager
     monkeypatch.setattr(view, "_check_for_conflicts", lambda ids: False)
+
     def raise_error():
         raise RuntimeError("boom")
 

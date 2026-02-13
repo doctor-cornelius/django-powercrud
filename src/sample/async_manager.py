@@ -3,6 +3,8 @@ from __future__ import annotations
 from typing import Any
 
 from powercrud.async_dashboard import ModelTrackingAsyncManager
+
+
 class SampleAsyncManager(ModelTrackingAsyncManager):
     """Sample app manager that reuses the base dashboard implementation."""
 

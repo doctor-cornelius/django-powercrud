@@ -7,60 +7,74 @@ Key Components:
 - PowerCRUDMixin: Main mixin that provides CRUD view enhancements with HTMX and modal support
 """
 
-
 from django.shortcuts import render
 from django.template.response import TemplateResponse
 
 import json
+from neapolitan.views import Role
 from powercrud.logging import get_logger
 from .config_mixin import resolve_config
 
 log = get_logger(__name__)
-
-from neapolitan.views import Role
 
 
 class HtmxMixin:
     """
     Provides htmx (including modal) and other styling functionality for powercrud views.
     """
+
     def get_framework_styles(self):
         """
-        Get framework-specific styles. Override this method and add 
+        Get framework-specific styles. Override this method and add
         the new framework name as a key to the returned dictionary.
-        
+
         Returns:
             dict: Framework-specific style configurations
         """
 
         return {
-            'daisyUI': {
+            "daisyUI": {
                 # base class for all buttons
-                'base': 'btn ',
+                "base": "btn ",
                 # attributes for filter form fields
-                'filter_attrs': {
-                    'text': {'class': 'input input-bordered input-sm w-full text-xs h-10 min-h-10'},
-                    'select': {'class': 'select select-bordered select-sm w-full text-xs h-10 min-h-10'},
-                    'multiselect': {
-                        'class': 'select select-bordered select-sm w-full text-xs', 
-                        'size': '5',
-                        'style': 'min-height: 8rem; max-height: 8rem; overflow-y: auto;'
+                "filter_attrs": {
+                    "text": {
+                        "class": "input input-bordered input-sm w-full text-xs h-10 min-h-10"
                     },
-                    'date': {'class': 'input input-bordered input-sm w-full text-xs h-10 min-h-10', 'type': 'date'},
-                    'number': {'class': 'input input-bordered input-sm w-full text-xs h-10 min-h-10', 'step': 'any'},
-                    'time': {'class': 'input input-bordered input-sm w-full text-xs h-10 min-h-10', 'type': 'time'},
-                    'default': {'class': 'input input-bordered input-sm w-full text-xs h-10 min-h-10'},
+                    "select": {
+                        "class": "select select-bordered select-sm w-full text-xs h-10 min-h-10"
+                    },
+                    "multiselect": {
+                        "class": "select select-bordered select-sm w-full text-xs",
+                        "size": "5",
+                        "style": "min-height: 8rem; max-height: 8rem; overflow-y: auto;",
+                    },
+                    "date": {
+                        "class": "input input-bordered input-sm w-full text-xs h-10 min-h-10",
+                        "type": "date",
+                    },
+                    "number": {
+                        "class": "input input-bordered input-sm w-full text-xs h-10 min-h-10",
+                        "step": "any",
+                    },
+                    "time": {
+                        "class": "input input-bordered input-sm w-full text-xs h-10 min-h-10",
+                        "type": "time",
+                    },
+                    "default": {
+                        "class": "input input-bordered input-sm w-full text-xs h-10 min-h-10"
+                    },
                 },
                 # set colours for the action buttons
-                'actions': {
-                    'View': 'btn-info',
-                    'Edit': 'btn-primary',
-                    'Delete': 'btn-error'
+                "actions": {
+                    "View": "btn-info",
+                    "Edit": "btn-primary",
+                    "Delete": "btn-error",
                 },
                 # default colour for extra action buttons
-                'extra_default': 'btn-primary',
+                "extra_default": "btn-primary",
                 # modal class attributes
-                'modal_attrs': f'onclick="{self.get_modal_id()[1:]}.showModal()"', 
+                "modal_attrs": f'onclick="{self.get_modal_id()[1:]}.showModal()"',
             },
         }
 
@@ -127,11 +141,11 @@ class HtmxMixin:
     def get_hx_trigger(self):
         """
         Get the HX-Trigger value for HTMX responses.
-        
+
         This method is called in render_to_response() to set the HX-Trigger header
         for HTMX responses. It handles string, numeric, and dictionary values for
         the hx_trigger attribute.
-        
+
         Returns:
             str or None: The HX-Trigger value as a JSON string, or None if not applicable
         """
@@ -149,7 +163,9 @@ class HtmxMixin:
                 raise TypeError("HX-Trigger dict keys must be strings")
             return json.dumps(cfg.hx_trigger)
         else:
-            raise TypeError("hx_trigger must be either a string or dict with string keys")
+            raise TypeError(
+                "hx_trigger must be either a string or dict with string keys"
+            )
 
     def get_htmx_target(self):
         """
@@ -167,11 +183,13 @@ class HtmxMixin:
             htmx_target = None
         elif resolve_config(self).use_modal_enabled:
             htmx_target = self.get_modal_target()
-        elif hasattr(self.request, 'htmx') and self.request.htmx.target:
+        elif hasattr(self.request, "htmx") and self.request.htmx.target:
             # return the target of the original list request
             htmx_target = self.get_original_target()
         else:
-            htmx_target = resolve_config(self).default_htmx_target  # Default target for htmx requests
+            htmx_target = resolve_config(
+                self
+            ).default_htmx_target  # Default target for htmx requests
 
         return htmx_target
 
@@ -194,20 +212,20 @@ class HtmxMixin:
                 existing_data = json.loads(existing_trigger)
                 trigger_data.update(existing_data)
 
-            response['HX-Trigger'] = json.dumps(trigger_data)
+            response["HX-Trigger"] = json.dumps(trigger_data)
 
             # Make sure the response targets the modal content
             if self.get_modal_target():
-                response['HX-Retarget'] = self.get_modal_target()
+                response["HX-Retarget"] = self.get_modal_target()
 
         # For successful form submissions
-        elif context and context.get('success') is True:
+        elif context and context.get("success") is True:
             # Create success trigger
             trigger_data = {
-                "formSubmitSuccess": True, 
+                "formSubmitSuccess": True,
                 "modalFormSuccess": True,
                 "refreshList": True,
-                "refreshUrl": self.request.path
+                "refreshUrl": self.request.path,
             }
 
             # If there's an existing HX-Trigger, merge with it
@@ -216,11 +234,11 @@ class HtmxMixin:
                 existing_data = json.loads(existing_trigger)
                 trigger_data.update(existing_data)
 
-            response['HX-Trigger'] = json.dumps(trigger_data)
+            response["HX-Trigger"] = json.dumps(trigger_data)
 
         # For other cases, just use the existing HX-Trigger if any
         elif self.get_hx_trigger():
-            response['HX-Trigger'] = self.get_hx_trigger()
+            response["HX-Trigger"] = self.get_hx_trigger()
 
         return response
 
@@ -239,34 +257,32 @@ class HtmxMixin:
             # try to use overriden template if it exists
             template_name = template_names[0]
             # this call check if valid template
-            template = get_template(template_name)
+            get_template(template_name)
         except TemplateDoesNotExist:
             template_name = template_names[1]
-            template = get_template(template_name)
+            get_template(template_name)
         except Exception as e:
             log.error(f"Unexpected error checking template {template_name}: {str(e)}")
             template_name = template_names[1]
 
         # Check if this is a form with errors being redisplayed
-        form_has_errors = hasattr(self, 'form_has_errors') and self.form_has_errors
+        form_has_errors = hasattr(self, "form_has_errors") and self.form_has_errors
 
         if self.request.htmx:
-            if self.request.headers.get('X-Redisplay-Object-List'):
+            if self.request.headers.get("X-Redisplay-Object-List"):
                 # Use object_list template
                 object_list_template = f"{self.templates_path}/object_list.html"
 
-                if self.request.headers.get('X-Filter-Sort-Request'):
+                if self.request.headers.get("X-Filter-Sort-Request"):
                     template_name = f"{object_list_template}#filtered_results"
                 else:
                     template_name = f"{object_list_template}#pcrud_content"
             else:
                 # Use whatever template was determined normally
-                if self.request.headers.get('X-Filter-Sort-Request'):
+                if self.request.headers.get("X-Filter-Sort-Request"):
                     template_name = f"{template_name}#filtered_results"
                 else:
                     template_name = f"{template_name}#pcrud_content"
-
-            log.debug(f"render_to_response: template_name = {template_name}")
 
             response = render(
                 request=self.request,
@@ -283,24 +299,25 @@ class HtmxMixin:
                         clean_params[k] = values[-1]
                 if clean_params:
                     from urllib.parse import urlencode
+
                     canonical_query = urlencode(clean_params)
                     canonical_url = f"{self.request.path}?{canonical_query}"
                 else:
                     canonical_url = self.request.path
-                response['HX-Push-Url'] = canonical_url
+                response["HX-Push-Url"] = canonical_url
 
             # Add HX-Trigger for modal if form has errors and modal should be used
             if form_has_errors and self.get_use_modal():
                 # Single, simplified trigger
-                response['HX-Trigger'] = json.dumps({"formError": True})
+                response["HX-Trigger"] = json.dumps({"formError": True})
 
                 # Make sure the response targets the modal content
-                response['HX-Retarget'] = self.get_modal_target()
+                response["HX-Retarget"] = self.get_modal_target()
 
                 # Clear the flag after handling
                 self.form_has_errors = False
             elif self.get_hx_trigger():
-                response['HX-Trigger'] = self.get_hx_trigger()
+                response["HX-Trigger"] = self.get_hx_trigger()
 
             return response
         else:

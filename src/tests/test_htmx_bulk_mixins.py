@@ -9,7 +9,12 @@ from django.test import RequestFactory, override_settings
 from django.contrib.sessions.middleware import SessionMiddleware
 
 from powercrud.mixins.htmx_mixin import HtmxMixin
-from powercrud.mixins.bulk_mixin import SelectionMixin, MetadataMixin, OperationMixin, ViewMixin
+from powercrud.mixins.bulk_mixin import (
+    SelectionMixin,
+    MetadataMixin,
+    OperationMixin,
+    ViewMixin,
+)
 from powercrud.mixins.async_mixin import AsyncMixin
 from sample.models import Author, Book, Genre
 
@@ -24,7 +29,9 @@ class DummyHtmxView(HtmxMixin):
         self.modal_id = None
         self.modal_target = None
         self.hx_trigger = None
-        self.request = SimpleNamespace(htmx=SimpleNamespace(target=None), path="/example/")
+        self.request = SimpleNamespace(
+            htmx=SimpleNamespace(target=None), path="/example/"
+        )
 
 
 @pytest.mark.parametrize(
@@ -61,7 +68,9 @@ def test_get_htmx_target_prefers_modal_when_enabled():
 def test_get_htmx_target_uses_request_target():
     view = DummyHtmxView()
     view.request.htmx.target = "#from-request"
-    assert view.get_htmx_target() == "#content"  # original target returned when request target truthy?
+    assert (
+        view.get_htmx_target() == "#content"
+    )  # original target returned when request target truthy?
 
 
 def test_prepare_htmx_response_sets_modal_headers():
@@ -163,6 +172,7 @@ def test_selection_session_helpers_roundtrip():
     view.clear_selection_from_session(request)
     assert view.get_selected_ids_from_session(request) == []
 
+
 class DummyPartialResponse(HttpResponse):
     def __init__(self, context):
         super().__init__(content=b"")
@@ -208,7 +218,9 @@ def test_clear_selection_view_resets_state(monkeypatch):
 
 @pytest.mark.django_db
 def test_toggle_all_selection_view(monkeypatch):
-    request = make_request(RequestFactory(), method="post", data={"object_ids": ["1", "2", "3"]})
+    request = make_request(
+        RequestFactory(), method="post", data={"object_ids": ["1", "2", "3"]}
+    )
     view = DummyBulkView(request)
 
     def fake_render(request, template, context):
@@ -264,7 +276,7 @@ def test_bulk_edit_flags_require_modal_and_htmx():
 @pytest.mark.django_db
 def test_get_bulk_field_info_includes_related_choices():
     request = make_request(RequestFactory())
-    author_a = Author.objects.create(name="Alan")
+    Author.objects.create(name="Alan")
     Author.objects.create(name="Zara")
     view = DummyBulkView(request)
     info = view._get_bulk_field_info(["author"])

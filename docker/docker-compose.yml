@@ -32,6 +32,7 @@ services:
   powercrud_django:
     image: ${DOCKER_PREFIX}_django:${DEPLOYMENT_ENV}
     container_name: ${DOCKER_PREFIX}_django_${DEPLOYMENT_ENV}
+    user: ${DEPLOYMENT_ENV}user
     env_file:
       - ./${DEPLOYMENT_ENV}/${DEPLOYMENT_ENV}.secret
     build:

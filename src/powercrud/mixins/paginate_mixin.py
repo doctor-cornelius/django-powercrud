@@ -1,7 +1,3 @@
-from django.conf import settings
-from django.core.paginator import Paginator, Page
-from django.db.models import QuerySet
-
 from .config_mixin import resolve_config
 
 
@@ -9,12 +5,13 @@ class PaginateMixin:
     """
     Provides pagination functionality for powercrud views.
     """
+
     def get_paginate_by(self):
         """Override of parent method to enable dealing with user-specified
         page size set on screen.
         """
-        page_size = self.request.GET.get('page_size')
-        if page_size == 'all':
+        page_size = self.request.GET.get("page_size")
+        if page_size == "all":
             return None  # disables pagination, returns all records
         try:
             return int(page_size)
@@ -25,7 +22,12 @@ class PaginateMixin:
         standard_sizes = [5, 10, 25, 50, 100]
         default = resolve_config(self).paginate_by
         options = []
-        for size in sorted(set(standard_sizes + ([default] if default and default not in standard_sizes else []))):
+        for size in sorted(
+            set(
+                standard_sizes
+                + ([default] if default and default not in standard_sizes else [])
+            )
+        ):
             if size is not None:
                 options.append(str(size))  # convert to string here!
         return options
@@ -36,17 +38,17 @@ class PaginateMixin:
         """
         # If filters were applied, modify the GET request temporarily to force page 1
         original_GET = None
-        if hasattr(self, '_reset_pagination') and self._reset_pagination:
+        if hasattr(self, "_reset_pagination") and self._reset_pagination:
             # Store original GET
             original_GET = self.request.GET
             # Create a copy we can modify
             modified_GET = self.request.GET.copy()
             # Set page to 1
-            modified_GET['page'] = '1'
+            modified_GET["page"] = "1"
             # Replace with our modified version temporarily
             self.request.GET = modified_GET
             # Clean up flag
-            delattr(self, '_reset_pagination')
+            delattr(self, "_reset_pagination")
 
         # Call parent implementation
         try:

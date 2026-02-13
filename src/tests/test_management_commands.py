@@ -16,7 +16,11 @@ from powercrud.management.commands import pcrud_mktemplate as mktemplate_cmd
 @pytest.mark.django_db
 def test_extract_tailwind_writes_file_when_output_dir(tmp_path, monkeypatch):
     out_dir = tmp_path / "safelist"
-    css_src = Path(tailwind_cmd.__file__).resolve().parent.parent.parent / "assets" / "django_assets"
+    css_src = (
+        Path(tailwind_cmd.__file__).resolve().parent.parent.parent
+        / "assets"
+        / "django_assets"
+    )
     assert any(css_src.glob("*.css")), "expected packaged css asset"
 
     call_command("pcrud_extract_tailwind_classes", "--output", str(out_dir))
@@ -59,10 +63,16 @@ def test_cleanup_async_json_output(monkeypatch, capsys):
 
 def test_mktemplate_handle_calls_structure(monkeypatch, tmp_path):
     fake_app_config = SimpleNamespace(path=str(tmp_path), name="fake_app")
-    monkeypatch.setattr(mktemplate_cmd.apps, "get_app_config", lambda _: fake_app_config)
+    monkeypatch.setattr(
+        mktemplate_cmd.apps, "get_app_config", lambda _: fake_app_config
+    )
 
     calls = {}
-    monkeypatch.setattr(mktemplate_cmd.Command, "_copy_template_structure", lambda self, td, ad: calls.setdefault("structure", (td, ad)))
+    monkeypatch.setattr(
+        mktemplate_cmd.Command,
+        "_copy_template_structure",
+        lambda self, td, ad: calls.setdefault("structure", (td, ad)),
+    )
 
     call_command("pcrud_mktemplate", "fake_app", "--all")
 
@@ -74,10 +84,16 @@ def test_mktemplate_handle_calls_structure(monkeypatch, tmp_path):
 
 def test_mktemplate_handle_calls_single(monkeypatch, tmp_path):
     fake_app_config = SimpleNamespace(path=str(tmp_path), name="fake_app")
-    monkeypatch.setattr(mktemplate_cmd.apps, "get_app_config", lambda _: fake_app_config)
+    monkeypatch.setattr(
+        mktemplate_cmd.apps, "get_app_config", lambda _: fake_app_config
+    )
 
     calls = {}
-    monkeypatch.setattr(mktemplate_cmd.Command, "_copy_single_template", lambda self, opts, td, ad: calls.setdefault("single", (opts, td, ad)))
+    monkeypatch.setattr(
+        mktemplate_cmd.Command,
+        "_copy_single_template",
+        lambda self, opts, td, ad: calls.setdefault("single", (opts, td, ad)),
+    )
 
     call_command("pcrud_mktemplate", "fake_app.Book", "--list")
 
@@ -92,7 +108,12 @@ def test_cleanup_async_plain_output(monkeypatch, capsys):
     dummy_summary = {
         "active_tasks": 2,
         "cleaned": {
-            "task-1": {"reason": "expired", "conflict_lock_keys": 1, "progress_entries": 3, "dashboard_records": 2},
+            "task-1": {
+                "reason": "expired",
+                "conflict_lock_keys": 1,
+                "progress_entries": 3,
+                "dashboard_records": 2,
+            },
         },
         "skipped": {"task-2": "still running"},
     }
@@ -144,7 +165,12 @@ def test_copy_all_model_templates(tmp_path):
 
     cmd._copy_all_model_templates("Widget", target_dir, app_dir)
 
-    expected = ["widget_list.html", "widget_detail.html", "widget_form.html", "widget_confirm_delete.html"]
+    expected = [
+        "widget_list.html",
+        "widget_detail.html",
+        "widget_form.html",
+        "widget_confirm_delete.html",
+    ]
     copied = sorted(p.name for p in app_dir.iterdir())
     for filename in expected:
         assert filename in copied

@@ -17,8 +17,8 @@ from sample.models import Author, Book, Genre
 
 @pytest.mark.django_db
 def test_form_mixin_generates_modelform_with_sorted_dropdown():
-    author_a = Author.objects.create(name="Alan")
-    author_z = Author.objects.create(name="Zara")
+    Author.objects.create(name="Alan")
+    Author.objects.create(name="Zara")
 
     class BookFormView(FormMixin):
         model = Book
@@ -43,7 +43,9 @@ def test_form_mixin_generates_modelform_with_sorted_dropdown():
 
 @pytest.mark.django_db
 def test_form_mixin_respects_use_crispy_setting(settings):
-    settings.INSTALLED_APPS = [app for app in settings.INSTALLED_APPS if app != "crispy_forms"]
+    settings.INSTALLED_APPS = [
+        app for app in settings.INSTALLED_APPS if app != "crispy_forms"
+    ]
 
     class BookFormView(FormMixin):
         model = Book
@@ -62,7 +64,7 @@ def test_form_mixin_respects_use_crispy_setting(settings):
 @pytest.mark.django_db
 def test_filtering_mixin_builds_dynamic_filterset(rf: RequestFactory):
     author_a = Author.objects.create(name="Alan")
-    author_z = Author.objects.create(name="Zara")
+    Author.objects.create(name="Zara")
     genre1 = Genre.objects.create(name="Sci-Fi")
     genre2 = Genre.objects.create(name="Fantasy")
 
@@ -103,7 +105,9 @@ def test_filtering_mixin_builds_dynamic_filterset(rf: RequestFactory):
     assert filterset.form.fields["author"].queryset.first().name == "Alan"
 
     # Dropdown sorting applied (Alan before Zara)
-    author_names = list(filterset.form.fields["author"].queryset.values_list("name", flat=True))
+    author_names = list(
+        filterset.form.fields["author"].queryset.values_list("name", flat=True)
+    )
     assert author_names == ["Alan", "Zara"]
 
     genres_filter = filterset.filters["genres"]
@@ -128,7 +132,11 @@ class StubView:
         return {
             "daisyUI": {
                 "base": "btn",
-                "actions": {"View": "btn-info", "Edit": "btn-primary", "Delete": "btn-error"},
+                "actions": {
+                    "View": "btn-info",
+                    "Edit": "btn-primary",
+                    "Delete": "btn-error",
+                },
                 "extra_default": "btn-secondary",
                 "modal_attrs": "",
             }

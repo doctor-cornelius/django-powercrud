@@ -3,7 +3,6 @@ from __future__ import annotations
 import json
 from types import SimpleNamespace
 
-import pytest
 
 from powercrud.async_hooks import (
     _extract_manager_class_path,
@@ -29,7 +28,9 @@ def test_parse_task_kwargs_handles_json():
 
 
 def test_extract_manager_helpers():
-    task = DummyTask(kwargs={"manager_class": "module.Manager", "manager_config": {"foo": "bar"}})
+    task = DummyTask(
+        kwargs={"manager_class": "module.Manager", "manager_config": {"foo": "bar"}}
+    )
     assert _extract_manager_class_path(task) == "module.Manager"
     assert _extract_manager_config(task) == {"foo": "bar"}
 
@@ -44,7 +45,9 @@ def test_progress_update_decorator(monkeypatch):
         def update_progress(self, task_name, message):
             updates.setdefault(task_name, []).append(message)
 
-    monkeypatch.setattr("powercrud.async_manager.AsyncManager", lambda: FakeManager(), raising=False)
+    monkeypatch.setattr(
+        "powercrud.async_manager.AsyncManager", lambda: FakeManager(), raising=False
+    )
 
     @progress_update_decorator
     def worker(data, progress_callback=None, **kwargs):

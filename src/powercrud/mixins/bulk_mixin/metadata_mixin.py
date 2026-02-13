@@ -23,30 +23,33 @@ class MetadataMixin:
         field_info = {}
 
         for field_name in bulk_fields:
-
             try:
                 field = self.model._meta.get_field(field_name)
 
                 # Get field type and other metadata
                 field_type = field.get_internal_type()
                 is_relation = field.is_relation
-                is_m2m = field_type == 'ManyToManyField'
+                is_m2m = field_type == "ManyToManyField"
 
                 # For related fields, get all possible related objects
                 bulk_choices = None
-                if is_relation and hasattr(field, 'related_model'):
+                if is_relation and hasattr(field, "related_model"):
                     # Use the related model's objects manager directly
-                    bulk_choices = self.get_bulk_choices_for_field(field_name=field_name, field=field)
+                    bulk_choices = self.get_bulk_choices_for_field(
+                        field_name=field_name, field=field
+                    )
 
                 field_info[field_name] = {
-                    'field': field,
-                    'type': field_type,
-                    'is_relation': is_relation,
-                    'is_m2m': is_m2m,  # Add a flag for M2M fields
-                    'bulk_choices': bulk_choices,
-                    'verbose_name': field.verbose_name,
-                    'null': field.null if hasattr(field, 'null') else False,
-                    'choices': getattr(field, 'choices', None),  # Add choices for fields with choices
+                    "field": field,
+                    "type": field_type,
+                    "is_relation": is_relation,
+                    "is_m2m": is_m2m,  # Add a flag for M2M fields
+                    "bulk_choices": bulk_choices,
+                    "verbose_name": field.verbose_name,
+                    "null": field.null if hasattr(field, "null") else False,
+                    "choices": getattr(
+                        field, "choices", None
+                    ),  # Add choices for fields with choices
                 }
             except Exception as e:
                 # Skip invalid fields
@@ -55,7 +58,9 @@ class MetadataMixin:
 
         return field_info
 
-    def get_bulk_choices_for_field(self, field_name: str, field: models.Field) -> Optional[models.QuerySet] | None:
+    def get_bulk_choices_for_field(
+        self, field_name: str, field: models.Field
+    ) -> Optional[models.QuerySet] | None:
         """
         Hook to get the queryset for bulk choices for a given field in bulk edit.
 
@@ -68,14 +73,14 @@ class MetadataMixin:
         Returns:
             Queryset of choices for the related model, or None if not applicable.
         """
-        if hasattr(field, 'related_model') and field.related_model is not None:
+        if hasattr(field, "related_model") and field.related_model is not None:
             qs = field.related_model.objects.all()
-            
+
             # Apply dropdown sorting if configured
             sort_options = resolve_config(self).dropdown_sort_options
             if field_name in sort_options:
                 sort_field = sort_options[field_name]  # Can be "name" or "-name"
                 qs = qs.order_by(sort_field)
-            
+
             return qs
         return None

@@ -1,5 +1,3 @@
-import logging
-
 import pytest
 from django.test import override_settings
 
@@ -9,7 +7,9 @@ from powercrud.validators import PowerCRUDMixinValidator
 
 
 def test_get_powercrud_setting_prefers_user_value():
-    with override_settings(POWERCRUD_SETTINGS={"TAILWIND_SAFELIST_JSON_LOC": "custom/path"}):
+    with override_settings(
+        POWERCRUD_SETTINGS={"TAILWIND_SAFELIST_JSON_LOC": "custom/path"}
+    ):
         assert get_powercrud_setting("TAILWIND_SAFELIST_JSON_LOC") == "custom/path"
 
 

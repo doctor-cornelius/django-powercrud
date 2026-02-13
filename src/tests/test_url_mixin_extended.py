@@ -101,7 +101,9 @@ def test_get_template_names_and_prefix(monkeypatch):
     monkeypatch.setattr(
         url_module,
         "reverse",
-        lambda name, kwargs=None: f"/{name}" if kwargs is None else f"/{name}/{kwargs['pk']}",
+        lambda name, kwargs=None: (
+            f"/{name}" if kwargs is None else f"/{name}/{kwargs['pk']}"
+        ),
         raising=False,
     )
 
@@ -140,6 +142,7 @@ def test_safe_reverse_handles_failure(monkeypatch):
 
     def boom(*args, **kwargs):
         from django.urls import NoReverseMatch
+
         raise NoReverseMatch()
 
     monkeypatch.setattr(url_module, "reverse", boom)

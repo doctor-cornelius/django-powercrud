@@ -1,13 +1,14 @@
 import enum
-from typing import Dict, Any
+from typing import Dict
 
 from django.urls import path
 from django.views import View
 
+
 # Create a standalone BulkEditRole class
 class BulkEditRole:
     """A role for bulk editing that mimics the interface of Django-neapolitan's Role."""
-    
+
     def handlers(self) -> Dict[str, str]:
         """
         Define the view handlers for the bulk edit role.
@@ -16,7 +17,7 @@ class BulkEditRole:
             Dict[str, str]: A dictionary mapping HTTP methods to view method names.
         """
         return {"get": "bulk_edit", "post": "bulk_edit"}
-    
+
     def extra_initkwargs(self) -> Dict[str, str]:
         """
         Provide extra keyword arguments for the view's __init__ method.
@@ -25,7 +26,7 @@ class BulkEditRole:
             Dict[str, str]: A dictionary of extra init kwargs.
         """
         return {"template_name_suffix": "_bulk_edit"}
-    
+
     @property
     def url_name_component(self) -> str:
         """
@@ -35,7 +36,7 @@ class BulkEditRole:
             str: The URL name component.
         """
         return "bulk-edit"
-    
+
     def url_pattern(self, view_cls: type[View]) -> str:
         """
         Generate the URL pattern for the bulk edit role.
@@ -47,7 +48,7 @@ class BulkEditRole:
             str: The URL pattern string.
         """
         return f"{view_cls.url_base}/bulk-edit/"
-    
+
     def get_url(self, view_cls: type[View]):
         """
         Get the URL path object for the bulk edit role.
@@ -64,8 +65,10 @@ class BulkEditRole:
             name=f"{view_cls.url_base}-{self.url_name_component}",
         )
 
+
 class BulkActions(enum.Enum):
     """Enum defining various bulk action types and their associated view handling."""
+
     TOGGLE_SELECTION = "toggle-selection"
     CLEAR_SELECTION = "clear-selection"
     TOGGLE_ALL_SELECTION = "toggle-all-selection"
@@ -148,4 +151,3 @@ class BulkActions(enum.Enum):
             ),
             name=f"{view_cls.url_base}-{self.url_name_component}",
         )
-

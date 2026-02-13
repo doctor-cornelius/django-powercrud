@@ -14,6 +14,7 @@ from powercrud.async_manager import AsyncManager
 
 log = get_logger(__name__)
 
+
 class Author(models.Model):
     class Meta:
         verbose_name = "The Author Person"
@@ -37,6 +38,7 @@ class Author(models.Model):
 
 class Profile(models.Model):
     """Just for testing logic for OneToOneFields"""
+
     author = models.OneToOneField(
         Author, on_delete=models.CASCADE, related_name="profile"
     )
@@ -63,10 +65,11 @@ class Genre(models.Model):
 
 
 class Book(models.Model):
-
     class Meta:
         constraints = [
-            models.UniqueConstraint(fields=['title', 'author'], name='unique_title_author')
+            models.UniqueConstraint(
+                fields=["title", "author"], name="unique_title_author"
+            )
         ]
 
     title = models.CharField(max_length=200)
@@ -76,11 +79,13 @@ class Book(models.Model):
     bestseller = models.BooleanField(
         default=False,
         help_text="Is this book a bestseller?",
-        )
+    )
     isbn = models.CharField(max_length=17, unique=True)
     pages = models.IntegerField()
     description = models.TextField(blank=True)
-    uneditable_field = models.CharField(max_length=200, blank=True, null=True, editable=False)
+    uneditable_field = models.CharField(
+        max_length=200, blank=True, null=True, editable=False
+    )
 
     @property
     def isbn_empty(self):
@@ -93,6 +98,7 @@ class Book(models.Model):
     @property
     def a_really_long_property_header_for_title(self):
         return self.title
+
     a_really_long_property_header_for_title.fget.short_description = "Really Long Title"
 
     def __init__(self, *args, **kwargs):
@@ -105,12 +111,14 @@ class Book(models.Model):
             self.uneditable_field = "This field is uneditable"
 
     def save(self, *args, **kwargs):
-        
+
         context = get_current_task()
         in_parent_async = bool(context) and skip_nested_async()
 
         if in_parent_async:
-            log.debug("Book %s running inside parent async task", self.pk or "<unsaved>")
+            log.debug(
+                "Book %s running inside parent async task", self.pk or "<unsaved>"
+            )
         else:
             log.debug("Book %s running without async context", self.pk or "<unsaved>")
 
@@ -136,10 +144,9 @@ class Book(models.Model):
             time.sleep(0)
 
         return response
-    
+
     def delete(self, *args, **kwargs):
-        """insert a delay for testing async processing
-        """
+        """insert a delay for testing async processing"""
         log.debug(f"Delete book: {self.title}: about to start sleep")
         time.sleep(2)
         log.debug(f"Delete book: {self.title}: completed operation")
@@ -158,7 +165,9 @@ class AsyncTaskRecord(models.Model):
         UNKNOWN = "unknown", "Unknown"
 
     task_name = models.CharField(max_length=64, unique=True)
-    status = models.CharField(max_length=32, choices=STATUS.choices, default=STATUS.PENDING)
+    status = models.CharField(
+        max_length=32, choices=STATUS.choices, default=STATUS.PENDING
+    )
     message = models.TextField(blank=True)
     progress_payload = models.TextField(blank=True)
     user_label = models.CharField(max_length=255, blank=True)

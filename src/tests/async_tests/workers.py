@@ -6,6 +6,7 @@ django-q2 worker processes. Do not import app code at module load time to
 avoid circular imports; import lazily inside functions if needed.
 """
 
+
 def simple_test_worker(message: str, task_key: str | None = None, **kwargs) -> str:
     """
     Top-level importable worker used by tests and examples.
@@ -22,6 +23,7 @@ def simple_test_worker(message: str, task_key: str | None = None, **kwargs) -> s
         if task_key:
             # Lazy import to avoid circular imports at module load time
             from powercrud.async_manager import AsyncManager
+
             manager = AsyncManager()
             manager.update_progress(task_key, "Processing started")
             manager.update_progress(task_key, f"Processing: {message}")

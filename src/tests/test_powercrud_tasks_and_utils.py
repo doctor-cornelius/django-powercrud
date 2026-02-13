@@ -4,7 +4,7 @@ import contextlib
 from types import SimpleNamespace
 
 import pytest
-from django.core.exceptions import ObjectDoesNotExist, ValidationError
+from django.core.exceptions import ValidationError
 from django.test import override_settings
 
 from powercrud import schedules, tasks, urls
@@ -73,7 +73,9 @@ def test_bulk_delete_task_happy_path(monkeypatch):
 
     items = [SimpleNamespace(pk=1, delete=lambda: None)]
     dummy_model = DummyModel(items)
-    monkeypatch.setattr(tasks, "apps", SimpleNamespace(get_model=lambda path: dummy_model))
+    monkeypatch.setattr(
+        tasks, "apps", SimpleNamespace(get_model=lambda path: dummy_model)
+    )
 
     class DummyBulkMixin:
         def _perform_bulk_delete(self, queryset, progress_callback=None):
@@ -93,7 +95,10 @@ def test_bulk_delete_task_happy_path(monkeypatch):
     assert result is True
     assert ("task-123", "starting delete") in dummy_manager.progress_updates
     assert ("task-123", "deleting: 1/1") in dummy_manager.progress_updates
-    assert ("task-123", "completed delete: 1 processed") in dummy_manager.progress_updates
+    assert (
+        "task-123",
+        "completed delete: 1 processed",
+    ) in dummy_manager.progress_updates
 
 
 def test_bulk_delete_task_handles_errors(monkeypatch):
@@ -110,7 +115,9 @@ def test_bulk_delete_task_handles_errors(monkeypatch):
 
     items = [SimpleNamespace(pk=1, delete=failing_delete)]
     dummy_model = DummyModel(items)
-    monkeypatch.setattr(tasks, "apps", SimpleNamespace(get_model=lambda path: dummy_model))
+    monkeypatch.setattr(
+        tasks, "apps", SimpleNamespace(get_model=lambda path: dummy_model)
+    )
 
     class FailingBulkMixin:
         def _perform_bulk_delete(self, queryset, progress_callback=None):
@@ -119,11 +126,16 @@ def test_bulk_delete_task_handles_errors(monkeypatch):
     monkeypatch.setattr(tasks, "BulkMixin", FailingBulkMixin)
 
     result = tasks.bulk_delete_task(
-        model_path="sample.Book", selected_ids=[1], user_id=99, task_name="human-friendly"
+        model_path="sample.Book",
+        selected_ids=[1],
+        user_id=99,
+        task_name="human-friendly",
     )
     assert result is False
     # Failure path still reports the error to the manager
-    assert any("failed delete" in message for _, message in dummy_manager.progress_updates)
+    assert any(
+        "failed delete" in message for _, message in dummy_manager.progress_updates
+    )
 
 
 def test_bulk_update_task_success(monkeypatch):
@@ -136,11 +148,18 @@ def test_bulk_update_task_success(monkeypatch):
 
     items = [SimpleNamespace(pk=1)]
     dummy_model = DummyModel(items)
-    monkeypatch.setattr(tasks, "apps", SimpleNamespace(get_model=lambda path: dummy_model))
+    monkeypatch.setattr(
+        tasks, "apps", SimpleNamespace(get_model=lambda path: dummy_model)
+    )
 
     class DummyBulkMixin:
         def _perform_bulk_update(
-            self, queryset, bulk_fields, fields_to_update, field_data, progress_callback=None
+            self,
+            queryset,
+            bulk_fields,
+            fields_to_update,
+            field_data,
+            progress_callback=None,
         ):
             for idx, _ in enumerate(queryset, start=1):
                 if progress_callback:
@@ -161,7 +180,10 @@ def test_bulk_update_task_success(monkeypatch):
 
     assert result is True
     assert ("task-789", "updating: 1/1") in dummy_manager.progress_updates
-    assert ("task-789", "completed update: 1 processed") in dummy_manager.progress_updates
+    assert (
+        "task-789",
+        "completed update: 1 processed",
+    ) in dummy_manager.progress_updates
 
 
 def test_bulk_update_task_reports_failure(monkeypatch):
@@ -173,27 +195,39 @@ def test_bulk_update_task_reports_failure(monkeypatch):
     )
 
     dummy_model = DummyModel([SimpleNamespace(pk=1)])
-    monkeypatch.setattr(tasks, "apps", SimpleNamespace(get_model=lambda path: dummy_model))
+    monkeypatch.setattr(
+        tasks, "apps", SimpleNamespace(get_model=lambda path: dummy_model)
+    )
 
     class FailingBulkMixin:
         def _perform_bulk_update(
-            self, queryset, bulk_fields, fields_to_update, field_data, progress_callback=None
+            self,
+            queryset,
+            bulk_fields,
+            fields_to_update,
+            field_data,
+            progress_callback=None,
         ):
             raise ValidationError("invalid data")
 
     monkeypatch.setattr(tasks, "BulkMixin", FailingBulkMixin)
 
-    assert tasks.bulk_update_task(
-        "sample.Book",
-        selected_ids=[1],
-        user_id=1,
-        bulk_fields=["title"],
-        fields_to_update=["title"],
-        field_data=[],
-        task_name="named-task",
-    ) is False
+    assert (
+        tasks.bulk_update_task(
+            "sample.Book",
+            selected_ids=[1],
+            user_id=1,
+            bulk_fields=["title"],
+            fields_to_update=["title"],
+            field_data=[],
+            task_name="named-task",
+        )
+        is False
+    )
 
-    assert any("failed update" in message for _, message in dummy_manager.progress_updates)
+    assert any(
+        "failed update" in message for _, message in dummy_manager.progress_updates
+    )
 
 
 @override_settings(POWERCRUD_SETTINGS={"ASYNC_ENABLED": False})
@@ -226,7 +260,9 @@ def test_pcrud_help_command_success(monkeypatch, capsys):
 
     opened = {}
 
-    monkeypatch.setattr(pcrud_help.webbrowser, "open", lambda url: opened.setdefault("url", url))
+    monkeypatch.setattr(
+        pcrud_help.webbrowser, "open", lambda url: opened.setdefault("url", url)
+    )
 
     command = pcrud_help.Command()
     command.handle()

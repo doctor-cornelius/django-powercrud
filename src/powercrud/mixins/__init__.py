@@ -1,7 +1,11 @@
 from .htmx_mixin import HtmxMixin
 from .bulk_mixin import BulkEditRole, BulkMixin
 from .core_mixin import CoreMixin
-from .filtering_mixin import FilteringMixin, AllValuesModelMultipleChoiceFilter, HTMXFilterSetMixin
+from .filtering_mixin import (
+    FilteringMixin,
+    AllValuesModelMultipleChoiceFilter,
+    HTMXFilterSetMixin,
+)
 from .table_mixin import TableMixin
 from .form_mixin import FormMixin
 from .inline_editing_mixin import InlineEditingMixin
@@ -24,6 +28,7 @@ class PowerCRUDMixin(
     The main PowerCRUDMixin, composed of smaller, feature-focused mixins.
     The order of inheritance is important for Method Resolution Order (MRO).
     """
+
     pass
 
 
@@ -35,9 +40,11 @@ def __getattr__(name: str):
     """
     if name == "AsyncMixin":
         from .async_mixin import AsyncMixin
+
         return AsyncMixin
     if name == "PowerCRUDAsyncMixin":
         from .async_crud_mixin import PowerCRUDAsyncMixin
+
         return PowerCRUDAsyncMixin
     raise AttributeError(f"module 'powercrud.mixins' has no attribute {name!r}")
 

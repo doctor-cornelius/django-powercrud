@@ -84,18 +84,15 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-
     "crispy_forms",
     "crispy_tailwind",
     "template_partials",
-    'django_htmx',
+    "django_htmx",
     "django_filters",
-
     # for async
-    'django_q',
-    'django_redis',
+    "django_q",
+    "django_redis",
     "django_vite",
-
     "neapolitan",
     "powercrud",
     "sample",
@@ -126,20 +123,19 @@ CACHES = {
 
 
 POWERCRUD_SETTINGS = {
-     # this is for the rendering of powercrud forms
-    'POWERCRUD_CSS_FRAMEWORK': 'daisyUI',
+    # this is for the rendering of powercrud forms
+    "POWERCRUD_CSS_FRAMEWORK": "daisyUI",
     # location of the safelist json file for tailwind tree shaker)
-    'TAILWIND_SAFELIST_JSON_LOC': 'sample/templates/sample/', 
-
+    "TAILWIND_SAFELIST_JSON_LOC": "sample/templates/sample/",
     # async settings
-    'ASYNC_ENABLED': True,
-    'CONFLICT_TTL': 3600,  # 1 hour
-    'PROGRESS_TTL': 7200,  # 2 hours
-    'CLEANUP_GRACE_PERIOD': 86400,  # 24 hours
-    'MAX_TASK_DURATION': 3600,  # For detecting stuck tasks
-    'CLEANUP_SCHEDULE_INTERVAL': 300,  # 5 minutes for scheduled cleanup
-    'CACHE_NAME': 'powercrud_async',  # Which cache from CACHES to use for conflict/progress
-    'QCLUSTER_PROBE_TIMEOUT_MS': 1500,
+    "ASYNC_ENABLED": True,
+    "CONFLICT_TTL": 3600,  # 1 hour
+    "PROGRESS_TTL": 7200,  # 2 hours
+    "CLEANUP_GRACE_PERIOD": 86400,  # 24 hours
+    "MAX_TASK_DURATION": 3600,  # For detecting stuck tasks
+    "CLEANUP_SCHEDULE_INTERVAL": 300,  # 5 minutes for scheduled cleanup
+    "CACHE_NAME": "powercrud_async",  # Which cache from CACHES to use for conflict/progress
+    "QCLUSTER_PROBE_TIMEOUT_MS": 1500,
 }
 
 DJANGO_VITE = {
@@ -151,15 +147,15 @@ DJANGO_VITE = {
 
 # django-q2 settings
 Q_CLUSTER = {
-    'name': 'powercrud',
-    'workers': 4, 
-    'recycle': 500,
-    'timeout': 250,
-    'retry': 300,
-    'save_limit': 250,
-    'queue_limit': 500,
-    'sync': True,
+    "name": "powercrud",
+    "workers": 4,
+    "recycle": 500,
+    "timeout": 250,
+    "retry": 300,
+    "save_limit": 250,
+    "queue_limit": 500,
+    "sync": True,
     # NB if you set orm then other backend settings (eg django_redis, redis) are ignored
-    'orm': 'default',  # database connection to use
-    'django_redis': 'default',  # cache name
+    "orm": "default",  # database connection to use
+    "django_redis": "default",  # cache name
 }

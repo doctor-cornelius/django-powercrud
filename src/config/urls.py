@@ -5,7 +5,6 @@ from django.contrib import admin
 from django.urls import path, include
 
 from sample import views
-from powercrud.async_manager import AsyncManager
 
 urlpatterns = [
     path(

@@ -33,19 +33,24 @@ from contextvars import ContextVar
 from dataclasses import dataclass
 from typing import Iterable, Optional
 
+
 @dataclass
 class TaskContext:
     task_name: str
     manager_class_path: Optional[str] = None
 
 
-_task_context: ContextVar[Optional[TaskContext]] = ContextVar("powercrud_task_context", default=None)
+_task_context: ContextVar[Optional[TaskContext]] = ContextVar(
+    "powercrud_task_context", default=None
+)
 
 
 @contextmanager
 def task_context(task_name: str, manager_class_path: Optional[str] = None):
     """Context manager to set the current async task metadata."""
-    token = _task_context.set(TaskContext(task_name=task_name, manager_class_path=manager_class_path))
+    token = _task_context.set(
+        TaskContext(task_name=task_name, manager_class_path=manager_class_path)
+    )
     try:
         yield
     finally:

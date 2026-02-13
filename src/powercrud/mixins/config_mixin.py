@@ -26,7 +26,9 @@ class ConfigMixin:
     namespace: str | None = None
 
     # template parameters
-    templates_path: str = f"powercrud/{get_powercrud_setting('POWERCRUD_CSS_FRAMEWORK')}"
+    templates_path: str = (
+        f"powercrud/{get_powercrud_setting('POWERCRUD_CSS_FRAMEWORK')}"
+    )
     # base_template_path must always be provided by the project; there is no
     # built-in HTML shell. It should point at the app’s real base template.
     base_template_path: str | None = None
@@ -53,19 +55,21 @@ class ConfigMixin:
     # bulk edit parameters
     bulk_fields: list[str] = []
     bulk_delete: bool = False
-    bulk_full_clean: bool = True  # If True, run full_clean() on each object during bulk edit
+    bulk_full_clean: bool = (
+        True  # If True, run full_clean() on each object during bulk edit
+    )
 
     # async processing parameters
     bulk_async: bool = False
     bulk_async_conflict_checking = True  # Default enabled
     bulk_min_async_records: int = 20
-    bulk_async_backend: str = 'q2'
-    bulk_async_notification: str = 'status_page'
+    bulk_async_backend: str = "q2"
+    bulk_async_notification: str = "status_page"
     bulk_async_allow_anonymous = True
 
     # htmx
     use_htmx: bool | None = None
-    default_htmx_target: str = '#content'
+    default_htmx_target: str = "#content"
     hx_trigger: str | dict[str, str] | None = None
 
     # inline editing
@@ -88,9 +92,9 @@ class ConfigMixin:
     table_max_col_width: int | None = None
     table_header_min_wrap_width: int | None = None
 
-    table_classes: str = ''
-    action_button_classes: str = ''
-    extra_button_classes: str = ''
+    table_classes: str = ""
+    action_button_classes: str = ""
+    extra_button_classes: str = ""
 
     # filtering options
     m2m_filter_and_logic = False
@@ -203,17 +207,21 @@ class ConfigMixin:
         return self._build_config_namespace()
 
     def _configure_fields(self):
-        if not self.fields or self.fields == '__all__':
+        if not self.fields or self.fields == "__all__":
             self.fields = self._get_all_fields()
-        elif type(self.fields) == list:
+        elif isinstance(self.fields, list):
             all_fields = self._get_all_fields()
             for field in self.fields:
                 if field not in all_fields:
-                    raise ValueError(f"Field {field} not defined in {self.model.__name__}")
-        elif type(self.fields) != list:
+                    raise ValueError(
+                        f"Field {field} not defined in {self.model.__name__}"
+                    )
+        elif not isinstance(self.fields, list):
             raise TypeError("fields must be a list")
         else:
-            raise ValueError("fields must be '__all__', a list of valid fields or not defined")
+            raise ValueError(
+                "fields must be '__all__', a list of valid fields or not defined"
+            )
 
         if isinstance(self.exclude, list):
             self.fields = [field for field in self.fields if field not in self.exclude]
@@ -222,56 +230,74 @@ class ConfigMixin:
 
     def _configure_properties(self):
         if self.properties:
-            if self.properties == '__all__':
+            if self.properties == "__all__":
                 self.properties = self._get_all_properties()
-            elif type(self.properties) == list:
+            elif isinstance(self.properties, list):
                 all_properties = self._get_all_properties()
                 for prop in self.properties:
                     if prop not in all_properties:
-                        raise ValueError(f"Property {prop} not defined in {self.model.__name__}")
-            elif type(self.properties) != list:
+                        raise ValueError(
+                            f"Property {prop} not defined in {self.model.__name__}"
+                        )
+            elif not isinstance(self.properties, list):
                 raise TypeError("properties must be a list or '__all__'")
 
-        if type(self.properties_exclude) == list:
-            self.properties = [prop for prop in self.properties if prop not in self.properties_exclude]
+        if isinstance(self.properties_exclude, list):
+            self.properties = [
+                prop for prop in self.properties if prop not in self.properties_exclude
+            ]
         else:
             raise TypeError("properties_exclude must be a list")
 
     def _configure_detail_fields(self):
-        if self.detail_fields == '__all__':
+        if self.detail_fields == "__all__":
             self.detail_fields = self._get_all_fields()
-        elif not self.detail_fields or self.detail_fields == '__fields__':
+        elif not self.detail_fields or self.detail_fields == "__fields__":
             self.detail_fields = self.fields
-        elif type(self.detail_fields) == list:
+        elif isinstance(self.detail_fields, list):
             all_fields = self._get_all_fields()
             for field in self.detail_fields:
                 if field not in all_fields:
-                    raise ValueError(f"detail_field {field} not defined in {self.model.__name__}")
-        elif type(self.detail_fields) != list:
-            raise TypeError("detail_fields must be a list or '__all__' or '__fields__' or a list of fields")
+                    raise ValueError(
+                        f"detail_field {field} not defined in {self.model.__name__}"
+                    )
+        elif not isinstance(self.detail_fields, list):
+            raise TypeError(
+                "detail_fields must be a list or '__all__' or '__fields__' or a list of fields"
+            )
 
-        if type(self.detail_exclude) == list:
-            self.detail_fields = [field for field in self.detail_fields if field not in self.detail_exclude]
+        if isinstance(self.detail_exclude, list):
+            self.detail_fields = [
+                field
+                for field in self.detail_fields
+                if field not in self.detail_exclude
+            ]
         else:
             raise TypeError("detail_fields_exclude must be a list")
 
     def _configure_detail_properties(self):
         if self.detail_properties:
-            if self.detail_properties == '__all__':
+            if self.detail_properties == "__all__":
                 self.detail_properties = self._get_all_properties()
-            elif self.detail_properties == '__properties__':
+            elif self.detail_properties == "__properties__":
                 self.detail_properties = self.properties
-            elif type(self.detail_properties) == list:
+            elif isinstance(self.detail_properties, list):
                 all_properties = self._get_all_properties()
                 for prop in self.detail_properties:
                     if prop not in all_properties:
-                        raise ValueError(f"Property {prop} not defined in {self.model.__name__}")
-            elif type(self.detail_properties) != list:
-                raise TypeError("detail_properties must be a list or '__all__' or '__properties__'")
+                        raise ValueError(
+                            f"Property {prop} not defined in {self.model.__name__}"
+                        )
+            elif not isinstance(self.detail_properties, list):
+                raise TypeError(
+                    "detail_properties must be a list or '__all__' or '__properties__'"
+                )
 
-        if type(self.detail_properties_exclude) == list:
+        if isinstance(self.detail_properties_exclude, list):
             self.detail_properties = [
-                prop for prop in self.detail_properties if prop not in self.detail_properties_exclude
+                prop
+                for prop in self.detail_properties
+                if prop not in self.detail_properties_exclude
             ]
         else:
             raise TypeError("detail_properties_exclude must be a list")
@@ -295,17 +321,11 @@ class ConfigMixin:
         all_editable = self._get_all_editable_fields()
 
         if not self.form_fields:
-            self.form_fields = [
-                f for f in self.detail_fields
-                if f in all_editable
-            ]
-        elif self.form_fields == '__all__':
+            self.form_fields = [f for f in self.detail_fields if f in all_editable]
+        elif self.form_fields == "__all__":
             self.form_fields = all_editable
-        elif self.form_fields == '__fields__':
-            self.form_fields = [
-                f for f in self.fields
-                if f in all_editable
-            ]
+        elif self.form_fields == "__fields__":
+            self.form_fields = [f for f in self.fields if f in all_editable]
         else:
             invalid_fields = [f for f in self.form_fields if f not in all_editable]
             if invalid_fields:
@@ -316,8 +336,7 @@ class ConfigMixin:
 
         if self.form_fields_exclude:
             self.form_fields = [
-                f for f in self.form_fields
-                if f not in self.form_fields_exclude
+                f for f in self.form_fields if f not in self.form_fields_exclude
             ]
 
     def _get_all_fields(self):
@@ -331,19 +350,21 @@ class ConfigMixin:
         return [
             field.name
             for field in self.model._meta.get_fields()
-            if hasattr(field, 'editable') and field.editable
+            if hasattr(field, "editable") and field.editable
         ]
 
     def _get_all_properties(self):
         return [
             name
             for name in dir(self.model)
-            if isinstance(getattr(self.model, name), property) and name != 'pk'
+            if isinstance(getattr(self.model, name), property) and name != "pk"
         ]
 
     def _build_config_namespace(self) -> SimpleNamespace:
         config: dict[str, Any] = {}
-        field_names = set(PowerCRUDMixinValidator.model_fields.keys()) | self.EXTRA_CONFIG_FIELDS
+        field_names = (
+            set(PowerCRUDMixinValidator.model_fields.keys()) | self.EXTRA_CONFIG_FIELDS
+        )
         for attr in field_names:
             if hasattr(self, attr):
                 value = getattr(self, attr)
@@ -364,23 +385,38 @@ class ConfigMixin:
         use_htmx_enabled = config.get("use_htmx") is True
         config["use_htmx_enabled"] = use_htmx_enabled
         config["use_modal_enabled"] = bool(config.get("use_modal") and use_htmx_enabled)
-        config["inline_editing_active"] = bool(config.get("inline_edit_enabled") and use_htmx_enabled)
-        config["bulk_edit_enabled"] = bool(
-            (config.get("bulk_fields") or config.get("bulk_delete")) and config["use_modal_enabled"]
+        config["inline_editing_active"] = bool(
+            config.get("inline_edit_enabled") and use_htmx_enabled
         )
-        config["bulk_delete_enabled"] = bool(config.get("bulk_delete") and config["bulk_edit_enabled"])
-        config["use_crispy_enabled"] = self._resolve_use_crispy_setting(config.get("use_crispy"))
+        config["bulk_edit_enabled"] = bool(
+            (config.get("bulk_fields") or config.get("bulk_delete"))
+            and config["use_modal_enabled"]
+        )
+        config["bulk_delete_enabled"] = bool(
+            config.get("bulk_delete") and config["bulk_edit_enabled"]
+        )
+        config["use_crispy_enabled"] = self._resolve_use_crispy_setting(
+            config.get("use_crispy")
+        )
 
         # HTMX/modal defaults
         config["modal_id_resolved"] = config.get("modal_id") or "powercrudBaseModal"
-        config["modal_target_resolved"] = config.get("modal_target") or "powercrudModalContent"
+        config["modal_target_resolved"] = (
+            config.get("modal_target") or "powercrudModalContent"
+        )
 
         # Table presentation helpers
-        config["table_pixel_height_px"] = f"{config.get('table_pixel_height_other_page_elements') or 0}px"
-        config["table_max_col_width_css"] = self._resolve_table_max_col_width(config.get("table_max_col_width"))
-        config["table_header_min_wrap_width_css"] = self._resolve_table_header_min_width(
-            config.get("table_header_min_wrap_width"),
-            config["table_max_col_width_css"],
+        config["table_pixel_height_px"] = (
+            f"{config.get('table_pixel_height_other_page_elements') or 0}px"
+        )
+        config["table_max_col_width_css"] = self._resolve_table_max_col_width(
+            config.get("table_max_col_width")
+        )
+        config["table_header_min_wrap_width_css"] = (
+            self._resolve_table_header_min_width(
+                config.get("table_header_min_wrap_width"),
+                config["table_max_col_width_css"],
+            )
         )
 
         return SimpleNamespace(**config)
@@ -434,13 +470,20 @@ class _ConfigShim:
         if name == "use_modal_enabled":
             return bool(self._raw("use_modal") and self.__getattr__("use_htmx_enabled"))
         if name == "inline_editing_active":
-            return bool(self._raw("inline_edit_enabled") and self.__getattr__("use_htmx_enabled"))
+            return bool(
+                self._raw("inline_edit_enabled")
+                and self.__getattr__("use_htmx_enabled")
+            )
         if name == "bulk_edit_enabled":
             bulk_fields = self._raw("bulk_fields") or []
             bulk_delete = self._raw("bulk_delete") or False
-            return bool((bulk_fields or bulk_delete) and self.__getattr__("use_modal_enabled"))
+            return bool(
+                (bulk_fields or bulk_delete) and self.__getattr__("use_modal_enabled")
+            )
         if name == "bulk_delete_enabled":
-            return bool(self._raw("bulk_delete") and self.__getattr__("bulk_edit_enabled"))
+            return bool(
+                self._raw("bulk_delete") and self.__getattr__("bulk_edit_enabled")
+            )
         if name == "use_crispy_enabled":
             desired = self._raw("use_crispy")
             crispy_installed = "crispy_forms" in settings.INSTALLED_APPS
@@ -477,11 +520,20 @@ class _ConfigShim:
                 return fallback
             return f"{clamped}ch"
         if name == "templates_path":
-            return self._raw("templates_path") or f"powercrud/{get_powercrud_setting('POWERCRUD_CSS_FRAMEWORK')}"
+            return (
+                self._raw("templates_path")
+                or f"powercrud/{get_powercrud_setting('POWERCRUD_CSS_FRAMEWORK')}"
+            )
         if name == "base_template_path":
             # Do not invent a default; projects must set this explicitly.
             return self._raw("base_template_path")
-        if name in {"bulk_fields", "form_fields", "fields", "detail_fields", "detail_properties"}:
+        if name in {
+            "bulk_fields",
+            "form_fields",
+            "fields",
+            "detail_fields",
+            "detail_properties",
+        }:
             return self._raw(name, []) or []
         if name in {"dropdown_sort_options", "inline_field_dependencies"}:
             return self._raw(name, {}) or {}

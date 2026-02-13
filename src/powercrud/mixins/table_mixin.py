@@ -5,8 +5,9 @@ class TableMixin:
     """
     Provides methods for table styling and layout.
     """
+
     def get_table_pixel_height_other_page_elements(self) -> str:
-        """ Returns the height of other elements on the page that the table is
+        """Returns the height of other elements on the page that the table is
         displayed on. After subtracting this (in pixels) from the page height,
         the table height will be calculated (in a css style in list.html) as
         {{ get_table_max_height }}% of the remaining viewport height.
@@ -77,7 +78,9 @@ class TableMixin:
         dependency_endpoint_name = (
             dependency_endpoint() if callable(dependency_endpoint) else None
         )
-        dependency_endpoint_url = self._resolve_inline_endpoint(dependency_endpoint_name)
+        dependency_endpoint_url = self._resolve_inline_endpoint(
+            dependency_endpoint_name
+        )
         return {
             "enabled": enabled,
             "fields": self.get_inline_edit_fields(),

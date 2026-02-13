@@ -48,6 +48,8 @@ def test_filterset_builds_choices():
     view = FilterHarness(request)
     filterset = view.get_filterset(Book.objects.all())
     assert filterset is not None
-    assert list(filterset.form.fields["author"].queryset.values_list("name", flat=True)) == ["Alan"]
+    assert list(
+        filterset.form.fields["author"].queryset.values_list("name", flat=True)
+    ) == ["Alan"]
     assert "genres" in filterset.filters
     assert filterset.filters["genres"].extra["queryset"].count() == 1

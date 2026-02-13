@@ -156,7 +156,9 @@ class ModelTrackingAsyncManager(AsyncManager):
             **lookup,
         )
 
-    def _maybe_set(self, record, field_name: Optional[str], value: Any, updated_fields: set[str]):
+    def _maybe_set(
+        self, record, field_name: Optional[str], value: Any, updated_fields: set[str]
+    ):
         if field_name and value is not None:
             prepared = self._prepare_field_value(field_name, value)
             setattr(record, field_name, prepared)
@@ -181,25 +183,35 @@ class ModelTrackingAsyncManager(AsyncManager):
 
         defaults: Dict[str, Any] = {}
         if status_field and incoming_status is not None:
-            defaults[status_field] = self._prepare_field_value(status_field, incoming_status)
+            defaults[status_field] = self._prepare_field_value(
+                status_field, incoming_status
+            )
         if message_field and message:
             defaults[message_field] = self._prepare_field_value(message_field, message)
         if user_field:
             user_val = kwargs.get("user")
             if user_val is not None:
-                defaults[user_field] = self._prepare_field_value(user_field, self.format_user(user_val))
+                defaults[user_field] = self._prepare_field_value(
+                    user_field, self.format_user(user_val)
+                )
         if affected_field:
             affected_val = kwargs.get("affected_objects")
             if affected_val is not None:
-                defaults[affected_field] = self._prepare_field_value(affected_field, self.format_affected(affected_val))
+                defaults[affected_field] = self._prepare_field_value(
+                    affected_field, self.format_affected(affected_val)
+                )
         if kwargs_field:
             kw_payload = kwargs.get("task_kwargs")
             if kw_payload is not None:
-                defaults[kwargs_field] = self._prepare_field_value(kwargs_field, self.format_payload(kw_payload))
+                defaults[kwargs_field] = self._prepare_field_value(
+                    kwargs_field, self.format_payload(kw_payload)
+                )
         if args_field:
             args_payload = kwargs.get("task_args")
             if args_payload is not None:
-                defaults[args_field] = self._prepare_field_value(args_field, self.format_payload(args_payload))
+                defaults[args_field] = self._prepare_field_value(
+                    args_field, self.format_payload(args_payload)
+                )
 
         record, created = self._get_or_create_record(task_name, defaults)
 

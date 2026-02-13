@@ -1,14 +1,11 @@
 import shutil
 from pathlib import Path
 
-from django.core.exceptions import ImproperlyConfigured
 from django.core.management.base import BaseCommand, CommandError
-from django.template.loader import TemplateDoesNotExist, get_template
-from django.template.engine import Engine
 from django.apps import apps
-from django.conf import settings
 
 from powercrud.conf import get_powercrud_setting
+
 
 class Command(BaseCommand):
     help = "Bootstrap CRUD templates, either individual templates or the complete framework structure."
@@ -113,7 +110,9 @@ class Command(BaseCommand):
                 self._copy_template_structure(target_dir, app_template_dir)
         else:
             if not is_model_specific:
-                raise CommandError("Model must be specified for single template operations (e.g., 'sample.Book')")
+                raise CommandError(
+                    "Model must be specified for single template operations (e.g., 'sample.Book')"
+                )
             options["model"] = model_name
             self._copy_single_template(options, target_dir, app_template_dir)
 
@@ -138,7 +137,7 @@ class Command(BaseCommand):
             # Copy the entire template structure
             framework_dir = Path(self.template_prefix).name
             target_framework_dir = app_template_dir / framework_dir
-            
+
             if target_framework_dir.exists():
                 self.stdout.write(
                     self.style.WARNING(
@@ -147,7 +146,7 @@ class Command(BaseCommand):
                 )
 
             shutil.copytree(source_dir, target_framework_dir, dirs_exist_ok=True)
-            
+
             self.stdout.write(
                 self.style.SUCCESS(
                     f"Successfully copied template structure:\n"
@@ -174,12 +173,13 @@ class Command(BaseCommand):
             suffix = "_confirm_delete.html"
 
         template_name = f"{model.lower()}{suffix}"
-        source_template_name = f"{self.template_prefix}/object{suffix}"
 
         try:
             # Get the powercrud package directory
             powercrud_dir = Path(__file__).resolve().parent.parent.parent
-            source_path = powercrud_dir / "templates" / f"{self.template_prefix}/object{suffix}"
+            source_path = (
+                powercrud_dir / "templates" / f"{self.template_prefix}/object{suffix}"
+            )
 
             if not source_path.exists():
                 raise CommandError(f"Template not found: {source_path}")
@@ -191,7 +191,7 @@ class Command(BaseCommand):
             # Copy the template
             target_path = app_template_dir / template_name
             shutil.copy2(source_path, target_path)
-            
+
             self.stdout.write(
                 self.style.SUCCESS(
                     f"Successfully copied template:\n"
@@ -208,7 +208,7 @@ class Command(BaseCommand):
             "list": "_list.html",
             "detail": "_detail.html",
             "form": "_form.html",
-            "delete": "_confirm_delete.html"
+            "delete": "_confirm_delete.html",
         }
 
         # Create target directories if they don't exist
@@ -219,7 +219,11 @@ class Command(BaseCommand):
             try:
                 # Get the powercrud package directory
                 powercrud_dir = Path(__file__).resolve().parent.parent.parent
-                source_path = powercrud_dir / "templates" / f"{self.template_prefix}/object{suffix}"
+                source_path = (
+                    powercrud_dir
+                    / "templates"
+                    / f"{self.template_prefix}/object{suffix}"
+                )
 
                 if not source_path.exists():
                     self.stdout.write(
@@ -229,9 +233,9 @@ class Command(BaseCommand):
 
                 template_name = f"{model_name.lower()}{suffix}"
                 target_path = app_template_dir / template_name
-                
+
                 shutil.copy2(source_path, target_path)
-                
+
                 self.stdout.write(
                     self.style.SUCCESS(
                         f"Successfully copied {template_type} template:\n"
@@ -242,5 +246,7 @@ class Command(BaseCommand):
 
             except Exception as e:
                 self.stdout.write(
-                    self.style.WARNING(f"Failed to copy {template_type} template: {str(e)}")
+                    self.style.WARNING(
+                        f"Failed to copy {template_type} template: {str(e)}"
+                    )
                 )

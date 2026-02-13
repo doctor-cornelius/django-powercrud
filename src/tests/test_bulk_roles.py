@@ -38,4 +38,6 @@ def test_bulk_actions_generate_paths(action, expected_route):
 def test_bulk_actions_handlers():
     assert BulkActions.TOGGLE_SELECTION.handlers() == {"post": "toggle_selection_view"}
     assert BulkActions.CLEAR_SELECTION.handlers() == {"post": "clear_selection_view"}
-    assert BulkActions.TOGGLE_ALL_SELECTION.handlers() == {"post": "toggle_all_selection_view"}
+    assert BulkActions.TOGGLE_ALL_SELECTION.handlers() == {
+        "post": "toggle_all_selection_view"
+    }

@@ -1,7 +1,14 @@
 @import "tailwindcss";
 
-/* explicitly include imported packages with tailwind classes*/ 
-@source "/usr/local/lib/python3.13/site-packages/crispy_tailwind";
+/* Explicitly include tailwind classes from python packages containing
+tailwind classes. You can get the correct path by doing:
+
+>>>import crispy_tailwind
+>>>print(crispy_tailwind.__path__) 
+['/usr/local/lib/python3.14/site-packages/crispy_tailwind'] */
+
+/*crispy_tailwind classes*/
+@source "/usr/local/lib/python3.14/site-packages/crispy_tailwind";
 
 @plugin "daisyui" {
     /* themes: light --default, dark --prefersdark, corporate; */

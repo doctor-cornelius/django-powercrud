@@ -59,4 +59,3 @@ INSTALLED_APPS = [
 # IMPORTANT:
 # - No django_q in INSTALLED_APPS
 # - No POWERCRUD_SETTINGS dict defined
-

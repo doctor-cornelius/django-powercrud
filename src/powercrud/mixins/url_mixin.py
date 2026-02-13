@@ -10,10 +10,12 @@ from .config_mixin import resolve_config
 
 log = get_logger(__name__)
 
+
 class UrlMixin:
     """
     Provides URL generation and reversing for powercrud views.
     """
+
     def get_prefix(self):
         """
         Generate a prefix for URL names.
@@ -57,7 +59,6 @@ class UrlMixin:
         )
         raise ImproperlyConfigured(msg % self.__class__.__name__)
 
-
     def safe_reverse(self, viewname, kwargs=None):
         """
         Safely attempt to reverse a URL, returning None if it fails.
@@ -92,7 +93,7 @@ class UrlMixin:
     def reverse(self, role, view, object=None):
         """
         Override of neapolitan's reverse method.
-        
+
         Generates a URL for a given role, view, and optional object.
         Handles namespaced and non-namespaced URLs.
 
@@ -119,7 +120,9 @@ class UrlMixin:
                 return reverse(url_name)
             case _:
                 if object is None:
-                    raise ValueError("Object required for detail, update, and delete URLs")
+                    raise ValueError(
+                        "Object required for detail, update, and delete URLs"
+                    )
                 return reverse(
                     url_name,
                     kwargs={url_kwarg: getattr(object, view.lookup_field)},
@@ -128,7 +131,7 @@ class UrlMixin:
     def maybe_reverse(self, view, object=None):
         """
         Override of neapolitan's maybe_reverse method.
-        
+
         Attempts to reverse a URL, returning None if it fails.
 
         Args:
@@ -222,10 +225,12 @@ class UrlMixin:
         urls = [cls.get_url(role, cls) for role in roles]
 
         # Add bulk edit URL if bulk_fields are defined OR bulk_delete is enabled
-        if (hasattr(cls, 'bulk_fields') and cls.bulk_fields) or getattr(cls, 'bulk_delete', False):
+        if (hasattr(cls, "bulk_fields") and cls.bulk_fields) or getattr(
+            cls, "bulk_delete", False
+        ):
             bulk_edit_role = BulkEditRole()
             urls.append(bulk_edit_role.get_url(cls))
-            
+
             # Add URLs for bulk actions using the new BulkActions enum
             urls.append(BulkActions.TOGGLE_SELECTION.get_url(cls))
             urls.append(BulkActions.CLEAR_SELECTION.get_url(cls))
@@ -233,7 +238,9 @@ class UrlMixin:
 
         # Inline editing endpoints
         if getattr(cls, "inline_edit_enabled", None):
-            lookup_kwarg = getattr(cls, "lookup_url_kwarg", None) or getattr(cls, "lookup_field", "pk")
+            lookup_kwarg = getattr(cls, "lookup_url_kwarg", None) or getattr(
+                cls, "lookup_field", "pk"
+            )
             urls.append(
                 path(
                     f"{cls.url_base}/<{lookup_kwarg}>/inline-row/",
@@ -250,19 +257,19 @@ class UrlMixin:
             )
 
         return urls
-    
+
     def get_context_data(self, **kwargs):  # pragma: no cover
         """
         Prepare and return the context data for template rendering.
 
         This method extends the base context with additional data specific to the view,
         including URLs for CRUD operations, HTMX-related settings, and related object information.
-        
+
         IMPORTANT: This method participates in Django's Method Resolution Order (MRO) chain.
         It calls super().get_context_data(**kwargs) to get the parent context (typically from
         neapolitan's base views), then adds URL-related context. Other mixins (like BulkMixin's
         ViewMixin) may further extend this context by calling super() to chain from this method.
-        
+
         MRO Flow: Base View → CoreMixin → UrlMixin (this method) → HtmxMixin → ... → BulkMixin
         Each mixin adds its specific context without overwriting others, creating a complete
         template context with URLs, bulk selection state, HTMX targets, etc.
@@ -295,9 +302,13 @@ class UrlMixin:
 
         if self.object:
             update_view_name = f"{self.get_prefix()}-{Role.UPDATE.value}"
-            kwargs["update_view_url"] = self.safe_reverse(update_view_name, kwargs={"pk": self.object.pk})
+            kwargs["update_view_url"] = self.safe_reverse(
+                update_view_name, kwargs={"pk": self.object.pk}
+            )
             delete_view_name = f"{self.get_prefix()}-{Role.DELETE.value}"
-            kwargs["delete_view_url"] = self.safe_reverse(delete_view_name, kwargs={"pk": self.object.pk})
+            kwargs["delete_view_url"] = self.safe_reverse(
+                delete_view_name, kwargs={"pk": self.object.pk}
+            )
 
         # send list_view_url
         if cfg.namespace:
@@ -311,23 +322,27 @@ class UrlMixin:
 
         # Add template and feature configuration
         kwargs["base_template_path"] = cfg.base_template_path
-        kwargs['framework_template_path'] = cfg.templates_path
+        kwargs["framework_template_path"] = cfg.templates_path
         kwargs["use_crispy"] = self.get_use_crispy()
         kwargs["use_htmx"] = self.get_use_htmx()
-        kwargs['use_modal'] = self.get_use_modal()
+        kwargs["use_modal"] = self.get_use_modal()
         kwargs["original_target"] = self.get_original_target()
 
         # bulk edit context vars
-        kwargs['enable_bulk_edit'] = self.get_bulk_edit_enabled()
-        kwargs['enable_bulk_delete'] = self.get_bulk_delete_enabled()
-        kwargs['storage_key'] = self.get_storage_key()
+        kwargs["enable_bulk_edit"] = self.get_bulk_edit_enabled()
+        kwargs["enable_bulk_delete"] = self.get_bulk_delete_enabled()
+        kwargs["storage_key"] = self.get_storage_key()
 
         # Set table styling parameters
-        kwargs['table_pixel_height_other_page_elements'] = self.get_table_pixel_height_other_page_elements()
-        kwargs['get_table_max_height'] = self.get_table_max_height()
-        kwargs['table_max_col_width'] = f"{self.get_table_max_col_width()}"
-        kwargs['table_header_min_wrap_width'] = f"{self.get_table_header_min_wrap_width()}"
-        kwargs['table_classes'] = self.get_table_classes()
+        kwargs["table_pixel_height_other_page_elements"] = (
+            self.get_table_pixel_height_other_page_elements()
+        )
+        kwargs["get_table_max_height"] = self.get_table_max_height()
+        kwargs["table_max_col_width"] = f"{self.get_table_max_col_width()}"
+        kwargs["table_header_min_wrap_width"] = (
+            f"{self.get_table_header_min_wrap_width()}"
+        )
+        kwargs["table_classes"] = self.get_table_classes()
 
         # Add HTMX-specific context if enabled
         if self.get_use_htmx():
@@ -354,21 +369,26 @@ class UrlMixin:
             kwargs["inline_edit"] = self.get_inline_context()
 
         # Add sort parameter to context
-        kwargs['sort'] = self.request.GET.get('sort', '')
+        kwargs["sort"] = self.request.GET.get("sort", "")
 
         # pagination variables
-        kwargs['page_size_options'] = self.get_page_size_options()
-        kwargs['default_page_size'] = (
+        kwargs["page_size_options"] = self.get_page_size_options()
+        kwargs["default_page_size"] = (
             str(cfg.paginate_by) if cfg.paginate_by is not None else None
         )
 
         # If we have a form with errors and modals are enabled,
         # ensure the htmx_target is set to the modal target
-        if hasattr(self, 'object_form') and hasattr(self.object_form, 'errors') and self.object_form.errors and self.get_use_modal():
-            kwargs['htmx_target'] = self.get_modal_target()
+        if (
+            hasattr(self, "object_form")
+            and hasattr(self.object_form, "errors")
+            and self.object_form.errors
+            and self.get_use_modal()
+        ):
+            kwargs["htmx_target"] = self.get_modal_target()
 
         # if bulk ops enabled then pass selected_ids
-        request = kwargs.get('request')
+        request = kwargs.get("request")
         if request and self.get_bulk_edit_enabled():
             selected_ids = self.get_selected_ids_from_session(request)
             kwargs["selected_ids"] = selected_ids

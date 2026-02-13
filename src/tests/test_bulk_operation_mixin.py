@@ -53,7 +53,8 @@ def test_perform_bulk_delete_handles_missing_records(noop_atomic):
     mixin = OperationHarness()
     progress = []
     result = mixin._perform_bulk_delete(
-        queryset, progress_callback=lambda current, total: progress.append((current, total))
+        queryset,
+        progress_callback=lambda current, total: progress.append((current, total)),
     )
 
     assert result["success"] is True

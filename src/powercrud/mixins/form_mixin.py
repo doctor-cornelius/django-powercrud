@@ -1,10 +1,9 @@
 import json
 
 from django import forms
-from django.conf import settings
 from django.forms import models as form_models
 from django.db import models as db_models
-from django.core.exceptions import ImproperlyConfigured, ValidationError
+from django.core.exceptions import ImproperlyConfigured
 from django.http import HttpResponseRedirect, QueryDict
 from django.shortcuts import render
 from django.urls import reverse
@@ -55,10 +54,7 @@ class FormMixin:
 
         # Create a new instance to check if it has a helper
         _temp_form = form_class()
-        has_helper = hasattr(_temp_form, 'helper')
-
-        # Capture the current FormMixin instance
-        mixin_instance = self
+        has_helper = hasattr(_temp_form, "helper")
 
         if not has_helper:
             old_init = form_class.__init__
@@ -68,6 +64,7 @@ class FormMixin:
                 self.helper = FormHelper()
                 self.helper.form_tag = False
                 self.helper.disable_csrf = True
+
             form_class.__init__ = new_init
         else:
             old_init = form_class.__init__
@@ -82,6 +79,7 @@ class FormMixin:
                 # Check if disable_csrf has been explicitly set to False
                 if self.helper.disable_csrf is False:
                     self.helper.disable_csrf = True
+
             form_class.__init__ = new_init
 
         # Apply dropdown sorting
@@ -95,7 +93,7 @@ class FormMixin:
         for field_name, sort_field in sort_options.items():
             if field_name in form_class.base_fields:
                 form_field = form_class.base_fields[field_name]
-                if hasattr(form_field, 'queryset') and form_field.queryset is not None:
+                if hasattr(form_field, "queryset") and form_field.queryset is not None:
                     # sort_field can be "name" or "-name" - Django's order_by handles both
                     form_field.queryset = form_field.queryset.order_by(sort_field)
 
@@ -116,22 +114,20 @@ class FormMixin:
                     continue
                 if isinstance(field, db_models.DateField):
                     widgets[field.name] = forms.DateInput(
-                        attrs={'type': 'date', 'class': 'form-control'}
+                        attrs={"type": "date", "class": "form-control"}
                     )
                 elif isinstance(field, db_models.DateTimeField):
                     widgets[field.name] = forms.DateTimeInput(
-                        attrs={'type': 'datetime-local', 'class': 'form-control'}
+                        attrs={"type": "datetime-local", "class": "form-control"}
                     )
                 elif isinstance(field, db_models.TimeField):
                     widgets[field.name] = forms.TimeInput(
-                        attrs={'type': 'time', 'class': 'form-control'}
+                        attrs={"type": "time", "class": "form-control"}
                     )
 
             # Create the form class with our configured widgets
             form_class = form_models.modelform_factory(
-                self.model,
-                fields=cfg.form_fields,
-                widgets=widgets
+                self.model, fields=cfg.form_fields, widgets=widgets
             )
 
             # Apply dropdown sorting to form fields
@@ -139,9 +135,14 @@ class FormMixin:
             for field_name, sort_field in sort_options.items():
                 if field_name in cfg.form_fields:
                     model_field = self.model._meta.get_field(field_name)
-                    if hasattr(model_field, 'related_model') and model_field.related_model:
+                    if (
+                        hasattr(model_field, "related_model")
+                        and model_field.related_model
+                    ):
                         form_field = form_class.base_fields[field_name]
-                        form_field.queryset = model_field.related_model.objects.order_by(sort_field)
+                        form_field.queryset = (
+                            model_field.related_model.objects.order_by(sort_field)
+                        )
 
             # Apply crispy forms if enabled
             if self.get_use_crispy():
@@ -168,11 +169,11 @@ class FormMixin:
         Build kwargs for an inline form instance so inline endpoints can reuse the
         standard form pipeline without duplicating logic.
         """
-        kwargs = {'instance': instance}
+        kwargs = {"instance": instance}
         if data is not None:
-            kwargs['data'] = data
+            kwargs["data"] = data
         if files is not None:
-            kwargs['files'] = files
+            kwargs["files"] = files
         return kwargs
 
     def build_inline_form(self, *, instance, data=None, files=None):
@@ -181,7 +182,9 @@ class FormMixin:
         regular edit forms.
         """
         form_class = self.get_form_class()
-        form_kwargs = self.get_inline_form_kwargs(instance=instance, data=data, files=files)
+        form_kwargs = self.get_inline_form_kwargs(
+            instance=instance, data=data, files=files
+        )
         return form_class(**form_kwargs)
 
     def show_form(self, request, *args, **kwargs):
@@ -197,10 +200,10 @@ class FormMixin:
                 pk = None
 
         if (
-            self.role == Role.UPDATE and 
-            self.get_conflict_checking_enabled() and 
-            pk is not None and 
-            self._check_for_conflicts(selected_ids=[pk])
+            self.role == Role.UPDATE
+            and self.get_conflict_checking_enabled()
+            and pk is not None
+            and self._check_for_conflicts(selected_ids=[pk])
         ):
             if current_object is None:
                 current_object = self.get_object()
@@ -208,10 +211,10 @@ class FormMixin:
 
             # Get filter params (like sort selection does)
             filter_params = request.GET.copy()
-            if 'sort' in filter_params:
-                filter_params.pop('sort')  
-            if 'page' in filter_params:
-                filter_params.pop('page')
+            if "sort" in filter_params:
+                filter_params.pop("sort")
+            if "page" in filter_params:
+                filter_params.pop("page")
 
             # Return conflict response
             context = self.get_context_data(
@@ -223,17 +226,17 @@ class FormMixin:
                 filter_params=filter_params.urlencode() if filter_params else "",
             )
             return self.render_to_response(context)
-        
+
         # No conflict, proceed normally
         return super().show_form(request, *args, **kwargs)
 
     def form_valid(self, form):
         """
         Handle form validation success with HTMX support.
-        
+
         This method saves the form and then handles the response differently based on
         whether it's an HTMX request or not:
-        
+
         For HTMX requests:
         1. Temporarily changes the role to LIST to access list view functionality
         2. Sets the template to the filtered_results partial from object_list.html
@@ -241,24 +244,23 @@ class FormMixin:
         4. Adds HTMX headers to:
         - Close the modal (via formSuccess trigger)
         - Target the filtered_results div (via HX-Retarget)
-        
+
         For non-HTMX requests:
         - Redirects to the success URL (typically the list view)
-        
+
         This approach ensures consistent behavior with the standard list view,
         including proper pagination and filtering, while avoiding code duplication.
-        
+
         Args:
             form: The validated form instance
-            
+
         Returns:
             HttpResponse: Either a rendered list view or a redirect
         """
-        if (
-            self.role == Role.UPDATE
-            and self.get_conflict_checking_enabled()
-        ):
-            pk = getattr(form.instance, "pk", None) or self.kwargs.get(getattr(self, "pk_url_kwarg", "pk"))
+        if self.role == Role.UPDATE and self.get_conflict_checking_enabled():
+            pk = getattr(form.instance, "pk", None) or self.kwargs.get(
+                getattr(self, "pk_url_kwarg", "pk")
+            )
             if pk and self._check_for_conflicts(selected_ids=[pk]):
                 self.object = form.instance
                 return self._render_conflict_response(self.request, pk, "update")
@@ -266,15 +268,15 @@ class FormMixin:
         self.object = form.save()
 
         # If this is an HTMX request, handle it specially
-        if hasattr(self, 'request') and getattr(self.request, 'htmx', False):
+        if hasattr(self, "request") and getattr(self.request, "htmx", False):
             # unpack hidden filter parameters
-            filter_params = QueryDict('', mutable=True)
+            filter_params = QueryDict("", mutable=True)
             # prefix is set in object_form.html
-            filter_prefix = '_powercrud_filter_'
+            filter_prefix = "_powercrud_filter_"
 
             for k, v in self.request.POST.lists():
                 if k.startswith(filter_prefix):
-                    real_key = k[len(filter_prefix):]
+                    real_key = k[len(filter_prefix) :]
                     for value in v:
                         filter_params.appendlist(real_key, value)
 
@@ -302,13 +304,12 @@ class FormMixin:
             original_get = self.request.GET
             self.request.GET = filter_params
             # Temporarily change the role to LIST
-            original_role = self.role
             self.role = Role.LIST
             # Use the list method to handle pagination and filtering
             response = self.list(self.request)
             # Restore original GET
             self.request.GET = original_get
-            
+
             response["HX-Trigger"] = json.dumps({"formSuccess": True})
             response["HX-Retarget"] = f"{self.get_original_target()}"
             response["HX-Push-Url"] = canonical_url
@@ -319,10 +320,10 @@ class FormMixin:
     def form_invalid(self, form):
         """
         Handle form validation errors, ensuring proper display in modals.
-        
+
         This method handles form validation errors differently based on whether
         it's an HTMX request with modals enabled:
-        
+
         For HTMX requests with modals:
         1. Stores the form with errors
         2. Sets a flag to indicate the modal should stay open
@@ -330,13 +331,13 @@ class FormMixin:
         4. Adds HTMX headers to:
         - Keep the modal open (via formError and showModal triggers)
         - Target the modal content (via HX-Retarget)
-        
+
         For other requests:
         - Uses the default form_invalid behavior
-        
+
         Args:
             form: The form with validation errors
-            
+
         Returns:
             HttpResponse: The rendered form with error messages
         """
@@ -348,15 +349,20 @@ class FormMixin:
             self.form_has_errors = True
 
         # For HTMX requests with modals, ensure we use the form template
-        if hasattr(self, 'request') and getattr(self.request, 'htmx', False) and self.get_use_modal():
-            # Ensure we're using the form template, not object_list
-            original_template_name = getattr(self, 'template_name', None)
-
+        if (
+            hasattr(self, "request")
+            and getattr(self.request, "htmx", False)
+            and self.get_use_modal()
+        ):
             # Set template to the form partial
             if self.object:  # Update form
-                self.template_name = f"{self.templates_path}/object_form.html#pcrud_content"
+                self.template_name = (
+                    f"{self.templates_path}/object_form.html#pcrud_content"
+                )
             else:  # Create form
-                self.template_name = f"{self.templates_path}/object_form.html#pcrud_content"
+                self.template_name = (
+                    f"{self.templates_path}/object_form.html#pcrud_content"
+                )
 
             # Render the response with the form template
             context = self.get_context_data(form=form)
@@ -368,7 +374,9 @@ class FormMixin:
 
             # Add HTMX headers to keep the modal open
             modal_id = self.get_modal_id()[1:]  # Remove the # prefix
-            response["HX-Trigger"] = json.dumps({"formError": True, "showModal": modal_id})
+            response["HX-Trigger"] = json.dumps(
+                {"formError": True, "showModal": modal_id}
+            )
             response["HX-Retarget"] = self.get_modal_target()
 
             return response

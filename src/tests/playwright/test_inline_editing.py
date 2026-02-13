@@ -74,14 +74,14 @@ def build_inline_row_path(books_url: str, pk: int) -> str:
 
 
 def get_inline_row(page: Page, row_path: str):
-    row = page.locator(
-        f'{INLINE_ROW_SELECTOR}[data-inline-row-url="{row_path}"]'
-    )
+    row = page.locator(f'{INLINE_ROW_SELECTOR}[data-inline-row-url="{row_path}"]')
     expect(row).to_be_visible()
     return row
 
 
-def open_inline_row(page: Page, *, row=None, row_index: int = 0, field_name: str = "title"):
+def open_inline_row(
+    page: Page, *, row=None, row_index: int = 0, field_name: str = "title"
+):
     if row is None:
         row = page.locator(INLINE_ROW_SELECTOR).nth(row_index)
     expect(row).to_be_visible()
@@ -110,13 +110,17 @@ def test_inline_edit_happy_path(page: Page, books_url: str, inline_ready_books):
 
     expect(page.locator(INLINE_ACTIVE_SELECTOR)).to_have_count(0)
     display_row = get_inline_row(page, row_path)
-    expect(display_row.locator("td[data-field-name='title']")).to_contain_text(new_title)
+    expect(display_row.locator("td[data-field-name='title']")).to_contain_text(
+        new_title
+    )
 
     book.refresh_from_db()
     assert book.title == new_title
 
 
-def test_inline_edit_validation_error_recovers(page: Page, books_url: str, inline_ready_books):
+def test_inline_edit_validation_error_recovers(
+    page: Page, books_url: str, inline_ready_books
+):
     book = inline_ready_books[0]
     row_path = build_inline_row_path(books_url, book.pk)
     open_books_page(page, books_url)
@@ -144,13 +148,17 @@ def test_inline_edit_validation_error_recovers(page: Page, books_url: str, inlin
 
     expect(page.locator(INLINE_ACTIVE_SELECTOR)).to_have_count(0)
     refreshed_row = get_inline_row(page, row_path)
-    expect(refreshed_row.locator("td[data-field-name='title']")).to_contain_text(recovery_title)
+    expect(refreshed_row.locator("td[data-field-name='title']")).to_contain_text(
+        recovery_title
+    )
 
     book.refresh_from_db()
     assert book.title == recovery_title
 
 
-def test_inline_edit_guard_focuses_active_row(page: Page, books_url: str, inline_ready_books):
+def test_inline_edit_guard_focuses_active_row(
+    page: Page, books_url: str, inline_ready_books
+):
     assert len(inline_ready_books) >= 2, "Guard test needs at least two rows"
 
     open_books_page(page, books_url)

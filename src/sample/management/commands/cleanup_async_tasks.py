@@ -21,4 +21,8 @@ class Command(BaseCommand):
         cutoff = timezone.now() - timedelta(days=options["days"])
         qs = AsyncTaskRecord.objects.filter(updated_at__lt=cutoff)
         deleted, _ = qs.delete()
-        self.stdout.write(self.style.SUCCESS(f"Deleted {deleted} async task records older than {options['days']} days."))
+        self.stdout.write(
+            self.style.SUCCESS(
+                f"Deleted {deleted} async task records older than {options['days']} days."
+            )
+        )

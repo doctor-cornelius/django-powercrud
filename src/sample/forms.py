@@ -1,7 +1,7 @@
 from django import forms
-from crispy_forms.helper import FormHelper
 
 from . import models
+
 
 class BookForm(forms.ModelForm):
     def __init__(self, *args, author_for_genres=None, **kwargs):
@@ -39,12 +39,13 @@ class BookForm(forms.ModelForm):
             "published_date": forms.DateInput(attrs={"type": "date"}),
         }
 
+
 # class BookForm(forms.ModelForm):
-    # def __init__(self, *args, **kwargs):
-    #     super().__init__(*args, **kwargs)
-    #     self.helper = FormHelper()
-    #     self.helper.form_tag = False
-    #     self.helper.disable_csrf = True
+# def __init__(self, *args, **kwargs):
+#     super().__init__(*args, **kwargs)
+#     self.helper = FormHelper()
+#     self.helper.form_tag = False
+#     self.helper.disable_csrf = True
 
 #     class Meta:
 #         model = models.Book
@@ -60,6 +61,7 @@ class BookForm(forms.ModelForm):
 #         widgets = {
 #             "published_date": forms.DateInput(attrs={"type": "date"}),
 #         }
+
 
 class AuthorForm(forms.ModelForm):
     class Meta:

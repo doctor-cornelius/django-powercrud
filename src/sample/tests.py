@@ -147,17 +147,22 @@ class SampleAsyncDashboardTests(TestCase):
         self.assertEqual(record.progress_payload, "Working")
 
     def test_async_task_detail_view_renders(self):
-        AsyncTaskRecord.objects.create(task_name="task-detail", status=AsyncTaskRecord.STATUS.PENDING)
-        response = self.client.get(reverse("sample:asynctaskrecord-detail", args=["task-detail"]))
+        AsyncTaskRecord.objects.create(
+            task_name="task-detail", status=AsyncTaskRecord.STATUS.PENDING
+        )
+        response = self.client.get(
+            reverse("sample:asynctaskrecord-detail", args=["task-detail"])
+        )
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "task-progress")
 
 
 class SampleAsyncContextDemoTests(TestCase):
-
     def setUp(self):
-        with patch('sample.models.time.sleep', return_value=None):
-            self.author = Author.objects.create(name="Author", bio="", birth_date=date(2000, 1, 1))
+        with patch("sample.models.time.sleep", return_value=None):
+            self.author = Author.objects.create(
+                name="Author", bio="", birth_date=date(2000, 1, 1)
+            )
             self.genre = Genre.objects.create(name="Genre", description="")
             self.book = Book.objects.create(
                 title="Demo Book",
@@ -170,23 +175,27 @@ class SampleAsyncContextDemoTests(TestCase):
         self.book.genres.add(self.genre)
 
     def test_book_save_streams_progress_inside_context(self):
-        with task_context('demo-task', 'sample.async_manager.SampleAsyncManager'):
-            with patch('sample.models.register_descendant_conflicts') as mock_register,
-                 patch('sample.models.AsyncManager') as mock_manager_cls,
-                 patch('sample.models.time.sleep', return_value=None):
+        with task_context("demo-task", "sample.async_manager.SampleAsyncManager"):
+            with (
+                patch("sample.models.register_descendant_conflicts") as mock_register,
+                patch("sample.models.AsyncManager") as mock_manager_cls,
+                patch("sample.models.time.sleep", return_value=None),
+            ):
                 manager_instance = mock_manager_cls.return_value
                 self.book.save()
 
-        mock_register.assert_called_once_with('sample.Genre', [self.genre.id])
+        mock_register.assert_called_once_with("sample.Genre", [self.genre.id])
         manager_instance.update_progress.assert_called()
         args, kwargs = manager_instance.update_progress.call_args
-        self.assertEqual(args[0], 'demo-task')
-        self.assertIn('processed child', args[1])
+        self.assertEqual(args[0], "demo-task")
+        self.assertIn("processed child", args[1])
 
     def test_book_save_without_context_runs_normally(self):
-        with patch('sample.models.register_descendant_conflicts') as mock_register,
-             patch('sample.models.AsyncManager') as mock_manager_cls,
-             patch('sample.models.time.sleep', return_value=None) as mock_sleep:
+        with (
+            patch("sample.models.register_descendant_conflicts") as mock_register,
+            patch("sample.models.AsyncManager") as mock_manager_cls,
+            patch("sample.models.time.sleep", return_value=None) as mock_sleep,
+        ):
             self.book.save()
 
         mock_register.assert_not_called()

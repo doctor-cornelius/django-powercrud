@@ -50,31 +50,26 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-
     "django_vite",
     "template_partials",
-    'django_htmx',
-
+    "django_htmx",
     "crispy_forms",
     # "crispy_daisyui",
     "crispy_tailwind",
-
     # for async
-    'django_q',
-    'django_redis',
-
+    "django_q",
+    "django_redis",
     # project apps
     "powercrud",
     "neapolitan",
     "sample",
-    
 ]
 
 
 # NB we use crispy_tailwind because crispy_daisyui classes don't seem to work with daisyUI v5
 # (and they don't come through to the tailwind tree shaker either even when you include the repo files in templates)
-CRISPY_ALLOWED_TEMPLATE_PACKS = ['tailwind']
-CRISPY_TEMPLATE_PACK = 'tailwind'
+CRISPY_ALLOWED_TEMPLATE_PACKS = ["tailwind"]
+CRISPY_TEMPLATE_PACK = "tailwind"
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
@@ -153,7 +148,7 @@ USE_TZ = True
 
 STATIC_URL = "static/"
 STATICFILES_DIRS = [
-    BASE_DIR / "powercrud" / "assets", # for vite setup
+    BASE_DIR / "powercrud" / "assets",  # for vite setup
 ]
 
 STATIC_ROOT = BASE_DIR / "powercrud" / "staticfiles"
@@ -162,11 +157,11 @@ VITE_HOST = os.getenv("DJANGO_VITE_HOST", "localhost")
 VITE_PORT = int(os.getenv("DJANGO_VITE_PORT", 5174))
 
 DJANGO_VITE = {
-  "default": {
-    "dev_mode": DEBUG, # set to use DEBUG variable (ie False in Production)
-    "dev_server_port": VITE_PORT, # match setting in server key of vite.config.mjs
-    "dev_server_host": VITE_HOST,
-  }
+    "default": {
+        "dev_mode": DEBUG,  # set to use DEBUG variable (ie False in Production)
+        "dev_server_port": VITE_PORT,  # match setting in server key of vite.config.mjs
+        "dev_server_host": VITE_HOST,
+    }
 }
 
 # Default primary key field type
@@ -175,7 +170,7 @@ DJANGO_VITE = {
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # Session Settings
-SESSION_ENGINE = 'django.contrib.sessions.backends.db'  # Default, using database
+SESSION_ENGINE = "django.contrib.sessions.backends.db"  # Default, using database
 SESSION_COOKIE_AGE = 300  # 5 minutes in seconds
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True  # Sessions expire when browser closes
 SESSION_SAVE_EVERY_REQUEST = True  # Update session expiry on every request
@@ -240,9 +235,9 @@ CACHES = {
     },
     "db_cache": {  # for testing db backed cache for conflict/progress
         "BACKEND": "django.core.cache.backends.db.DatabaseCache",
-        "LOCATION": "async_cache_table", 
+        "LOCATION": "async_cache_table",
         "KEY_PREFIX": "powercrud",
-    }
+    },
 }
 
 # increase to allow max selected_ids for bulk ops
