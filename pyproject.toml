@@ -30,7 +30,7 @@ tests-core = [
     "psycopg-binary>=3.3.2,<4",
     "psycopg>=3.3.2,<4",
     "django-redis>=6.0.0,<7",
-    "pytest-django>=4.11.1,<5",
+    "pytest-django>=4.12.0,<5",
 ]
 tests-ui = [
     "pytest-playwright>=0.7.2,<1",
@@ -93,7 +93,7 @@ tests-core = [
     "psycopg-binary>=3.3.2,<4",
     "psycopg>=3.3.2,<4",
     "django-redis>=6.0.0,<7",
-    "pytest-django>=4.11.1,<5"
+    "pytest-django>=4.12.0,<5"
 ]
 tests-ui = [
     "pytest-playwright>=0.7.2,<1",
