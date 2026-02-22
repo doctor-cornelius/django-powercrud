@@ -4,6 +4,6 @@
   "folders": ["docs/mkdocs"],
   "excludeFolders": [
     "src",
-    "docs/mkdocs/blog",
+    "docs/mkdocs/blog"
   ]
 }
