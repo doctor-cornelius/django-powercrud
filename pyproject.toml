@@ -27,8 +27,8 @@ tests-core = [
     "crispy-tailwind>=1.0.3,<2",
     "django-vite>=3.1.0,<4",
     "django-q2>=1.9.0,<2",
-    "psycopg-binary>=3.3.2,<4",
-    "psycopg>=3.3.2,<4",
+    "psycopg-binary>=3.3.3,<4",
+    "psycopg>=3.3.3,<4",
     "django-redis>=6.0.0,<7",
     "pytest-django>=4.12.0,<5",
 ]
@@ -37,13 +37,13 @@ tests-ui = [
     "playwright>=1.58.0,<2"
 ]
 dev = [
-    "commitizen>=4.13.7,<5",
+    "commitizen>=4.13.8,<5",
     "ipykernel>=7.2.0,<8",
-    "ruff>=0.15.1",
+    "ruff>=0.15.2",
 ]
 docs = [
     "mkdocs>=1.6.1,<2",
-    "mkdocs-material>=9.7.1,<10",
+    "mkdocs-material>=9.7.3,<10",
     "mkdocs-mermaid2-plugin>=1.2.3,<2",
     "mkdocs-enumerate-headings-plugin>=0.6.2,<0.7",
     "mkdocs-awesome-nav>=3.3.0,<4"
@@ -90,8 +90,8 @@ tests-core = [
     "crispy-tailwind>=1.0.3,<2",
     "django-vite>=3.1.0,<4",
     "django-q2>=1.9.0,<2",
-    "psycopg-binary>=3.3.2,<4",
-    "psycopg>=3.3.2,<4",
+    "psycopg-binary>=3.3.3,<4",
+    "psycopg>=3.3.3,<4",
     "django-redis>=6.0.0,<7",
     "pytest-django>=4.12.0,<5"
 ]
@@ -100,9 +100,9 @@ tests-ui = [
     "playwright>=1.58.0,<2"
 ]
 dev = [
-    "commitizen>=4.13.7,<5",
+    "commitizen>=4.13.8,<5",
     "ipykernel>=7.2.0,<8",
-    "ruff>=0.15.1",
+    "ruff>=0.15.2",
 ]
 
 [tool.ruff.lint.per-file-ignores]
