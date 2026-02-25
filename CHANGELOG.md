@@ -1,3 +1,19 @@
+## 0.4.15 (2026-02-25)
+
+### Fix
+
+- **(deps)**: update python-packages (#68)
+- **(deps)**: update dependency pytest-django to >=4.12.0,<5 (#66)
+- **(deps)**: lock file maintenance js-packages (#64)
+
+### Documentation
+
+- **(docs)**: make settings config for core dependencies clearer in docs
+
+### Feature
+
+- **(ruff.sh)**: implement ruff and run across all files
+
 ## 0.4.14 (2026-02-09)
 
 ### Fix
