@@ -19,7 +19,7 @@ If you have not yet installed PowerCRUD and its base dependencies, complete the 
 Before enabling the richer helpers, work through the [Getting Started](./getting_started.md) guide:
 
 - [Install the dependencies](./getting_started.md#installation) and wire up the base template assets you plan to use.
-- [Add the PowerCRUD apps/settings](./getting_started.md#settings-configuration), including `django_htmx`.
+- [Complete the required Django wiring](./getting_started.md#required-configuration), including `django_htmx.middleware.HtmxMiddleware`.
 - [Declare your first view](./getting_started.md#basic-setup) and confirm the list/template renders without HTMX extras.
 - [Expose the view somewhere in your project URLs](./getting_started.md#add-to-urls).
 

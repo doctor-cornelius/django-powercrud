@@ -19,24 +19,24 @@ This automatically installs:
 - `django-template-partials`
 - `pydantic`
 
-### install Frontend Dependencies
+??? note "Dependency docs"
 
-You'll need to include these JavaScript libraries in your base template:
+    - django-htmx: [https://django-htmx.readthedocs.io/](https://django-htmx.readthedocs.io/){ target="_blank" rel="noopener noreferrer" }
+    - django-template-partials: [https://github.com/carltongibson/django-template-partials](https://github.com/carltongibson/django-template-partials){ target="_blank" rel="noopener noreferrer" }
+    - pydantic: [https://docs.pydantic.dev/latest/](https://docs.pydantic.dev/latest/){ target="_blank" rel="noopener noreferrer" }
 
-- **HTMX** - [Install from htmx.org](https://htmx.org/docs/#installing)
-- **Popper.js** - For table column text truncation popovers
+## Required Configuration
 
-**Default styling:**
+!!! warning "Minimum required wiring for PowerCRUD"
 
-- daisyUI v5 with Tailwind CSS v4
-- Bootstrap Icons (for sorting indicators)
+    PowerCRUD depends on these Django integrations:
 
-!!! note "Choose Your Frontend Install Methods"
+    - Add to `INSTALLED_APPS`: `powercrud`, `neapolitan`, `django_htmx`, `template_partials`
+    - Add to `MIDDLEWARE`: `django_htmx.middleware.HtmxMiddleware`
+    - Include HTMX in your base template
+    - `pydantic` is installed automatically and needs no extra Django setup
 
-    There are many ways to include JavaScript (CDN, npm, Vite, etc.) - use whatever works for your project.*
-    See the example base template in `sample/templates/sample/daisyUI/base.html` for a complete implementation with CDN links.
-
-## Settings Configuration
+    If `django_htmx.middleware.HtmxMiddleware` is missing, HTMX requests will fail at runtime.
 
 Add to your `settings.py`:
 
@@ -51,11 +51,36 @@ INSTALLED_APPS = [
     ...
 ]
 
+MIDDLEWARE = [
+    ...,
+    "django_htmx.middleware.HtmxMiddleware",
+    ...,
+]
+
 # Optional: POWERCRUD_SETTINGS overrides (all keys are optional and have defaults)
 POWERCRUD_SETTINGS = {
     "POWERCRUD_CSS_FRAMEWORK": "daisyui",  # built-in default
 }
 ```
+
+## Frontend Dependencies
+
+You'll need to include these JavaScript libraries in your base template:
+
+- **HTMX** - [Install from htmx.org](https://htmx.org/docs/#installing)
+- **Popper.js** - For table column text truncation popovers
+
+**Default styling:**
+
+- daisyUI v5 with Tailwind CSS v4
+- Bootstrap Icons (for sorting indicators)
+
+!!! note "Choose Your Frontend Install Methods"
+
+    There are many ways to include JavaScript (CDN, npm, Vite, etc.) - use whatever works for your project.*
+    
+    - See `sample/templates/sample/daisyUI/base.html` for a complete Vite-based implementation.
+    - If you prefer CDN, follow each library's official documentation.
 
 **Important:** If using Tailwind CSS (default), ensure Tailwind includes powercrud's classes in its build process. See the [Styling guide](./styling_tailwind.md#tailwind-integration) for details.
 
