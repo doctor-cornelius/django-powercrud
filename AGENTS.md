@@ -31,14 +31,17 @@ We use material for mkdocs. Follow these rules if editing any `*.md` file under 
 
 When editing do not put any comments like `# noqa: F401`
 
+## Writing Tests
+
+- for `assert` statements always include a helpful failure message so the reader can see exactly what the intent was
+
 ## Running Tests
-- Do not run tests without user's explicit permission ahead of time.
-  - If tests would help, ask the user first and wait for approval.
-- If the user says "SESSION TESTS AUTHORIZED" then whenever you are editing code, you are authorized during the session to:
-  - create or edit related tests
-  - run tests as per the instructions following  
-- Tests must be run from inside the Django container in the full Compose environment.
-- To run tests after approval, enter the container with `./runproj exec` and run test commands there using the `runtests` script.
+
+- you can run tests if needed when editing code or if the user asks you to
+  - If the user says "SESSION TESTS UNAUTHORIZED" then you must ask for permission during the session to run tests
+- run tests as per the instructions following
+  - Tests must be run from inside the Django container in the full Compose environment.
+  - To run tests, enter the container with `./runproj exec` and run test commands there using the `runtests` command as per the script `runtests` in the repo root.
 
 ## Project Briefing
 

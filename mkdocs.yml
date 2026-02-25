@@ -13,8 +13,8 @@ watch:
   - docs
 
 draft_docs: |
-  plans/**
-  !/plans/index.md
+  _plans/**
+  !/_plans/index.md
 
 plugins:
   - search
