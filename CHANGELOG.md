@@ -1,3 +1,10 @@
+## 0.4.16 (2026-03-06)
+
+### Fix
+
+- **(inline)**: preserve row context in dependency refresh and remove stray template artifact
+- **(deps)**: update js-packages (#70)
+
 ## 0.4.15 (2026-02-25)
 
 ### Fix
