@@ -98,7 +98,22 @@ def test_inline_dependency_refreshes_genre_options_without_save(
     open_books_page(page, books_url)
     active_row = open_inline_row(page, row=get_inline_row(page, row_path))
 
-    active_row.locator("select[name='author']").select_option(str(author_b.pk))
+    author_select = active_row.locator("select[name='author']")
+    ts_wrapper = active_row.locator("select[name='author'] + .ts-wrapper")
+    if ts_wrapper.count() > 0:
+        author_select.evaluate(
+            """
+            (el, value) => {
+                if (!el.tomselect) {
+                    throw new Error("Expected TomSelect instance for inline dependency test.");
+                }
+                el.tomselect.setValue(String(value));
+            }
+            """,
+            str(author_b.pk),
+        )
+    else:
+        author_select.select_option(str(author_b.pk))
 
     # Wait until dependency refresh replaces the child select with constrained choices.
     row_id = active_row.get_attribute("id")

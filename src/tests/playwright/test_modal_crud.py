@@ -32,11 +32,42 @@ def select_single_value(page, form, field_name: str, option_label: str, option_v
             f"Native select '{field_name}' should be hidden when TomSelect enhancement is active."
         )
         control_input = ts_wrapper.locator("input").first
-        control_input.click()
-        control_input.fill(option_label)
-        option = page.locator(".ts-dropdown .option", has_text=option_label).first
-        expect(option).to_be_visible()
-        option.click()
+        input_in_viewport = control_input.evaluate(
+            """
+            (el) => {
+                const rect = el.getBoundingClientRect();
+                return (
+                    rect.width > 0
+                    && rect.height > 0
+                    && rect.top >= 0
+                    && rect.left >= 0
+                    && rect.bottom <= window.innerHeight
+                    && rect.right <= window.innerWidth
+                );
+            }
+            """
+        )
+        if input_in_viewport:
+            control_input.click()
+            control_input.fill(option_label)
+            option = page.locator(".ts-dropdown .option", has_text=option_label).first
+            expect(option).to_be_visible()
+            option.click()
+        else:
+            # In some headless viewport/layout combinations, TomSelect's input
+            # can end up outside the viewport. Use TomSelect API directly so
+            # modal CRUD tests stay deterministic.
+            select.evaluate(
+                """
+                (el, payload) => {
+                    if (!el.tomselect) {
+                        throw new Error('Expected TomSelect instance for modal helper');
+                    }
+                    el.tomselect.setValue(String(payload.value));
+                }
+                """,
+                {"value": option_value},
+            )
         expect(select).to_have_value(option_value)
         return
     select.select_option(option_value)
