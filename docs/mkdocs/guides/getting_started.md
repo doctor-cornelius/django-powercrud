@@ -6,24 +6,55 @@
 
 ## Installation
 
-### Install Core Dependencies
+### Install Python packages
 
 ```bash
 pip install neapolitan
 pip install django-powercrud
 ```
 
-This automatically installs:
+## Dependencies
+
+### Backend dependencies
+
+Install `django-powercrud` and `neapolitan` via `pip`, then add the required Django apps and middleware in your settings.
+
+PowerCRUD installs these Python dependencies automatically:
 
 - `django-htmx`
 - `django-template-partials`
 - `pydantic`
 
-??? note "Dependency docs"
+??? note "Backend library docs"
 
     - django-htmx: [https://django-htmx.readthedocs.io/](https://django-htmx.readthedocs.io/){ target="_blank" rel="noopener noreferrer" }
     - django-template-partials: [https://github.com/carltongibson/django-template-partials](https://github.com/carltongibson/django-template-partials){ target="_blank" rel="noopener noreferrer" }
     - pydantic: [https://docs.pydantic.dev/latest/](https://docs.pydantic.dev/latest/){ target="_blank" rel="noopener noreferrer" }
+
+### Frontend dependencies
+
+PowerCRUD ships a frontend bundle for its interactive behaviour and default styling.
+
+The bundled frontend includes:
+
+- **HTMX**
+- **Tom Select** (searchable single-select enhancement)
+- **Tippy.js** (truncated-table tooltips/popovers)
+- **Compiled default CSS** for the built-in daisyUI/Tailwind templates
+
+Recommended: load the PowerCRUD frontend bundle in your base template using whatever asset strategy your project already uses.
+
+If you do **not** load the bundle, you must provide equivalent frontend assets yourself or interactive features will not work correctly.
+
+??? note "Frontend library docs"
+
+    - HTMX: [https://htmx.org/docs/](https://htmx.org/docs/){ target="_blank" rel="noopener noreferrer" }
+    - Tom Select: [https://tom-select.js.org/](https://tom-select.js.org/){ target="_blank" rel="noopener noreferrer" }
+    - Tippy.js: [https://atomiks.github.io/tippyjs/](https://atomiks.github.io/tippyjs/){ target="_blank" rel="noopener noreferrer" }
+    - daisyUI: [https://daisyui.com/docs/](https://daisyui.com/docs/){ target="_blank" rel="noopener noreferrer" }
+    - Tailwind CSS: [https://tailwindcss.com/docs](https://tailwindcss.com/docs){ target="_blank" rel="noopener noreferrer" }
+
+Projects that use the built-in templates but manage assets themselves should read those docs. Projects that load the packaged bundle can usually ignore the frontend package-level setup details.
 
 ## Required Configuration
 
@@ -33,7 +64,7 @@ This automatically installs:
 
     - Add to `INSTALLED_APPS`: `powercrud`, `neapolitan`, `django_htmx`, `template_partials`
     - Add to `MIDDLEWARE`: `django_htmx.middleware.HtmxMiddleware`
-    - Include HTMX in your base template
+    - Load the PowerCRUD frontend bundle in your base template, or provide equivalent frontend assets yourself
     - `pydantic` is installed automatically and needs no extra Django setup
 
     If `django_htmx.middleware.HtmxMiddleware` is missing, HTMX requests will fail at runtime.
@@ -63,24 +94,35 @@ POWERCRUD_SETTINGS = {
 }
 ```
 
-## Frontend Dependencies
+## Frontend Integration
 
-You'll need to include these JavaScript libraries in your base template:
+Use the PowerCRUD frontend bundle as the default path. That keeps the setup small and ensures interactive features behave as documented.
 
-- **HTMX** - [Install from htmx.org](https://htmx.org/docs/#installing)
-- **Popper.js** - For table column text truncation popovers
+If you prefer to manage frontend assets yourself, that is still valid, but you then own loading the equivalent libraries and keeping behaviour aligned.
 
-**Default styling:**
+For example, when using `django-vite` in manifest mode, point it at the packaged bundle like this:
 
-- daisyUI v5 with Tailwind CSS v4
-- Bootstrap Icons (for sorting indicators)
+```python
+from importlib import resources
 
-!!! note "Choose Your Frontend Install Methods"
 
-    There are many ways to include JavaScript (CDN, npm, Vite, etc.) - use whatever works for your project.*
-    
-    - See `sample/templates/sample/daisyUI/base.html` for a complete Vite-based implementation.
-    - If you prefer CDN, follow each library's official documentation.
+POWERCRUD_ASSETS_DIR = resources.files("powercrud").joinpath("assets")
+
+DJANGO_VITE = {
+    "default": {
+        "manifest_path": f"{POWERCRUD_ASSETS_DIR}/manifest.json",
+    }
+}
+```
+
+Then load the bundle entry in your base template:
+
+```django
+{% load django_vite %}
+{% vite_asset 'config/static/js/main.js' %}
+```
+
+See `sample/templates/sample/daisyUI/base.html` for a complete Vite-based example.
 
 **Important:** If using Tailwind CSS (default), ensure Tailwind includes powercrud's classes in its build process. See the [Styling guide](./styling_tailwind.md#tailwind-integration) for details.
 

@@ -1,6 +1,6 @@
 # Styling & Tailwind
 
-PowerCRUD ships with daisyUI/Tailwind defaults but you can bring your own CSS framework or customise tables/buttons/layout. This chapter covers the common knobs and Tailwind integration; deeper options live in the reference.
+PowerCRUD ships with daisyUI/Tailwind defaults and a packaged frontend bundle, but you can still bring your own CSS framework or customise tables/buttons/layout. This chapter covers the common knobs and Tailwind integration; deeper options live in the reference.
 
 ---
 
@@ -52,7 +52,11 @@ These values control truncation/popovers and scrollable table height.
 
 ## 3. Tailwind integration {#tailwind-integration}
 
-Tailwind’s JIT needs to see the CSS classes PowerCRUD uses. Choose one of the methods below.
+You only need this section if you are running your **own** Tailwind build.
+
+If you are using the packaged PowerCRUD frontend bundle and the built-in templates as-is, the compiled default CSS is already included.
+
+Tailwind’s JIT needs to see the CSS classes PowerCRUD uses when you manage Tailwind yourself. Choose one of the methods below.
 
 ### Method A · Import package source
 
@@ -107,9 +111,13 @@ Re-run the command whenever you upgrade PowerCRUD or adjust templates heavily.
 
 Ensure your base template includes:
 
-- HTMX script.
-- Popper.js (for truncated-table popovers).
-- Optional: tablesort or Alpine.js if you use them.
+- The PowerCRUD JS/CSS bundle (recommended), or equivalent scripts and styles for HTMX/Tippy/Tom Select plus your chosen template styling stack if you manage assets manually.
+- Optional: extra table tooling (for example `tablesort`) if you use it.
+
+If you manage assets yourself and still want the default visual style, refer to:
+
+- daisyUI docs: [https://daisyui.com/docs/](https://daisyui.com/docs/){ target="_blank" rel="noopener noreferrer" }
+- Tailwind CSS docs: [https://tailwindcss.com/docs](https://tailwindcss.com/docs){ target="_blank" rel="noopener noreferrer" }
 
 PowerCRUD does not ship a full HTML shell; instead, your project must define its own base template (for example, see the sample app’s `sample/templates/sample/daisyUI/base.html`) and point `base_template_path` at it.
 

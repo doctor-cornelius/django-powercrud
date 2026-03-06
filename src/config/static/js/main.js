@@ -6,14 +6,6 @@ import 'tom-select/dist/css/tom-select.css'
 
 window.htmx = htmx
 
-// Bootstrap
-import * as bootstrap from 'bootstrap'
-window.bootstrap = bootstrap
-
-// Alpine.js
-import Alpine from 'alpinejs'
-window.Alpine = Alpine
-
 // Tippy.js
 import tippy from 'tippy.js';
 import 'tippy.js/dist/tippy.css';
@@ -203,9 +195,6 @@ function getHtmxEventRoots(event) {
 document.addEventListener('DOMContentLoaded', () => {
     // Start htmx after DOM is ready
     htmx.process(document.body)
-
-    // Start Alpine after DOM is ready
-    Alpine.start()
     
     // Initialize tooltips if needed
     tippy('[data-tippy-content]')

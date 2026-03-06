@@ -107,7 +107,6 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
         # This will target the modal (id="powercrudModalContent") specified in object_list.html
         # Requires:
             # use_htmx = True
-            # Alpine installed in your base template
             # htmx installed in your base template
             # django_htmx installed and configured in your settings
 
