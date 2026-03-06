@@ -190,6 +190,20 @@ class InlineMissingFieldView(InlineTestView):
     inline_edit_fields = ["title", "author", "published_date", "isbn", "bestseller"]
 
 
+class InlineDependencyCaptureView(InlineTestView):
+    """Capture inline dependency inputs to assert context propagation."""
+
+    def __init__(self, request, obj):
+        super().__init__(request, obj)
+        self.captured_instance_pk = None
+        self.captured_author = None
+
+    def build_inline_form(self, *, instance, data=None, files=None):
+        self.captured_instance_pk = getattr(instance, "pk", None)
+        self.captured_author = data.get("author") if data is not None else None
+        return super().build_inline_form(instance=instance, data=data, files=files)
+
+
 def _make_request(method="get", path="/inline/", data=None):
     rf = RequestFactory()
     request = getattr(rf, method)(path, data=data or {})
@@ -205,9 +219,14 @@ def test_inline_get_renders_form_html(sample_book):
 
     response = view._dispatch_inline_row(request, pk=sample_book.pk)
 
-    assert response.status_code == 200
-    assert b"inline-field-widget" in response.content
-    assert b"Save" in response.content
+    assert response.status_code == 200, "Expected inline row GET to render successfully."
+    assert (
+        b"inline-field-widget" in response.content
+    ), "Expected inline row GET response to include editable inline field markup."
+    assert b"Save" in response.content, "Expected inline row GET response to include Save action."
+    assert (
+        b"> -->" not in response.content
+    ), "Inline row form should not render stray HTML comment artifacts near actions."
 
 
 @pytest.mark.django_db
@@ -420,6 +439,49 @@ def test_inline_dependency_endpoint_renders_widget(sample_book):
 
     assert response.status_code == 200
     assert b"inline-field-widget" in response.content
+
+
+@pytest.mark.django_db
+def test_inline_dependency_uses_url_pk_fallback_when_post_pk_missing(sample_book):
+    request = _make_request(
+        "post",
+        path="/inline-dependency/",
+        data={
+            "field": "title",
+            "author": str(sample_book.author_id),
+            "title": sample_book.title,
+        },
+    )
+    view = InlineDependencyCaptureView(request, sample_book)
+
+    response = view._dispatch_inline_dependency(request, pk=sample_book.pk)
+
+    assert response.status_code == 200, "Dependency refresh should succeed when URL pk is provided."
+    assert (
+        view.captured_instance_pk == sample_book.pk
+    ), "Dependency refresh should resolve row instance from URL kwargs when POST pk is absent."
+
+
+@pytest.mark.django_db
+def test_inline_dependency_preserves_parent_values_from_post(sample_book):
+    request = _make_request(
+        "post",
+        path="/inline-dependency/",
+        data={
+            "field": "title",
+            "pk": str(sample_book.pk),
+            "author": str(sample_book.author_id),
+            "title": sample_book.title,
+        },
+    )
+    view = InlineDependencyCaptureView(request, sample_book)
+
+    response = view._dispatch_inline_dependency(request, pk=sample_book.pk)
+
+    assert response.status_code == 200, "Dependency refresh should return the refreshed widget."
+    assert (
+        view.captured_author == str(sample_book.author_id)
+    ), "Dependency refresh should pass posted parent field values into the rebuilt inline form."
 
 
 @pytest.mark.django_db

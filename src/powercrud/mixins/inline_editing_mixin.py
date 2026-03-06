@@ -137,13 +137,18 @@ class InlineEditingMixin:
         if not field:
             return HttpResponseBadRequest("Missing field parameter")
 
-        pk = request.POST.get("pk")
+        pk_url_kwarg = getattr(self, "pk_url_kwarg", "pk")
+        pk = request.POST.get("pk") or kwargs.get(pk_url_kwarg)
+        if not pk:
+            resolver_match = getattr(request, "resolver_match", None)
+            resolver_kwargs = getattr(resolver_match, "kwargs", {}) if resolver_match else {}
+            pk = resolver_kwargs.get(pk_url_kwarg)
         self.kwargs = kwargs
         self.request = request
 
         obj = None
         if pk:
-            self.kwargs[getattr(self, "pk_url_kwarg", "pk")] = pk
+            self.kwargs[pk_url_kwarg] = pk
             try:
                 obj = self.get_object()
             except Http404:

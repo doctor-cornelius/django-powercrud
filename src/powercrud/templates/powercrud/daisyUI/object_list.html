@@ -813,13 +813,28 @@
                 return;
             }
 
+            const values = {};
+            container.querySelectorAll('[name]').forEach(input => {
+                const name = input.getAttribute('name');
+                if (!name || input.disabled) {
+                    return;
+                }
+                if ((input.type === 'checkbox' || input.type === 'radio') && !input.checked) {
+                    return;
+                }
+                if (input.tagName === 'SELECT' && input.multiple) {
+                    values[name] = Array.from(input.selectedOptions).map(option => option.value);
+                    return;
+                }
+                values[name] = input.value;
+            });
+            values.field = dep.fieldName;
+
             window.htmx.ajax('POST', dep.endpoint, {
                 source: container,
                 target: widget,
                 swap: 'outerHTML',
-                values: {
-                    field: dep.fieldName,
-                },
+                values,
             });
         }
 
