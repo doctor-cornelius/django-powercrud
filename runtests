@@ -1,11 +1,56 @@
 # for running tests locally and reporting coverage only on powercrud
 set -euo pipefail
 
-if [ "$#" -gt 0 ]; then
+function show_help {
+    cat <<'EOF'
+Usage: ./runtests [OPTION|TEST_PATH]
+
+Options:
+  --help, -h     Show this help message and exit.
+  --pytest       Run only non-Playwright tests (pytest -m "not playwright").
+  --playwright   Run only Playwright tests (pytest -m playwright).
+
+Arguments:
+  TEST_PATH      Run only the specified test path/node id.
+EOF
+}
+
+MODE="all"
+TEST_PATH=""
+
+if [ "$#" -gt 1 ]; then
+    echo "Error: only one option or one test path is supported."
+    show_help
+    exit 1
+fi
+
+if [ "$#" -eq 1 ]; then
+    case "$1" in
+        --help|-h)
+            show_help
+            exit 0
+            ;;
+        --pytest)
+            MODE="pytest"
+            ;;
+        --playwright)
+            MODE="playwright"
+            ;;
+        --*)
+            echo "Error: unknown option '$1'."
+            show_help
+            exit 1
+            ;;
+        *)
+            TEST_PATH="$1"
+            ;;
+    esac
+fi
+
+if [ -n "$TEST_PATH" ]; then
     # Single-test mode: respect an existing DJANGO_SETTINGS_MODULE, or choose
     # a default based on the test path. This avoids wiping coverage or running
     # the full suite when you just want a quick check.
-    TEST_PATH="$1"
     if [ -z "${DJANGO_SETTINGS_MODULE:-}" ]; then
         if [[ "$TEST_PATH" == *"minimal"* ]]; then
             export DJANGO_SETTINGS_MODULE=tests.settings_minimal
@@ -25,14 +70,22 @@ rm -f coverage.xml
 # All suites run under the lightweight test settings (manifest uses built files)
 export DJANGO_SETTINGS_MODULE=tests.settings
 
-# Core + async suite with coverage (skips Playwright)
-pytest -m "not playwright"
+if [ "$MODE" = "pytest" ]; then
+    pytest -m "not playwright"
+elif [ "$MODE" = "playwright" ]; then
+    echo "Building static assets for Playwright suite..."
+    npm run build
+    pytest -m playwright --no-cov-on-fail
+else
+    # Core + async suite with coverage (skips Playwright)
+    pytest -m "not playwright"
 
-# Ensure the built bundle exists for manifest mode
-echo "Building static assets for Playwright suite..."
-npm run build
+    # Ensure the built bundle exists for manifest mode
+    echo "Building static assets for Playwright suite..."
+    npm run build
 
-# Playwright UI checks
-pytest -m playwright --cov-append --no-cov-on-fail
+    # Playwright UI checks
+    pytest -m playwright --cov-append --no-cov-on-fail
+fi
 
 coverage html
