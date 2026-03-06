@@ -84,6 +84,34 @@ Fine-tune what users can filter and how options are presented by combining `filt
 
 Override or refine the automatically generated forms with `form_class`, `form_fields`, and `form_fields_exclude`, and enable Crispy Forms support via `use_crispy`. See the form configuration examples in [Setup & Core CRUD basics](../guides/setup_core_crud.md#3-shape-list-detail-and-form-scopes) and the complete view example in [reference/complete_example.md](complete_example.md).
 
+## Inline dependency controls
+
+Use `inline_field_dependencies` when one inline field needs another field to be refreshed in the same row.
+
+Example:
+
+```python
+inline_field_dependencies = {
+    "genres": {
+        "depends_on": ["author"],
+    }
+}
+```
+
+Supported keys:
+
+- `depends_on`
+    Parent inline fields that should trigger a refresh of the child field.
+- `endpoint_name`
+    Optional custom URL name for the dependency endpoint. If omitted, PowerCRUD uses the standard `…-inline-dependency` route for the current view.
+
+Notes:
+
+- The child field must also be present in `inline_edit_fields`.
+- Parent fields listed in `depends_on` must be inline-editable too.
+- PowerCRUD handles the frontend refresh and widget swap, but the actual queryset restriction still belongs in your form logic.
+- The recommended pattern is to resolve parent values from bound form `data` first, then fall back to the instance when the form is unbound.
+
 ## Notes
 
 - **Required settings**: Only `model` and `base_template_path` are required.

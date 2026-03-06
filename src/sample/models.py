@@ -23,6 +23,7 @@ class Author(models.Model):
     bio = models.TextField(blank=True)
     birth_date = models.DateField(null=True, blank=True)
     an_integer_with_long_heading_text = models.IntegerField(default=0)
+    genres = models.ManyToManyField("Genre", related_name="authors", blank=True)
 
     @property
     def has_bio(self):

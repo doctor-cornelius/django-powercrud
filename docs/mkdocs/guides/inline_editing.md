@@ -55,6 +55,66 @@ class BookCRUDView(PowerCRUDMixin, CRUDView):
 
 The same helpers drive both inline rows and lock-sensitive action buttons, so `_build_inline_row_payload()` contains everything the template needs (row id, inline URLs, lock metadata).
 
+### Cookbook: parent/child dropdowns that refresh inline
+
+The most reliable pattern is:
+
+1. Add an explicit relation that describes which child records are allowed for each parent.
+2. Use a custom `form_class` on the CRUD view.
+3. Resolve the parent field from bound POST data first, then fall back to the instance.
+4. Filter the child field queryset from that resolved parent.
+5. Declare `inline_field_dependencies` so PowerCRUD knows which widget to refresh.
+
+The sample app demonstrates this with `Book.author -> Book.genres`, where the allowed genres come from `Author.genres`:
+
+???+ note "Sample App Dynamic Inline Field Overrides Example"
+
+    === "`BookCRUDView`"
+
+        ```python
+        class BookCRUDView(PowerCRUDMixin, CRUDView):
+            model = Book
+            form_class = BookForm
+
+            use_htmx = True
+            inline_edit_enabled = True
+            inline_edit_fields = [
+                "title",
+                "author",
+                "genres",
+                "published_date",
+                "bestseller",
+                "isbn",
+                "description",
+            ]
+            inline_field_dependencies = {
+                "genres": {
+                    "depends_on": ["author"],
+                }
+            }
+        ```
+
+    === "`BookForm`"
+
+        ```python
+        class BookForm(forms.ModelForm):
+            def __init__(self, *args, **kwargs):
+                super().__init__(*args, **kwargs)
+                author_pk = self.data.get("author") or getattr(self.instance, "author_id", None)
+                if author_pk:
+                    self.fields["genres"].queryset = (
+                        Author.objects.get(pk=author_pk).genres.all().order_by("name")
+                    )
+        ```
+
+Why this works:
+
+- The normal create/update form and the inline row share the same `BookForm`.
+- The inline dependency endpoint rebuilds only the dependent field widget, but it reuses the same bound form logic.
+- When the user changes `author` inline, PowerCRUD posts the current row values, rebuilds the `genres` widget, clears the stale selection, and swaps the constrained widget back into the row.
+
+Use this pattern whenever a child dropdown should change immediately in response to another inline field.
+
 ---
 
 ## 3. Respect locks and permissions
@@ -98,5 +158,14 @@ inline-row-forbidden # payload: {"message": …}
 - **HTMX targets** – inline rows target themselves (`hx-target="#pc-row-{{ pk }}"`) so partial updates do not reload the entire table.
 - **Keyboard flow** – the row automatically focuses the cell that triggered edit mode (or the first editable field) so users can start typing immediately. Text/number inputs are pre-selected on first focus so typing replaces the current value. Press `Enter` to trigger the same Save action as the button (except inside textareas), and `Esc` mirrors the Cancel button. `<Tab>` will tab between editable fields in the row.
 - **Testing** – unit tests can call `_dispatch_inline_row()` and `_dispatch_inline_dependency()` directly (see `src/tests/test_inline_editing_mixin.py` for a harness). Browser tests should assert the `inline-row-*` triggers fire correctly.
+
+### Manual test checklist for dependent inline fields
+
+1. Open a row in inline mode.
+2. Change the parent dropdown.
+3. Confirm the child field clears immediately.
+4. Re-open the child dropdown without saving the row.
+5. Confirm only the allowed options are present.
+6. Save the row and confirm the same constraint still applies when reopening inline mode.
 
 Continue with [Bulk editing (synchronous)](bulk_edit_sync.md) if you also need row-level bulk operations, or jump ahead to [Async Manager](async_manager.md) / [Bulk editing (async)](bulk_edit_async.md) once you want background processing and conflict locks.

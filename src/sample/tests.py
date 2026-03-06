@@ -10,6 +10,7 @@ from django.contrib.auth import get_user_model
 from powercrud.async_context import task_context
 
 from sample.async_manager import SampleAsyncManager
+from sample.forms import BookForm
 from sample.models import AsyncTaskRecord, Author, Book, Genre
 
 
@@ -201,3 +202,73 @@ class SampleAsyncContextDemoTests(TestCase):
         mock_register.assert_not_called()
         mock_manager_cls.assert_not_called()
         mock_sleep.assert_called()
+
+
+class SampleBookFormDependencyTests(TestCase):
+    def setUp(self):
+        self.author_a = Author.objects.create(name="Author A")
+        self.author_b = Author.objects.create(name="Author B")
+        self.genre_a = Genre.objects.create(name="Genre A")
+        self.genre_b = Genre.objects.create(name="Genre B")
+        self.author_a.genres.add(self.genre_a)
+        self.author_b.genres.add(self.genre_b)
+
+        self.book_a = Book.objects.create(
+            title="Book A",
+            author=self.author_a,
+            published_date=date(2024, 1, 1),
+            bestseller=False,
+            isbn="9788888800001",
+            pages=120,
+        )
+        self.book_a.genres.set([self.genre_a])
+
+        self.book_b = Book.objects.create(
+            title="Book B",
+            author=self.author_b,
+            published_date=date(2024, 1, 2),
+            bestseller=False,
+            isbn="9788888800002",
+            pages=130,
+        )
+        self.book_b.genres.set([self.genre_b])
+
+    def test_book_form_filters_genres_from_posted_author(self):
+        form = BookForm(
+            data={
+                "title": self.book_a.title,
+                "author": str(self.author_b.pk),
+                "published_date": "2024-01-01",
+                "isbn": self.book_a.isbn,
+                "pages": str(self.book_a.pages),
+                "bestseller": "",
+            },
+            instance=self.book_a,
+        )
+
+        genre_ids = list(form.fields["genres"].queryset.values_list("id", flat=True))
+        self.assertIn(
+            self.genre_b.pk,
+            genre_ids,
+            "BookForm should include genres explicitly assigned to the posted author.",
+        )
+        self.assertNotIn(
+            self.genre_a.pk,
+            genre_ids,
+            "BookForm should exclude genres not assigned to the posted author.",
+        )
+
+    def test_book_form_filters_genres_from_instance_when_unbound(self):
+        form = BookForm(instance=self.book_a)
+
+        genre_ids = list(form.fields["genres"].queryset.values_list("id", flat=True))
+        self.assertIn(
+            self.genre_a.pk,
+            genre_ids,
+            "Unbound BookForm should include genres assigned to the instance author.",
+        )
+        self.assertNotIn(
+            self.genre_b.pk,
+            genre_ids,
+            "Unbound BookForm should exclude genres from other authors.",
+        )

@@ -6,6 +6,7 @@ from powercrud.mixins.async_crud_mixin import PowerCRUDAsyncMixin
 from powercrud.conf import get_powercrud_setting
 
 from . import models
+from . import forms
 
 
 class SampleCRUDMixin(PowerCRUDAsyncMixin, CRUDView):
@@ -68,7 +69,7 @@ class BookCRUDView(SampleCRUDMixin):
         "isbn",
         "description",
     ]
-    # form_class = forms.BookForm
+    form_class = forms.BookForm
 
     # filterset_class = filters.BookFilterSet
     filterset_fields = [
@@ -117,6 +118,11 @@ class BookCRUDView(SampleCRUDMixin):
         # "pages",
         "description",
     ]
+    inline_field_dependencies = {
+        "genres": {
+            "depends_on": ["author"],
+        }
+    }
 
     # Example of overrides of get_queryset and get_filter_queryset_for_field
     # def get_queryset(self):

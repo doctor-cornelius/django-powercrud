@@ -31,11 +31,13 @@ def sample_author(db):
 
 
 @pytest.fixture
-def sample_genre(db):
-    return Genre.objects.create(
+def sample_genre(db, sample_author):
+    genre = Genre.objects.create(
         name="Playwright Mystery",
         description="Created for Playwright tests",
     )
+    sample_author.genres.add(genre)
+    return genre
 
 
 @pytest.fixture

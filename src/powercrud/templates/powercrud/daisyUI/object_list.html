@@ -898,6 +898,14 @@
             });
         }
 
+        function findInlineFormRow(root) {
+            if (!(root instanceof HTMLElement)) {
+                return null;
+            }
+            const rows = Array.from(root.querySelectorAll(INLINE_ROW_SELECTOR));
+            return rows.find(row => row.querySelector('[data-inline-save]')) || null;
+        }
+
         function bootstrapInlineRow() {
             const row = document.querySelector(`${INLINE_ROW_SELECTOR}[data-inline-active="true"]`);
             if (row) {
@@ -1090,8 +1098,27 @@
             }
 
             if (targetTouchesInlineRows(target) && !target.matches(INLINE_ROW_SELECTOR)) {
-                clearActiveRow();
-                clearNotice();
+                const targetHasActiveInlineRow = Boolean(
+                    target.querySelector(`${INLINE_ROW_SELECTOR}[data-inline-active="true"]`)
+                );
+                const inlineFormRow = findInlineFormRow(target);
+                if (!targetHasActiveInlineRow && inlineFormRow) {
+                    inlineFormRow.setAttribute('data-inline-active', 'true');
+                    setActiveRow(inlineFormRow);
+                    wireInlineRow(inlineFormRow);
+                    focusRow(inlineFormRow);
+                    const widthsToApply = pendingColumnWidths || activeColumnWidths;
+                    if (widthsToApply && widthsToApply.length) {
+                        applyRowWidths(inlineFormRow, widthsToApply);
+                        activeColumnWidths = widthsToApply.slice();
+                        pendingColumnWidths = null;
+                    }
+                    return;
+                }
+                if (!targetHasActiveInlineRow) {
+                    clearActiveRow();
+                    clearNotice();
+                }
             }
 
             if (target.matches(INLINE_ROW_SELECTOR)) {

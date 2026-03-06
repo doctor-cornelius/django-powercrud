@@ -367,6 +367,31 @@ def object_list(context, objects, view):
             else:
                 inline_allowed = True
 
+        row_dependency_endpoint_url = None
+        dependency_endpoint_name = inline_config.get("dependency_endpoint_name")
+        if inline_enabled and dependency_endpoint_name and getattr(obj, "pk", None):
+            row_dependency_endpoint_url = view.safe_reverse(
+                dependency_endpoint_name,
+                kwargs={"pk": obj.pk},
+            ) or view.safe_reverse(dependency_endpoint_name)
+
+        def resolve_cell_dependency(field_name: str):
+            dependency = inline_dependencies.get(field_name)
+            if not dependency:
+                return None
+            resolved = dict(dependency)
+            endpoint_name = resolved.get("endpoint_name")
+            endpoint_url = resolved.get("endpoint_url")
+            if endpoint_name and getattr(obj, "pk", None):
+                endpoint_url = view.safe_reverse(
+                    endpoint_name,
+                    kwargs={"pk": obj.pk},
+                ) or view.safe_reverse(endpoint_name)
+            if not endpoint_url:
+                endpoint_url = row_dependency_endpoint_url
+            resolved["endpoint_url"] = endpoint_url
+            return resolved
+
         # Attach inline metadata to the object for downstream helpers (e.g., action_links)
         setattr(obj, "_blocked_reason", inline_blocked_reason)
         setattr(obj, "_blocked_label", inline_blocked_label)
@@ -418,7 +443,7 @@ def object_list(context, objects, view):
                     "value": display_value,
                     "is_property": False,
                     "is_inline_editable": inline_enabled and f in inline_fields,
-                    "dependency": inline_dependencies.get(f),
+                    "dependency": resolve_cell_dependency(f),
                     "align": cell_align,
                 }
             )
@@ -447,7 +472,7 @@ def object_list(context, objects, view):
                     "value": display_value,
                     "is_property": True,
                     "is_inline_editable": inline_enabled and prop in inline_fields,
-                    "dependency": inline_dependencies.get(prop),
+                    "dependency": resolve_cell_dependency(prop),
                     "align": "left",
                 }
             )

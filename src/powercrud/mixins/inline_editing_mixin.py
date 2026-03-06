@@ -162,15 +162,34 @@ class InlineEditingMixin:
 
         field_dependencies = self.get_inline_field_dependencies()
         field_dependency = field_dependencies.get(field)
+        field_dependency_context = dict(field_dependency) if field_dependency else None
         inline_context = self.get_inline_context()
+        dependency_endpoint_name = (
+            field_dependency_context.get("endpoint_name")
+            if field_dependency_context
+            else self.get_inline_dependency_endpoint_name()
+        )
+        resolved_dependency_endpoint_url = None
+        if dependency_endpoint_name:
+            reverse_kwargs = {pk_url_kwarg: obj.pk} if obj and getattr(obj, "pk", None) else None
+            resolved_dependency_endpoint_url = self.safe_reverse(
+                dependency_endpoint_name,
+                kwargs=reverse_kwargs,
+            ) or self.safe_reverse(dependency_endpoint_name)
+        if field_dependency_context is not None:
+            field_dependency_context["endpoint_url"] = (
+                resolved_dependency_endpoint_url
+                or field_dependency_context.get("endpoint_url")
+            )
         widget_html = render_to_string(
             f"{cfg.templates_path}/partial/inline_field.html",
             {
                 "field": form[field],
                 "field_name": field,
-                "field_dependency": field_dependency,
-                "dependency_endpoint_url": inline_context.get(
-                    "dependency_endpoint_url"
+                "field_dependency": field_dependency_context,
+                "dependency_endpoint_url": (
+                    resolved_dependency_endpoint_url
+                    or inline_context.get("dependency_endpoint_url")
                 ),
             },
             request=request,

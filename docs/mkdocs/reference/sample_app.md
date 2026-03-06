@@ -11,6 +11,7 @@ The sample app includes four interconnected models that showcase different relat
 === "Author"
 
     - Basic fields: `name`, `bio`, `birth_date`
+    - Many-to-many: `genres` relationship used to constrain inline Book genre choices
     - Properties: `has_bio`, `property_birth_date` 
     - Demonstrates property display in list/detail views
 
@@ -50,16 +51,31 @@ from powercrud.mixins import PowerCRUDAsyncMixin
 
 class BookCRUDView(PowerCRUDAsyncMixin, CRUDView):
     # Comprehensive configuration showing:
+    form_class = BookForm
     bulk_fields = ['title', 'published_date', 'bestseller', 'pages', 'author', 'genres']
     bulk_delete = True
     bulk_async = True
     
     filterset_fields = ['author', 'title', 'published_date', 'isbn', 'pages', 'genres']
     dropdown_sort_options = {"author": "name"}
+    inline_edit_enabled = True
+    inline_field_dependencies = {
+        "genres": {"depends_on": ["author"]},
+    }
     
     extra_buttons = [...]  # Custom action buttons
     extra_actions = [...]  # Additional row actions
 ```
+
+### Inline dependency demo
+
+The sample app now includes a concrete inline dependency example:
+
+- `Book.author` is the parent field.
+- `Book.genres` is the dependent field.
+- Allowed genre choices come from `Author.genres`, not from historical book rows.
+
+`BookForm` is used for both regular forms and inline editing. It resolves the author from bound form data first, then falls back to the instance, and constrains the `genres` queryset from the selected author. This makes the behavior deterministic and easy to debug in both tests and the browser.
 
 ### Other Views
 
@@ -107,7 +123,7 @@ class BookCRUDView(PowerCRUDAsyncMixin, CRUDView):
 
 ### Custom Forms
 
-- **BookForm**: Date widgets, field selection, crispy forms integration
+- **BookForm**: Date widgets, field selection, crispy forms integration, and inline dependency queryset filtering for `author -> genres`
 - **AuthorForm**: Demonstrates form customization patterns
 
 ### Advanced Filtering  
@@ -129,6 +145,7 @@ class BookCRUDView(PowerCRUDAsyncMixin, CRUDView):
 
 - **Modal Interactions**: All CRUD operations in modals
 - **HTMX Features**: Reactive filtering, pagination, form updates
+- **Inline Dependencies**: Changing a Book author inline immediately refreshes the allowed genre choices
 - **CSS Frameworks**: Easy switching between daisyUI and Bootstrap
 - **Responsive Design**: Table layouts with column width controls
 
@@ -165,7 +182,19 @@ class BookCRUDView(PowerCRUDAsyncMixin, CRUDView):
    - Try bulk edit operations on books
    - Use filtering and sorting
    - Test modal create/edit/delete
+   - Open a Book row inline, change `author`, and confirm `genres` refreshes immediately without saving
    - Experiment with different page sizes
+
+## How to try the inline dependency demo
+
+1. Open the Books list at `/sample/bigbook/`.
+2. Edit an Author and assign one or more genres to that author.
+3. Open a Book row in inline mode.
+4. Change the Book author.
+5. Re-open the Book genres control before saving.
+6. Confirm the available genres now match the selected author’s `genres` relation.
+
+The browser regression for this flow lives in [test_inline_dependencies.py](/home/mfo/projects/packages/django_powercrud/src/tests/playwright/test_inline_dependencies.py).
 
 ## Development Notes
 
