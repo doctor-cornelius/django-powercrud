@@ -1,3 +1,9 @@
+## 0.4.19 (2026-03-06)
+
+### Fix
+
+- **(bulk)**: refresh positioning and preserve filters after bulk edit
+
 ## 0.4.18 (2026-03-06)
 
 ### Feature
