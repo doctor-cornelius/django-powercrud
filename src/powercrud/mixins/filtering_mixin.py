@@ -71,6 +71,74 @@ class FilteringMixin:
     Provides dynamic FilterSet generation for powercrud views.
     """
 
+    def _is_boolean_like_filter_select_field(self, field: forms.Field) -> bool:
+        """
+        Return True when a filter select field represents a boolean choice set.
+
+        Boolean-like selects should remain native controls so users can reliably
+        distinguish unset/true/false semantics in filter forms.
+        """
+        if isinstance(field, forms.BooleanField):
+            return True
+
+        choices = [choice for choice in getattr(field, "choices", []) if choice]
+        normalized_values = {
+            str(value).strip().lower()
+            for value, _label in choices
+            if str(value).strip() != ""
+        }
+        if not normalized_values:
+            return False
+        boolean_values = {"true", "false", "1", "0"}
+        return normalized_values.issubset(boolean_values)
+
+    def _is_filter_searchable_select_enabled_for_field(
+        self, field_name: str, field: forms.Field
+    ) -> bool:
+        """
+        Resolve whether a filter field should receive Tom Select enhancement.
+
+        This reuses the existing per-field hook when available so views can opt
+        out specific fields consistently across regular, inline, bulk, and
+        filter form controls.
+        """
+        field_hook = getattr(self, "get_searchable_select_enabled_for_field", None)
+        if not callable(field_hook):
+            return True
+        return bool(field_hook(field_name=field_name, bound_field=field))
+
+    def _apply_filter_searchable_select_attrs(self, filterset: FilterSet | None) -> None:
+        """
+        Tag eligible filter select widgets for frontend Tom Select enhancement.
+        """
+        if filterset is None:
+            return
+        if resolve_config(self).searchable_selects_enabled is False:
+            return
+
+        for field_name, field in filterset.form.fields.items():
+            widget = getattr(field, "widget", None)
+            if widget is None or not isinstance(widget, forms.Select):
+                continue
+
+            attrs = widget.attrs
+            attrs.pop("data-powercrud-searchable-select", None)
+            attrs.pop("data-powercrud-searchable-multiselect", None)
+
+            if not self._is_filter_searchable_select_enabled_for_field(
+                field_name=field_name, field=field
+            ):
+                continue
+
+            if getattr(widget, "allow_multiple_selected", False):
+                attrs["data-powercrud-searchable-multiselect"] = "true"
+                continue
+
+            if self._is_boolean_like_filter_select_field(field):
+                continue
+
+            attrs["data-powercrud-searchable-select"] = "true"
+
     def get_filter_queryset_for_field(self, field_name, model_field):
         """Get an efficiently filtered and sorted queryset for filter options."""
 
@@ -242,15 +310,6 @@ class FilteringMixin:
 
                     # Create appropriate filter based on field type
                     if isinstance(field_to_check, models.ManyToManyField):
-                        # Add max-height and other useful styles to the select widget
-                        field_attrs.update(
-                            {
-                                "style": "max-height: 200px; overflow-y: auto;",
-                                "class": field_attrs.get("class", "")
-                                + " select2",  # Add select2 class if you want to use Select2
-                            }
-                        )
-
                         # Choose between OR logic (ModelMultipleChoiceFilter) or AND logic (AllValuesModelMultipleChoiceFilter)
                         filter_class = (
                             AllValuesModelMultipleChoiceFilter
@@ -331,8 +390,10 @@ class FilteringMixin:
         if filterset_class is None:
             return None
 
-        return filterset_class(
+        filterset = filterset_class(
             self.request.GET,
             queryset=queryset,
             request=self.request,
         )
+        self._apply_filter_searchable_select_attrs(filterset)
+        return filterset

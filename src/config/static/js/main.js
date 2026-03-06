@@ -3,8 +3,10 @@ import htmx from 'htmx.org'
 // import 'htmx.org/dist/ext/multi-swap.js'
 import TomSelect from 'tom-select'
 import 'tom-select/dist/css/tom-select.css'
+import removeButtonPlugin from 'tom-select/dist/js/plugins/remove_button.js'
 
 window.htmx = htmx
+TomSelect.define('remove_button', removeButtonPlugin)
 
 // Tippy.js
 import tippy from 'tippy.js';
@@ -13,6 +15,7 @@ window.tippy = tippy;
 window.TomSelect = TomSelect;
 
 const SEARCHABLE_SELECT_ATTR = 'data-powercrud-searchable-select';
+const SEARCHABLE_MULTISELECT_ATTR = 'data-powercrud-searchable-multiselect';
 const NATIVE_TABINDEX_ATTR = 'data-powercrud-native-tabindex';
 const NATIVE_STYLE_ATTR = 'data-powercrud-native-style';
 
@@ -21,6 +24,14 @@ function isSearchableSelectCandidate(element) {
         element instanceof HTMLSelectElement
         && element.getAttribute(SEARCHABLE_SELECT_ATTR) === 'true'
         && !element.multiple
+    );
+}
+
+function isSearchableMultiselectCandidate(element) {
+    return (
+        element instanceof HTMLSelectElement
+        && element.getAttribute(SEARCHABLE_MULTISELECT_ATTR) === 'true'
+        && element.multiple
     );
 }
 
@@ -109,6 +120,7 @@ function enhanceSearchableSelect(selectElement) {
 
     const placeholder = selectElement.getAttribute('data-powercrud-searchable-placeholder') || '';
     const dialogElement = selectElement.closest('dialog');
+    const isInlineSelect = Boolean(selectElement.closest('[data-inline-row="true"]'));
     const settings = {
         create: false,
         maxItems: 1,
@@ -140,6 +152,85 @@ function enhanceSearchableSelect(selectElement) {
     instance.control.classList.remove('select', 'select-bordered', 'select-sm', 'select-md', 'select-lg');
     instance.wrapper.classList.add('w-full');
     instance.control.classList.add('w-full');
+    if (isInlineSelect) {
+        instance.dropdown.classList.add('powercrud-inline-single-dropdown');
+        instance.on('dropdown_open', function () {
+            const controlWidth = Math.ceil(instance.control.getBoundingClientRect().width);
+            const viewportMax = Math.max(240, window.innerWidth - 32);
+            const desiredWidth = Math.min(Math.max(controlWidth, 320), viewportMax);
+            instance.dropdown.style.setProperty('min-width', `${desiredWidth}px`, 'important');
+        });
+    }
+    if (!isInlineSelect) {
+        instance.wrapper.classList.add('powercrud-clearable-single');
+    }
+    if (!isInlineSelect && !instance.control.querySelector('.clear-button')) {
+        const clearButton = document.createElement('button');
+        clearButton.type = 'button';
+        clearButton.className = 'clear-button';
+        clearButton.title = 'Clear';
+        clearButton.setAttribute('aria-label', 'Clear selection');
+        clearButton.innerHTML = '&times;';
+        clearButton.addEventListener('click', event => {
+            if (instance.isLocked) {
+                return;
+            }
+            instance.clear(true);
+            instance.setTextboxValue('');
+            instance.refreshOptions(false);
+            selectElement.dispatchEvent(new Event('change', { bubbles: true }));
+            event.preventDefault();
+            event.stopPropagation();
+            instance.focus();
+        });
+        if (instance.control_input && instance.control_input.parentElement === instance.control) {
+            instance.control.insertBefore(clearButton, instance.control_input);
+        } else {
+            instance.control.appendChild(clearButton);
+        }
+    }
+    syncTomSelectDisabledState(selectElement);
+    hideNativeSelect(selectElement);
+}
+
+function enhanceSearchableMultiselect(selectElement) {
+    if (!isSearchableMultiselectCandidate(selectElement)) {
+        return;
+    }
+    if (selectElement.tomselect) {
+        syncTomSelectDisabledState(selectElement);
+        hideNativeSelect(selectElement);
+        return;
+    }
+    if (!isElementVisible(selectElement)) {
+        return;
+    }
+
+    const placeholder = selectElement.getAttribute('data-powercrud-searchable-placeholder') || '';
+    const dialogElement = selectElement.closest('dialog');
+    const settings = {
+        create: false,
+        maxItems: null,
+        maxOptions: null,
+        closeAfterSelect: false,
+        allowEmptyOption: true,
+        hideSelected: false,
+        placeholder,
+        openOnFocus: true,
+        plugins: ['remove_button'],
+        onItemAdd() {
+            this.setTextboxValue('');
+            this.refreshOptions(true);
+        },
+    };
+    if (!dialogElement) {
+        settings.dropdownParent = 'body';
+    }
+    const instance = new TomSelect(selectElement, settings);
+    instance.wrapper.classList.remove('select', 'select-bordered', 'select-sm', 'select-md', 'select-lg');
+    instance.control.classList.remove('select', 'select-bordered', 'select-sm', 'select-md', 'select-lg');
+    instance.wrapper.classList.add('w-full');
+    instance.control.classList.add('w-full');
     syncTomSelectDisabledState(selectElement);
     hideNativeSelect(selectElement);
 }
@@ -150,8 +241,10 @@ function initPowercrudSearchableSelects(root = document) {
     }
     const scope = root === document ? document : root;
     scope.querySelectorAll(`select[${SEARCHABLE_SELECT_ATTR}="true"]`).forEach(enhanceSearchableSelect);
+    scope.querySelectorAll(`select[${SEARCHABLE_MULTISELECT_ATTR}="true"]`).forEach(enhanceSearchableMultiselect);
     if (root instanceof HTMLSelectElement) {
         enhanceSearchableSelect(root);
+        enhanceSearchableMultiselect(root);
     }
 }
 
@@ -160,12 +253,14 @@ function destroyPowercrudSearchableSelects(root = document) {
         return;
     }
     const scope = root === document ? document : root;
-    scope.querySelectorAll(`select[${SEARCHABLE_SELECT_ATTR}="true"]`).forEach(selectElement => {
+    scope
+        .querySelectorAll(`select[${SEARCHABLE_SELECT_ATTR}="true"], select[${SEARCHABLE_MULTISELECT_ATTR}="true"]`)
+        .forEach(selectElement => {
         if (selectElement.tomselect) {
             selectElement.tomselect.destroy();
         }
         restoreNativeSelect(selectElement);
-    });
+        });
     if (root instanceof HTMLSelectElement) {
         if (root.tomselect) {
             root.tomselect.destroy();

@@ -113,6 +113,67 @@ def test_filtering_mixin_builds_dynamic_filterset(rf: RequestFactory):
     genres_filter = filterset.filters["genres"]
     assert isinstance(genres_filter, AllValuesModelMultipleChoiceFilter)
     assert "hx-trigger" in filterset.form.fields["author"].widget.attrs
+    assert (
+        filterset.form.fields["author"].widget.attrs.get(
+            "data-powercrud-searchable-select"
+        )
+        == "true"
+    ), "Author filter should be marked for single-select Tom Select enhancement."
+    assert (
+        filterset.form.fields["genres"].widget.attrs.get(
+            "data-powercrud-searchable-multiselect"
+        )
+        == "true"
+    ), "Genres filter should be marked for multi-select Tom Select enhancement."
+
+
+@pytest.mark.django_db
+def test_filtering_mixin_respects_searchable_select_field_hook(rf: RequestFactory):
+    author = Author.objects.create(name="Alan")
+    genre = Genre.objects.create(name="Sci-Fi")
+    book = Book.objects.create(
+        title="Sample",
+        author=author,
+        published_date=date(2024, 1, 1),
+        bestseller=True,
+        isbn="1234567890123",
+        pages=100,
+    )
+    book.genres.set([genre])
+
+    class FilterView(HtmxMixin, FormMixin, FilteringMixin):
+        model = Book
+        filterset_fields = ["author", "genres"]
+        use_htmx = True
+        use_modal = False
+        use_crispy = False
+        modal_id = None
+        modal_target = None
+        form_class = None
+
+        def get_use_crispy(self):
+            return False
+
+        def get_searchable_select_enabled_for_field(
+            self, field_name: str, bound_field=None
+        ) -> bool:
+            return field_name != "author"
+
+    view = FilterView()
+    view.request = rf.get("/")
+    filterset = view.get_filterset(Book.objects.all())
+
+    assert filterset is not None, "Expected a filterset for configured filterset_fields."
+    assert (
+        "data-powercrud-searchable-select"
+        not in filterset.form.fields["author"].widget.attrs
+    ), "Per-field searchable-select hook should disable author filter enhancement."
+    assert (
+        filterset.form.fields["genres"].widget.attrs.get(
+            "data-powercrud-searchable-multiselect"
+        )
+        == "true"
+    ), "Per-field searchable-select hook should still allow genres multi-select enhancement."
 
 
 class StubView:

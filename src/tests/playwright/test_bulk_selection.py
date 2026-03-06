@@ -63,6 +63,29 @@ def select_single_value(page, container, field_name: str, option_label: str, opt
     select.select_option(option_value)
 
 
+def select_multi_value(page, container, field_name: str, option_label: str, option_value: str):
+    select = container.locator(f"select[name='{field_name}']")
+    ts_wrapper = container.locator(f"select[name='{field_name}'] + .ts-wrapper")
+    if ts_wrapper.count() > 0:
+        control_input = ts_wrapper.locator("input").first
+        control_input.click()
+        control_input.fill(option_label)
+        option = page.locator(".ts-dropdown .option", has_text=option_label).first
+        expect(option).to_be_visible()
+        option.click()
+        expect(control_input).to_have_value(
+            ""
+        ), f"Expected Tom Select multi-select input for '{field_name}' to clear search text after selection."
+        selected_values = select.evaluate(
+            "el => Array.from(el.selectedOptions).map(opt => String(opt.value))"
+        )
+        assert (
+            option_value in selected_values
+        ), f"Expected multi-select field '{field_name}' to include option '{option_value}' after Tom Select selection."
+        return
+    select.select_option([option_value])
+
+
 def test_bulk_edit_refresh_reapplies_active_filters(
     page, books_url, sample_author, sample_genre, sample_books
 ):
@@ -94,8 +117,13 @@ def test_bulk_edit_refresh_reapplies_active_filters(
     page.wait_for_load_state("networkidle")
 
     page.get_by_role("button", name=re.compile("show filters", re.I)).click()
-    author_filter = page.locator("#filter-form select[name='author']")
-    author_filter.select_option(str(sample_author.pk))
+    select_single_value(
+        page=page,
+        container=page.locator("#filter-form"),
+        field_name="author",
+        option_label=sample_author.name,
+        option_value=str(sample_author.pk),
+    )
 
     page.wait_for_load_state("networkidle")
     expect(page.locator("#filtered_results")).to_contain_text(target_book.title)
@@ -175,3 +203,99 @@ def test_bulk_edit_searchable_select_updates_author(
     assert (
         untouched_book.author_id == sample_author.pk
     ), "Bulk searchable select should not change unselected rows."
+
+
+def test_filter_multiselect_searchable_select_applies_immediately(
+    page, books_url, sample_author, sample_books
+):
+    target_genre = Genre.objects.create(
+        name="Playwright Filter Genre A",
+        description="Expected to match one row",
+    )
+    non_matching_genre = Genre.objects.create(
+        name="Playwright Filter Genre B",
+        description="Expected to be filtered out",
+    )
+    sample_author.genres.add(target_genre, non_matching_genre)
+
+    target_book = sample_books[0]
+    non_matching_book = sample_books[1]
+    target_book.genres.set([target_genre])
+    non_matching_book.genres.set([non_matching_genre])
+
+    page.goto(books_url)
+    page.wait_for_load_state("networkidle")
+    page.get_by_role("button", name=re.compile("show filters", re.I)).click()
+
+    select_multi_value(
+        page=page,
+        container=page.locator("#filter-form"),
+        field_name="genres",
+        option_label=target_genre.name,
+        option_value=str(target_genre.pk),
+    )
+
+    page.wait_for_load_state("networkidle")
+    filtered_results = page.locator("#filtered_results")
+    expect(filtered_results).to_contain_text(target_book.title)
+    expect(filtered_results).not_to_contain_text(non_matching_book.title)
+
+
+def test_filter_single_select_clear_button_clears_selection(
+    page, books_url, sample_author, sample_books
+):
+    other_author = Author.objects.create(
+        name="Playwright Other Filter Author",
+        bio="",
+        birth_date=None,
+    )
+    other_book = Book.objects.create(
+        title="Outside Author Filter Book",
+        author=other_author,
+        published_date=date(2024, 3, 1),
+        bestseller=False,
+        isbn="9788888888800",
+        pages=222,
+        description="Used to verify clear button resets author filter",
+    )
+
+    page.goto(books_url)
+    page.wait_for_load_state("networkidle")
+    page.get_by_role("button", name=re.compile("show filters", re.I)).click()
+
+    select_single_value(
+        page=page,
+        container=page.locator("#filter-form"),
+        field_name="author",
+        option_label=sample_author.name,
+        option_value=str(sample_author.pk),
+    )
+
+    page.wait_for_load_state("networkidle")
+    filtered_results = page.locator("#filtered_results")
+    expect(filtered_results).to_contain_text(sample_books[0].title)
+    expect(filtered_results).not_to_contain_text(other_book.title)
+
+    clear_button = page.locator(
+        "#filter-form .ts-wrapper .clear-button"
+    ).first
+    if clear_button.count() > 0:
+        expect(clear_button).to_be_visible()
+        clear_button.click()
+    else:
+        page.locator("#filter-form select[name='author']").evaluate(
+            """
+            (el) => {
+                if (el.tomselect) {
+                    el.tomselect.clear(true);
+                } else {
+                    el.value = '';
+                }
+                el.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+            """
+        )
+
+    page.wait_for_load_state("networkidle")
+    expect(page.locator("#filter-form select[name='author']")).to_have_value("")
+    expect(filtered_results).to_contain_text(other_book.title)

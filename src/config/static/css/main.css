@@ -45,6 +45,52 @@ select.ts-hidden-accessible {
     border-radius: var(--radius-field);
 }
 
+.ts-wrapper.single.powercrud-clearable-single .ts-control {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 0.25rem;
+}
+
+.ts-wrapper.single.powercrud-clearable-single .ts-control > .item {
+    order: 1;
+    max-width: calc(100% - 4rem);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.ts-wrapper.single.powercrud-clearable-single .ts-control .clear-button {
+    order: 2;
+    border: none;
+    background: transparent;
+    color: var(--color-base-content);
+    cursor: pointer;
+    line-height: 1;
+    margin: 0;
+    opacity: 0.7;
+    padding: 0 0.125rem;
+}
+
+.ts-wrapper.single.powercrud-clearable-single .ts-control .clear-button:hover {
+    opacity: 1;
+}
+
+.ts-wrapper.single.powercrud-clearable-single:not(.has-items) .ts-control .clear-button {
+    display: none;
+}
+
+.ts-wrapper.single.powercrud-clearable-single .ts-control > input {
+    order: 3;
+    flex: 1 1 auto;
+    min-width: 1.5ch;
+}
+
 .ts-dropdown {
     z-index: 1200;
+}
+
+/* Inline rows are intentionally narrow; allow the dropdown panel to
+   extend wider so long option labels remain readable. */
+.ts-dropdown.powercrud-inline-single-dropdown {
+    max-width: calc(100vw - 2rem) !important;
 }

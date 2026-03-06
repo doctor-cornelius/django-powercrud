@@ -11,11 +11,6 @@
         :root {
             --pc-inline-icon-buffer: 2.25ch;
         }
-        /* Style the options inside multi-selects - cannot be controlled via Python widget attrs */
-        #filter-form select[multiple] option {
-        padding: 0.25rem 0.5rem !important;
-        line-height: 1.5 !important;
-        }
 
         .inline-field-widget[data-inline-refreshing="true"] {
             opacity: 0.7;
@@ -72,17 +67,34 @@
         line-height: 1.2 !important;
         }
 
-        /* Special styling for multi-select (M2M) fields */
-        #filter-form select[multiple] {
-        height: auto !important;
-        min-height: 8rem !important;
-        padding: 0.25rem !important;
+        #filter-form .filter-field-input {
+            width: 100%;
         }
 
-        /* Style the options inside multi-selects */
-        #filter-form select[multiple] option {
-        padding: 0.25rem 0.5rem !important;
-        line-height: 1.5 !important;
+        #filter-form .ts-wrapper {
+            width: 100%;
+        }
+
+        #filter-form .ts-wrapper .ts-control {
+            min-height: 2.5rem;
+            font-size: 0.875rem;
+            line-height: 1.2;
+        }
+
+        #filter-form .ts-wrapper.multi .ts-control {
+            align-items: flex-start;
+            padding-top: 0.25rem;
+            padding-bottom: 0.25rem;
+            max-height: 8rem;
+            overflow-y: auto;
+        }
+
+        #filter-form .ts-wrapper.multi .ts-control > .item {
+            margin: 0.125rem;
+        }
+
+        #filter-form .ts-dropdown {
+            font-size: 0.875rem;
         }
     </style>
 
@@ -95,7 +107,7 @@
             {% if filterset %}
                 <div class="join">
                     <button class="join-item btn btn-secondary {{ view.get_extra_button_classes }}" type="button" 
-                        onclick="document.getElementById('filterCollapse').classList.toggle('hidden')"
+                        onclick="toggleFilterVisibility()"
                         id="filterToggleBtn">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-funnel" viewBox="0 0 16 16" aria-hidden="true">
                             <path d="M1.5 1.5A.5.5 0 0 1 2 1h12a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-.128.334L10 8.692V13.5a.5.5 0 0 1-.342.474l-3 1A.5.5 0 0 1 6 14.5V8.692L1.628 3.834A.5.5 0 0 1 1.5 3.5zm1 .5v1.308l4.372 4.858A.5.5 0 0 1 7 8.5v5.306l2-.666V8.5a.5.5 0 0 1 .128-.334L13.5 3.308V2z"/>
@@ -171,18 +183,9 @@
                     <label class="label py-0">
                         <span class="label-text text-xs font-semibold font-bold text-center block">{{ field.label }}</span>
                     </label>
-
-                    {% if field.field.widget.allow_multiple_selected %}
-                    <!-- Special case for multi-select -->
-                    <div class="mb-4">
+                    <div class="filter-field-input">
                         {{ field }}
                     </div>
-                    {% else %}
-                    <!-- Normal case for regular inputs and selects -->
-                    <div class="h-[38px] flex items-center">
-                        {{ field }}
-                    </div>
-                    {% endif %}
                 </div>
                 {% endfor %}
             </form>
@@ -278,6 +281,11 @@
         function resetFilterForm() {
             const form = document.getElementById('filter-form');
             form.querySelectorAll('input, select').forEach(field => {
+                if (field.tagName === 'SELECT' && field.tomselect) {
+                    field.tomselect.clear(true);
+                    field.tomselect.setTextboxValue('');
+                    return;
+                }
                 if (field.type === 'select-one') {
                     field.selectedIndex = 0;
                 } else if (field.type === 'select-multiple') {
@@ -293,39 +301,52 @@
             return true;
         }
 
-        // Sets up event listeners for filter section collapse/expand button text
-        function initializeFilterToggle() {
+        function syncFilterToggleLabel() {
             const filterCollapse = document.getElementById('filterCollapse');
             const filterBtn = document.getElementById('filterToggleBtn');
 
             // Only proceed if elements exist
             if (!filterCollapse || !filterBtn) return;
 
-            filterCollapse.addEventListener('show.bs.collapse', function () {
-                filterBtn.querySelector('span').textContent = 'Hide Filters';
-            });
+            const isHidden = filterCollapse.classList.contains('hidden');
+            filterBtn.querySelector('span').textContent = isHidden ? 'Show Filters' : 'Hide Filters';
+        }
 
-            filterCollapse.addEventListener('hide.bs.collapse', function () {
-                filterBtn.querySelector('span').textContent = 'Show Filters';
-            });
+        function toggleFilterVisibility() {
+            const filterCollapse = document.getElementById('filterCollapse');
+            if (!filterCollapse) {
+                return;
+            }
+            filterCollapse.classList.toggle('hidden');
+            syncFilterToggleLabel();
+            if (!filterCollapse.classList.contains('hidden') && window.initPowercrudSearchableSelects) {
+                setTimeout(() => window.initPowercrudSearchableSelects(filterCollapse), 0);
+            }
         }
 
         // Initialize everything on page load with a slight delay to ensure styles are applied
         document.addEventListener('DOMContentLoaded', () => {
             // Delay tooltip initialization to ensure styles are fully applied
             setTimeout(initializeTooltips, 100);
-            initializeFilterToggle();
+            syncFilterToggleLabel();
+            const filterCollapse = document.getElementById('filterCollapse');
+            if (
+                filterCollapse
+                && !filterCollapse.classList.contains('hidden')
+                && window.initPowercrudSearchableSelects
+            ) {
+                window.initPowercrudSearchableSelects(filterCollapse);
+            }
 
             // Restore filter section expanded state if previously saved
             if (localStorage.getItem('filterExpanded') === 'true') {
-                const filterCollapse = document.getElementById('filterCollapse');
                 if (filterCollapse) {
                     filterCollapse.classList.remove('hidden');
-                    const filterBtn = document.getElementById('filterToggleBtn');
-                    if (filterBtn) {
-                        filterBtn.querySelector('span').textContent = 'Hide Filters';
+                    if (window.initPowercrudSearchableSelects) {
+                        window.initPowercrudSearchableSelects(filterCollapse);
                     }
                 }
+                syncFilterToggleLabel();
                 localStorage.removeItem('filterExpanded');
             }
         });
@@ -376,30 +397,6 @@
         // console.log("DEBUG object_list: current filters provided as input to hx-vals= ", clean);
         return clean;
     }
-
-    // Delay form submit until after M2M select value for filters is properly updated in DOM
-    document.addEventListener('DOMContentLoaded', function () {
-        // Handle M2M select changes with proper timing
-        document.querySelectorAll('#filter-form select[multiple]').forEach(select => {
-            select.addEventListener('change', function () {
-                // Small delay to ensure DOM is updated
-                setTimeout(() => {
-                    // Use HTMX to submit the form
-                    const form = document.getElementById('filter-form');
-                    htmx.ajax('GET', form.action, {
-                        source: form,
-                        target: '#filtered_results',
-                        headers: {
-                            'X-Filter-Sort-Request': 'true',
-                            'X-Filter-Setting-Request': 'true'
-                        },
-                        swap: 'innerHTML',
-                        pushURL: true
-                    });
-                }, 10);
-            });
-        });
-    });
  
     // Select-all functionality with immediate UI updates
     function toggleAllSelection() {
