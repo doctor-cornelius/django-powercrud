@@ -1,10 +1,10 @@
+## 0.5.1 (2026-03-06)
+
+### Fix
+
+- **(test)**: use tomselect API path for stable bulk selection tests
+
 ## 0.5.0 (2026-03-06)
-
-
-### Breaking Changes
-
-- frontend selects now rely on TomSelect; projects with manual frontend setup must include TomSelect js/css or use the bundled PowerCRUD assets.
-
 
 ### Fix
 
