@@ -1,0 +1,5 @@
+INHERIT: mkdocs.yml
+
+exclude_docs: |
+  blog/
+  _plans/

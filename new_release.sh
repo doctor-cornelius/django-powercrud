@@ -22,6 +22,7 @@ if [[ -n $(git status -s) ]]; then
 fi
 
 BUMP_TYPE=$1
+RELEASE_NOTE_SUFFIX=${2:-}
 
 # increment version number in pyproject.toml
 NEW_VERSION=$(python3 - "$BUMP_TYPE" <<'PY'
@@ -99,7 +100,11 @@ cz changelog --unreleased-version=$NEW_VERSION
 
 # Note scope (release) is what will trigger the release job
 git add -A
-git commit -m "release($BUMP_TYPE): Release $NEW_VERSION"
+COMMIT_MESSAGE="release($BUMP_TYPE): Release $NEW_VERSION"
+if [[ -n ${RELEASE_NOTE_SUFFIX// } ]]; then
+  COMMIT_MESSAGE="$COMMIT_MESSAGE $RELEASE_NOTE_SUFFIX"
+fi
+git commit -m "$COMMIT_MESSAGE"
 
 # create a tag to reflect the release number
 git tag -a $NEW_VERSION -m "Release $NEW_VERSION"

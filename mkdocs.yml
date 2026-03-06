@@ -27,14 +27,14 @@ plugins:
   #   - index.md
   # - with-pdf                   # mamba install weasyprint && pip install mkdocs-with-pdf
   # - mermaid2                   # not needed if using mkdocs-material with custom_fences
-  - blog:
-      blog_dir: blog
-      post_dir: "{blog}/posts"
-      blog_toc: true
-      post_date_format: medium
-      post_url_date_format: yyyy/MM/dd
-      pagination_per_page: 25
-      draft: true # render drafts
+  # - blog:
+  #     blog_dir: blog
+  #     post_dir: "{blog}/posts"
+  #     blog_toc: true
+  #     post_date_format: medium
+  #     post_url_date_format: yyyy/MM/dd
+  #     pagination_per_page: 25
+  #     draft: true # render drafts
 
 markdown_extensions:
   - admonition
