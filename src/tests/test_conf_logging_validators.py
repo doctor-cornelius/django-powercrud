@@ -115,3 +115,10 @@ def test_validator_accepts_dropdown_sort_options():
         dropdown_sort_options={"author": "-name"},
     )
     assert validator.dropdown_sort_options == {"author": "-name"}
+
+
+def test_validator_accepts_searchable_selects_toggle():
+    validator = PowerCRUDMixinValidator(searchable_selects=False)
+    assert (
+        validator.searchable_selects is False
+    ), "Validator should accept searchable_selects boolean toggles for view configuration."

@@ -241,6 +241,10 @@ class AuthorCRUDView(SampleCRUDMixin):
     detail_properties = "__properties__"
     inline_edit_enabled = True
 
+    bulk_fields = [
+        "genres",
+    ]
+
     extra_actions = [
         {
             "url_name": "home",  # namespace:url_pattern

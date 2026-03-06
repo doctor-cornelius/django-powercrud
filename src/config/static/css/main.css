@@ -21,3 +21,30 @@ tailwind classes. You can get the correct path by doing:
         "coffee",
         "winter";
 }
+
+/* Tom Select hardening for PowerCRUD surfaces.
+   Keep this minimal and framework-neutral so selects remain usable even if
+   vendor CSS load order changes in dev/runtime. */
+select.ts-hidden-accessible {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
+
+.ts-wrapper {
+    position: relative;
+    width: 100%;
+}
+
+.ts-wrapper .ts-control {
+    align-items: center;
+    background-color: var(--color-base-100);
+    min-height: 2.75rem;
+    border-radius: var(--radius-field);
+}
+
+.ts-dropdown {
+    z-index: 1200;
+}

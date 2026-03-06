@@ -49,6 +49,7 @@ Complete alphabetical reference of all available configuration options with defa
 | `paginate_by` | int | `None` | All rows render on one page | Page size for list views; users can override via `?page_size=`. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
 | `properties` | list/str | `[]` | No computed properties show in the list view | Computed properties to display alongside fields (`'__all__'` or list). | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
 | `properties_exclude` | list[str] | `[]` | Every listed property renders | Remove individual properties from the list view. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
+| `searchable_selects` | bool | `True` | Single-select dropdowns render as native `<select>` controls | Enable Tom Select enhancement for eligible single-select fields in regular forms, inline editing, and bulk edit forms. | [Form controls](#form-controls) |
 | `table_classes` | str | `""` | Tables use the default daisyUI classes | Additional classes applied to the main table element. | [Styling & Tailwind](../guides/styling_tailwind.md) |
 | `table_header_min_wrap_width` | int | `None` | Matches `table_max_col_width` | Minimum width (in `ch`) before header labels wrap. | [Styling & Tailwind](../guides/styling_tailwind.md) |
 | `table_max_col_width` | int | `None` | Columns clamp at `25ch` | Maximum column width (in `ch`) for list and inline edit layouts. | [Styling & Tailwind](../guides/styling_tailwind.md) |
@@ -83,6 +84,26 @@ Fine-tune what users can filter and how options are presented by combining `filt
 ## Form controls
 
 Override or refine the automatically generated forms with `form_class`, `form_fields`, and `form_fields_exclude`, and enable Crispy Forms support via `use_crispy`. See the form configuration examples in [Setup & Core CRUD basics](../guides/setup_core_crud.md#3-shape-list-detail-and-form-scopes) and the complete view example in [reference/complete_example.md](complete_example.md).
+
+### Searchable select enhancement
+
+PowerCRUD enhances eligible single-select dropdowns with Tom Select when `searchable_selects = True` (default).
+
+- Applies to regular create/update forms, inline row forms, and bulk edit form selects.
+- Excludes multi-select fields and boolean-style selects.
+- Preserves normal Django form POST semantics (the underlying `<select>` still submits the selected value).
+
+Per-field opt-out is available via a view hook:
+
+```python
+class BookCRUDView(PowerCRUDMixin, CRUDView):
+    searchable_selects = True
+
+    def get_searchable_select_enabled_for_field(
+        self, field_name: str, bound_field=None
+    ) -> bool:
+        return field_name != "author"
+```
 
 ## Inline dependency controls
 

@@ -50,6 +50,10 @@ class MetadataMixin:
                     "choices": getattr(
                         field, "choices", None
                     ),  # Add choices for fields with choices
+                    "searchable_select": self._is_bulk_searchable_select(
+                        field_name=field_name,
+                        field=field,
+                    ),
                 }
             except Exception as e:
                 # Skip invalid fields
@@ -57,6 +61,39 @@ class MetadataMixin:
                 continue
 
         return field_info
+
+    def _is_bulk_searchable_select(
+        self, *, field_name: str, field: models.Field
+    ) -> bool:
+        """
+        Determine whether a bulk-edit field should render as a searchable select.
+        """
+        if resolve_config(self).searchable_selects_enabled is False:
+            return False
+
+        field_type = field.get_internal_type()
+        if field_type in {"BooleanField", "NullBooleanField", "ManyToManyField"}:
+            return False
+
+        if not (
+            field.is_relation and field_type in {"ForeignKey", "OneToOneField"}
+        ) and not getattr(field, "choices", None):
+            return False
+
+        field_hook = getattr(self, "get_searchable_select_enabled_for_field", None)
+        if callable(field_hook):
+            try:
+                return bool(
+                    field_hook(
+                        field_name=field_name,
+                        bound_field=None,
+                    )
+                )
+            except TypeError:
+                # Backward-compatible call style for simplified overrides.
+                return bool(field_hook(field_name))
+
+        return True
 
     def get_bulk_choices_for_field(
         self, field_name: str, field: models.Field

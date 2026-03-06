@@ -45,6 +45,93 @@ class FormMixin:
         """
         return bool(resolve_config(self).use_crispy_enabled)
 
+    def get_searchable_selects(self) -> bool:
+        """
+        Determine whether searchable-select enhancement is enabled for this view.
+
+        Returns:
+            bool: True when selectable single-value dropdowns should be enhanced.
+        """
+        return bool(resolve_config(self).searchable_selects_enabled)
+
+    def get_searchable_select_enabled_for_field(
+        self, field_name: str, bound_field: forms.Field | None = None
+    ) -> bool:
+        """
+        Hook for per-field searchable-select opt-out.
+
+        Args:
+            field_name: Form field name being considered.
+            bound_field: Concrete Django form field instance, when available.
+
+        Returns:
+            bool: True to enhance the field, False to keep a native select.
+        """
+        return True
+
+    def _is_boolean_like_select_field(self, field: forms.Field) -> bool:
+        """
+        Return True when a select field represents a boolean choice set.
+        """
+        if isinstance(field, forms.BooleanField):
+            return True
+
+        choices = [choice for choice in getattr(field, "choices", []) if choice]
+        normalized_values = {
+            str(value).strip().lower()
+            for value, _label in choices
+            if str(value).strip() != ""
+        }
+        if not normalized_values:
+            return False
+        boolean_values = {"true", "false", "1", "0"}
+        return normalized_values.issubset(boolean_values)
+
+    def _is_searchable_select_candidate(
+        self, field_name: str, field: forms.Field
+    ) -> bool:
+        """
+        Check whether a form field should be marked for searchable-select enhancement.
+        """
+        widget = getattr(field, "widget", None)
+        if widget is None:
+            return False
+        if not isinstance(widget, forms.Select):
+            return False
+        if getattr(widget, "allow_multiple_selected", False):
+            return False
+        if self._is_boolean_like_select_field(field):
+            return False
+        return bool(
+            self.get_searchable_select_enabled_for_field(
+                field_name=field_name, bound_field=field
+            )
+        )
+
+    def _apply_searchable_select_attrs(self, form: forms.BaseForm) -> forms.BaseForm:
+        """
+        Tag eligible select fields for frontend searchable-select enhancement.
+        """
+        if not form:
+            return form
+        if not self.get_searchable_selects():
+            return form
+
+        for field_name, field in form.fields.items():
+            attrs = field.widget.attrs
+            if self._is_searchable_select_candidate(field_name, field):
+                attrs["data-powercrud-searchable-select"] = "true"
+            else:
+                attrs.pop("data-powercrud-searchable-select", None)
+        return form
+
+    def get_form(self, *args, **kwargs):
+        """
+        Build the view form and apply searchable-select widget markers.
+        """
+        form = super().get_form(*args, **kwargs)
+        return self._apply_searchable_select_attrs(form)
+
     def _apply_crispy_helper(self, form_class):
         """Helper method to apply crispy form settings to a form class."""
         if not self.get_use_crispy():
@@ -185,7 +272,8 @@ class FormMixin:
         form_kwargs = self.get_inline_form_kwargs(
             instance=instance, data=data, files=files
         )
-        return form_class(**form_kwargs)
+        form = form_class(**form_kwargs)
+        return self._apply_searchable_select_attrs(form)
 
     def show_form(self, request, *args, **kwargs):
         """Override to check for conflicts before showing edit form"""

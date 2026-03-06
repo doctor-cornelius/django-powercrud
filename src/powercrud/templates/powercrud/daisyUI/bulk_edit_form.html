@@ -69,7 +69,9 @@
 
                         {% elif info.is_relation %}
                             {% if info.type == 'ForeignKey' or info.type == 'OneToOneField' %}
-                            <select name="{{ field_name }}" class="select select-bordered w-full" disabled>
+                            <select name="{{ field_name }}" class="select select-bordered w-full"
+                                {% if info.searchable_select %}data-powercrud-searchable-select="true"{% endif %}
+                                disabled>
                                 <option value="">-- No change --</option>
                                 {% if info.null %}
                                 <option value="null">-- None --</option>
@@ -105,7 +107,9 @@
                             {% endif %}
                         {% elif info.choices %}
                         <!-- Field with choices -->
-                        <select name="{{ field_name }}" class="select select-bordered w-full" disabled>
+                        <select name="{{ field_name }}" class="select select-bordered w-full"
+                            {% if info.searchable_select %}data-powercrud-searchable-select="true"{% endif %}
+                            disabled>
                             <option value="">-- No change --</option>
                             {% for value, label in info.choices %}
                             <option value="{{ value }}">{{ label }}</option>
@@ -190,11 +194,45 @@
             container.style.display = 'block';
             inputs.forEach(input => {
                 input.disabled = false;
+                if (input.tomselect) {
+                    input.tomselect.enable();
+                    const hasNoChangeValue = input.value === '';
+                    if (hasNoChangeValue) {
+                        input.tomselect.clear(true);
+                        input.tomselect.setTextboxValue('');
+                    }
+                    requestAnimationFrame(() => {
+                        if (!input.tomselect) {
+                            return;
+                        }
+                        // Do not re-sync when "no change" is selected, because sync()
+                        // would reselect the sentinel empty option in single-select mode.
+                        if (!hasNoChangeValue) {
+                            input.tomselect.sync();
+                        }
+                        input.tomselect.refreshOptions(true);
+                        input.tomselect.positionDropdown();
+                    });
+                    return;
+                }
+                if (
+                    window.initPowercrudSearchableSelects
+                    && input.matches
+                    && input.matches('select[data-powercrud-searchable-select="true"]')
+                ) {
+                    window.initPowercrudSearchableSelects(input);
+                    if (input.tomselect) {
+                        input.tomselect.enable();
+                    }
+                }
             });
         } else {
             container.style.display = 'none';
             inputs.forEach(input => {
                 input.disabled = true;
+                if (input.tomselect) {
+                    input.tomselect.disable();
+                }
             });
         }
     }

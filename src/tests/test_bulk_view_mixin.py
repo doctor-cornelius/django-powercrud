@@ -251,3 +251,17 @@ def test_bulk_edit_process_post_update_error(rf, fake_render):
     trigger = json.loads(response["HX-Trigger"])
     assert trigger["formError"] is True
     assert response["HX-Retarget"] == view.get_modal_target()
+
+
+@pytest.mark.django_db
+def test_bulk_field_info_flags_searchable_select_only_for_eligible_fields(rf):
+    request = make_htmx_request(rf)
+    view = HarnessView(request)
+    field_info = view._get_bulk_field_info(["author", "bestseller"])
+
+    assert (
+        field_info["author"]["searchable_select"] is True
+    ), "ForeignKey bulk fields should opt into searchable-select enhancement."
+    assert (
+        field_info["bestseller"]["searchable_select"] is False
+    ), "Boolean bulk fields should remain native selects and not use searchable-select enhancement."

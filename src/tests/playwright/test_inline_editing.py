@@ -8,6 +8,8 @@ import pytest
 pytest.importorskip("playwright.sync_api")
 from playwright.sync_api import Page, expect
 
+from sample.models import Author
+
 INLINE_ROW_SELECTOR = 'tr[data-inline-row="true"]'
 INLINE_ACTIVE_SELECTOR = f'{INLINE_ROW_SELECTOR}[data-inline-active="true"]'
 
@@ -90,6 +92,20 @@ def open_inline_row(
     active_row = page.locator(INLINE_ACTIVE_SELECTOR)
     expect(active_row).to_have_count(1, timeout=15000)
     return active_row
+
+
+def select_single_value(page: Page, container, field_name: str, option_label: str):
+    select = container.locator(f"select[name='{field_name}']")
+    ts_wrapper = container.locator(f"select[name='{field_name}'] + .ts-wrapper")
+    if ts_wrapper.count() > 0:
+        control_input = ts_wrapper.locator("input").first
+        control_input.click()
+        control_input.fill(option_label)
+        option = page.locator(".ts-dropdown .option", has_text=option_label).first
+        expect(option).to_be_visible()
+        option.click()
+        return
+    select.select_option(label=option_label)
 
 
 def test_inline_edit_happy_path(page: Page, books_url: str, inline_ready_books):
@@ -198,3 +214,42 @@ def test_inline_edit_guard_focuses_active_row(
     second_active_id = active_row.get_attribute("id")
     assert second_active_id and second_active_id != first_row_id
     expect(active_row.locator("input[name='title']")).to_be_visible()
+
+
+def test_inline_edit_searchable_select_updates_author(
+    page: Page, books_url: str, inline_ready_books, sample_genre
+):
+    book = inline_ready_books[0]
+    replacement_author = Author.objects.create(
+        name="Inline Search Author",
+        bio="",
+        birth_date=None,
+    )
+    replacement_author.genres.add(sample_genre)
+    row_path = build_inline_row_path(books_url, book.pk)
+
+    open_books_page(page, books_url)
+    watch_inline_event(page, "inline-row-saved")
+
+    active_row = open_inline_row(page, row=get_inline_row(page, row_path), field_name="author")
+    expect(active_row.locator("select[name='author']")).to_have_attribute(
+        "data-powercrud-searchable-select",
+        "true",
+    )
+
+    select_single_value(
+        page=page,
+        container=active_row,
+        field_name="author",
+        option_label=replacement_author.name,
+    )
+    genres_select = active_row.locator("select[name='genres']")
+    expect(genres_select).to_be_visible()
+    genres_select.select_option(str(sample_genre.pk))
+    active_row.locator("[data-inline-save]").click()
+    wait_for_inline_event(page, "inline-row-saved")
+
+    book.refresh_from_db()
+    assert (
+        book.author_id == replacement_author.pk
+    ), "Inline searchable single-select should persist the selected author after save."

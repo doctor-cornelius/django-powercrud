@@ -35,6 +35,7 @@ class ConfigMixin:
 
     # forms
     use_crispy: bool | None = None
+    searchable_selects: bool | None = True
 
     # field and property inclusion scope
     exclude: list[str] = []
@@ -398,6 +399,7 @@ class ConfigMixin:
         config["use_crispy_enabled"] = self._resolve_use_crispy_setting(
             config.get("use_crispy")
         )
+        config["searchable_selects_enabled"] = config.get("searchable_selects") is not False
 
         # HTMX/modal defaults
         config["modal_id_resolved"] = config.get("modal_id") or "powercrudBaseModal"
@@ -495,6 +497,8 @@ class _ConfigShim:
                 )
                 return False
             return desired
+        if name == "searchable_selects_enabled":
+            return self._raw("searchable_selects", True) is not False
         if name == "modal_id_resolved":
             return self._raw("modal_id") or "powercrudBaseModal"
         if name == "modal_target_resolved":

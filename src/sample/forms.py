@@ -4,10 +4,14 @@ from . import models
 
 
 class BookForm(forms.ModelForm):
+    """Book form with author-scoped genre choices."""
+
     def __init__(self, *args, author_for_genres=None, **kwargs):
+        """Initialise the form and scope genres to the resolved author."""
         super().__init__(*args, **kwargs)
         author_pk = self._resolve_author_for_genres(author_for_genres)
         self._filter_genres(author_pk)
+        self._set_genres_optional()
 
     def _resolve_author_for_genres(self, explicit_author_pk):
         """Resolve author selection from explicit input, bound data, or instance."""
@@ -30,6 +34,7 @@ class BookForm(forms.ModelForm):
         return None
 
     def _filter_genres(self, author_pk):
+        """Restrict genre choices to genres available for the chosen author."""
         genres_field = self.fields.get("genres")
         if not genres_field:
             return
@@ -43,6 +48,15 @@ class BookForm(forms.ModelForm):
                 else queryset.none()
             )
         genres_field.queryset = queryset
+
+    def _set_genres_optional(self):
+        """Allow books to be saved when no author-specific genres are available."""
+        genres_field = self.fields.get("genres")
+        if not genres_field:
+            return
+
+        genres_field.required = False
+        genres_field.widget.attrs.pop("required", None)
 
     class Meta:
         model = models.Book

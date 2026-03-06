@@ -629,14 +629,41 @@
             if (!row) {
                 return null;
             }
+            function getTomSelectControlInput(widget) {
+                if (!widget) {
+                    return null;
+                }
+                const select = widget.querySelector('select');
+                if (!select || !select.tomselect) {
+                    return null;
+                }
+                const controlInput = select.tomselect.control_input;
+                if (controlInput instanceof HTMLElement) {
+                    return controlInput;
+                }
+                return null;
+            }
             const baseFieldSelector =
                 '.inline-field-widget input:not([type="hidden"]):not([disabled]), .inline-field-widget select:not([disabled]), .inline-field-widget textarea:not([disabled]), .inline-field-widget [tabindex]:not([tabindex="-1"])';
             if (preferredField) {
+                const preferredWidget = row.querySelector(
+                    `.inline-field-widget[data-inline-field="${preferredField}"]`
+                );
+                const preferredTomSelectInput = getTomSelectControlInput(preferredWidget);
+                if (preferredTomSelectInput) {
+                    return preferredTomSelectInput;
+                }
                 const scopedSelector = `.inline-field-widget[data-inline-field="${preferredField}"] input:not([type="hidden"]):not([disabled]), .inline-field-widget[data-inline-field="${preferredField}"] select:not([disabled]), .inline-field-widget[data-inline-field="${preferredField}"] textarea:not([disabled]), .inline-field-widget[data-inline-field="${preferredField}"] [tabindex]:not([tabindex="-1"])`;
                 const preferredTarget = row.querySelector(scopedSelector);
                 if (preferredTarget) {
                     return preferredTarget;
                 }
+            }
+            const firstTomSelectInput = getTomSelectControlInput(
+                row.querySelector('.inline-field-widget')
+            );
+            if (firstTomSelectInput) {
+                return firstTomSelectInput;
             }
             const fallbackField = row.querySelector(baseFieldSelector);
             if (fallbackField) {
@@ -679,6 +706,11 @@
                 return;
             }
             requestAnimationFrame(() => {
+                if (candidate.tomselect) {
+                    candidate.tomselect.focus();
+                    candidate.tomselect.open();
+                    return;
+                }
                 if (typeof candidate.showPicker === 'function') {
                     try {
                         candidate.showPicker();
@@ -729,10 +761,21 @@
             }
         }
 
+        function initInlineSearchableSelects(container) {
+            if (!container) {
+                return;
+            }
+            if (typeof window.initPowercrudSearchableSelects !== 'function') {
+                return;
+            }
+            window.initPowercrudSearchableSelects(container);
+        }
+
         function wireInlineRow(row) {
             if (!row) {
                 return;
             }
+            initInlineSearchableSelects(row);
             wireInlineDependencies(row);
             bindInlineRowHotkeys(row);
         }
@@ -1151,6 +1194,7 @@
 
             if (target.matches('.inline-field-widget[data-inline-field]')) {
                 setWidgetRefreshing(target, false);
+                initInlineSearchableSelects(target);
             }
 
             if (activeRowId) {

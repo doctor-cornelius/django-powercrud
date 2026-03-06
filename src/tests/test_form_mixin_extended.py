@@ -224,3 +224,53 @@ def test_form_invalid_htmx_keeps_modal(monkeypatch):
     response = view.form_invalid(form)
     assert "formError" in json.loads(response["HX-Trigger"])
     assert response["HX-Retarget"] == view.get_modal_target()
+
+
+@pytest.mark.django_db
+def test_searchable_select_marker_added_to_foreign_key_field():
+    request = attach_session(RequestFactory().get("/"))
+    view = DummyFormView(request)
+    form = view.get_form_class()()
+    view._apply_searchable_select_attrs(form)
+
+    assert (
+        form.fields["author"].widget.attrs.get("data-powercrud-searchable-select")
+        == "true"
+    ), "Author select should be marked for searchable-select enhancement by default."
+    assert (
+        "data-powercrud-searchable-select"
+        not in form.fields["title"].widget.attrs
+    ), "Non-select text fields should never be marked for searchable-select enhancement."
+
+
+@pytest.mark.django_db
+def test_searchable_select_marker_respects_global_toggle():
+    request = attach_session(RequestFactory().get("/"))
+    view = DummyFormView(request)
+    view.searchable_selects = False
+    form = view.get_form_class()()
+    view._apply_searchable_select_attrs(form)
+
+    assert (
+        "data-powercrud-searchable-select"
+        not in form.fields["author"].widget.attrs
+    ), "Global searchable_selects=False should suppress select enhancement markers."
+
+
+@pytest.mark.django_db
+def test_searchable_select_marker_respects_field_hook():
+    class OptOutDummyView(DummyFormView):
+        def get_searchable_select_enabled_for_field(
+            self, field_name: str, bound_field=None
+        ) -> bool:
+            return field_name != "author"
+
+    request = attach_session(RequestFactory().get("/"))
+    view = OptOutDummyView(request)
+    form = view.get_form_class()()
+    view._apply_searchable_select_attrs(form)
+
+    assert (
+        "data-powercrud-searchable-select"
+        not in form.fields["author"].widget.attrs
+    ), "Per-field searchable-select hook should be able to opt out individual fields."

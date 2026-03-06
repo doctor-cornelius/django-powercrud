@@ -205,6 +205,8 @@ class SampleAsyncContextDemoTests(TestCase):
 
 
 class SampleBookFormDependencyTests(TestCase):
+    """Validate sample form behavior for author-dependent genre constraints."""
+
     def setUp(self):
         self.author_a = Author.objects.create(name="Author A")
         self.author_b = Author.objects.create(name="Author B")
@@ -259,6 +261,7 @@ class SampleBookFormDependencyTests(TestCase):
         )
 
     def test_book_form_filters_genres_from_instance_when_unbound(self):
+        """Unbound forms should use instance author to scope genre choices."""
         form = BookForm(instance=self.book_a)
 
         genre_ids = list(form.fields["genres"].queryset.values_list("id", flat=True))
@@ -271,4 +274,27 @@ class SampleBookFormDependencyTests(TestCase):
             self.genre_b.pk,
             genre_ids,
             "Unbound BookForm should exclude genres from other authors.",
+        )
+
+    def test_book_form_genres_field_is_optional(self):
+        """Genres should be optional when author-scoped choices are empty."""
+        author_without_genres = Author.objects.create(name="Author Without Genres")
+        form = BookForm(
+            data={
+                "title": "No Genres Book",
+                "author": str(author_without_genres.pk),
+                "published_date": "2024-01-03",
+                "isbn": "9788888800003",
+                "pages": "99",
+                "bestseller": "",
+            }
+        )
+
+        self.assertFalse(
+            form.fields["genres"].required,
+            "BookForm should mark genres as optional to allow save when no scoped genres exist.",
+        )
+        self.assertTrue(
+            form.is_valid(),
+            "BookForm should validate without genres when the selected author has no available genre options.",
         )

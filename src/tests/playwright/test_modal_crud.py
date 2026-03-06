@@ -11,6 +11,37 @@ from sample.models import Book
 pytestmark = [pytest.mark.playwright, pytest.mark.django_db]
 
 
+def select_single_value(page, form, field_name: str, option_label: str, option_value: str):
+    select = form.locator(f"select[name='{field_name}']")
+    ts_wrapper = form.locator(f"select[name='{field_name}'] + .ts-wrapper")
+    if ts_wrapper.count() > 0:
+        native_hidden = select.evaluate(
+            """
+            (el) => {
+                const style = window.getComputedStyle(el);
+                return (
+                    el.hidden
+                    || style.display === 'none'
+                    || style.visibility === 'hidden'
+                    || el.getAttribute('aria-hidden') === 'true'
+                );
+            }
+            """
+        )
+        assert native_hidden, (
+            f"Native select '{field_name}' should be hidden when TomSelect enhancement is active."
+        )
+        control_input = ts_wrapper.locator("input").first
+        control_input.click()
+        control_input.fill(option_label)
+        option = page.locator(".ts-dropdown .option", has_text=option_label).first
+        expect(option).to_be_visible()
+        option.click()
+        expect(select).to_have_value(option_value)
+        return
+    select.select_option(option_value)
+
+
 def test_create_book_via_modal(page, books_url, sample_author, sample_genre):
     page.goto(books_url)
     page.wait_for_load_state("networkidle")
@@ -35,7 +66,13 @@ def test_create_book_via_modal(page, books_url, sample_author, sample_genre):
     isbn = f"978{uuid4().hex[:10]}"
 
     form.locator("input[name='title']").fill(title)
-    form.locator("select[name='author']").select_option(str(sample_author.pk))
+    select_single_value(
+        page=page,
+        form=form,
+        field_name="author",
+        option_label=sample_author.name,
+        option_value=str(sample_author.pk),
+    )
     form.locator("input[name='published_date']").fill("2025-01-01")
     form.locator("select[name='genres']").select_option(str(sample_genre.pk))
     form.locator("input[name='isbn']").fill(isbn)
@@ -52,4 +89,6 @@ def test_create_book_via_modal(page, books_url, sample_author, sample_genre):
 
     expect(page.locator("table")).to_contain_text(title)
 
-    assert Book.objects.filter(title=title, author=sample_author).exists()
+    assert Book.objects.filter(title=title, author=sample_author).exists(), (
+        "Submitting the create modal should persist a Book linked to the selected author."
+    )

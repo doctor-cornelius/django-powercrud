@@ -32,6 +32,37 @@ def test_bulk_selection_toggle(page, books_url, sample_books):
     )
 
 
+def select_single_value(page, container, field_name: str, option_label: str, option_value: str):
+    select = container.locator(f"select[name='{field_name}']")
+    ts_wrapper = container.locator(f"select[name='{field_name}'] + .ts-wrapper")
+    if ts_wrapper.count() > 0:
+        native_hidden = select.evaluate(
+            """
+            (el) => {
+                const style = window.getComputedStyle(el);
+                return (
+                    el.hidden
+                    || style.display === 'none'
+                    || style.visibility === 'hidden'
+                    || el.getAttribute('aria-hidden') === 'true'
+                );
+            }
+            """
+        )
+        assert native_hidden, (
+            f"Native select '{field_name}' should be hidden when TomSelect enhancement is active."
+        )
+        control_input = ts_wrapper.locator("input").first
+        control_input.click()
+        control_input.fill(option_label)
+        option = page.locator(".ts-dropdown .option", has_text=option_label).first
+        expect(option).to_be_visible()
+        option.click()
+        expect(select).to_have_value(option_value)
+        return
+    select.select_option(option_value)
+
+
 def test_bulk_edit_refresh_reapplies_active_filters(
     page, books_url, sample_author, sample_genre, sample_books
 ):
@@ -96,3 +127,51 @@ def test_bulk_edit_refresh_reapplies_active_filters(
     assert (
         target_book.bestseller is True
     ), "Bulk edit should update the filtered record while keeping the filtered list scoped to the active author."
+
+
+def test_bulk_edit_searchable_select_updates_author(
+    page, books_url, sample_author, sample_books
+):
+    selected_book = sample_books[0]
+    untouched_book = sample_books[1]
+    replacement_author = Author.objects.create(
+        name="Bulk Search Author",
+        bio="",
+        birth_date=None,
+    )
+
+    page.goto(books_url)
+    page.wait_for_load_state("networkidle")
+
+    checkbox = page.locator("input.row-select-checkbox").first
+    checkbox.check()
+
+    bulk_container = page.locator("#bulk-actions-container").first
+    expect(bulk_container).to_be_visible()
+    bulk_container.get_by_role("link", name=re.compile("bulk edit", re.I)).click()
+
+    modal = page.locator("#powercrudBaseModal")
+    form = modal.locator("#bulk-edit-form")
+    expect(form).to_be_visible()
+
+    form.locator("input.field-toggle[value='author']").check()
+    select_single_value(
+        page=page,
+        container=form,
+        field_name="author",
+        option_label=replacement_author.name,
+        option_value=str(replacement_author.pk),
+    )
+    form.get_by_role("button", name=re.compile("apply changes", re.I)).click()
+
+    expect(modal).not_to_be_visible()
+    page.wait_for_load_state("networkidle")
+
+    selected_book.refresh_from_db()
+    untouched_book.refresh_from_db()
+    assert (
+        selected_book.author_id == replacement_author.pk
+    ), "Bulk searchable select should update the selected record author."
+    assert (
+        untouched_book.author_id == sample_author.pk
+    ), "Bulk searchable select should not change unselected rows."
