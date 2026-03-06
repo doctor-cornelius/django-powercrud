@@ -160,11 +160,18 @@ class InlineEditingMixin:
         if field not in form.fields:
             return HttpResponseBadRequest("Invalid field")
 
+        field_dependencies = self.get_inline_field_dependencies()
+        field_dependency = field_dependencies.get(field)
+        inline_context = self.get_inline_context()
         widget_html = render_to_string(
             f"{cfg.templates_path}/partial/inline_field.html",
             {
                 "field": form[field],
                 "field_name": field,
+                "field_dependency": field_dependency,
+                "dependency_endpoint_url": inline_context.get(
+                    "dependency_endpoint_url"
+                ),
             },
             request=request,
         )

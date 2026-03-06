@@ -1,3 +1,13 @@
-<div class="inline-field-widget">
+<div
+    class="inline-field-widget w-full"
+    data-inline-field="{{ field_name }}"
+    {% if field_dependency %}
+        data-inline-dependent="true"
+        {% if field_dependency.depends_on %}
+            data-inline-depends-on="{{ field_dependency.depends_on|join:',' }}"
+        {% endif %}
+        data-inline-endpoint="{{ field_dependency.endpoint_url|default:dependency_endpoint_url }}"
+    {% endif %}
+>
     {{ field }}
 </div>

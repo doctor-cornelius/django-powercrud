@@ -17,6 +17,15 @@
         line-height: 1.5 !important;
         }
 
+        .inline-field-widget[data-inline-refreshing="true"] {
+            opacity: 0.7;
+            cursor: wait;
+        }
+
+        .inline-field-widget[data-inline-refreshing="true"] * {
+            pointer-events: none;
+        }
+
         .table-column-width {
             width: fit-content;
             max-width: {{ table_max_col_width }};
@@ -805,6 +814,55 @@
             return map;
         }
 
+        function getWidgetControl(widget) {
+            if (!widget) {
+                return null;
+            }
+            return widget.querySelector('select, textarea, input:not([type="hidden"])');
+        }
+
+        function clearWidgetControlValue(control) {
+            if (!control || control.disabled) {
+                return;
+            }
+            if (control.tagName === 'SELECT') {
+                if (control.multiple) {
+                    Array.from(control.options).forEach(option => {
+                        option.selected = false;
+                    });
+                    return;
+                }
+                control.selectedIndex = -1;
+                return;
+            }
+            if (control.type === 'checkbox' || control.type === 'radio') {
+                control.checked = false;
+                return;
+            }
+            control.value = '';
+        }
+
+        function setWidgetRefreshing(widget, isRefreshing) {
+            if (!widget) {
+                return;
+            }
+            const control = getWidgetControl(widget);
+            if (isRefreshing) {
+                widget.dataset.inlineRefreshing = 'true';
+                widget.setAttribute('aria-busy', 'true');
+                clearWidgetControlValue(control);
+                if (control) {
+                    control.disabled = true;
+                }
+                return;
+            }
+            delete widget.dataset.inlineRefreshing;
+            widget.removeAttribute('aria-busy');
+            if (control) {
+                control.disabled = false;
+            }
+        }
+
         function refreshDependentField(container, dep) {
             const widget = container.querySelector(
                 `.inline-field-widget[data-inline-field="${dep.fieldName}"]`
@@ -812,6 +870,8 @@
             if (!widget || !dep.endpoint) {
                 return;
             }
+
+            setWidgetRefreshing(widget, true);
 
             const values = {};
             container.querySelectorAll('[name]').forEach(input => {
@@ -831,7 +891,7 @@
             values.field = dep.fieldName;
 
             window.htmx.ajax('POST', dep.endpoint, {
-                source: container,
+                source: widget,
                 target: widget,
                 swap: 'outerHTML',
                 values,
@@ -1062,11 +1122,25 @@
                 return;
             }
 
+            if (target.matches('.inline-field-widget[data-inline-field]')) {
+                setWidgetRefreshing(target, false);
+            }
+
             if (activeRowId) {
                 const row = target.closest(INLINE_ROW_SELECTOR);
                 if (row && row.id === activeRowId && row.dataset.inlineActive === 'true') {
                     wireInlineRow(row);
                 }
+            }
+        });
+
+        document.body.addEventListener('htmx:responseError', event => {
+            const trigger = event.detail && event.detail.elt;
+            if (!(trigger instanceof HTMLElement)) {
+                return;
+            }
+            if (trigger.matches('.inline-field-widget[data-inline-refreshing="true"]')) {
+                setWidgetRefreshing(trigger, false);
             }
         });
 

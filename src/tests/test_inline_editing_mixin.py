@@ -204,6 +204,18 @@ class InlineDependencyCaptureView(InlineTestView):
         return super().build_inline_form(instance=instance, data=data, files=files)
 
 
+class InlineDependencyMetadataView(InlineTestView):
+    """Expose one inline dependency to verify dependency widget metadata."""
+
+    def get_inline_field_dependencies(self):
+        return {
+            "title": {
+                "depends_on": ["author"],
+                "endpoint_url": "/sample/bigbook/inline-dependency/",
+            }
+        }
+
+
 def _make_request(method="get", path="/inline/", data=None):
     rf = RequestFactory()
     request = getattr(rf, method)(path, data=data or {})
@@ -437,8 +449,13 @@ def test_inline_dependency_endpoint_renders_widget(sample_book):
 
     response = view._dispatch_inline_dependency(request, pk=sample_book.pk)
 
-    assert response.status_code == 200
-    assert b"inline-field-widget" in response.content
+    assert response.status_code == 200, "Dependency endpoint should return refreshed widget HTML."
+    assert (
+        b'inline-field-widget w-full' in response.content
+    ), "Dependency widget response should include the expected wrapper class."
+    assert (
+        b'data-inline-field="title"' in response.content
+    ), "Dependency widget response should preserve the inline field marker after swap."
 
 
 @pytest.mark.django_db
@@ -482,6 +499,34 @@ def test_inline_dependency_preserves_parent_values_from_post(sample_book):
     assert (
         view.captured_author == str(sample_book.author_id)
     ), "Dependency refresh should pass posted parent field values into the rebuilt inline form."
+
+
+@pytest.mark.django_db
+def test_inline_dependency_preserves_dependency_metadata_on_widget_swap(sample_book):
+    request = _make_request(
+        "post",
+        path="/inline-dependency/",
+        data={
+            "field": "title",
+            "pk": str(sample_book.pk),
+            "author": str(sample_book.author_id),
+            "title": sample_book.title,
+        },
+    )
+    view = InlineDependencyMetadataView(request, sample_book)
+
+    response = view._dispatch_inline_dependency(request, pk=sample_book.pk)
+
+    assert response.status_code == 200, "Dependency refresh should return widget HTML for dependent fields."
+    assert (
+        b'data-inline-dependent="true"' in response.content
+    ), "Dependent widget swaps should preserve dependency markers for future refresh wiring."
+    assert (
+        b'data-inline-depends-on="author"' in response.content
+    ), "Dependent widget swaps should include parent field dependency metadata."
+    assert (
+        b'data-inline-endpoint="/sample/bigbook/inline-dependency/"' in response.content
+    ), "Dependent widget swaps should preserve the dependency endpoint URL."
 
 
 @pytest.mark.django_db
