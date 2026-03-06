@@ -1,3 +1,9 @@
+## 0.4.18 (2026-03-06)
+
+### Feature
+
+- **(inline)**: implement inline dynamic field dependency updates with doc updates
+
 ## 0.4.17 (2026-03-06)
 
 ### Fix
