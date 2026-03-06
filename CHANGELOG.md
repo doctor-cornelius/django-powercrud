@@ -1,3 +1,9 @@
+## 0.4.17 (2026-03-06)
+
+### Fix
+
+- **(inline)**: harden dependent field refresh state and preserve dependency metadata on swap
+
 ## 0.4.16 (2026-03-06)
 
 ### Fix
