@@ -1,8 +1,8 @@
 # Home
 
-**Advanced CRUD for perfectionists with deadlines. An opinionated extension of [`Neapolitan`](https://github.com/carltongibson/neapolitan).**
+**Advanced CRUD for perfectionists with deadlines. An opinionated Django package for shipping production-grade CRUD screens with filtering, bulk operations, inline editing, and async workflows.**
 
-PowerCRUD respects Neapolitan’s foundations while supplying the practical UX and async tooling that most projects end up building themselves.
+PowerCRUD extends [`Neapolitan`](https://github.com/carltongibson/neapolitan)’s view layer with the practical infrastructure needed for real operational interfaces.
 
 !!! info "Project status"
     PowerCRUD is still evolving, but now ships with a full pytest suite (including Playwright smoke tests). Expect breaking changes while APIs settle, and pin the package if you rely on current behaviour.

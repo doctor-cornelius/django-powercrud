@@ -8,9 +8,9 @@
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![Renovate](https://img.shields.io/badge/renovate-enabled-brightgreen?logo=renovatebot)](https://developer.mend.io/github/doctor-cornelius/django-powercrud)
 
-**Advanced CRUD for perfectionists with deadlines. An opinionated extension of [Neapolitan](https://github.com/carltongibson/neapolitan).**
+**Advanced CRUD for perfectionists with deadlines. An opinionated Django package for shipping production-grade CRUD screens with filtering, bulk operations, inline editing, and async workflows.**
 
-PowerCRUD builds on Neapolitan’s view layer and adds the practical pieces you would otherwise wire up by hand.
+PowerCRUD extends [Neapolitan](https://github.com/carltongibson/neapolitan)’s view layer with the practical infrastructure needed for real operational interfaces.
 
 ## Why PowerCRUD
 
