@@ -1,3 +1,26 @@
+## 0.5.0 (2026-03-06)
+
+
+### Breaking Changes
+
+- frontend selects now rely on TomSelect; projects with manual frontend setup must include TomSelect js/css or use the bundled PowerCRUD assets.
+
+
+### Fix
+
+- **(test)**: harden playwright tomselect interactions
+
+### Documentation
+
+- **(setup)**: remove unused frontend deps and clarify frontend bundle guidance
+
+### Feature
+
+- **(release)**: support breaking change notes in changelog flow
+- **(tooling)**: allow runproj exec command passthrough
+- **(test)**: add runtests mode flags for pytest and playwright
+- **(filters)**: add tomselect-powered searchable filter controls
+
 ## 0.4.19 (2026-03-06)
 
 ### Fix
