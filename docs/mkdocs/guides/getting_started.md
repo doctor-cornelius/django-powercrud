@@ -97,56 +97,131 @@ POWERCRUD_SETTINGS = {
 
 ## Frontend Integration
 
-### Option A (recommended): bundled mode
+You can install PowerCRUD in two ways.
 
-Use the packaged bundle to keep setup small and behaviour aligned with docs.
+=== "Option A (recommended): bundled mode"
 
-When using `django-vite` in manifest mode, point it at the packaged bundle:
+    Use the packaged bundle to keep setup small and behaviour aligned with docs.
 
-```python
-from importlib import resources
+    When using `django-vite`, configure a dedicated app entry for PowerCRUD:
+
+    ```python
+    # settings.py
+    from importlib import resources
 
 
-POWERCRUD_ASSETS_DIR = resources.files("powercrud").joinpath("assets")
+    POWERCRUD_ASSETS_DIR = resources.files("powercrud").joinpath("assets")
+    STATIC_URL = "/static/"
+    STATICFILES_DIRS = [
+        # your existing static dirs...
+        str(POWERCRUD_ASSETS_DIR),
+    ]
 
-DJANGO_VITE = {
-    "default": {
-        "manifest_path": f"{POWERCRUD_ASSETS_DIR}/manifest.json",
+    DJANGO_VITE = {
+        "default": {
+            # Your project's own frontend bundle config
+        },
+        "powercrud": {
+            "dev_mode": False,
+            "static_url_prefix": "/static/",
+            "manifest_path": str(POWERCRUD_ASSETS_DIR / "manifest.json"),
+        },
     }
-}
-```
+    ```
 
-Then load the bundle entry in your base template:
+    Then load the bundle entry in your base template:
 
-```django
-{% load django_vite %}
-{% vite_asset 'config/static/js/main.js' %}
-```
+    ```django
+    {% load django_vite %}
+    {% vite_asset 'config/static/js/main.js' app='powercrud' %}
+    ```
 
-See `sample/templates/sample/daisyUI/base.html` for a complete Vite-based example.
+    See `sample/templates/sample/daisyUI/base.html` for a complete Vite-based example.
 
-### Option B: manual mode (no packaged bundle)
+    If your page also loads your app's own bundle, both lines can coexist:
 
-If you manage frontend dependencies yourself, load vendor libraries and then load PowerCRUD runtime assets:
+    ```django
+    {% vite_asset 'src/config/static/js/main.js' %}
+    {% vite_asset 'config/static/js/main.js' app='powercrud' %}
+    ```
 
-```django
-{% load static %}
+    Bundle mode checks:
 
-<link rel="stylesheet" href="{% static 'powercrud/css/powercrud.css' %}">
+    - Generated PowerCRUD asset URLs should be absolute, for example `/static/django_assets/...`.
+    - Ensure global `STATIC_URL` is absolute, for example `"/static/"`.
+    - If URLs appear relative (for example `static/django_assets/...` resolving to `/your/page/path/static/...`), set `static_url_prefix` to `"/static/"`.
+    - Ensure `POWERCRUD_ASSETS_DIR` is registered in `STATICFILES_DIRS` so static lookup can find `django_assets/powercrud-*.js|css`.
 
-<script src=".../htmx.min.js"></script>
-<script src=".../tom-select.complete.min.js"></script>
-<script src=".../tippy-bundle.umd.min.js"></script>
-<script src="{% static 'powercrud/js/powercrud.js' %}"></script>
-```
+    Projects that do not use `django.contrib.staticfiles` are especially sensitive here: `static_url_prefix` and `STATICFILES_DIRS` become mandatory for reliable packaged-bundle resolution.
 
-Requirements for manual mode:
+=== "Option B: manual mode (no packaged bundle)"
 
-- Load vendor dependencies before `powercrud/js/powercrud.js`.
-- Load Tom Select CSS from your own asset pipeline.
-- If you use built-in daisyUI templates without the packaged bundle, you must provide your own daisyUI/Tailwind CSS stack.
+    If you manage frontend dependencies yourself, you must:
 
-**Important:** If you compile Tailwind yourself, ensure Tailwind includes PowerCRUD classes in its build process. See the [Styling guide](./styling_tailwind.md#tailwind-integration) for details.
+    1. Load vendor dependencies (`HTMX`, `Tom Select`, `Tippy.js`).
+    2. Expose them as browser globals.
+    3. Load PowerCRUD runtime assets.
+
+    Template example:
+
+    ```django
+    {% load static %}
+
+    <link rel="stylesheet" href="{% static 'powercrud/css/powercrud.css' %}">
+
+    <script src=".../htmx.min.js"></script>
+    <link rel="stylesheet" href=".../tom-select.default.min.css">
+    <script src=".../tom-select.complete.min.js"></script>
+    <script src=".../tippy-bundle.umd.min.js"></script>
+    <script src="{% static 'powercrud/js/powercrud.js' %}"></script>
+    ```
+
+    If your project uses a JS bundler (for example Vite/Webpack) for vendor packages, expose globals in your app entry:
+
+    ```javascript
+    import htmx from "htmx.org";
+    import TomSelect from "tom-select";
+    import removeButtonPlugin from "tom-select/dist/js/plugins/remove_button.js";
+    import "tom-select/dist/css/tom-select.css";
+    import tippy from "tippy.js";
+    import "tippy.js/dist/tippy.css";
+
+    window.htmx = htmx;
+    TomSelect.define("remove_button", removeButtonPlugin);
+    window.TomSelect = TomSelect;
+    window.tippy = tippy;
+    ```
+
+    Then load PowerCRUD runtime assets in your base template:
+
+    ```django
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'powercrud/css/powercrud.css' %}">
+    <script defer src="{% static 'powercrud/js/powercrud.js' %}"></script>
+    ```
+
+    Manual mode requirements:
+
+    - Load vendor dependencies before `powercrud/js/powercrud.js`.
+    - Register the Tom Select `remove_button` plugin if you want multi-select remove buttons.
+    - If you use built-in daisyUI templates without the packaged bundle, you must provide your own daisyUI/Tailwind CSS stack.
+
+    Do not load both integration modes on the same page:
+
+    - Use either the packaged bundle (`{% vite_asset 'config/static/js/main.js' app='powercrud' %}`), or:
+    - Manual vendor/runtime assets.
+
+    Quick browser verification for manual mode:
+
+    ```javascript
+    Boolean(window.initPowercrudSearchableSelects) // true
+    Boolean(window.TomSelect)                      // true
+    Boolean(window.htmx)                           // true
+    ```
+
+    If fields have `data-powercrud-searchable-select="true"` but no Tom Select UI appears, the runtime script is not loaded or `window.TomSelect` is missing.
+
+    **Important:** If you compile Tailwind yourself, ensure Tailwind includes PowerCRUD classes in its build process. See the [Styling guide](./styling_tailwind.md#tailwind-integration) for details.
 
 ## Quick Start Tutorial
 

@@ -113,9 +113,23 @@ Re-run the command whenever you upgrade PowerCRUD or adjust templates heavily.
 
 Ensure your base template includes:
 
-- The PowerCRUD packaged bundle (`{% vite_asset 'config/static/js/main.js' %}`), or:
+- The PowerCRUD packaged bundle (`{% vite_asset 'config/static/js/main.js' app='powercrud' %}`), or:
 - Manual frontend dependencies (`HTMX`, `Tom Select`, `Tippy.js`) plus PowerCRUD runtime assets (`powercrud/js/powercrud.js`, `powercrud/css/powercrud.css`).
 - Optional: extra table tooling (for example `tablesort`) if you use it.
+
+If you use bundled mode via `django-vite`, ensure the PowerCRUD app entry is configured with:
+
+- `manifest_path` pointing to `powercrud/assets/manifest.json`
+- absolute `static_url_prefix` (for example `"/static/"`)
+- `powercrud/assets` included in `STATICFILES_DIRS`
+
+For manual mode, if dependencies are bundled through your own JS pipeline, make sure those libraries are exposed as globals before `powercrud/js/powercrud.js` runs:
+
+- `window.htmx`
+- `window.TomSelect`
+- `window.tippy`
+
+Do not mix packaged-bundle mode and manual mode on the same page. Pick one path.
 
 If you manage assets yourself and still want the default visual style, refer to:
 
