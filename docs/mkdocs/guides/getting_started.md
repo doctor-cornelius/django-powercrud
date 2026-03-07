@@ -33,18 +33,19 @@ PowerCRUD installs these Python dependencies automatically:
 
 ### Frontend dependencies
 
-PowerCRUD ships a frontend bundle for its interactive behaviour and default styling.
+PowerCRUD ships package-owned frontend runtime assets and a packaged bundle.
 
-The bundled frontend includes:
+Runtime responsibilities include:
 
 - **HTMX**
-- **Tom Select** (searchable single-select enhancement)
+- **Tom Select** (searchable single/multi select enhancement)
 - **Tippy.js** (truncated-table tooltips/popovers)
-- **Compiled default CSS** for the built-in daisyUI/Tailwind templates
+- **PowerCRUD runtime JS/CSS** (`powercrud/js/powercrud.js`, `powercrud/css/powercrud.css`)
 
-Recommended: load the PowerCRUD frontend bundle in your base template using whatever asset strategy your project already uses.
+You can run PowerCRUD in either of these modes:
 
-If you do **not** load the bundle, you must provide equivalent frontend assets yourself or interactive features will not work correctly.
+- **Bundled mode (recommended):** load PowerCRUD's packaged Vite entry (`config/static/js/main.js`).
+- **Manual mode:** install frontend dependencies yourself, then load PowerCRUD runtime assets from Django static paths.
 
 ??? note "Frontend library docs"
 
@@ -54,7 +55,7 @@ If you do **not** load the bundle, you must provide equivalent frontend assets y
     - daisyUI: [https://daisyui.com/docs/](https://daisyui.com/docs/){ target="_blank" rel="noopener noreferrer" }
     - Tailwind CSS: [https://tailwindcss.com/docs](https://tailwindcss.com/docs){ target="_blank" rel="noopener noreferrer" }
 
-Projects that use the built-in templates but manage assets themselves should read those docs. Projects that load the packaged bundle can usually ignore the frontend package-level setup details.
+Projects that use the built-in templates but manage assets manually should read those docs. Projects that load the packaged bundle can usually ignore package-level frontend dependency wiring.
 
 ## Required Configuration
 
@@ -96,11 +97,11 @@ POWERCRUD_SETTINGS = {
 
 ## Frontend Integration
 
-Use the PowerCRUD frontend bundle as the default path. That keeps the setup small and ensures interactive features behave as documented.
+### Option A (recommended): bundled mode
 
-If you prefer to manage frontend assets yourself, that is still valid, but you then own loading the equivalent libraries and keeping behaviour aligned.
+Use the packaged bundle to keep setup small and behaviour aligned with docs.
 
-For example, when using `django-vite` in manifest mode, point it at the packaged bundle like this:
+When using `django-vite` in manifest mode, point it at the packaged bundle:
 
 ```python
 from importlib import resources
@@ -124,7 +125,28 @@ Then load the bundle entry in your base template:
 
 See `sample/templates/sample/daisyUI/base.html` for a complete Vite-based example.
 
-**Important:** If using Tailwind CSS (default), ensure Tailwind includes powercrud's classes in its build process. See the [Styling guide](./styling_tailwind.md#tailwind-integration) for details.
+### Option B: manual mode (no packaged bundle)
+
+If you manage frontend dependencies yourself, load vendor libraries and then load PowerCRUD runtime assets:
+
+```django
+{% load static %}
+
+<link rel="stylesheet" href="{% static 'powercrud/css/powercrud.css' %}">
+
+<script src=".../htmx.min.js"></script>
+<script src=".../tom-select.complete.min.js"></script>
+<script src=".../tippy-bundle.umd.min.js"></script>
+<script src="{% static 'powercrud/js/powercrud.js' %}"></script>
+```
+
+Requirements for manual mode:
+
+- Load vendor dependencies before `powercrud/js/powercrud.js`.
+- Load Tom Select CSS from your own asset pipeline.
+- If you use built-in daisyUI templates without the packaged bundle, you must provide your own daisyUI/Tailwind CSS stack.
+
+**Important:** If you compile Tailwind yourself, ensure Tailwind includes PowerCRUD classes in its build process. See the [Styling guide](./styling_tailwind.md#tailwind-integration) for details.
 
 ## Quick Start Tutorial
 

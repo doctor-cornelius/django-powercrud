@@ -58,6 +58,8 @@ If you are using the packaged PowerCRUD frontend bundle and the built-in templat
 
 Tailwind’s JIT needs to see the CSS classes PowerCRUD uses when you manage Tailwind yourself. Choose one of the methods below.
 
+`@source "/path/to/site-packages/powercrud"` is only for Tailwind class discovery. It does **not** load PowerCRUD runtime JS/CSS by itself.
+
 ### Method A · Import package source
 
 ```css
@@ -111,7 +113,8 @@ Re-run the command whenever you upgrade PowerCRUD or adjust templates heavily.
 
 Ensure your base template includes:
 
-- The PowerCRUD JS/CSS bundle (recommended), or equivalent scripts and styles for HTMX/Tippy/Tom Select plus your chosen template styling stack if you manage assets manually.
+- The PowerCRUD packaged bundle (`{% vite_asset 'config/static/js/main.js' %}`), or:
+- Manual frontend dependencies (`HTMX`, `Tom Select`, `Tippy.js`) plus PowerCRUD runtime assets (`powercrud/js/powercrud.js`, `powercrud/css/powercrud.css`).
 - Optional: extra table tooling (for example `tablesort`) if you use it.
 
 If you manage assets yourself and still want the default visual style, refer to:
