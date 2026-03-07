@@ -1,3 +1,9 @@
+## 0.5.3 (2026-03-07)
+
+### Documentation
+
+- provide detailed instructions on frontend bundled vs manual install
+
 ## 0.5.2 (2026-03-07)
 
 ### Fix
