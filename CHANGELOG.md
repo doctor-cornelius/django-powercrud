@@ -1,3 +1,9 @@
+## 0.5.2 (2026-03-07)
+
+### Fix
+
+- **(frontend)**: move runtime assets into package static namespace
+
 ## 0.5.1 (2026-03-06)
 
 ### Fix
