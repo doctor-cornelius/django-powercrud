@@ -117,8 +117,8 @@ Here async queueing is explicit: you opt in by using `PowerCRUDAsyncMixin`, enab
 PowerCRUD is tested against the following combinations:
 
 - Python 3.12 with Django 4.2 LTS and Django 5.2
-- Python 3.13 with Django 4.2 LTS and Django 5.2
-- Python 3.14 with Django 4.2 LTS and Django 5.2
+- Python 3.13 with Django 5.2
+- Python 3.14 with Django 5.2
 
 We aim to keep the dependency lock compatible with each pairing; upcoming CI work will exercise this matrix automatically on pushes to `main`.
 

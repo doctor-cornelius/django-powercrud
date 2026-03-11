@@ -17,6 +17,11 @@ jobs:
       matrix:
         python-version: ["3.12", "3.13", "3.14"]
         django: ["4.2", "5.2"]
+        exclude:
+          - python-version: "3.13"
+            django: "4.2"
+          - python-version: "3.14"
+            django: "4.2"
     steps:
       - uses: actions/checkout@v6
 
