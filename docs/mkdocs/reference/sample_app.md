@@ -52,6 +52,14 @@ from powercrud.mixins import PowerCRUDAsyncMixin
 class BookCRUDView(PowerCRUDAsyncMixin, CRUDView):
     # Comprehensive configuration showing:
     form_class = BookForm
+    field_queryset_dependencies = {
+        "genres": {
+            "depends_on": ["author"],
+            "filter_by": {"authors": "author"},
+            "order_by": "name",
+            "empty_behavior": "all",
+        }
+    }
     bulk_fields = ['title', 'published_date', 'bestseller', 'pages', 'author', 'genres']
     bulk_delete = True
     bulk_async = True
@@ -59,9 +67,6 @@ class BookCRUDView(PowerCRUDAsyncMixin, CRUDView):
     filterset_fields = ['author', 'title', 'published_date', 'isbn', 'pages', 'genres']
     dropdown_sort_options = {"author": "name"}
     inline_edit_enabled = True
-    inline_field_dependencies = {
-        "genres": {"depends_on": ["author"]},
-    }
     
     extra_buttons = [...]  # Custom action buttons
     extra_actions = [...]  # Additional row actions
@@ -75,7 +80,7 @@ The sample app now includes a concrete inline dependency example:
 - `Book.genres` is the dependent field.
 - Allowed genre choices come from `Author.genres`, not from historical book rows.
 
-`BookForm` is used for both regular forms and inline editing. It resolves the author from bound form data first, then falls back to the instance, and constrains the `genres` queryset from the selected author. This makes the behavior deterministic and easy to debug in both tests and the browser.
+`field_queryset_dependencies` is the primary declaration for this rule, so the same queryset restriction applies to regular forms and inline editing. `BookForm` stays in place only for form-specific tweaks such as keeping `genres` optional when an author has no allowed genres.
 
 ### Other Views
 
@@ -123,7 +128,7 @@ The sample app now includes a concrete inline dependency example:
 
 ### Custom Forms
 
-- **BookForm**: Date widgets, field selection, crispy forms integration, and inline dependency queryset filtering for `author -> genres`
+- **BookForm**: Date widgets, field selection, crispy forms integration, and form-specific tweaks while `field_queryset_dependencies` handles the shared `author -> genres` queryset rule
 - **AuthorForm**: Demonstrates form customization patterns
 
 ### Advanced Filtering  
@@ -145,7 +150,7 @@ The sample app now includes a concrete inline dependency example:
 
 - **Modal Interactions**: All CRUD operations in modals
 - **HTMX Features**: Reactive filtering, pagination, form updates
-- **Inline Dependencies**: Changing a Book author inline immediately refreshes the allowed genre choices
+- **Inline Dependencies**: Changing a Book author inline immediately refreshes the allowed genre choices derived from the shared form dependency config
 - **CSS Frameworks**: Easy switching between daisyUI and Bootstrap
 - **Responsive Design**: Table layouts with column width controls
 
@@ -189,10 +194,11 @@ The sample app now includes a concrete inline dependency example:
 
 1. Open the Books list at `/sample/bigbook/`.
 2. Edit an Author and assign one or more genres to that author.
-3. Open a Book row in inline mode.
-4. Change the Book author.
-5. Re-open the Book genres control before saving.
-6. Confirm the available genres now match the selected author’s `genres` relation.
+3. Open a Book edit form in a modal and confirm the genres dropdown only shows genres for that author.
+4. Open a Book row in inline mode.
+5. Change the Book author.
+6. Re-open the Book genres control before saving.
+7. Confirm the available genres now match the selected author’s `genres` relation.
 
 The browser regression for this flow lives in [test_inline_dependencies.py](/home/mfo/projects/packages/django_powercrud/src/tests/playwright/test_inline_dependencies.py).
 

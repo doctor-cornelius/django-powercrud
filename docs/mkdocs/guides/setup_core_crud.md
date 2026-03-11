@@ -91,6 +91,7 @@ PowerCRUD layers a few convenient defaults so you can start with zero configurat
 
 - When no `form_fields` are specified, the mixin selects every *editable* field from `detail_fields`. Set `form_fields = "__fields__"` to mirror the list exactly, or `form_fields = "__all__"` to include every editable field.
 - `form_fields_exclude` lets you remove sensitive or read-only fields while keeping the automatic selection logic.
+- `field_queryset_dependencies` lets you declare simple parent/child dropdown scoping once so the same queryset restriction applies in regular forms and inline editing.
 - Inline editing (enabled via `inline_edit_enabled = True` + HTMX) reuses the resolved `form_fields`. Override `inline_edit_fields` with `"__fields__"`, `"__all__"`, or an explicit list if you want inline editing to expose a different subset, and PowerCRUD will automatically ignore anything that is not part of the form.
 
 ### Buttons & extra actions

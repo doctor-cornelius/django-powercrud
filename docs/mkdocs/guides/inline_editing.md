@@ -36,22 +36,35 @@ The DaisyUI template already includes the triggers, Save/Cancel buttons, and `in
 
 ## 2. Configure dependencies and helpers
 
-Inline editing reuses the existing form machinery, so any widget or queryset customisations carry over. Keep `inline_edit_fields` aligned with whatever the form actually exposes—if a field is excluded from `form_class`, it must also be dropped from the inline list or you’ll get “unknown field” errors. For dynamic dropdowns, declare dependencies and finite endpoints:
+Inline editing reuses the existing form machinery, so any widget or queryset customisations carry over. Keep `inline_edit_fields` aligned with whatever the form actually exposes; if a field is excluded from `form_class`, it must also be dropped from the inline list or you’ll get “unknown field” errors. For dynamic dropdowns, declare the shared queryset dependency once:
 
 ```python
 class BookCRUDView(PowerCRUDMixin, CRUDView):
     # …
-    inline_field_dependencies = {
+    field_queryset_dependencies = {
         "genres": {
             "depends_on": ["author"],
-            "endpoint_name": "sample:book-inline-dependency",  # optional override
+            "filter_by": {"authors": "author"},
+            "order_by": "name",
+            "empty_behavior": "all",
         }
     }
 ```
 
-- `depends_on` lists parent fields that should trigger a refresh.
+- `depends_on` lists the parent fields that drive the child queryset.
+- `filter_by` maps child queryset lookups to those parent form fields.
 - Each dependent field renders a placeholder + spinner; the JS helper issues a POST to the dependency endpoint and swaps the widget.
 - If the underlying form raises a validation error, the inline row re-renders with the field errors plus a banner (`inline-row-error` HTMX trigger).
+
+If you need inline-only overrides, keep using `inline_field_dependencies` for metadata such as a custom dependency endpoint name:
+
+```python
+inline_field_dependencies = {
+    "genres": {
+        "endpoint_name": "sample:book-inline-dependency",
+    }
+}
+```
 
 The same helpers drive both inline rows and lock-sensitive action buttons, so `_build_inline_row_payload()` contains everything the template needs (row id, inline URLs, lock metadata).
 
@@ -60,10 +73,10 @@ The same helpers drive both inline rows and lock-sensitive action buttons, so `_
 The most reliable pattern is:
 
 1. Add an explicit relation that describes which child records are allowed for each parent.
-2. Use a custom `form_class` on the CRUD view.
-3. Resolve the parent field from bound POST data first, then fall back to the instance.
-4. Filter the child field queryset from that resolved parent.
-5. Declare `inline_field_dependencies` so PowerCRUD knows which widget to refresh.
+2. Declare `field_queryset_dependencies` on the CRUD view.
+3. Use a custom `form_class` only for form concerns that remain outside the generic dependency rule.
+4. Let PowerCRUD resolve the parent field from bound POST data first, then fall back to the instance.
+5. Add `inline_field_dependencies` only if you need inline-only overrides.
 
 The sample app demonstrates this with `Book.author -> Book.genres`, where the allowed genres come from `Author.genres`:
 
@@ -75,6 +88,14 @@ The sample app demonstrates this with `Book.author -> Book.genres`, where the al
         class BookCRUDView(PowerCRUDMixin, CRUDView):
             model = Book
             form_class = BookForm
+            field_queryset_dependencies = {
+                "genres": {
+                    "depends_on": ["author"],
+                    "filter_by": {"authors": "author"},
+                    "order_by": "name",
+                    "empty_behavior": "all",
+                }
+            }
 
             use_htmx = True
             inline_edit_enabled = True
@@ -87,11 +108,6 @@ The sample app demonstrates this with `Book.author -> Book.genres`, where the al
                 "isbn",
                 "description",
             ]
-            inline_field_dependencies = {
-                "genres": {
-                    "depends_on": ["author"],
-                }
-            }
         ```
 
     === "`BookForm`"
@@ -100,17 +116,13 @@ The sample app demonstrates this with `Book.author -> Book.genres`, where the al
         class BookForm(forms.ModelForm):
             def __init__(self, *args, **kwargs):
                 super().__init__(*args, **kwargs)
-                author_pk = self.data.get("author") or getattr(self.instance, "author_id", None)
-                if author_pk:
-                    self.fields["genres"].queryset = (
-                        Author.objects.get(pk=author_pk).genres.all().order_by("name")
-                    )
+                self.fields["genres"].required = False
         ```
 
 Why this works:
 
-- The normal create/update form and the inline row share the same `BookForm`.
-- The inline dependency endpoint rebuilds only the dependent field widget, but it reuses the same bound form logic.
+- The normal create/update form and the inline row share the same dependency rule.
+- The inline dependency endpoint rebuilds only the dependent field widget, but it reuses the same form pipeline as the regular edit form.
 - When the user changes `author` inline, PowerCRUD posts the current row values, rebuilds the `genres` widget, clears the stale selection, and swaps the constrained widget back into the row.
 
 Use this pattern whenever a child dropdown should change immediately in response to another inline field.
