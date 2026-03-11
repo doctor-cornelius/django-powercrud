@@ -117,6 +117,20 @@ def test_validator_accepts_dropdown_sort_options():
     assert validator.dropdown_sort_options == {"author": "-name"}
 
 
+def test_validator_rejects_invalid_filter_null_fields_exclude():
+    """Reject non-string entries for nullable-filter exclusions."""
+    with pytest.raises(ValueError):
+        PowerCRUDMixinValidator(filter_null_fields_exclude=[123])
+
+
+def test_validator_accepts_filter_null_fields_exclude():
+    """Accept string field names for nullable-filter exclusions."""
+    validator = PowerCRUDMixinValidator(filter_null_fields_exclude=["birth_date"])
+    assert (
+        validator.filter_null_fields_exclude == ["birth_date"]
+    ), "Validator should preserve string field names for filter_null_fields_exclude."
+
+
 def test_validator_accepts_searchable_selects_toggle():
     validator = PowerCRUDMixinValidator(searchable_selects=False)
     assert (

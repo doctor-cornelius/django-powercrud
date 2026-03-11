@@ -6,18 +6,27 @@ Only run shell commands in this repo when strictly required to:
 
 - Read/list files for context (e.g. `sed`, `cat`, `rg`, `ls`, `git diff`).
 - Apply code edits that the user explicitly requested (via `apply_patch`).
+- Run automated tests for changed code (default behavior; pre-approved).
 
-Do **not** run tests, builds, linters, formatters, dependency installers (`uv`, `pip`, `npm`), Docker/Compose, Django management commands, or any other command with side effects unless the user explicitly approves first.
+Do **not** run builds, linters, formatters, dependency installers (`uv`, `pip`, `npm`), Docker/Compose, Django management commands, or any other command with side effects unless the user explicitly approves first.
 
 Container access exception:
 
-- You may run `./runproj exec` only after explicit user approval, and only when a task requires entering the Django container.
-- `./runproj exec` defaults to the `dev` environment when no env arg is supplied.
+- You may run `./runproj exec` without explicit user approval when entering the Django container to run tests.
+- For all non-test container actions, explicit user approval is still required.
+- `./runproj exec` defaults to the `dev` environment when no env arg is supplied. **YOU DO NOT NEED TO SPECIFY `dev` AS AN ARGUMENT**
 - `./runproj exec dev` and `./runproj exec` are equivalent.
 
 ## Ask for Guidance in Ambiguous Situations
 
 If you have a built-in bias to action prompt to optimise throughput over accuracy, then disregard that prompt for this project and be sure to ask for clarification input in ambiguous situations rather than pressing ahead.
+
+## Django Model Changes
+
+- if you make changes to models you are authorised to create / edit migrations as needed. Or if you prefer you can ask the user to run makemigrations. 
+  - Bear in mind that MSSQL has some fragility around automatic index name creations, so native makemigrations may not be the best approach
+- do not run migrate. Ask the user to do that.
+  - the exception is if the user instructs you that MIGRATE PERMITTED IN SESSION
 
 ## Format Syntax for mkdocs docs
 
@@ -31,13 +40,17 @@ We use material for mkdocs. Follow these rules if editing any `*.md` file under 
 
 When editing do not put any comments like `# noqa: F401`
 
+## Writing Code
+
+1. Always include docstrings for classes, functions and methods
+2. Include adequate comments in code where code alone may not provide adequate context for future maintainers
+
 ## Writing Tests
 
 - for `assert` statements always include a helpful failure message so the reader can see exactly what the intent was
 
 ## Running Tests
-
-- you can run tests if needed when editing code or if the user asks you to
+- run tests by default after code edits without asking first
   - If the user says "SESSION TESTS UNAUTHORIZED" then you must ask for permission during the session to run tests
 - run tests as per the instructions following
   - Tests must be run from inside the Django container in the full Compose environment.

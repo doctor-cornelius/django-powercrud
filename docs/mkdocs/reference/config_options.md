@@ -28,6 +28,7 @@ Complete alphabetical reference of all available configuration options with defa
 | `extra_button_classes` | str | `""` | Extra buttons use the default button styling | Additional CSS classes shared by every entry in `extra_buttons`. | [Styling & Tailwind](../guides/styling_tailwind.md) |
 | `extra_buttons` | list[dict] | `[]` | No extra header buttons are shown | Add top-of-page buttons (e.g., custom actions, links). | [Complete Example](complete_example.md) |
 | `fields` | list/str | `'__all__'` | All concrete model fields show in the list view | Columns displayed in the list view. Combine with `exclude`. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
+| `filter_null_fields_exclude` | list[str] | `[]` | Nullable auto-generated filters gain built-in null filtering | Opt out specific `filterset_fields` from automatic null-filter controls. | [Filter controls](#filter-controls) |
 | `filter_queryset_options` | dict | `{}` | Filter dropdowns query the entire related table | Restrict or pre-filter related dropdown options per field. | [Filter controls](#filter-controls) |
 | `filterset_class` | FilterSet | `None` | A dynamic `FilterSet` is generated from `filterset_fields` | Provide a custom `FilterSet` subclass for complex filtering. | [Filter controls](#filter-controls) |
 | `filterset_fields` | list[str] | `[]` | No filter sidebar is rendered | Fields to include in the auto-generated filterset. | [Filter controls](#filter-controls) |
@@ -79,7 +80,7 @@ All of the following keys live inside the optional `POWERCRUD_SETTINGS` dict in 
 
 ## Filter controls
 
-Fine-tune what users can filter and how options are presented by combining `filterset_fields`, `filter_queryset_options`, `dropdown_sort_options`, and `m2m_filter_and_logic`. Start with the [Filtering & sorting walkthrough](../guides/setup_core_crud.md#filtering-sorting) and the dropdown guidance in [Bulk editing (synchronous)](../guides/bulk_edit_sync.md#dropdowns-choices).
+Fine-tune what users can filter and how options are presented by combining `filterset_fields`, `filter_queryset_options`, `dropdown_sort_options`, `filter_null_fields_exclude`, and `m2m_filter_and_logic`. Nullable auto-generated relation filters merge an `Empty only` option into the dropdown, while nullable scalar filters gain companion `... is empty` controls. Use `filter_null_fields_exclude` to opt specific fields out. Start with the [Filtering & sorting walkthrough](../guides/setup_core_crud.md#filtering-sorting) and the dropdown guidance in [Bulk editing (synchronous)](../guides/bulk_edit_sync.md#dropdowns-choices).
 
 ## Form controls
 

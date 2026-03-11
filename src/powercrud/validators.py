@@ -75,6 +75,7 @@ class PowerCRUDMixinValidator(BaseModel):
     bulk_async_notification: Optional[str] = None
     bulk_async_allow_anonymous: Optional[bool] = None
     dropdown_sort_options: Optional[Dict[str, str]] = None
+    filter_null_fields_exclude: Optional[List[str]] = None
     m2m_filter_and_logic: Optional[bool] = None
     inline_preserve_required_fields: Optional[bool] = None
     async_manager_class: Optional[Any] = None
@@ -187,4 +188,14 @@ class PowerCRUDMixinValidator(BaseModel):
                 raise ValueError(
                     "dropdown_sort_options keys and values must be strings"
                 )
+        return v
+
+    @field_validator("filter_null_fields_exclude")
+    @classmethod
+    def validate_filter_null_fields_exclude(cls, v):
+        """Ensure nullable filter exclusions are provided as field-name strings."""
+        if v is None:
+            return v
+        if not all(isinstance(x, str) for x in v):
+            raise ValueError("filter_null_fields_exclude must contain only strings")
         return v

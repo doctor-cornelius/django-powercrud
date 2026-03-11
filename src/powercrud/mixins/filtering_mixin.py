@@ -17,6 +17,8 @@ from .config_mixin import resolve_config
 
 log = get_logger(__name__)
 
+NULL_FILTER_SENTINEL = "__powercrud_empty__"
+
 
 class AllValuesModelMultipleChoiceFilter(ModelMultipleChoiceFilter):
     """Custom filter that requires ALL selected values to match (AND logic)"""
@@ -29,6 +31,73 @@ class AllValuesModelMultipleChoiceFilter(ModelMultipleChoiceFilter):
         for val in value:
             qs = qs.filter(**{f"{self.field_name}": val})
         return qs
+
+
+class NullableModelChoiceField(forms.ModelChoiceField):
+    """ModelChoiceField variant that accepts a sentinel for null-only filtering."""
+
+    def __init__(
+        self,
+        *args,
+        null_value: str = NULL_FILTER_SENTINEL,
+        null_label: str = "Empty only",
+        **kwargs,
+    ):
+        self.null_value = null_value
+        self.null_label = null_label
+        super().__init__(*args, **kwargs)
+        self._prepend_null_choice()
+
+    def _prepend_null_choice(self) -> None:
+        """Insert the null sentinel choice after the standard blank choice."""
+        base_choices = list(super().choices)
+        if any(value == self.null_value for value, _label in base_choices):
+            self.choices = base_choices
+            return
+        if base_choices:
+            self.choices = [
+                base_choices[0],
+                (self.null_value, self.null_label),
+                *base_choices[1:],
+            ]
+            return
+        self.choices = [
+            ("", self.empty_label or "---------"),
+            (self.null_value, self.null_label),
+        ]
+
+    def to_python(self, value):
+        """Return the sentinel unchanged so the filter can translate it."""
+        if value == self.null_value:
+            return value
+        return super().to_python(value)
+
+
+class NullableModelChoiceFilter(ModelChoiceFilter):
+    """ModelChoiceFilter that maps a sentinel option to `field__isnull=True`."""
+
+    field_class = NullableModelChoiceField
+
+    def __init__(
+        self,
+        *args,
+        null_value: str = NULL_FILTER_SENTINEL,
+        null_label: str = "Empty only",
+        **kwargs,
+    ):
+        self.null_value = null_value
+        super().__init__(
+            *args,
+            null_value=null_value,
+            null_label=null_label,
+            **kwargs,
+        )
+
+    def filter(self, qs, value):
+        """Apply an `isnull` lookup when the null sentinel is selected."""
+        if value == self.null_value:
+            return qs.filter(**{f"{self.field_name}__isnull": True})
+        return super().filter(qs, value)
 
 
 class HTMXFilterSetMixin:
@@ -70,6 +139,17 @@ class FilteringMixin:
     """
     Provides dynamic FilterSet generation for powercrud views.
     """
+
+    NULLABLE_SCALAR_FILTER_TYPES = (
+        models.CharField,
+        models.TextField,
+        models.DateField,
+        models.TimeField,
+        models.IntegerField,
+        models.DecimalField,
+        models.FloatField,
+        models.BooleanField,
+    )
 
     def _is_boolean_like_filter_select_field(self, field: forms.Field) -> bool:
         """
@@ -204,6 +284,86 @@ class FilteringMixin:
 
         return queryset.filter(pk__in=pk_list).order_by(preserved_order)
 
+    def get_null_filter_field_name(self, field_name: str) -> str:
+        """Return the companion null-filter name for a base filter field."""
+        return f"{field_name}__isnull"
+
+    def _get_filter_widget_attrs(
+        self,
+        base_attrs: dict[str, dict[str, str]] | dict[str, str],
+        field_to_check,
+        *,
+        prefer_select: bool = False,
+    ) -> dict[str, str]:
+        """Resolve widget attrs for a filter field based on model-field type."""
+        if not isinstance(base_attrs, dict) or (
+            "text" not in base_attrs and "select" not in base_attrs
+        ):
+            return base_attrs.copy()
+
+        if prefer_select:
+            return base_attrs.get("select", base_attrs.get("default", {})).copy()
+
+        if isinstance(field_to_check, models.ManyToManyField):
+            return base_attrs.get(
+                "multiselect",
+                base_attrs.get("select", base_attrs.get("default", {})),
+            ).copy()
+        if isinstance(field_to_check, (models.ForeignKey, models.OneToOneField)):
+            return base_attrs.get("select", base_attrs.get("default", {})).copy()
+        if isinstance(field_to_check, (models.CharField, models.TextField)):
+            return base_attrs.get("text", base_attrs.get("default", {})).copy()
+        if isinstance(field_to_check, models.DateField):
+            return base_attrs.get("date", base_attrs.get("default", {})).copy()
+        if isinstance(
+            field_to_check,
+            (models.IntegerField, models.DecimalField, models.FloatField),
+        ):
+            return base_attrs.get("number", base_attrs.get("default", {})).copy()
+        if isinstance(field_to_check, models.TimeField):
+            return base_attrs.get("time", base_attrs.get("default", {})).copy()
+        if isinstance(field_to_check, models.BooleanField):
+            return base_attrs.get("select", base_attrs.get("default", {})).copy()
+        return base_attrs.get("default", {}).copy()
+
+    def _field_supports_auto_null_filter(self, field_name: str, field_to_check) -> bool:
+        """Return whether a field should receive automatic null-filter support."""
+        if getattr(field_to_check, "null", False) is not True:
+            return False
+        return field_name not in resolve_config(self).filter_null_fields_exclude
+
+    def _field_uses_merged_null_relation_filter(self, field_to_check) -> bool:
+        """Return whether a field should merge null filtering into its select."""
+        return isinstance(field_to_check, (models.ForeignKey, models.OneToOneField))
+
+    def _field_uses_companion_null_filter(self, field_to_check) -> bool:
+        """Return whether a field should get a companion null filter."""
+        return isinstance(
+            field_to_check, self.NULLABLE_SCALAR_FILTER_TYPES
+        ) and not isinstance(field_to_check, models.DateTimeField)
+
+    def _build_companion_null_filter(
+        self,
+        field_name: str,
+        model_field,
+        field_attrs: dict[str, str],
+    ) -> BooleanFilter:
+        """Build the companion boolean filter used for nullable scalar fields."""
+        label = f"{model_field.verbose_name} is empty".capitalize()
+        return BooleanFilter(
+            field_name=field_name,
+            lookup_expr="isnull",
+            label=label,
+            widget=forms.Select(
+                attrs=field_attrs,
+                choices=(
+                    ("", "---------"),
+                    ("true", "Yes"),
+                    ("false", "No"),
+                ),
+            ),
+        )
+
     def get_filterset(self, queryset=None):  # pragma: no cover
         """
         Create a dynamic FilterSet class based on provided parameters:
@@ -237,155 +397,134 @@ class FilteringMixin:
 
         if filterset_class is None and filterset_fields is not None:
             use_htmx = self.get_use_htmx()
+            framework = get_powercrud_setting("POWERCRUD_CSS_FRAMEWORK")
+            base_attrs = self.get_framework_styles()[framework]["filter_attrs"]
+            declared_filters = {}
 
-            class DynamicFilterSet(HTMXFilterSetMixin, FilterSet):
-                """
-                Dynamically create a FilterSet class based on the model fields.
-                This class inherits from HTMXFilterSetMixin to add HTMX functionality
-                and FilterSet for Django filtering capabilities.
-                """
+            for field_name in filterset_fields:
+                model_field = self.model._meta.get_field(field_name)
 
-                framework = get_powercrud_setting("POWERCRUD_CSS_FRAMEWORK")
-                BASE_ATTRS = self.get_framework_styles()[framework]["filter_attrs"]
+                if hasattr(models, "GeneratedField") and isinstance(
+                    model_field, models.GeneratedField
+                ):
+                    field_to_check = model_field.output_field
+                else:
+                    field_to_check = model_field
 
-                # Dynamically create filter fields based on the model's fields
-                for field_name in filterset_fields:
-                    model_field = self.model._meta.get_field(field_name)
+                field_attrs = self._get_filter_widget_attrs(base_attrs, field_to_check)
 
-                    # Handle GeneratedField special case
-                    if hasattr(models, "GeneratedField") and isinstance(
-                        model_field, models.GeneratedField
-                    ):
-                        field_to_check = model_field.output_field
-                    else:
-                        field_to_check = model_field
-                    # Check if BASE_ATTRS is structured by field type
-                    if isinstance(BASE_ATTRS, dict) and (
-                        "text" in BASE_ATTRS or "select" in BASE_ATTRS
-                    ):
-                        # Get appropriate attributes based on field type
-                        if isinstance(field_to_check, models.ManyToManyField):
-                            field_attrs = BASE_ATTRS.get(
-                                "multiselect",
-                                BASE_ATTRS.get("select", BASE_ATTRS.get("default", {})),
-                            ).copy()
-                        elif isinstance(field_to_check, models.ForeignKey):
-                            field_attrs = BASE_ATTRS.get(
-                                "select", BASE_ATTRS.get("default", {})
-                            ).copy()
-                        elif isinstance(
-                            field_to_check, (models.CharField, models.TextField)
-                        ):
-                            field_attrs = BASE_ATTRS.get(
-                                "text", BASE_ATTRS.get("default", {})
-                            ).copy()
-                        elif isinstance(field_to_check, models.DateField):
-                            field_attrs = BASE_ATTRS.get(
-                                "date", BASE_ATTRS.get("default", {})
-                            ).copy()
-                        elif isinstance(
-                            field_to_check,
-                            (
-                                models.IntegerField,
-                                models.DecimalField,
-                                models.FloatField,
+                if isinstance(field_to_check, models.ManyToManyField):
+                    filter_class = (
+                        AllValuesModelMultipleChoiceFilter
+                        if resolve_config(self).m2m_filter_and_logic
+                        else ModelMultipleChoiceFilter
+                    )
+                    declared_filters[field_name] = filter_class(
+                        queryset=self.get_filter_queryset_for_field(
+                            field_name, model_field
+                        ),
+                        widget=forms.SelectMultiple(attrs=field_attrs),
+                    )
+                elif isinstance(field_to_check, (models.CharField, models.TextField)):
+                    declared_filters[field_name] = CharFilter(
+                        lookup_expr="icontains",
+                        widget=forms.TextInput(attrs=field_attrs),
+                    )
+                elif isinstance(field_to_check, models.DateField):
+                    if "type" not in field_attrs:
+                        field_attrs["type"] = "date"
+                    declared_filters[field_name] = DateFilter(
+                        widget=forms.DateInput(attrs=field_attrs)
+                    )
+                elif isinstance(
+                    field_to_check,
+                    (models.IntegerField, models.DecimalField, models.FloatField),
+                ):
+                    if "step" not in field_attrs:
+                        field_attrs["step"] = "any"
+                    declared_filters[field_name] = NumberFilter(
+                        widget=forms.NumberInput(attrs=field_attrs)
+                    )
+                elif isinstance(field_to_check, models.BooleanField):
+                    declared_filters[field_name] = BooleanFilter(
+                        widget=forms.Select(
+                            attrs=field_attrs,
+                            choices=(
+                                (None, "---------"),
+                                (True, True),
+                                (False, False),
                             ),
-                        ):
-                            field_attrs = BASE_ATTRS.get(
-                                "number", BASE_ATTRS.get("default", {})
-                            ).copy()
-                        elif isinstance(field_to_check, models.TimeField):
-                            field_attrs = BASE_ATTRS.get(
-                                "time", BASE_ATTRS.get("default", {})
-                            ).copy()
-                        elif isinstance(field_to_check, models.BooleanField):
-                            field_attrs = BASE_ATTRS.get(
-                                "select", BASE_ATTRS.get("default", {})
-                            ).copy()
-                        else:
-                            field_attrs = BASE_ATTRS.get("default", {}).copy()
-                    else:
-                        # Legacy behavior - use the same attributes for all fields
-                        field_attrs = BASE_ATTRS.copy()
+                        )
+                    )
+                elif isinstance(field_to_check, (models.ForeignKey, models.OneToOneField)):
+                    filter_class = (
+                        NullableModelChoiceFilter
+                        if self._field_supports_auto_null_filter(
+                            field_name, field_to_check
+                        )
+                        and self._field_uses_merged_null_relation_filter(field_to_check)
+                        else ModelChoiceFilter
+                    )
+                    declared_filters[field_name] = filter_class(
+                        queryset=self.get_filter_queryset_for_field(
+                            field_name, model_field
+                        ),
+                        widget=forms.Select(attrs=field_attrs),
+                    )
+                elif isinstance(field_to_check, models.TimeField):
+                    if "type" not in field_attrs:
+                        field_attrs["type"] = "time"
+                    declared_filters[field_name] = TimeFilter(
+                        widget=forms.TimeInput(attrs=field_attrs)
+                    )
+                else:
+                    declared_filters[field_name] = CharFilter(
+                        lookup_expr="icontains",
+                        widget=forms.TextInput(attrs=field_attrs),
+                    )
 
-                    # Create appropriate filter based on field type
-                    if isinstance(field_to_check, models.ManyToManyField):
-                        # Choose between OR logic (ModelMultipleChoiceFilter) or AND logic (AllValuesModelMultipleChoiceFilter)
-                        filter_class = (
-                            AllValuesModelMultipleChoiceFilter
-                            if resolve_config(self).m2m_filter_and_logic
-                            else ModelMultipleChoiceFilter
-                        )
-
-                        locals()[field_name] = filter_class(
-                            queryset=self.get_filter_queryset_for_field(
-                                field_name, model_field
-                            ),
-                            widget=forms.SelectMultiple(attrs=field_attrs),
-                        )
-                    elif isinstance(
-                        field_to_check, (models.CharField, models.TextField)
-                    ):
-                        locals()[field_name] = CharFilter(
-                            lookup_expr="icontains",
-                            widget=forms.TextInput(attrs=field_attrs),
-                        )
-                    elif isinstance(field_to_check, models.DateField):
-                        if "type" not in field_attrs:
-                            field_attrs["type"] = "date"
-                        locals()[field_name] = DateFilter(
-                            widget=forms.DateInput(attrs=field_attrs)
-                        )
-                    elif isinstance(
+                if self._field_supports_auto_null_filter(
+                    field_name, field_to_check
+                ) and self._field_uses_companion_null_filter(field_to_check):
+                    null_field_name = self.get_null_filter_field_name(field_name)
+                    null_attrs = self._get_filter_widget_attrs(
+                        base_attrs,
                         field_to_check,
-                        (models.IntegerField, models.DecimalField, models.FloatField),
-                    ):
-                        if "step" not in field_attrs:
-                            field_attrs["step"] = "any"
-                        locals()[field_name] = NumberFilter(
-                            widget=forms.NumberInput(attrs=field_attrs)
+                        prefer_select=True,
+                    )
+                    declared_filters[null_field_name] = (
+                        self._build_companion_null_filter(
+                            field_name,
+                            model_field,
+                            null_attrs,
                         )
-                    elif isinstance(field_to_check, models.BooleanField):
-                        locals()[field_name] = BooleanFilter(
-                            widget=forms.Select(
-                                attrs=field_attrs,
-                                choices=(
-                                    (None, "---------"),
-                                    (True, True),
-                                    (False, False),
-                                ),
-                            )
-                        )
-                    elif isinstance(field_to_check, models.ForeignKey):
-                        locals()[field_name] = ModelChoiceFilter(
-                            queryset=self.get_filter_queryset_for_field(
-                                field_name, model_field
-                            ),
-                            widget=forms.Select(attrs=field_attrs),
-                        )
-                    elif isinstance(field_to_check, models.TimeField):
-                        if "type" not in field_attrs:
-                            field_attrs["type"] = "time"
-                        locals()[field_name] = TimeFilter(
-                            widget=forms.TimeInput(attrs=field_attrs)
-                        )
-                    else:
-                        locals()[field_name] = CharFilter(
-                            lookup_expr="icontains",
-                            widget=forms.TextInput(attrs=field_attrs),
-                        )
+                    )
 
-                class Meta:
-                    model = self.model
-                    fields = filterset_fields
+            class Meta:
+                """FilterSet metadata for the dynamically generated class."""
 
-                def __init__(self, *args, **kwargs):
-                    """Initialize the FilterSet and set up HTMX attributes if needed."""
-                    super().__init__(*args, **kwargs)
-                    if use_htmx:
-                        self.setup_htmx_attrs()
+                model = self.model
+                fields = filterset_fields
 
-            filterset_class = DynamicFilterSet
+            def __init__(filterset_self, *args, **kwargs):
+                """Initialize the FilterSet and set up HTMX attributes if needed."""
+                FilterSet.__init__(filterset_self, *args, **kwargs)
+                if use_htmx:
+                    filterset_self.setup_htmx_attrs()
+
+            filterset_class = type(
+                f"{self.model.__name__}DynamicFilterSet",
+                (HTMXFilterSetMixin, FilterSet),
+                {
+                    "__doc__": (
+                        "Dynamically generated FilterSet for PowerCRUD auto-filters."
+                    ),
+                    "__module__": self.__class__.__module__,
+                    "Meta": Meta,
+                    "__init__": __init__,
+                    **declared_filters,
+                },
+            )
 
         if filterset_class is None:
             return None

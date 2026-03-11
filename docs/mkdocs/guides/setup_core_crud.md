@@ -118,11 +118,13 @@ What happens by default:
 
 - With *no* `filterset_fields`, the view renders the list immediately and ignores any query parameters except `page`, `page_size`, and `sort`.
 - Setting `filterset_fields` automatically builds a `django-filter` `FilterSet` for those fields, including sensible widgets based on field type and optional HTMX attributes if `use_htmx` is True.
+- Nullable auto-generated filters gain null helpers by default: nullable `ForeignKey` and `OneToOneField` filters add an `Empty only` option to the existing dropdown, while nullable scalar filters add a companion `... is empty` boolean control.
 
 Dial it up when you need more control:
 
 - Pass a custom `filterset_class` for hand-crafted filters (PowerCRUD still wires in HTMX helpers).
 - Use `filter_queryset_options` or `dropdown_sort_options` to scope/queryset-sort the choices in generated dropdowns.
+- Use `filter_null_fields_exclude = [...]` to opt specific nullable auto-filters out of the built-in null controls.
 - Toggle `m2m_filter_and_logic = True` if many-to-many filters must match *all* selected values instead of the default OR behaviour.
 - With `searchable_selects = True` (default), filter select widgets are Tom Select-enhanced: single-selects become searchable dropdowns and M2M filters become searchable multi-select controls.
 - Sorting is wired into the table headers. Clicking a column toggles `?sort=field` / `?sort=-field` on the URL (so you can share `/projects/?sort=status`). PowerCRUD applies that ordering server-side and always adds a secondary `pk` sort so pagination stays stable. Properties can be sorted too, as long as the property name is listed in `properties`.

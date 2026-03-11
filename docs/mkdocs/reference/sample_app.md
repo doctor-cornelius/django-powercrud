@@ -80,8 +80,8 @@ The sample app now includes a concrete inline dependency example:
 ### Other Views
 
 - **GenreCRUDView**: Minimal configuration example
-- **ProfileCRUDView**: OneToOneField and bulk operations
-- **AuthorCRUDView**: Properties, filtering, and template debugging
+- **ProfileCRUDView**: OneToOneField, bulk operations, and merged nullable relation filtering on `favorite_genre`
+- **AuthorCRUDView**: Properties, filtering, template debugging, and companion nullable scalar filtering on `birth_date`
 
 ## Management Commands
 
