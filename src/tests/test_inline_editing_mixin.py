@@ -8,6 +8,7 @@ import pytest
 from django import forms
 from django.contrib.sessions.middleware import SessionMiddleware
 from django.test import RequestFactory
+from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
 
 from powercrud.mixins.form_mixin import FormMixin
@@ -428,6 +429,34 @@ def test_inline_guard_blocks_locked_state(sample_book, monkeypatch):
     assert response.status_code == 423
     assert payload["inline-row-locked"]["message"] == "Row locked"
     assert payload["inline-row-locked"]["lock"]["label"] == "Busy"
+
+
+@pytest.mark.django_db
+def test_inline_guard_serializes_lazy_translation_messages(sample_book, monkeypatch):
+    request = _make_request("get")
+    view = InlineTestView(request, sample_book)
+
+    def always_locked(self, obj, req):
+        return {
+            "status": "locked",
+            "message": _("Inline editing blocked – record is locked."),
+            "lock": {"label": _("Busy")},
+        }
+
+    monkeypatch.setattr(InlineTestView, "_evaluate_inline_state", always_locked)
+    response = view._dispatch_inline_row(request, pk=sample_book.pk)
+    payload = json.loads(response["HX-Trigger"])
+
+    assert (
+        response.status_code == 423
+    ), "Locked inline rows should still return the guard response status."
+    assert (
+        payload["inline-row-locked"]["message"]
+        == "Inline editing blocked \u2013 record is locked."
+    ), "Lazy translation messages should be normalized into JSON-safe strings in HX-Trigger payloads."
+    assert (
+        payload["inline-row-locked"]["lock"]["label"] == "Busy"
+    ), "Nested lazy translation values should also be normalized into JSON-safe strings."
 
 
 @pytest.mark.django_db

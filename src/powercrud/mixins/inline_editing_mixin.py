@@ -6,7 +6,9 @@ from typing import Any, Optional, Sequence
 
 from django.http import Http404, HttpResponse, HttpResponseBadRequest, QueryDict
 from django.template.loader import render_to_string
+from django.utils.functional import Promise
 from django.utils.translation import gettext_lazy as _
+from django.utils.encoding import force_str
 from django.utils import timezone
 from django.utils.formats import date_format
 from django.forms.forms import NON_FIELD_ERRORS
@@ -682,8 +684,29 @@ class InlineEditingMixin:
         html = self._render_inline_row_display(obj)
         status_code = 423 if state.get("status") == "locked" else 403
         response = HttpResponse(html, status=status_code)
-        response["HX-Trigger"] = json.dumps({trigger: payload})
+        response["HX-Trigger"] = json.dumps(
+            {trigger: self._normalise_inline_trigger_payload(payload)}
+        )
         return response
+
+    def _normalise_inline_trigger_payload(self, payload: Any) -> Any:
+        """
+        Convert lazy translation proxies and nested structures into JSON-safe data.
+        """
+        if isinstance(payload, dict):
+            return {
+                force_str(key) if not isinstance(key, str) else key: (
+                    self._normalise_inline_trigger_payload(value)
+                )
+                for key, value in payload.items()
+            }
+        if isinstance(payload, list):
+            return [self._normalise_inline_trigger_payload(value) for value in payload]
+        if isinstance(payload, tuple):
+            return [self._normalise_inline_trigger_payload(value) for value in payload]
+        if isinstance(payload, Promise):
+            return force_str(payload)
+        return payload
 
     def get_inline_lock_details(self, obj) -> dict[str, Any]:
         """

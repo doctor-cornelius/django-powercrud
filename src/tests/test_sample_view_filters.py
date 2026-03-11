@@ -114,7 +114,7 @@ def test_book_sample_view_derives_inline_dependencies_from_queryset_config():
 
 
 @pytest.mark.django_db
-def test_book_sample_inline_row_endpoint_renders_edit_form():
+def test_book_sample_inline_row_endpoint_renders_edit_form(monkeypatch):
     """Book sample inline row endpoint should still return editable row markup."""
     author = Author.objects.create(name="Inline Author")
     genre = Genre.objects.create(name="Inline Genre")
@@ -129,6 +129,11 @@ def test_book_sample_inline_row_endpoint_renders_edit_form():
     )
     book.genres.set([genre])
 
+    monkeypatch.setattr(
+        sample_views.BookCRUDView,
+        "is_inline_row_locked",
+        lambda self, obj: False,
+    )
     client = Client()
     response = client.get(
         reverse("sample:bigbook-inline-row", args=[book.pk]),
