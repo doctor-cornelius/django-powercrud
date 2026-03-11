@@ -1,3 +1,14 @@
+## 0.5.4 (2026-03-11)
+
+### Fix
+
+- **(deps)**: update js-packages (#73)
+
+### Feature
+
+- **(forms)**: add declarative dependent queryset scoping
+- **(filtering)**: add nullable auto-filter controls
+
 ## 0.5.3 (2026-03-07)
 
 ### Documentation
