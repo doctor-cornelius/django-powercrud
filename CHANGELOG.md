@@ -1,3 +1,9 @@
+## 0.5.5 (2026-03-11)
+
+### Fix
+
+- **(inline)**: serialize locked guard trigger payloads
+
 ## 0.5.4 (2026-03-11)
 
 ### Fix
