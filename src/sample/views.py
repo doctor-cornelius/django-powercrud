@@ -210,6 +210,7 @@ class ProfileCRUDView(SampleCRUDMixin):
 
     fields = "__all__"
     properties = "__all__"
+    filterset_fields = ["author", "nickname", "favorite_genre"]
 
     # Add the OneToOneField to bulk_fields to test it
     bulk_fields = [
@@ -235,6 +236,7 @@ class AuthorCRUDView(SampleCRUDMixin):
     # fields = ["name","bio","birth_date",]
     fields = "__all__"
     # exclude = ['bio',]
+    filterset_fields = ["name", "birth_date", "genres"]
     properties = "__all__"
     # properties_exclude = ['has_bio',]
     detail_fields = "__fields__"

@@ -100,6 +100,7 @@ class ConfigMixin:
     # filtering options
     m2m_filter_and_logic = False
     dropdown_sort_options: dict = {}
+    filter_null_fields_exclude: list[str] = []
 
     # async manager configuration
     async_manager_class = None
@@ -121,6 +122,7 @@ class ConfigMixin:
         "bulk_async_notification",
         "bulk_async_allow_anonymous",
         "dropdown_sort_options",
+        "filter_null_fields_exclude",
         "table_classes",
         "action_button_classes",
         "extra_button_classes",
@@ -541,6 +543,8 @@ class _ConfigShim:
             return self._raw(name, []) or []
         if name in {"dropdown_sort_options", "inline_field_dependencies"}:
             return self._raw(name, {}) or {}
+        if name == "filter_null_fields_exclude":
+            return self._raw(name, []) or []
         return self._raw(name)
 
 
