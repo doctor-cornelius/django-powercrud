@@ -479,11 +479,28 @@ class InlineEditingMixin:
         Return dependency metadata for inline fields, including resolved endpoints.
         """
         cfg = resolve_config(self)
-        dependencies = cfg.inline_field_dependencies or {}
         inline_fields = set(self.get_inline_edit_fields())
         endpoint_getter = getattr(self, "get_inline_dependency_endpoint_name", None)
         default_endpoint_name = endpoint_getter() if callable(endpoint_getter) else None
         default_endpoint_url = self._resolve_inline_endpoint(default_endpoint_name)
+
+        dependencies: dict[str, dict[str, Any]] = {}
+        queryset_dependency_getter = getattr(self, "get_field_queryset_dependencies", None)
+        if callable(queryset_dependency_getter):
+            for field, meta in queryset_dependency_getter(
+                available_fields=inline_fields,
+                warn_on_unavailable=False,
+            ).items():
+                dependencies[field] = {"depends_on": list(meta.get("depends_on", []))}
+
+        explicit_dependencies = cfg.inline_field_dependencies or {}
+        for field, meta in explicit_dependencies.items():
+            if field in dependencies and isinstance(meta, dict):
+                merged = dict(dependencies[field])
+                merged.update(meta)
+                dependencies[field] = merged
+            else:
+                dependencies[field] = meta
 
         resolved: dict[str, dict[str, Any]] = {}
         for field, meta in dependencies.items():
@@ -500,7 +517,9 @@ class InlineEditingMixin:
             endpoint_name = entry.get("endpoint_name") or default_endpoint_name
             entry["endpoint_name"] = endpoint_name
             entry["endpoint_url"] = (
-                self._resolve_inline_endpoint(endpoint_name) or default_endpoint_url
+                self._resolve_inline_endpoint(endpoint_name)
+                or entry.get("endpoint_url")
+                or default_endpoint_url
             )
 
             depends_on = entry.get("depends_on") or []

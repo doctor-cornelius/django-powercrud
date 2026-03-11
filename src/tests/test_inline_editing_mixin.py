@@ -602,6 +602,59 @@ def test_inline_field_dependencies_resolve_endpoint():
 
 
 @pytest.mark.django_db
+def test_inline_field_dependencies_derive_from_queryset_dependencies():
+    view = CoreHarness()
+    view.inline_edit_fields = ["title", "isbn", "author", "genres"]
+    view.form_fields = ["title", "isbn", "author", "genres"]
+    view.field_queryset_dependencies = {
+        "genres": {
+            "depends_on": ["author"],
+            "filter_by": {"authors": "author"},
+        }
+    }
+
+    deps = view.get_inline_field_dependencies()
+
+    assert (
+        deps["genres"]["depends_on"] == ["author"]
+    ), "Inline dependencies should be derived automatically from field_queryset_dependencies."
+    assert (
+        deps["genres"]["endpoint_url"] == "/resolved/"
+    ), "Derived inline dependencies should still resolve the default dependency endpoint."
+
+
+@pytest.mark.django_db
+def test_inline_field_dependencies_allow_explicit_override_of_derived_metadata():
+    view = CoreHarness()
+    view.inline_edit_fields = ["title", "isbn", "author", "genres"]
+    view.form_fields = ["title", "isbn", "author", "genres"]
+    view.field_queryset_dependencies = {
+        "genres": {
+            "depends_on": ["author"],
+            "filter_by": {"authors": "author"},
+        }
+    }
+    view.inline_field_dependencies = {
+        "genres": {
+            "depends_on": ["title"],
+            "endpoint_name": "sample:custom-inline-dependency",
+        }
+    }
+
+    deps = view.get_inline_field_dependencies()
+
+    assert (
+        deps["genres"]["depends_on"] == ["title"]
+    ), "Explicit inline_field_dependencies should override derived inline parent metadata when provided."
+    assert (
+        deps["genres"]["endpoint_name"] == "sample:custom-inline-dependency"
+    ), "Explicit inline dependency metadata should override the default endpoint name."
+    assert (
+        deps["genres"]["endpoint_url"] == "/resolved/"
+    ), "Explicit inline dependency overrides should still resolve to a usable endpoint URL."
+
+
+@pytest.mark.django_db
 def test_inline_edit_fields_intersects_form_fields(caplog):
     class InlineMismatchHarness(CoreHarness):
         inline_edit_fields = ["title", "isbn"]

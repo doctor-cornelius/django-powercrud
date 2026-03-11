@@ -41,6 +41,7 @@ class PowerCRUDMixinValidator(BaseModel):
     inline_edit_fields: Optional[Union[List[str], Literal["__all__", "__fields__"]]] = (
         None
     )
+    field_queryset_dependencies: Optional[Dict[str, Dict[str, Any]]] = None
     inline_field_dependencies: Optional[Dict[str, Dict[str, Any]]] = None
     inline_edit_requires_perm: Optional[str] = None
     inline_edit_allowed: Optional[Callable] = None
@@ -155,6 +156,23 @@ class PowerCRUDMixinValidator(BaseModel):
             if not isinstance(config, dict):
                 raise ValueError(
                     "inline_field_dependencies values must be dictionaries"
+                )
+        return v
+
+    @field_validator("field_queryset_dependencies")
+    @classmethod
+    def validate_field_queryset_dependencies(cls, v):
+        """Ensure field queryset dependencies use a string->dict mapping."""
+        if v is None:
+            return v
+        if not isinstance(v, dict):
+            raise ValueError("field_queryset_dependencies must be a dictionary")
+        for field_name, config in v.items():
+            if not isinstance(field_name, str):
+                raise ValueError("field_queryset_dependencies keys must be strings")
+            if not isinstance(config, dict):
+                raise ValueError(
+                    "field_queryset_dependencies values must be dictionaries"
                 )
         return v
 

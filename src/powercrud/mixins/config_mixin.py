@@ -76,6 +76,7 @@ class ConfigMixin:
     # inline editing
     inline_edit_enabled: bool | None = None
     inline_edit_fields: list[str] | str | None = None
+    field_queryset_dependencies: dict[str, dict[str, Any]] | None = None
     inline_field_dependencies: dict[str, dict[str, Any]] | None = None
     inline_edit_requires_perm: str | None = None
     inline_edit_allowed: Callable[[Any, Any], bool] | None = None
@@ -121,6 +122,7 @@ class ConfigMixin:
         "bulk_async_backend",
         "bulk_async_notification",
         "bulk_async_allow_anonymous",
+        "field_queryset_dependencies",
         "dropdown_sort_options",
         "filter_null_fields_exclude",
         "table_classes",
@@ -541,7 +543,11 @@ class _ConfigShim:
             "detail_properties",
         }:
             return self._raw(name, []) or []
-        if name in {"dropdown_sort_options", "inline_field_dependencies"}:
+        if name in {
+            "dropdown_sort_options",
+            "inline_field_dependencies",
+            "field_queryset_dependencies",
+        }:
             return self._raw(name, {}) or {}
         if name == "filter_null_fields_exclude":
             return self._raw(name, []) or []

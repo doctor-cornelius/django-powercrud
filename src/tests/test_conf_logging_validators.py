@@ -131,6 +131,28 @@ def test_validator_accepts_filter_null_fields_exclude():
     ), "Validator should preserve string field names for filter_null_fields_exclude."
 
 
+def test_validator_rejects_invalid_field_queryset_dependencies():
+    with pytest.raises(ValueError):
+        PowerCRUDMixinValidator(field_queryset_dependencies={"genres": "author"})
+
+
+def test_validator_accepts_field_queryset_dependencies():
+    validator = PowerCRUDMixinValidator(
+        field_queryset_dependencies={
+            "genres": {
+                "depends_on": ["author"],
+                "filter_by": {"authors": "author"},
+            }
+        }
+    )
+    assert validator.field_queryset_dependencies == {
+        "genres": {
+            "depends_on": ["author"],
+            "filter_by": {"authors": "author"},
+        }
+    }, "Validator should preserve declarative field queryset dependency mappings."
+
+
 def test_validator_accepts_searchable_selects_toggle():
     validator = PowerCRUDMixinValidator(searchable_selects=False)
     assert (

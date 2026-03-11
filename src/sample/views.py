@@ -70,6 +70,14 @@ class BookCRUDView(SampleCRUDMixin):
         "description",
     ]
     form_class = forms.BookForm
+    field_queryset_dependencies = {
+        "genres": {
+            "depends_on": ["author"],
+            "filter_by": {"authors": "author"},
+            "order_by": "name",
+            "empty_behavior": "all",
+        }
+    }
 
     # filterset_class = filters.BookFilterSet
     filterset_fields = [
@@ -118,11 +126,6 @@ class BookCRUDView(SampleCRUDMixin):
         # "pages",
         "description",
     ]
-    inline_field_dependencies = {
-        "genres": {
-            "depends_on": ["author"],
-        }
-    }
 
     # Example of overrides of get_queryset and get_filter_queryset_for_field
     # def get_queryset(self):

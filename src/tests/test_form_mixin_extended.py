@@ -4,6 +4,7 @@ import json
 from types import SimpleNamespace
 
 import pytest
+from django import forms
 from django.http import HttpResponse
 from django.test import RequestFactory
 from django.contrib.sessions.middleware import SessionMiddleware
@@ -13,7 +14,7 @@ from neapolitan.views import Role
 from powercrud.mixins.form_mixin import FormMixin
 from powercrud.mixins.bulk_mixin.view_mixin import ViewMixin
 from powercrud.mixins.htmx_mixin import HtmxMixin
-from sample.models import Author, Book
+from sample.models import Author, Book, Genre
 
 
 class BaseContext:
@@ -274,3 +275,168 @@ def test_searchable_select_marker_respects_field_hook():
         "data-powercrud-searchable-select"
         not in form.fields["author"].widget.attrs
     ), "Per-field searchable-select hook should be able to opt out individual fields."
+
+
+class DependencyFormView(DummyFormView):
+    form_fields = [
+        "title",
+        "author",
+        "genres",
+        "published_date",
+        "isbn",
+        "pages",
+        "bestseller",
+    ]
+    field_queryset_dependencies = {
+        "genres": {
+            "depends_on": ["author"],
+            "filter_by": {"authors": "author"},
+            "order_by": "name",
+            "empty_behavior": "none",
+        }
+    }
+
+
+class CustomDependencyForm(forms.ModelForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["genres"].required = False
+
+    class Meta:
+        model = Book
+        fields = [
+            "title",
+            "author",
+            "genres",
+            "published_date",
+            "isbn",
+            "pages",
+            "bestseller",
+        ]
+
+
+class CustomDependencyFormView(DependencyFormView):
+    form_class = CustomDependencyForm
+
+
+@pytest.mark.django_db
+def test_field_queryset_dependencies_scope_form_from_bound_parent_value():
+    author_a = Author.objects.create(name="Author A")
+    author_b = Author.objects.create(name="Author B")
+    genre_z = Genre.objects.create(name="Zebra Genre")
+    genre_a = Genre.objects.create(name="Alpha Genre")
+    author_a.genres.add(genre_z)
+    author_b.genres.add(genre_a)
+    book = Book.objects.create(
+        title="Scoped Book",
+        author=author_a,
+        published_date="2024-01-01",
+        bestseller=False,
+        isbn="9780000001234",
+        pages=25,
+    )
+
+    request = attach_session(RequestFactory().post("/"))
+    view = DependencyFormView(request)
+    view._object = book
+    form = view._finalize_form(
+        view.get_form_class()(
+            instance=book,
+            data={
+                "title": "Scoped Book",
+                "author": str(author_b.pk),
+                "published_date": "2024-01-01",
+                "isbn": "9780000001234",
+                "pages": "25",
+                "bestseller": "",
+            },
+        )
+    )
+
+    genre_names = list(form.fields["genres"].queryset.values_list("name", flat=True))
+    assert genre_names == [
+        "Alpha Genre"
+    ], "Bound parent values should scope dependent child querysets to the selected parent and apply ordering."
+
+
+@pytest.mark.django_db
+def test_field_queryset_dependencies_scope_form_from_instance_when_unbound():
+    author_a = Author.objects.create(name="Author A")
+    author_b = Author.objects.create(name="Author B")
+    genre_a = Genre.objects.create(name="Genre A")
+    genre_b = Genre.objects.create(name="Genre B")
+    author_a.genres.add(genre_a)
+    author_b.genres.add(genre_b)
+    book = Book.objects.create(
+        title="Instance Scoped Book",
+        author=author_a,
+        published_date="2024-01-01",
+        bestseller=False,
+        isbn="9780000001235",
+        pages=26,
+    )
+
+    request = attach_session(RequestFactory().get("/"))
+    view = DependencyFormView(request)
+    view._object = book
+    form = view._finalize_form(view.get_form_class()(instance=book))
+
+    genre_ids = list(form.fields["genres"].queryset.values_list("id", flat=True))
+    assert genre_ids == [
+        genre_a.pk
+    ], "Unbound forms should fall back to the instance parent value when scoping dependent querysets."
+
+
+@pytest.mark.django_db
+def test_field_queryset_dependencies_empty_behavior_none_returns_no_choices_without_parent():
+    genre = Genre.objects.create(name="Unscoped Genre")
+    request = attach_session(RequestFactory().get("/"))
+    view = DependencyFormView(request)
+    form = view._finalize_form(view.get_form_class()())
+
+    genre_ids = list(form.fields["genres"].queryset.values_list("id", flat=True))
+    assert genre_ids == [], "empty_behavior='none' should hide dependent choices until a parent value is available."
+    assert genre.pk not in genre_ids, "Dependent querysets should not leak unrelated choices when no parent value is present."
+
+
+@pytest.mark.django_db
+def test_field_queryset_dependencies_apply_after_custom_form_class_init():
+    author_a = Author.objects.create(name="Author A")
+    author_b = Author.objects.create(name="Author B")
+    genre_a = Genre.objects.create(name="Genre A")
+    genre_b = Genre.objects.create(name="Genre B")
+    author_a.genres.add(genre_a)
+    author_b.genres.add(genre_b)
+    book = Book.objects.create(
+        title="Custom Form Book",
+        author=author_a,
+        published_date="2024-01-01",
+        bestseller=False,
+        isbn="9780000001236",
+        pages=27,
+    )
+
+    request = attach_session(RequestFactory().post("/"))
+    view = CustomDependencyFormView(request)
+    view._object = book
+    form = view._finalize_form(
+        view.get_form_class()(
+            instance=book,
+            data={
+                "title": "Custom Form Book",
+                "author": str(author_b.pk),
+                "published_date": "2024-01-01",
+                "isbn": "9780000001236",
+                "pages": "27",
+                "bestseller": "",
+            },
+        )
+    )
+
+    genre_ids = list(form.fields["genres"].queryset.values_list("id", flat=True))
+    assert genre_ids == [
+        genre_b.pk
+    ], "Custom form classes should still receive PowerCRUD dependency scoping after form construction."
+    assert (
+        form.fields["genres"].required is False
+    ), "Custom form initialization should still be able to tweak dependent fields before PowerCRUD applies queryset scoping."

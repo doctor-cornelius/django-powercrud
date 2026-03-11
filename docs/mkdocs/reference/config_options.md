@@ -35,6 +35,7 @@ Complete alphabetical reference of all available configuration options with defa
 | `form_class` | ModelForm | `None` | PowerCRUD builds a `ModelForm` from `form_fields` | Override the form entirely with a custom class. | [Form controls](#form-controls) |
 | `form_fields` | list/str | `None` | All editable `detail_fields` appear in the form | Fields included in create/update forms (`'__fields__'`, `'__all__'`, or list). | [Form controls](#form-controls) |
 | `form_fields_exclude` | list[str] | `[]` | The auto-selected form fields render untouched | Remove individual fields from the generated form. | [Form controls](#form-controls) |
+| `field_queryset_dependencies` | dict \| None | `None` | Select fields use their default queryset | Declarative parent/child queryset scoping shared by regular forms and inline forms. | [Form controls](#form-controls) |
 | `hx_trigger` | str/dict | `None` | No HX-Trigger header is sent | Custom HTMX triggers to fire after responses. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
 | `inline_edit_allowed` | callable | `None` | Every row follows the standard permission checks | Optional predicate to allow/block inline editing per row. | [Inline editing](../guides/inline_editing.md) |
 | `inline_edit_enabled` | bool | `None` | Inline editing is disabled | Toggle inline row editing (requires `use_htmx = True`). | [Inline editing](../guides/inline_editing.md) |
@@ -84,7 +85,41 @@ Fine-tune what users can filter and how options are presented by combining `filt
 
 ## Form controls
 
-Override or refine the automatically generated forms with `form_class`, `form_fields`, and `form_fields_exclude`, and enable Crispy Forms support via `use_crispy`. See the form configuration examples in [Setup & Core CRUD basics](../guides/setup_core_crud.md#3-shape-list-detail-and-form-scopes) and the complete view example in [reference/complete_example.md](complete_example.md).
+Override or refine the automatically generated forms with `form_class`, `form_fields`, `form_fields_exclude`, and `field_queryset_dependencies`, and enable Crispy Forms support via `use_crispy`. See the form configuration examples in [Setup & Core CRUD basics](../guides/setup_core_crud.md#3-shape-list-detail-and-form-scopes) and the complete view example in [reference/complete_example.md](complete_example.md).
+
+### Dependent queryset scoping
+
+Use `field_queryset_dependencies` for straightforward cases where one selectable child field should be filtered from another form field.
+
+Example:
+
+```python
+field_queryset_dependencies = {
+    "genres": {
+        "depends_on": ["author"],
+        "filter_by": {"authors": "author"},
+        "order_by": "name",
+        "empty_behavior": "none",
+    }
+}
+```
+
+Supported keys:
+
+- `depends_on`
+    Parent form fields whose values drive the child queryset.
+- `filter_by`
+    Mapping of child queryset lookups to parent form field names.
+- `order_by`
+    Optional ordering applied after filtering.
+- `empty_behavior`
+    `"none"` hides all child choices until the parent value is available. `"all"` leaves the queryset unfiltered when the parent value is empty.
+
+Notes:
+
+- This applies to regular create/update forms and inline forms through the same form pipeline.
+- PowerCRUD resolves parent values from bound form data first, then the current instance, then any initial form values.
+- Keep this for simple equality-style filtering on queryset-backed form fields. For complex business rules, continue using a custom `form_class` or view override.
 
 ### Searchable select enhancement
 
@@ -110,22 +145,33 @@ class BookCRUDView(PowerCRUDMixin, CRUDView):
 
 ## Inline dependency controls
 
-Use `inline_field_dependencies` when one inline field needs another field to be refreshed in the same row.
+Use `field_queryset_dependencies` as the primary declaration when one inline field needs another field to be refreshed in the same row. PowerCRUD derives inline dependency wiring from that shared config automatically.
 
 Example:
 
 ```python
-inline_field_dependencies = {
+field_queryset_dependencies = {
     "genres": {
         "depends_on": ["author"],
+        "filter_by": {"authors": "author"},
     }
 }
 ```
 
-Supported keys:
+If you need inline-only overrides, layer `inline_field_dependencies` on top:
+
+```python
+inline_field_dependencies = {
+    "genres": {
+        "endpoint_name": "sample:book-inline-dependency",
+    }
+}
+```
+
+Supported inline-only keys:
 
 - `depends_on`
-    Parent inline fields that should trigger a refresh of the child field.
+    Optional override for which inline parent fields trigger a refresh.
 - `endpoint_name`
     Optional custom URL name for the dependency endpoint. If omitted, PowerCRUD uses the standard `…-inline-dependency` route for the current view.
 
@@ -133,8 +179,8 @@ Notes:
 
 - The child field must also be present in `inline_edit_fields`.
 - Parent fields listed in `depends_on` must be inline-editable too.
-- PowerCRUD handles the frontend refresh and widget swap, but the actual queryset restriction still belongs in your form logic.
-- The recommended pattern is to resolve parent values from bound form `data` first, then fall back to the instance when the form is unbound.
+- PowerCRUD handles the frontend refresh, widget swap, and child queryset restriction when the dependency is declared in `field_queryset_dependencies`.
+- `inline_field_dependencies` is best treated as an inline override layer, not the primary source of queryset business logic.
 
 ## Notes
 

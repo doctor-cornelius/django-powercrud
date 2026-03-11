@@ -1,4 +1,4 @@
-from django.test import TestCase
+from django.test import TestCase, RequestFactory
 from django.utils import timezone
 from django.urls import reverse
 from datetime import date
@@ -10,8 +10,8 @@ from django.contrib.auth import get_user_model
 from powercrud.async_context import task_context
 
 from sample.async_manager import SampleAsyncManager
-from sample.forms import BookForm
 from sample.models import AsyncTaskRecord, Author, Book, Genre
+from sample.views import BookCRUDView
 
 
 class SampleAsyncDashboardTests(TestCase):
@@ -205,7 +205,7 @@ class SampleAsyncContextDemoTests(TestCase):
 
 
 class SampleBookFormDependencyTests(TestCase):
-    """Validate sample form behavior for author-dependent genre constraints."""
+    """Validate sample view behavior for author-dependent genre constraints."""
 
     def setUp(self):
         self.author_a = Author.objects.create(name="Author A")
@@ -235,66 +235,80 @@ class SampleBookFormDependencyTests(TestCase):
         )
         self.book_b.genres.set([self.genre_b])
 
-    def test_book_form_filters_genres_from_posted_author(self):
-        form = BookForm(
-            data={
-                "title": self.book_a.title,
-                "author": str(self.author_b.pk),
-                "published_date": "2024-01-01",
-                "isbn": self.book_a.isbn,
-                "pages": str(self.book_a.pages),
-                "bestseller": "",
-            },
-            instance=self.book_a,
+    def _build_book_view(self, method="get"):
+        request_factory = RequestFactory()
+        request = getattr(request_factory, method)("/")
+        view = BookCRUDView()
+        view.request = request
+        return view
+
+    def test_book_view_filters_genres_from_posted_author(self):
+        view = self._build_book_view(method="post")
+        form = view._finalize_form(
+            view.get_form_class()(
+                data={
+                    "title": self.book_a.title,
+                    "author": str(self.author_b.pk),
+                    "published_date": "2024-01-01",
+                    "isbn": self.book_a.isbn,
+                    "pages": str(self.book_a.pages),
+                    "bestseller": "",
+                },
+                instance=self.book_a,
+            )
         )
 
         genre_ids = list(form.fields["genres"].queryset.values_list("id", flat=True))
         self.assertIn(
             self.genre_b.pk,
             genre_ids,
-            "BookForm should include genres explicitly assigned to the posted author.",
+            "BookCRUDView should include genres explicitly assigned to the posted author.",
         )
         self.assertNotIn(
             self.genre_a.pk,
             genre_ids,
-            "BookForm should exclude genres not assigned to the posted author.",
+            "BookCRUDView should exclude genres not assigned to the posted author.",
         )
 
-    def test_book_form_filters_genres_from_instance_when_unbound(self):
+    def test_book_view_filters_genres_from_instance_when_unbound(self):
         """Unbound forms should use instance author to scope genre choices."""
-        form = BookForm(instance=self.book_a)
+        view = self._build_book_view()
+        form = view._finalize_form(view.get_form_class()(instance=self.book_a))
 
         genre_ids = list(form.fields["genres"].queryset.values_list("id", flat=True))
         self.assertIn(
             self.genre_a.pk,
             genre_ids,
-            "Unbound BookForm should include genres assigned to the instance author.",
+            "Unbound BookCRUDView forms should include genres assigned to the instance author.",
         )
         self.assertNotIn(
             self.genre_b.pk,
             genre_ids,
-            "Unbound BookForm should exclude genres from other authors.",
+            "Unbound BookCRUDView forms should exclude genres from other authors.",
         )
 
-    def test_book_form_genres_field_is_optional(self):
+    def test_book_view_genres_field_is_optional(self):
         """Genres should be optional when author-scoped choices are empty."""
         author_without_genres = Author.objects.create(name="Author Without Genres")
-        form = BookForm(
-            data={
-                "title": "No Genres Book",
-                "author": str(author_without_genres.pk),
-                "published_date": "2024-01-03",
-                "isbn": "9788888800003",
-                "pages": "99",
-                "bestseller": "",
-            }
+        view = self._build_book_view(method="post")
+        form = view._finalize_form(
+            view.get_form_class()(
+                data={
+                    "title": "No Genres Book",
+                    "author": str(author_without_genres.pk),
+                    "published_date": "2024-01-03",
+                    "isbn": "9788888800003",
+                    "pages": "99",
+                    "bestseller": "",
+                }
+            )
         )
 
         self.assertFalse(
             form.fields["genres"].required,
-            "BookForm should mark genres as optional to allow save when no scoped genres exist.",
+            "BookCRUDView forms should keep genres optional to allow save when no scoped genres exist.",
         )
         self.assertTrue(
             form.is_valid(),
-            "BookForm should validate without genres when the selected author has no available genre options.",
+            "BookCRUDView forms should validate without genres when the selected author has no available genre options.",
         )

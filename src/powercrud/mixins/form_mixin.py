@@ -1,4 +1,5 @@
 import json
+from typing import Any
 
 from django import forms
 from django.forms import models as form_models
@@ -25,6 +26,8 @@ class FormMixin:
     """
     Provides form handling and Crispy Forms integration for powercrud views.
     """
+
+    FIELD_QUERYSET_DEPENDENCY_EMPTY_BEHAVIORS = {"none", "all"}
 
     def get_use_crispy(self):
         """
@@ -125,12 +128,274 @@ class FormMixin:
                 attrs.pop("data-powercrud-searchable-select", None)
         return form
 
+    def get_field_queryset_dependencies(
+        self,
+        *,
+        available_fields: set[str] | None = None,
+        warn_on_unavailable: bool = True,
+    ) -> dict[str, dict[str, Any]]:
+        """
+        Resolve declarative field queryset dependency configuration.
+
+        Args:
+            available_fields: Optional field-name set used to filter dependencies to
+                the current form surface.
+            warn_on_unavailable: When True, log warnings for fields or parents that
+                are not present in `available_fields`.
+
+        Returns:
+            dict[str, dict[str, Any]]: Normalised dependency metadata keyed by the
+            dependent child field name.
+        """
+        cfg = resolve_config(self)
+        dependencies = cfg.field_queryset_dependencies or {}
+        resolved: dict[str, dict[str, Any]] = {}
+
+        for field_name, meta in dependencies.items():
+            if not isinstance(meta, dict):
+                continue
+
+            if available_fields is not None and field_name not in available_fields:
+                if warn_on_unavailable:
+                    log.warning(
+                        "Field queryset dependency for '%s' ignored because the field is not present on %s",
+                        field_name,
+                        self.__class__.__name__,
+                    )
+                continue
+
+            depends_on = meta.get("depends_on") or []
+            if not isinstance(depends_on, list):
+                log.warning(
+                    "Field queryset dependency for '%s' ignored because depends_on is not a list on %s",
+                    field_name,
+                    self.__class__.__name__,
+                )
+                continue
+
+            valid_depends_on: list[str] = []
+            unavailable_parents: set[str] = set()
+            for parent in depends_on:
+                if not isinstance(parent, str):
+                    unavailable_parents.add(str(parent))
+                    continue
+                if available_fields is not None and parent not in available_fields:
+                    unavailable_parents.add(parent)
+                    continue
+                valid_depends_on.append(parent)
+
+            if unavailable_parents and warn_on_unavailable:
+                log.warning(
+                    "Field queryset dependency for '%s' references unavailable parent fields %s on %s",
+                    field_name,
+                    sorted(unavailable_parents),
+                    self.__class__.__name__,
+                )
+
+            filter_by = meta.get("filter_by") or {}
+            if not isinstance(filter_by, dict):
+                log.warning(
+                    "Field queryset dependency for '%s' ignored because filter_by is not a dictionary on %s",
+                    field_name,
+                    self.__class__.__name__,
+                )
+                continue
+
+            valid_filter_by: dict[str, str] = {}
+            invalid_filter_parents: set[str] = set()
+            for child_lookup, parent_field in filter_by.items():
+                if not isinstance(child_lookup, str) or not isinstance(parent_field, str):
+                    continue
+                if parent_field not in valid_depends_on:
+                    invalid_filter_parents.add(parent_field)
+                    continue
+                valid_filter_by[child_lookup] = parent_field
+
+            if invalid_filter_parents and warn_on_unavailable:
+                log.warning(
+                    "Field queryset dependency for '%s' ignored invalid filter_by parents %s on %s",
+                    field_name,
+                    sorted(invalid_filter_parents),
+                    self.__class__.__name__,
+                )
+
+            if not valid_depends_on or not valid_filter_by:
+                continue
+
+            empty_behavior = meta.get("empty_behavior") or "none"
+            if empty_behavior not in self.FIELD_QUERYSET_DEPENDENCY_EMPTY_BEHAVIORS:
+                log.warning(
+                    "Field queryset dependency for '%s' on %s uses invalid empty_behavior '%s'; defaulting to 'none'",
+                    field_name,
+                    self.__class__.__name__,
+                    empty_behavior,
+                )
+                empty_behavior = "none"
+
+            order_by = meta.get("order_by")
+            if order_by is not None and not isinstance(order_by, str):
+                log.warning(
+                    "Field queryset dependency for '%s' ignored non-string order_by on %s",
+                    field_name,
+                    self.__class__.__name__,
+                )
+                order_by = None
+
+            resolved[field_name] = {
+                "depends_on": valid_depends_on,
+                "filter_by": valid_filter_by,
+                "empty_behavior": empty_behavior,
+                "order_by": order_by,
+            }
+
+        return resolved
+
+    def _dependency_value_is_empty(self, value: Any) -> bool:
+        """
+        Determine whether a resolved dependency value should be treated as empty.
+        """
+        if value is None:
+            return True
+        if isinstance(value, str):
+            return value == ""
+        if isinstance(value, (list, tuple, set)):
+            return not any(item not in ("", None) for item in value)
+        return False
+
+    def _resolve_dependency_form_value(self, form: forms.BaseForm, field_name: str) -> Any:
+        """
+        Resolve a parent field value from the current form state.
+
+        Bound values take precedence, followed by the current instance and then any
+        initial values. This mirrors normal Django form behaviour closely enough for
+        simple declarative dependency scoping.
+        """
+        if field_name in getattr(form, "fields", {}):
+            try:
+                value = form[field_name].value()
+            except Exception:
+                value = None
+            if not self._dependency_value_is_empty(value):
+                return value
+
+        instance = getattr(form, "instance", None)
+        if instance is not None:
+            instance_fk_attr = f"{field_name}_id"
+            if hasattr(instance, instance_fk_attr):
+                value = getattr(instance, instance_fk_attr, None)
+                if not self._dependency_value_is_empty(value):
+                    return value
+            if hasattr(instance, field_name):
+                attr = getattr(instance, field_name)
+                if hasattr(attr, "all"):
+                    values = list(attr.values_list("pk", flat=True))
+                    if values:
+                        return values
+                if hasattr(attr, "pk"):
+                    value = getattr(attr, "pk", None)
+                    if not self._dependency_value_is_empty(value):
+                        return value
+                if not self._dependency_value_is_empty(attr):
+                    return attr
+
+        initial = getattr(form, "initial", {})
+        if isinstance(initial, dict):
+            value = initial.get(field_name)
+            if not self._dependency_value_is_empty(value):
+                return value
+
+        return None
+
+    def _apply_field_queryset_dependencies(
+        self, form: forms.BaseForm
+    ) -> forms.BaseForm:
+        """
+        Scope child relation field querysets using declarative dependency config.
+        """
+        if not form:
+            return form
+
+        dependencies = self.get_field_queryset_dependencies(
+            available_fields=set(form.fields.keys())
+        )
+
+        for field_name, meta in dependencies.items():
+            field = form.fields.get(field_name)
+            queryset = getattr(field, "queryset", None)
+            if field is None or queryset is None:
+                log.warning(
+                    "Field queryset dependency for '%s' ignored because the form field is not queryset-backed on %s",
+                    field_name,
+                    self.__class__.__name__,
+                )
+                continue
+
+            child_filters: dict[str, Any] = {}
+            dependency_unresolved = False
+            unsupported_multi_value = False
+
+            for child_lookup, parent_field in meta["filter_by"].items():
+                parent_value = self._resolve_dependency_form_value(form, parent_field)
+
+                if isinstance(parent_value, (list, tuple, set)):
+                    cleaned_values = [
+                        value for value in parent_value if value not in ("", None)
+                    ]
+                    if len(cleaned_values) > 1 and not child_lookup.endswith("__in"):
+                        unsupported_multi_value = True
+                        log.warning(
+                            "Field queryset dependency for '%s' on %s resolved multiple values for parent '%s', which requires an '__in' filter",
+                            field_name,
+                            self.__class__.__name__,
+                            parent_field,
+                        )
+                        break
+                    if not cleaned_values:
+                        dependency_unresolved = True
+                        break
+                    parent_value = (
+                        cleaned_values
+                        if child_lookup.endswith("__in")
+                        else cleaned_values[0]
+                    )
+
+                if self._dependency_value_is_empty(parent_value):
+                    dependency_unresolved = True
+                    break
+
+                child_filters[child_lookup] = parent_value
+
+            if unsupported_multi_value:
+                if meta["empty_behavior"] == "none":
+                    field.queryset = queryset.none()
+                continue
+
+            if dependency_unresolved:
+                if meta["empty_behavior"] == "none":
+                    queryset = queryset.none()
+            elif child_filters:
+                queryset = queryset.filter(**child_filters)
+
+            if meta.get("order_by"):
+                queryset = queryset.order_by(meta["order_by"])
+
+            field.queryset = queryset
+
+        return form
+
+    def _finalize_form(self, form: forms.BaseForm) -> forms.BaseForm:
+        """
+        Apply PowerCRUD form instance behavior after construction.
+        """
+        form = self._apply_field_queryset_dependencies(form)
+        return self._apply_searchable_select_attrs(form)
+
     def get_form(self, *args, **kwargs):
         """
         Build the view form and apply searchable-select widget markers.
         """
         form = super().get_form(*args, **kwargs)
-        return self._apply_searchable_select_attrs(form)
+        return self._finalize_form(form)
 
     def _apply_crispy_helper(self, form_class):
         """Helper method to apply crispy form settings to a form class."""
@@ -273,7 +538,7 @@ class FormMixin:
             instance=instance, data=data, files=files
         )
         form = form_class(**form_kwargs)
-        return self._apply_searchable_select_attrs(form)
+        return self._finalize_form(form)
 
     def show_form(self, request, *args, **kwargs):
         """Override to check for conflicts before showing edit form"""
