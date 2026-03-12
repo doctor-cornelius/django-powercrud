@@ -221,6 +221,7 @@ def test_action_links_disable_when_locked():
 
     assert html.count("btn-disabled opacity-50 pointer-events-none") >= 3
     assert "data-tippy-content='Row locked'" in html
+    assert "data-powercrud-tooltip='semantic'" in html
     assert "Preview" in html  # sanity check extra action rendered
 
 

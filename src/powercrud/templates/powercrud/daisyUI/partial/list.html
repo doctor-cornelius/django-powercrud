@@ -134,9 +134,10 @@
                 <th class="bg-neutral text-neutral-content text-center align-middle sticky-header w-10">
                     <input type="checkbox" id="select-all-checkbox"
                              class="checkbox checkbox-sm checkbox-neutral border-1 border-white"
+                             data-powercrud-select-all="true"
                              {% if all_selected %}checked{% endif %}
                              {% if some_selected and not all_selected %}indeterminate{% endif %}
-                             onchange="toggleAllSelection()">
+                             >
                 </th>
                 {% endif %}
                 
@@ -189,9 +190,9 @@
         <td class="py-0 align-middle">
             <input type="checkbox"
                    class="checkbox checkbox-sm row-select-checkbox"
+                   data-powercrud-row-select="true"
                    data-id="{{ row.id }}"
                    {% if row.id|stringformat:"s" in selected_ids %}checked{% endif %}
-                   onchange="handleRowSelectionChange(this)"
                    hx-post="{{ list_view_url }}toggle-selection/{{ row.id }}/"
                    hx-target="#bulk-actions-container">
         </td>
@@ -201,7 +202,6 @@
                         {% with value_str=cell.value|stringformat:"s" %}
                     <td class="{% if forloop.first %}font-medium{% endif %} py-0 align-middle px-2 truncate table-column-width"
                         data-field-name="{{ cell.name }}"
-                        {% if value_str|slice:":1" != "<" %}data-tippy-content="{{ cell.value }}"{% endif %}
                         {% if cell.is_inline_editable %}data-inline-cell="true"{% endif %}
                         {% if cell.dependency %}
                             data-inline-dependent-field="{{ cell.name }}"
@@ -216,6 +216,7 @@
             <button type="button"
                     class="inline-edit-trigger w-full px-0 {% if align_class == 'center' %}flex justify-center text-center{% else %}text-left{% endif %}"
                     data-inline-field="{{ cell.name }}"
+                    {% if value_str|slice:":1" != "<" %}data-tippy-content="{{ cell.value }}" data-powercrud-tooltip="overflow"{% endif %}
                     {% if row.inline_url %}
                         hx-get="{{ row.inline_url }}"
                         hx-target="#{{ row.row_id }}"
@@ -229,7 +230,8 @@
             </button>
             {% endwith %}
         {% else %}
-            <div class="w-full {% if cell.align == 'center' %}text-center{% else %}text-left{% endif %}">
+            <div class="w-full {% if cell.align == 'center' %}text-center{% else %}text-left{% endif %}"
+                 {% if value_str|slice:":1" != "<" %}data-tippy-content="{{ cell.value }}" data-powercrud-tooltip="overflow"{% endif %}>
                 {{ cell.value }}
             </div>
         {% endif %}
@@ -265,9 +267,9 @@
     <td class="py-0 align-middle">
         <input type="checkbox"
                class="checkbox checkbox-sm row-select-checkbox"
+               data-powercrud-row-select="true"
                data-id="{{ row.id }}"
                {% if row.id|stringformat:"s" in selected_ids %}checked{% endif %}
-               onchange="handleRowSelectionChange(this)"
                hx-post="{{ list_view_url }}toggle-selection/{{ row.id }}/"
                hx-target="#bulk-actions-container">
     </td>
@@ -277,7 +279,6 @@
     <td class="py-0 align-middle px-2 truncate table-column-width"
         style="text-align:{% if cell.align == 'center' %}center{% else %}left{% endif %};"
         data-field-name="{{ cell.name }}"
-        {% if value_str|slice:":1" != "<" %}data-tippy-content="{{ cell.value }}"{% endif %}
         {% if cell.is_inline_editable %}data-inline-cell="true"{% endif %}
         >
         {% if inline_enabled and row.inline_allowed and cell.is_inline_editable %}
@@ -285,6 +286,7 @@
             <button type="button"
                     class="inline-edit-trigger w-full px-0 {% if align_class == 'center' %}flex justify-center text-center{% else %}text-left{% endif %}"
                     data-inline-field="{{ cell.name }}"
+                    {% if value_str|slice:":1" != "<" %}data-tippy-content="{{ cell.value }}" data-powercrud-tooltip="overflow"{% endif %}
                     {% if row.inline_url %}
                         hx-get="{{ row.inline_url }}"
                         hx-target="#{{ row.row_id }}"
@@ -298,7 +300,8 @@
             </button>
             {% endwith %}
         {% else %}
-            <div class="w-full {% if cell.align == 'center' %}text-center{% else %}text-left{% endif %}">
+            <div class="w-full {% if cell.align == 'center' %}text-center{% else %}text-left{% endif %}"
+                 {% if value_str|slice:":1" != "<" %}data-tippy-content="{{ cell.value }}" data-powercrud-tooltip="overflow"{% endif %}>
                 {{ cell.value }}
             </div>
         {% endif %}
@@ -307,7 +310,7 @@
     {% endfor %}
     <td class="text-right py-1 align-middle" data-inline-actions="true">
         <div class="pc-actions-default {% if row.inline_blocked_reason %}opacity-50 pointer-events-none{% endif %}"
-             {% if row.inline_blocked_label %}data-tippy-content="{{ row.inline_blocked_label }}"{% endif %}>
+             {% if row.inline_blocked_label %}data-tippy-content="{{ row.inline_blocked_label }}" data-powercrud-tooltip="semantic"{% endif %}>
             {{ row.actions }}
         </div>
     </td>

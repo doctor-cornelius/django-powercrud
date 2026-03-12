@@ -176,7 +176,7 @@ def action_links(view: Any, object: Any) -> str:
                 )
                 + (f"{modal_attrs} " if show_modal else "")
                 + (
-                    f"aria-disabled='true' data-tippy-content='{lock_label}' "
+                    f"aria-disabled='true' data-tippy-content='{lock_label}' data-powercrud-tooltip='semantic' "
                     if disable and lock_label
                     else ""
                 )
