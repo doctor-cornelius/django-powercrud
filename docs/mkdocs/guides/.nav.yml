@@ -2,6 +2,7 @@ title: Setup Guides
 nav:
   - getting_started.md
   - setup_core_crud.md
+  - dependent_form_fields.md
   - inline_editing.md
   - bulk_edit_sync.md
   - async_manager.md

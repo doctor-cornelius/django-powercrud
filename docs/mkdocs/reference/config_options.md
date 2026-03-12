@@ -85,7 +85,7 @@ Fine-tune what users can filter and how options are presented by combining `filt
 
 ## Form controls
 
-Override or refine the automatically generated forms with `form_class`, `form_fields`, `form_fields_exclude`, and `field_queryset_dependencies`, and enable Crispy Forms support via `use_crispy`. See the form configuration examples in [Setup & Core CRUD basics](../guides/setup_core_crud.md#3-shape-list-detail-and-form-scopes) and the complete view example in [reference/complete_example.md](complete_example.md).
+Override or refine the automatically generated forms with `form_class`, `form_fields`, `form_fields_exclude`, and `field_queryset_dependencies`, and enable Crispy Forms support via `use_crispy`. See the form configuration examples in [Setup & Core CRUD basics](../guides/setup_core_crud.md#3-shape-list-detail-and-form-scopes), the dedicated [Dependent form fields](../guides/dependent_form_fields.md) guide, and the complete view example in [reference/complete_example.md](complete_example.md).
 
 ### Dependent queryset scoping
 
@@ -120,6 +120,44 @@ Notes:
 - This applies to regular create/update forms and inline forms through the same form pipeline.
 - PowerCRUD resolves parent values from bound form data first, then the current instance, then any initial form values.
 - Keep this for simple equality-style filtering on queryset-backed form fields. For complex business rules, continue using a custom `form_class` or view override.
+- `filter_by` maps child queryset lookups to parent form field names. The left-hand side is the lookup used against the child field queryset, while the right-hand side is the parent form field name.
+
+Common mental model:
+
+```python
+field_queryset_dependencies = {
+    "child_field": {
+        "depends_on": ["parent_field"],
+        "filter_by": {"child_queryset_lookup": "parent_field"},
+    }
+}
+```
+
+That reads as: “restrict `child_field` choices by filtering its queryset with `child_queryset_lookup=<value of parent_field>`”.
+
+Worked examples:
+
+```python
+field_queryset_dependencies = {
+    "genres": {
+        "depends_on": ["author"],
+        "filter_by": {"authors": "author"},
+    }
+}
+```
+
+```python
+field_queryset_dependencies = {
+    "cmms_asset": {
+        "depends_on": ["cmms_property_asset_type_override"],
+        "filter_by": {
+            "property_asset_type_override": "cmms_property_asset_type_override",
+        },
+    }
+}
+```
+
+For a full explanation of `filter_by`, migration from old inline-only configs, and regular-vs-inline behaviour, see [Dependent form fields](../guides/dependent_form_fields.md).
 
 ### Searchable select enhancement
 
@@ -181,6 +219,34 @@ Notes:
 - Parent fields listed in `depends_on` must be inline-editable too.
 - PowerCRUD handles the frontend refresh, widget swap, and child queryset restriction when the dependency is declared in `field_queryset_dependencies`.
 - `inline_field_dependencies` is best treated as an inline override layer, not the primary source of queryset business logic.
+- If the same child field appears in both settings, PowerCRUD derives the baseline inline dependency from `field_queryset_dependencies` first and then overlays the explicit `inline_field_dependencies` values.
+- In most projects, `inline_field_dependencies` is only needed for inline-only metadata such as `endpoint_name`.
+- If you are migrating old inline-only declarations, move the queryset business rule into `field_queryset_dependencies` and keep `inline_field_dependencies` only if you still need an override.
+
+Migration sketch:
+
+```python
+inline_field_dependencies = {
+    "cmms_asset": {
+        "depends_on": ["cmms_property_asset_type_override"],
+    }
+}
+```
+
+becomes:
+
+```python
+field_queryset_dependencies = {
+    "cmms_asset": {
+        "depends_on": ["cmms_property_asset_type_override"],
+        "filter_by": {
+            "property_asset_type_override": "cmms_property_asset_type_override",
+        },
+    }
+}
+```
+
+See [Dependent form fields](../guides/dependent_form_fields.md) for a fuller worked example.
 
 ## Notes
 

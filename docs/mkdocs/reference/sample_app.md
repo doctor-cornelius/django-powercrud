@@ -82,6 +82,38 @@ The sample app now includes a concrete inline dependency example:
 
 `field_queryset_dependencies` is the primary declaration for this rule, so the same queryset restriction applies to regular forms and inline editing. `BookForm` stays in place only for form-specific tweaks such as keeping `genres` optional when an author has no allowed genres.
 
+Worked configuration:
+
+```python
+field_queryset_dependencies = {
+    "genres": {
+        "depends_on": ["author"],
+        "filter_by": {"authors": "author"},
+        "order_by": "name",
+        "empty_behavior": "all",
+    }
+}
+```
+
+How to read that:
+
+- `genres` is the child field being restricted
+- `author` is the parent form field the user changes
+- `authors` is the queryset lookup on `Genre`
+
+So the child queryset is effectively narrowed as if PowerCRUD were doing:
+
+```python
+Genre.objects.filter(authors=<selected author>).order_by("name")
+```
+
+That same rule applies in two places:
+
+- the normal Book create/edit form
+- inline editing on the Books list
+
+When the user changes `author` inline, PowerCRUD posts the current row data to the dependency endpoint, rebuilds the `genres` widget through the same form pipeline, and swaps the refreshed widget back into the row.
+
 ### Other Views
 
 - **GenreCRUDView**: Minimal configuration example
@@ -199,6 +231,39 @@ The sample app now includes a concrete inline dependency example:
 5. Change the Book author.
 6. Re-open the Book genres control before saving.
 7. Confirm the available genres now match the selected author’s `genres` relation.
+
+## How to adapt this pattern downstream
+
+If your project used older inline-only declarations such as:
+
+```python
+inline_field_dependencies = {
+    "cmms_asset": {
+        "depends_on": ["cmms_property_asset_type_override"],
+    }
+}
+```
+
+the sample app demonstrates the new preferred shape:
+
+```python
+field_queryset_dependencies = {
+    "cmms_asset": {
+        "depends_on": ["cmms_property_asset_type_override"],
+        "filter_by": {
+            "property_asset_type_override": "cmms_property_asset_type_override",
+        },
+        "empty_behavior": "none",
+    }
+}
+```
+
+The key point is that `filter_by` maps:
+
+- queryset lookup on the child field's queryset model
+- to parent form field name
+
+Use `inline_field_dependencies` only if you still need inline-only metadata such as a custom dependency endpoint.
 
 The browser regression for this flow lives in [test_inline_dependencies.py](/home/mfo/projects/packages/django_powercrud/src/tests/playwright/test_inline_dependencies.py).
 

@@ -127,6 +127,8 @@ Why this works:
 
 Use this pattern whenever a child dropdown should change immediately in response to another inline field.
 
+For a fuller explanation of `filter_by`, multiple-parent mappings, and migration from old inline-only declarations, see [Dependent form fields](./dependent_form_fields.md).
+
 ---
 
 ## 3. Respect locks and permissions

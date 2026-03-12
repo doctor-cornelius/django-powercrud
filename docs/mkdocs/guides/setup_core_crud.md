@@ -94,6 +94,8 @@ PowerCRUD layers a few convenient defaults so you can start with zero configurat
 - `field_queryset_dependencies` lets you declare simple parent/child dropdown scoping once so the same queryset restriction applies in regular forms and inline editing.
 - Inline editing (enabled via `inline_edit_enabled = True` + HTMX) reuses the resolved `form_fields`. Override `inline_edit_fields` with `"__fields__"`, `"__all__"`, or an explicit list if you want inline editing to expose a different subset, and PowerCRUD will automatically ignore anything that is not part of the form.
 
+For anything beyond the basic parent/child dropdown case, keep using a custom `form_class`. For the full declarative dependency API, migration guidance from old `inline_field_dependencies`, and worked examples, see [Dependent form fields](./dependent_form_fields.md).
+
 ### Buttons & extra actions
 
 `extra_buttons` and `extra_actions` dictionaries describe additional top-level buttons or per-row actions (URL name, label, modal behaviour, extra attributes). See [Customisation tips](./customisation_tips.md) for full examples.

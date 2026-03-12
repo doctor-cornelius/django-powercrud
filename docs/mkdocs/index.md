@@ -17,6 +17,7 @@ PowerCRUD extends [`Neapolitan`](https://github.com/carltongibson/neapolitan)’
 2. **Improve day-to-day editing**  
 
     - [Inline editing](guides/inline_editing.md) to adjust rows in place.  
+    - [Dependent form fields](guides/dependent_form_fields.md) for parent/child dropdown queryset scoping in regular forms and inline editing.
     - [Bulk editing (synchronous)](guides/bulk_edit_sync.md) for multi-record updates with validation controls.
 
 3. **Handle long-running work**  
