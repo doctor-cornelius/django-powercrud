@@ -13,6 +13,19 @@ pytestmark = [pytest.mark.playwright, pytest.mark.django_db]
 def select_single_value(page, container, field_name: str, option_value: str):
     """Select a single option, preferring Tom Select when present."""
     select = container.locator(f"select[name='{field_name}']")
+    is_searchable = select.evaluate(
+        "el => el.getAttribute('data-powercrud-searchable-select') === 'true'"
+    )
+    if is_searchable:
+        page.wait_for_function(
+            """
+            (name) => {
+                const element = document.querySelector(`#filter-form select[name="${name}"]`);
+                return Boolean(element && element.tomselect);
+            }
+            """,
+            arg=field_name,
+        )
     tomselect_ready = select.evaluate("el => Boolean(el.tomselect)")
     if tomselect_ready:
         select.evaluate(
@@ -43,16 +56,46 @@ def test_overflow_tooltips_reinitialize_after_htmx_refresh(page, books_url, samp
     sample_books[1].author = other_author
     sample_books[1].save(update_fields=["author"])
 
+    page.set_viewport_size({"width": 900, "height": 900})
+    page.add_init_script(
+        """
+        () => {
+            const style = document.createElement('style');
+            style.id = 'playwright-tooltip-overflow-style';
+            style.textContent = `
+                td[data-field-name="a_really_long_property_header_for_title"] [data-powercrud-tooltip="overflow"] {
+                    display: block;
+                    max-width: 12ch;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    white-space: nowrap;
+                }
+            `;
+            const attachStyle = () => {
+                if (document.getElementById(style.id)) {
+                    return;
+                }
+                document.head.appendChild(style.cloneNode(true));
+            };
+            if (document.head) {
+                attachStyle();
+            } else {
+                document.addEventListener('DOMContentLoaded', attachStyle, { once: true });
+            }
+        }
+        """
+    )
     page.goto(books_url)
     page.wait_for_load_state("networkidle")
 
     overflow_trigger = page.locator(
-        f"button.inline-edit-trigger[data-inline-field='title'][data-tippy-content=\"{long_title}\"]"
+        "td[data-field-name='a_really_long_property_header_for_title'] "
+        f"[data-powercrud-tooltip='overflow'][data-tippy-content=\"{long_title}\"]"
     ).first
     expect(overflow_trigger).to_be_visible()
     assert (
         overflow_trigger.evaluate("el => el.scrollWidth > el.clientWidth")
-    ), "Expected the seeded book title to be visually truncated so the overflow tooltip path is exercised."
+    ), "Expected the long property cell to be visually truncated so the overflow tooltip path is exercised."
     assert (
         overflow_trigger.evaluate("el => Boolean(el._tippy)")
     ), "Expected the truncated title to have a Tippy instance on initial page load."
@@ -67,9 +110,10 @@ def test_overflow_tooltips_reinitialize_after_htmx_refresh(page, books_url, samp
 
     page.wait_for_load_state("networkidle")
     overflow_trigger = page.locator(
-        f"button.inline-edit-trigger[data-inline-field='title'][data-tippy-content=\"{long_title}\"]"
+        "td[data-field-name='a_really_long_property_header_for_title'] "
+        f"[data-powercrud-tooltip='overflow'][data-tippy-content=\"{long_title}\"]"
     ).first
     expect(overflow_trigger).to_be_visible()
     assert (
         overflow_trigger.evaluate("el => Boolean(el._tippy)")
-    ), "Expected the truncated title to regain its Tippy instance after HTMX refreshed the filtered results."
+    ), "Expected the truncated property cell to regain its Tippy instance after HTMX refreshed the filtered results."
