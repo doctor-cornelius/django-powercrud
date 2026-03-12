@@ -115,6 +115,9 @@ theme:
 extra:
   generator: false
 
+extra_css:
+  - stylesheets/extra.css
+
 extra_javascript:
   # mathjax
   - javascripts/mathjax.js
