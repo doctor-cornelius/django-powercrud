@@ -1,3 +1,13 @@
+## 0.5.9 (2026-03-12)
+
+### Documentation
+
+- improve reference config options table
+
+### Feature
+
+- **(inline)**: drop need for boolean inline_edit_enabled & improve docs consistency
+
 ## 0.5.8 (2026-03-12)
 
 ## 0.5.7 (2026-03-12)
