@@ -1,3 +1,13 @@
+## 0.5.7 (2026-03-12)
+
+### Fix
+
+- **(tippy)**: extract object list runtime into packaged JS
+
+### Documentation
+
+- improve docs related to edit field dependencies parameterisation
+
 ## 0.5.6 (2026-03-11)
 
 ## 0.5.5 (2026-03-11)
