@@ -115,7 +115,6 @@ class BookCRUDView(SampleCRUDMixin):
     extra_button_classes = "btn-sm"
 
     inline_preserve_required_fields = True  # toggle for testing
-    inline_edit_enabled = True
     inline_edit_fields = [
         "title",
         "author",
@@ -244,7 +243,7 @@ class AuthorCRUDView(SampleCRUDMixin):
     # properties_exclude = ['has_bio',]
     detail_fields = "__fields__"
     detail_properties = "__properties__"
-    inline_edit_enabled = True
+    inline_edit_fields = "__fields__"
 
     bulk_fields = [
         "genres",

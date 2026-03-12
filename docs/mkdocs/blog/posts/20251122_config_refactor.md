@@ -64,6 +64,6 @@ The overall effect is a cleaner, more predictable architecture:
 
 ## Migration Notes
 
-- `ConfigMixin` is now the canonical place to declare configuration attributes and expose resolved values. Behavioural mixins should either override `config()` or, preferably, call `resolve_config(self)` to obtain the derived namespace (which provides helper flags such as `use_htmx_enabled`, inline editing toggles, and table CSS metrics).
+- `ConfigMixin` is now the canonical place to declare configuration attributes and expose resolved values. Behavioural mixins should either override `config()` or, preferably, call `resolve_config(self)` to obtain the derived namespace (which provides helper flags such as `use_htmx_enabled`, resolved inline editing state, and table CSS metrics).
 - `PowerCRUDMixinValidator` has been extended to cover the broader set of configuration knobs (bulk editing flags, dropdown sort hints, table classes, async-manager hooks, etc.) so overrides get validated consistently before reaching mixin logic. Updated unit tests in `tests/test_conf_logging_validators.py` ensure the new restrictions are enforced.
 - Downstream projects that rely on legacy `get_*` helpers can migrate incrementally: continue using existing mixins, but prefer reading from the `config` namespace (or `resolve_config`) instead of recomputing rules. This keeps the public API stable while allowing future releases to move more decisions into `ConfigMixin`.

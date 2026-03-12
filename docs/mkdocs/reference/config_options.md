@@ -38,11 +38,9 @@ Complete alphabetical reference of all available configuration options with defa
 | `field_queryset_dependencies` | dict \| None | `None` | Select fields use their default queryset | Declarative parent/child queryset scoping shared by regular forms and inline forms. | [Form controls](#form-controls) |
 | `hx_trigger` | str/dict | `None` | No HX-Trigger header is sent | Custom HTMX triggers to fire after responses. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
 | `inline_edit_allowed` | callable | `None` | Every row follows the standard permission checks | Optional predicate to allow/block inline editing per row. | [Inline editing](../guides/inline_editing.md) |
-| `inline_edit_enabled` | bool | `None` | Inline editing is disabled | Toggle inline row editing (requires `use_htmx = True`). | [Inline editing](../guides/inline_editing.md) |
-| `inline_edit_fields` | list/str | `None` | Inline editing reuses the resolved `form_fields` list | Fields editable inline (`'__fields__'`, `'__all__'`, or list). | [Inline editing](../guides/inline_editing.md) |
+| `inline_edit_fields` | list/str | `None` | Inline editing is disabled | Fields editable inline (`'__fields__'`, `'__all__'`, or a non-empty list). Setting this enables inline editing when HTMX is on; PowerCRUD then filters the list to fields present on the actual form, and only rendered list columns become clickable inline cells. | [Inline editing](../guides/inline_editing.md) |
 | `inline_preserve_required_fields` | bool | `True` | Inline POSTs must include every required field manually | Reuse the object’s existing values for required form fields that aren’t rendered inline so saves keep working. | [Inline editing](../guides/inline_editing.md) |
 | `inline_edit_requires_perm` | str | `None` | Inline editing shows for anyone who can edit the object | Permission codename required before showing inline controls. | [Inline editing](../guides/inline_editing.md) |
-| `inline_field_dependencies` | dict \| None | `None` | Inline widgets do not declare dependencies | Dependency metadata for inline widgets (parent fields, endpoints). | [Inline editing](../guides/inline_editing.md) |
 | `m2m_filter_and_logic` | bool | `False` | Multi-select filters use OR logic | Switch ManyToMany filters to AND logic. | [Filter controls](#filter-controls) |
 | `modal_id` | str | `None` | Falls back to `'powercrudBaseModal'` | DOM id of the modal element (without `#`). | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
 | `modal_target` | str | `None` | Falls back to `'powercrudModalContent'` | DOM id of the element that receives modal content. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
@@ -196,44 +194,15 @@ field_queryset_dependencies = {
 }
 ```
 
-If you need inline-only overrides, layer `inline_field_dependencies` on top:
-
-```python
-inline_field_dependencies = {
-    "genres": {
-        "endpoint_name": "sample:book-inline-dependency",
-    }
-}
-```
-
-Supported inline-only keys:
-
-- `depends_on`
-    Optional override for which inline parent fields trigger a refresh.
-- `endpoint_name`
-    Optional custom URL name for the dependency endpoint. If omitted, PowerCRUD uses the standard `…-inline-dependency` route for the current view.
-
 Notes:
 
 - The child field must also be present in `inline_edit_fields`.
 - Parent fields listed in `depends_on` must be inline-editable too.
 - PowerCRUD handles the frontend refresh, widget swap, and child queryset restriction when the dependency is declared in `field_queryset_dependencies`.
-- `inline_field_dependencies` is best treated as an inline override layer, not the primary source of queryset business logic.
-- If the same child field appears in both settings, PowerCRUD derives the baseline inline dependency from `field_queryset_dependencies` first and then overlays the explicit `inline_field_dependencies` values.
-- In most projects, `inline_field_dependencies` is only needed for inline-only metadata such as `endpoint_name`.
-- If you are migrating old inline-only declarations, move the queryset business rule into `field_queryset_dependencies` and keep `inline_field_dependencies` only if you still need an override.
+- PowerCRUD uses the standard `...-inline-dependency` endpoint automatically.
+- Older inline-only dependency config is ignored. Move any remaining business rules into `field_queryset_dependencies`.
 
 Migration sketch:
-
-```python
-inline_field_dependencies = {
-    "cmms_asset": {
-        "depends_on": ["cmms_property_asset_type_override"],
-    }
-}
-```
-
-becomes:
 
 ```python
 field_queryset_dependencies = {

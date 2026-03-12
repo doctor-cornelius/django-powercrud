@@ -11,10 +11,10 @@ class CoreMixin(ConfigMixin):
     def get_inline_editing(self) -> bool:
         """
         Determine whether inline editing should be active for this view.
-        Inline editing is only available when HTMX is enabled and the view
-        explicitly opts in.
+        Inline editing is only available when HTMX is enabled and
+        `inline_edit_fields` resolves to a non-empty editable field list.
         """
-        return bool(self.config().inline_editing_active)
+        return bool(self.get_use_htmx() and self.get_inline_edit_fields())
 
     def get_queryset(self):
         """

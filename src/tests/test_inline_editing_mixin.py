@@ -6,6 +6,7 @@ from types import SimpleNamespace
 
 import pytest
 from django import forms
+from django.core.exceptions import ImproperlyConfigured
 from django.contrib.sessions.middleware import SessionMiddleware
 from django.test import RequestFactory
 from django.utils.translation import gettext_lazy as _
@@ -79,7 +80,6 @@ class InlineTestView(InlineEditingMixin, TableMixin, HtmxMixin, CoreMixin):
     namespace = "sample"
     url_base = "bigbook"
     templates_path = "powercrud/daisyUI"
-    inline_edit_enabled = True
 
     def __init__(self, request, obj):
         self.request = request
@@ -586,7 +586,7 @@ class CoreHarness(FormMixin, InlineEditingMixin, CoreMixin):
     model = Book
     fields = ["title", "author", "isbn", "published_date"]
     form_fields = ["title", "isbn"]
-    inline_edit_enabled = True
+    inline_edit_fields = ["title", "isbn"]
     namespace = "sample"
     url_base = "bigbook"
 
@@ -612,11 +612,21 @@ def test_inline_editing_requires_htmx():
 
 
 @pytest.mark.django_db
-def test_inline_edit_fields_default_to_form_fields():
+def test_inline_edit_fields_none_disables_inline_editing():
     view = CoreHarness()
     view.inline_edit_fields = None
     fields = view.get_inline_edit_fields()
-    assert fields == view.form_fields
+    assert fields == []
+    assert view.get_inline_editing() is False
+
+
+@pytest.mark.django_db
+def test_removed_inline_edit_enabled_setting_raises_error():
+    class LegacyInlineHarness(CoreHarness):
+        inline_edit_enabled = True
+
+    with pytest.raises(ImproperlyConfigured, match="inline_edit_enabled has been removed"):
+        LegacyInlineHarness()
 
 
 @pytest.mark.django_db
@@ -624,7 +634,12 @@ def test_inline_field_dependencies_resolve_endpoint():
     view = CoreHarness()
     view.inline_edit_fields = ["title", "isbn", "author", "genres"]
     view.form_fields = ["title", "isbn", "author", "genres"]
-    view.inline_field_dependencies = {"genres": {"depends_on": ["author"]}}
+    view.field_queryset_dependencies = {
+        "genres": {
+            "depends_on": ["author"],
+            "filter_by": {"authors": "author"},
+        }
+    }
     deps = view.get_inline_field_dependencies()
     assert deps["genres"]["endpoint_url"] == "/resolved/"
     assert deps["genres"]["depends_on"] == ["author"]
@@ -653,7 +668,7 @@ def test_inline_field_dependencies_derive_from_queryset_dependencies():
 
 
 @pytest.mark.django_db
-def test_inline_field_dependencies_allow_explicit_override_of_derived_metadata():
+def test_inline_field_dependencies_setting_is_ignored_when_present():
     view = CoreHarness()
     view.inline_edit_fields = ["title", "isbn", "author", "genres"]
     view.form_fields = ["title", "isbn", "author", "genres"]
@@ -673,14 +688,14 @@ def test_inline_field_dependencies_allow_explicit_override_of_derived_metadata()
     deps = view.get_inline_field_dependencies()
 
     assert (
-        deps["genres"]["depends_on"] == ["title"]
-    ), "Explicit inline_field_dependencies should override derived inline parent metadata when provided."
+        deps["genres"]["depends_on"] == ["author"]
+    ), "inline_field_dependencies should be ignored in favour of derived field_queryset_dependencies metadata."
     assert (
-        deps["genres"]["endpoint_name"] == "sample:custom-inline-dependency"
-    ), "Explicit inline dependency metadata should override the default endpoint name."
+        deps["genres"]["endpoint_name"] == "sample:bigbook-inline-dependency"
+    ), "Ignoring inline_field_dependencies should preserve the default inline dependency endpoint name."
     assert (
         deps["genres"]["endpoint_url"] == "/resolved/"
-    ), "Explicit inline dependency overrides should still resolve to a usable endpoint URL."
+    ), "Ignoring inline_field_dependencies should still resolve the default endpoint URL."
 
 
 @pytest.mark.django_db
@@ -698,33 +713,35 @@ def test_inline_edit_fields_intersects_form_fields(caplog):
 
 
 @pytest.mark.django_db
-def test_inline_dependency_warns_when_child_not_inline(caplog):
+def test_inline_dependency_ignores_child_when_not_inline():
     view = CoreHarness()
-    view.inline_field_dependencies = {"genres": {"depends_on": ["author"]}}
-
-    with caplog.at_level("WARNING"):
-        deps = view.get_inline_field_dependencies()
-
-    assert deps == {}
-    assert "ignored because the field is not inline-editable" in caplog.text
-
-
-@pytest.mark.django_db
-def test_inline_dependency_filters_invalid_parents(caplog):
-    view = CoreHarness()
-    view.inline_edit_fields = ["title", "isbn", "author", "genres"]
-    view.form_fields = ["title", "isbn", "author", "genres"]
-    view.inline_field_dependencies = {
+    view.field_queryset_dependencies = {
         "genres": {
-            "depends_on": ["author", "missing"],
+            "depends_on": ["author"],
+            "filter_by": {"authors": "author"},
         }
     }
 
-    with caplog.at_level("WARNING"):
-        deps = view.get_inline_field_dependencies()
+    deps = view.get_inline_field_dependencies()
+
+    assert deps == {}
+
+
+@pytest.mark.django_db
+def test_inline_dependency_filters_invalid_parents():
+    view = CoreHarness()
+    view.inline_edit_fields = ["title", "isbn", "author", "genres"]
+    view.form_fields = ["title", "isbn", "author", "genres"]
+    view.field_queryset_dependencies = {
+        "genres": {
+            "depends_on": ["author", "missing"],
+            "filter_by": {"authors": "author"},
+        }
+    }
+
+    deps = view.get_inline_field_dependencies()
 
     assert deps["genres"]["depends_on"] == ["author"]
-    assert "non-inline parent fields" in caplog.text
 
 
 class DummyCache(dict):

@@ -1,12 +1,12 @@
 # Dependent Form Fields
 
-Use declarative dependent queryset scoping when one selectable child field should be restricted by the value of another form field.
+Use `field_queryset_dependencies` when the available choices in one form field should depend on the current value of another form field.
 
-This feature is primarily for straightforward cases such as:
+Typical examples:
 
-- “Asset type choices depend on the selected property”
-- “Genre choices depend on the selected author”
-- “Subcategory choices depend on the selected category”
+- the available `genres` depend on the selected `author`
+- the available `rooms` depend on the selected `building`
+- the available `assets` depend on the selected `asset_type`
 
 PowerCRUD applies the same rule to:
 
@@ -17,17 +17,17 @@ For complex business rules, permission-aware filtering, or bespoke queryset logi
 
 ---
 
-## The two settings
+## The setting
 
-### `field_queryset_dependencies`
-
-This is the primary declaration.
+`field_queryset_dependencies` is the public setting for dependent queryset scoping.
 
 Use it to describe:
 
 - which child field is being restricted
 - which parent field or fields it depends on
 - how parent values map into queryset filters on the child field
+- what to do when the parent value is empty
+- how to order the resulting child queryset
 
 Example:
 
@@ -42,126 +42,122 @@ field_queryset_dependencies = {
 }
 ```
 
-### `inline_field_dependencies`
-
-This is now an inline-only override layer.
-
-Most projects no longer need it.
-
-Keep it only when you need inline-specific metadata such as:
-
-- a custom dependency endpoint name
-- an inline-only `depends_on` override
-
-Example:
-
-```python
-inline_field_dependencies = {
-    "genres": {
-        "endpoint_name": "sample:book-inline-dependency",
-    }
-}
-```
-
-If you define `field_queryset_dependencies` but omit `inline_field_dependencies`, PowerCRUD derives the inline dependency wiring automatically.
+Inline dependency wiring is derived automatically from this setting. There is no separate inline dependency configuration to maintain.
 
 ---
 
-## How `filter_by` works
+## Mental Model
 
-This is the part that most users need spelled out.
+Think of each dependency as having three parts:
 
-`filter_by` maps:
+- a **child field**, which is the field whose choices should change
+- one or more **parent fields**, whose current values drive the child queryset
+- a **queryset mapping**, which says how the parent values should be applied to the child field's queryset
 
-- left-hand side: queryset lookup on the child field's queryset model
-- right-hand side: parent form field name
+For the example above:
 
-General shape:
+- `genres` is the child field
+- `author` is the parent field
+- `authors` is the queryset lookup used on the `Genre` queryset
 
-```python
-field_queryset_dependencies = {
-    "child_field": {
-        "depends_on": ["parent_field"],
-        "filter_by": {"child_queryset_lookup": "parent_field"},
-    }
-}
-```
+In plain English, the example means:
 
-Read that as:
+> “Show genre choices that belong to the selected author. If no author is selected yet, still show all genres.”
 
-> “When the user changes `parent_field`, restrict `child_field` choices by filtering its queryset with `child_queryset_lookup=<value of parent_field>`.”
+---
 
-### Example 1: many-to-many lookup
+## Line By Line
+
+Given:
 
 ```python
 field_queryset_dependencies = {
     "genres": {
         "depends_on": ["author"],
         "filter_by": {"authors": "author"},
+        "order_by": "name",
+        "empty_behavior": "all",
     }
 }
 ```
 
-Meaning:
+This is what each line means:
 
-- `genres` is the child form field
-- `author` is the parent form field
-- `authors` is the lookup on the `Genre` queryset
+- `field_queryset_dependencies = { ... }` turns on dependent queryset behavior for one or more fields.
+- `"genres": { ... }` says that `genres` is the child form field being restricted.
+- `"depends_on": ["author"]` says that `author` is the parent field PowerCRUD must watch and read from.
+- `"filter_by": {"authors": "author"}` is the key mapping: left-hand side, `authors`, is the queryset lookup to apply to the child queryset; right-hand side, `author`, is the form field name to read the value from.
+- `"order_by": "name"` sorts the remaining child choices by `name` after filtering.
+- `"empty_behavior": "all"` leaves the child queryset unfiltered instead of returning no options when the parent value is empty.
 
-So PowerCRUD effectively narrows the genres queryset like:
-
-```python
-Genre.objects.filter(authors=<selected author>)
-```
-
-### Example 2: foreign key lookup
+So this configuration effectively produces:
 
 ```python
-field_queryset_dependencies = {
-    "cmms_asset": {
-        "depends_on": ["cmms_property_asset_type_override"],
-        "filter_by": {
-            "property_asset_type_override": "cmms_property_asset_type_override",
-        },
-        "empty_behavior": "none",
-    }
-}
+Genre.objects.filter(authors=<selected author>).order_by("name")
 ```
 
-Meaning:
-
-- `cmms_asset` is the child field being restricted
-- `cmms_property_asset_type_override` is the parent field the user selects
-- `property_asset_type_override` is the lookup on the `cmms_asset` field queryset
-
-So PowerCRUD effectively narrows the queryset like:
-
-```python
-Asset.objects.filter(
-    property_asset_type_override=<selected cmms_property_asset_type_override>
-)
-```
-
-### Example 3: multiple parent fields
-
-```python
-field_queryset_dependencies = {
-    "room": {
-        "depends_on": ["building", "level"],
-        "filter_by": {
-            "building": "building",
-            "level": "level",
-        },
-        "empty_behavior": "none",
-    }
-}
-```
-
-PowerCRUD applies all valid mappings, so the child queryset becomes more specific as more parent values are available.
+If there is no selected author yet, PowerCRUD keeps the full `Genre` queryset because `empty_behavior` is `"all"`.
 
 ---
 
-## Supported keys
+## General Shape
+
+```python
+field_queryset_dependencies = {
+    "child_field_name": {
+        "depends_on": ["parent_field_name"],
+        "filter_by": {"child_queryset_lookup": "parent_field_name"},
+        "order_by": "some_field",
+        "empty_behavior": "none" | "all",
+    }
+}
+```
+
+Read this as:
+
+> “Restrict `child_field_name` by applying `child_queryset_lookup=<value of parent_field_name>` to the child field queryset.”
+
+---
+
+## How `filter_by` Works
+
+This is the part that usually needs the clearest explanation.
+
+`filter_by` maps:
+
+- left-hand side: queryset lookup on the child field's queryset model
+- right-hand side: parent form field name
+
+Example:
+
+```python
+"filter_by": {"authors": "author"}
+```
+
+Read that as:
+
+> “Filter the child queryset by `authors`, using the current value of the form field `author`.”
+
+That is why the lookup is `authors` and not `author` in the sample app:
+
+- the child field is `genres`
+- the queryset behind that field is a `Genre` queryset
+- the relation from `Genre` back to `Author` is `Genre.authors`
+
+So PowerCRUD filters the child queryset like:
+
+```python
+Genre.objects.filter(authors=selected_author)
+```
+
+The general rule is:
+
+- left side = where to filter on the child queryset
+- right side = where to get the value from in the form
+
+---
+
+## Supported Keys
 
 ### `depends_on`
 
@@ -171,11 +167,15 @@ List of parent form fields that drive the child queryset.
 "depends_on": ["author"]
 ```
 
+Meaning:
+
+> “This child field depends on the current value of `author`.”
+
 Rules:
 
 - each entry must be a form field name
-- for inline refresh, the parent field must also be inline-editable
-- for `filter_by`, every referenced parent must also appear in `depends_on`
+- every parent referenced by `filter_by` must also appear here
+- for inline refreshes, the parent field must also be inline-editable
 
 ### `filter_by`
 
@@ -185,23 +185,29 @@ Mapping of child queryset lookups to parent form field names.
 "filter_by": {"authors": "author"}
 ```
 
-Rules:
+Meaning:
 
-- keys are lookup names used against the child field queryset
-- values are parent form field names
-- use this for simple equality-style filtering
+> “Apply `authors=<value of author>` to the child queryset.”
+
+Use this for straightforward equality-style filtering.
+
+If a parent can provide multiple values, use a lookup ending in `__in`.
 
 ### `order_by`
 
-Optional ordering applied to the child queryset after filtering.
+Optional ordering applied after filtering.
 
 ```python
 "order_by": "name"
 ```
 
+Meaning:
+
+> “After restricting the queryset, sort the remaining choices by `name`.”
+
 ### `empty_behavior`
 
-Controls what happens when the needed parent value is empty.
+Controls what happens when a required parent value is empty.
 
 ```python
 "empty_behavior": "none"
@@ -209,18 +215,18 @@ Controls what happens when the needed parent value is empty.
 
 Supported values:
 
-- `"none"`: return no child choices until the parent value is available
-- `"all"`: leave the child queryset unfiltered when the parent value is empty
+- `"none"` returns no child choices until the parent field has a value.
+- `"all"` leaves the child queryset unfiltered when the parent field is empty.
 
-Use `"none"` when an unrestricted dropdown would be noisy or misleading.
+Use `"none"` when the unrestricted child list would be noisy, misleading, or too large.
 
-Use `"all"` when the unfiltered list is still useful and reasonably sized.
+Use `"all"` when the unrestricted list is still useful and reasonably sized.
 
 ---
 
-## Value resolution order
+## Value Resolution Order
 
-When PowerCRUD decides how to filter the child queryset, it resolves parent values in this order:
+When PowerCRUD resolves a parent field value, it checks in this order:
 
 1. bound form data
 2. the current instance
@@ -228,35 +234,35 @@ When PowerCRUD decides how to filter the child queryset, it resolves parent valu
 
 That matters because:
 
-- regular edit forms can scope correctly on initial page load from the instance
-- inline refreshes can use the user’s current unsaved row values
-- validation re-renders preserve the same restriction logic
+- edit forms can render correctly from the saved instance
+- inline editing can use the user's current unsaved row values
+- validation re-renders keep the same restriction logic
 
 ---
 
-## Regular forms vs inline forms
+## Regular Forms Vs Inline Forms
 
 `field_queryset_dependencies` is shared across both editing modes.
 
 Regular create/update forms:
 
-- the child queryset is scoped on render
-- the child queryset is scoped again on POST / validation re-render
-- regular forms are not auto-refreshed in the browser when the parent changes
+- the child queryset is scoped on initial render
+- the child queryset is scoped again on POST and validation re-render
+- regular forms are not automatically refreshed in the browser when the parent changes
 
 Inline editing:
 
 - the same child queryset rule is used
-- dependency wiring is derived automatically from `field_queryset_dependencies`
-- when the user changes the parent field inline, PowerCRUD rebuilds the child widget and swaps it into the row
+- PowerCRUD derives the dependency wiring automatically
+- when the user changes the parent field inline, PowerCRUD rebuilds only the dependent child widget and swaps it back into the row
 
-This is why `field_queryset_dependencies` is the primary setting and `inline_field_dependencies` is only an override layer.
+This means you declare the business rule once in `field_queryset_dependencies`, and PowerCRUD reuses it everywhere.
 
 ---
 
-## Worked example: sample app `Book.author -> Book.genres`
+## Worked Example: Sample App `Book.author -> Book.genres`
 
-The sample app uses this configuration:
+The sample app uses:
 
 ```python
 field_queryset_dependencies = {
@@ -291,21 +297,9 @@ See also:
 
 ---
 
-## Migrating old inline-only configs
+## Migrating Older Inline-Only Dependency Patterns
 
-Old pattern:
-
-```python
-inline_field_dependencies = {
-    "cmms_asset": {
-        "depends_on": ["cmms_property_asset_type_override"],
-    }
-}
-```
-
-This only tells inline editing which parent field should trigger a refresh. It does not declare the shared queryset rule.
-
-New pattern:
+If your project previously relied on an older inline-only dependency pattern, replace it with a full `field_queryset_dependencies` declaration:
 
 ```python
 field_queryset_dependencies = {
@@ -323,21 +317,13 @@ That one declaration now gives you:
 
 - regular form queryset restriction
 - inline form queryset restriction
-- derived inline dependency refresh wiring
+- automatic inline refresh wiring
 
-If you still need an inline-only override, layer it on top:
-
-```python
-inline_field_dependencies = {
-    "cmms_asset": {
-        "endpoint_name": "myapp:custom-inline-dependency",
-    }
-}
-```
+Older inline-only dependency config is ignored.
 
 ---
 
-## When to fall back to `form_class`
+## When To Fall Back To `form_class`
 
 Use `field_queryset_dependencies` when the rule is simple and declarative.
 

@@ -32,6 +32,7 @@ class UrlViewHarness(UrlMixin, ContextBase, View):
     model = Book
     bulk_fields = ["author"]
     bulk_delete = True
+    inline_edit_fields = ["title"]
     paginate_by = 25
 
     def __init__(self, request, obj, role=Role.DETAIL):
@@ -162,3 +163,5 @@ def test_get_urls_generates_patterns(monkeypatch):
     names = {pattern.name for pattern in patterns}
     assert "book-list" in names
     assert "book-bulk-edit" in names
+    assert "book-inline-row" in names
+    assert "book-inline-dependency" in names

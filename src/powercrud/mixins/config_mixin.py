@@ -74,10 +74,8 @@ class ConfigMixin:
     hx_trigger: str | dict[str, str] | None = None
 
     # inline editing
-    inline_edit_enabled: bool | None = None
     inline_edit_fields: list[str] | str | None = None
     field_queryset_dependencies: dict[str, dict[str, Any]] | None = None
-    inline_field_dependencies: dict[str, dict[str, Any]] | None = None
     inline_edit_requires_perm: str | None = None
     inline_edit_allowed: Callable[[Any, Any], bool] | None = None
     inline_preserve_required_fields: bool = True
@@ -169,6 +167,15 @@ class ConfigMixin:
     def __init__(self, *args, **kwargs):  # pragma: no cover
         super().__init__(*args, **kwargs)
         self._validated_config = None
+
+        if hasattr(self, "inline_edit_enabled"):
+            class_name = self.__class__.__name__
+            raise ImproperlyConfigured(
+                f"Invalid configuration in class '{class_name}': "
+                "inline_edit_enabled has been removed. Configure inline_edit_fields "
+                "instead. Set a non-empty list, '__fields__', or '__all__' to enable "
+                "inline editing, or leave inline_edit_fields unset to disable it."
+            )
 
         config_dict = {}
         for attr in PowerCRUDMixinValidator.model_fields.keys():
@@ -391,7 +398,8 @@ class ConfigMixin:
         config["use_htmx_enabled"] = use_htmx_enabled
         config["use_modal_enabled"] = bool(config.get("use_modal") and use_htmx_enabled)
         config["inline_editing_active"] = bool(
-            config.get("inline_edit_enabled") and use_htmx_enabled
+            self._inline_edit_fields_configured(config.get("inline_edit_fields"))
+            and use_htmx_enabled
         )
         config["bulk_edit_enabled"] = bool(
             (config.get("bulk_fields") or config.get("bulk_delete"))
@@ -454,6 +462,17 @@ class ConfigMixin:
             return False
         return desired
 
+    @staticmethod
+    def _inline_edit_fields_configured(value: Any) -> bool:
+        """Return True when inline-edit configuration is explicitly enabled."""
+        if value is None:
+            return False
+        if isinstance(value, str):
+            return bool(value.strip())
+        if isinstance(value, (list, tuple, set, dict)):
+            return bool(value)
+        return bool(value)
+
 
 class _ConfigShim:
     """
@@ -477,7 +496,9 @@ class _ConfigShim:
             return bool(self._raw("use_modal") and self.__getattr__("use_htmx_enabled"))
         if name == "inline_editing_active":
             return bool(
-                self._raw("inline_edit_enabled")
+                ConfigMixin._inline_edit_fields_configured(
+                    self._raw("inline_edit_fields")
+                )
                 and self.__getattr__("use_htmx_enabled")
             )
         if name == "bulk_edit_enabled":
@@ -545,7 +566,6 @@ class _ConfigShim:
             return self._raw(name, []) or []
         if name in {
             "dropdown_sort_options",
-            "inline_field_dependencies",
             "field_queryset_dependencies",
         }:
             return self._raw(name, {}) or {}

@@ -20,12 +20,13 @@ class BookCRUDView(PowerCRUDMixin, CRUDView):
     base_template_path = "core/base.html"
 
     use_htmx = True
-    inline_edit_enabled = True
     inline_edit_fields = ["title", "author", "published_date", "genres"]
 ```
 
-- `inline_edit_enabled` toggles the feature per view.
-- `inline_edit_fields` controls which columns show the hover/focus shim and respond to clicks. Omit it to default to the form fields.
+- `inline_edit_fields` both enables inline editing and controls which columns show the hover/focus shim and respond to clicks.
+- Leave `inline_edit_fields` unset to disable inline editing for the view.
+- `inline_edit_fields` must match fields exposed by the actual form returned by `get_form_class()`. If you use a custom `form_class`, PowerCRUD filters the inline list to fields that really exist on that form.
+- Only columns actually rendered in the list can be clicked inline, so a field must be both inline-configured and visible in the list to behave as an inline-editable cell.
 - The mixin automatically injects inline metadata into the row payload and exposes two HTMX endpoints:
     - `…-inline-row` – swaps the display/form row and handles POST saves.
     - `…-inline-dependency` – rebuilds a single field widget for dependent dropdowns.
@@ -36,7 +37,7 @@ The DaisyUI template already includes the triggers, Save/Cancel buttons, and `in
 
 ## 2. Configure dependencies and helpers
 
-Inline editing reuses the existing form machinery, so any widget or queryset customisations carry over. Keep `inline_edit_fields` aligned with whatever the form actually exposes; if a field is excluded from `form_class`, it must also be dropped from the inline list or you’ll get “unknown field” errors. For dynamic dropdowns, declare the shared queryset dependency once:
+Inline editing reuses the existing form machinery, so any widget or queryset customisations carry over. Keep `inline_edit_fields` aligned with whatever the form actually exposes; if a field is excluded from `form_class`, PowerCRUD drops it from the inline list. List rendering still controls which cells are clickable, so an inline field should normally also be present in your list `fields`. For dynamic dropdowns, declare the shared queryset dependency once:
 
 ```python
 class BookCRUDView(PowerCRUDMixin, CRUDView):
@@ -56,16 +57,6 @@ class BookCRUDView(PowerCRUDMixin, CRUDView):
 - Each dependent field renders a placeholder + spinner; the JS helper issues a POST to the dependency endpoint and swaps the widget.
 - If the underlying form raises a validation error, the inline row re-renders with the field errors plus a banner (`inline-row-error` HTMX trigger).
 
-If you need inline-only overrides, keep using `inline_field_dependencies` for metadata such as a custom dependency endpoint name:
-
-```python
-inline_field_dependencies = {
-    "genres": {
-        "endpoint_name": "sample:book-inline-dependency",
-    }
-}
-```
-
 The same helpers drive both inline rows and lock-sensitive action buttons, so `_build_inline_row_payload()` contains everything the template needs (row id, inline URLs, lock metadata).
 
 ### Cookbook: parent/child dropdowns that refresh inline
@@ -76,7 +67,6 @@ The most reliable pattern is:
 2. Declare `field_queryset_dependencies` on the CRUD view.
 3. Use a custom `form_class` only for form concerns that remain outside the generic dependency rule.
 4. Let PowerCRUD resolve the parent field from bound POST data first, then fall back to the instance.
-5. Add `inline_field_dependencies` only if you need inline-only overrides.
 
 The sample app demonstrates this with `Book.author -> Book.genres`, where the allowed genres come from `Author.genres`:
 
@@ -98,7 +88,6 @@ The sample app demonstrates this with `Book.author -> Book.genres`, where the al
             }
 
             use_htmx = True
-            inline_edit_enabled = True
             inline_edit_fields = [
                 "title",
                 "author",
@@ -127,7 +116,7 @@ Why this works:
 
 Use this pattern whenever a child dropdown should change immediately in response to another inline field.
 
-For a fuller explanation of `filter_by`, multiple-parent mappings, and migration from old inline-only declarations, see [Dependent form fields](./dependent_form_fields.md).
+For a fuller explanation of `filter_by`, multiple-parent mappings, and migration from older inline-only dependency patterns, see [Dependent form fields](./dependent_form_fields.md).
 
 ---
 

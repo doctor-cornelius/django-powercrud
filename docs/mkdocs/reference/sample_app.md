@@ -66,7 +66,7 @@ class BookCRUDView(PowerCRUDAsyncMixin, CRUDView):
     
     filterset_fields = ['author', 'title', 'published_date', 'isbn', 'pages', 'genres']
     dropdown_sort_options = {"author": "name"}
-    inline_edit_enabled = True
+    inline_edit_fields = ['title', 'author', 'genres', 'published_date', 'bestseller', 'isbn', 'description']
     
     extra_buttons = [...]  # Custom action buttons
     extra_actions = [...]  # Additional row actions
@@ -234,17 +234,7 @@ When the user changes `author` inline, PowerCRUD posts the current row data to t
 
 ## How to adapt this pattern downstream
 
-If your project used older inline-only declarations such as:
-
-```python
-inline_field_dependencies = {
-    "cmms_asset": {
-        "depends_on": ["cmms_property_asset_type_override"],
-    }
-}
-```
-
-the sample app demonstrates the new preferred shape:
+If your project used an older inline-only dependency pattern, the sample app demonstrates the preferred replacement:
 
 ```python
 field_queryset_dependencies = {
@@ -263,7 +253,7 @@ The key point is that `filter_by` maps:
 - queryset lookup on the child field's queryset model
 - to parent form field name
 
-Use `inline_field_dependencies` only if you still need inline-only metadata such as a custom dependency endpoint.
+Inline refresh wiring is derived automatically from this declaration.
 
 The browser regression for this flow lives in [test_inline_dependencies.py](/home/mfo/projects/packages/django_powercrud/src/tests/playwright/test_inline_dependencies.py).
 

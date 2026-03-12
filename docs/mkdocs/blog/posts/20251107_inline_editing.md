@@ -12,7 +12,7 @@ This is the plan for adding inline row editing to PowerCRUD’s list views.
 
 ## Rationale
 
-Inline editing lets operators tweak individual rows without breaking context or bouncing between detail pages. We already have most of the plumbing—field introspection, ModelForm generation, HTMX responses, and daisyUI styling. The missing piece is a cohesive row editor that reuses those assets, respects async conflict locks, and gives downstream projects a declarative way to opt in.
+Inline editing lets operators tweak individual rows without breaking context or bouncing between detail pages. We already have most of the plumbing—field introspection, ModelForm generation, HTMX responses, and daisyUI styling. The missing piece is a cohesive row editor that reuses those assets, respects async conflict locks, and gives downstream projects a declarative way to configure the editable inline field set.
 
 ## Objectives
 
@@ -25,7 +25,7 @@ Inline editing lets operators tweak individual rows without breaking context or 
 
 ## Constraints & Open Questions
 
-- Inline editing is opt-in per CRUD view; default remains read-only rows.
+- Inline editing is configured per CRUD view through `inline_edit_fields`; default remains read-only rows.
 - All inline forms submit the full row. Autosave-per-field stays out of scope for v1 to avoid partial validation issues.
 - Most dependency rules need declarative metadata; model introspection can help but cannot cover downstream business logic.
 - Rows locked by the async conflict manager must never show inline edit controls. If a lock appears mid-edit the save call reverts back to read-only mode with a warning.
@@ -36,8 +36,8 @@ Inline editing lets operators tweak individual rows without breaking context or 
 
 ### Inline Editing Gate
 
-- `get_inline_editing()` resolves to True only when HTMX is in use and the view opts in (e.g., `inline_edit_enabled = True`).
-- Views can restrict scope with `inline_edit_fields` (defaults to the view’s editable field set) and a callable `inline_edit_allowed(obj, request)` for per-row decisions.
+- `get_inline_editing()` resolves to True only when HTMX is in use and `inline_edit_fields` is configured.
+- Views restrict scope with `inline_edit_fields` and can use a callable `inline_edit_allowed(obj, request)` for per-row decisions.
 - Permission hooks (`inline_edit_requires_perm`, `inline_edit_allowed`) run for both rendering and submission so unauthorized rows never expose a form.
 
 ### Row Lifecycle & UX
@@ -51,7 +51,7 @@ Inline editing lets operators tweak individual rows without breaking context or 
 
 ### Dependent Field Pattern
 
-- Views can declare `inline_field_dependencies = {'asset_group': {'depends_on': ['service_type'], 'endpoint_name': 'assets:asset-group-choices'}}`. We may auto-fill some cases via introspection (e.g., `limit_choices_to` callables) but downstream metadata remains the primary contract.
+- Views declare dependency business rules through `field_queryset_dependencies`, and inline wiring is derived automatically from that shared config.
 - Templates emit `hx-trigger="change"` on parent fields and target a small placeholder around the dependent widget.
 - Default dependency endpoint reuses FormMixin to rebuild just the child field with a filtered queryset so validation stays consistent.
 
@@ -67,7 +67,7 @@ Inline editing lets operators tweak individual rows without breaking context or 
     - ✅ Align on row-level saves, HTMX-only requirement, and dependency metadata contract.
     - ✅ Document that async conflict locks must hide inline editors rather than relying on failure paths.
 2. ✅ **API surface & mixin updates**
-    - ✅ Add new CoreMixin attributes: `inline_edit_enabled`, `inline_edit_fields`, `inline_field_dependencies`, `inline_edit_requires_perm`, and `inline_edit_allowed`.
+    - ✅ Add new CoreMixin attributes: `inline_edit_fields`, `inline_edit_requires_perm`, and `inline_edit_allowed`.
     - ✅ Update `PowerCRUDMixinValidator` so the new settings are type-checked and defaulted.
     - ✅ Implement helper methods (`get_inline_editing()`, `get_inline_edit_fields()`, `get_inline_dependencies()`, `can_inline_edit(obj, request)`) so downstream views can override behavior cleanly.
     - ✅ Expose FormMixin hooks to build inline forms via the existing `get_form_class()`/`get_form_kwargs()` pipeline.
@@ -108,7 +108,7 @@ Inline editing lets operators tweak individual rows without breaking context or 
         - ✅ Stand up lightweight InlineEditingMixin test views/forms so we can hit the HTMX inline-row endpoint for: GET form render, POST success swap (emits `inline-row-saved`), validation errors (422 + `inline-row-error`), and guard fallbacks (locked + forbidden states returning display rows). 
         - ✅ Cover `_dispatch_inline_dependency` happy path and failure modes (missing `field`, unknown field, pk lookups) to prove dependent widgets are rebuilt correctly without touching any bootstrap5 templates.
         - ✅ Exercise helper APIs (`get_inline_edit_fields`, `get_inline_field_dependencies`, `_get_inline_lock_metadata`, `get_inline_context`) to ensure inline_config fed into daisyUI templates includes resolved row IDs, dependency URLs, and lock metadata even when async managers throw.
-        - ✅ Render the daisyUI `object_list` partial with stub data to assert `data-inline-*` attributes, Save/Cancel button states, and dependency placeholders only appear when inline editing is enabled.
+        - ✅ Render the daisyUI `object_list` partial with stub data to assert `data-inline-*` attributes, Save/Cancel button states, and dependency placeholders only appear when `inline_edit_fields` resolves a non-empty editable field set.
         - ✅ Add a regression test that seeds a simulated async lock (via the sample async manager or a stub cache) and verifies list payload + inline endpoint both respect the lock.
     - **Playwright (daisyUI only)**
         - ✅ Happy-path inline edit on a sample Book row: open inline mode, change a field, save, wait for `inline-row-saved`, and assert the row text updates while only one row stays active.

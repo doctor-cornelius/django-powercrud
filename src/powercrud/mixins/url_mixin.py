@@ -16,6 +16,23 @@ class UrlMixin:
     Provides URL generation and reversing for powercrud views.
     """
 
+    @classmethod
+    def has_inline_editing_urls(cls) -> bool:
+        """
+        Return True when the class declares inline-edit endpoints.
+
+        URL registration happens at class-definition time, so this check relies on
+        the raw `inline_edit_fields` attribute rather than resolved form fields.
+        """
+        inline_edit_fields = getattr(cls, "inline_edit_fields", None)
+        if inline_edit_fields is None:
+            return False
+        if isinstance(inline_edit_fields, str):
+            return bool(inline_edit_fields.strip())
+        if isinstance(inline_edit_fields, (list, tuple, set, dict)):
+            return bool(inline_edit_fields)
+        return bool(inline_edit_fields)
+
     def get_prefix(self):
         """
         Generate a prefix for URL names.
@@ -237,7 +254,7 @@ class UrlMixin:
             urls.append(BulkActions.TOGGLE_ALL_SELECTION.get_url(cls))
 
         # Inline editing endpoints
-        if getattr(cls, "inline_edit_enabled", None):
+        if cls.has_inline_editing_urls():
             lookup_kwarg = getattr(cls, "lookup_url_kwarg", None) or getattr(
                 cls, "lookup_field", "pk"
             )

@@ -438,17 +438,12 @@ class InlineEditingMixin:
     def get_inline_edit_fields(self) -> list[str]:
         """
         Return the list of fields that should be editable inline.
-        Falls back to the form_fields list so inline and modal forms stay aligned.
+        Inline editing is disabled until `inline_edit_fields` is set explicitly.
         """
-        if not self.get_inline_editing():
-            return []
-
         cfg = resolve_config(self)
         config = cfg.inline_edit_fields
-        if not config:
-            return self._filter_inline_fields_by_form(
-                self._resolve_inline_field_list(cfg.form_fields)
-            )
+        if config is None or config == []:
+            return []
 
         if config == "__all__":
             return self._filter_inline_fields_by_form(self._get_all_editable_fields())
@@ -478,9 +473,9 @@ class InlineEditingMixin:
 
     def get_inline_field_dependencies(self) -> dict[str, dict[str, Any]]:
         """
-        Return dependency metadata for inline fields, including resolved endpoints.
+        Return dependency metadata for inline fields, derived from
+        `field_queryset_dependencies`.
         """
-        cfg = resolve_config(self)
         inline_fields = set(self.get_inline_edit_fields())
         endpoint_getter = getattr(self, "get_inline_dependency_endpoint_name", None)
         default_endpoint_name = endpoint_getter() if callable(endpoint_getter) else None
@@ -494,15 +489,6 @@ class InlineEditingMixin:
                 warn_on_unavailable=False,
             ).items():
                 dependencies[field] = {"depends_on": list(meta.get("depends_on", []))}
-
-        explicit_dependencies = cfg.inline_field_dependencies or {}
-        for field, meta in explicit_dependencies.items():
-            if field in dependencies and isinstance(meta, dict):
-                merged = dict(dependencies[field])
-                merged.update(meta)
-                dependencies[field] = merged
-            else:
-                dependencies[field] = meta
 
         resolved: dict[str, dict[str, Any]] = {}
         for field, meta in dependencies.items():

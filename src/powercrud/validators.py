@@ -37,12 +37,10 @@ class PowerCRUDMixinValidator(BaseModel):
     hx_trigger: Optional[Union[str, int, float, dict]] = None
 
     # inline editing
-    inline_edit_enabled: Optional[bool] = None
     inline_edit_fields: Optional[Union[List[str], Literal["__all__", "__fields__"]]] = (
         None
     )
     field_queryset_dependencies: Optional[Dict[str, Dict[str, Any]]] = None
-    inline_field_dependencies: Optional[Dict[str, Dict[str, Any]]] = None
     inline_edit_requires_perm: Optional[str] = None
     inline_edit_allowed: Optional[Callable] = None
 
@@ -141,22 +139,6 @@ class PowerCRUDMixinValidator(BaseModel):
             return v
         if isinstance(v, list) and not all(isinstance(x, str) for x in v):
             raise ValueError("inline_edit_fields must contain only strings")
-        return v
-
-    @field_validator("inline_field_dependencies")
-    @classmethod
-    def validate_inline_field_dependencies(cls, v):
-        if v is None:
-            return v
-        if not isinstance(v, dict):
-            raise ValueError("inline_field_dependencies must be a dictionary")
-        for field_name, config in v.items():
-            if not isinstance(field_name, str):
-                raise ValueError("inline_field_dependencies keys must be strings")
-            if not isinstance(config, dict):
-                raise ValueError(
-                    "inline_field_dependencies values must be dictionaries"
-                )
         return v
 
     @field_validator("field_queryset_dependencies")

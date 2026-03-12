@@ -65,7 +65,6 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
     # UX helpers
     use_htmx = True
     use_modal = True
-    inline_edit_enabled = True
     inline_edit_fields = ["status", "owner"]
 
     # Bulk operations (synchronous)
