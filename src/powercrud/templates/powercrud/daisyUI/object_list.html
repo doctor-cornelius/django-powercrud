@@ -10,6 +10,8 @@
     <style>
         :root {
             --pc-inline-icon-buffer: 2.25ch;
+            --pc-filter-control-height: 2.25rem;
+            --pc-filter-font-size: 0.8125rem;
         }
 
         .inline-field-widget[data-inline-refreshing="true"] {
@@ -30,41 +32,23 @@
             max-width: {{ table_max_col_width }};
         }
 
+        #filter-form .filter-field {
+            min-width: 0;
+        }
+
         #filter-form label {
             @apply font-bold text-center block;
         }
 
-        /* Super specific selectors to override existing styles */
-        #filter-form select.select,
-        #filter-form .select select {
-            height: 2rem !important;
-            min-height: 2rem !important;
-            font-size: 0.875rem !important;
-        }
-        
-        #filter-form input,
-        #filter-form select {
-        height: 2.2rem !important; 
-        min-height: 2.2rem !important;
-        max-height: 2.2rem !important;
-        padding-top: 0.25rem !important;
-        padding-bottom: 0.25rem !important;
-        line-height: 1.2 !important;
-        }
-        
-        /* Make all filter elements the same width */
-        #filter-form .form-control {
-            width: 14rem !important;
-            max-width: 14rem !important;
-        }
-
-        /* Make standard inputs/selects taller to prevent letter cutting */
         #filter-form input:not([type="checkbox"]),
         #filter-form select:not([multiple]) {
-        height: 2.5rem !important;
-        min-height: 2.5rem !important;
-        max-height: 2.5rem !important;
-        line-height: 1.2 !important;
+            height: var(--pc-filter-control-height) !important;
+            min-height: var(--pc-filter-control-height) !important;
+            max-height: var(--pc-filter-control-height) !important;
+            padding-top: 0.25rem !important;
+            padding-bottom: 0.25rem !important;
+            font-size: var(--pc-filter-font-size) !important;
+            line-height: 1.2 !important;
         }
 
         #filter-form .filter-field-input {
@@ -76,25 +60,30 @@
         }
 
         #filter-form .ts-wrapper .ts-control {
-            min-height: 2.5rem;
-            font-size: 0.875rem;
+            min-height: var(--pc-filter-control-height);
+            font-size: var(--pc-filter-font-size);
             line-height: 1.2;
         }
 
         #filter-form .ts-wrapper.multi .ts-control {
-            align-items: flex-start;
+            align-items: center;
             padding-top: 0.25rem;
             padding-bottom: 0.25rem;
-            max-height: 8rem;
-            overflow-y: auto;
+            min-height: var(--pc-filter-control-height);
         }
 
         #filter-form .ts-wrapper.multi .ts-control > .item {
             margin: 0.125rem;
         }
 
+        #filter-form select[multiple] {
+            min-height: var(--pc-filter-control-height) !important;
+            max-height: var(--pc-filter-control-height) !important;
+            font-size: var(--pc-filter-font-size) !important;
+        }
+
         #filter-form .ts-dropdown {
-            font-size: 0.875rem;
+            font-size: var(--pc-filter-font-size);
         }
     </style>
 
@@ -177,12 +166,13 @@
     
         {% if filterset %}
         <div class="hidden py-2" id="filterCollapse">
-            <form id="filter-form" method="get" class="flex flex-wrap gap-2" hx-target="#filtered_results" hx-push-url="true"
+            <div class="rounded-box border border-base-300/60 bg-base-100/40 p-3">
+            <form id="filter-form" method="get" class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4" hx-target="#filtered_results" hx-push-url="true"
                 hx-replace-url="true" hx-headers='{"X-Filter-Sort-Request": "true", "X-Filter-Setting-Request": "true"}'
                 action="{{ request.path }}"
                 data-powercrud-filter-form="true">
                 {% for field in filterset.form %}
-                <div class="form-control w-full w-56 max-w-56">
+                <div class="filter-field form-control w-full min-w-0">
                     <label class="label py-0">
                         <span class="label-text text-xs font-semibold font-bold text-center block">{{ field.label }}</span>
                     </label>
@@ -192,6 +182,7 @@
                 </div>
                 {% endfor %}
             </form>
+            </div>
         </div>
         {% endif %}
 

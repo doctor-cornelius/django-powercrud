@@ -96,6 +96,9 @@ def test_filterset_builds_choices():
     assert (
         filterset.filters["genres"].extra["queryset"].count() == 1
     ), "Genre filter queryset should be limited to the available related genre."
+    assert (
+        filterset.form.fields["author"].label == "Author"
+    ), "Non-text auto-generated filter labels should continue to use the plain field label."
 
 
 @pytest.mark.django_db
@@ -124,6 +127,26 @@ def test_nullable_scalar_fields_get_companion_null_filter():
     assert list(filterset.qs.values_list("name", flat=True)) == [
         "Betty"
     ], "Companion null filter should return only rows where the scalar field is null."
+    assert (
+        filterset.form.fields["name"].label == "Name"
+    ), "Auto-generated text filters should keep the plain field label instead of appending the lookup name."
+
+
+@pytest.mark.django_db
+def test_nullable_scalar_companion_null_filter_stays_next_to_parent_field():
+    """Keep companion null filters adjacent to their parent field in the form."""
+    request = RequestFactory().get("/")
+    view = AuthorNullFilterHarness(request)
+    filterset = view.get_filterset(Author.objects.all())
+
+    assert (
+        filterset is not None
+    ), "Expected an auto-generated filterset when checking companion filter ordering."
+    assert list(filterset.form.fields.keys()) == [
+        "name",
+        "birth_date",
+        "birth_date__isnull",
+    ], "Companion null filters should render immediately after their parent field."
 
 
 @pytest.mark.django_db

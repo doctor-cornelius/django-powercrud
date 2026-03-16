@@ -337,3 +337,55 @@ def test_author_list_displays_filtered_paginated_record_count(client, monkeypatc
     assert "Showing 1-1 of 2 matching records" in response_text, (
         "Filtered paginated list view should show the current page slice and total matching count."
     )
+
+
+@pytest.mark.django_db
+def test_book_list_filter_form_uses_compact_grid_layout(client):
+    """Render the books filter form with the compact grid layout classes."""
+    response = client.get(reverse("sample:bigbook-list"))
+    response_text = " ".join(response.content.decode().split())
+
+    assert response.status_code == 200, (
+        "Book list view should render successfully so the filter layout can be inspected."
+    )
+    assert 'id="filter-form"' in response_text, (
+        "Book list view should render the filter form when filterset_fields are configured."
+    )
+    assert 'class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4"' in response_text, (
+        "Book list filter form should use the responsive grid classes for a structured layout."
+    )
+    assert "filter-field form-control w-full min-w-0" in response_text, (
+        "Book list filter fields should use the compact wrapper class within the grid layout."
+    )
+    assert "sm:col-span-2" not in response_text, (
+        "Filter multiselects should not automatically span two columns in the compact grid layout."
+    )
+
+
+@pytest.mark.django_db
+def test_book_list_filter_labels_do_not_append_contains(client):
+    """Render plain field labels for text filters even when icontains is used."""
+    response = client.get(reverse("sample:bigbook-list"))
+    response_text = " ".join(response.content.decode().split())
+
+    assert response.status_code == 200, (
+        "Book list view should render successfully so filter labels can be inspected."
+    )
+    assert "Title contains" not in response_text, (
+        "Text filter labels should not append 'contains' when the auto-generated lookup uses icontains."
+    )
+    assert "Isbn contains" not in response_text, (
+        "Text filter labels should keep the plain field name instead of displaying the lookup suffix."
+    )
+    assert "Description contains" not in response_text, (
+        "Long text filter labels should also avoid the lookup suffix in the rendered filter form."
+    )
+    assert "Title" in response_text, (
+        "The title filter should still render with its plain field label."
+    )
+    assert "Isbn" in response_text, (
+        "The ISBN filter should still render with its plain field label."
+    )
+    assert "Description" in response_text, (
+        "The description filter should still render with its plain field label."
+    )

@@ -1,4 +1,5 @@
 from django import forms
+from collections import OrderedDict
 from django_filters import (
     FilterSet,
     CharFilter,
@@ -10,6 +11,7 @@ from django_filters import (
     ModelMultipleChoiceFilter,
 )
 from django.db import models
+from django.utils.text import capfirst
 
 from powercrud.conf import get_powercrud_setting
 from powercrud.logging import get_logger
@@ -332,6 +334,10 @@ class FilteringMixin:
             return False
         return field_name not in resolve_config(self).filter_null_fields_exclude
 
+    def _get_filter_label(self, model_field) -> str:
+        """Return the base label for an auto-generated filter field."""
+        return capfirst(model_field.verbose_name)
+
     def _field_uses_merged_null_relation_filter(self, field_to_check) -> bool:
         """Return whether a field should merge null filtering into its select."""
         return isinstance(field_to_check, (models.ForeignKey, models.OneToOneField))
@@ -400,6 +406,7 @@ class FilteringMixin:
             framework = get_powercrud_setting("POWERCRUD_CSS_FRAMEWORK")
             base_attrs = self.get_framework_styles()[framework]["filter_attrs"]
             declared_filters = {}
+            filter_form_order = []
 
             for field_name in filterset_fields:
                 model_field = self.model._meta.get_field(field_name)
@@ -428,6 +435,7 @@ class FilteringMixin:
                 elif isinstance(field_to_check, (models.CharField, models.TextField)):
                     declared_filters[field_name] = CharFilter(
                         lookup_expr="icontains",
+                        label=self._get_filter_label(model_field),
                         widget=forms.TextInput(attrs=field_attrs),
                     )
                 elif isinstance(field_to_check, models.DateField):
@@ -480,8 +488,10 @@ class FilteringMixin:
                 else:
                     declared_filters[field_name] = CharFilter(
                         lookup_expr="icontains",
+                        label=self._get_filter_label(model_field),
                         widget=forms.TextInput(attrs=field_attrs),
                     )
+                filter_form_order.append(field_name)
 
                 if self._field_supports_auto_null_filter(
                     field_name, field_to_check
@@ -499,6 +509,7 @@ class FilteringMixin:
                             null_attrs,
                         )
                     )
+                    filter_form_order.append(null_field_name)
 
             class Meta:
                 """FilterSet metadata for the dynamically generated class."""
@@ -509,6 +520,17 @@ class FilteringMixin:
             def __init__(filterset_self, *args, **kwargs):
                 """Initialize the FilterSet and set up HTMX attributes if needed."""
                 FilterSet.__init__(filterset_self, *args, **kwargs)
+                ordered_filters = OrderedDict()
+                for filter_name in filter_form_order:
+                    if filter_name in filterset_self.filters:
+                        ordered_filters[filter_name] = filterset_self.filters[
+                            filter_name
+                        ]
+                for filter_name, filter_value in filterset_self.filters.items():
+                    if filter_name not in ordered_filters:
+                        ordered_filters[filter_name] = filter_value
+                filterset_self.filters = ordered_filters
+                filterset_self.form.order_fields(list(ordered_filters.keys()))
                 if use_htmx:
                     filterset_self.setup_htmx_attrs()
 

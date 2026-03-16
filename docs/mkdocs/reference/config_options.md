@@ -84,7 +84,30 @@ All of the following keys live inside the optional `POWERCRUD_SETTINGS` dict in 
 
 ## Filter controls
 
-Fine-tune what users can filter and how options are presented by combining `filterset_fields`, `filter_queryset_options`, `dropdown_sort_options`, `filter_null_fields_exclude`, and `m2m_filter_and_logic`. Nullable auto-generated relation filters merge an `Empty only` option into the dropdown, while nullable scalar filters gain companion `... is empty` controls. Use `filter_null_fields_exclude` to opt specific fields out. Start with the [Filtering & sorting walkthrough](../guides/setup_core_crud.md#filtering-sorting) and the dropdown guidance in [Bulk editing (synchronous)](../guides/bulk_edit_sync.md#dropdowns-choices).
+Fine-tune what users can filter and how options are presented by combining `filterset_fields`, `filter_queryset_options`, `dropdown_sort_options`, `filter_null_fields_exclude`, and `m2m_filter_and_logic`.
+
+Nullable auto-generated filters behave differently by field type:
+
+- Nullable `ForeignKey` and `OneToOneField` filters keep a single dropdown and add an `Empty only` option near the top.
+- Nullable scalar filters such as `CharField`, `TextField`, `DateField`, `TimeField`, `IntegerField`, `DecimalField`, `FloatField`, and `BooleanField` gain a separate companion `... is empty` boolean select.
+- Companion null controls are rendered immediately after their parent auto-generated filter field in the form.
+
+`filter_null_fields_exclude` always matches the original model field names listed in `filterset_fields`.
+
+- Use `["birth_date"]`, not `["birth_date__isnull"]`.
+- Excluding a nullable scalar field suppresses the generated companion `... is empty` control.
+- Excluding a nullable relation field suppresses the merged `Empty only` option.
+
+Example:
+
+```python
+filterset_fields = ["owner", "published_date", "status"]
+filter_null_fields_exclude = ["status"]
+```
+
+In that configuration, `owner` keeps one dropdown with `Empty only`, `published_date` gains a separate `Published date is empty` companion filter, and `status` gets no built-in null helper.
+
+Start with the [Filtering & sorting walkthrough](../guides/setup_core_crud.md#filtering-sorting) and the dropdown guidance in [Bulk editing (synchronous)](../guides/bulk_edit_sync.md#dropdowns-choices).
 
 ## Form controls
 

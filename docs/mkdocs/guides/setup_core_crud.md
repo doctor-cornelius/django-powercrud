@@ -121,16 +121,41 @@ What happens by default:
 
 - With *no* `filterset_fields`, the view renders the list immediately and ignores any query parameters except `page`, `page_size`, and `sort`.
 - Setting `filterset_fields` automatically builds a `django-filter` `FilterSet` for those fields, including sensible widgets based on field type and optional HTMX attributes if `use_htmx` is True.
-- Nullable auto-generated filters gain null helpers by default: nullable `ForeignKey` and `OneToOneField` filters add an `Empty only` option to the existing dropdown, while nullable scalar filters add a companion `... is empty` boolean control.
+- Nullable auto-generated filters gain null helpers by default:
+
+    - nullable `ForeignKey` and `OneToOneField` filters add an `Empty only` option to the existing dropdown
+    - nullable scalar filters such as `CharField`, `TextField`, `DateField`, `TimeField`, `IntegerField`, `DecimalField`, `FloatField`, and `BooleanField` add a separate companion `... is empty` boolean control
+
+- Companion null controls are inserted immediately after their parent auto-generated field in the filter form, so a nullable scalar filter such as `birth_date` renders next to `Birth date is empty` rather than at the end of the form.
 
 Dial it up when you need more control:
 
 - Pass a custom `filterset_class` for hand-crafted filters (PowerCRUD still wires in HTMX helpers).
 - Use `filter_queryset_options` or `dropdown_sort_options` to scope/queryset-sort the choices in generated dropdowns.
 - Use `filter_null_fields_exclude = [...]` to opt specific nullable auto-filters out of the built-in null controls.
+
+    - Match the original field names from `filterset_fields`, for example `["birth_date", "favorite_genre"]`
+    - Do not use the generated companion names such as `birth_date__isnull`
+    - Excluding a nullable scalar field suppresses its companion `... is empty` control
+    - Excluding a nullable relation field suppresses the merged `Empty only` dropdown choice
+
 - Toggle `m2m_filter_and_logic = True` if many-to-many filters must match *all* selected values instead of the default OR behaviour.
 - With `searchable_selects = True` (default), filter select widgets are Tom Select-enhanced: single-selects become searchable dropdowns and M2M filters become searchable multi-select controls.
 - Sorting is wired into the table headers. Clicking a column toggles `?sort=field` / `?sort=-field` on the URL (so you can share `/projects/?sort=status`). PowerCRUD applies that ordering server-side and always adds a secondary `pk` sort so pagination stays stable. Properties can be sorted too, as long as the property name is listed in `properties`.
+
+Example:
+
+```python
+class ProjectCRUDView(PowerCRUDMixin, CRUDView):
+    filterset_fields = ["owner", "published_date", "status"]
+    filter_null_fields_exclude = ["status"]
+```
+
+In that example:
+
+- a nullable relation such as `owner` keeps one dropdown and gains an `Empty only` option
+- a nullable scalar such as `published_date` gains a separate `Published date is empty` select
+- `status` gets no built-in null helper because it is excluded explicitly
 
 HTMX is optional but recommended: when enabled, filter submissions post back to the list endpoint and the results replace the table without a full reload. Pagination automatically resets to page 1 after each filter submit.
 
