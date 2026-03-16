@@ -451,6 +451,7 @@ def object_list(context, objects, view):
 
         for prop in properties:
             prop_value = getattr(obj, prop)
+            prop_align = "center" if isinstance(prop_value, bool) else "left"
             if (
                 isinstance(getattr(obj.__class__, prop), property)
                 and prop_value is True
@@ -473,7 +474,7 @@ def object_list(context, objects, view):
                     "is_property": True,
                     "is_inline_editable": inline_enabled and prop in inline_fields,
                     "dependency": resolve_cell_dependency(prop),
-                    "align": "left",
+                    "align": prop_align,
                 }
             )
             record["fields"].append(display_value)

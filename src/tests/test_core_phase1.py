@@ -1,4 +1,5 @@
 from types import SimpleNamespace
+from datetime import date
 
 import pytest
 from django.urls import reverse
@@ -388,4 +389,24 @@ def test_book_list_filter_labels_do_not_append_contains(client):
     )
     assert "Description" in response_text, (
         "The description filter should still render with its plain field label."
+    )
+
+
+@pytest.mark.django_db
+def test_author_list_centers_boolean_icon_cells(client):
+    """Render centered wrappers for boolean icon cells in the list view."""
+    Author.objects.create(
+        name="Centered Icon Author",
+        bio="Has biography",
+        birth_date=date(1985, 6, 1),
+    )
+
+    response = client.get(reverse("sample:author-list"))
+    response_text = " ".join(response.content.decode().split())
+
+    assert response.status_code == 200, (
+        "Author list view should render successfully so centered boolean icon cells can be inspected."
+    )
+    assert "flex justify-center items-center w-full" in response_text, (
+        "Boolean icon cells should render inside a flex wrapper that centers them horizontally."
     )

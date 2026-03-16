@@ -242,6 +242,7 @@ def test_object_list_sets_alignment_metadata():
     request = apply_session(RequestFactory().get("/"))
     view = TemplateViewStub(request)
     view.fields = ["title", "pages", "bestseller"]
+    view.properties = ["isbn_empty"]
 
     context = {
         "request": request,
@@ -256,6 +257,7 @@ def test_object_list_sets_alignment_metadata():
     assert cell_map["title"]["align"] == "left"
     assert cell_map["pages"]["align"] == "center"
     assert cell_map["bestseller"]["align"] == "center"
+    assert cell_map["isbn_empty"]["align"] == "center"
 
 
 @pytest.mark.django_db

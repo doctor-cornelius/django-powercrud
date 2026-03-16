@@ -231,7 +231,7 @@
             </button>
             {% endwith %}
         {% else %}
-            <div class="w-full {% if cell.align == 'center' %}text-center{% else %}text-left{% endif %}"
+            <div class="{% if cell.align == 'center' %}flex justify-center items-center w-full{% else %}w-full text-left{% endif %}"
                  {% if value_str|slice:":1" != "<" %}data-tippy-content="{{ cell.value }}" data-powercrud-tooltip="overflow"{% endif %}>
                 {{ cell.value }}
             </div>
@@ -302,7 +302,7 @@
             </button>
             {% endwith %}
         {% else %}
-            <div class="w-full {% if cell.align == 'center' %}text-center{% else %}text-left{% endif %}"
+            <div class="{% if cell.align == 'center' %}flex justify-center items-center w-full{% else %}w-full text-left{% endif %}"
                  {% if value_str|slice:":1" != "<" %}data-tippy-content="{{ cell.value }}" data-powercrud-tooltip="overflow"{% endif %}>
                 {{ cell.value }}
             </div>
