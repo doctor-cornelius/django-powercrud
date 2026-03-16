@@ -195,6 +195,9 @@ def test_toggle_selection_view_updates_session(monkeypatch):
     response = view.toggle_selection_view(request, pk=5)
     assert response.context_data["selected_count"] == 1
     assert view.get_selected_ids_from_session(request) == ["5"]
+    assert json.loads(response["HX-Trigger"]) == {"refreshTable": True}, (
+        "Single-row selection changes should trigger a filtered-results refresh so metadata and checkbox state stay in sync."
+    )
 
 
 @pytest.mark.django_db
@@ -214,6 +217,9 @@ def test_clear_selection_view_resets_state(monkeypatch):
     response = view.clear_selection_view(request)
     assert response.context_data["selected_count"] == 0
     assert view.get_selected_ids_from_session(request) == []
+    assert json.loads(response["HX-Trigger"]) == {"refreshTable": True}, (
+        "Clearing the bulk selection should refresh the list so row checkboxes and metadata reset together."
+    )
 
 
 @pytest.mark.django_db
@@ -234,6 +240,9 @@ def test_toggle_all_selection_view(monkeypatch):
     response = view.toggle_all_selection_view(request)
     assert sorted(response.context_data["selected_ids"]) == ["1", "2", "3"]
     assert sorted(view.get_selected_ids_from_session(request)) == ["1", "2", "3"]
+    assert json.loads(response["HX-Trigger"]) == {"refreshTable": True}, (
+        "Page-level select-all should refresh the filtered-results area so queryset-level selection prompts can appear immediately."
+    )
 
 
 @pytest.mark.django_db

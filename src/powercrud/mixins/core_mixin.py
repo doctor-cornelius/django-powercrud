@@ -67,6 +67,12 @@ class CoreMixin(ConfigMixin):
         """
         return bool(self.config().show_record_count)
 
+    def get_show_bulk_selection_meta(self) -> bool:
+        """
+        Return whether the bulk-selection metadata row should be displayed.
+        """
+        return bool(self.config().show_bulk_selection_meta)
+
     def has_active_filters(self, filterset: Any | None) -> bool:
         """
         Return True when any bound filter field contains a non-empty value.
@@ -156,6 +162,7 @@ class CoreMixin(ConfigMixin):
                 is_paginated=False,
                 paginator=None,
                 filterset=filterset,
+                filtered_queryset=queryset,
                 sort=request.GET.get("sort", ""),  # Add sort to context
                 use_htmx=self.get_use_htmx(),
                 request=request,
@@ -176,6 +183,7 @@ class CoreMixin(ConfigMixin):
                 is_paginated=page.has_other_pages(),
                 paginator=page.paginator,
                 filterset=filterset,
+                filtered_queryset=queryset,
                 sort=request.GET.get("sort", ""),  # Add sort to context
                 use_htmx=self.get_use_htmx(),
                 request=request,

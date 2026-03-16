@@ -72,6 +72,7 @@ class BulkActions(enum.Enum):
     TOGGLE_SELECTION = "toggle-selection"
     CLEAR_SELECTION = "clear-selection"
     TOGGLE_ALL_SELECTION = "toggle-all-selection"
+    SELECT_ALL_MATCHING = "select-all-matching"
 
     def handlers(self) -> Dict[str, str]:
         """
@@ -87,6 +88,8 @@ class BulkActions(enum.Enum):
                 return {"post": "clear_selection_view"}
             case BulkActions.TOGGLE_ALL_SELECTION:
                 return {"post": "toggle_all_selection_view"}
+            case BulkActions.SELECT_ALL_MATCHING:
+                return {"post": "select_all_matching_view"}
 
     def extra_initkwargs(self) -> Dict[str, str]:
         """
@@ -102,6 +105,8 @@ class BulkActions(enum.Enum):
                 return {"template_name_suffix": "_clear_selection"}
             case BulkActions.TOGGLE_ALL_SELECTION:
                 return {"template_name_suffix": "_toggle_all_selection"}
+            case BulkActions.SELECT_ALL_MATCHING:
+                return {"template_name_suffix": "_select_all_matching"}
 
     @property
     def url_name_component(self) -> str:
@@ -131,6 +136,8 @@ class BulkActions(enum.Enum):
                 return f"{view_cls.url_base}/clear-selection/"
             case BulkActions.TOGGLE_ALL_SELECTION:
                 return f"{view_cls.url_base}/toggle-all-selection/"
+            case BulkActions.SELECT_ALL_MATCHING:
+                return f"{view_cls.url_base}/select-all-matching/"
 
     def get_url(self, view_cls: type[View]):
         """

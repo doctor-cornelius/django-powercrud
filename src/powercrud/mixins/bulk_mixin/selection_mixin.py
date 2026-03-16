@@ -1,8 +1,10 @@
+import json
 from typing import List, Any
 
 from django.http import HttpRequest, HttpResponse, HttpResponseBadRequest
 from django.shortcuts import render
 
+from powercrud.conf import get_powercrud_setting
 from powercrud.logging import get_logger
 
 log = get_logger(__name__)
@@ -10,6 +12,16 @@ log = get_logger(__name__)
 
 class SelectionMixin:
     """Mixin for managing bulk selection state, providing session-based persistence and HTMX handlers."""
+
+    def get_bulk_max_selected_records(self) -> int:
+        """
+        Return the maximum number of records PowerCRUD should allow in a bulk selection.
+        """
+        value = get_powercrud_setting("BULK_MAX_SELECTED_RECORDS", 1000)
+        try:
+            return max(1, int(value))
+        except (TypeError, ValueError):
+            return 1000
 
     def get_storage_key(self) -> str:
         """
@@ -112,11 +124,13 @@ class SelectionMixin:
         current_count = len(selected_ids)
 
         context = {"selected_ids": selected_ids, "selected_count": current_count}
-        return render(
+        response = render(
             request,
             f"{self.templates_path}/object_list.html#bulk_selection_status",
             context,
         )
+        response["HX-Trigger"] = json.dumps({"refreshTable": True})
+        return response
 
     def clear_selection_from_session(self, request: HttpRequest) -> None:
         """
@@ -154,11 +168,13 @@ class SelectionMixin:
 
         # Return ONLY bulk actions container with empty state
         context = {"selected_ids": [], "selected_count": 0}
-        return render(
+        response = render(
             request,
             f"{self.templates_path}/object_list.html#bulk_selection_status",
             context,
         )
+        response["HX-Trigger"] = json.dumps({"refreshTable": True})
+        return response
 
     def toggle_all_selection_in_session(
         self, request: HttpRequest, object_ids: List[Any]
@@ -220,8 +236,92 @@ class SelectionMixin:
         context["selected_ids"] = selected_ids
         context["selected_count"] = len(selected_ids)
 
-        return render(
+        response = render(
             request,
             f"{self.templates_path}/object_list.html#bulk_selection_status",
             context,
         )
+        response["HX-Trigger"] = json.dumps({"refreshTable": True})
+        return response
+
+    def get_filtered_selection_queryset(self):
+        """
+        Return the queryset for the current list view with active filters applied.
+        """
+        queryset = self.get_queryset()
+        filterset = self.get_filterset(queryset)
+        if filterset is not None:
+            queryset = filterset.qs
+        return queryset
+
+    def select_all_matching_in_session(
+        self, request: HttpRequest, matching_ids: List[Any]
+    ) -> List[str]:
+        """
+        Add all provided matching IDs to the persisted selection, preserving any prior selection.
+        """
+        selected_ids = self.get_selected_ids_from_session(request)
+        selected_id_set = set(selected_ids)
+
+        for object_id in matching_ids:
+            object_id_str = str(object_id)
+            if object_id_str in selected_id_set:
+                continue
+            selected_ids.append(object_id_str)
+            selected_id_set.add(object_id_str)
+
+        self.save_selected_ids_to_session(request, selected_ids)
+        return selected_ids
+
+    def get_selectable_matching_ids(
+        self, request: HttpRequest, queryset: Any
+    ) -> List[Any]:
+        """
+        Return the next matching queryset IDs that can fit within the configured selection cap.
+        """
+        current_selected_ids = self.get_selected_ids_from_session(request)
+        current_selected_id_set = set(current_selected_ids)
+        remaining_capacity = max(
+            0, self.get_bulk_max_selected_records() - len(current_selected_ids)
+        )
+        if remaining_capacity == 0:
+            return []
+
+        selectable_ids: List[Any] = []
+        for object_id in queryset.values_list("pk", flat=True):
+            if str(object_id) in current_selected_id_set:
+                continue
+            selectable_ids.append(object_id)
+            if len(selectable_ids) >= remaining_capacity:
+                break
+        return selectable_ids
+
+    def select_all_matching_view(
+        self, request: HttpRequest, *args: Any, **kwargs: Any
+    ) -> HttpResponse:
+        """
+        Add every record matching the current filtered queryset to the persisted bulk selection.
+        """
+        if not (hasattr(request, "htmx") and request.htmx):
+            return HttpResponseBadRequest(
+                "Only HTMX requests are supported for this operation."
+            )
+
+        queryset = self.get_filtered_selection_queryset()
+        selectable_ids = self.get_selectable_matching_ids(request, queryset)
+        if selectable_ids:
+            selected_ids = self.select_all_matching_in_session(request, selectable_ids)
+        else:
+            selected_ids = self.get_selected_ids_from_session(request)
+
+        context = {
+            "selected_ids": selected_ids,
+            "selected_count": len(selected_ids),
+        }
+        response = render(
+            request,
+            f"{self.templates_path}/object_list.html#bulk_selection_status",
+            context,
+        )
+        response["HX-Trigger"] = json.dumps({"refreshTable": True})
+        return response

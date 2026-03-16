@@ -18,6 +18,13 @@ def test_get_powercrud_setting_falls_back_to_default():
         assert get_powercrud_setting("CACHE_NAME") == DEFAULTS["CACHE_NAME"]
 
 
+def test_get_powercrud_setting_uses_bulk_selection_cap_default():
+    with override_settings(POWERCRUD_SETTINGS={}):
+        assert get_powercrud_setting("BULK_MAX_SELECTED_RECORDS") == 1000, (
+            "PowerCRUD should default BULK_MAX_SELECTED_RECORDS to 1000 when the setting is omitted."
+        )
+
+
 def test_get_powercrud_setting_allows_explicit_default_override():
     with override_settings(POWERCRUD_SETTINGS={}):
         assert get_powercrud_setting("UNKNOWN_KEY", default="fallback") == "fallback"
@@ -115,6 +122,13 @@ def test_validator_accepts_dropdown_sort_options():
         dropdown_sort_options={"author": "-name"},
     )
     assert validator.dropdown_sort_options == {"author": "-name"}
+
+
+def test_validator_accepts_show_bulk_selection_meta_toggle():
+    validator = PowerCRUDMixinValidator(show_bulk_selection_meta=False)
+    assert validator.show_bulk_selection_meta is False, (
+        "Validator should accept show_bulk_selection_meta boolean toggles for view configuration."
+    )
 
 
 def test_validator_rejects_invalid_filter_null_fields_exclude():

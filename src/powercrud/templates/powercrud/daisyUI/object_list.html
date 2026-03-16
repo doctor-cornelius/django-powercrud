@@ -268,20 +268,39 @@
 {% endpartialdef bulk_selection_status %}
 
 {% partialdef filtered_results %}
-    {% if show_record_count %}
-        <div class="mb-2 flex items-center justify-between gap-2 text-sm text-base-content/70"
+    {% if show_record_count or show_bulk_selection_meta %}
+        <div class="mb-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-base-content/70"
              data-powercrud-results-meta="true">
-            <div>
-                {% if is_paginated and record_count_total > 0 %}
-                    Showing {{ record_count_start }}-{{ record_count_end }} of {{ record_count_total }}
-                    {% if record_count_has_active_filters %}matching{% else %}total{% endif %}
-                    record{{ record_count_total|pluralize }}
-                {% else %}
-                    {{ record_count_total }}
-                    {% if record_count_has_active_filters %}matching{% else %}total{% endif %}
-                    record{{ record_count_total|pluralize }}
-                {% endif %}
-            </div>
+            {% if show_record_count %}
+                <div>
+                    {% if is_paginated and record_count_total > 0 %}
+                        Showing {{ record_count_start }}-{{ record_count_end }} of {{ record_count_total }}
+                        {% if record_count_has_active_filters %}matching{% else %}total{% endif %}
+                        record{{ record_count_total|pluralize }}
+                    {% else %}
+                        {{ record_count_total }}
+                        {% if record_count_has_active_filters %}matching{% else %}total{% endif %}
+                        record{{ record_count_total|pluralize }}
+                    {% endif %}
+                </div>
+            {% endif %}
+            {% if show_bulk_selection_meta %}
+                <div class="flex items-center gap-2">
+                    {% if show_select_all_matching %}
+                        <button type="button"
+                                class="link link-primary text-sm font-medium"
+                                hx-post="{{ list_view_url }}select-all-matching/{% if request.GET %}?{{ request.GET.urlencode }}{% endif %}"
+                                hx-target="#bulk-actions-container"
+                                hx-swap="outerHTML">
+                            {{ select_all_matching_label }}
+                        </button>
+                    {% elif show_select_all_matching_limit %}
+                        <span class="text-xs text-base-content/70">
+                            {{ bulk_selection_meta_message }}
+                        </span>
+                    {% endif %}
+                </div>
+            {% endif %}
         </div>
     {% endif %}
     {% if object_list %}

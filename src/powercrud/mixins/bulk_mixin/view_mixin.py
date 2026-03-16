@@ -6,6 +6,7 @@ from django.shortcuts import render
 from django.core.exceptions import SuspiciousOperation
 from django.db import models
 
+from powercrud.conf import get_powercrud_setting
 from powercrud.logging import get_logger
 from ..config_mixin import resolve_config
 
@@ -41,6 +42,7 @@ class ViewMixin:
         Returns:
             dict: Extended context with bulk selection data added to parent context.
         """
+        filtered_queryset = kwargs.pop("filtered_queryset", None)
         context = super().get_context_data(**kwargs)
         selected_ids = self.get_selected_ids_from_session(self.request)
         context["selected_ids"] = selected_ids
@@ -60,6 +62,63 @@ class ViewMixin:
         else:
             context["all_selected"] = False
             context["some_selected"] = False
+
+        bulk_meta_enabled = resolve_config(self).show_bulk_selection_meta is not False
+        context["show_bulk_selection_meta"] = False
+        context["show_select_all_matching"] = False
+        context["show_select_all_matching_limit"] = False
+        context["select_all_matching_count"] = 0
+        context["select_all_matching_action_count"] = 0
+        context["select_all_matching_label"] = ""
+        context["bulk_selection_meta_message"] = ""
+        bulk_cap_getter = getattr(self, "get_bulk_max_selected_records", None)
+        if callable(bulk_cap_getter):
+            context["bulk_max_selected_records"] = bulk_cap_getter()
+        else:
+            context["bulk_max_selected_records"] = get_powercrud_setting(
+                "BULK_MAX_SELECTED_RECORDS", 1000
+            )
+
+        if filtered_queryset is not None and bulk_meta_enabled and selected_ids:
+            filtered_total = context.get("record_count_total")
+            if filtered_total is None:
+                filtered_total = filtered_queryset.count()
+            filtered_selected_count = (
+                filtered_queryset.filter(pk__in=selected_ids).count()
+                if selected_ids
+                else 0
+            )
+            additional_filtered_count = max(0, filtered_total - filtered_selected_count)
+            remaining_capacity = max(
+                0, context["bulk_max_selected_records"] - len(selected_ids)
+            )
+            action_count = min(additional_filtered_count, remaining_capacity)
+
+            context["select_all_matching_count"] = filtered_total
+            context["select_all_matching_action_count"] = action_count
+
+            if additional_filtered_count > 0 and action_count > 0:
+                if action_count >= additional_filtered_count:
+                    context["select_all_matching_label"] = (
+                        f"Select all {filtered_total} matching records"
+                    )
+                else:
+                    if filtered_selected_count == 0:
+                        context["select_all_matching_label"] = (
+                            f"Add up to {action_count} from {filtered_total} matching records"
+                        )
+                    else:
+                        context["select_all_matching_label"] = (
+                            f"Add {action_count} more from {filtered_total} matching records"
+                        )
+                context["show_select_all_matching"] = True
+                context["show_bulk_selection_meta"] = True
+            elif additional_filtered_count > 0 and remaining_capacity == 0:
+                context["show_select_all_matching_limit"] = True
+                context["show_bulk_selection_meta"] = True
+                context["bulk_selection_meta_message"] = (
+                    f"Selection limit reached ({context['bulk_max_selected_records']} records)"
+                )
         return context
 
     def bulk_edit(self, request, *args, **kwargs) -> HttpResponse:

@@ -558,6 +558,13 @@
         }
     }
 
+    function showBulkActionsContainer(root) {
+        const container = root.querySelector('#bulk-actions-container');
+        if (container) {
+            container.classList.remove('hidden');
+        }
+    }
+
     function syncBulkSelectionState(root) {
         const selectAllCheckbox = root.querySelector('[data-powercrud-select-all="true"]');
         const checkboxes = Array.from(root.querySelectorAll('[data-powercrud-row-select="true"]'));
@@ -576,7 +583,6 @@
             selectAllCheckbox.checked = false;
             selectAllCheckbox.indeterminate = true;
         }
-        updateBulkActionsCounter(root, selectedCount);
     }
 
     function clearSelectionOptimistic(root) {
@@ -600,7 +606,9 @@
         checkboxes.forEach(cb => {
             cb.checked = selectAllCheckbox.checked;
         });
-        updateBulkActionsCounter(root, selectAllCheckbox.checked ? checkboxes.length : 0);
+        if (selectAllCheckbox.checked) {
+            showBulkActionsContainer(root);
+        }
 
         const htmx = getHtmxInstance();
         const listUrl = root.dataset.powercrudListUrl;
@@ -615,6 +623,7 @@
                 action: selectAllCheckbox.checked ? 'add' : 'remove',
             },
             target: '#bulk-actions-container',
+            swap: 'outerHTML',
         });
     }
 
@@ -624,6 +633,9 @@
             return;
         }
         syncBulkSelectionState(root);
+        if (checkbox.checked) {
+            showBulkActionsContainer(root);
+        }
     }
 
     function refreshTable(root) {

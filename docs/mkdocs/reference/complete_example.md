@@ -1,166 +1,161 @@
-# 'Kitchen Sink' Example Class Definition
+# Complete Example
 
-Below is an example of a class definition for a CRUD view with an unrealistic number of parameters, to illustrate syntax.
+This page shows a deliberately feature-rich `PowerCRUDMixin` view so you can see current configuration syntax in one place. It is not intended as a recommended starting point; most projects should begin much smaller and add options only when needed.
 
 ```python
-from powercrud.mixins import PowerCRUDMixin
 from neapolitan.views import CRUDView
 
+from powercrud.mixins import PowerCRUDMixin
+from . import models
+from .forms import ProjectForm
+
+
 class ProjectCRUDView(PowerCRUDMixin, CRUDView):
-    # *******************************************************************
-    # Standard neapolitan attributes
-    model = models.Project # this is mandatory
+    # ------------------------------------------------------------------
+    # Core model / URLs
+    # ------------------------------------------------------------------
+    model = models.Project
+    namespace = "projects"
+    url_base = "active-project"
 
-    # examples of other available neapolitan class attributes
-    url_base = "different_project" # use this to override the property url_base
-        # which will default to the model name. Useful if you want multiple CRUDViews 
-        # for the same model
-    form_class = ProjectForm # if you want to use a custom form
+    # ------------------------------------------------------------------
+    # Templates / base rendering
+    # ------------------------------------------------------------------
+    base_template_path = "core/base.html"
+    templates_path = "projects/powercrud"
 
-    # check the code in neapolitan.views.CRUDView for all available attributes
+    # ------------------------------------------------------------------
+    # HTMX / modal behaviour
+    # ------------------------------------------------------------------
+    use_htmx = True
+    use_modal = True
+    default_htmx_target = "#content"
+    modal_id = "projectModal"
+    modal_target = "projectModalContent"
+    hx_trigger = {
+        "projectsChanged": True,
+        "refreshSidebar": True,
+    }
 
-    # ******************************************************************
-    # powercrud attributes
-    namespace = "my_app_name" # specify the namespace (optional)
-        # if your urls.py has app_name = "my_app_name"
+    # ------------------------------------------------------------------
+    # List, detail, and form scopes
+    # ------------------------------------------------------------------
+    fields = "__all__"
+    exclude = ["internal_notes"]
+    properties = ["is_overdue", "display_status"]
+    properties_exclude = ["display_status"]
 
-    # which fields and properties to include in the list view
-    fields = '__all__' # if you want to include all fields
-        # you can omit the fields attribute, in which case it will default to '__all__'
+    detail_fields = "__fields__"
+    detail_exclude = ["internal_notes"]
+    detail_properties = "__properties__"
+    detail_properties_exclude = []
 
-    exclude = ["description",] # list of fields to exclude from list
+    form_class = ProjectForm
+    form_fields = "__fields__"
+    form_fields_exclude = ["internal_notes"]
 
-    properties = ["is_overdue",] # if you want to include @property fields in the list view
-        # properties = '__all__' if you want to include all @property fields
+    # ------------------------------------------------------------------
+    # Filtering / dropdown behaviour
+    # ------------------------------------------------------------------
+    filterset_fields = ["owner", "project_manager", "status", "due_date", "tags"]
+    filter_null_fields_exclude = ["due_date"]
+    dropdown_sort_options = {
+        "owner": "name",
+        "project_manager": "name",
+        "status": "label",
+    }
+    m2m_filter_and_logic = True
+    searchable_selects = True
 
-    properties_exclude = ["is_overdue",] # if you want to exclude @property fields from the list view
+    field_queryset_dependencies = {
+        "tags": {
+            "depends_on": ["owner"],
+            "filter_by": {"owners": "owner"},
+            "order_by": "name",
+            "empty_behavior": "none",
+        }
+    }
 
-    # sometimes you want additional fields in the detail view
-    detail_fields = ["name", "project_owner", "project_manager", "due_date", "description",]
-        # or '__all__' to use all model fields
-        # or '__fields__' to use the fields attribute
-        # if you leave detail_fields to None, it will default be treated as '__fields__'
+    # ------------------------------------------------------------------
+    # Inline editing
+    # ------------------------------------------------------------------
+    inline_edit_fields = ["status", "project_manager", "due_date"]
+    inline_edit_requires_perm = "projects.change_project"
+    inline_preserve_required_fields = True
 
-    detail_exclude = ["description",] # list of fields to exclude from detail view
+    # ------------------------------------------------------------------
+    # Bulk editing
+    # ------------------------------------------------------------------
+    bulk_fields = ["status", "project_manager", "tags"]
+    bulk_delete = True
+    bulk_full_clean = True
 
-    detail_properties = '__all__' # if you want to include all @property fields
-        # or a list of valid properties
-        # or '__properties__' to use the properties attribute
+    # ------------------------------------------------------------------
+    # Pagination / metadata
+    # ------------------------------------------------------------------
+    paginate_by = 25
+    show_record_count = True
+    show_bulk_selection_meta = True
 
-    detail_properties_exclude = ["is_overdue",] # if you want to exclude @property fields from the detail view
+    # ------------------------------------------------------------------
+    # Table styling
+    # ------------------------------------------------------------------
+    table_pixel_height_other_page_elements = 96
+    table_max_height = 75
+    table_max_col_width = 30
+    table_header_min_wrap_width = 18
+    table_classes = "table-sm"
+    action_button_classes = "btn-sm"
+    extra_button_classes = "btn-sm"
 
-    # you can specify the fields to include in forms if no form_class is specified.
-    # note if a fom_class IS specified then it will be used
-    form_fields = ["name", "project_owner", "project_manager", "due_date", "description",]
-    # form_fields = '__all__' if you want to include all model fields (only editable fields will be included)
-    # form_fields = '__fields__' if you want to use the fields attribute (only editable fields will be included)
-    # if not specified, it will default to only editable fields in the resolved versin of detail_fields (ie excluding detail_exclude)
-    form_fields_exclude = ["description",] # list of fields to exclude from forms
-
-    # filtersets
-    filterset_fields = ["name", "project_owner", "project_manager", "due_date",]
-        # this is a standard neapolitan parameter, but powercrud converts this 
-        # to a more elaborate filterset class
-
-    # Forms
-    use_crispy = True # will default to True if you have `crispy-forms` installed
-        # if you set it to True without crispy-forms installed, it will resolve to False
-        # if you set it to False with crispy-forms installed, it will resolve to False
-
-    # Templates
-    base_template_path = "core/base.html"  # required: must point at your project’s real base template
-    templates_path = "myapp" # if you want to override all the templates in another app
-        # or include one of your own apps; eg templates_path = "my_app_name/powercrud" 
-        # and then place in my_app_name/templates/my_app_name/powercrud
-
-    # table display parameters
-    table_pixel_height_other_page_elements = 100 # this will be expressed in pixels
-    table_max_height = 80 # as a percentage of remaining viewport height
-    table_max_col_width = '25' # expressed as `ch` (characters wide)
-
-    table_classes = 'table-sm'
-    action_button_classes = 'btn-sm'
-    extra_button_classes = 'btn-sm'
-
-    # htmx & modals
-    use_htmx = True # if you want the View, Detail, Delete and Create forms to use htmx
-        # if you do not set use_modal = True, the CRUD templates will be rendered to the
-        # hx-target used for the list view
-        # Requires:
-            # htmx installed in your base template
-            # django_htmx installed and configured in your settings
-
-    hx_trigger = 'changedMessages'  # Single event trigger (strings, numbers converted to strings)
-        # Or trigger multiple events with a dict:
-            # hx_trigger = {
-            #     'changedMessages': None,    # Event without data
-            #     'showAlert': 'Success!',    # Event with string data
-            #     'updateCount': 42           # Event with numeric data
-            # }
-        # hx_trigger finds its way into every response as:
-            # request['HX-Trigger'] = self.get_hx_trigger() in self.render_to_response()
-        # valid types are (str, int, float, dict)
-            # but dict must be of form {k:v, k:v, ...} where k is a string and v can be any valid type
-
-
-    use_modal = True #If you want to use the modal specified in object_list.html for all action links.
-        # This will target the modal (id="powercrudModalContent") specified in object_list.html
-        # Requires:
-            # use_htmx = True
-            # htmx installed in your base template
-            # django_htmx installed and configured in your settings
-
-    modal_id = "myCustomModalId" # Allows override of the default modal id "powercrudBaseModal"
-
-    modal_target = "myCustomModalContent" # Allows override of the default modal target
-        # which is #powercrudModalContent. Useful if for example
-        # the project has a modal with a different id available
-        # eg in the base template. This is where the modal content will be rendered.
-
-    # extra buttons that appear at the top of the page next to the Create or filters buttons
+    # ------------------------------------------------------------------
+    # Extra buttons / row actions
+    # ------------------------------------------------------------------
     extra_buttons = [
         {
-            "url_name": "fstp:home",        # namespace:url_pattern
-            "text": "Home Again",           # text to display on button
-            "button_class": "btn-success",  # intended as semantic colour for button
-                # defaults to PowerCRUDMixin.get_framework_styles()['extra_default']
-            "htmx_target": "content",       # relevant only if use_htmx is True. Disregarded if display_modal is True
-            "display_modal": True,         # if the button should display a modal.
-                # Note: modal will auto-close after any form submission
-                # Note: if True then htmx_target is ignored
-            "needs_pk": True,              # if the URL needs the object's primary key
-
-            # extra class attributes will override automatically determined class attrs if duplicated
-            "extra_class_attrs": "rounded-pill border border-dark", 
+            "url_name": "projects:dashboard",
+            "text": "Dashboard",
+            "button_class": "btn-info",
+            "needs_pk": False,
+            "display_modal": False,
+            "htmx_target": "content",
         },
-        # below example if want to use own modal not powercrud's
         {
-            "url_name": "fstp:home",
-            "text": "Home in Own Modal!",
-            "button_class": "btn-danger",
-            "htmx_target": "myModalContent",
-            "display_modal": False, # NB if True then htmx_target is ignored
-            "extra_class_attrs": "rounded-circle ",
-
-            # extra_attrs will override other attributes if duplicated
-            "extra_attrs": "data-bs-toggle='modal' data-bs-target='#modal-home'",
+            "url_name": "projects:project-report",
+            "text": "Summary Report",
+            "button_class": "btn-accent",
+            "needs_pk": False,
+            "display_modal": True,
         },
     ]
-    # extra actions (extra buttons for each record in the list)
-    extra_actions = [ # adds additional actions for each record in the list
+
+    extra_actions = [
         {
-            "url_name": "fstp:do_something",  # namespace:url_pattern
-            "text": "Do Something",
-            "needs_pk": False,  # if the URL needs the object's primary key
-            "hx_post": True, # use POST request instead of the default GET
-            "button_class": "btn-primary", # semantic colour for button (defaults to "is-link")
-            "htmx_target": "content", # htmx target for the extra action response 
-                # (if use_htmx is True)
-                # NB if you have use_modal = True and do NOT specify htmx_target, then response
-                # will be directed to the modal 
-            "display_modal": False, # when use_modal is True but for this action you do not
-                # want to use the modal for whatever is returned from the view, set this to False
-                # the default if empty is whatever get_use_modal() resolves to
+            "url_name": "projects:project-archive",
+            "text": "Archive",
+            "needs_pk": True,
+            "hx_post": True,
+            "button_class": "btn-warning",
+            "display_modal": False,
+            "htmx_target": "content",
+        },
+        {
+            "url_name": "projects:project-history",
+            "text": "History",
+            "needs_pk": True,
+            "button_class": "btn-secondary",
+            "display_modal": True,
         },
     ]
 ```
+
+## Notes
+
+- `base_template_path` is required. PowerCRUD does not ship a bundled site shell.
+- `show_record_count` and `show_bulk_selection_meta` are separate toggles. You can show record counts without bulk-selection prompts, or vice versa.
+- `inline_edit_fields` is the current inline-editing configuration. Older `inline_edit_enabled` usage is legacy and should not be used in new code.
+- `field_queryset_dependencies` is the current declarative way to scope child select querysets in regular forms and inline editing.
+- `bulk_fields` and `bulk_delete` enable the synchronous bulk-edit UI. The queryset-wide bulk-selection metadata action also depends on the global `POWERCRUD_SETTINGS["BULK_MAX_SELECTED_RECORDS"]` cap.
+- `searchable_selects = True` enables Tom Select enhancement for eligible select widgets in forms, inline editing, bulk edit forms, and filter forms.
+
+For focused explanations of individual options, use the dedicated guides and the main [Configuration Options](config_options.md) reference.

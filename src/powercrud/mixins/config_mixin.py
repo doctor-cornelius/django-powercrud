@@ -97,6 +97,7 @@ class ConfigMixin:
     action_button_classes: str = ""
     extra_button_classes: str = ""
     show_record_count: bool = False
+    show_bulk_selection_meta: bool = True
 
     # filtering options
     m2m_filter_and_logic = False
@@ -129,6 +130,7 @@ class ConfigMixin:
         "action_button_classes",
         "extra_button_classes",
         "show_record_count",
+        "show_bulk_selection_meta",
         "m2m_filter_and_logic",
         "inline_preserve_required_fields",
         "async_manager_class",

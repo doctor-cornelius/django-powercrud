@@ -255,6 +255,7 @@ class UrlMixin:
             urls.append(BulkActions.TOGGLE_SELECTION.get_url(cls))
             urls.append(BulkActions.CLEAR_SELECTION.get_url(cls))
             urls.append(BulkActions.TOGGLE_ALL_SELECTION.get_url(cls))
+            urls.append(BulkActions.SELECT_ALL_MATCHING.get_url(cls))
 
         # Inline editing endpoints
         if cls.has_inline_editing_urls():
