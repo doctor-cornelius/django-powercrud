@@ -1,3 +1,9 @@
+## 0.5.13 (2026-03-16)
+
+### Feature
+
+- **(bulk)**: implement bulk select all feature
+
 ## 0.5.12 (2026-03-16)
 
 ### Feature
