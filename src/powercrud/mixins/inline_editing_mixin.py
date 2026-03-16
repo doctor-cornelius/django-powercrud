@@ -428,13 +428,7 @@ class InlineEditingMixin:
             return fields
 
         filtered = [field for field in fields if field in form_field_names]
-        missing = sorted(set(fields) - set(filtered))
-        if missing:
-            log.debug(
-                "Inline edit fields %s ignored because they are not present on the form_class for %s",
-                missing,
-                self.__class__.__name__,
-            )
+
         return filtered
 
     def get_inline_edit_fields(self) -> list[str]:
