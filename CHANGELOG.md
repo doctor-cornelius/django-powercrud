@@ -1,3 +1,9 @@
+## 0.5.10 (2026-03-16)
+
+### Refactor
+
+- **(inline)**: implement backward compatibility and deprecation warnings re inline_edit_enabled
+
 ## 0.5.9 (2026-03-12)
 
 ### Documentation
