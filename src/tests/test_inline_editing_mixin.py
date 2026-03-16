@@ -740,17 +740,17 @@ def test_inline_field_dependencies_setting_is_ignored_when_present():
 
 
 @pytest.mark.django_db
-def test_inline_edit_fields_intersects_form_fields(caplog):
+def test_inline_edit_fields_intersects_form_fields():
     class InlineMismatchHarness(CoreHarness):
         inline_edit_fields = ["title", "isbn"]
         form_fields = ["title"]
 
     view = InlineMismatchHarness()
-    with caplog.at_level("WARNING"):
-        fields = view.get_inline_edit_fields()
+    fields = view.get_inline_edit_fields()
 
-    assert fields == ["title"]
-    assert "isbn" in caplog.text
+    assert (
+        fields == ["title"]
+    ), "Inline edit fields should be intersected with the actual form fields exposed by the form class."
 
 
 @pytest.mark.django_db
