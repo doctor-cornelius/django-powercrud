@@ -1,3 +1,9 @@
+## 0.5.11 (2026-03-16)
+
+### Refactor
+
+- **(inline)**: remove debug msg
+
 ## 0.5.10 (2026-03-16)
 
 ### Refactor
