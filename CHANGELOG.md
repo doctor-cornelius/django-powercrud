@@ -1,3 +1,9 @@
+## 0.5.12 (2026-03-16)
+
+### Feature
+
+- **(show_record_count)**: implement boolean parameter to display filtered record count at top of table
+
 ## 0.5.11 (2026-03-16)
 
 ### Refactor
