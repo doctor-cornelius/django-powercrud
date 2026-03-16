@@ -159,6 +159,26 @@ The view renders every record when `paginate_by` is left unset (`None`). Supplyi
 - When filters change, the mixin automatically snaps back to page 1 so users do not land on empty pages.
 - Pagination works with or without HTMX. With HTMX enabled, only the table/pager fragment updates on navigation.
 
+### Record count display
+
+If you want the list view to show a lightweight results summary above the table, enable `show_record_count`:
+
+```python
+class ProjectCRUDView(PowerCRUDMixin, CRUDView):
+    # …
+    show_record_count = True
+```
+
+When enabled, PowerCRUD renders a small metadata line above the table inside the same HTMX-updated results region as the table and pagination controls. That means the count stays in sync with filtering, sorting, page-size changes, and page navigation automatically.
+
+Examples:
+
+- No active filters: `123 total records`
+- Active filters without pagination: `27 matching records`
+- Active filters with pagination: `Showing 1-15 of 27 matching records`
+
+This is useful when users need quick confirmation that a filter narrowed the queryset as expected, without adding extra noise to the main button toolbar.
+
 ---
 
 ## 5. Verify the page

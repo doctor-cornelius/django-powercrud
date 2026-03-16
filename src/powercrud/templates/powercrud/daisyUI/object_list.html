@@ -268,6 +268,22 @@
 {% endpartialdef bulk_selection_status %}
 
 {% partialdef filtered_results %}
+    {% if show_record_count %}
+        <div class="mb-2 flex items-center justify-between gap-2 text-sm text-base-content/70"
+             data-powercrud-results-meta="true">
+            <div>
+                {% if is_paginated and record_count_total > 0 %}
+                    Showing {{ record_count_start }}-{{ record_count_end }} of {{ record_count_total }}
+                    {% if record_count_has_active_filters %}matching{% else %}total{% endif %}
+                    record{{ record_count_total|pluralize }}
+                {% else %}
+                    {{ record_count_total }}
+                    {% if record_count_has_active_filters %}matching{% else %}total{% endif %}
+                    record{{ record_count_total|pluralize }}
+                {% endif %}
+            </div>
+        </div>
+    {% endif %}
     {% if object_list %}
         {% object_list object_list view %}
         {% partial pagination %}

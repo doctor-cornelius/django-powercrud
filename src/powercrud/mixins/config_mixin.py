@@ -96,6 +96,7 @@ class ConfigMixin:
     table_classes: str = ""
     action_button_classes: str = ""
     extra_button_classes: str = ""
+    show_record_count: bool = False
 
     # filtering options
     m2m_filter_and_logic = False
@@ -127,6 +128,7 @@ class ConfigMixin:
         "table_classes",
         "action_button_classes",
         "extra_button_classes",
+        "show_record_count",
         "m2m_filter_and_logic",
         "inline_preserve_required_fields",
         "async_manager_class",

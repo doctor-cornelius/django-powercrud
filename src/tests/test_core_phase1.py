@@ -1,6 +1,7 @@
 from types import SimpleNamespace
 
 import pytest
+from django.urls import reverse
 from django.test import RequestFactory
 
 from neapolitan.views import Role
@@ -284,3 +285,55 @@ def test_get_success_url_uses_role_and_namespace(monkeypatch):
     view.role = Role.DETAIL
     assert view.get_success_url() == "/sample:author-detail"
     assert results[-1] == ("sample:author-detail", {"pk": 7})
+
+
+@pytest.mark.django_db
+def test_author_list_displays_total_record_count_when_enabled(client, monkeypatch):
+    """Render total record count text when the option is enabled."""
+    monkeypatch.setattr(
+        "sample.views.AuthorCRUDView.show_record_count",
+        True,
+        raising=False,
+    )
+
+    Author.objects.create(name="Alice Jones")
+    Author.objects.create(name="Bob Smith")
+
+    response = client.get(reverse("sample:author-list"), {"sort": "name"})
+    response_text = " ".join(response.content.decode().split())
+
+    assert response.status_code == 200, (
+        "Author list view should render successfully when record-count display is enabled."
+    )
+    assert "2 total records" in response_text, (
+        "List view should show the total record count when no filters are active."
+    )
+
+
+@pytest.mark.django_db
+def test_author_list_displays_filtered_paginated_record_count(client, monkeypatch):
+    """Render filtered page-range metadata when the option is enabled."""
+    monkeypatch.setattr(
+        "sample.views.AuthorCRUDView.show_record_count",
+        True,
+        raising=False,
+    )
+    monkeypatch.setattr(
+        "sample.views.AuthorCRUDView.paginate_by",
+        1,
+        raising=False,
+    )
+
+    Author.objects.create(name="Alice Jones")
+    Author.objects.create(name="Alicia Stone")
+    Author.objects.create(name="Bob Smith")
+
+    response = client.get(reverse("sample:author-list"), {"name": "Ali"})
+    response_text = " ".join(response.content.decode().split())
+
+    assert response.status_code == 200, (
+        "Filtered author list view should render successfully when record-count display is enabled."
+    )
+    assert "Showing 1-1 of 2 matching records" in response_text, (
+        "Filtered paginated list view should show the current page slice and total matching count."
+    )

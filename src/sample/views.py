@@ -229,6 +229,8 @@ class AuthorCRUDView(SampleCRUDMixin):
     use_htmx = True
     use_modal = True
 
+    show_record_count = True
+
     table_classes = "table-zebra table-sm"
     action_button_classes = "btn-xs"
     extra_button_classes = "btn-sm"

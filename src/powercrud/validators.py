@@ -58,6 +58,7 @@ class PowerCRUDMixinValidator(BaseModel):
     table_classes: Optional[str] = None
     action_button_classes: Optional[str] = None
     extra_button_classes: Optional[str] = None
+    show_record_count: Optional[bool] = None
 
     # form fields
     form_fields: Optional[Union[List[str], Literal["__all__", "__fields__"]]] = None
