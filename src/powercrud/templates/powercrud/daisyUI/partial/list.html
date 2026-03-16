@@ -47,8 +47,6 @@
         position: sticky;
         top: 0;
         z-index: 1;
-        will-change: transform;
-        backface-visibility: hidden;
     }
 
     .inline-edit-trigger {
@@ -154,7 +152,7 @@
                         {% else %}
                         onclick="window.location.href='?sort={% if current_sort == field_name %}-{% elif current_sort == '-'|add:field_name %}{% else %}{% endif %}{{ field_name }}{% if request.GET.page_size %}&page_size={{ request.GET.page_size }}{% endif %}{% if filter_params %}&{{ filter_params }}{% endif %}'"
                         {% endif %}
-                    {% endif %}
+                    {% endif %}>
                     <span class="block h-full">
                         {{ header }}
                         {% if is_sortable %}
