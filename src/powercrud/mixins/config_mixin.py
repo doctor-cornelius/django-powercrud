@@ -1,4 +1,5 @@
 from types import SimpleNamespace
+import warnings
 
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
@@ -167,14 +168,14 @@ class ConfigMixin:
     def __init__(self, *args, **kwargs):  # pragma: no cover
         super().__init__(*args, **kwargs)
         self._validated_config = None
+        self._legacy_inline_edit_enabled_present = hasattr(self, "inline_edit_enabled")
+        self._legacy_inline_edit_enabled_value = bool(
+            getattr(self, "inline_edit_enabled", False)
+        )
 
-        if hasattr(self, "inline_edit_enabled"):
-            class_name = self.__class__.__name__
-            raise ImproperlyConfigured(
-                f"Invalid configuration in class '{class_name}': "
-                "inline_edit_enabled has been removed. Configure inline_edit_fields "
-                "instead. Set a non-empty list, '__fields__', or '__all__' to enable "
-                "inline editing, or leave inline_edit_fields unset to disable it."
+        if self._legacy_inline_edit_enabled_present:
+            self._warn_inline_edit_enabled_legacy(
+                getattr(self, "inline_edit_fields", None)
             )
 
         config_dict = {}
@@ -398,7 +399,7 @@ class ConfigMixin:
         config["use_htmx_enabled"] = use_htmx_enabled
         config["use_modal_enabled"] = bool(config.get("use_modal") and use_htmx_enabled)
         config["inline_editing_active"] = bool(
-            self._inline_edit_fields_configured(config.get("inline_edit_fields"))
+            self._is_inline_editing_declared(config.get("inline_edit_fields"))
             and use_htmx_enabled
         )
         config["bulk_edit_enabled"] = bool(
@@ -473,6 +474,61 @@ class ConfigMixin:
             return bool(value)
         return bool(value)
 
+    def _warn_inline_edit_enabled_legacy(self, inline_edit_fields: Any) -> None:
+        """
+        Warn when a view still declares the removed inline_edit_enabled flag.
+        """
+        if self._legacy_inline_edit_enabled_value and not self._inline_edit_fields_configured(
+            inline_edit_fields
+        ):
+            message = (
+                "inline_edit_enabled=True without inline_edit_fields is deprecated "
+                "compatibility-only behavior. PowerCRUD is temporarily falling back "
+                "to resolved form_fields. Configure inline_edit_fields explicitly."
+            )
+        else:
+            message = (
+                "inline_edit_enabled is deprecated compatibility-only behavior. "
+                "Configure inline_edit_fields instead. Legacy views still work for "
+                "now, including the old fallback to form fields when "
+                "inline_edit_enabled=True and inline_edit_fields is unset."
+            )
+
+        warnings.warn(message, FutureWarning, stacklevel=2)
+
+    def _has_legacy_inline_edit_enabled(self) -> bool:
+        """
+        Return True when the view still declares the legacy inline flag.
+        """
+        return bool(getattr(self, "_legacy_inline_edit_enabled_present", False))
+
+    def _legacy_inline_editing_enabled(self) -> bool:
+        """
+        Return the truthy value of the legacy inline flag when declared.
+        """
+        return bool(getattr(self, "_legacy_inline_edit_enabled_value", False))
+
+    def _legacy_inline_edit_uses_form_fields(self, value: Any) -> bool:
+        """
+        Return True when legacy inline mode should fall back to form fields.
+        """
+        return (
+            self._has_legacy_inline_edit_enabled()
+            and self._legacy_inline_editing_enabled()
+            and not self._inline_edit_fields_configured(value)
+        )
+
+    def _is_inline_editing_declared(self, value: Any) -> bool:
+        """
+        Resolve whether inline editing should be treated as configured.
+        """
+        if self._has_legacy_inline_edit_enabled():
+            if not self._legacy_inline_editing_enabled():
+                return False
+            if self._legacy_inline_edit_uses_form_fields(value):
+                return True
+        return self._inline_edit_fields_configured(value)
+
 
 class _ConfigShim:
     """
@@ -496,9 +552,7 @@ class _ConfigShim:
             return bool(self._raw("use_modal") and self.__getattr__("use_htmx_enabled"))
         if name == "inline_editing_active":
             return bool(
-                ConfigMixin._inline_edit_fields_configured(
-                    self._raw("inline_edit_fields")
-                )
+                self._inline_editing_declared()
                 and self.__getattr__("use_htmx_enabled")
             )
         if name == "bulk_edit_enabled":
@@ -572,6 +626,22 @@ class _ConfigShim:
         if name == "filter_null_fields_exclude":
             return self._raw(name, []) or []
         return self._raw(name)
+
+    def _inline_editing_declared(self) -> bool:
+        """
+        Mirror ConfigMixin inline-edit activation logic for shimmed instances.
+        """
+        legacy_present = hasattr(self._source, "inline_edit_enabled")
+        legacy_enabled = bool(getattr(self._source, "inline_edit_enabled", False))
+        inline_edit_fields = self._raw("inline_edit_fields")
+
+        if legacy_present:
+            if not legacy_enabled:
+                return False
+            if not ConfigMixin._inline_edit_fields_configured(inline_edit_fields):
+                return True
+
+        return ConfigMixin._inline_edit_fields_configured(inline_edit_fields)
 
 
 def resolve_config(instance):

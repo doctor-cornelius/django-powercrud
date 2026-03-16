@@ -429,19 +429,33 @@ class InlineEditingMixin:
 
         filtered = [field for field in fields if field in form_field_names]
         missing = sorted(set(fields) - set(filtered))
-        if missing:
-            log.warning(
-                f"Inline edit fields {missing} ignored because they are not present on the form_class for {self.__class__.__name__}"
-            )
+        # if missing:
+        #     log.debug(
+        #         f"Inline edit fields {missing} ignored because they are not present on the form_class for {self.__class__.__name__}"
+        #     )
         return filtered
 
     def get_inline_edit_fields(self) -> list[str]:
         """
         Return the list of fields that should be editable inline.
-        Inline editing is disabled until `inline_edit_fields` is set explicitly.
+        Inline editing is disabled until `inline_edit_fields` is set explicitly,
+        except for the temporary legacy compatibility fallback from
+        `inline_edit_enabled=True` to the resolved form fields.
         """
         cfg = resolve_config(self)
         config = cfg.inline_edit_fields
+        legacy_declared = getattr(self, "_has_legacy_inline_edit_enabled", None)
+        legacy_enabled = getattr(self, "_legacy_inline_editing_enabled", None)
+        legacy_uses_form_fields = getattr(self, "_legacy_inline_edit_uses_form_fields", None)
+
+        if callable(legacy_declared) and legacy_declared():
+            if callable(legacy_enabled) and not legacy_enabled():
+                return []
+            if callable(legacy_uses_form_fields) and legacy_uses_form_fields(config):
+                return self._filter_inline_fields_by_form(
+                    self._resolve_inline_field_list(cfg.form_fields)
+                )
+
         if config is None or config == []:
             return []
 

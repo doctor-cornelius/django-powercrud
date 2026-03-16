@@ -22,8 +22,11 @@ class UrlMixin:
         Return True when the class declares inline-edit endpoints.
 
         URL registration happens at class-definition time, so this check relies on
-        the raw `inline_edit_fields` attribute rather than resolved form fields.
+        the raw class attributes rather than resolved form fields.
         """
+        if hasattr(cls, "inline_edit_enabled"):
+            return bool(getattr(cls, "inline_edit_enabled"))
+
         inline_edit_fields = getattr(cls, "inline_edit_fields", None)
         if inline_edit_fields is None:
             return False

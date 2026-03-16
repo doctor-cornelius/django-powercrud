@@ -23,6 +23,16 @@ class BookCRUDView(PowerCRUDMixin, CRUDView):
     inline_edit_fields = ["title", "author", "published_date", "genres"]
 ```
 
+!!! warning "Legacy `inline_edit_enabled` compatibility"
+
+    `inline_edit_enabled` is now legacy compatibility-only behavior.
+    New code should configure inline editing only through `inline_edit_fields`.
+
+    Older views that still set `inline_edit_enabled = True` continue to work temporarily.
+    If they do not define `inline_edit_fields`, PowerCRUD temporarily falls back to the resolved form fields to preserve the old behavior.
+
+    Downstream projects should migrate away from `inline_edit_enabled`.
+
 - `inline_edit_fields` both enables inline editing and controls which columns show the hover/focus shim and respond to clicks.
 - Leave `inline_edit_fields` unset to disable inline editing for the view.
 - `inline_edit_fields` must match fields exposed by the actual form returned by `get_form_class()`. If you use a custom `form_class`, PowerCRUD filters the inline list to fields that really exist on that form.

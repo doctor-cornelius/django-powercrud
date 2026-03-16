@@ -243,6 +243,8 @@ class AuthorCRUDView(SampleCRUDMixin):
     # properties_exclude = ['has_bio',]
     detail_fields = "__fields__"
     detail_properties = "__properties__"
+
+    # inline_edit_enabled = True # deprecated
     inline_edit_fields = "__fields__"
 
     bulk_fields = [

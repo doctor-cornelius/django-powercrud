@@ -84,6 +84,20 @@ class UrlViewHarness(UrlMixin, ContextBase, View):
         return request.session.get("selected", [])
 
 
+class LegacyInlineUrlViewHarness(UrlMixin, ContextBase, View):
+    namespace = "sample"
+    url_base = "legacy-book"
+    lookup_field = "pk"
+    lookup_url_kwarg = "pk"
+    template_name = None
+    template_name_suffix = "_detail"
+    templates_path = "powercrud/daisyUI"
+    base_template_path = "powercrud/base.html"
+    path_converter = "int"
+    model = Book
+    inline_edit_enabled = True
+
+
 @pytest.mark.django_db
 def test_get_template_names_and_prefix(monkeypatch):
     author = Author.objects.create(name="Ada")
@@ -165,3 +179,19 @@ def test_get_urls_generates_patterns(monkeypatch):
     assert "book-bulk-edit" in names
     assert "book-inline-row" in names
     assert "book-inline-dependency" in names
+
+
+def test_legacy_inline_edit_enabled_still_generates_inline_urls(monkeypatch):
+    def fake_as_view(cls, **kwargs):
+        return lambda request, *args, **kw: None
+
+    monkeypatch.setattr(LegacyInlineUrlViewHarness, "as_view", classmethod(fake_as_view))
+
+    patterns = LegacyInlineUrlViewHarness.get_urls()
+    names = {pattern.name for pattern in patterns}
+    assert (
+        "legacy-book-inline-row" in names
+    ), "Legacy inline_edit_enabled=True should still register inline row URLs during the compatibility window."
+    assert (
+        "legacy-book-inline-dependency" in names
+    ), "Legacy inline_edit_enabled=True should still register inline dependency URLs during the compatibility window."

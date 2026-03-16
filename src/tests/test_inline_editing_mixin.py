@@ -6,7 +6,6 @@ from types import SimpleNamespace
 
 import pytest
 from django import forms
-from django.core.exceptions import ImproperlyConfigured
 from django.contrib.sessions.middleware import SessionMiddleware
 from django.test import RequestFactory
 from django.utils.translation import gettext_lazy as _
@@ -621,12 +620,54 @@ def test_inline_edit_fields_none_disables_inline_editing():
 
 
 @pytest.mark.django_db
-def test_removed_inline_edit_enabled_setting_raises_error():
+def test_legacy_inline_edit_enabled_true_defaults_to_form_fields():
     class LegacyInlineHarness(CoreHarness):
         inline_edit_enabled = True
+        inline_edit_fields = None
 
-    with pytest.raises(ImproperlyConfigured, match="inline_edit_enabled has been removed"):
-        LegacyInlineHarness()
+    with pytest.warns(
+        FutureWarning,
+        match="temporarily falling back to resolved form_fields",
+    ):
+        view = LegacyInlineHarness()
+
+    assert (
+        view.get_inline_edit_fields() == ["title", "isbn"]
+    ), "Legacy inline_edit_enabled=True should temporarily fall back to resolved form_fields."
+    assert (
+        view.get_inline_editing() is True
+    ), "Legacy inline_edit_enabled=True should still activate inline editing during the compatibility window."
+
+
+@pytest.mark.django_db
+def test_legacy_inline_edit_enabled_true_respects_explicit_inline_fields():
+    class LegacyInlineHarness(CoreHarness):
+        inline_edit_enabled = True
+        inline_edit_fields = ["title"]
+
+    with pytest.warns(FutureWarning, match="inline_edit_enabled is deprecated"):
+        view = LegacyInlineHarness()
+
+    assert (
+        view.get_inline_edit_fields() == ["title"]
+    ), "Explicit inline_edit_fields should still win when legacy inline_edit_enabled=True is present."
+
+
+@pytest.mark.django_db
+def test_legacy_inline_edit_enabled_false_disables_inline_editing():
+    class LegacyInlineHarness(CoreHarness):
+        inline_edit_enabled = False
+        inline_edit_fields = ["title"]
+
+    with pytest.warns(FutureWarning, match="inline_edit_enabled is deprecated"):
+        view = LegacyInlineHarness()
+
+    assert (
+        view.get_inline_edit_fields() == []
+    ), "Legacy inline_edit_enabled=False should keep inline editing disabled even if inline_edit_fields is set."
+    assert (
+        view.get_inline_editing() is False
+    ), "Legacy inline_edit_enabled=False should keep inline editing turned off during the compatibility window."
 
 
 @pytest.mark.django_db
