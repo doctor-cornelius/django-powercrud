@@ -90,6 +90,11 @@ def get_bulk_selection_key_suffix(self):
 
 This keeps each user’s selection independent.
 
+!!! note "Current-page range selection"
+
+    End users can `Shift` + click row checkboxes to select or clear a contiguous range on the currently visible page.
+    This shortcut only applies to rows rendered on the current page; it does not span pagination boundaries.
+
 ### Select all matching records
 
 When at least one row is selected and the active filtered queryset still contains additional rows, PowerCRUD can offer a contextual bulk-selection action on the metadata line above the table.
