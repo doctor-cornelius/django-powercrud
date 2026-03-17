@@ -128,6 +128,28 @@ def _render_action_anchor(
     return f"<a {' '.join(attrs)}>{anchor_text}</a>"
 
 
+def _resolve_view_option(
+    view: Any,
+    *,
+    method_name: str,
+    attr_name: str | None = None,
+    default: Any = None,
+) -> Any:
+    """
+    Return a view option from a method when available, otherwise fall back to
+    a plain attribute or the supplied default.
+
+    Template tags are sometimes exercised with lightweight stubs in tests or by
+    downstream callers that do not inherit the full PowerCRUD mixin stack.
+    """
+    resolver = getattr(view, method_name, None)
+    if callable(resolver):
+        return resolver()
+    if attr_name:
+        return getattr(view, attr_name, default)
+    return default
+
+
 def action_links(view: Any, object: Any) -> str:
     """
     Generate HTML for action links (buttons) for a given object.
@@ -146,12 +168,22 @@ def action_links(view: Any, object: Any) -> str:
     prefix: str = view.get_prefix()
     use_htmx: bool = view.get_use_htmx()
     use_modal: bool = view.get_use_modal()
-    extra_actions_mode: str = view.get_extra_actions_mode()
+    extra_actions_mode: str = _resolve_view_option(
+        view,
+        method_name="get_extra_actions_mode",
+        attr_name="extra_actions_mode",
+        default="buttons",
+    )
     query_string = ""
     if hasattr(view, "request") and hasattr(view.request, "GET") and view.request.GET:
         query_string = view.request.GET.urlencode()
 
-    default_target: str = view.get_htmx_target()  # this will be prepended with a #
+    default_target: str = _resolve_view_option(
+        view,
+        method_name="get_htmx_target",
+        attr_name="default_htmx_target",
+        default="#content",
+    )
 
     # Standard actions with framework-specific button classes
     lock_reason = getattr(object, "_blocked_reason", None)
@@ -660,7 +692,12 @@ def extra_buttons(view: Any) -> str:
     use_modal: bool = view.get_use_modal()
 
     extra_buttons: List[Dict[str, Any]] = getattr(view, "extra_buttons", [])
-    extra_button_classes = view.get_extra_button_classes()
+    extra_button_classes = _resolve_view_option(
+        view,
+        method_name="get_extra_button_classes",
+        attr_name="extra_button_classes",
+        default="",
+    )
 
     buttons: List[str] = []
     for button in extra_buttons:
@@ -676,7 +713,14 @@ def extra_buttons(view: Any) -> str:
             htmx_attrs = []
             if use_htmx:
                 if display_modal:
-                    htmx_target = view.get_modal_target()
+                    htmx_target = _resolve_view_option(
+                        view,
+                        method_name="get_modal_target",
+                        attr_name="modal_target",
+                        default="#powercrudModalContent",
+                    )
+                    if htmx_target and not htmx_target.startswith("#"):
+                        htmx_target = f"#{htmx_target}"
                     modal_attrs = styles.get("modal_attrs", "")
                 else:
                     htmx_target = button.get("htmx_target", "")
