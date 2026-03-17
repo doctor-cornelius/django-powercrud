@@ -68,6 +68,12 @@
         background-color: hsl(var(--b2));
     }
 
+    .inline-edit-trigger.pc-inline-editable:focus-visible,
+    .inline-edit-trigger.pc-inline-editable:hover {
+        background-color: rgba(251, 191, 36, 0.15);
+        box-shadow: inset 0 0 0 1px rgba(251, 191, 36, 0.35);
+    }
+
     .pc-actions-inline.hidden {
         display: none;
     }
@@ -213,7 +219,7 @@
         {% if inline_enabled and row.inline_allowed and cell.is_inline_editable %}
             {% with align_class=cell.align %}
             <button type="button"
-                    class="inline-edit-trigger w-full px-0 {% if align_class == 'center' %}flex justify-center text-center{% else %}text-left{% endif %}"
+                    class="inline-edit-trigger pc-inline-editable w-full px-0 {% if align_class == 'center' %}flex justify-center text-center{% else %}text-left{% endif %}"
                     data-inline-field="{{ cell.name }}"
                     {% if value_str|slice:":1" != "<" %}data-tippy-content="{{ cell.value }}" data-powercrud-tooltip="overflow"{% endif %}
                     {% if row.inline_url %}
@@ -284,7 +290,7 @@
         {% if inline_enabled and row.inline_allowed and cell.is_inline_editable %}
             {% with align_class=cell.align %}
             <button type="button"
-                    class="inline-edit-trigger w-full px-0 {% if align_class == 'center' %}flex justify-center text-center{% else %}text-left{% endif %}"
+                    class="inline-edit-trigger pc-inline-editable w-full px-0 {% if align_class == 'center' %}flex justify-center text-center{% else %}text-left{% endif %}"
                     data-inline-field="{{ cell.name }}"
                     {% if value_str|slice:":1" != "<" %}data-tippy-content="{{ cell.value }}" data-powercrud-tooltip="overflow"{% endif %}
                     {% if row.inline_url %}

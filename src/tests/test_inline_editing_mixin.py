@@ -239,6 +239,9 @@ def test_inline_get_renders_form_html(sample_book):
     assert (
         b"> -->" not in response.content
     ), "Inline row form should not render stray HTML comment artifacts near actions."
+    assert (
+        b"pc-inline-editable" not in response.content
+    ), "Active inline form rows should not reuse the display-state editable marker class."
 
 
 @pytest.mark.django_db
@@ -259,11 +262,17 @@ def test_inline_post_success_swaps_display(sample_book, sample_author):
     response = view._dispatch_inline_row(request, pk=sample_book.pk)
     payload = json.loads(response["HX-Trigger"])
 
-    assert response.status_code == 200
-    assert b"actions" in response.content
-    assert payload == {"inline-row-saved": {"pk": sample_book.pk}}
+    assert response.status_code == 200, "Successful inline saves should return the refreshed display row."
+    assert b"actions" in response.content, "Successful inline saves should render the row actions again."
+    assert (
+        response.content.count(b"pc-inline-editable") == 2
+    ), "Only the inline-editable display cells should include the editable marker class after save."
+    assert (
+        b'data-inline-field="isbn"' not in response.content
+    ), "Non-editable display cells should not be rendered as inline edit triggers."
+    assert payload == {"inline-row-saved": {"pk": sample_book.pk}}, "Successful inline saves should trigger the expected HX event payload."
     sample_book.refresh_from_db()
-    assert sample_book.title == "Updated Inline Title"
+    assert sample_book.title == "Updated Inline Title", "Successful inline saves should persist the submitted field changes."
 
 
 @pytest.mark.django_db
