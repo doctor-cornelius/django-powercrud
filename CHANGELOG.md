@@ -1,3 +1,15 @@
+## 0.5.17 (2026-03-17)
+
+### Documentation
+
+- mention shift-click bulk range selection
+- add static queryset sample app example
+
+### Feature
+
+- add loading spinners to bulk action buttons
+- add static queryset rules to field dependencies
+
 ## 0.5.16 (2026-03-17)
 
 ### Feature
