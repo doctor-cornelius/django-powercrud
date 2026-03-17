@@ -24,6 +24,7 @@
 
     const objectListState = new WeakMap();
     const FORM_SPINNER_STATE = new WeakMap();
+    const BUTTON_SPINNER_STATE = new WeakMap();
     let tooltipResizeTimer = null;
 
     function warnMissingDependency(name, detail) {
@@ -1258,6 +1259,51 @@
         FORM_SPINNER_STATE.delete(form);
     }
 
+    function startButtonSpinner(button) {
+        if (!button || BUTTON_SPINNER_STATE.has(button)) {
+            return;
+        }
+        BUTTON_SPINNER_STATE.set(button, {
+            html: button.innerHTML,
+        });
+        button.disabled = true;
+        button.style.width = `${button.offsetWidth}px`;
+        button.innerHTML = '<span class="loading loading-spinner loading-sm text-center mx-auto"></span>';
+    }
+
+    function stopButtonSpinner(button) {
+        const state = BUTTON_SPINNER_STATE.get(button);
+        if (!state) {
+            return;
+        }
+        button.disabled = false;
+        button.innerHTML = state.html;
+        button.style.width = '';
+        BUTTON_SPINNER_STATE.delete(button);
+    }
+
+    function setBulkActionButtonsDisabled(source, disabled) {
+        const root = source?.closest ? source.closest('#bulk-edit-form') : null;
+        if (!root) {
+            return;
+        }
+        root.querySelectorAll('[data-form-save], [data-powercrud-bulk-delete-submit]').forEach(button => {
+            if (!(button instanceof HTMLButtonElement)) {
+                return;
+            }
+            if (button.hasAttribute('data-powercrud-bulk-delete-submit') && button.id === 'confirm-delete-button') {
+                const checkbox = root.querySelector('#confirm-delete-checkbox');
+                if (!disabled && checkbox instanceof HTMLInputElement && !checkbox.checked) {
+                    button.disabled = true;
+                    return;
+                }
+            }
+            if (!button.hasAttribute('data-powercrud-bulk-delete-submit') || disabled || button.id !== 'confirm-delete-button') {
+                button.disabled = disabled;
+            }
+        });
+    }
+
     function toggleInlineSaving(row, isSaving) {
         if (!row) {
             return;
@@ -1359,10 +1405,21 @@
         if (form.matches('[data-powercrud-filter-form="true"]')) {
             removeEmptyFields(form);
         }
-        if (form.matches('[data-powercrud-form="object"]')) {
+        if (form.matches('[data-powercrud-form="object"], [data-powercrud-form="bulk"]')) {
             startFormSpinner(form);
+            if (form.matches('[data-powercrud-form="bulk"]')) {
+                setBulkActionButtonsDisabled(form, true);
+            }
         }
     }, true);
+
+    document.addEventListener('htmx:beforeRequest', event => {
+        const target = event.detail && event.detail.elt;
+        if (target && target.matches && target.matches('[data-powercrud-bulk-delete-submit]')) {
+            startButtonSpinner(target);
+            setBulkActionButtonsDisabled(target, true);
+        }
+    });
 
     document.body.addEventListener('bulkEditSuccess', () => {
         const modal = document.getElementById('powercrudBaseModal');
@@ -1520,8 +1577,15 @@
 
     document.addEventListener('htmx:afterRequest', event => {
         const target = event.detail && event.detail.elt;
-        if (target && target.matches && target.matches('[data-powercrud-form="object"]')) {
+        if (target && target.matches && target.matches('[data-powercrud-form="object"], [data-powercrud-form="bulk"]')) {
             stopFormSpinner(target);
+            if (target.matches('[data-powercrud-form="bulk"]')) {
+                setBulkActionButtonsDisabled(target, false);
+            }
+        }
+        if (target && target.matches && target.matches('[data-powercrud-bulk-delete-submit]')) {
+            stopButtonSpinner(target);
+            setBulkActionButtonsDisabled(target, false);
         }
         if (target && target.matches && target.matches('[data-inline-save]')) {
             const row = target.closest(INLINE_ROW_SELECTOR);
@@ -1531,8 +1595,15 @@
 
     document.addEventListener('htmx:responseError', event => {
         const target = event.detail && event.detail.elt;
-        if (target && target.matches && target.matches('[data-powercrud-form="object"]')) {
+        if (target && target.matches && target.matches('[data-powercrud-form="object"], [data-powercrud-form="bulk"]')) {
             stopFormSpinner(target);
+            if (target.matches('[data-powercrud-form="bulk"]')) {
+                setBulkActionButtonsDisabled(target, false);
+            }
+        }
+        if (target && target.matches && target.matches('[data-powercrud-bulk-delete-submit]')) {
+            stopButtonSpinner(target);
+            setBulkActionButtonsDisabled(target, false);
         }
         if (target instanceof HTMLElement && target.matches('.inline-field-widget[data-inline-refreshing="true"]')) {
             setWidgetRefreshing(target, false);
