@@ -163,6 +163,7 @@ def test_table_mixin_returns_expected_css_values():
         table_classes = "table-zebra"
         action_button_classes = "btn-xs"
         extra_button_classes = "btn-sm"
+        extra_actions_mode = "dropdown"
 
     view = TableView()
 
@@ -173,6 +174,7 @@ def test_table_mixin_returns_expected_css_values():
     assert view.get_table_classes() == "table-zebra"
     assert view.get_action_button_classes() == "btn-xs"
     assert view.get_extra_button_classes() == "btn-sm"
+    assert view.get_extra_actions_mode() == "dropdown"
 
 
 def test_table_header_wrap_never_exceeds_max_width():
@@ -409,4 +411,26 @@ def test_author_list_centers_boolean_icon_cells(client):
     )
     assert "flex justify-center items-center w-full" in response_text, (
         "Boolean icon cells should render inside a flex wrapper that centers them horizontally."
+    )
+
+
+@pytest.mark.django_db
+def test_author_list_renders_extra_actions_in_dropdown(client):
+    """Render row extra actions in the sample author overflow dropdown."""
+    Author.objects.create(name="Dropdown Author")
+
+    response = client.get(reverse("sample:author-list"))
+    response_text = " ".join(response.content.decode().split())
+
+    assert response.status_code == 200, (
+        "Author list view should render successfully so dropdown row actions can be inspected."
+    )
+    assert "dropdown-content menu" in response_text, (
+        "Sample author list should render extra row actions inside the dropdown menu when dropdown mode is enabled."
+    )
+    assert ">More<" in response_text, (
+        "Sample author list should include the More trigger for overflow extra row actions."
+    )
+    assert "View Again" in response_text, (
+        "Sample author list should keep the configured extra action labels inside the dropdown markup."
     )

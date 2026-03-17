@@ -25,6 +25,7 @@ class TemplateViewStub:
     namespace = "sample"
     url_base = "book"
     dropdown_sort_options = {"author": "name"}
+    extra_actions_mode = "buttons"
 
     def __init__(self, request, *, use_htmx=True, use_modal=True):
         self.request = request
@@ -78,6 +79,9 @@ class TemplateViewStub:
 
     def get_extra_button_classes(self):
         return "btn-sm"
+
+    def get_extra_actions_mode(self):
+        return self.extra_actions_mode
 
     def get_prefix(self):
         return f"{self.namespace}:{self.url_base}"
@@ -156,11 +160,44 @@ def test_action_links_include_extra_actions():
     view = TemplateViewStub(request)
 
     html = powercrud.action_links(view, book)
-    assert "Preview" in html
-    assert "hx-get" in html
-    assert "btn-info" in html
+    assert "Preview" in html, "Default row action rendering should keep extra actions visible as buttons."
+    assert "hx-get" in html, "Default row action rendering should preserve HTMX attributes on action links."
+    assert "btn-info" in html, "Standard row actions should keep their framework button classes."
     # Modal actions should include query string parameters from the request
-    assert "?page=1" in html
+    assert "?page=1" in html, "Modal row actions should preserve the current query string."
+    assert "dropdown-content menu" not in html, "Default row actions mode should not render extra actions inside a dropdown."
+
+
+@pytest.mark.django_db
+def test_action_links_can_render_extra_actions_in_dropdown():
+    author = Author.objects.create(name="Dana")
+    book = Book.objects.create(
+        title="Dropdown",
+        author=author,
+        published_date=date(2024, 2, 1),
+        bestseller=False,
+        isbn="9876543210666",
+        pages=88,
+    )
+    request = apply_session(RequestFactory().get("/?page=2"))
+    view = TemplateViewStub(request)
+    view.extra_actions_mode = "dropdown"
+
+    html = powercrud.action_links(view, book)
+
+    assert "More" in html, "Dropdown row action mode should render a More trigger for extra actions."
+    assert (
+        "dropdown-content menu" in html
+    ), "Dropdown row action mode should render daisyUI dropdown menu markup for extra actions."
+    assert "Preview" in html and "Refresh" in html, (
+        "Dropdown row action mode should still include each extra action inside the overflow menu."
+    )
+    assert (
+        html.count("join-item") >= 4
+    ), "Dropdown row action mode should keep the visible standard actions in the joined button group."
+    assert (
+        "?page=2" in html
+    ), "Dropdown menu actions should continue to preserve modal query-string context."
 
 
 @pytest.mark.django_db
@@ -219,10 +256,46 @@ def test_action_links_disable_when_locked():
 
     html = powercrud.action_links(view, book)
 
-    assert html.count("btn-disabled opacity-50 pointer-events-none") >= 3
-    assert "data-tippy-content='Row locked'" in html
-    assert "data-powercrud-tooltip='semantic'" in html
-    assert "Preview" in html  # sanity check extra action rendered
+    assert html.count("btn-disabled opacity-50 pointer-events-none") >= 3, (
+        "Locked rows should disable each lock-sensitive action, including extra actions rendered as buttons."
+    )
+    assert "data-tippy-content='Row locked'" in html, (
+        "Locked row actions should expose the lock label for semantic tooltips."
+    )
+    assert "data-powercrud-tooltip='semantic'" in html, (
+        "Locked row actions should keep the semantic tooltip marker for the lock explanation."
+    )
+    assert "Preview" in html, "Locked rows should still render the extra action label in button mode for visibility."
+
+
+@pytest.mark.django_db
+def test_action_links_disable_dropdown_items_when_locked():
+    author = Author.objects.create(name="Linnea Dropdown")
+    book = Book.objects.create(
+        title="Locked Dropdown",
+        author=author,
+        published_date=date(2024, 6, 1),
+        bestseller=True,
+        isbn="9876543210777",
+        pages=52,
+    )
+    book._blocked_reason = "locked"
+    book._blocked_label = "Row locked"
+
+    request = apply_session(RequestFactory().get("/"))
+    view = TemplateViewStub(request)
+    view.extra_actions_mode = "dropdown"
+    view.extra_actions[0]["lock_sensitive"] = True
+
+    html = powercrud.action_links(view, book)
+
+    assert "dropdown-content menu" in html, (
+        "Locked rows should still render dropdown markup when dropdown mode is enabled."
+    )
+    assert "Preview" in html, "Locked dropdown rows should still include the extra action label inside the menu."
+    assert "btn-disabled opacity-50 pointer-events-none" in html, (
+        "Locked dropdown items should retain the disabled styling classes for consistent affordances."
+    )
 
 
 @pytest.mark.django_db

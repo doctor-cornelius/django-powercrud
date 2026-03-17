@@ -72,7 +72,7 @@ class HtmxMixin:
                     "Delete": "btn-error",
                 },
                 # default colour for extra action buttons
-                "extra_default": "btn-primary",
+                "extra_default": "btn-accent",
                 # modal class attributes
                 "modal_attrs": f'onclick="{self.get_modal_id()[1:]}.showModal()"',
             },

@@ -107,6 +107,7 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
     table_classes = "table-sm"
     action_button_classes = "btn-sm"
     extra_button_classes = "btn-sm"
+    extra_actions_mode = "dropdown"
 
     # ------------------------------------------------------------------
     # Extra buttons / row actions
@@ -153,6 +154,7 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
 
 - `base_template_path` is required. PowerCRUD does not ship a bundled site shell.
 - `show_record_count` and `show_bulk_selection_meta` are separate toggles. You can show record counts without bulk-selection prompts, or vice versa.
+- `extra_actions_mode = "dropdown"` is optional. When omitted, `extra_actions` keep the legacy visible-button behavior. Dropdown mode keeps `View/Edit/Delete` visible and moves only the extra row actions into the `More` menu.
 - `inline_edit_fields` is the current inline-editing configuration. Older `inline_edit_enabled` usage is legacy and should not be used in new code.
 - `field_queryset_dependencies` is the current declarative way to scope child select querysets in regular forms and inline editing.
 - `bulk_fields` and `bulk_delete` enable the synchronous bulk-edit UI. The queryset-wide bulk-selection metadata action also depends on the global `POWERCRUD_SETTINGS["BULK_MAX_SELECTED_RECORDS"]` cap.

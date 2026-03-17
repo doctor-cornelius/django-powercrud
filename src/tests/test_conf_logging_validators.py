@@ -131,6 +131,18 @@ def test_validator_accepts_show_bulk_selection_meta_toggle():
     )
 
 
+def test_validator_rejects_invalid_extra_actions_mode():
+    with pytest.raises(ValueError):
+        PowerCRUDMixinValidator(extra_actions_mode="menu")
+
+
+def test_validator_accepts_extra_actions_mode():
+    validator = PowerCRUDMixinValidator(extra_actions_mode="dropdown")
+    assert validator.extra_actions_mode == "dropdown", (
+        "Validator should accept the dropdown extra-actions rendering mode for row action overflow."
+    )
+
+
 def test_validator_rejects_invalid_filter_null_fields_exclude():
     """Reject non-string entries for nullable-filter exclusions."""
     with pytest.raises(ValueError):

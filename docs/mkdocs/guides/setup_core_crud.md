@@ -96,9 +96,79 @@ PowerCRUD layers a few convenient defaults so you can start with zero configurat
 
 For anything beyond the basic parent/child dropdown case, keep using a custom `form_class`. For the full declarative dependency API and worked examples, see [Dependent form fields](./dependent_form_fields.md).
 
-### Buttons & extra actions
+### Extra Buttons
 
-`extra_buttons` and `extra_actions` dictionaries describe additional top-level buttons or per-row actions (URL name, label, modal behaviour, extra attributes). See [Customisation tips](./customisation_tips.md) for full examples.
+Use `extra_buttons` for additional buttons above the table, alongside controls such as filter toggles and create buttons. These are page-level actions, not per-record actions.
+
+Typical uses:
+
+- link to dashboards or reports
+- open custom modals
+- add list-level utilities that are not tied to a single row
+
+Example:
+
+```python
+extra_buttons = [
+    {
+        "url_name": "home",
+        "text": "Home",
+        "button_class": "btn-success",
+        "needs_pk": False,
+        "display_modal": False,
+        "htmx_target": "content",
+    },
+    {
+        "url_name": "home",
+        "text": "Home in Modal!",
+        "button_class": "btn-warning",
+        "needs_pk": False,
+        "display_modal": True,
+    },
+]
+```
+
+### Extra Actions
+
+Use `extra_actions` for additional per-row actions in the list table. These render in the row action area next to the built-in `View`, `Edit`, and `Delete` actions.
+
+For row actions, `extra_actions_mode` controls whether the extra actions stay visible as buttons or move into an overflow menu:
+
+- `extra_actions_mode = "buttons"` keeps the legacy behavior and renders extra row actions as visible joined buttons after `View/Edit/Delete`.
+- `extra_actions_mode = "dropdown"` keeps `View/Edit/Delete` visible and moves only the configured `extra_actions` into a `More` dropdown.
+
+Example:
+
+```python
+class AuthorCRUDView(PowerCRUDMixin, CRUDView):
+    # ...
+    extra_actions_mode = "dropdown"
+    extra_actions = [
+        {
+            "url_name": "home",
+            "text": "Home",
+            "needs_pk": False,
+            "button_class": "btn-warning",
+            "display_modal": True,
+        },
+        {
+            "url_name": "sample:author-detail",
+            "text": "View Again",
+            "needs_pk": True,
+            "display_modal": True,
+        },
+    ]
+```
+
+`"buttons"` remains the default for backward compatibility, so existing projects only change if they opt in.
+
+!!! note
+
+    When `extra_actions_mode = "dropdown"`:
+
+    - per-action `button_class` values are no longer used for the dropdown menu entries themselves
+    - the `More` trigger uses the framework’s `extra_default` styling instead
+    - leaving `button_class` off an `extra_actions` item is therefore fine if that action only ever appears in dropdown mode
 
 _Need the full list of knobs? See the [configuration reference](../reference/config_options.md) for every attribute, default, and dependency._
 

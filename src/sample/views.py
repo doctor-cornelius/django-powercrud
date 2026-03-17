@@ -253,6 +253,8 @@ class AuthorCRUDView(SampleCRUDMixin):
         "genres",
     ]
 
+    extra_actions_mode = "dropdown"
+
     extra_actions = [
         {
             "url_name": "home",  # namespace:url_pattern

@@ -27,6 +27,7 @@ Types are shown next to each setting name. `Accepted values` is the contract for
 | `dropdown_sort_options` (`dict`) | `dict[str, str]` | `{}` | PowerCRUD orders dropdowns by `name/title/...` heuristics | Explicit ordering for dropdowns in filters, forms, and bulk edit widgets. | [Bulk editing (synchronous)](../guides/bulk_edit_sync.md) |
 | `exclude` (`list[str]`) | `list[str]` | `[]` | Every concrete model field is shown | Remove individual fields from the list view while keeping the rest. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
 | `extra_actions` (`list[dict]`) | `list[action spec]` | `[]` | Only the default action buttons render | Define extra per-row actions (URL, label, attributes). | [Complete Example](complete_example.md) |
+| `extra_actions_mode` (`str`) | `'buttons'`, `'dropdown'` | `'buttons'` | Extra row actions render as visible buttons after the standard actions | Control how row-level `extra_actions` are rendered. Use `'dropdown'` to keep `View/Edit/Delete` visible and move only the extra row actions into a `More` overflow menu. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
 | `extra_button_classes` (`str`) | `str` | `""` | Extra buttons use the default button styling | Additional CSS classes shared by every entry in `extra_buttons`. | [Styling & Tailwind](../guides/styling_tailwind.md) |
 | `extra_buttons` (`list[dict]`) | `list[button spec]` | `[]` | No extra header buttons are shown | Add top-of-page buttons (e.g., custom actions, links). | [Complete Example](complete_example.md) |
 | `fields` (`list/str`) | `None`, `'__all__'`, `list[str]` | `'__all__'` | All concrete model fields show in the list view | Columns displayed in the list view. Combine with `exclude`. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
@@ -184,6 +185,43 @@ field_queryset_dependencies = {
 ```
 
 For a full explanation of `filter_by`, migration from old inline-only configs, and regular-vs-inline behaviour, see [Dependent form fields](../guides/dependent_form_fields.md).
+
+## Row actions
+
+Use `extra_actions` to add per-row actions beyond the built-in `View`, `Edit`, and `Delete` links.
+
+`extra_actions_mode` controls how those extra row actions are displayed:
+
+- `'buttons'` keeps the legacy behavior and renders extra row actions as visible joined buttons.
+- `'dropdown'` keeps the standard row actions visible and moves only `extra_actions` into a `More` dropdown.
+
+Example:
+
+```python
+extra_actions_mode = "dropdown"
+
+extra_actions = [
+    {
+        "url_name": "home",
+        "text": "Home",
+        "needs_pk": False,
+        "button_class": "btn-warning",
+        "display_modal": True,
+    },
+    {
+        "url_name": "sample:author-detail",
+        "text": "View Again",
+        "needs_pk": True,
+        "display_modal": True,
+    },
+]
+```
+
+Notes:
+
+- The default is `'buttons'` for backward compatibility.
+- `extra_actions_mode` affects only row `extra_actions`, not top-of-page `extra_buttons`.
+- In dropdown mode, the `More` trigger uses the framework’s `extra_default` button styling unless you override the framework styles.
 
 ### Searchable select enhancement
 

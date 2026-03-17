@@ -14,7 +14,7 @@ The module adapts to different CSS frameworks and supports HTMX and modal functi
 """
 
 from datetime import date, datetime  # Import both date and datetime classes
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 from django import template
 from django.utils.safestring import mark_safe
@@ -69,6 +69,65 @@ def get_form_field(form, field_name):
         return None
 
 
+def _resolve_modal_action_url(
+    url: str, query_string: str, show_modal: bool
+) -> str:
+    """
+    Append the current query string to modal action URLs exactly once.
+    """
+    if not show_modal or not query_string:
+        return url
+    separator = "&" if "?" in url else "?"
+    return f"{url}{separator}{query_string}"
+
+
+def _render_action_anchor(
+    *,
+    url: str,
+    anchor_text: str,
+    class_name: str,
+    target: str,
+    hx_post: bool,
+    show_modal: bool,
+    modal_attrs: str,
+    disable: bool,
+    lock_label: str | None,
+    use_htmx: bool,
+    query_string: str,
+) -> str:
+    """
+    Render a single row-action anchor with HTMX and disabled metadata.
+    """
+    resolved_url = _resolve_modal_action_url(url, query_string, show_modal)
+    disabled_classes = (
+        " btn-disabled opacity-50 pointer-events-none" if disable else ""
+    )
+
+    attrs = [
+        f"href='{resolved_url}'",
+        f"class='{class_name}{disabled_classes}'",
+    ]
+
+    if use_htmx:
+        attrs.append(f"hx-{'post' if hx_post else 'get'}='{resolved_url}'")
+        if target:
+            attrs.append(f"hx-target='{target}'")
+        if not show_modal:
+            attrs.append("hx-replace-url='true'")
+            attrs.append("hx-push-url='true'")
+
+    if show_modal and modal_attrs:
+        attrs.append(modal_attrs)
+
+    if disable and lock_label:
+        attrs.append("aria-disabled='true'")
+        attrs.append(f"data-tippy-content='{lock_label}'")
+        attrs.append("data-powercrud-tooltip='semantic'")
+
+    attrs.append(f"data-inline-action='{anchor_text.lower()}'")
+    return f"<a {' '.join(attrs)}>{anchor_text}</a>"
+
+
 def action_links(view: Any, object: Any) -> str:
     """
     Generate HTML for action links (buttons) for a given object.
@@ -87,6 +146,10 @@ def action_links(view: Any, object: Any) -> str:
     prefix: str = view.get_prefix()
     use_htmx: bool = view.get_use_htmx()
     use_modal: bool = view.get_use_modal()
+    extra_actions_mode: str = view.get_extra_actions_mode()
+    query_string = ""
+    if hasattr(view, "request") and hasattr(view.request, "GET") and view.request.GET:
+        query_string = view.request.GET.urlencode()
 
     default_target: str = view.get_htmx_target()  # this will be prepended with a #
 
@@ -94,7 +157,7 @@ def action_links(view: Any, object: Any) -> str:
     lock_reason = getattr(object, "_blocked_reason", None)
     lock_label = getattr(object, "_blocked_label", None)
 
-    actions: List[Tuple[str, str, str, str, bool, str, bool]] = []
+    standard_action_items: List[Dict[str, Any]] = []
     standard_actions = [
         ("View", view.safe_reverse(f"{prefix}-detail", kwargs={"pk": object.pk})),
         ("Edit", view.safe_reverse(f"{prefix}-update", kwargs={"pk": object.pk})),
@@ -104,21 +167,22 @@ def action_links(view: Any, object: Any) -> str:
         if url is None:
             continue
         disable = bool(lock_reason and name in {"Edit", "Delete"})
-        actions.append(
-            (
-                url,
-                name,
-                styles["actions"][name],
-                default_target,
-                False,
-                use_modal,
-                styles["modal_attrs"],
-                disable,
-            )
+        standard_action_items.append(
+            {
+                "url": url,
+                "text": name,
+                "button_class": styles["actions"][name],
+                "target": default_target,
+                "hx_post": False,
+                "show_modal": use_modal,
+                "modal_attrs": styles["modal_attrs"],
+                "disable": disable,
+            }
         )
 
     # Add extra actions if defined
     extra_actions: List[Dict[str, Any]] = getattr(view, "extra_actions", [])
+    extra_action_items: List[Dict[str, Any]] = []
     for action in extra_actions:
         url: Optional[str] = view.safe_reverse(
             action["url_name"],
@@ -135,58 +199,90 @@ def action_links(view: Any, object: Any) -> str:
             show_modal: bool = display_modal if use_modal else False
             modal_attrs: str = styles["modal_attrs"] if show_modal else " "
 
-            # Append current query string for modal actions
-            query_string = ""
-            if show_modal and hasattr(view.request, "GET") and view.request.GET:
-                query_string = "?" + view.request.GET.urlencode()
-
             disable_extra = bool(lock_reason and action.get("lock_sensitive", False))
 
-            actions.append(
-                (
-                    url + query_string if show_modal else url,
-                    action["text"],
-                    button_class,
-                    htmx_target,
-                    action.get("hx_post", False),
-                    show_modal,
-                    modal_attrs,
-                    disable_extra,
-                )
+            extra_action_items.append(
+                {
+                    "url": url,
+                    "text": action["text"],
+                    "button_class": button_class,
+                    "target": htmx_target,
+                    "hx_post": action.get("hx_post", False),
+                    "show_modal": show_modal,
+                    "modal_attrs": modal_attrs,
+                    "disable": disable_extra,
+                }
             )
 
-    # set up links for all actions (regular and extra)
-    links: List[str] = [
-        "<div class='join'>"
-        + " ".join(
-            [
-                # Append query string for modal actions (edit/create)
-                f"<a href='{url if not show_modal else url + ('?' + view.request.GET.urlencode() if view.request.GET else '')}' "
-                f"class='{styles['base']} join-item {button_class} {action_button_classes}{' btn-disabled opacity-50 pointer-events-none' if disable else ''}' "
-                + (
-                    f"hx-{'post' if hx_post else 'get'}='{url if not show_modal else url + ('?' + view.request.GET.urlencode() if view.request.GET else '')}' "
-                    if use_htmx
-                    else ""
-                )
-                + (f"hx-target='{target}' " if use_htmx else "")
-                + (
-                    "hx-replace-url='true' hx-push-url='true' "
-                    if use_htmx and not show_modal
-                    else ""
-                )
-                + (f"{modal_attrs} " if show_modal else "")
-                + (
-                    f"aria-disabled='true' data-tippy-content='{lock_label}' data-powercrud-tooltip='semantic' "
-                    if disable and lock_label
-                    else ""
-                )
-                + f"data-inline-action='{anchor_text.lower()}'"
-                + f">{anchor_text}</a>"
-                for url, anchor_text, button_class, target, hx_post, show_modal, modal_attrs, disable in actions
-            ]
+    standard_links = [
+        _render_action_anchor(
+            url=action["url"],
+            anchor_text=action["text"],
+            class_name=(
+                f"{styles['base']} join-item {action['button_class']} {action_button_classes}"
+            ),
+            target=action["target"],
+            hx_post=action["hx_post"],
+            show_modal=action["show_modal"],
+            modal_attrs=action["modal_attrs"],
+            disable=action["disable"],
+            lock_label=lock_label,
+            use_htmx=use_htmx,
+            query_string=query_string,
         )
-        + "</div>"
+        for action in standard_action_items
     ]
+
+    if extra_actions_mode == "dropdown" and extra_action_items:
+        dropdown_items = [
+            "<li>"
+            + _render_action_anchor(
+                url=action["url"],
+                anchor_text=action["text"],
+                class_name="justify-start whitespace-nowrap",
+                target=action["target"],
+                hx_post=action["hx_post"],
+                show_modal=action["show_modal"],
+                modal_attrs=action["modal_attrs"],
+                disable=action["disable"],
+                lock_label=lock_label,
+                use_htmx=use_htmx,
+                query_string=query_string,
+            )
+            + "</li>"
+            for action in extra_action_items
+        ]
+        extra_links = [
+            "<div class='dropdown dropdown-end'>"
+            f"<div tabindex='0' role='button' class='{styles['base']} join-item {styles['extra_default']} {action_button_classes} gap-1' aria-label='More actions' data-inline-action='more'>More"
+            "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='currentColor' class='h-3.5 w-3.5' aria-hidden='true'>"
+            "<path fill-rule='evenodd' d='M5.23 7.21a.75.75 0 0 1 1.06.02L10 11.168l3.71-3.938a.75.75 0 1 1 1.08 1.04l-4.25 4.5a.75.75 0 0 1-1.08 0l-4.25-4.5a.75.75 0 0 1 .02-1.06Z' clip-rule='evenodd' />"
+            "</svg></div>"
+            "<ul tabindex='0' class='dropdown-content menu bg-base-100 rounded-box z-[10] min-w-40 p-2 shadow border border-base-300'>"
+            + "".join(dropdown_items)
+            + "</ul></div>"
+        ]
+    else:
+        extra_links = [
+            _render_action_anchor(
+                url=action["url"],
+                anchor_text=action["text"],
+                class_name=(
+                    f"{styles['base']} join-item {action['button_class']} {action_button_classes}"
+                ),
+                target=action["target"],
+                hx_post=action["hx_post"],
+                show_modal=action["show_modal"],
+                modal_attrs=action["modal_attrs"],
+                disable=action["disable"],
+                lock_label=lock_label,
+                use_htmx=use_htmx,
+                query_string=query_string,
+            )
+            for action in extra_action_items
+        ]
+
+    links: List[str] = ["<div class='join'>" + " ".join(standard_links + extra_links) + "</div>"]
 
     return mark_safe(" ".join(links))
 

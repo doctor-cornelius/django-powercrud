@@ -118,7 +118,31 @@ When the user changes `author` inline, PowerCRUD posts the current row data to t
 
 - **GenreCRUDView**: Minimal configuration example
 - **ProfileCRUDView**: OneToOneField, bulk operations, and merged nullable relation filtering on `favorite_genre`
-- **AuthorCRUDView**: Properties, filtering, template debugging, and companion nullable scalar filtering on `birth_date`
+- **AuthorCRUDView**: Properties, filtering, template debugging, companion nullable scalar filtering on `birth_date`, and row-level `extra_actions` rendered via the new `More` dropdown
+
+Example `AuthorCRUDView` row-action config:
+
+```python
+extra_actions_mode = "dropdown"
+
+extra_actions = [
+    {
+        "url_name": "home",
+        "text": "Home",
+        "needs_pk": False,
+        "button_class": "btn-warning",
+        "display_modal": True,
+    },
+    {
+        "url_name": "sample:author-detail",
+        "text": "View Again",
+        "needs_pk": True,
+        "display_modal": True,
+    },
+]
+```
+
+That keeps the standard row actions visible while moving the sample app’s extra row actions into the overflow dropdown.
 
 ## Management Commands
 
@@ -190,7 +214,7 @@ When the user changes `author` inline, PowerCRUD posts the current row data to t
 
 - **Property Display**: Custom property names and formatting
 - **Field Exclusions**: Hide sensitive/internal fields  
-- **Custom Actions**: Additional buttons and row-level actions
+- **Custom Actions**: Additional buttons and row-level actions, including dropdown-style overflow for `extra_actions`
 - **Sorting & Filtering**: Advanced queryset manipulation
 
 ## Getting Started

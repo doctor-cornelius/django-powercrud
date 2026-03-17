@@ -49,6 +49,12 @@ class TableMixin:
         """
         return resolve_config(self).extra_button_classes
 
+    def get_extra_actions_mode(self):
+        """
+        Get the rendering mode for row-level extra actions.
+        """
+        return resolve_config(self).extra_actions_mode
+
     # Inline editing helpers -------------------------------------------------
     def get_inline_row_id_prefix(self) -> str:
         """Base DOM id prefix for inline-editable rows."""
