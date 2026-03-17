@@ -86,7 +86,7 @@ if [[ -n $(git status -s) ]]; then
   exit 1
 fi
 
-# increment version number in pyproject.toml
+# compute the next version number without mutating files yet
 NEW_VERSION=$(python3 - "$BUMP_TYPE" <<'PY'
 import pathlib
 import re
@@ -113,22 +113,9 @@ else:
     raise SystemExit(f"Unknown bump type: {bump}")
 
 new_version = f"{major}.{minor}.{patch}"
-new_text = re.sub(
-    r'(version\s*=\s*")(\d+\.\d+\.\d+)(")',
-    lambda m: f'{m.group(1)}{new_version}{m.group(3)}',
-    text,
-    count=1,
-)
-path.write_text(new_text)
 print(new_version)
 PY
 )
-
-# refresh lock file to ensure dependencies are in sync before release
-uv lock
-
-# run full test suite (including Playwright) before proceeding
-./runtests
 
 # Check if tag already exists
 if git rev-parse "refs/tags/$NEW_VERSION" >/dev/null 2>&1; then
@@ -137,6 +124,34 @@ if git rev-parse "refs/tags/$NEW_VERSION" >/dev/null 2>&1; then
     echo "git push origin :refs/tags/$NEW_VERSION"
     exit 1
 fi
+
+# refresh lock file to ensure dependencies are in sync before release
+uv lock
+
+# run full test suite (including Playwright) before proceeding
+./runtests
+
+# write the version only after validation steps succeed
+python3 - "$NEW_VERSION" <<'PY'
+import pathlib
+import re
+import sys
+
+new_version = sys.argv[1]
+path = pathlib.Path("pyproject.toml")
+text = path.read_text()
+new_text = re.sub(
+    r'(version\s*=\s*")(\d+\.\d+\.\d+)(")',
+    lambda m: f'{m.group(1)}{new_version}{m.group(3)}',
+    text,
+    count=1,
+)
+
+if new_text == text:
+    raise SystemExit("Could not update project version in pyproject.toml")
+
+path.write_text(new_text)
+PY
 
 # create new changelog
 cz changelog --unreleased-version=$NEW_VERSION
