@@ -10,6 +10,41 @@ log = get_logger(__name__)
 class MetadataMixin:
     """Mixin providing metadata for bulk editing fields, including field info and choices."""
 
+    def _get_bulk_field_queryset_meta(self, field_name: str) -> dict:
+        """
+        Return declarative queryset metadata relevant to bulk relation choices.
+        """
+        dependencies = resolve_config(self).field_queryset_dependencies or {}
+        meta = dependencies.get(field_name)
+        if not isinstance(meta, dict):
+            return {}
+
+        static_filters = meta.get("static_filters") or {}
+        if not isinstance(static_filters, dict):
+            log.warning(
+                "Bulk field queryset metadata for '%s' ignored non-dictionary static_filters on %s",
+                field_name,
+                self.__class__.__name__,
+            )
+            static_filters = {}
+
+        order_by = meta.get("order_by")
+        if order_by is not None and not isinstance(order_by, str):
+            log.warning(
+                "Bulk field queryset metadata for '%s' ignored non-string order_by on %s",
+                field_name,
+                self.__class__.__name__,
+            )
+            order_by = None
+
+        if not static_filters and order_by is None:
+            return {}
+
+        return {
+            "static_filters": static_filters,
+            "order_by": order_by,
+        }
+
     def _get_bulk_field_info(self, bulk_fields: List[str]) -> Dict[str, Dict]:
         """
         Get information about fields for bulk editing.
@@ -101,7 +136,10 @@ class MetadataMixin:
         """
         Hook to get the queryset for bulk choices for a given field in bulk edit.
 
-        By default, returns all objects for the related model. Override in subclass to restrict choices.
+        By default, returns related-model objects filtered by any declarative
+        static queryset rules for the field, then ordered by dependency
+        metadata or dropdown sort config. Override in a subclass to take full
+        control of bulk choices for that field.
 
         Args:
             field_name: Name of the field.
@@ -112,12 +150,21 @@ class MetadataMixin:
         """
         if hasattr(field, "related_model") and field.related_model is not None:
             qs = field.related_model.objects.all()
+            queryset_meta = self._get_bulk_field_queryset_meta(field_name)
 
-            # Apply dropdown sorting if configured
-            sort_options = resolve_config(self).dropdown_sort_options
-            if field_name in sort_options:
-                sort_field = sort_options[field_name]  # Can be "name" or "-name"
+            static_filters = queryset_meta.get("static_filters") or {}
+            if static_filters:
+                qs = qs.filter(**static_filters)
+
+            sort_field = queryset_meta.get("order_by")
+            if sort_field:
                 qs = qs.order_by(sort_field)
+            else:
+                # Apply dropdown sorting if configured
+                sort_options = resolve_config(self).dropdown_sort_options
+                if field_name in sort_options:
+                    sort_field = sort_options[field_name]  # Can be "name" or "-name"
+                    qs = qs.order_by(sort_field)
 
             return qs
         return None

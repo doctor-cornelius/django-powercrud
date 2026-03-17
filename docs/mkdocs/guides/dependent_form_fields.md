@@ -1,6 +1,6 @@
 # Dependent Form Fields
 
-Use `field_queryset_dependencies` when the available choices in one form field should depend on the current value of another form field.
+Use `field_queryset_dependencies` when the available choices in one form field should depend on the current value of another form field, or when a dropdown should always be restricted by a fixed queryset rule.
 
 Typical examples:
 
@@ -12,6 +12,11 @@ PowerCRUD applies the same rule to:
 
 - regular create/update forms
 - inline row editing forms
+
+!!! note "Bulk edit and static rules"
+    Static queryset rules declared via `static_filters` also apply to bulk edit dropdowns.
+    Dynamic parent/child dependency rules still apply only to regular and inline forms, because bulk selections may contain rows with different parent values.
+    If you override `get_bulk_choices_for_field()`, that override takes full control for bulk and PowerCRUD does not re-apply declarative static filters afterwards.
 
 For complex business rules, permission-aware filtering, or bespoke queryset logic, keep using a custom `form_class` or view override.
 
@@ -25,6 +30,7 @@ Use it to describe:
 
 - which child field is being restricted
 - which parent field or fields it depends on
+- which fixed queryset filters should always apply
 - how parent values map into queryset filters on the child field
 - what to do when the parent value is empty
 - how to order the resulting child queryset
@@ -34,6 +40,7 @@ Example:
 ```python
 field_queryset_dependencies = {
     "genres": {
+        "static_filters": {"is_active": True},
         "depends_on": ["author"],
         "filter_by": {"authors": "author"},
         "order_by": "name",
@@ -51,6 +58,7 @@ Inline dependency wiring is derived automatically from this setting. There is no
 Think of each dependency as having three parts:
 
 - a **child field**, which is the field whose choices should change
+- an optional **static restriction**, which always applies to the child queryset
 - one or more **parent fields**, whose current values drive the child queryset
 - a **queryset mapping**, which says how the parent values should be applied to the child field's queryset
 
@@ -105,6 +113,7 @@ If there is no selected author yet, PowerCRUD keeps the full `Genre` queryset be
 ```python
 field_queryset_dependencies = {
     "child_field_name": {
+        "static_filters": {"always_on_lookup": "value"},
         "depends_on": ["parent_field_name"],
         "filter_by": {"child_queryset_lookup": "parent_field_name"},
         "order_by": "some_field",
@@ -177,6 +186,26 @@ Rules:
 - every parent referenced by `filter_by` must also appear here
 - for inline refreshes, the parent field must also be inline-editable
 
+### `static_filters`
+
+Mapping of fixed queryset lookups that should always apply to the child field.
+
+```python
+"static_filters": {"side__in": ["analytics", "both"]}
+```
+
+Meaning:
+
+> “Always restrict the child queryset using these fixed filters, even when no parent field is involved.”
+
+Use this for static dropdown subsets such as status dictionaries, scoped reference tables, or side-specific exclusion reasons.
+
+Static filters apply to:
+
+- regular create/update forms
+- inline row editing forms
+- bulk edit dropdowns, unless `get_bulk_choices_for_field()` is overridden
+
 ### `filter_by`
 
 Mapping of child queryset lookups to parent form field names.
@@ -237,6 +266,32 @@ That matters because:
 - edit forms can render correctly from the saved instance
 - inline editing can use the user's current unsaved row values
 - validation re-renders keep the same restriction logic
+
+---
+
+## Static-Only Example
+
+```python
+field_queryset_dependencies = {
+    "reconciliation_exclude_reason": {
+        "static_filters": {
+            "side__in": [
+                ReconciliationSide.ANALYTICS,
+                ReconciliationSide.BOTH,
+            ],
+        },
+        "order_by": "sort_order",
+    }
+}
+```
+
+This means:
+
+- regular forms only show analytics-or-both exclusion reasons
+- inline forms use the same restricted queryset
+- bulk edit dropdowns use the same restricted queryset
+
+No `depends_on` or `filter_by` block is required when the rule is fully static.
 
 ---
 

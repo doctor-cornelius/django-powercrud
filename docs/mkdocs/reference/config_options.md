@@ -116,13 +116,14 @@ Override or refine the automatically generated forms with `form_class`, `form_fi
 
 ### Dependent queryset scoping
 
-Use `field_queryset_dependencies` for straightforward cases where one selectable child field should be filtered from another form field.
+Use `field_queryset_dependencies` for straightforward cases where one selectable child field should be filtered from another form field, or where a queryset-backed field should always be restricted to a fixed subset.
 
 Example:
 
 ```python
 field_queryset_dependencies = {
     "genres": {
+        "static_filters": {"is_active": True},
         "depends_on": ["author"],
         "filter_by": {"authors": "author"},
         "order_by": "name",
@@ -133,6 +134,8 @@ field_queryset_dependencies = {
 
 Supported keys:
 
+- `static_filters`
+    Fixed queryset lookups that always apply to the field across regular forms, inline forms, and bulk edit dropdowns.
 - `depends_on`
     Parent form fields whose values drive the child queryset.
 - `filter_by`
@@ -144,7 +147,9 @@ Supported keys:
 
 Notes:
 
-- This applies to regular create/update forms and inline forms through the same form pipeline.
+- Static queryset rules apply to regular create/update forms, inline forms, and bulk edit dropdowns.
+- Dynamic dependency rules apply to regular create/update forms and inline forms through the same form pipeline.
+- Overriding `get_bulk_choices_for_field()` bypasses declarative static queryset rules for bulk.
 - PowerCRUD resolves parent values from bound form data first, then the current instance, then any initial form values.
 - Keep this for simple equality-style filtering on queryset-backed form fields. For complex business rules, continue using a custom `form_class` or view override.
 - `filter_by` maps child queryset lookups to parent form field names. The left-hand side is the lookup used against the child field queryset, while the right-hand side is the parent form field name.
@@ -154,13 +159,14 @@ Common mental model:
 ```python
 field_queryset_dependencies = {
     "child_field": {
+        "static_filters": {"is_active": True},
         "depends_on": ["parent_field"],
         "filter_by": {"child_queryset_lookup": "parent_field"},
     }
 }
 ```
 
-That reads as: “restrict `child_field` choices by filtering its queryset with `child_queryset_lookup=<value of parent_field>`”.
+That reads as: “restrict `child_field` choices first by any fixed filters, then by `child_queryset_lookup=<value of parent_field>` when a parent-driven rule exists”.
 
 Worked examples:
 

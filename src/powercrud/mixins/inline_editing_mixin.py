@@ -498,6 +498,8 @@ class InlineEditingMixin:
                 available_fields=inline_fields,
                 warn_on_unavailable=False,
             ).items():
+                if not meta.get("depends_on"):
+                    continue
                 dependencies[field] = {"depends_on": list(meta.get("depends_on", []))}
 
         resolved: dict[str, dict[str, Any]] = {}

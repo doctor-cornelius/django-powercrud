@@ -297,6 +297,37 @@ class DependencyFormView(DummyFormView):
     }
 
 
+class StaticFilterFormView(DummyFormView):
+    form_fields = ["title", "author", "published_date"]
+    field_queryset_dependencies = {
+        "author": {
+            "static_filters": {"name__startswith": "A"},
+            "order_by": "name",
+        }
+    }
+
+
+class StaticAndDynamicDependencyFormView(DummyFormView):
+    form_fields = [
+        "title",
+        "author",
+        "genres",
+        "published_date",
+        "isbn",
+        "pages",
+        "bestseller",
+    ]
+    field_queryset_dependencies = {
+        "genres": {
+            "static_filters": {"name__startswith": "A"},
+            "depends_on": ["author"],
+            "filter_by": {"authors": "author"},
+            "order_by": "name",
+            "empty_behavior": "all",
+        }
+    }
+
+
 class CustomDependencyForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -440,3 +471,84 @@ def test_field_queryset_dependencies_apply_after_custom_form_class_init():
     assert (
         form.fields["genres"].required is False
     ), "Custom form initialization should still be able to tweak dependent fields before PowerCRUD applies queryset scoping."
+
+
+@pytest.mark.django_db
+def test_field_queryset_dependencies_apply_static_filters_to_regular_forms():
+    author_alpha = Author.objects.create(name="Alpha")
+    author_beta = Author.objects.create(name="Beta")
+    request = attach_session(RequestFactory().get("/"))
+    view = StaticFilterFormView(request)
+
+    form = view._finalize_form(view.get_form_class()())
+    author_names = list(form.fields["author"].queryset.values_list("name", flat=True))
+
+    assert author_names == [
+        "Alpha"
+    ], "Static field queryset filters should restrict regular form dropdown choices without requiring dynamic parent fields."
+    assert (
+        author_beta.name not in author_names
+    ), "Static field queryset filters should exclude unrelated dropdown choices from regular forms."
+
+
+@pytest.mark.django_db
+def test_field_queryset_dependencies_apply_static_filters_to_inline_forms():
+    author_alpha = Author.objects.create(name="Alpha")
+    Author.objects.create(name="Beta")
+    book = Book.objects.create(
+        title="Inline Static Book",
+        author=author_alpha,
+        published_date="2024-01-01",
+        bestseller=False,
+        isbn="9780000002236",
+        pages=18,
+    )
+
+    request = attach_session(RequestFactory().get("/"))
+    view = StaticFilterFormView(request)
+    form = view.build_inline_form(instance=book)
+
+    author_names = list(form.fields["author"].queryset.values_list("name", flat=True))
+    assert author_names == [
+        "Alpha"
+    ], "Inline form construction should reuse static field queryset filters from the shared form pipeline."
+
+
+@pytest.mark.django_db
+def test_field_queryset_dependencies_combine_static_and_dynamic_filters():
+    author_a = Author.objects.create(name="Author A")
+    author_b = Author.objects.create(name="Author B")
+    genre_alpha = Genre.objects.create(name="Alpha Genre")
+    genre_beta = Genre.objects.create(name="Beta Genre")
+    author_a.genres.add(genre_alpha, genre_beta)
+    author_b.genres.add(genre_alpha)
+    book = Book.objects.create(
+        title="Combined Rules Book",
+        author=author_a,
+        published_date="2024-01-01",
+        bestseller=False,
+        isbn="9780000003236",
+        pages=28,
+    )
+
+    request = attach_session(RequestFactory().post("/"))
+    view = StaticAndDynamicDependencyFormView(request)
+    view._object = book
+    form = view._finalize_form(
+        view.get_form_class()(
+            instance=book,
+            data={
+                "title": "Combined Rules Book",
+                "author": str(author_a.pk),
+                "published_date": "2024-01-01",
+                "isbn": "9780000003236",
+                "pages": "28",
+                "bestseller": "",
+            },
+        )
+    )
+
+    genre_names = list(form.fields["genres"].queryset.values_list("name", flat=True))
+    assert genre_names == [
+        "Alpha Genre"
+    ], "Static and dynamic field queryset rules should compose so only records matching both restrictions remain available."

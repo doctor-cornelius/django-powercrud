@@ -61,6 +61,15 @@ class HarnessView(
         self.request = request
 
 
+class StaticBulkHarnessView(HarnessView):
+    field_queryset_dependencies = {
+        "author": {
+            "static_filters": {"name__startswith": "A"},
+            "order_by": "name",
+        }
+    }
+
+
 @pytest.fixture
 def rf():
     return RequestFactory()
@@ -265,3 +274,60 @@ def test_bulk_field_info_flags_searchable_select_only_for_eligible_fields(rf):
     assert (
         field_info["bestseller"]["searchable_select"] is False
     ), "Boolean bulk fields should remain native selects and not use searchable-select enhancement."
+
+
+@pytest.mark.django_db
+def test_bulk_choices_apply_static_field_queryset_filters(rf):
+    request = make_htmx_request(rf)
+    view = StaticBulkHarnessView(request)
+    author_alpha = Author.objects.create(name="Alpha")
+    author_beta = Author.objects.create(name="Beta")
+    field = Book._meta.get_field("author")
+
+    qs = view.get_bulk_choices_for_field("author", field)
+    author_names = list(qs.values_list("name", flat=True))
+
+    assert author_names == [
+        "Alpha"
+    ], "Bulk relation choices should apply static field queryset filters from field_queryset_dependencies."
+    assert (
+        author_beta.name not in author_names
+    ), "Bulk relation choices should exclude rows that fail the declared static field queryset filters."
+
+
+@pytest.mark.django_db
+def test_bulk_choices_use_dependency_ordering_when_present(rf):
+    request = make_htmx_request(rf)
+    view = StaticBulkHarnessView(request)
+    Author.objects.create(name="Aardvark")
+    Author.objects.create(name="Alpha")
+    field = Book._meta.get_field("author")
+
+    qs = view.get_bulk_choices_for_field("author", field)
+    author_names = list(qs.values_list("name", flat=True))
+
+    assert author_names == [
+        "Aardvark",
+        "Alpha",
+    ], "Bulk declarative field queryset ordering should be applied after static filtering."
+
+
+@pytest.mark.django_db
+def test_bulk_choices_override_can_bypass_static_field_queryset_filters(rf):
+    class OverrideBulkHarnessView(StaticBulkHarnessView):
+        def get_bulk_choices_for_field(self, field_name, field):
+            return field.related_model.objects.order_by("name")
+
+    request = make_htmx_request(rf)
+    view = OverrideBulkHarnessView(request)
+    Author.objects.create(name="Alpha")
+    Author.objects.create(name="Beta")
+    field = Book._meta.get_field("author")
+
+    qs = view.get_bulk_choices_for_field("author", field)
+    author_names = list(qs.values_list("name", flat=True))
+
+    assert author_names == [
+        "Alpha",
+        "Beta",
+    ], "Overridden get_bulk_choices_for_field should retain full control over bulk relation choices instead of reapplying declarative static filters."

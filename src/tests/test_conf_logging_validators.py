@@ -177,6 +177,25 @@ def test_validator_accepts_field_queryset_dependencies():
             "filter_by": {"authors": "author"},
         }
     }, "Validator should preserve declarative field queryset dependency mappings."
+
+
+def test_validator_accepts_static_only_field_queryset_dependencies():
+    validator = PowerCRUDMixinValidator(
+        field_queryset_dependencies={
+            "author": {
+                "static_filters": {"name__startswith": "A"},
+                "order_by": "name",
+            }
+        }
+    )
+    assert validator.field_queryset_dependencies == {
+        "author": {
+            "static_filters": {"name__startswith": "A"},
+            "order_by": "name",
+        }
+    }, "Validator should preserve static-only field queryset dependency mappings."
+
+
 def test_validator_accepts_searchable_selects_toggle():
     validator = PowerCRUDMixinValidator(searchable_selects=False)
     assert (

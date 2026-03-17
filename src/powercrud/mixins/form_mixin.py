@@ -219,7 +219,17 @@ class FormMixin:
                     self.__class__.__name__,
                 )
 
-            if not valid_depends_on or not valid_filter_by:
+            static_filters = meta.get("static_filters") or {}
+            if not isinstance(static_filters, dict):
+                log.warning(
+                    "Field queryset dependency for '%s' ignored non-dictionary static_filters on %s",
+                    field_name,
+                    self.__class__.__name__,
+                )
+                static_filters = {}
+
+            has_dynamic_filters = bool(valid_depends_on and valid_filter_by)
+            if not has_dynamic_filters and not static_filters:
                 continue
 
             empty_behavior = meta.get("empty_behavior") or "none"
@@ -242,8 +252,9 @@ class FormMixin:
                 order_by = None
 
             resolved[field_name] = {
-                "depends_on": valid_depends_on,
-                "filter_by": valid_filter_by,
+                "depends_on": valid_depends_on if has_dynamic_filters else [],
+                "filter_by": valid_filter_by if has_dynamic_filters else {},
+                "static_filters": static_filters,
                 "empty_behavior": empty_behavior,
                 "order_by": order_by,
             }
@@ -330,6 +341,10 @@ class FormMixin:
                 )
                 continue
 
+            static_filters = meta.get("static_filters") or {}
+            if static_filters:
+                queryset = queryset.filter(**static_filters)
+
             child_filters: dict[str, Any] = {}
             dependency_unresolved = False
             unsupported_multi_value = False
@@ -366,8 +381,9 @@ class FormMixin:
                 child_filters[child_lookup] = parent_value
 
             if unsupported_multi_value:
-                if meta["empty_behavior"] == "none":
-                    field.queryset = queryset.none()
+                field.queryset = (
+                    queryset.none() if meta["empty_behavior"] == "none" else queryset
+                )
                 continue
 
             if dependency_unresolved:
