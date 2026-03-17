@@ -32,6 +32,71 @@ def test_bulk_selection_toggle(page, books_url, sample_books):
     )
 
 
+def test_bulk_selection_shift_click_selects_visible_range(
+    page, books_url, sample_author, sample_books
+):
+    for idx in range(2, 6):
+        Book.objects.create(
+            title=f"Shift Range Book {idx}",
+            author=sample_author,
+            published_date=date(2024, 1, idx + 1),
+            bestseller=False,
+            isbn=f"97854321{idx:02d}00",
+            pages=150 + idx,
+            description="Created for shift-click bulk selection coverage",
+        )
+
+    page.goto(f"{books_url}?page_size=all")
+    page.wait_for_load_state("networkidle")
+
+    checkboxes = page.locator("input.row-select-checkbox")
+    expect(checkboxes).to_have_count(6)
+
+    checkboxes.nth(1).click()
+    checkboxes.nth(4).click(modifiers=["Shift"])
+
+    expect(page.locator("#selected-items-counter")).to_have_text("4")
+    for idx in range(1, 5):
+        expect(checkboxes.nth(idx)).to_be_checked()
+    expect(checkboxes.nth(0)).not_to_be_checked()
+    expect(checkboxes.nth(5)).not_to_be_checked()
+
+
+def test_bulk_selection_shift_click_can_clear_visible_range(
+    page, books_url, sample_author, sample_books
+):
+    for idx in range(2, 6):
+        Book.objects.create(
+            title=f"Shift Clear Book {idx}",
+            author=sample_author,
+            published_date=date(2024, 2, idx + 1),
+            bestseller=False,
+            isbn=f"97865432{idx:02d}00",
+            pages=175 + idx,
+            description="Created for shift-click clear coverage",
+        )
+
+    page.goto(f"{books_url}?page_size=all")
+    page.wait_for_load_state("networkidle")
+
+    checkboxes = page.locator("input.row-select-checkbox")
+    expect(checkboxes).to_have_count(6)
+
+    checkboxes.nth(1).click()
+    checkboxes.nth(4).click(modifiers=["Shift"])
+    expect(page.locator("#selected-items-counter")).to_have_text("4")
+
+    checkboxes.nth(4).click()
+    expect(page.locator("#selected-items-counter")).to_have_text("3")
+
+    checkboxes.nth(2).click(modifiers=["Shift"])
+
+    expect(page.locator("#selected-items-counter")).to_have_text("1")
+    expect(checkboxes.nth(1)).to_be_checked()
+    for idx in range(2, 5):
+        expect(checkboxes.nth(idx)).not_to_be_checked()
+
+
 def select_single_value(page, container, field_name: str, option_label: str, option_value: str):
     select = container.locator(f"select[name='{field_name}']")
     tomselect_ready = select.evaluate("el => Boolean(el.tomselect)")

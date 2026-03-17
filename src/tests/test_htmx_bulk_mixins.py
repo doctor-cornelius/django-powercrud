@@ -257,6 +257,69 @@ def test_toggle_all_selection_in_session_selects_and_clears():
 
 
 @pytest.mark.django_db
+def test_toggle_all_selection_in_session_honours_explicit_actions():
+    request = make_request(RequestFactory(), method="post")
+    view = DummyBulkView(request)
+
+    ids = view.toggle_all_selection_in_session(request, [1, 2, 3], action="add")
+    assert sorted(ids) == ["1", "2", "3"], (
+        "Explicit add actions should select the requested IDs without relying on legacy toggle semantics."
+    )
+
+    ids = view.toggle_all_selection_in_session(request, [2, 3], action="remove")
+    assert sorted(ids) == ["1"], (
+        "Explicit remove actions should clear only the requested IDs while preserving the rest of the persisted selection."
+    )
+
+
+@pytest.mark.django_db
+def test_toggle_all_selection_view_honours_explicit_action(monkeypatch):
+    request = make_request(
+        RequestFactory(),
+        method="post",
+        data={"object_ids": ["2", "3"], "action": "remove"},
+    )
+    view = DummyBulkView(request)
+    view.save_selected_ids_to_session(request, [1, 2, 3])
+
+    def fake_render(request, template, context):
+        return DummyPartialResponse(context)
+
+    monkeypatch.setattr(
+        "powercrud.mixins.bulk_mixin.selection_mixin.render",
+        fake_render,
+    )
+
+    response = view.toggle_all_selection_view(request)
+    assert sorted(response.context_data["selected_ids"]) == ["1"], (
+        "Explicit bulk-selection actions should be applied by the HTMX batch endpoint instead of falling back to legacy toggle behaviour."
+    )
+
+
+@pytest.mark.django_db
+def test_toggle_all_selection_view_accepts_csv_object_ids(monkeypatch):
+    request = make_request(
+        RequestFactory(),
+        method="post",
+        data={"object_ids_csv": "4,5,6", "action": "add"},
+    )
+    view = DummyBulkView(request)
+
+    def fake_render(request, template, context):
+        return DummyPartialResponse(context)
+
+    monkeypatch.setattr(
+        "powercrud.mixins.bulk_mixin.selection_mixin.render",
+        fake_render,
+    )
+
+    response = view.toggle_all_selection_view(request)
+    assert sorted(response.context_data["selected_ids"]) == ["4", "5", "6"], (
+        "CSV object ID payloads from JS batch-selection requests should be accepted by the HTMX bulk-selection endpoint."
+    )
+
+
+@pytest.mark.django_db
 def test_get_storage_key_includes_suffix():
     request = make_request(RequestFactory())
 

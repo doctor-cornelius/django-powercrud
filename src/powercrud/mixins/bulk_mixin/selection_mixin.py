@@ -177,17 +177,22 @@ class SelectionMixin:
         return response
 
     def toggle_all_selection_in_session(
-        self, request: HttpRequest, object_ids: List[Any]
+        self,
+        request: HttpRequest,
+        object_ids: List[Any],
+        action: str | None = None,
     ) -> List[str]:
         """
-        Toggle the selection state of all provided object IDs in the Django session.
+        Update the selection state of all provided object IDs in the Django session.
 
-        If all provided IDs are already selected, deselect all of them.
-        Otherwise, select all of them.
+        If an explicit action is supplied, add or remove the provided IDs.
+        Otherwise, preserve the legacy toggle-all behaviour used by the page-level
+        select-all checkbox.
 
         Args:
             request: The HTTP request object.
             object_ids: A list of object IDs to toggle.
+            action: Optional explicit action (`"add"` or `"remove"`).
 
         Returns:
             List[str]: The updated list of selected object IDs.
@@ -195,15 +200,20 @@ class SelectionMixin:
         current_selected_ids = set(self.get_selected_ids_from_session(request))
         object_ids_set = set(map(str, object_ids))
 
-        # Check if all current page objects are already selected
-        all_on_page_selected = object_ids_set.issubset(current_selected_ids)
-
-        if all_on_page_selected:
-            # Deselect all objects on the current page
+        if action == "add":
+            new_selected_ids = current_selected_ids.union(object_ids_set)
+        elif action == "remove":
             new_selected_ids = current_selected_ids - object_ids_set
         else:
-            # Select all objects on the current page
-            new_selected_ids = current_selected_ids.union(object_ids_set)
+            # Check if all current page objects are already selected
+            all_on_page_selected = object_ids_set.issubset(current_selected_ids)
+
+            if all_on_page_selected:
+                # Deselect all objects on the current page
+                new_selected_ids = current_selected_ids - object_ids_set
+            else:
+                # Select all objects on the current page
+                new_selected_ids = current_selected_ids.union(object_ids_set)
 
         self.save_selected_ids_to_session(request, list(new_selected_ids))
         return list(new_selected_ids)
@@ -227,11 +237,19 @@ class SelectionMixin:
                 "Only HTMX requests are supported for this operation."
             )
 
-        # Get object_ids from the request body (sent by HTMX)
+        # Get object_ids from the request body (sent by HTMX). Prefer repeated
+        # values, but also accept a CSV fallback for JS-triggered batch requests.
         object_ids = request.POST.getlist("object_ids")
+        if not object_ids:
+            csv_ids = request.POST.get("object_ids_csv", "")
+            object_ids = [obj_id for obj_id in csv_ids.split(",") if obj_id]
+
         # Ensure IDs are integers
         object_ids = [int(obj_id) for obj_id in object_ids]
-        selected_ids = self.toggle_all_selection_in_session(request, object_ids)
+        action = request.POST.get("action") or None
+        selected_ids = self.toggle_all_selection_in_session(
+            request, object_ids, action=action
+        )
         context = self.get_context_data()
         context["selected_ids"] = selected_ids
         context["selected_count"] = len(selected_ids)

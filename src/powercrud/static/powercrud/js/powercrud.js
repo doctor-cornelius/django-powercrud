@@ -15,6 +15,7 @@
     const INLINE_ROW_SELECTOR = 'tr[data-inline-row="true"]';
     const INLINE_TABLE_SELECTOR = 'table[data-inline-enabled="true"]';
     const INLINE_NOTICE_SELECTOR = '[data-powercrud-inline-alert]';
+    const RANGE_SELECT_SUPPRESS_CLASS = 'powercrud-range-selecting';
 
     const warnedDeps = {
         htmx: false,
@@ -82,6 +83,7 @@
         if (!objectListState.has(root)) {
             objectListState.set(root, {
                 filterExpansionRestored: false,
+                lastRowSelectionAnchorId: null,
             });
         }
         return objectListState.get(root);
@@ -568,7 +570,7 @@
 
     function syncBulkSelectionState(root) {
         const selectAllCheckbox = root.querySelector('[data-powercrud-select-all="true"]');
-        const checkboxes = Array.from(root.querySelectorAll('[data-powercrud-row-select="true"]'));
+        const checkboxes = getRowSelectionCheckboxes(root);
         if (!selectAllCheckbox || !checkboxes.length) {
             return;
         }
@@ -587,7 +589,7 @@
     }
 
     function clearSelectionOptimistic(root) {
-        root.querySelectorAll('[data-powercrud-row-select="true"]').forEach(cb => {
+        getRowSelectionCheckboxes(root).forEach(cb => {
             cb.checked = false;
         });
         const selectAll = root.querySelector('[data-powercrud-select-all="true"]');
@@ -595,7 +597,61 @@
             selectAll.checked = false;
             selectAll.indeterminate = false;
         }
+        ensureObjectListState(root).lastRowSelectionAnchorId = null;
         updateBulkActionsCounter(root, 0);
+    }
+
+    function getRowSelectionCheckboxes(root) {
+        return Array.from(root.querySelectorAll('[data-powercrud-row-select="true"]'));
+    }
+
+    function clearDocumentSelection() {
+        const selection = global.getSelection ? global.getSelection() : null;
+        if (selection && typeof selection.removeAllRanges === 'function') {
+            selection.removeAllRanges();
+        }
+    }
+
+    function setRangeSelectionSuppressed(suppressed) {
+        if (!(document.body instanceof HTMLBodyElement)) {
+            return;
+        }
+        document.body.classList.toggle(RANGE_SELECT_SUPPRESS_CLASS, suppressed);
+    }
+
+    function hasShiftSelectionAnchor(root, checkbox) {
+        if (!root || !(checkbox instanceof HTMLInputElement)) {
+            return false;
+        }
+        const state = ensureObjectListState(root);
+        const anchorId = state.lastRowSelectionAnchorId;
+        if (!anchorId || checkbox.dataset.id === anchorId) {
+            return false;
+        }
+        const anchor = getRowSelectionCheckboxes(root).find(cb => cb.dataset.id === anchorId);
+        return (
+            anchor instanceof HTMLInputElement
+            && anchor !== checkbox
+        );
+    }
+
+    function persistSelectionBatch(root, objectIds, action) {
+        if (!root || !objectIds.length) {
+            return;
+        }
+        const htmx = getHtmxInstance();
+        const listUrl = root.dataset.powercrudListUrl;
+        if (!htmx || !listUrl) {
+            return;
+        }
+        htmx.ajax('POST', `${listUrl}toggle-all-selection/`, {
+            values: {
+                object_ids_csv: objectIds.join(','),
+                action,
+            },
+            target: '#bulk-actions-container',
+            swap: 'outerHTML',
+        });
     }
 
     function toggleAllSelection(selectAllCheckbox) {
@@ -603,7 +659,7 @@
         if (!root) {
             return;
         }
-        const checkboxes = Array.from(root.querySelectorAll('[data-powercrud-row-select="true"]'));
+        const checkboxes = getRowSelectionCheckboxes(root);
         checkboxes.forEach(cb => {
             cb.checked = selectAllCheckbox.checked;
         });
@@ -620,7 +676,7 @@
         const allIds = checkboxes.map(cb => cb.dataset.id);
         htmx.ajax('POST', `${listUrl}toggle-all-selection/`, {
             values: {
-                object_ids: allIds,
+                object_ids_csv: allIds.join(','),
                 action: selectAllCheckbox.checked ? 'add' : 'remove',
             },
             target: '#bulk-actions-container',
@@ -628,15 +684,58 @@
         });
     }
 
-    function handleRowSelectionChange(checkbox) {
+    function handleRowSelectionChange(checkbox, event = null) {
         const root = getObjectListRoot(checkbox);
         if (!root) {
             return;
         }
+        const state = ensureObjectListState(root);
+        const anchor = getRowSelectionCheckboxes(root).find(
+            cb => cb.dataset.id === state.lastRowSelectionAnchorId,
+        );
+        const hasValidAnchor = (
+            anchor instanceof HTMLInputElement
+            && anchor !== checkbox
+        );
+        const useShiftRange = (
+            event?.shiftKey
+            || checkbox.dataset.powercrudShiftRange === 'true'
+        );
+        if (checkbox.dataset.powercrudShiftRange === 'true') {
+            delete checkbox.dataset.powercrudShiftRange;
+        }
+        if (useShiftRange && hasValidAnchor) {
+            clearDocumentSelection();
+            const checkboxes = getRowSelectionCheckboxes(root);
+            const anchorIndex = checkboxes.indexOf(anchor);
+            const targetIndex = checkboxes.indexOf(checkbox);
+            if (anchorIndex !== -1 && targetIndex !== -1) {
+                const startIndex = Math.min(anchorIndex, targetIndex);
+                const endIndex = Math.max(anchorIndex, targetIndex);
+                const range = checkboxes.slice(startIndex, endIndex + 1);
+                range.forEach(cb => {
+                    cb.checked = checkbox.checked;
+                });
+                syncBulkSelectionState(root);
+                if (checkbox.checked) {
+                    showBulkActionsContainer(root);
+                }
+                persistSelectionBatch(
+                    root,
+                    range.map(cb => cb.dataset.id),
+                    checkbox.checked ? 'add' : 'remove',
+                );
+                setRangeSelectionSuppressed(false);
+                state.lastRowSelectionAnchorId = checkbox.dataset.id || null;
+                return;
+            }
+        }
+        setRangeSelectionSuppressed(false);
         syncBulkSelectionState(root);
         if (checkbox.checked) {
             showBulkActionsContainer(root);
         }
+        state.lastRowSelectionAnchorId = checkbox.dataset.id || null;
     }
 
     function refreshTable(root) {
@@ -662,6 +761,16 @@
             return;
         }
         ensureObjectListState(root);
+        getRowSelectionCheckboxes(root).forEach(checkbox => {
+            checkbox.checked = checkbox.dataset.powercrudInitialChecked === 'true';
+        });
+        const selectAllCheckbox = root.querySelector('[data-powercrud-select-all="true"]');
+        if (selectAllCheckbox instanceof HTMLInputElement) {
+            selectAllCheckbox.checked = selectAllCheckbox.dataset.powercrudInitialChecked === 'true';
+            selectAllCheckbox.indeterminate = (
+                selectAllCheckbox.dataset.powercrudInitialIndeterminate === 'true'
+            );
+        }
         maybeRestoreExpandedFilters(root);
         syncFilterToggleLabel(root);
         syncBulkSelectionState(root);
@@ -1334,6 +1443,15 @@
     global.initPowercrudTooltips = initPowercrudTooltips;
     global.destroyPowercrudTooltips = destroyPowercrudTooltips;
 
+    const selectionSuppressionStyle = document.createElement('style');
+    selectionSuppressionStyle.textContent = `
+        body.${RANGE_SELECT_SUPPRESS_CLASS},
+        body.${RANGE_SELECT_SUPPRESS_CLASS} * {
+            user-select: none !important;
+        }
+    `;
+    document.head.appendChild(selectionSuppressionStyle);
+
     document.addEventListener('DOMContentLoaded', () => {
         const htmx = global.htmx;
         if (htmx?.process) {
@@ -1381,6 +1499,31 @@
         }
     });
 
+    document.addEventListener('click', event => {
+        const target = asElement(event.target);
+        if (!target || !target.matches('[data-powercrud-row-select="true"]')) {
+            return;
+        }
+        const root = getObjectListRoot(target);
+        if (event.shiftKey && hasShiftSelectionAnchor(root, target)) {
+            clearDocumentSelection();
+            target.dataset.powercrudShiftRange = 'true';
+            target.dataset.powercrudSkipSelectionRequest = 'true';
+        }
+    }, true);
+
+    document.addEventListener('mousedown', event => {
+        const target = asElement(event.target);
+        if (!target || !target.matches('[data-powercrud-row-select="true"]')) {
+            return;
+        }
+        const root = getObjectListRoot(target);
+        if (event.shiftKey && hasShiftSelectionAnchor(root, target)) {
+            setRangeSelectionSuppressed(true);
+            clearDocumentSelection();
+        }
+    }, true);
+
     document.addEventListener('change', event => {
         const target = asElement(event.target);
         if (!target) {
@@ -1393,7 +1536,7 @@
         }
 
         if (target.matches('[data-powercrud-row-select="true"]')) {
-            handleRowSelectionChange(target);
+            handleRowSelectionChange(target, event);
         }
     });
 
@@ -1415,6 +1558,13 @@
 
     document.addEventListener('htmx:beforeRequest', event => {
         const target = event.detail && event.detail.elt;
+        if (target && target.matches && target.matches('[data-powercrud-row-select="true"]')) {
+            if (target.dataset.powercrudSkipSelectionRequest === 'true') {
+                delete target.dataset.powercrudSkipSelectionRequest;
+                event.preventDefault();
+                return;
+            }
+        }
         if (target && target.matches && target.matches('[data-powercrud-bulk-delete-submit]')) {
             startButtonSpinner(target);
             setBulkActionButtonsDisabled(target, true);
