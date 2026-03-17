@@ -73,6 +73,10 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
             "filter_by": {"owners": "owner"},
             "order_by": "name",
             "empty_behavior": "none",
+        },
+        "project_manager": {
+            "static_filters": {"is_active": True},
+            "order_by": "name",
         }
     }
 
@@ -156,7 +160,8 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
 - `show_record_count` and `show_bulk_selection_meta` are separate toggles. You can show record counts without bulk-selection prompts, or vice versa.
 - `extra_actions_mode = "dropdown"` is optional. When omitted, `extra_actions` keep the legacy visible-button behavior. Dropdown mode keeps `View/Edit/Delete` visible and moves only the extra row actions into the `More` menu.
 - `inline_edit_fields` is the current inline-editing configuration. Older `inline_edit_enabled` usage is legacy and should not be used in new code.
-- `field_queryset_dependencies` is the current declarative way to scope child select querysets in regular forms and inline editing.
+- `field_queryset_dependencies` is the current declarative way to scope child select querysets in regular forms and inline editing, and to apply static queryset restrictions reused by bulk edit dropdowns.
+- `static_filters` is the static-rule companion to the dynamic `depends_on` / `filter_by` shape. In the example above, `project_manager` is always limited to active rows, while `tags` still depend on the selected `owner`.
 - `bulk_fields` and `bulk_delete` enable the synchronous bulk-edit UI. The queryset-wide bulk-selection metadata action also depends on the global `POWERCRUD_SETTINGS["BULK_MAX_SELECTED_RECORDS"]` cap.
 - `searchable_selects = True` enables Tom Select enhancement for eligible select widgets in forms, inline editing, bulk edit forms, and filter forms.
 

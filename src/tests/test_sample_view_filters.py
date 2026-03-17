@@ -58,6 +58,50 @@ def test_profile_sample_view_exposes_nullable_relation_empty_only_option():
 
 
 @pytest.mark.django_db
+def test_profile_sample_view_applies_static_queryset_filters_to_forms_and_bulk():
+    """Profile sample view should demonstrate static queryset rules across surfaces."""
+    author = Author.objects.create(name="Static Profile Author")
+    sci_fi = Genre.objects.create(name="Sci-Fi")
+    fantasy = Genre.objects.create(name="Fantasy")
+    profile = Profile.objects.create(
+        author=author,
+        nickname="Static Demo",
+        favorite_genre=sci_fi,
+    )
+
+    view = sample_views.ProfileCRUDView()
+    view.request = RequestFactory().get("/")
+
+    form = view._finalize_form(view.get_form_class()(instance=profile))
+    inline_form = view.build_inline_form(instance=profile)
+    bulk_qs = view.get_bulk_choices_for_field(
+        "favorite_genre",
+        Profile._meta.get_field("favorite_genre"),
+    )
+
+    form_genre_names = list(
+        form.fields["favorite_genre"].queryset.values_list("name", flat=True)
+    )
+    inline_genre_names = list(
+        inline_form.fields["favorite_genre"].queryset.values_list("name", flat=True)
+    )
+    bulk_genre_names = list(bulk_qs.values_list("name", flat=True))
+
+    assert form_genre_names == [
+        "Sci-Fi"
+    ], "ProfileCRUDView should restrict regular form genre choices using a static field_queryset_dependencies rule."
+    assert inline_genre_names == [
+        "Sci-Fi"
+    ], "ProfileCRUDView should reuse the same static field queryset restriction during inline editing."
+    assert bulk_genre_names == [
+        "Sci-Fi"
+    ], "ProfileCRUDView should reuse the same static field queryset restriction for bulk edit choices."
+    assert (
+        fantasy.name not in bulk_genre_names
+    ), "ProfileCRUDView bulk choices should exclude genres that fail the sample static queryset rule."
+
+
+@pytest.mark.django_db
 def test_book_sample_view_scopes_genres_queryset_for_regular_forms():
     """Book sample view should scope genres from the selected author in regular forms."""
     author_a = Author.objects.create(name="Author A")

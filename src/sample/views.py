@@ -213,6 +213,13 @@ class ProfileCRUDView(SampleCRUDMixin):
     fields = "__all__"
     properties = "__all__"
     filterset_fields = ["author", "nickname", "favorite_genre"]
+    inline_edit_fields = ["nickname", "favorite_genre"]
+    field_queryset_dependencies = {
+        "favorite_genre": {
+            "static_filters": {"name__startswith": "S"},
+            "order_by": "name",
+        }
+    }
 
     # Add the OneToOneField to bulk_fields to test it
     bulk_fields = [

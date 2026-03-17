@@ -117,8 +117,35 @@ When the user changes `author` inline, PowerCRUD posts the current row data to t
 ### Other Views
 
 - **GenreCRUDView**: Minimal configuration example
-- **ProfileCRUDView**: OneToOneField, bulk operations, and merged nullable relation filtering on `favorite_genre`
+- **ProfileCRUDView**: OneToOneField, inline editing, bulk operations, merged nullable relation filtering on `favorite_genre`, and a static queryset rule that limits `favorite_genre` choices to genres whose names start with `S`
 - **AuthorCRUDView**: Properties, filtering, template debugging, companion nullable scalar filtering on `birth_date`, and row-level `extra_actions` rendered via the new `More` dropdown
+
+### Static queryset demo
+
+The sample app also includes a static queryset example on `ProfileCRUDView`:
+
+```python
+field_queryset_dependencies = {
+    "favorite_genre": {
+        "static_filters": {"name__startswith": "S"},
+        "order_by": "name",
+    }
+}
+```
+
+How to read that:
+
+- `favorite_genre` is the field being restricted
+- `static_filters` applies a fixed queryset rule with no parent field involved
+- `order_by` keeps the remaining choices sorted predictably
+
+That same static rule is reused in three places:
+
+- the normal Profile create/edit form
+- inline editing on the Profiles list
+- the bulk edit dropdown for `favorite_genre`
+
+This makes `ProfileCRUDView` the sample app reference for static queryset rules, while `BookCRUDView` remains the reference for dynamic parent/child dependencies.
 
 Example `AuthorCRUDView` row-action config:
 
@@ -207,6 +234,7 @@ That keeps the standard row actions visible while moving the sample app’s extr
 - **Modal Interactions**: All CRUD operations in modals
 - **HTMX Features**: Reactive filtering, pagination, form updates
 - **Inline Dependencies**: Changing a Book author inline immediately refreshes the allowed genre choices derived from the shared form dependency config
+- **Static Queryset Rules**: Editing a Profile only offers `favorite_genre` choices whose names start with `S`, and the same restriction carries through inline and bulk edit
 - **CSS Frameworks**: Easy switching between daisyUI and Bootstrap
 - **Responsive Design**: Table layouts with column width controls
 
