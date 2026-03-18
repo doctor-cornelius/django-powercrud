@@ -1,3 +1,12 @@
+## 0.5.18 (2026-03-18)
+
+### Feature
+
+- **(column)**: support help text tooltips on specified column headers
+- **(powercrud)**: add view_instructions list helper text
+- **(inline)**: parameterise editable inline field background visibility and colour
+- Add view_title parameter to set title at top of crud view page
+
 ## 0.5.17 (2026-03-17)
 
 ### Documentation
