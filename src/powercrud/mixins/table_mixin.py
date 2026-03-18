@@ -74,6 +74,15 @@ class TableMixin:
 
         return capfirst(model._meta.verbose_name_plural)
 
+    def get_view_instructions(self) -> str:
+        """
+        Return the optional plain-text helper copy shown under the list heading.
+        """
+        configured_instructions = resolve_config(self).view_instructions
+        if configured_instructions:
+            return configured_instructions
+        return ""
+
     def get_inline_edit_always_visible(self) -> bool:
         """
         Return whether inline-editable cells keep a subtle resting highlight.

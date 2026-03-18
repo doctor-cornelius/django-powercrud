@@ -28,6 +28,7 @@ def home(request):
 class BookCRUDView(SampleCRUDMixin):
     model = models.Book
     view_title = "My List of Books"
+    view_instructions = "Here you can edit books"
     namespace = "sample"
     base_template_path = "sample/base.html"
     use_htmx = True

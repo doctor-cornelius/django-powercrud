@@ -34,6 +34,7 @@ class ConfigMixin:
     # built-in HTML shell. It should point at the app’s real base template.
     base_template_path: str | None = None
     view_title: str | None = None
+    view_instructions: str | None = None
 
     # forms
     use_crispy: bool | None = None

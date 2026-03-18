@@ -24,6 +24,7 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
     base_template_path = "core/base.html"
     templates_path = "projects/powercrud"
     view_title = "Active Client Projects"  # visible list heading only
+    view_instructions = "Use the list below to review and update active projects."
 
     # ------------------------------------------------------------------
     # HTMX / modal behaviour
@@ -162,6 +163,7 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
 - `base_template_path` is required. PowerCRUD does not ship a bundled site shell.
 - `show_record_count` and `show_bulk_selection_meta` are separate toggles. You can show record counts without bulk-selection prompts, or vice versa.
 - `view_title` overrides only the visible list heading. It does not change create-button text, empty-state copy, or the model’s own verbose names.
+- `view_instructions` adds plain-text helper copy directly below the visible list heading. The content is escaped and does not accept HTML.
 - A good use case for `view_title` is when the page heading needs UX-friendly wording such as `My List of Books` or `Active Client Projects`, while the underlying model metadata should stay reusable elsewhere.
 - `extra_actions_mode = "dropdown"` is optional. When omitted, `extra_actions` keep the legacy visible-button behavior. Dropdown mode keeps `View/Edit/Delete` visible and moves only the extra row actions into the `More` menu.
 - `inline_edit_fields` is the current inline-editing configuration. Older `inline_edit_enabled` usage is legacy and should not be used in new code.

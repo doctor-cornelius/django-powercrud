@@ -276,17 +276,18 @@ This is useful when users need quick confirmation that a filter narrowed the que
 
 When synchronous bulk editing is enabled, the same metadata line can also host contextual selection actions such as `Select all N matching records` or `Add 998 more from 1030 matching records`. Leave `show_bulk_selection_meta = True` (the default) to keep that action available even when `show_record_count` is off, or disable it separately if you do not want selection prompts in that row.
 
-### List heading override
+### List heading and helper text overrides
 
-If you want the visible list heading to differ from the model’s `verbose_name_plural`, set `view_title` on the CRUD view:
+If you want the visible list heading to differ from the model’s `verbose_name_plural`, set `view_title` on the CRUD view. You can also add plain-text helper copy directly below it with `view_instructions`:
 
 ```python
 class ProjectCRUDView(PowerCRUDMixin, CRUDView):
     # …
     view_title = "Active Client Projects"
+    view_instructions = "Use the table below to review and update active projects."
 ```
 
-This changes only the large heading above the list table. PowerCRUD continues to use the model verbose names for other copy such as `Create project` and empty-state text.
+`view_title` changes only the large heading above the list table. `view_instructions` adds a small escaped text block directly underneath that heading. PowerCRUD continues to use the model verbose names for other copy such as `Create project` and empty-state text, and `view_instructions` is text-only rather than HTML.
 
 ---
 

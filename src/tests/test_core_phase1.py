@@ -212,6 +212,29 @@ def test_table_mixin_get_view_title_prefers_configured_override():
     )
 
 
+def test_table_mixin_get_view_instructions_defaults_to_empty_string():
+    class TableView(TableMixin):
+        model = Author
+
+    view = TableView()
+
+    assert view.get_view_instructions() == "", (
+        "List helper instructions should default to an empty string when no override is configured."
+    )
+
+
+def test_table_mixin_get_view_instructions_prefers_configured_override():
+    class TableView(TableMixin):
+        model = Author
+        view_instructions = "Helpful author guidance"
+
+    view = TableView()
+
+    assert view.get_view_instructions() == "Helpful author guidance", (
+        "List helper instructions should use the configured view_instructions text when provided."
+    )
+
+
 def test_table_mixin_inline_edit_highlight_defaults_match_current_teal_styles():
     class TableView(TableMixin):
         pass
@@ -262,6 +285,16 @@ def test_table_mixin_invalid_inline_edit_highlight_accent_raises():
         model = Author
         fields = ["name"]
         inline_edit_highlight_accent = "rgb(251, 191, 36)"
+
+    with pytest.raises(ImproperlyConfigured):
+        BrokenView()
+
+
+def test_view_instructions_blank_string_raises():
+    class BrokenView(CoreMixin):
+        model = Author
+        fields = ["name"]
+        view_instructions = "   "
 
     with pytest.raises(ImproperlyConfigured):
         BrokenView()
@@ -447,6 +480,53 @@ def test_author_list_uses_view_title_override_without_changing_create_label(
     )
     assert "Create The Author Person" in response_text, (
         "The create button label should continue to use the singular model verbose name."
+    )
+
+
+@pytest.mark.django_db
+def test_author_list_renders_view_instructions_when_configured(client, monkeypatch):
+    """Render plain-text helper instructions beneath the list heading when configured."""
+    monkeypatch.setattr(
+        "sample.views.AuthorCRUDView.view_instructions",
+        "Helpful author guidance",
+        raising=False,
+    )
+
+    Author.objects.create(name="Alice Jones")
+
+    response = client.get(reverse("sample:author-list"))
+    response_text = " ".join(response.content.decode().split())
+
+    assert response.status_code == 200, (
+        "Author list view should render successfully when view_instructions is configured."
+    )
+    assert "Helpful author guidance" in response_text, (
+        "List view should render the configured view_instructions beneath the heading."
+    )
+
+
+@pytest.mark.django_db
+def test_author_list_escapes_view_instructions_html(client, monkeypatch):
+    """Escape HTML-like instructions text so view_instructions remains plain text only."""
+    monkeypatch.setattr(
+        "sample.views.AuthorCRUDView.view_instructions",
+        "<strong>Unsafe</strong>",
+        raising=False,
+    )
+
+    Author.objects.create(name="Alice Jones")
+
+    response = client.get(reverse("sample:author-list"))
+    response_text = response.content.decode()
+
+    assert response.status_code == 200, (
+        "Author list view should render successfully when HTML-like view_instructions text is configured."
+    )
+    assert "&lt;strong&gt;Unsafe&lt;/strong&gt;" in response_text, (
+        "List view should escape HTML-like view_instructions content rather than rendering it as markup."
+    )
+    assert "<strong>Unsafe</strong>" not in response_text, (
+        "List view should not render raw HTML from view_instructions."
     )
 
 

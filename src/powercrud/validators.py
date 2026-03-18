@@ -14,6 +14,7 @@ class PowerCRUDMixinValidator(BaseModel):
     templates_path: Optional[str] = None
     base_template_path: Optional[str] = None
     view_title: Optional[str] = None
+    view_instructions: Optional[str] = None
 
     # forms
     use_crispy: Optional[bool] = None
@@ -138,6 +139,18 @@ class PowerCRUDMixinValidator(BaseModel):
             return v
         if isinstance(v, str) and not v.strip():
             raise ValueError("view_title must be a non-empty string when provided")
+        return v
+
+    @field_validator("view_instructions")
+    @classmethod
+    def validate_view_instructions(cls, v):
+        """Ensure the optional list helper text is non-empty when set."""
+        if v is None:
+            return v
+        if isinstance(v, str) and not v.strip():
+            raise ValueError(
+                "view_instructions must be a non-empty string when provided"
+            )
         return v
 
     @field_validator("form_fields")

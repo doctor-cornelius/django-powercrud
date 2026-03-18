@@ -52,6 +52,7 @@ from powercrud.mixins import PowerCRUDAsyncMixin
 class BookCRUDView(PowerCRUDAsyncMixin, CRUDView):
     # Comprehensive configuration showing:
     view_title = "My List of Books"
+    view_instructions = "Here you can edit books"
     form_class = BookForm
     field_queryset_dependencies = {
         "genres": {
@@ -73,7 +74,7 @@ class BookCRUDView(PowerCRUDAsyncMixin, CRUDView):
     extra_actions = [...]  # Additional row actions
 ```
 
-The sample `BookCRUDView` uses `view_title = "My List of Books"` to demonstrate the narrow list-heading override. That changes only the large title above the table; other UI copy such as the create button still comes from the model verbose names.
+The sample `BookCRUDView` uses `view_title = "My List of Books"` plus `view_instructions = "Here you can edit books"` to demonstrate the narrow heading/helper-text overrides. That changes only the large title area above the table; other UI copy such as the create button still comes from the model verbose names, and the instructions text is rendered as plain escaped text rather than HTML.
 
 ### Inline dependency demo
 
@@ -122,7 +123,7 @@ When the user changes `author` inline, PowerCRUD posts the current row data to t
 - **GenreCRUDView**: Minimal configuration example
 - **ProfileCRUDView**: OneToOneField, inline editing, bulk operations, merged nullable relation filtering on `favorite_genre`, and a static queryset rule that limits `favorite_genre` choices to genres whose names start with `S`
 - **AuthorCRUDView**: Properties, filtering, template debugging, companion nullable scalar filtering on `birth_date`, and row-level `extra_actions` rendered via the new `More` dropdown
-- **BookCRUDView**: Async bulk editing, dependent `author -> genres` queryset scoping, and the `view_title` heading override
+- **BookCRUDView**: Async bulk editing, dependent `author -> genres` queryset scoping, and the `view_title` / `view_instructions` heading-area overrides
 
 ### Static queryset demo
 

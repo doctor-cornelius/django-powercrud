@@ -93,6 +93,9 @@
          data-powercrud-object-list="true"
          data-powercrud-list-url="{{ list_view_url }}">
         <h1 class="flex-1 font-bold text-xl text-primary">{{ view.get_view_title }}</h1>
+        {% if view.get_view_instructions %}
+            <p class="mt-1 text-sm text-base-content/80">{{ view.get_view_instructions }}</p>
+        {% endif %}
 
         <div class="flex gap-2 my-2 items-center flex-wrap">
             {% if filterset %}
