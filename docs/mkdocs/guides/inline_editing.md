@@ -21,6 +21,8 @@ class BookCRUDView(PowerCRUDMixin, CRUDView):
 
     use_htmx = True
     inline_edit_fields = ["title", "author", "published_date", "genres"]
+    inline_edit_always_visible = True
+    inline_edit_highlight_accent = "#14b8a6"
 ```
 
 !!! warning "Legacy `inline_edit_enabled` compatibility"
@@ -37,11 +39,41 @@ class BookCRUDView(PowerCRUDMixin, CRUDView):
 - Leave `inline_edit_fields` unset to disable inline editing for the view.
 - `inline_edit_fields` must match fields exposed by the actual form returned by `get_form_class()`. If you use a custom `form_class`, PowerCRUD filters the inline list to fields that really exist on that form.
 - Only columns actually rendered in the list can be clicked inline, so a field must be both inline-configured and visible in the list to behave as an inline-editable cell.
+- `inline_edit_always_visible` defaults to `True`, which means editable cells show a subtle resting hint even before hover.
+- `inline_edit_highlight_accent` defaults to `"#14b8a6"`. PowerCRUD derives the lighter resting tint, stronger hover/focus tint, and active-row highlight from that single hex accent automatically.
 - The mixin automatically injects inline metadata into the row payload and exposes two HTMX endpoints:
     - `…-inline-row` – swaps the display/form row and handles POST saves.
     - `…-inline-dependency` – rebuilds a single field widget for dependent dropdowns.
 
 The DaisyUI template already includes the triggers, Save/Cancel buttons, and `inline-row-*` events; no manual template work is required unless you are overriding the list partial.
+
+### Styling the inline-edit affordance
+
+Use the default configuration when the built-in teal hint is fine:
+
+```python
+inline_edit_always_visible = True
+inline_edit_highlight_accent = "#14b8a6"
+```
+
+To keep the stronger hover/focus cue but remove only the always-on resting tint:
+
+```python
+inline_edit_always_visible = False
+```
+
+Hover and focus highlighting still remain active in this mode; only the persistent resting tint is removed.
+
+To use a different accent, provide a hex color and let PowerCRUD derive the lighter and stronger variants automatically:
+
+```python
+inline_edit_highlight_accent = "#3b82f6"
+```
+
+Notes:
+
+- Only hex colors are supported here: `#rgb` and `#rrggbb`.
+- This API intentionally keeps the surface small. If you need per-state color control beyond the single accent, override the list partial in your project.
 
 ---
 

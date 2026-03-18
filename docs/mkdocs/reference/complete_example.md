@@ -85,6 +85,8 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
     # Inline editing
     # ------------------------------------------------------------------
     inline_edit_fields = ["status", "project_manager", "due_date"]
+    inline_edit_always_visible = True
+    inline_edit_highlight_accent = "#14b8a6"
     inline_edit_requires_perm = "projects.change_project"
     inline_preserve_required_fields = True
 
@@ -163,6 +165,8 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
 - A good use case for `view_title` is when the page heading needs UX-friendly wording such as `My List of Books` or `Active Client Projects`, while the underlying model metadata should stay reusable elsewhere.
 - `extra_actions_mode = "dropdown"` is optional. When omitted, `extra_actions` keep the legacy visible-button behavior. Dropdown mode keeps `View/Edit/Delete` visible and moves only the extra row actions into the `More` menu.
 - `inline_edit_fields` is the current inline-editing configuration. Older `inline_edit_enabled` usage is legacy and should not be used in new code.
+- `inline_edit_always_visible = True` is the current default, so editable cells keep a subtle resting hint unless you disable it.
+- `inline_edit_highlight_accent = "#14b8a6"` is the current default accent. PowerCRUD derives the lighter resting tint and stronger hover/focus tint from that single hex value.
 - `field_queryset_dependencies` is the current declarative way to scope child select querysets in regular forms and inline editing, and to apply static queryset restrictions reused by bulk edit dropdowns.
 - `static_filters` is the static-rule companion to the dynamic `depends_on` / `filter_by` shape. In the example above, `project_manager` is always limited to active rows, while `tags` still depend on the selected `owner`.
 - `bulk_fields` and `bulk_delete` enable the synchronous bulk-edit UI. The queryset-wide bulk-selection metadata action also depends on the global `POWERCRUD_SETTINGS["BULK_MAX_SELECTED_RECORDS"]` cap.

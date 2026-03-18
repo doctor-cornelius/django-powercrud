@@ -74,6 +74,57 @@ class TableMixin:
 
         return capfirst(model._meta.verbose_name_plural)
 
+    def get_inline_edit_always_visible(self) -> bool:
+        """
+        Return whether inline-editable cells keep a subtle resting highlight.
+        """
+        return bool(resolve_config(self).inline_edit_always_visible)
+
+    def get_inline_edit_highlight_accent(self) -> str:
+        """
+        Return the configured inline-edit highlight accent as a hex color.
+        """
+        return str(resolve_config(self).inline_edit_highlight_accent)
+
+    @staticmethod
+    def _parse_inline_edit_highlight_accent(value: str) -> tuple[int, int, int]:
+        """
+        Convert a hex color string into an RGB tuple.
+        """
+        normalized = value.strip().lstrip("#")
+        if len(normalized) == 3:
+            normalized = "".join(ch * 2 for ch in normalized)
+        return (
+            int(normalized[0:2], 16),
+            int(normalized[2:4], 16),
+            int(normalized[4:6], 16),
+        )
+
+    def _inline_edit_highlight_rgba(self, alpha: float) -> str:
+        """
+        Return an RGBA string derived from the configured inline-edit accent.
+        """
+        red, green, blue = self._parse_inline_edit_highlight_accent(
+            self.get_inline_edit_highlight_accent()
+        )
+        return f"rgba({red}, {green}, {blue}, {alpha:.2f})"
+
+    def get_inline_edit_highlight_palette(self) -> dict[str, str]:
+        """
+        Return the derived inline-edit highlight palette used by the list template.
+        """
+        return {
+            "rest_bg": self._inline_edit_highlight_rgba(0.06),
+            "rest_border": self._inline_edit_highlight_rgba(0.18),
+            "hover_bg": self._inline_edit_highlight_rgba(0.15),
+            "hover_border": self._inline_edit_highlight_rgba(0.35),
+            "active_row_outline": self._inline_edit_highlight_rgba(0.85),
+            "active_row_bg": self._inline_edit_highlight_rgba(0.12),
+            "active_row_overlay": self._inline_edit_highlight_rgba(0.05),
+            "active_widget_bg": self._inline_edit_highlight_rgba(0.15),
+            "active_widget_border": self._inline_edit_highlight_rgba(0.35),
+        }
+
     # Inline editing helpers -------------------------------------------------
     def get_inline_row_id_prefix(self) -> str:
         """Base DOM id prefix for inline-editable rows."""

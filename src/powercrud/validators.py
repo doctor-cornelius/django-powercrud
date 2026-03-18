@@ -1,5 +1,6 @@
 from pydantic import BaseModel, Field, field_validator, ConfigDict
 from typing import Union, Optional, List, Literal, Dict, Any, Callable
+import re
 
 
 class PowerCRUDMixinValidator(BaseModel):
@@ -44,6 +45,8 @@ class PowerCRUDMixinValidator(BaseModel):
     field_queryset_dependencies: Optional[Dict[str, Dict[str, Any]]] = None
     inline_edit_requires_perm: Optional[str] = None
     inline_edit_allowed: Optional[Callable] = None
+    inline_edit_always_visible: Optional[bool] = True
+    inline_edit_highlight_accent: Optional[str] = "#14b8a6"
 
     # modals
     use_modal: Optional[bool] = None
@@ -154,6 +157,23 @@ class PowerCRUDMixinValidator(BaseModel):
         if isinstance(v, list) and not all(isinstance(x, str) for x in v):
             raise ValueError("inline_edit_fields must contain only strings")
         return v
+
+    @field_validator("inline_edit_highlight_accent")
+    @classmethod
+    def validate_inline_edit_highlight_accent(cls, v):
+        """Require a hex color string for the inline-edit highlight accent."""
+        if v is None:
+            return v
+        if not isinstance(v, str):
+            raise ValueError(
+                "inline_edit_highlight_accent must be a hex color string"
+            )
+        value = v.strip()
+        if not re.fullmatch(r"#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})", value):
+            raise ValueError(
+                "inline_edit_highlight_accent must be a hex color like '#14b8a6' or '#1ba'"
+            )
+        return value.lower()
 
     @field_validator("field_queryset_dependencies")
     @classmethod

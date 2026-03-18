@@ -1,7 +1,10 @@
+import re
 from types import SimpleNamespace
 from datetime import date
 
 import pytest
+from django.core.exceptions import ImproperlyConfigured
+from django.template import Context, Template
 from django.urls import reverse
 from django.test import RequestFactory
 
@@ -12,7 +15,7 @@ from powercrud.mixins.table_mixin import TableMixin
 from powercrud.mixins.paginate_mixin import PaginateMixin
 from powercrud.mixins.url_mixin import UrlMixin
 
-from sample.models import Author, Book
+from sample.models import Author, Book, Genre
 
 
 @pytest.mark.django_db
@@ -209,6 +212,61 @@ def test_table_mixin_get_view_title_prefers_configured_override():
     )
 
 
+def test_table_mixin_inline_edit_highlight_defaults_match_current_teal_styles():
+    class TableView(TableMixin):
+        pass
+
+    view = TableView()
+    palette = view.get_inline_edit_highlight_palette()
+
+    assert view.get_inline_edit_always_visible() is True, (
+        "Inline-edit highlights should be always visible by default to preserve the current behavior."
+    )
+    assert view.get_inline_edit_highlight_accent() == "#14b8a6", (
+        "Default inline-edit highlight accent should use the teal package default."
+    )
+    assert palette == {
+        "rest_bg": "rgba(20, 184, 166, 0.06)",
+        "rest_border": "rgba(20, 184, 166, 0.18)",
+        "hover_bg": "rgba(20, 184, 166, 0.15)",
+        "hover_border": "rgba(20, 184, 166, 0.35)",
+        "active_row_outline": "rgba(20, 184, 166, 0.85)",
+        "active_row_bg": "rgba(20, 184, 166, 0.12)",
+        "active_row_overlay": "rgba(20, 184, 166, 0.05)",
+        "active_widget_bg": "rgba(20, 184, 166, 0.15)",
+        "active_widget_border": "rgba(20, 184, 166, 0.35)",
+    }, "Default inline-edit palette should preserve the current teal-derived styling tokens."
+
+
+def test_table_mixin_inline_edit_highlight_palette_uses_custom_hex_accent():
+    class TableView(TableMixin):
+        inline_edit_highlight_accent = "#3b82f6"
+        inline_edit_always_visible = False
+
+    view = TableView()
+    palette = view.get_inline_edit_highlight_palette()
+
+    assert view.get_inline_edit_always_visible() is False, (
+        "Views should be able to disable the always-visible resting highlight."
+    )
+    assert palette["rest_bg"] == "rgba(59, 130, 246, 0.06)", (
+        "Custom inline-edit accent should drive the derived resting background color."
+    )
+    assert palette["hover_border"] == "rgba(59, 130, 246, 0.35)", (
+        "Custom inline-edit accent should drive the stronger hover/focus border color."
+    )
+
+
+def test_table_mixin_invalid_inline_edit_highlight_accent_raises():
+    class BrokenView(CoreMixin):
+        model = Author
+        fields = ["name"]
+        inline_edit_highlight_accent = "rgb(251, 191, 36)"
+
+    with pytest.raises(ImproperlyConfigured):
+        BrokenView()
+
+
 def test_url_mixin_get_prefix_handles_namespace():
     class UrlView(UrlMixin):
         namespace = "sample"
@@ -390,6 +448,134 @@ def test_author_list_uses_view_title_override_without_changing_create_label(
     assert "Create The Author Person" in response_text, (
         "The create button label should continue to use the singular model verbose name."
     )
+
+
+def _create_book_inline_edit_fixture() -> Book:
+    """Create a minimal persisted book record suitable for list partial rendering tests."""
+    author = Author.objects.create(name="Inline Edit Author")
+    genre = Genre.objects.create(name="Inline Edit Genre")
+    book = Book.objects.create(
+        title="Inline Editable Book",
+        author=author,
+        published_date=date(2026, 1, 30),
+        bestseller=False,
+        isbn="978-1-4028-9462-6",
+        pages=320,
+    )
+    book.genres.add(genre)
+    return book
+
+
+def _render_book_list_partial() -> str:
+    """Render the DaisyUI object-list inclusion tag for the sample book CRUD view."""
+    from sample.views import BookCRUDView
+
+    book = _create_book_inline_edit_fixture()
+    request = RequestFactory().get(reverse("sample:bigbook-list"))
+    request.session = {}
+    view = BookCRUDView()
+    view.request = request
+
+    template = Template("{% load powercrud %}{% object_list objects view %}")
+    context = Context(
+        {
+            "objects": Book.objects.filter(pk=book.pk),
+            "view": view,
+            "request": request,
+            "inline_edit": view.get_inline_context(),
+        }
+    )
+    return template.render(context)
+
+
+def _render_default_inline_edit_list_partial() -> str:
+    """Render the object-list partial with a test-only view that relies on package defaults."""
+    from sample.views import SampleCRUDMixin
+
+    class DefaultInlineBookView(SampleCRUDMixin):
+        """Minimal test harness for default inline-edit highlight rendering."""
+
+        model = Book
+        base_template_path = "sample/base.html"
+        fields = ["title", "author", "published_date", "bestseller", "isbn", "genres"]
+        properties = []
+        table_classes = ""
+        table_pixel_height_other_page_elements = 0
+        table_max_height = 70
+        inline_edit_fields = ["title", "author", "published_date", "bestseller", "isbn", "genres"]
+        url_base = "bigbook"
+        namespace = "sample"
+
+    book = _create_book_inline_edit_fixture()
+    request = RequestFactory().get(reverse("sample:bigbook-list"))
+    request.session = {}
+    view = DefaultInlineBookView()
+    view.request = request
+
+    template = Template("{% load powercrud %}{% object_list objects view %}")
+    context = Context(
+        {
+            "objects": Book.objects.filter(pk=book.pk),
+            "view": view,
+            "request": request,
+            "inline_edit": view.get_inline_context(),
+        }
+    )
+    return template.render(context)
+
+
+def _extract_inline_css_variable(rendered_html: str, variable_name: str) -> str | None:
+    """Extract a CSS custom property value from rendered HTML for stable assertions."""
+    match = re.search(rf"{re.escape(variable_name)}:\s*([^;]+);", rendered_html)
+    if not match:
+        return None
+    return match.group(1).strip()
+
+
+@pytest.mark.django_db
+def test_book_list_renders_default_inline_edit_highlight_css_variables():
+    """Emit the current default teal inline-edit CSS variables in the list template."""
+    response_text = _render_default_inline_edit_list_partial()
+
+    assert (
+        _extract_inline_css_variable(response_text, "--pc-inline-rest-bg")
+        == "rgba(20, 184, 166, 0.06)"
+    ), "Default inline-edit rest background variable should preserve the current teal-derived color."
+    assert (
+        _extract_inline_css_variable(response_text, "--pc-inline-hover-bg")
+        == "rgba(20, 184, 166, 0.15)"
+    ), "Default inline-edit hover background variable should preserve the current stronger teal-derived color."
+
+
+@pytest.mark.django_db
+def test_book_list_renders_custom_inline_edit_highlight_css_variables(
+    monkeypatch,
+):
+    """Emit derived CSS variables for a custom hex accent and disabled resting highlight."""
+    monkeypatch.setattr(
+        "sample.views.BookCRUDView.inline_edit_highlight_accent",
+        "#3b82f6",
+        raising=False,
+    )
+    monkeypatch.setattr(
+        "sample.views.BookCRUDView.inline_edit_always_visible",
+        False,
+        raising=False,
+    )
+    response_text = _render_book_list_partial()
+
+    assert (
+        _extract_inline_css_variable(response_text, "--pc-inline-rest-bg")
+        == "transparent"
+    ), "Disabling always-visible inline-edit highlighting should neutralize the resting background variable."
+    assert (
+        _extract_inline_css_variable(response_text, "--pc-inline-hover-bg")
+        == "rgba(59, 130, 246, 0.15)"
+    ), "Custom inline-edit accent should drive the stronger hover background variable."
+    assert (
+        _extract_inline_css_variable(response_text, "--pc-inline-active-row-outline")
+        == "rgba(59, 130, 246, 0.85)"
+    ), "Custom inline-edit accent should drive the active-row outline variable."
 
 
 @pytest.mark.django_db

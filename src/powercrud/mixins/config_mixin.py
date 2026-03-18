@@ -81,6 +81,8 @@ class ConfigMixin:
     inline_edit_requires_perm: str | None = None
     inline_edit_allowed: Callable[[Any, Any], bool] | None = None
     inline_preserve_required_fields: bool = True
+    inline_edit_always_visible: bool = True
+    inline_edit_highlight_accent: str = "#14b8a6"
 
     # modals (if htmx is active)
     use_modal: bool | None = None
@@ -614,6 +616,11 @@ class _ConfigShim:
                 self._raw("templates_path")
                 or f"powercrud/{get_powercrud_setting('POWERCRUD_CSS_FRAMEWORK')}"
             )
+        if name == "inline_edit_always_visible":
+            value = self._raw("inline_edit_always_visible")
+            return True if value is None else bool(value)
+        if name == "inline_edit_highlight_accent":
+            return self._raw("inline_edit_highlight_accent") or "#14b8a6"
         if name == "base_template_path":
             # Do not invent a default; projects must set this explicitly.
             return self._raw("base_template_path")

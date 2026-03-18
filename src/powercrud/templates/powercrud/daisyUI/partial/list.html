@@ -49,12 +49,29 @@
         z-index: 1;
     }
 
+    table[data-inline-enabled="true"] {
+        --pc-inline-rest-bg: {% if inline_edit_always_visible %}{{ inline_edit_highlight_palette.rest_bg }}{% else %}transparent{% endif %};
+        --pc-inline-rest-border: {% if inline_edit_always_visible %}{{ inline_edit_highlight_palette.rest_border }}{% else %}transparent{% endif %};
+        --pc-inline-hover-bg: {{ inline_edit_highlight_palette.hover_bg }};
+        --pc-inline-hover-border: {{ inline_edit_highlight_palette.hover_border }};
+        --pc-inline-active-row-outline: {{ inline_edit_highlight_palette.active_row_outline }};
+        --pc-inline-active-row-bg: {{ inline_edit_highlight_palette.active_row_bg }};
+        --pc-inline-active-row-overlay: {{ inline_edit_highlight_palette.active_row_overlay }};
+        --pc-inline-active-widget-bg: {{ inline_edit_highlight_palette.active_widget_bg }};
+        --pc-inline-active-widget-border: {{ inline_edit_highlight_palette.active_widget_border }};
+    }
+
     .inline-edit-trigger {
         cursor: pointer;
         border-radius: 0.25rem;
         padding: 0.25rem 0.15rem;
         padding-right: calc(0.15rem + var(--pc-inline-icon-buffer, 2.25ch));
         transition: background-color 0.1s ease;
+    }
+
+    .inline-edit-trigger.pc-inline-editable {
+        background-color: var(--pc-inline-rest-bg);
+        box-shadow: inset 0 0 0 1px var(--pc-inline-rest-border);
     }
 
     td[data-inline-cell="true"] {
@@ -70,8 +87,10 @@
 
     .inline-edit-trigger.pc-inline-editable:focus-visible,
     .inline-edit-trigger.pc-inline-editable:hover {
-        background-color: rgba(251, 191, 36, 0.15);
-        box-shadow: inset 0 0 0 1px rgba(251, 191, 36, 0.35);
+        background-color: var(--pc-inline-hover-bg);
+        box-shadow: inset 0 0 0 1px var(--pc-inline-hover-border);
+        outline: 2px solid hsl(var(--p));
+        outline-offset: 2px;
     }
 
     .pc-actions-inline.hidden {
@@ -80,16 +99,16 @@
 
     tr[data-inline-active="true"] {
         position: relative;
-        outline: 2px solid rgba(251, 191, 36, 0.85);
+        outline: 2px solid var(--pc-inline-active-row-outline);
         outline-offset: -2px;
-        background-color: rgba(251, 191, 36, 0.12);
-        box-shadow: inset 0 0 0 999px rgba(251, 191, 36, 0.05);
+        background-color: var(--pc-inline-active-row-bg);
+        box-shadow: inset 0 0 0 999px var(--pc-inline-active-row-overlay);
     }
 
     tr[data-inline-active="true"] .inline-field-widget {
-        background-color: rgba(251, 191, 36, 0.15);
+        background-color: var(--pc-inline-active-widget-bg);
         border-radius: 0.35rem;
-        box-shadow: inset 0 0 0 1px rgba(251, 191, 36, 0.35);
+        box-shadow: inset 0 0 0 1px var(--pc-inline-active-widget-border);
         display: flex;
         align-items: center;
         width: 100%;
@@ -123,6 +142,7 @@
         }
     }
 </style>
+
 {% with inline_enabled=inline_edit.enabled %}
 
 <div class="overflow-x-auto table-max-height"

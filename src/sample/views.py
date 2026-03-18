@@ -115,6 +115,9 @@ class BookCRUDView(SampleCRUDMixin):
     action_button_classes = "btn-xs"
     extra_button_classes = "btn-sm"
 
+    inline_edit_always_visible = True # default is True
+    inline_edit_highlight_accent = "#f40b0b"  # default is "#14b8a6"
+
     inline_preserve_required_fields = True  # toggle for testing
     inline_edit_fields = [
         "title",

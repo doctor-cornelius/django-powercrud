@@ -630,6 +630,13 @@ def object_list(context, objects, view):
     use_htmx = context.get("use_htmx", view.get_use_htmx())
     original_target = context.get("original_target", view.get_original_target())
     htmx_target = context.get("htmx_target", view.get_htmx_target())
+    inline_edit_always_visible = False
+    if hasattr(view, "get_inline_edit_always_visible"):
+        inline_edit_always_visible = view.get_inline_edit_always_visible()
+
+    inline_edit_highlight_palette = {}
+    if hasattr(view, "get_inline_edit_highlight_palette"):
+        inline_edit_highlight_palette = view.get_inline_edit_highlight_palette()
 
     return {
         "headers": headers,  # Now contains tuples of (display_name, field_name, is_sortable)
@@ -651,6 +658,8 @@ def object_list(context, objects, view):
         "model_name": view.model.__name__.lower() if hasattr(view, "model") else "",
         "selection_key_suffix": selection_key_suffix,
         "inline_edit": inline_config,
+        "inline_edit_always_visible": inline_edit_always_visible,
+        "inline_edit_highlight_palette": inline_edit_highlight_palette,
     }
 
 
