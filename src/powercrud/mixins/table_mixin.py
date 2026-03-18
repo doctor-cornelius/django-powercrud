@@ -83,6 +83,15 @@ class TableMixin:
             return configured_instructions
         return ""
 
+    def get_column_help_text(self) -> dict[str, str]:
+        """
+        Return the optional plain-text help text mapping for rendered list columns.
+        """
+        configured_help = resolve_config(self).column_help_text
+        if isinstance(configured_help, dict):
+            return configured_help
+        return {}
+
     def get_inline_edit_always_visible(self) -> bool:
         """
         Return whether inline-editable cells keep a subtle resting highlight.

@@ -235,6 +235,29 @@ def test_table_mixin_get_view_instructions_prefers_configured_override():
     )
 
 
+def test_table_mixin_get_column_help_text_defaults_to_empty_mapping():
+    class TableView(TableMixin):
+        model = Author
+
+    view = TableView()
+
+    assert view.get_column_help_text() == {}, (
+        "Column header help should default to an empty mapping when no help text is configured."
+    )
+
+
+def test_table_mixin_get_column_help_text_prefers_configured_mapping():
+    class TableView(TableMixin):
+        model = Author
+        column_help_text = {"name": "Primary display name"}
+
+    view = TableView()
+
+    assert view.get_column_help_text() == {"name": "Primary display name"}, (
+        "Column header help should use the configured column_help_text mapping when provided."
+    )
+
+
 def test_table_mixin_inline_edit_highlight_defaults_match_current_teal_styles():
     class TableView(TableMixin):
         pass
@@ -295,6 +318,16 @@ def test_view_instructions_blank_string_raises():
         model = Author
         fields = ["name"]
         view_instructions = "   "
+
+    with pytest.raises(ImproperlyConfigured):
+        BrokenView()
+
+
+def test_column_help_text_blank_value_raises():
+    class BrokenView(CoreMixin):
+        model = Author
+        fields = ["name"]
+        column_help_text = {"name": "   "}
 
     with pytest.raises(ImproperlyConfigured):
         BrokenView()
@@ -527,6 +560,65 @@ def test_author_list_escapes_view_instructions_html(client, monkeypatch):
     )
     assert "<strong>Unsafe</strong>" not in response_text, (
         "List view should not render raw HTML from view_instructions."
+    )
+
+
+@pytest.mark.django_db
+def test_author_list_renders_column_help_icon_and_text(client, monkeypatch):
+    """Render the header help icon and tooltip text for configured columns."""
+    monkeypatch.setattr(
+        "sample.views.AuthorCRUDView.column_help_text",
+        {
+            "name": "Primary display name",
+            "has_bio": "Whether the author currently has bio text.",
+        },
+        raising=False,
+    )
+
+    Author.objects.create(name="Alice Jones")
+
+    response = client.get(reverse("sample:author-list"))
+    response_text = response.content.decode()
+
+    assert response.status_code == 200, (
+        "Author list view should render successfully when column_help_text is configured."
+    )
+    assert 'aria-label="Help for Name"' in response_text, (
+        "Configured field help should render a dedicated focusable header help trigger."
+    )
+    assert 'aria-label="Help for Has Bio"' in response_text, (
+        "Configured property help should render a dedicated help trigger for property headers too."
+    )
+    assert 'data-tippy-content="Primary display name"' in response_text, (
+        "Configured field help should be emitted as tooltip content on the header help trigger."
+    )
+    assert 'data-tippy-content="Whether the author currently has bio text."' in response_text, (
+        "Configured property help should be emitted as tooltip content on the header help trigger."
+    )
+
+
+@pytest.mark.django_db
+def test_author_list_escapes_column_help_text_html(client, monkeypatch):
+    """Escape HTML-like header help text so column_help_text remains plain text only."""
+    monkeypatch.setattr(
+        "sample.views.AuthorCRUDView.column_help_text",
+        {"name": "<strong>Unsafe</strong>"},
+        raising=False,
+    )
+
+    Author.objects.create(name="Alice Jones")
+
+    response = client.get(reverse("sample:author-list"))
+    response_text = response.content.decode()
+
+    assert response.status_code == 200, (
+        "Author list view should render successfully when HTML-like column help text is configured."
+    )
+    assert 'data-tippy-content="&lt;strong&gt;Unsafe&lt;/strong&gt;"' in response_text, (
+        "Column header help text should be escaped in tooltip attributes rather than rendered as HTML."
+    )
+    assert 'data-tippy-content="<strong>Unsafe</strong>"' not in response_text, (
+        "Column header help should not expose raw HTML in the rendered tooltip attribute."
     )
 
 

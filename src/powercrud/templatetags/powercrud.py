@@ -393,7 +393,16 @@ def object_list(context, objects, view):
     if enable_bulk_edit and hasattr(view, "get_bulk_selection_key_suffix"):
         selection_key_suffix = view.get_bulk_selection_key_suffix()
 
-    # Create tuples of (display_name, field_name, is_sortable) for each field
+    column_help_text = _resolve_view_option(
+        view,
+        method_name="get_column_help_text",
+        attr_name="column_help_text",
+        default={},
+    )
+    if not isinstance(column_help_text, dict):
+        column_help_text = {}
+
+    # Create header metadata for each field
     headers = []
     for f in fields:
         try:
@@ -413,11 +422,25 @@ def object_list(context, objects, view):
                     if hasattr(field, "verbose_name") and field.verbose_name
                     else f.replace("_", " ").title()
                 )
-            headers.append((display_name, f, True))  # Regular fields are sortable
+            headers.append(
+                {
+                    "label": display_name,
+                    "field_name": f,
+                    "is_sortable": True,
+                    "help_text": column_help_text.get(f, ""),
+                }
+            )
         except Exception as e:
             log.warning(f"Error processing field {f}: {str(e)}")
             # Fallback to basic field name formatting
-            headers.append((f.replace("_", " ").title(), f, True))
+            headers.append(
+                {
+                    "label": f.replace("_", " ").title(),
+                    "field_name": f,
+                    "is_sortable": True,
+                    "help_text": column_help_text.get(f, ""),
+                }
+            )
 
     # Add properties with proper display names (not sortable)
     for prop in properties:
@@ -431,7 +454,14 @@ def object_list(context, objects, view):
             display_name = prop_obj.fget.short_description
         else:
             display_name = prop.replace("_", " ").title()
-        headers.append((display_name, prop, False))  # Properties are not sortable
+        headers.append(
+            {
+                "label": display_name,
+                "field_name": prop,
+                "is_sortable": False,
+                "help_text": column_help_text.get(prop, ""),
+            }
+        )
 
     TICK_SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="green" class="size-4 inline-block"><path fill-rule="evenodd" d="M8 15A7 7 0 1 0 8 1a7 7 0 0 0 0 14Zm3.844-8.791a.75.75 0 0 0-1.188-.918l-3.7 4.79-1.649-1.833a.75.75 0 1 0-1.114 1.004l2.25 2.5a.75.75 0 0 0 1.15-.043l4.25-5.5Z" clip-rule="evenodd" /></svg>'
     CROSS_SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="crimson" class="size-4 inline-block"><path fill-rule="evenodd" d="M8 15A7 7 0 1 0 8 1a7 7 0 0 0 0 14Zm2.78-4.22a.75.75 0 0 1-1.06 0L8 9.06l-1.72 1.72a.75.75 0 1 1-1.06-1.06L6.94 8 5.22 6.28a.75.75 0 0 1 1.06-1.06L8 6.94l1.72-1.72a.75.75 0 1 1 1.06 1.06L9.06 8l1.72 1.72a.75.75 0 0 1 0 1.06Z" clip-rule="evenodd" /></svg>'
@@ -639,7 +669,7 @@ def object_list(context, objects, view):
         inline_edit_highlight_palette = view.get_inline_edit_highlight_palette()
 
     return {
-        "headers": headers,  # Now contains tuples of (display_name, field_name, is_sortable)
+        "headers": headers,
         "object_list": object_list,
         "current_sort": current_sort,
         "filter_params": filter_params.urlencode(),  # Add filter parameters to context

@@ -46,6 +46,10 @@ class BookCRUDView(SampleCRUDMixin):
     fields = "__all__"
     exclude = ["description"]
     properties = "__all__"
+    column_help_text = {
+        "title": "The book title shown throughout the app.",
+        "isbn_empty": "Shows whether this row currently has an ISBN value.",
+    }
     detail_fields = "__all__"
     detail_properties = "__all__"
 

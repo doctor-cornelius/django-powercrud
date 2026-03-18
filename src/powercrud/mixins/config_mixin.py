@@ -35,6 +35,7 @@ class ConfigMixin:
     base_template_path: str | None = None
     view_title: str | None = None
     view_instructions: str | None = None
+    column_help_text: dict[str, str] | None = None
 
     # forms
     use_crispy: bool | None = None

@@ -275,8 +275,18 @@ def test_object_list_formats_rows_and_headers():
     context = {"request": request}
     result = powercrud_tags.object_list(context, [author], view)
 
-    assert result["headers"][0] == ("Name", "name", True)
-    assert result["headers"][1][1] == "birth_date"
+    assert result["headers"][0]["label"] == "Name", (
+        "Object-list headers should expose the resolved display label in the header metadata mapping."
+    )
+    assert result["headers"][0]["field_name"] == "name", (
+        "Object-list headers should expose the original field name in the header metadata mapping."
+    )
+    assert result["headers"][0]["is_sortable"] is True, (
+        "Regular field headers should remain sortable in the header metadata mapping."
+    )
+    assert result["headers"][1]["field_name"] == "birth_date", (
+        "Subsequent header entries should expose the expected field name in the metadata mapping."
+    )
 
     row = result["object_list"][0]["fields"]
     assert "Test Author" in row

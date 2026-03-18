@@ -22,6 +22,10 @@ class TemplateViewStub:
     model = Book
     fields = ["title", "bestseller", "published_date", "author", "genres"]
     properties = ["isbn_empty"]
+    column_help_text = {
+        "title": "Primary title",
+        "isbn_empty": "Whether the ISBN field is blank.",
+    }
     namespace = "sample"
     url_base = "book"
     dropdown_sort_options = {"author": "name"}
@@ -225,7 +229,15 @@ def test_object_list_renders_booleans_dates_and_selection():
     }
     result = powercrud.object_list(context, [book], view)
 
-    assert result["headers"][0][0] == "Title"
+    assert result["headers"][0]["label"] == "Title", (
+        "Object-list header metadata should keep the resolved display label for field columns."
+    )
+    assert result["headers"][0]["help_text"] == "Primary title", (
+        "Object-list header metadata should include configured help text for matching field columns."
+    )
+    assert result["headers"][-1]["help_text"] == "Whether the ISBN field is blank.", (
+        "Object-list header metadata should include configured help text for matching property columns."
+    )
     row = result["object_list"][0]
     assert row["id"] == str(book.pk)
     assert any("<svg" in fragment for fragment in row["fields"])
