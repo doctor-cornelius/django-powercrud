@@ -1,3 +1,5 @@
+from django.utils.text import capfirst
+
 from .config_mixin import resolve_config
 
 
@@ -54,6 +56,23 @@ class TableMixin:
         Get the rendering mode for row-level extra actions.
         """
         return resolve_config(self).extra_actions_mode
+
+    def get_view_title(self) -> str:
+        """
+        Return the visible heading for the list page.
+
+        When `view_title` is configured, it overrides the default heading text.
+        Otherwise PowerCRUD falls back to the model plural verbose name.
+        """
+        configured_title = resolve_config(self).view_title
+        if configured_title:
+            return configured_title
+
+        model = getattr(self, "model", None)
+        if model is None or not hasattr(model, "_meta"):
+            return ""
+
+        return capfirst(model._meta.verbose_name_plural)
 
     # Inline editing helpers -------------------------------------------------
     def get_inline_row_id_prefix(self) -> str:

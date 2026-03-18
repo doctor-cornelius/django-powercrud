@@ -186,6 +186,29 @@ def test_table_header_wrap_never_exceeds_max_width():
     assert view.get_table_header_min_wrap_width() == "15ch"
 
 
+def test_table_mixin_get_view_title_falls_back_to_model_verbose_name_plural():
+    class TableView(TableMixin):
+        model = Author
+
+    view = TableView()
+
+    assert view.get_view_title() == "The Author Persons", (
+        "List heading should default to the model plural verbose name when no override is configured."
+    )
+
+
+def test_table_mixin_get_view_title_prefers_configured_override():
+    class TableView(TableMixin):
+        model = Author
+        view_title = "Custom Author Heading"
+
+    view = TableView()
+
+    assert view.get_view_title() == "Custom Author Heading", (
+        "List heading should use view_title when the override is configured on the view."
+    )
+
+
 def test_url_mixin_get_prefix_handles_namespace():
     class UrlView(UrlMixin):
         namespace = "sample"
@@ -339,6 +362,33 @@ def test_author_list_displays_filtered_paginated_record_count(client, monkeypatc
     )
     assert "Showing 1-1 of 2 matching records" in response_text, (
         "Filtered paginated list view should show the current page slice and total matching count."
+    )
+
+
+@pytest.mark.django_db
+def test_author_list_uses_view_title_override_without_changing_create_label(
+    client, monkeypatch
+):
+    """Render a custom list heading while leaving singular object copy unchanged."""
+    monkeypatch.setattr(
+        "sample.views.AuthorCRUDView.view_title",
+        "Custom Author Heading",
+        raising=False,
+    )
+
+    Author.objects.create(name="Alice Jones")
+
+    response = client.get(reverse("sample:author-list"))
+    response_text = " ".join(response.content.decode().split())
+
+    assert response.status_code == 200, (
+        "Author list view should render successfully when a custom view_title is configured."
+    )
+    assert "Custom Author Heading" in response_text, (
+        "List view should render the configured view_title as the visible heading."
+    )
+    assert "Create The Author Person" in response_text, (
+        "The create button label should continue to use the singular model verbose name."
     )
 
 

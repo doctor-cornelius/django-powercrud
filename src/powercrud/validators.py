@@ -12,6 +12,7 @@ class PowerCRUDMixinValidator(BaseModel):
     # template parameters
     templates_path: Optional[str] = None
     base_template_path: Optional[str] = None
+    view_title: Optional[str] = None
 
     # forms
     use_crispy: Optional[bool] = None
@@ -124,6 +125,16 @@ class PowerCRUDMixinValidator(BaseModel):
             raise ValueError(
                 "base_template_path must be a non-empty string when provided"
             )
+        return v
+
+    @field_validator("view_title")
+    @classmethod
+    def validate_view_title(cls, v):
+        """Ensure the optional list heading override is non-empty when set."""
+        if v is None:
+            return v
+        if isinstance(v, str) and not v.strip():
+            raise ValueError("view_title must be a non-empty string when provided")
         return v
 
     @field_validator("form_fields")

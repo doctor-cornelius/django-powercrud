@@ -92,7 +92,7 @@
     <div class="flex flex-col"
          data-powercrud-object-list="true"
          data-powercrud-list-url="{{ list_view_url }}">
-        <h1 class="flex-1 font-bold text-xl text-primary">{{ object_verbose_name_plural|capfirst }}</h1>
+        <h1 class="flex-1 font-bold text-xl text-primary">{{ view.get_view_title }}</h1>
 
         <div class="flex gap-2 my-2 items-center flex-wrap">
             {% if filterset %}

@@ -33,6 +33,7 @@ class ConfigMixin:
     # base_template_path must always be provided by the project; there is no
     # built-in HTML shell. It should point at the app’s real base template.
     base_template_path: str | None = None
+    view_title: str | None = None
 
     # forms
     use_crispy: bool | None = None

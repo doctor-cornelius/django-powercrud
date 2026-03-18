@@ -65,6 +65,7 @@ Types are shown next to each setting name. `Accepted values` is the contract for
 | `use_crispy` (`bool`) | `None`, `True`, `False` | `None` | Auto-detects: `True` when `crispy_forms` is installed | Toggle Crispy Forms rendering for generated forms. | [Form controls](#form-controls) |
 | `use_htmx` (`bool`) | `None`, `True`, `False` | `None` | HTMX is disabled | Enable HTMX responses (modals, inline updates, partial refreshes). | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
 | `use_modal` (`bool`) | `None`, `True`, `False` | `None` | Modals stay disabled | Enable HTMX-driven modal forms (requires `use_htmx = True`). | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
+| `view_title` (`str`) | `None` or non-empty `str` | `None` | The visible list heading uses `verbose_name_plural` | Override the visible list-page heading without changing model metadata or other singular/plural UI copy. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
 
 ## Settings Configuration
 
