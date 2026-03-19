@@ -439,17 +439,28 @@
             if (trigger._tippy) {
                 trigger._tippy.destroy();
             }
-            if (isTooltipOverflowTarget(trigger) && !isTruncated(trigger)) {
-                return;
-            }
-            if (!isTooltipOverflowTarget(trigger) && !isTooltipSemanticTarget(trigger)) {
+            const isOverflowTarget = isTooltipOverflowTarget(trigger);
+            const isSemanticTarget = isTooltipSemanticTarget(trigger);
+            if (!isOverflowTarget && !isSemanticTarget) {
                 return;
             }
             tippyCtor(trigger, {
                 theme: 'dark',
                 placement: 'top',
+                onShow(instance) {
+                    if (!isOverflowTarget) {
+                        return true;
+                    }
+                    return isTruncated(instance.reference);
+                },
             });
         });
+    }
+
+    function schedulePowercrudTooltipRefresh(root = document, delay = 0) {
+        global.setTimeout(() => {
+            initPowercrudTooltips(root);
+        }, delay);
     }
 
     function syncFilterToggleLabel(root) {
@@ -1613,6 +1624,7 @@
             bootstrapObjectLists(root);
             initPowercrudTooltips(root);
         });
+        schedulePowercrudTooltipRefresh(document, 50);
 
         const target = asElement(event.target);
         if (!(target instanceof HTMLElement)) {
@@ -1690,6 +1702,7 @@
             bootstrapObjectLists(root);
             initPowercrudTooltips(root);
         });
+        schedulePowercrudTooltipRefresh(document, 50);
     });
 
     document.addEventListener('htmx:beforeRequest', event => {
