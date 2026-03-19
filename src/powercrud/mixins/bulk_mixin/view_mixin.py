@@ -241,7 +241,7 @@ class ViewMixin:
             "original_target": self.get_original_target(),
         }
         # Render the bulk edit form
-        log.debug(f"bulk_edit: template_name = {template_name}")
+        # log.debug(f"bulk_edit: template_name = {template_name}")
         response = render(request, template_name, context)
         return response
 
@@ -294,14 +294,14 @@ class ViewMixin:
                 }
             )
 
-        log.debug(f"Processing bulk edit for {len(selected_ids)} selected records")
+        # log.debug(f"Processing bulk edit for {len(selected_ids)} selected records")
         if delete_selected:
             if not self.get_bulk_delete_enabled():
                 return HttpResponseForbidden("Bulk delete is not allowed.")
 
             # check if should process asynchronously
             if self.should_process_async(len(selected_ids)):
-                log.debug(
+                # log.debug(
                     f"Processing bulk delete asynchronously for {len(selected_ids)} records."
                 )
                 return self._handle_async_bulk_operation(
@@ -352,14 +352,14 @@ class ViewMixin:
 
                 # Make sure the response targets the modal content
                 response["HX-Retarget"] = self.get_modal_target()
-                log.debug(f"bulk delete errors: {errors}")
-                log.debug(
+                # log.debug(f"bulk delete errors: {errors}")
+                # log.debug(
                     f"BulkMixin: bulk_edit_process_post (DELETE ERROR) - Returning response of type {type(response)}"
                 )
-                log.debug(
+                # log.debug(
                     f"BulkMixin: bulk_edit_process_post (DELETE ERROR) - Response content (first 500 chars): {response.content.decode('utf-8')[:500]}"
                 )
-                log.debug(
+                # log.debug(
                     f"BulkMixin: bulk_edit_process_post (DELETE ERROR) - Response headers: {response.headers}"
                 )
                 return response
@@ -370,14 +370,14 @@ class ViewMixin:
                 response["HX-Trigger"] = json.dumps(
                     {"bulkEditSuccess": True, "refreshTable": True}
                 )
-                log.debug(f"Bulk edit: Deleted {deleted_count} objects successfully.")
-                log.debug(
+                # log.debug(f"Bulk edit: Deleted {deleted_count} objects successfully.")
+                # log.debug(
                     f"BulkMixin: bulk_edit_process_post (DELETE SUCCESS) - Returning response of type {type(response)}"
                 )
-                log.debug(
+                # log.debug(
                     f"BulkMixin: bulk_edit_process_post (DELETE SUCCESS) - Response content: {response.content.decode('utf-8')}"
                 )
-                log.debug(
+                # log.debug(
                     f"BulkMixin: bulk_edit_process_post (DELETE SUCCESS) - Response headers: {response.headers}"
                 )
                 return response
@@ -385,7 +385,7 @@ class ViewMixin:
         # Bulk Update Logic
         # Check whether async processing required
         if self.should_process_async(len(selected_ids)):
-            log.debug(
+            # log.debug(
                 f"Processing bulk update asynchronously for {len(selected_ids)} records."
             )
             return self._handle_async_bulk_operation(
@@ -403,7 +403,7 @@ class ViewMixin:
         updated_count = result.get("success_records", 0)
 
         # Check if there were any errors during the update process
-        log.debug(f"Bulk edit update errors: {errors}")
+        # log.debug(f"Bulk edit update errors: {errors}")
         if errors:
             context = {
                 "errors": errors,
@@ -437,14 +437,14 @@ class ViewMixin:
 
             # Make sure the response targets the modal content
             response["HX-Retarget"] = self.get_modal_target()
-            log.debug(f"Returning error response with {len(errors)} errors")
-            log.debug(
+            # log.debug(f"Returning error response with {len(errors)} errors")
+            # log.debug(
                 f"BulkMixin: bulk_edit_process_post (UPDATE ERROR) - Returning response of type {type(response)}"
             )
-            log.debug(
+            # log.debug(
                 f"BulkMixin: bulk_edit_process_post (UPDATE ERROR) - Response content (first 500 chars): {response.content.decode('utf-8')[:500]}"
             )
-            log.debug(
+            # log.debug(
                 f"BulkMixin: bulk_edit_process_post (UPDATE ERROR) - Response headers: {response.headers}"
             )
             return response
@@ -455,5 +455,5 @@ class ViewMixin:
             response["HX-Trigger"] = json.dumps(
                 {"bulkEditSuccess": True, "refreshTable": True}
             )
-            log.debug(f"Bulk edit: Updated {updated_count} objects successfully.")
+            # log.debug(f"Bulk edit: Updated {updated_count} objects successfully.")
             return response

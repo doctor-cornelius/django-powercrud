@@ -68,12 +68,12 @@ class AsyncMixin:
         Returns:
             bool: True if operation should be async, False for sync processing
         """
-        log.debug("running should_process_async")
+        # log.debug("running should_process_async")
         if not self.get_bulk_async_enabled():
-            log.debug("async not enabled")
+            log.warning("async not enabled")
             return False
         result = record_count >= self.get_bulk_min_async_records()
-        log.debug(f"should_process_async: {result} for {record_count} records")
+        # log.debug(f"should_process_async: {result} for {record_count} records")
         return result
 
     def is_async_backend_available(self) -> bool:
@@ -339,7 +339,7 @@ class AsyncMixin:
         field_data,
     ):
         """Handle async bulk operations using new AsyncManager system"""
-        log.debug("running _handle_async_bulk_operation with new AsyncManager")
+        # log.debug("running _handle_async_bulk_operation with new AsyncManager")
 
         # ✅ Check authentication if required
         cfg = resolve_config(self)
@@ -379,7 +379,7 @@ class AsyncMixin:
 
         try:
             if delete_selected:
-                log.debug(
+                log.info(
                     f"Launching async bulk delete task for {len(selected_ids)} records"
                 )
                 # Launch delete task using new AsyncManager
@@ -397,7 +397,7 @@ class AsyncMixin:
                     manager_config=self.get_async_manager_config(),
                 )
             else:
-                log.debug(
+                log.info(
                     f"Launching async bulk update task for {len(selected_ids)} records"
                 )
                 # Launch update task using new AsyncManager

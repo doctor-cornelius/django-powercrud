@@ -63,7 +63,7 @@ class OperationMixin:
                             progress_callback(current, total)
                     except ObjectDoesNotExist:
                         # ✅ Record already deleted by another process - that's fine!
-                        log.debug(f"Record {obj.pk} already deleted")
+                        # log.debug(f"Record {obj.pk} already deleted")
                         current += 1
                         if progress_callback:
                             progress_callback(current, total)
@@ -114,7 +114,7 @@ class OperationMixin:
 
         # First pass: collect all changes without saving
         for obj in queryset:
-            log.debug(f"Preparing bulk edit for object {obj.pk}")
+            # log.debug(f"Preparing bulk edit for object {obj.pk}")
             obj_changes = {"object": obj, "changes": {}}
 
             for field_dict in field_data:
@@ -153,7 +153,7 @@ class OperationMixin:
                     obj = update["object"]
                     changes = update["changes"]
 
-                    log.debug(f"_perform_bulk_update on {obj}")
+                    # log.debug(f"_perform_bulk_update on {obj}")
 
                     # Apply all changes to the object
                     for field, change_info in changes.items():
@@ -196,9 +196,9 @@ class OperationMixin:
 
                     # Validate and save the object
                     if getattr(self, "bulk_full_clean", True):
-                        log.debug("running full_clean()")
+                        # log.debug("running full_clean()")
                         obj.full_clean()  # This will raise ValidationError if validation fails
-                    log.debug("running save()")
+                    # log.debug("running save()")
                     obj.save()
                     updated_count += 1
                     current += 1
