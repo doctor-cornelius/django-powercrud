@@ -1207,10 +1207,11 @@ class DummyConflictView(AsyncMixin):
     bulk_async_backend = "q2"
 
 
-class TestSingleRecordConflicts(TestCase):
+class TestSingleRecordConflicts(AsyncManagerTestMixin, TestCase):
     """Task 6: ensure single-record operations respect async locks."""
 
     def setUp(self):
+        super().setUp()
         self.manager = AsyncManager()
         self.view = DummyConflictView()
         self.author = Author.objects.create(name="Author Name")
@@ -1333,8 +1334,9 @@ class TestAsyncHookHelpers(TestCase):
         mock_manager.handle_task_completion.assert_called_once_with(task, "task789")
 
 
-class TestModelTrackingAsyncManager(TestCase):
+class TestModelTrackingAsyncManager(AsyncManagerTestMixin, TestCase):
     def setUp(self):
+        super().setUp()
         AsyncTaskRecord.objects.all().delete()
         self.manager = ModelTrackingAsyncManager(
             config=AsyncDashboardConfig(record_model_path="sample.AsyncTaskRecord"),

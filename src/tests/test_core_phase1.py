@@ -661,10 +661,6 @@ def test_book_update_form_renders_display_only_context_and_disabled_field(client
 
     response = client.get(reverse("sample:bigbook-update", args=[book.pk]))
     response_text = response.content.decode()
-    context_data = getattr(response, "context_data", {}) or {}
-    form_display_items = context_data.get("form_display_items", None)
-    form = context_data.get("form", None)
-    rendered_form_instance_pk = getattr(getattr(form, "instance", None), "pk", None)
 
     assert response.status_code == 200, (
         "Book update form should render successfully so the new display-only context block can be inspected."
@@ -673,19 +669,13 @@ def test_book_update_form_renders_display_only_context_and_disabled_field(client
         "Book update form should render the display-only context section when form_display_fields are configured."
     )
     assert "Uneditable Field" in response_text, (
-        "Book update form should render the configured display-only field label above the editable inputs. "
-        f"context_data.form_display_items={form_display_items!r}; "
-        f"rendered_form_instance_pk={rendered_form_instance_pk!r}"
+        "Book update form should render the configured display-only field label above the editable inputs."
     )
     assert "This field is uneditable" in response_text, (
-        "Book update form should render the current persisted value for configured form_display_fields. "
-        f"context_data.form_display_items={form_display_items!r}; "
-        f"rendered_form_instance_pk={rendered_form_instance_pk!r}"
+        "Book update form should render the current persisted value for configured form_display_fields."
     )
     assert re.search(r'name="isbn"[^>]*disabled', response_text), (
-        "Book update form should render configured form_disabled_fields with the disabled attribute. "
-        f"context_data.form_display_items={form_display_items!r}; "
-        f"rendered_form_instance_pk={rendered_form_instance_pk!r}"
+        "Book update form should render configured form_disabled_fields with the disabled attribute."
     )
 
 
