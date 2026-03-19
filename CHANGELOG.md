@@ -1,3 +1,14 @@
+## 0.5.19 (2026-03-19)
+
+### Fix
+
+- fix race condition with tooltips under htmx
+- **(inline)**: ensure form_disabled_fields is not applied to inline editing
+
+### Feature
+
+- implement support to specify non-editable form fields and display-only fields
+
 ## 0.5.18 (2026-03-18)
 
 ### Feature
