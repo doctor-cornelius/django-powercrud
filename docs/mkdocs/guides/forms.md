@@ -133,9 +133,10 @@ class BookCRUDView(PowerCRUDMixin, CRUDView):
 
 Behavior:
 
-- the field remains visible on the form
+- the field remains visible on update forms
 - PowerCRUD disables the Django form field, not just the widget
 - submitted tampering is ignored and the existing instance value is preserved
+- this applies to update forms only, not create forms or inline editing
 
 This solves a different problem from `form_display_fields`:
 

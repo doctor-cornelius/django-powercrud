@@ -38,6 +38,7 @@ class BookCRUDView(PowerCRUDMixin, CRUDView):
 - `inline_edit_fields` both enables inline editing and controls which columns show the hover/focus shim and respond to clicks.
 - Leave `inline_edit_fields` unset to disable inline editing for the view.
 - `inline_edit_fields` must match fields exposed by the actual form returned by `get_form_class()`. If you use a custom `form_class`, PowerCRUD filters the inline list to fields that really exist on that form.
+- `form_disabled_fields` does not disable the same field inline. It remains an update-form feature only.
 - Only columns actually rendered in the list can be clicked inline, so a field must be both inline-configured and visible in the list to behave as an inline-editable cell.
 - `inline_edit_always_visible` defaults to `True`, which means editable cells show a subtle resting hint even before hover.
 - `inline_edit_highlight_accent` defaults to `"#14b8a6"`. PowerCRUD derives the lighter resting tint, stronger hover/focus tint, and active-row highlight from that single hex accent automatically.
@@ -79,7 +80,7 @@ Notes:
 
 ## 2. Configure dependencies and helpers
 
-Inline editing reuses the existing form machinery, so any widget or queryset customisations carry over. Keep `inline_edit_fields` aligned with whatever the form actually exposes; if a field is excluded from `form_class`, PowerCRUD drops it from the inline list. List rendering still controls which cells are clickable, so an inline field should normally also be present in your list `fields`. For dynamic dropdowns, declare the shared queryset dependency once:
+Inline editing reuses the existing form machinery, so any widget or queryset customisations carry over. Keep `inline_edit_fields` aligned with whatever the form actually exposes; if a field is excluded from `form_class`, PowerCRUD drops it from the inline list. List rendering still controls which cells are clickable, so an inline field should normally also be present in your list `fields`. One exception is `form_disabled_fields`: that setting does not lock the same field inline and remains update-form-only. For dynamic dropdowns, declare the shared queryset dependency once:
 
 ```python
 class BookCRUDView(PowerCRUDMixin, CRUDView):

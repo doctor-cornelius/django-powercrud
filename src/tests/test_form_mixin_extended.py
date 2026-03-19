@@ -166,15 +166,38 @@ def test_get_form_class_prefers_custom_form_over_form_fields():
 
 @pytest.mark.django_db
 def test_finalize_form_disables_configured_fields():
-    """Configured form_disabled_fields should disable the built form fields."""
+    """Configured form_disabled_fields should disable fields on update forms."""
+    author = Author.objects.create(name="Ada")
+    book = Book.objects.create(
+        title="Existing Book",
+        author=author,
+        published_date="2024-01-01",
+        bestseller=False,
+        isbn="1234500000999",
+        pages=10,
+    )
+    request = attach_session(RequestFactory().get("/"))
+    view = DummyFormView(request)
+    view.form_disabled_fields = ["published_date"]
+
+    form = view._finalize_form(view.get_form_class()(instance=book))
+
+    assert form.fields["published_date"].disabled is True, (
+        "Configured form_disabled_fields should set Django field.disabled=True on matching update-form fields."
+    )
+
+
+@pytest.mark.django_db
+def test_finalize_form_skips_disabled_fields_on_create_forms():
+    """Create forms should keep configured disabled fields editable."""
     request = attach_session(RequestFactory().get("/"))
     view = DummyFormView(request)
     view.form_disabled_fields = ["published_date"]
 
     form = view._finalize_form(view.get_form_class()())
 
-    assert form.fields["published_date"].disabled is True, (
-        "Configured form_disabled_fields should set Django field.disabled=True on matching form fields."
+    assert form.fields["published_date"].disabled is False, (
+        "Create forms should ignore form_disabled_fields so required inputs remain usable."
     )
 
 
@@ -216,6 +239,30 @@ def test_disabled_form_field_preserves_instance_value_on_submit():
     )
     assert str(saved_book.published_date) == "2024-02-02", (
         "Non-disabled form fields should continue to save updated values normally alongside disabled fields."
+    )
+
+
+@pytest.mark.django_db
+def test_build_inline_form_skips_form_disabled_fields():
+    """Inline forms should not inherit regular-form disabled field settings."""
+    author = Author.objects.create(name="Ada")
+    book = Book.objects.create(
+        title="Original Title",
+        author=author,
+        published_date="2024-01-01",
+        bestseller=False,
+        isbn="1234500000001",
+        pages=10,
+    )
+    request = attach_session(RequestFactory().get("/"))
+    view = DummyFormView(request)
+    view.form_class = MinimalBookForm
+    view.form_disabled_fields = ["isbn"]
+
+    form = view.build_inline_form(instance=book)
+
+    assert form.fields["isbn"].disabled is False, (
+        "Inline forms should ignore form_disabled_fields so inline_edit_fields remain editable when configured."
     )
 
 

@@ -40,7 +40,7 @@ Types are shown next to each setting name. `Accepted values` is the contract for
 | `form_fields` (`list/str`) | `None`, `'__all__'`, `'__fields__'`, `list[str]` | `None` | All editable `detail_fields` appear in the auto-generated form | Fields included when PowerCRUD generates the form class for you. Ignored when `form_class` is set. | [Form controls](#form-controls) |
 | `form_fields_exclude` (`list[str]`) | `list[str]` | `[]` | The auto-selected form fields render untouched | Remove individual fields from the auto-generated form. Ignored when `form_class` is set. | [Form controls](#form-controls) |
 | `form_display_fields` (`list[str]`) | `list[str]` | `[]` | No display-only context block is shown above forms | Model fields to render as read-only context above update forms. Can include `editable=False` model fields. | [Form controls](#form-controls) |
-| `form_disabled_fields` (`list[str]`) | `list[str]` | `[]` | Every generated form field stays editable | Disable specific form inputs while keeping them visible on the form. Must reference fields present on the built form. | [Form controls](#form-controls) |
+| `form_disabled_fields` (`list[str]`) | `list[str]` | `[]` | Every update-form field stays editable | Disable specific update-form inputs while keeping them visible on the form. Must reference fields present on the built form. | [Form controls](#form-controls) |
 | `field_queryset_dependencies` (`dict \| None`) | `None` or dependency map | `None` | Select fields use their default queryset | Declarative parent/child queryset scoping shared by regular forms and inline forms. | [Form controls](#form-controls) |
 | `hx_trigger` (`str/int/float/dict`) | `None`, scalar trigger name, or trigger map | `None` | No HX-Trigger header is sent | Custom HTMX triggers to fire after responses. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
 | `inline_edit_allowed` (`callable`) | `None` or predicate callable | `None` | Every row follows the standard permission checks | Optional predicate to allow/block inline editing per row. | [Inline editing](../guides/inline_editing.md) |
@@ -156,7 +156,7 @@ Override or refine the automatically generated forms with `form_class`, `form_fi
 `form_display_fields` and `form_disabled_fields` solve two different problems:
 
 - `form_display_fields` adds a separate read-only `Context` block above update forms. Use it for contextual model data, including `editable=False` fields.
-- `form_disabled_fields` keeps a real form input visible but locked. Because PowerCRUD uses Django field disabling, submitted tampering is ignored and the existing instance value is preserved.
+- `form_disabled_fields` keeps a real form input visible but locked on update forms. Because PowerCRUD uses Django field disabling, submitted tampering is ignored and the existing instance value is preserved. This setting does not lock the same field in create forms or inline editing.
 
 ### Dependent queryset scoping
 

@@ -691,6 +691,9 @@ def test_book_create_form_hides_display_only_context_block(client):
     assert "Uneditable Field" not in response_text, (
         "Book create form should hide form_display_fields because there is no persisted object yet."
     )
+    assert not re.search(r'name="isbn"[^>]*disabled', response_text), (
+        "Book create form should keep configured form_disabled_fields editable so required values can still be entered."
+    )
 
 
 def _create_book_inline_edit_fixture() -> Book:

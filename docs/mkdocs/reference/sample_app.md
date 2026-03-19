@@ -85,7 +85,7 @@ The sample `BookCRUDView` uses `view_title = "My List of Books"` plus `view_inst
 The sample form configuration now also demonstrates two contextual form-surface features:
 
 - `form_display_fields = ["uneditable_field"]` shows the model’s non-editable field in a separate read-only `Context` block above the update form.
-- `form_disabled_fields = ["isbn"]` keeps the ISBN visible on the form but locks the input so users can see it without changing it.
+- `form_disabled_fields = ["isbn"]` keeps the ISBN visible on update forms but locks the input so users can see it without changing it.
 
 `BookForm` remains the source of truth for editable inputs, while PowerCRUD layers the display-only context block and disabled-field behavior on top of that custom form.
 

@@ -146,8 +146,16 @@ class FormMixin:
 
         Using ``field.disabled = True`` ensures submitted tampering is ignored and
         the persisted instance value is preserved on validation and save.
+
+        PowerCRUD applies this only to update forms. Disabling fields on create
+        forms can make required inputs impossible to populate and is not the
+        intended use of the feature.
         """
         if not form:
+            return form
+
+        instance = getattr(form, "instance", None)
+        if instance is None or getattr(instance, "pk", None) is None:
             return form
 
         disabled_fields = self.get_form_disabled_fields()
@@ -509,11 +517,14 @@ class FormMixin:
 
         return form
 
-    def _finalize_form(self, form: forms.BaseForm) -> forms.BaseForm:
+    def _finalize_form(
+        self, form: forms.BaseForm, *, inline: bool = False
+    ) -> forms.BaseForm:
         """
         Apply PowerCRUD form instance behavior after construction.
         """
-        form = self._apply_disabled_form_fields(form)
+        if not inline:
+            form = self._apply_disabled_form_fields(form)
         form = self._apply_field_queryset_dependencies(form)
         return self._apply_searchable_select_attrs(form)
 
@@ -675,7 +686,7 @@ class FormMixin:
             instance=instance, data=data, files=files
         )
         form = form_class(**form_kwargs)
-        return self._finalize_form(form)
+        return self._finalize_form(form, inline=True)
 
     def show_form(self, request, *args, **kwargs):
         """Override to check for conflicts before showing edit form"""
