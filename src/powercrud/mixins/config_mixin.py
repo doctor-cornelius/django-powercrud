@@ -56,6 +56,8 @@ class ConfigMixin:
     form_class = None
     form_fields: list[str] = []
     form_fields_exclude: list[str] = []
+    form_display_fields: list[str] = []
+    form_disabled_fields: list[str] = []
 
     # bulk edit parameters
     bulk_fields: list[str] = []
@@ -211,6 +213,7 @@ class ConfigMixin:
         self._configure_detail_properties()
         self._configure_bulk_fields()
         self._configure_form_fields()
+        self._configure_form_display_fields()
 
         if self.bulk_async and not self.get_bulk_async_enabled():
             log.warning(
@@ -342,6 +345,18 @@ class ConfigMixin:
                         )
 
     def _configure_form_fields(self):
+        """
+        Resolve editable auto-generated form fields.
+
+        When a custom ``form_class`` is configured, PowerCRUD no longer treats
+        ``form_fields`` / ``form_fields_exclude`` as meaningful form-shaping
+        configuration. The custom form class becomes the sole source of truth
+        for editable inputs.
+        """
+        if self.form_class is not None:
+            self.form_fields = []
+            return
+
         all_editable = self._get_all_editable_fields()
 
         if not self.form_fields:
@@ -362,6 +377,20 @@ class ConfigMixin:
             self.form_fields = [
                 f for f in self.form_fields if f not in self.form_fields_exclude
             ]
+
+    def _configure_form_display_fields(self):
+        """Validate configured display-only form fields against model fields."""
+        if not self.form_display_fields:
+            self.form_display_fields = []
+            return
+
+        all_fields = self._get_all_fields()
+        invalid_fields = [f for f in self.form_display_fields if f not in all_fields]
+        if invalid_fields:
+            raise ValueError(
+                f"The following form_display_fields are not model fields in {self.model.__name__}: "
+                f"{', '.join(invalid_fields)}"
+            )
 
     def _get_all_fields(self):
         return [
@@ -404,6 +433,12 @@ class ConfigMixin:
         config["detail_fields"] = list(getattr(self, "detail_fields", []))
         config["detail_properties"] = list(getattr(self, "detail_properties", []))
         config["form_fields"] = list(getattr(self, "form_fields", []))
+        config["form_display_fields"] = list(
+            getattr(self, "form_display_fields", [])
+        )
+        config["form_disabled_fields"] = list(
+            getattr(self, "form_disabled_fields", [])
+        )
 
         # Derived booleans
         use_htmx_enabled = config.get("use_htmx") is True
@@ -629,6 +664,8 @@ class _ConfigShim:
         if name in {
             "bulk_fields",
             "form_fields",
+            "form_display_fields",
+            "form_disabled_fields",
             "fields",
             "detail_fields",
             "detail_properties",

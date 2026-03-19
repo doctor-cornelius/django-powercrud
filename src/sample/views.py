@@ -65,16 +65,8 @@ class BookCRUDView(SampleCRUDMixin):
     bulk_async = True
     bulk_min_async_records = 2
 
-    form_fields = [
-        "title",
-        "author",
-        "bestseller",
-        "pages",
-        "genres",
-        "published_date",
-        "isbn",
-        "description",
-    ]
+    form_display_fields = ["uneditable_field"]
+    form_disabled_fields = ["isbn"]
     form_class = forms.BookForm
     field_queryset_dependencies = {
         "genres": {

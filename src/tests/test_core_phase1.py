@@ -62,6 +62,30 @@ def test_core_mixin_respects_excludes_and_form_fields():
 
 
 @pytest.mark.django_db
+def test_core_mixin_accepts_non_editable_model_fields_for_form_display_fields():
+    class BookView(CoreMixin):
+        model = Book
+        fields = "__all__"
+        form_display_fields = ["uneditable_field", "author"]
+
+    view = BookView()
+
+    assert view.form_display_fields == ["uneditable_field", "author"], (
+        "form_display_fields should accept model fields used for display-only context, including editable=False fields."
+    )
+
+
+def test_core_mixin_invalid_form_display_field_raises_value_error():
+    class BrokenView(CoreMixin):
+        model = Book
+        fields = "__all__"
+        form_display_fields = ["missing_field"]
+
+    with pytest.raises(ValueError, match="form_display_fields"):
+        BrokenView()
+
+
+@pytest.mark.django_db
 def test_core_mixin_all_fields_and_excludes():
     class AllFieldsView(CoreMixin):
         model = Author
@@ -619,6 +643,53 @@ def test_author_list_escapes_column_help_text_html(client, monkeypatch):
     )
     assert 'data-tippy-content="<strong>Unsafe</strong>"' not in response_text, (
         "Column header help should not expose raw HTML in the rendered tooltip attribute."
+    )
+
+
+@pytest.mark.django_db
+def test_book_update_form_renders_display_only_context_and_disabled_field(client):
+    """Render the sample update form with display-only context and a disabled input."""
+    author = Author.objects.create(name="Context Author")
+    book = Book.objects.create(
+        title="Context Book",
+        author=author,
+        published_date=date(2026, 1, 30),
+        bestseller=False,
+        isbn="978-1-4028-9462-7",
+        pages=321,
+    )
+
+    response = client.get(reverse("sample:bigbook-update", args=[book.pk]))
+    response_text = response.content.decode()
+
+    assert response.status_code == 200, (
+        "Book update form should render successfully so the new display-only context block can be inspected."
+    )
+    assert "Context" in response_text, (
+        "Book update form should render the display-only context section when form_display_fields are configured."
+    )
+    assert "Uneditable Field" in response_text, (
+        "Book update form should render the configured display-only field label above the editable inputs."
+    )
+    assert "This field is uneditable" in response_text, (
+        "Book update form should render the current persisted value for configured form_display_fields."
+    )
+    assert re.search(r'name="isbn"[^>]*disabled', response_text), (
+        "Book update form should render configured form_disabled_fields with the disabled attribute."
+    )
+
+
+@pytest.mark.django_db
+def test_book_create_form_hides_display_only_context_block(client):
+    """Create forms should not render display-only context before an object exists."""
+    response = client.get(reverse("sample:bigbook-create"))
+    response_text = response.content.decode()
+
+    assert response.status_code == 200, (
+        "Book create form should render successfully so the absence of display-only context can be inspected."
+    )
+    assert "Uneditable Field" not in response_text, (
+        "Book create form should hide form_display_fields because there is no persisted object yet."
     )
 
 

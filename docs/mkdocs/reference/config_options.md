@@ -37,8 +37,10 @@ Types are shown next to each setting name. `Accepted values` is the contract for
 | `filterset_class` (`FilterSet`) | `None` or `FilterSet` subclass | `None` | A dynamic `FilterSet` is generated from `filterset_fields` | Provide a custom `FilterSet` subclass for complex filtering. | [Filter controls](#filter-controls) |
 | `filterset_fields` (`list[str]`) | `list[str]` | `[]` | No filter sidebar is rendered | Fields to include in the auto-generated filterset. | [Filter controls](#filter-controls) |
 | `form_class` (`ModelForm`) | `None` or `ModelForm` subclass | `None` | PowerCRUD builds a `ModelForm` from `form_fields` | Override the form entirely with a custom class. | [Form controls](#form-controls) |
-| `form_fields` (`list/str`) | `None`, `'__all__'`, `'__fields__'`, `list[str]` | `None` | All editable `detail_fields` appear in the form | Fields included in create/update forms. | [Form controls](#form-controls) |
-| `form_fields_exclude` (`list[str]`) | `list[str]` | `[]` | The auto-selected form fields render untouched | Remove individual fields from the generated form. | [Form controls](#form-controls) |
+| `form_fields` (`list/str`) | `None`, `'__all__'`, `'__fields__'`, `list[str]` | `None` | All editable `detail_fields` appear in the auto-generated form | Fields included when PowerCRUD generates the form class for you. Ignored when `form_class` is set. | [Form controls](#form-controls) |
+| `form_fields_exclude` (`list[str]`) | `list[str]` | `[]` | The auto-selected form fields render untouched | Remove individual fields from the auto-generated form. Ignored when `form_class` is set. | [Form controls](#form-controls) |
+| `form_display_fields` (`list[str]`) | `list[str]` | `[]` | No display-only context block is shown above forms | Model fields to render as read-only context above update forms. Can include `editable=False` model fields. | [Form controls](#form-controls) |
+| `form_disabled_fields` (`list[str]`) | `list[str]` | `[]` | Every generated form field stays editable | Disable specific form inputs while keeping them visible on the form. Must reference fields present on the built form. | [Form controls](#form-controls) |
 | `field_queryset_dependencies` (`dict \| None`) | `None` or dependency map | `None` | Select fields use their default queryset | Declarative parent/child queryset scoping shared by regular forms and inline forms. | [Form controls](#form-controls) |
 | `hx_trigger` (`str/int/float/dict`) | `None`, scalar trigger name, or trigger map | `None` | No HX-Trigger header is sent | Custom HTMX triggers to fire after responses. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
 | `inline_edit_allowed` (`callable`) | `None` or predicate callable | `None` | Every row follows the standard permission checks | Optional predicate to allow/block inline editing per row. | [Inline editing](../guides/inline_editing.md) |
@@ -92,11 +94,33 @@ All of the following keys live inside the optional `POWERCRUD_SETTINGS` dict in 
 
 Fine-tune what users can filter and how options are presented by combining `filterset_fields`, `filter_queryset_options`, `dropdown_sort_options`, `filter_null_fields_exclude`, and `m2m_filter_and_logic`.
 
+???+ note "filterset_fields vs filterset_class"
+
+    `filterset_fields` and `filterset_class` are alternative strategies.
+
+    If you set `filterset_class`, it takes precedence and PowerCRUD does not auto-generate filters from `filterset_fields`.
+
+    These settings only shape the auto-generated `filterset_fields` path:
+
+    - `filter_queryset_options`
+    - `filter_null_fields_exclude`
+    - `m2m_filter_and_logic`
+    - filter-side `dropdown_sort_options`
+
+    These behaviors still apply to both generated and custom filtersets after the filterset exists:
+
+    - `searchable_selects`
+    - HTMX widget attrs when `use_htmx = True` and the custom filterset exposes `setup_htmx_attrs()`
+
+    For custom filtersets, the recommended pattern is still to subclass `HTMXFilterSetMixin` when you want reactive filtering.
+
 Nullable auto-generated filters behave differently by field type:
 
 - Nullable `ForeignKey` and `OneToOneField` filters keep a single dropdown and add an `Empty only` option near the top.
 - Nullable scalar filters such as `CharField`, `TextField`, `DateField`, `TimeField`, `IntegerField`, `DecimalField`, `FloatField`, and `BooleanField` gain a separate companion `... is empty` boolean select.
 - Companion null controls are rendered immediately after their parent auto-generated filter field in the form.
+
+Auto-generated text filters use `icontains` by default. There is no separate declarative setting to change that lookup expression field by field; use `filterset_class` when you need custom lookup expressions.
 
 `filter_null_fields_exclude` always matches the original model field names listed in `filterset_fields`.
 
@@ -113,11 +137,26 @@ filter_null_fields_exclude = ["status"]
 
 In that configuration, `owner` keeps one dropdown with `Empty only`, `published_date` gains a separate `Published date is empty` companion filter, and `status` gets no built-in null helper.
 
+If you want `title` to use `iexact` or `startswith` instead of the generated `icontains` behavior, move that filter into a custom `filterset_class`.
+
 Start with the [Filtering & sorting walkthrough](../guides/setup_core_crud.md#filtering-sorting) and the dropdown guidance in [Bulk editing (synchronous)](../guides/bulk_edit_sync.md#dropdowns-choices).
 
 ## Form controls
 
-Override or refine the automatically generated forms with `form_class`, `form_fields`, `form_fields_exclude`, and `field_queryset_dependencies`, and enable Crispy Forms support via `use_crispy`. See the form configuration examples in [Setup & Core CRUD basics](../guides/setup_core_crud.md#3-shape-list-detail-and-form-scopes), the dedicated [Dependent form fields](../guides/dependent_form_fields.md) guide, and the complete view example in [reference/complete_example.md](complete_example.md).
+Override or refine the automatically generated forms with `form_class`, `form_fields`, `form_fields_exclude`, `form_display_fields`, `form_disabled_fields`, and `field_queryset_dependencies`, and enable Crispy Forms support via `use_crispy`. See the field/detail setup examples in [Setup & Core CRUD basics](../guides/setup_core_crud.md#3-shape-list-and-detail-scopes), the dedicated [Forms](../guides/forms.md) guide, and the complete view example in [reference/complete_example.md](complete_example.md).
+
+???+ note "Relationship Between form_class and PowerCRUD Form Parameters"
+
+    `form_class` overrides PowerCRUD form generation.
+
+    If you set `form_class`, PowerCRUD does not use `form_fields` or `form_fields_exclude` to decide which editable fields appear on the form. Those two parameters are for auto-generated forms only.
+
+    PowerCRUD still applies its runtime form behavior after the custom form is built, including `form_disabled_fields`, `form_display_fields`, `field_queryset_dependencies`, `dropdown_sort_options`, `searchable_selects`, and `use_crispy`.
+
+`form_display_fields` and `form_disabled_fields` solve two different problems:
+
+- `form_display_fields` adds a separate read-only `Context` block above update forms. Use it for contextual model data, including `editable=False` fields.
+- `form_disabled_fields` keeps a real form input visible but locked. Because PowerCRUD uses Django field disabling, submitted tampering is ignored and the existing instance value is preserved.
 
 ### Dependent queryset scoping
 
@@ -195,7 +234,7 @@ field_queryset_dependencies = {
 }
 ```
 
-For a full explanation of `filter_by`, migration from old inline-only configs, and regular-vs-inline behaviour, see [Dependent form fields](../guides/dependent_form_fields.md).
+For a full explanation of `filter_by`, migration from old inline-only configs, and regular-vs-inline behaviour, see [Forms](../guides/forms.md#dependent-form-fields).
 
 ## Row actions
 
@@ -292,7 +331,7 @@ field_queryset_dependencies = {
 }
 ```
 
-See [Dependent form fields](../guides/dependent_form_fields.md) for a fuller worked example.
+See [Forms](../guides/forms.md#dependent-form-fields) for a fuller worked example.
 
 ## Notes
 

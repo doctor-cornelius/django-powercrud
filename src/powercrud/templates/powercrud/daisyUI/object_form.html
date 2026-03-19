@@ -53,6 +53,21 @@
     {% if object %}Edit {{object_verbose_name}}{% else %}Create {{object_verbose_name}}{% endif %}
 </h1>
 
+{% if form_display_items %}
+<div class="mb-4">
+    <p class="text-sm font-semibold uppercase tracking-wide opacity-60 mb-3">Context</p>
+    <dl class="grid gap-x-8 gap-y-3 md:grid-cols-2">
+        {% for item in form_display_items %}
+            <div>
+                <dt class="text-sm font-semibold opacity-70">{{ item.label }}</dt>
+                <dd class="mt-1">{{ item.value|default:"-" }}</dd>
+            </div>
+        {% endfor %}
+    </dl>
+    <div class="border-t border-base-300 mt-4"></div>
+</div>
+{% endif %}
+
 <div class="box">
     <form method="POST" 
         {% if form.is_multipart %}enctype="multipart/form-data" {% endif %}

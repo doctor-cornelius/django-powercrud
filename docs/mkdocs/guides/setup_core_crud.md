@@ -68,11 +68,11 @@ For the full background, see Neapolitan’s [“URLs and view callables”](http
 
 ---
 
-## 3. Shape list, detail, and form scopes
+## 3. Shape list and detail scopes
 
-### Field, detail, and form scopes
+### Field and detail scopes
 
-PowerCRUD layers a few convenient defaults so you can start with zero configuration and progressively override what appears in list, detail, and form views.
+PowerCRUD layers a few convenient defaults so you can start with zero configuration and progressively override what appears in list and detail views.
 
 **List fields**
 
@@ -86,15 +86,6 @@ PowerCRUD layers a few convenient defaults so you can start with zero configurat
 - `detail_fields` inherits the resolved `fields` list via the `"__fields__"` sentinel (the default). Override with `"__all__"` or an explicit list when the detail page needs more context than the list.
 - `detail_properties` defaults to an empty list, but you can reuse the list-view properties with `"__properties__"` or ask for all properties via `"__all__"`. You can also pass an explicit list such as `["is_overdue", "display_owner"]` (use the actual `@property` names, not model fields). Because detail pages are read-only, you can safely surface calculated properties that would never appear on a form.
 - `detail_exclude` and `detail_properties_exclude` mirror the list exclusions so you can tweak the detail layout without rewriting the full list of items.
-
-**Forms & inline editing**
-
-- When no `form_fields` are specified, the mixin selects every *editable* field from `detail_fields`. Set `form_fields = "__fields__"` to mirror the list exactly, or `form_fields = "__all__"` to include every editable field.
-- `form_fields_exclude` lets you remove sensitive or read-only fields while keeping the automatic selection logic.
-- `field_queryset_dependencies` lets you declare simple parent/child dropdown scoping once so the same queryset restriction applies in regular forms and inline editing.
-- Inline editing is enabled by setting `inline_edit_fields` alongside HTMX. Use `"__fields__"`, `"__all__"`, or an explicit list. PowerCRUD filters that inline field set to the fields actually present on the form, and only list columns that are rendered can be clicked inline.
-
-For anything beyond the basic parent/child dropdown case, keep using a custom `form_class`. For the full declarative dependency API and worked examples, see [Dependent form fields](./dependent_form_fields.md).
 
 ### Extra Buttons
 
@@ -198,9 +189,10 @@ What happens by default:
 
 - Companion null controls are inserted immediately after their parent auto-generated field in the filter form, so a nullable scalar filter such as `birth_date` renders next to `Birth date is empty` rather than at the end of the form.
 
-Dial it up when you need more control:
+#### Filterset Parameters
 
-- Pass a custom `filterset_class` for hand-crafted filters (PowerCRUD still wires in HTMX helpers).
+Use these when you are on the auto-generated `filterset_fields` path:
+
 - Use `filter_queryset_options` or `dropdown_sort_options` to scope/queryset-sort the choices in generated dropdowns.
 - Use `filter_null_fields_exclude = [...]` to opt specific nullable auto-filters out of the built-in null controls.
 
@@ -212,6 +204,27 @@ Dial it up when you need more control:
 - Toggle `m2m_filter_and_logic = True` if many-to-many filters must match *all* selected values instead of the default OR behaviour.
 - With `searchable_selects = True` (default), filter select widgets are Tom Select-enhanced: single-selects become searchable dropdowns and M2M filters become searchable multi-select controls.
 - Sorting is wired into the table headers. Clicking a column toggles `?sort=field` / `?sort=-field` on the URL (so you can share `/projects/?sort=status`). PowerCRUD applies that ordering server-side and always adds a secondary `pk` sort so pagination stays stable. Properties can be sorted too, as long as the property name is listed in `properties`.
+
+Auto-generated text filters use `icontains` by default. There is no separate declarative parameter to change that lookup expression field by field. If you need custom lookup behavior such as `iexact`, `startswith`, or range-style filters, switch to a custom `filterset_class`.
+
+#### Custom Filterset Class
+
+If you need even more control, pass a custom `filterset_class` for hand-crafted filters.
+
+???+ note "filterset_fields vs filterset_class"
+
+    Treat `filterset_fields` and `filterset_class` as two alternative strategies.
+
+    `filterset_fields` is the declarative auto-generated path. This is the path where PowerCRUD applies helpers such as `filter_queryset_options`, `filter_null_fields_exclude`, `m2m_filter_and_logic`, and filter-side dropdown sorting.
+
+    `filterset_class` is the custom path. If you set it, it takes precedence over `filterset_fields`, and those auto-generated filter helpers no longer shape the filterset for you.
+
+    Shared runtime behavior still applies after the filterset is built:
+
+    - `searchable_selects` still enhances eligible select widgets
+    - if `use_htmx = True` and the custom filterset exposes `setup_htmx_attrs()`, PowerCRUD now calls that automatically
+
+    The recommended custom pattern is still to subclass `HTMXFilterSetMixin` when you want reactive filtering with a hand-written filterset.
 
 Example:
 
@@ -226,6 +239,8 @@ In that example:
 - a nullable relation such as `owner` keeps one dropdown and gains an `Empty only` option
 - a nullable scalar such as `published_date` gains a separate `Published date is empty` select
 - `status` gets no built-in null helper because it is excluded explicitly
+
+If you want a generated text filter to use a different lookup than the default `icontains`, move that filter to a custom `filterset_class`.
 
 HTMX is optional but recommended: when enabled, filter submissions post back to the list endpoint and the results replace the table without a full reload. Pagination automatically resets to page 1 after each filter submit.
 
@@ -314,5 +329,7 @@ If something renders incorrectly, double-check:
 
 ## Next steps
 
-- Move on to [Bulk editing (synchronous)](./bulk_edit_sync.md) to enable multi-record edit/delete.
+- Continue with [Forms](./forms.md) to learn how PowerCRUD builds forms, how `form_class` changes the rules, and how contextual display fields, disabled inputs, and dependent dropdowns fit together.
+- Then move on to [Inline editing](./inline_editing.md) to reuse those form rules in HTMX row editing.
+- After that, continue to [Bulk editing (synchronous)](./bulk_edit_sync.md) to enable multi-record edit/delete.
 - Need more detail on individual settings? See the [Configuration reference](../reference/config_options.md).

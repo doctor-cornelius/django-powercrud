@@ -57,8 +57,8 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
     detail_properties_exclude = []
 
     form_class = ProjectForm
-    form_fields = "__fields__"
-    form_fields_exclude = ["internal_notes"]
+    form_display_fields = ["reference_code", "created_by"]
+    form_disabled_fields = ["status"]
 
     # ------------------------------------------------------------------
     # Filtering / dropdown behaviour
@@ -72,6 +72,8 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
     }
     m2m_filter_and_logic = True
     searchable_selects = True
+    # Auto-generated text filters use icontains; switch to filterset_class
+    # if you need per-field lookup expressions such as iexact or startswith.
 
     field_queryset_dependencies = {
         "tags": {
@@ -169,6 +171,9 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
 - `view_title` overrides only the visible list heading. It does not change create-button text, empty-state copy, or the model’s own verbose names.
 - `view_instructions` adds plain-text helper copy directly below the visible list heading. The content is escaped and does not accept HTML.
 - `column_help_text` adds optional plain-text tooltips to specific header labels. The help trigger is a separate info icon, so sortable headers keep sorting behavior.
+- `form_class` is the source of truth for editable inputs in this example. Because a custom form class is configured, the example intentionally does not also set `form_fields`.
+- `form_display_fields` renders model fields in a separate read-only `Context` block above update forms. This is useful for `editable=False` fields or other contextual data the user should see while editing.
+- `form_disabled_fields` keeps real form inputs visible but disabled. PowerCRUD uses Django field disabling rather than widget-only attrs, so posted tampering is ignored and the saved instance value is preserved.
 - A good use case for `view_title` is when the page heading needs UX-friendly wording such as `My List of Books` or `Active Client Projects`, while the underlying model metadata should stay reusable elsewhere.
 - `extra_actions_mode = "dropdown"` is optional. When omitted, `extra_actions` keep the legacy visible-button behavior. Dropdown mode keeps `View/Edit/Delete` visible and moves only the extra row actions into the `More` menu.
 - `inline_edit_fields` is the current inline-editing configuration. Older `inline_edit_enabled` usage is legacy and should not be used in new code.

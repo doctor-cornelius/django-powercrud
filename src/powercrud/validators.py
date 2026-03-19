@@ -71,6 +71,8 @@ class PowerCRUDMixinValidator(BaseModel):
     # form fields
     form_fields: Optional[Union[List[str], Literal["__all__", "__fields__"]]] = None
     form_fields_exclude: Optional[List[str]] = None
+    form_display_fields: Optional[List[str]] = None
+    form_disabled_fields: Optional[List[str]] = None
 
     # advanced configuration
     bulk_fields: Optional[List[str]] = None
@@ -232,6 +234,16 @@ class PowerCRUDMixinValidator(BaseModel):
             return v
         if not all(isinstance(x, str) for x in v):
             raise ValueError("form_fields_exclude must contain only strings")
+        return v
+
+    @field_validator("form_display_fields", "form_disabled_fields")
+    @classmethod
+    def validate_form_field_name_lists(cls, v, info):
+        """Ensure auxiliary form field lists contain only strings."""
+        if v is None:
+            return v
+        if not all(isinstance(x, str) for x in v):
+            raise ValueError(f"{info.field_name} must contain only strings")
         return v
 
     @field_validator("bulk_fields")

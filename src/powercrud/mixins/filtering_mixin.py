@@ -221,6 +221,24 @@ class FilteringMixin:
 
             attrs["data-powercrud-searchable-select"] = "true"
 
+    def _apply_custom_filterset_htmx_attrs(self, filterset: FilterSet | None) -> None:
+        """
+        Apply HTMX widget attributes to custom filtersets when supported.
+
+        Auto-generated filtersets already wire this up during construction. This
+        helper preserves the same reactive filtering ergonomics for custom
+        `filterset_class` implementations that expose `setup_htmx_attrs()`,
+        typically by subclassing `HTMXFilterSetMixin`.
+        """
+        if filterset is None:
+            return
+        if not self.get_use_htmx():
+            return
+
+        setup_htmx_attrs = getattr(filterset, "setup_htmx_attrs", None)
+        if callable(setup_htmx_attrs):
+            setup_htmx_attrs()
+
     def get_filter_queryset_for_field(self, field_name, model_field):
         """Get an efficiently filtered and sorted queryset for filter options."""
 
@@ -384,6 +402,7 @@ class FilteringMixin:
         """
         filterset_class = getattr(self, "filterset_class", None)
         filterset_fields = getattr(self, "filterset_fields", None)
+        using_custom_filterset_class = filterset_class is not None
 
         if filterset_class is not None or filterset_fields is not None:
             # Check if any filter params (besides page/sort) are present
@@ -556,5 +575,7 @@ class FilteringMixin:
             queryset=queryset,
             request=self.request,
         )
+        if using_custom_filterset_class:
+            self._apply_custom_filterset_htmx_attrs(filterset)
         self._apply_filter_searchable_select_attrs(filterset)
         return filterset

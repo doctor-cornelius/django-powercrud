@@ -58,6 +58,8 @@ class BookCRUDView(PowerCRUDAsyncMixin, CRUDView):
         "isbn_empty": "Shows whether this row currently has an ISBN value.",
     }
     form_class = BookForm
+    form_display_fields = ["uneditable_field"]
+    form_disabled_fields = ["isbn"]
     field_queryset_dependencies = {
         "genres": {
             "depends_on": ["author"],
@@ -79,6 +81,13 @@ class BookCRUDView(PowerCRUDAsyncMixin, CRUDView):
 ```
 
 The sample `BookCRUDView` uses `view_title = "My List of Books"` plus `view_instructions = "Here you can edit books"` to demonstrate the narrow heading/helper-text overrides. It also sets `column_help_text` for one field and one property so the sample list shows the new header-help tooltip pattern. That changes only the large title/header area above the table; other UI copy such as the create button still comes from the model verbose names, and both the instructions text and header help text are rendered as plain escaped text rather than HTML.
+
+The sample form configuration now also demonstrates two contextual form-surface features:
+
+- `form_display_fields = ["uneditable_field"]` shows the model’s non-editable field in a separate read-only `Context` block above the update form.
+- `form_disabled_fields = ["isbn"]` keeps the ISBN visible on the form but locks the input so users can see it without changing it.
+
+`BookForm` remains the source of truth for editable inputs, while PowerCRUD layers the display-only context block and disabled-field behavior on top of that custom form.
 
 ### Inline dependency demo
 

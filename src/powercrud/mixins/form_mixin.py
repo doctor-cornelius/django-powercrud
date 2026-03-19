@@ -29,6 +29,18 @@ class FormMixin:
 
     FIELD_QUERYSET_DEPENDENCY_EMPTY_BEHAVIORS = {"none", "all"}
 
+    def get_form_disabled_fields(self) -> list[str]:
+        """
+        Return the configured list of form fields that should be disabled.
+        """
+        return list(resolve_config(self).form_disabled_fields or [])
+
+    def get_form_display_fields(self) -> list[str]:
+        """
+        Return the configured list of display-only model fields shown above forms.
+        """
+        return list(resolve_config(self).form_display_fields or [])
+
     def get_use_crispy(self):
         """
         Determine if crispy forms should be used.
@@ -127,6 +139,104 @@ class FormMixin:
             else:
                 attrs.pop("data-powercrud-searchable-select", None)
         return form
+
+    def _apply_disabled_form_fields(self, form: forms.BaseForm) -> forms.BaseForm:
+        """
+        Disable configured form fields using Django's native field disabling.
+
+        Using ``field.disabled = True`` ensures submitted tampering is ignored and
+        the persisted instance value is preserved on validation and save.
+        """
+        if not form:
+            return form
+
+        disabled_fields = self.get_form_disabled_fields()
+        if not disabled_fields:
+            return form
+
+        missing_fields = sorted(
+            field_name for field_name in disabled_fields if field_name not in form.fields
+        )
+        if missing_fields:
+            raise ImproperlyConfigured(
+                f"Invalid configuration in class '{self.__class__.__name__}': "
+                "form_disabled_fields must reference fields present on the built form. "
+                f"Missing: {', '.join(missing_fields)}"
+            )
+
+        for field_name in disabled_fields:
+            form.fields[field_name].disabled = True
+
+        return form
+
+    def _format_form_display_value(
+        self, instance: Any, field: db_models.Field, field_name: str
+    ) -> str:
+        """
+        Format a display-only model field value for the object form context block.
+        """
+        value = getattr(instance, field_name, None)
+
+        if field.many_to_many:
+            related_manager = value
+            if related_manager is None:
+                return ""
+            return ", ".join(str(item) for item in related_manager.all())
+
+        if field.is_relation:
+            return "" if value is None else str(value)
+
+        if isinstance(field, db_models.BooleanField):
+            return "Yes" if value else "No"
+
+        if isinstance(field, db_models.DateTimeField) and value is not None:
+            normalized_value = field.to_python(value)
+            return normalized_value.strftime("%d/%m/%Y")
+
+        if isinstance(field, db_models.DateField) and value is not None:
+            normalized_value = field.to_python(value)
+            return normalized_value.strftime("%d/%m/%Y")
+
+        if isinstance(field, db_models.TimeField) and value is not None:
+            normalized_value = field.to_python(value)
+            return normalized_value.strftime("%H:%M:%S")
+
+        return "" if value in (None, "") else str(value)
+
+    def get_form_display_items(self, instance: Any | None = None) -> list[dict[str, str]]:
+        """
+        Build the display-only model field metadata shown above update forms.
+
+        The v1 API is intentionally narrow:
+        - model fields only
+        - update forms only
+        - plain text label/value pairs
+        """
+        display_fields = self.get_form_display_fields()
+        resolved_instance = instance or getattr(self, "object", None)
+
+        if (
+            not display_fields
+            or resolved_instance is None
+            or not getattr(resolved_instance, "pk", None)
+        ):
+            return []
+
+        items: list[dict[str, str]] = []
+        for field_name in display_fields:
+            field = self.model._meta.get_field(field_name)
+            items.append(
+                {
+                    "name": field_name,
+                    "label": str(field.verbose_name).title(),
+                    "value": self._format_form_display_value(
+                        resolved_instance,
+                        field,
+                        field_name,
+                    ),
+                }
+            )
+        return items
 
     def get_field_queryset_dependencies(
         self,
@@ -403,8 +513,19 @@ class FormMixin:
         """
         Apply PowerCRUD form instance behavior after construction.
         """
+        form = self._apply_disabled_form_fields(form)
         form = self._apply_field_queryset_dependencies(form)
         return self._apply_searchable_select_attrs(form)
+
+    def get_context_data(self, **kwargs):
+        """
+        Add form display-only metadata to the standard template context.
+        """
+        context = super().get_context_data(**kwargs)
+        form = kwargs.get("form") or context.get("form") or getattr(self, "object_form", None)
+        instance = getattr(form, "instance", None) if form is not None else None
+        context["form_display_items"] = self.get_form_display_items(instance=instance)
+        return context
 
     def get_form(self, *args, **kwargs):
         """

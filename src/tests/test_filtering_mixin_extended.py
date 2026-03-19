@@ -3,10 +3,12 @@ from __future__ import annotations
 from datetime import date
 
 import pytest
+from django_filters import FilterSet
 from django.test import RequestFactory
 
 from powercrud.mixins.filtering_mixin import (
     FilteringMixin,
+    HTMXFilterSetMixin,
     NULL_FILTER_SENTINEL,
     NullableModelChoiceFilter,
 )
@@ -68,6 +70,44 @@ class ProfileNullFilterExcludeHarness(ProfileNullFilterHarness):
     """Harness for opt-out coverage on nullable relation fields."""
 
     filter_null_fields_exclude = ["favorite_genre"]
+
+
+class PassiveHTMXBookFilterSet(HTMXFilterSetMixin, FilterSet):
+    """Custom filterset that relies on PowerCRUD to call `setup_htmx_attrs()`."""
+
+    class Meta:
+        model = Book
+        fields = ["author", "title"]
+
+
+class PlainBookFilterSet(FilterSet):
+    """Custom filterset without HTMX helper support."""
+
+    class Meta:
+        model = Book
+        fields = ["author"]
+
+
+class CustomBookFilterHarness(BaseFilterHarness):
+    """Harness for custom filterset precedence and shared runtime behavior."""
+
+    model = Book
+    filterset_class = PassiveHTMXBookFilterSet
+    filterset_fields = ["pages"]
+    filter_queryset_options = {"author": {"name": "Alan"}}
+
+
+class CustomBookFilterNoHtmxHarness(CustomBookFilterHarness):
+    """Harness for custom filterset behavior when HTMX is disabled."""
+
+    use_htmx = False
+
+
+class PlainCustomBookFilterHarness(BaseFilterHarness):
+    """Harness for custom filtersets that do not expose HTMX setup helpers."""
+
+    model = Book
+    filterset_class = PlainBookFilterSet
 
 
 @pytest.mark.django_db
@@ -248,3 +288,69 @@ def test_filter_null_fields_exclude_disables_relation_empty_only_option():
     assert (
         (NULL_FILTER_SENTINEL, "Empty only") not in relation_choices
     ), "Excluded nullable relation fields should not expose the merged 'Empty only' option."
+
+
+@pytest.mark.django_db
+def test_custom_filterset_class_preserves_htmx_and_searchable_selects():
+    """Custom filtersets should keep HTMX and shared select enhancement behavior."""
+    Author.objects.create(name="Alan")
+    Author.objects.create(name="Betty")
+
+    request = RequestFactory().get("/")
+    view = CustomBookFilterHarness(request)
+    filterset = view.get_filterset(Book.objects.all())
+
+    assert (
+        filterset is not None
+    ), "Expected a filterset instance when a custom filterset_class is configured."
+    assert list(filterset.form.fields.keys()) == [
+        "author",
+        "title",
+    ], "A custom filterset_class should define the filter fields even when filterset_fields is also present."
+    assert list(
+        filterset.form.fields["author"].queryset.values_list("name", flat=True)
+    ) == [
+        "Alan",
+        "Betty",
+    ], "filter_queryset_options should not be auto-applied to a fully custom filterset_class."
+    assert (
+        filterset.form.fields["title"].widget.attrs.get("hx-get") == ""
+    ), "Custom filtersets exposing setup_htmx_attrs() should receive HTMX widget attrs automatically when use_htmx=True."
+    assert (
+        "data-powercrud-searchable-select"
+        in filterset.form.fields["author"].widget.attrs
+    ), "Shared searchable-select enhancement should still apply to eligible custom filterset select widgets."
+
+
+@pytest.mark.django_db
+def test_custom_filterset_class_skips_auto_htmx_attrs_when_htmx_disabled():
+    """Do not inject HTMX attrs into custom filtersets when HTMX is disabled."""
+    Author.objects.create(name="Alan")
+
+    request = RequestFactory().get("/")
+    view = CustomBookFilterNoHtmxHarness(request)
+    filterset = view.get_filterset(Book.objects.all())
+
+    assert (
+        filterset is not None
+    ), "Expected a filterset instance when checking HTMX-disabled custom filterset behavior."
+    assert (
+        "hx-get" not in filterset.form.fields["title"].widget.attrs
+    ), "Custom filtersets should not receive HTMX widget attrs when use_htmx=False."
+
+
+@pytest.mark.django_db
+def test_plain_custom_filterset_class_without_htmx_helper_still_works():
+    """Leave plain custom filtersets alone when they do not expose HTMX helpers."""
+    Author.objects.create(name="Alan")
+
+    request = RequestFactory().get("/")
+    view = PlainCustomBookFilterHarness(request)
+    filterset = view.get_filterset(Book.objects.all())
+
+    assert (
+        filterset is not None
+    ), "Expected a plain custom filterset instance to build successfully."
+    assert (
+        "hx-get" not in filterset.form.fields["author"].widget.attrs
+    ), "Custom filtersets without setup_htmx_attrs() should keep their existing widget attrs unchanged."

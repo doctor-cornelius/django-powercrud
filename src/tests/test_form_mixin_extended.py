@@ -11,6 +11,7 @@ from django.contrib.sessions.middleware import SessionMiddleware
 
 from neapolitan.views import Role
 
+from powercrud.mixins.core_mixin import CoreMixin
 from powercrud.mixins.form_mixin import FormMixin
 from powercrud.mixins.bulk_mixin.view_mixin import ViewMixin
 from powercrud.mixins.htmx_mixin import HtmxMixin
@@ -77,6 +78,25 @@ class DummyFormView(HtmxMixin, ViewMixin, FormMixin, BaseContext):
         return "test"
 
 
+class MinimalBookForm(forms.ModelForm):
+    """Minimal custom form used to prove form_class precedence over form_fields."""
+
+    class Meta:
+        model = Book
+        fields = ["title", "isbn"]
+
+
+class CustomFormPriorityView(FormMixin, CoreMixin):
+    """Configured view that intentionally conflicts form_class and form_fields."""
+
+    model = Book
+    fields = "__all__"
+    use_crispy = False
+    form_class = MinimalBookForm
+    form_fields = ["author", "published_date"]
+    form_fields_exclude = ["published_date"]
+
+
 def attach_session(request):
     middleware = SessionMiddleware(lambda req: None)
     middleware.process_request(request)
@@ -120,6 +140,144 @@ def test_get_form_class_without_crispy(settings):
     form_class = view.get_form_class()
     form = form_class()
     assert not hasattr(form, "helper")
+
+
+@pytest.mark.django_db
+def test_form_class_clears_resolved_form_fields_when_present():
+    """Resolved form_fields should be ignored when a custom form_class is configured."""
+    view = CustomFormPriorityView()
+
+    assert view.form_fields == [], (
+        "Config resolution should clear form_fields when form_class is configured so custom forms remain the sole source of editable fields."
+    )
+
+
+@pytest.mark.django_db
+def test_get_form_class_prefers_custom_form_over_form_fields():
+    """A configured form_class should define the actual editable form surface."""
+    view = CustomFormPriorityView()
+
+    form_class = view.get_form_class()
+
+    assert list(form_class.base_fields.keys()) == ["title", "isbn"], (
+        "get_form_class should use the explicit custom form fields instead of any configured form_fields when form_class is present."
+    )
+
+
+@pytest.mark.django_db
+def test_finalize_form_disables_configured_fields():
+    """Configured form_disabled_fields should disable the built form fields."""
+    request = attach_session(RequestFactory().get("/"))
+    view = DummyFormView(request)
+    view.form_disabled_fields = ["published_date"]
+
+    form = view._finalize_form(view.get_form_class()())
+
+    assert form.fields["published_date"].disabled is True, (
+        "Configured form_disabled_fields should set Django field.disabled=True on matching form fields."
+    )
+
+
+@pytest.mark.django_db
+def test_disabled_form_field_preserves_instance_value_on_submit():
+    """Disabled form fields should ignore submitted tampering and keep instance values."""
+    author = Author.objects.create(name="Ada")
+    book = Book.objects.create(
+        title="Original Title",
+        author=author,
+        published_date="2024-01-01",
+        bestseller=False,
+        isbn="1234500000001",
+        pages=10,
+    )
+    request = attach_session(RequestFactory().post("/"))
+    view = DummyFormView(request)
+    view.form_disabled_fields = ["title"]
+
+    form = view._finalize_form(
+        view.get_form_class()(
+            instance=book,
+            data={
+                "title": "Tampered Title",
+                "author": author.pk,
+                "published_date": "2024-02-02",
+            },
+        )
+    )
+
+    assert form.is_valid(), (
+        "A form with disabled fields should still validate when the remaining required fields are supplied."
+    )
+
+    saved_book = form.save()
+
+    assert saved_book.title == "Original Title", (
+        "Disabled form fields should preserve the persisted instance value instead of accepting submitted tampering."
+    )
+    assert str(saved_book.published_date) == "2024-02-02", (
+        "Non-disabled form fields should continue to save updated values normally alongside disabled fields."
+    )
+
+
+@pytest.mark.django_db
+def test_get_form_display_items_formats_configured_model_fields():
+    """Display-only form context should format configured model fields for update forms."""
+    author = Author.objects.create(name="Display Author")
+    book = Book.objects.create(
+        title="Display Book",
+        author=author,
+        published_date="2024-01-01",
+        bestseller=False,
+        isbn="1234500000002",
+        pages=10,
+    )
+    request = attach_session(RequestFactory().get("/"))
+    view = DummyFormView(request)
+    view.form_display_fields = [
+        "uneditable_field",
+        "author",
+        "published_date",
+        "bestseller",
+    ]
+
+    items = view.get_form_display_items(instance=book)
+
+    assert items == [
+        {
+            "name": "uneditable_field",
+            "label": "Uneditable Field",
+            "value": "This field is uneditable",
+        },
+        {
+            "name": "author",
+            "label": "Author",
+            "value": "Display Author",
+        },
+        {
+            "name": "published_date",
+            "label": "Published Date",
+            "value": "01/01/2024",
+        },
+        {
+            "name": "bestseller",
+            "label": "Bestseller",
+            "value": "No",
+        },
+    ], (
+        "Configured form_display_fields should resolve to plain label/value metadata with sensible formatting for update forms."
+    )
+
+
+@pytest.mark.django_db
+def test_get_form_display_items_returns_empty_for_create_forms():
+    """Display-only form context should stay empty until there is a persisted object."""
+    request = attach_session(RequestFactory().get("/"))
+    view = DummyFormView(request)
+    view.form_display_fields = ["uneditable_field"]
+
+    assert view.get_form_display_items() == [], (
+        "Create forms should not render display-only context because there is no persisted object yet."
+    )
 
 
 @pytest.mark.django_db
