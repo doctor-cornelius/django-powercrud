@@ -267,6 +267,61 @@ def test_build_inline_form_skips_form_disabled_fields():
 
 
 @pytest.mark.django_db
+def test_build_inline_form_keeps_generated_form_surface():
+    """Generated inline forms should keep the full edit-form field surface."""
+    author = Author.objects.create(name="Ada")
+    book = Book.objects.create(
+        title="Original Title",
+        author=author,
+        published_date="2024-01-01",
+        bestseller=False,
+        isbn="1234500000003",
+        pages=10,
+        description="Keep me",
+    )
+    request = attach_session(RequestFactory().get("/"))
+    view = DummyFormView(request)
+    view.form_fields = ["title", "author", "published_date", "isbn", "description"]
+    view.inline_edit_fields = ["title", "isbn"]
+
+    form = view.build_inline_form(instance=book)
+
+    assert list(form.fields.keys()) == [
+        "title",
+        "author",
+        "published_date",
+        "isbn",
+        "description",
+    ], (
+        "Generated inline forms should retain the full edit-form field surface so inline save can repost non-rendered fields as hidden inputs."
+    )
+
+
+@pytest.mark.django_db
+def test_build_inline_form_keeps_custom_form_surface():
+    """Custom inline forms should keep the full edit-form field surface."""
+    author = Author.objects.create(name="Ada")
+    book = Book.objects.create(
+        title="Original Title",
+        author=author,
+        published_date="2024-01-01",
+        bestseller=False,
+        isbn="1234500000004",
+        pages=10,
+    )
+    request = attach_session(RequestFactory().get("/"))
+    view = DummyFormView(request)
+    view.form_class = MinimalBookForm
+    view.inline_edit_fields = ["title"]
+
+    form = view.build_inline_form(instance=book)
+
+    assert list(form.fields.keys()) == ["title", "isbn"], (
+        "Inline forms built from a custom form_class should retain the full form surface so non-rendered fields can be reposted for save."
+    )
+
+
+@pytest.mark.django_db
 def test_get_form_display_items_formats_configured_model_fields():
     """Display-only form context should format configured model fields for update forms."""
     author = Author.objects.create(name="Display Author")

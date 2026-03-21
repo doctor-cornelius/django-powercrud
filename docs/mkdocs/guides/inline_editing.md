@@ -38,6 +38,7 @@ class BookCRUDView(PowerCRUDMixin, CRUDView):
 - `inline_edit_fields` both enables inline editing and controls which columns show the hover/focus shim and respond to clicks.
 - Leave `inline_edit_fields` unset to disable inline editing for the view.
 - `inline_edit_fields` must match fields exposed by the actual form returned by `get_form_class()`. If you use a custom `form_class`, PowerCRUD filters the inline list to fields that really exist on that form.
+- Stock inline editing still builds the full edit form, then reposts any non-rendered form fields as hidden inputs so inline saves behave like the normal edit form.
 - `form_disabled_fields` does not disable the same field inline. It remains an update-form feature only.
 - Only columns actually rendered in the list can be clicked inline, so a field must be both inline-configured and visible in the list to behave as an inline-editable cell.
 - `inline_edit_always_visible` defaults to `True`, which means editable cells show a subtle resting hint even before hover.
@@ -80,7 +81,7 @@ Notes:
 
 ## 2. Configure dependencies and helpers
 
-Inline editing reuses the existing form machinery, so any widget or queryset customisations carry over. Keep `inline_edit_fields` aligned with whatever the form actually exposes; if a field is excluded from `form_class`, PowerCRUD drops it from the inline list. List rendering still controls which cells are clickable, so an inline field should normally also be present in your list `fields`. One exception is `form_disabled_fields`: that setting does not lock the same field inline and remains update-form-only. For dynamic dropdowns, declare the shared queryset dependency once:
+Inline editing reuses the existing form machinery, so any widget or queryset customisations carry over. Keep `inline_edit_fields` aligned with whatever the form actually exposes; if a field is excluded from `form_class`, PowerCRUD drops it from the inline list. List rendering still controls which cells are clickable, so an inline field should normally also be present in your list `fields`. Fields that belong to the full form but are not rendered as visible inline widgets are still reposted as hidden inputs so save validation matches the normal edit form. One exception is `form_disabled_fields`: that setting does not lock the same field inline and remains update-form-only. For dynamic dropdowns, declare the shared queryset dependency once:
 
 ```python
 class BookCRUDView(PowerCRUDMixin, CRUDView):
@@ -155,7 +156,7 @@ Why this works:
 
 - The normal create/update form and the inline row share the same dependency rule.
 - The inline dependency endpoint rebuilds only the dependent field widget, but it reuses the same form pipeline as the regular edit form.
-- When the user changes `author` inline, PowerCRUD posts the current row values, rebuilds the `genres` widget, clears the stale selection, and swaps the constrained widget back into the row.
+- When the user changes `author` inline, PowerCRUD syncs the current row controls, posts the row state, rebuilds the `genres` widget, clears the stale selection, and swaps the constrained widget back into the row.
 
 Use this pattern whenever a child dropdown should change immediately in response to another inline field.
 
@@ -198,7 +199,7 @@ inline-row-forbidden # payload: {"message": …}
 
 ## 5. UX notes & troubleshooting
 
-- **Required fields you don’t expose inline** – PowerCRUD keeps every inline POST valid by cloning the current values for required form fields that aren’t rendered in the row (e.g., `pages` in a Book example). When the user saves, those values are resubmitted as hidden inputs so the model form still passes validation and the record can close immediately. Set `inline_preserve_required_fields = False` if you want to surface the raw validation errors (useful for debugging) or override `get_inline_preserve_required_fields()` / `_configure_inline_preserved_fields()` for bespoke behavior.
+- **Fields you don’t expose inline** – Stock inline editing reposts the rest of the full form as hidden inputs, so saves preserve non-rendered values and validate against the same form surface as regular edits. `inline_preserve_required_fields` remains as a defensive fallback for custom inline builders that still omit required inputs from POST data.
 - **Column widths** – editable columns reserve a small width buffer so swapping to a widget (with icons or date pickers) does not push neighbouring columns. Non-editable columns keep their natural width.
 - **Single-select fields** – eligible dropdowns are enhanced with Tom Select by default, so users can type to filter options inline without changing backend form contracts. Disable globally with `searchable_selects = False` or per field with `get_searchable_select_enabled_for_field()`.
 - **Multi-select fields** – a row can temporarily grow taller when editing ManyToMany fields (e.g., genres). This is expected; if you need a single-line control, swap the widget for a chips/combobox style component.

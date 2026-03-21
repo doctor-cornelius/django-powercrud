@@ -426,6 +426,9 @@
     <td class="text-right py-1 align-middle">
         <input type="hidden" name="pk" value="{{ row.id }}">
         {% csrf_token %}
+        {% for hidden_field in inline_hidden_fields %}
+            {{ hidden_field.as_hidden }}
+        {% endfor %}
         {% if form.non_field_errors %}
         <div class="alert alert-error shadow-sm mb-2 py-1 px-2 text-left text-sm">
             {{ form.non_field_errors|join:", " }}

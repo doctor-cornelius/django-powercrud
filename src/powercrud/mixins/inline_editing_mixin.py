@@ -356,12 +356,16 @@ class InlineEditingMixin:
         row_payload = self._build_inline_row_payload(obj)
         inline_form = form or self.build_inline_form(instance=obj)
         self._prepare_inline_number_widgets(inline_form)
+        inline_hidden_fields = self._get_inline_hidden_bound_fields(
+            inline_form, row_payload
+        )
         summary = error_summary
         if summary is None:
             summary = self._get_inline_form_error_summary(inline_form)
         context = {
             "row": row_payload,
             "form": inline_form,
+            "inline_hidden_fields": inline_hidden_fields,
             "inline_config": self.get_inline_context(),
             "inline_save_url": self._get_inline_row_url(obj),
             "inline_cancel_url": self._get_inline_row_url(obj),
@@ -375,6 +379,47 @@ class InlineEditingMixin:
             context,
             request=self.request,
         )
+
+    def _get_inline_visible_field_names(
+        self, row_payload: dict[str, Any], form
+    ) -> set[str]:
+        """
+        Return form field names rendered visibly as inline widgets in the row.
+        """
+        if not form:
+            return set()
+
+        visible_fields: set[str] = set()
+        for cell in row_payload.get("cells", []):
+            field_name = cell.get("name")
+            if not field_name or field_name not in form.fields:
+                continue
+            if cell.get("is_inline_editable"):
+                visible_fields.add(field_name)
+        return visible_fields
+
+    def _get_inline_hidden_bound_fields(self, form, row_payload: dict[str, Any]):
+        """
+        Return bound fields that should be reposted as hidden inputs on inline save.
+
+        These are the fields expected by the full edit form that are not rendered
+        visibly as inline widgets in the current row.
+        """
+        if not form:
+            return []
+
+        visible_fields = self._get_inline_visible_field_names(row_payload, form)
+        hidden_fields = []
+        for field_name, field in form.fields.items():
+            if field_name in visible_fields:
+                continue
+            if getattr(field, "disabled", False):
+                continue
+            widget = getattr(field, "widget", None)
+            if widget and getattr(widget, "input_type", None) == "file":
+                continue
+            hidden_fields.append(form[field_name])
+        return hidden_fields
 
     def _render_inline_row_display(self, obj) -> str:
         cfg = resolve_config(self)

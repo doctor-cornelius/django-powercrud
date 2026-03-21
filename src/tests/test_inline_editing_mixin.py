@@ -72,6 +72,22 @@ class InlineTestForm(forms.ModelForm):
         fields = ["title", "author", "published_date", "isbn", "pages", "bestseller"]
 
 
+class InlineOptionalFieldForm(forms.ModelForm):
+    """Inline test form that exposes an optional field omitted from the row UI."""
+
+    class Meta:
+        model = Book
+        fields = [
+            "title",
+            "author",
+            "published_date",
+            "isbn",
+            "pages",
+            "bestseller",
+            "description",
+        ]
+
+
 class InlineTestView(InlineEditingMixin, TableMixin, HtmxMixin, CoreMixin):
     """Minimal view harness to exercise InlineEditingMixin behaviour."""
 
@@ -188,6 +204,46 @@ class InlineTestView(InlineEditingMixin, TableMixin, HtmxMixin, CoreMixin):
 
 class InlineMissingFieldView(InlineTestView):
     inline_edit_fields = ["title", "author", "published_date", "isbn", "bestseller"]
+
+
+class InlineGeneratedOptionalFieldView(FormMixin, InlineTestView):
+    """Exercise inline saves through FormMixin's generated ModelForm path."""
+
+    form_fields = [
+        "title",
+        "author",
+        "published_date",
+        "isbn",
+        "pages",
+        "bestseller",
+        "description",
+    ]
+    inline_edit_fields = ["title", "pages"]
+
+    def build_inline_form(self, *, instance, data=None, files=None):
+        """Delegate inline form construction to FormMixin for regression coverage."""
+        return FormMixin.build_inline_form(
+            self,
+            instance=instance,
+            data=data,
+            files=files,
+        )
+
+
+class InlineCustomOptionalFieldView(FormMixin, InlineTestView):
+    """Exercise inline saves through FormMixin with a custom form_class."""
+
+    form_class = InlineOptionalFieldForm
+    inline_edit_fields = ["title", "pages"]
+
+    def build_inline_form(self, *, instance, data=None, files=None):
+        """Delegate inline form construction to FormMixin for regression coverage."""
+        return FormMixin.build_inline_form(
+            self,
+            instance=instance,
+            data=data,
+            files=files,
+        )
 
 
 class InlineDependencyCaptureView(InlineTestView):
@@ -320,6 +376,128 @@ def test_inline_post_preserved_fields_ignore_manual_input(sample_book, sample_au
     assert payload == {"inline-row-saved": {"pk": sample_book.pk}}
     sample_book.refresh_from_db()
     assert sample_book.pages == 321
+
+
+@pytest.mark.django_db
+def test_inline_get_renders_hidden_optional_field_for_generated_form(
+    sample_book, sample_author
+):
+    """Inline rows should emit hidden inputs for non-rendered form fields."""
+    sample_book.description = "Preserve generated form description"
+    sample_book.save(update_fields=["description"])
+
+    request = _make_request("get")
+    view = InlineGeneratedOptionalFieldView(request, sample_book)
+
+    response = view._dispatch_inline_row(request, pk=sample_book.pk)
+
+    assert (
+        response.status_code == 200
+    ), "Inline row GETs built from form_fields should render successfully when emitting hidden reposted fields."
+    assert (
+        b'type="hidden" name="description" value="Preserve generated form description"'
+        in response.content
+    ), (
+        "Inline rows built from form_fields should include hidden inputs for optional form fields that are not rendered visibly in the row."
+    )
+
+
+@pytest.mark.django_db
+def test_inline_post_preserves_optional_field_when_reposted_for_generated_form(
+    sample_book, sample_author
+):
+    """Inline save should preserve optional values when the row reposts them."""
+    sample_book.description = "Preserve generated form description"
+    sample_book.save(update_fields=["description"])
+
+    request = _make_request(
+        "post",
+        data={
+            "title": "Updated Inline Title",
+            "author": str(sample_author.pk),
+            "published_date": "2024-01-01",
+            "isbn": "9780000000011",
+            "pages": "321",
+            "bestseller": "",
+            "description": "Preserve generated form description",
+        },
+    )
+    view = InlineGeneratedOptionalFieldView(request, sample_book)
+
+    response = view._dispatch_inline_row(request, pk=sample_book.pk)
+    payload = json.loads(response["HX-Trigger"])
+
+    assert (
+        response.status_code == 200
+    ), "Inline saves built from form_fields should succeed when the row reposts hidden non-rendered fields."
+    assert payload == {"inline-row-saved": {"pk": sample_book.pk}}, (
+        "Inline saves built from form_fields should emit the normal inline-row-saved trigger after reposting hidden fields."
+    )
+    sample_book.refresh_from_db()
+    assert sample_book.description == "Preserve generated form description", (
+        "Inline saves built from form_fields should preserve optional instance values when the row reposts hidden non-rendered fields."
+    )
+
+
+@pytest.mark.django_db
+def test_inline_get_renders_hidden_optional_field_for_custom_form(
+    sample_book, sample_author
+):
+    """Custom inline forms should also emit hidden inputs for non-rendered fields."""
+    sample_book.description = "Preserve custom form description"
+    sample_book.save(update_fields=["description"])
+
+    request = _make_request("get")
+    view = InlineCustomOptionalFieldView(request, sample_book)
+
+    response = view._dispatch_inline_row(request, pk=sample_book.pk)
+
+    assert (
+        response.status_code == 200
+    ), "Inline row GETs built from form_class should render successfully when emitting hidden reposted fields."
+    assert (
+        b'type="hidden" name="description" value="Preserve custom form description"'
+        in response.content
+    ), (
+        "Inline rows built from form_class should include hidden inputs for optional form fields that are not rendered visibly in the row."
+    )
+
+
+@pytest.mark.django_db
+def test_inline_post_preserves_optional_field_when_reposted_for_custom_form(
+    sample_book, sample_author
+):
+    """Custom inline forms should preserve optional values when the row reposts them."""
+    sample_book.description = "Preserve custom form description"
+    sample_book.save(update_fields=["description"])
+
+    request = _make_request(
+        "post",
+        data={
+            "title": "Updated Inline Title",
+            "author": str(sample_author.pk),
+            "published_date": "2024-01-01",
+            "isbn": "9780000000011",
+            "pages": "321",
+            "bestseller": "",
+            "description": "Preserve custom form description",
+        },
+    )
+    view = InlineCustomOptionalFieldView(request, sample_book)
+
+    response = view._dispatch_inline_row(request, pk=sample_book.pk)
+    payload = json.loads(response["HX-Trigger"])
+
+    assert (
+        response.status_code == 200
+    ), "Inline saves built from form_class should succeed when the row reposts hidden non-rendered fields."
+    assert payload == {"inline-row-saved": {"pk": sample_book.pk}}, (
+        "Inline saves built from form_class should emit the normal inline-row-saved trigger after reposting hidden fields."
+    )
+    sample_book.refresh_from_db()
+    assert sample_book.description == "Preserve custom form description", (
+        "Inline saves built from form_class should preserve optional instance values when the row reposts hidden non-rendered fields."
+    )
 
 
 @pytest.mark.django_db

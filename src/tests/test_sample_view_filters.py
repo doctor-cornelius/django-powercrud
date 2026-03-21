@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import re
+
 import pytest
 from django.test import Client
 from django.test import RequestFactory
@@ -190,3 +192,47 @@ def test_book_sample_inline_row_endpoint_renders_edit_form(monkeypatch):
     assert (
         b"data-inline-save" in response.content
     ), "The sample inline row endpoint should include inline save controls."
+    assert (
+        b'type="hidden" name="description"' in response.content
+    ), "The sample inline row endpoint should repost non-rendered full-form fields like description as hidden inputs."
+
+
+@pytest.mark.django_db
+def test_book_sample_list_renders_inline_trigger_targets(monkeypatch):
+    """Book sample list rows should render inline trigger buttons with HTMX targets."""
+    author = Author.objects.create(name="Inline List Author")
+    book = Book.objects.create(
+        title="Inline List Book",
+        author=author,
+        published_date="2024-01-01",
+        bestseller=False,
+        isbn="9781234500003",
+        pages=90,
+        description="List page regression",
+    )
+
+    monkeypatch.setattr(
+        sample_views.BookCRUDView,
+        "is_inline_row_locked",
+        lambda self, obj: False,
+    )
+    client = Client()
+    response = client.get(
+        reverse("sample:bigbook-list"),
+    )
+
+    assert (
+        response.status_code == 200
+    ), "The sample list page should render successfully when inline editing is enabled."
+    assert (
+        f'id="pc-row-{book.pk}"'.encode() in response.content
+    ), "Sample list rows should render stable DOM ids so inline swaps have a valid HTMX target."
+    assert (
+        reverse("sample:bigbook-inline-row", args=[book.pk]).encode() in response.content
+    ), "Sample list rows should render the inline-row endpoint URL into the trigger button markup."
+    assert (
+        b'hx-target="#pc-row-' in response.content
+    ), "Sample inline trigger buttons should target the row DOM id for outerHTML swaps."
+    assert (
+        re.search(rb"<tr[^>]*data-inline-active=\"true\"", response.content) is None
+    ), "The sample list page should not render an already-active inline row on initial load."

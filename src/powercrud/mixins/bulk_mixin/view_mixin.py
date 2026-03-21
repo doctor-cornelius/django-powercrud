@@ -302,8 +302,8 @@ class ViewMixin:
             # check if should process asynchronously
             if self.should_process_async(len(selected_ids)):
                 # log.debug(
-                    f"Processing bulk delete asynchronously for {len(selected_ids)} records."
-                )
+                #     f"Processing bulk delete asynchronously for {len(selected_ids)} records."
+                # )
                 return self._handle_async_bulk_operation(
                     request,
                     selected_ids,
@@ -354,14 +354,14 @@ class ViewMixin:
                 response["HX-Retarget"] = self.get_modal_target()
                 # log.debug(f"bulk delete errors: {errors}")
                 # log.debug(
-                    f"BulkMixin: bulk_edit_process_post (DELETE ERROR) - Returning response of type {type(response)}"
-                )
+                #     f"BulkMixin: bulk_edit_process_post (DELETE ERROR) - Returning response of type {type(response)}"
+                # )
                 # log.debug(
-                    f"BulkMixin: bulk_edit_process_post (DELETE ERROR) - Response content (first 500 chars): {response.content.decode('utf-8')[:500]}"
-                )
+                #     f"BulkMixin: bulk_edit_process_post (DELETE ERROR) - Response content (first 500 chars): {response.content.decode('utf-8')[:500]}"
+                # )
                 # log.debug(
-                    f"BulkMixin: bulk_edit_process_post (DELETE ERROR) - Response headers: {response.headers}"
-                )
+                #     f"BulkMixin: bulk_edit_process_post (DELETE ERROR) - Response headers: {response.headers}"
+                # )
                 return response
 
             else:  # no errors
@@ -372,22 +372,22 @@ class ViewMixin:
                 )
                 # log.debug(f"Bulk edit: Deleted {deleted_count} objects successfully.")
                 # log.debug(
-                    f"BulkMixin: bulk_edit_process_post (DELETE SUCCESS) - Returning response of type {type(response)}"
-                )
+                #     f"BulkMixin: bulk_edit_process_post (DELETE SUCCESS) - Returning response of type {type(response)}"
+                # )
                 # log.debug(
-                    f"BulkMixin: bulk_edit_process_post (DELETE SUCCESS) - Response content: {response.content.decode('utf-8')}"
-                )
+                #     f"BulkMixin: bulk_edit_process_post (DELETE SUCCESS) - Response content: {response.content.decode('utf-8')}"
+                # )
                 # log.debug(
-                    f"BulkMixin: bulk_edit_process_post (DELETE SUCCESS) - Response headers: {response.headers}"
-                )
+                #     f"BulkMixin: bulk_edit_process_post (DELETE SUCCESS) - Response headers: {response.headers}"
+                # )
                 return response
 
         # Bulk Update Logic
         # Check whether async processing required
         if self.should_process_async(len(selected_ids)):
             # log.debug(
-                f"Processing bulk update asynchronously for {len(selected_ids)} records."
-            )
+            #     f"Processing bulk update asynchronously for {len(selected_ids)} records."
+            # )
             return self._handle_async_bulk_operation(
                 request,
                 selected_ids,
@@ -439,14 +439,14 @@ class ViewMixin:
             response["HX-Retarget"] = self.get_modal_target()
             # log.debug(f"Returning error response with {len(errors)} errors")
             # log.debug(
-                f"BulkMixin: bulk_edit_process_post (UPDATE ERROR) - Returning response of type {type(response)}"
-            )
+            #     f"BulkMixin: bulk_edit_process_post (UPDATE ERROR) - Returning response of type {type(response)}"
+            # )
             # log.debug(
-                f"BulkMixin: bulk_edit_process_post (UPDATE ERROR) - Response content (first 500 chars): {response.content.decode('utf-8')[:500]}"
-            )
+            #     f"BulkMixin: bulk_edit_process_post (UPDATE ERROR) - Response content (first 500 chars): {response.content.decode('utf-8')[:500]}"
+            # )
             # log.debug(
-                f"BulkMixin: bulk_edit_process_post (UPDATE ERROR) - Response headers: {response.headers}"
-            )
+            #     f"BulkMixin: bulk_edit_process_post (UPDATE ERROR) - Response headers: {response.headers}"
+            # )
             return response
 
         else:  # Success case (no errors)

@@ -150,6 +150,40 @@
         selectElement.tomselect.enable();
     }
 
+    function syncTomSelectValue(selectElement) {
+        if (!(selectElement instanceof HTMLSelectElement) || !selectElement.tomselect) {
+            return;
+        }
+
+        if (typeof selectElement.tomselect.sync === 'function') {
+            selectElement.tomselect.sync();
+            return;
+        }
+
+        const selectedValue = selectElement.tomselect.getValue();
+        if (selectElement.multiple) {
+            const selectedValues = Array.isArray(selectedValue) ? selectedValue.map(String) : [];
+            Array.from(selectElement.options).forEach(option => {
+                option.selected = selectedValues.includes(option.value);
+            });
+            return;
+        }
+
+        const normalizedValue = Array.isArray(selectedValue)
+            ? (selectedValue[0] ?? '')
+            : (selectedValue ?? '');
+        selectElement.value = String(normalizedValue);
+    }
+
+    function syncTomSelectValues(container) {
+        if (!(container instanceof Element)) {
+            return;
+        }
+        container.querySelectorAll('select').forEach(selectElement => {
+            syncTomSelectValue(selectElement);
+        });
+    }
+
     function hideNativeSelect(selectElement) {
         if (!(selectElement instanceof HTMLSelectElement)) {
             return;
@@ -1183,6 +1217,7 @@
             return;
         }
 
+        syncTomSelectValues(container);
         setWidgetRefreshing(widget, true);
 
         const values = {};
@@ -1709,6 +1744,7 @@
         const target = event.detail && event.detail.elt;
         if (target && target.matches && target.matches('[data-inline-save]')) {
             const row = target.closest(INLINE_ROW_SELECTOR);
+            syncTomSelectValues(row);
             toggleInlineSaving(row, true);
         }
 
