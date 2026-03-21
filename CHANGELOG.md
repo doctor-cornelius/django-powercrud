@@ -1,3 +1,9 @@
+## 0.5.21 (2026-03-21)
+
+### Fix
+
+- **(inline)**: ensure inline edit POST carry full form fields
+
 ## 0.5.20 (2026-03-19)
 
 ## 0.5.19 (2026-03-19)
