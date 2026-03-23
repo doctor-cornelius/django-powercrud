@@ -15,7 +15,6 @@
   ],
   "prConcurrentLimit": 5,
   "prHourlyLimit": 2,
-  "rangeStrategy": "bump",
   "rebaseWhen": "conflicted",
   "dependencyDashboardAutoclose": true,
   "enabledManagers": [
@@ -37,9 +36,19 @@
       "matchManagers": [
         "npm"
       ],
-      "groupName": "js-packages",
-      "groupSlug": "js-packages",
+      "rangeStrategy": "update-lockfile",
       "additionalBranchPrefix": "js-"
+    },
+    {
+      "matchManagers": [
+        "npm"
+      ],
+      "matchUpdateTypes": [
+        "patch",
+        "minor"
+      ],
+      "groupName": "js-packages",
+      "groupSlug": "js-packages"
     },
     {
       "matchManagers": [

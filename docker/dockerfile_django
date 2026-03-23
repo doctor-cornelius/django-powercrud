@@ -39,7 +39,7 @@ WORKDIR ${USERHOME}/${PROJECT_DIR}
 
 # Install node packages
 COPY package*.json ./
-RUN npm install && chown -R ${USER}:${USER} node_modules
+RUN npm ci && chown -R ${USER}:${USER} node_modules
 
 # Install uv
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh && \

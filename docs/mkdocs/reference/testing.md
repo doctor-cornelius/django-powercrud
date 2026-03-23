@@ -17,7 +17,7 @@ pytest -m "not playwright"
 
 # Playwright UI suite locally (requires built assets + browser deps)
 uv sync --group tests-core --group tests-ui
-npm install
+npm ci
 npm run build
 pytest -m playwright
 
@@ -44,7 +44,7 @@ pytest -m "not playwright"
 
 # Django 5.2 Playwright suite
 uv pip install -c requirements/constraints-django52.txt ".[tests-core]" ".[tests-ui]"
-npm install
+npm ci
 npm run build
 pytest -m playwright
 ```
