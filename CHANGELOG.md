@@ -1,3 +1,9 @@
+## 0.5.23 (2026-03-30)
+
+### Fix
+
+- use daisyui select wrapper for page size control
+
 ## 0.5.22 (2026-03-30)
 
 ### Fix
