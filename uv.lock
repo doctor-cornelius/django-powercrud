@@ -485,7 +485,7 @@ wheels = [
 
 [[package]]
 name = "django-powercrud"
-version = "0.5.20"
+version = "0.5.21"
 source = { editable = "." }
 dependencies = [
     { name = "django-htmx" },
@@ -570,14 +570,14 @@ requires-dist = [
     { name = "django-redis", marker = "extra == 'tests-core'", specifier = ">=6.0.0,<7" },
     { name = "django-template-partials", specifier = ">=25.3" },
     { name = "django-vite", marker = "extra == 'tests-core'", specifier = ">=3.1.0,<4" },
-    { name = "faker", marker = "extra == 'tests-core'", specifier = ">=38.3.0,<39" },
+    { name = "faker", marker = "extra == 'tests-core'", specifier = ">=40.11,<41" },
     { name = "ipykernel", marker = "extra == 'dev'", specifier = ">=7.2.0,<8" },
     { name = "mkdocs", marker = "extra == 'docs'", specifier = ">=1.6.1,<2" },
     { name = "mkdocs-awesome-nav", marker = "extra == 'docs'", specifier = ">=3.3.0,<4" },
     { name = "mkdocs-enumerate-headings-plugin", marker = "extra == 'docs'", specifier = ">=0.6.2,<0.7" },
     { name = "mkdocs-material", marker = "extra == 'docs'", specifier = ">=9.7.3,<10" },
     { name = "mkdocs-mermaid2-plugin", marker = "extra == 'docs'", specifier = ">=1.2.3,<2" },
-    { name = "neapolitan", marker = "extra == 'tests-core'", specifier = ">=25.1,<26" },
+    { name = "neapolitan", marker = "extra == 'tests-core'", specifier = ">=26.1,<27" },
     { name = "playwright", marker = "extra == 'tests-ui'", specifier = ">=1.58.0,<2" },
     { name = "psycopg", marker = "extra == 'tests-core'", specifier = ">=3.3.3,<4" },
     { name = "psycopg-binary", marker = "extra == 'tests-core'", specifier = ">=3.3.3,<4" },
@@ -606,8 +606,8 @@ tests-core = [
     { name = "django-q2", specifier = ">=1.9.0,<2" },
     { name = "django-redis", specifier = ">=6.0.0,<7" },
     { name = "django-vite", specifier = ">=3.1.0,<4" },
-    { name = "faker", specifier = ">=38.3.0,<39" },
-    { name = "neapolitan", specifier = ">=25.1,<26" },
+    { name = "faker", specifier = ">=40.11,<41" },
+    { name = "neapolitan", specifier = ">=26.1,<27" },
     { name = "psycopg", specifier = ">=3.3.3,<4" },
     { name = "psycopg-binary", specifier = ">=3.3.3,<4" },
     { name = "pytest", specifier = ">=8.4.2,<9" },
@@ -691,14 +691,14 @@ wheels = [
 
 [[package]]
 name = "faker"
-version = "38.3.0"
+version = "40.11.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "tzdata" },
+    { name = "tzdata", marker = "sys_platform == 'win32'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/c5/29/ccf9b7b64d461a4fd6ad92b311c5b386c443c9a061cc55bf5cdc7cccd0f7/faker-38.3.0.tar.gz", hash = "sha256:4997de214510db9328ed83b9591891c66e91d7e9a903e5744e0255a68f51ac16", size = 1942020, upload-time = "2025-12-17T19:15:26.945Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/fa/e5/b16bf568a2f20fe7423282db4a4059dbcadef70e9029c1c106836f8edd84/faker-40.11.1.tar.gz", hash = "sha256:61965046e79e8cfde4337d243eac04c0d31481a7c010033141103b43f603100c", size = 1957415, upload-time = "2026-03-23T14:05:50.233Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/42/2e/941eb5290764e3f5de735ef7d365ac8e729d0d0c8f9f93d74bd7f854459c/faker-38.3.0-py3-none-any.whl", hash = "sha256:b5499b6f2d090dec9b90ded8eae6a27daed10fda3e0dba7a182bb2be8a4d4a6b", size = 1980800, upload-time = "2025-12-17T19:15:24.865Z" },
+    { url = "https://files.pythonhosted.org/packages/fc/ec/3c4b78eb0d2f6a81fb8cc9286745845bff661e6815741eff7a6ac5fcc9ea/faker-40.11.1-py3-none-any.whl", hash = "sha256:3af3a213ba8fb33ce6ba2af7aef2ac91363dae35d0cec0b2b0337d189e5bee2a", size = 1989484, upload-time = "2026-03-23T14:05:48.793Z" },
 ]
 
 [[package]]
@@ -1111,15 +1111,15 @@ wheels = [
 
 [[package]]
 name = "neapolitan"
-version = "25.1"
+version = "26.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "django" },
     { name = "django-filter" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/08/06/f967ed9e8f1e46640bcb4cc847eca0019b70fd233291264f6d493b38fdab/neapolitan-25.1.tar.gz", hash = "sha256:e5f1692c6d5807143f48635e351f62f0921d491efa6de8906e9a5ca22104a877", size = 26464, upload-time = "2025-07-03T13:06:30.532Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/16/ad/b359f22cd2506d3d466a50813644547942bb4e4e23714004fcb5e5bce6b9/neapolitan-26.1.tar.gz", hash = "sha256:e45cd8f4787174777a4f8b822bea6bace457b41507cf1a8db8de0b53d7e331d0", size = 26628, upload-time = "2026-03-15T09:54:14.605Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/8e/40/dff95e2f497108406ba964ced175b2654f6c44ae85ab908742ebf9a39753/neapolitan-25.1-py2.py3-none-any.whl", hash = "sha256:fecc83ba80e2d0654cb649050aea2f1ff4965737665c41b6aa8976e9ecdb205d", size = 14217, upload-time = "2025-07-03T13:06:29.097Z" },
+    { url = "https://files.pythonhosted.org/packages/0b/a5/b84542dc6771b2174d0d7993a7c2c14b8a3a6ae44856bb3e7dc7cdbc7ee7/neapolitan-26.1-py2.py3-none-any.whl", hash = "sha256:14ef19ace754125140599310be5053e0f3697dec2aabee0993adde780767a816", size = 14233, upload-time = "2026-03-15T09:54:12.722Z" },
 ]
 
 [[package]]

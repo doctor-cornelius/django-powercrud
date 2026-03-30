@@ -1,3 +1,16 @@
+## 0.5.22 (2026-03-30)
+
+### Fix
+
+- harden bulk and inline editable field validation
+- **(inline)**: fix truncation of text in inline field contents
+- **(deps)**: update python-packages (#79)
+- **(deps)**: update python-packages (#72)
+
+### Documentation
+
+- clarify strict bulk and inline field rules
+
 ## 0.5.21 (2026-03-21)
 
 ### Fix
