@@ -37,9 +37,11 @@ RUN useradd -m -s /bin/bash --create-home ${USER} && \
 
 WORKDIR ${USERHOME}/${PROJECT_DIR}
 
-# Install node packages
+# Install node packages. Lightning CSS ships its native binary as an optional
+# platform package; include optional deps explicitly so fresh images always
+# contain the Linux artifact Vite expects at runtime.
 COPY package*.json ./
-RUN npm ci && chown -R ${USER}:${USER} node_modules
+RUN npm ci --include=optional && chown -R ${USER}:${USER} node_modules
 
 # Install uv
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh && \
