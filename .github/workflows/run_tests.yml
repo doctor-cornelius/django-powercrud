@@ -107,7 +107,7 @@ jobs:
 
       - name: Upload combined coverage to Codecov
         if: hashFiles('coverage.xml') != ''
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v6
         with:
           files: coverage.xml
           token: ${{ secrets.CODECOV_TOKEN }}
