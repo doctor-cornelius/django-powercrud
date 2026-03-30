@@ -210,3 +210,43 @@ def test_perform_bulk_update_returns_validation_errors(monkeypatch, noop_atomic)
     assert errors["success"] is False
     assert errors["success_records"] == 0
     assert errors["errors"] == [("title", ["invalid state"])]
+
+
+@pytest.mark.django_db
+def test_perform_bulk_update_rejects_fields_outside_bulk_fields(noop_atomic):
+    author = Author.objects.create(name="Alpha")
+    book = Book.objects.create(
+        title="Guarded",
+        author=author,
+        bestseller=False,
+        published_date="2024-01-01",
+        isbn="2323232323232",
+        pages=7,
+    )
+
+    queryset = Book.objects.filter(pk=book.pk)
+    harness = OperationHarness()
+    errors = harness._perform_bulk_update(
+        queryset,
+        bulk_fields=["author"],
+        fields_to_update=["title"],
+        field_data=[
+            {
+                "field": "title",
+                "value": "Tampered",
+                "info": {
+                    "type": "CharField",
+                    "is_relation": False,
+                    "is_m2m": False,
+                    "field": Book._meta.get_field("title"),
+                    "verbose_name": "title",
+                },
+            }
+        ],
+    )
+
+    assert errors["success"] is False
+    assert errors["success_records"] == 0
+    assert errors["errors"] == [
+        ("general", ["Bulk edit request contained invalid fields: title."])
+    ], "The operation layer should reject fields_to_update entries that are outside the configured bulk_fields list."

@@ -12,6 +12,29 @@ log = get_logger(__name__)
 class OperationMixin:
     """Mixin for core bulk operations including delete, update, and permission checks."""
 
+    def _validate_bulk_update_fields(
+        self, *, bulk_fields: List[str], fields_to_update: List[str]
+    ) -> None:
+        """
+        Ensure the requested bulk-update fields are configured for this view.
+
+        Args:
+            bulk_fields: Field names configured as bulk-editable.
+            fields_to_update: Field names submitted for the current operation.
+
+        Raises:
+            ValidationError: If any submitted field is outside ``bulk_fields``.
+        """
+        allowed_fields = set(bulk_fields)
+        invalid_fields = [
+            field for field in fields_to_update if field not in allowed_fields
+        ]
+        if invalid_fields:
+            invalid_field_list = ", ".join(invalid_fields)
+            raise ValidationError(
+                f"Bulk edit request contained invalid fields: {invalid_field_list}."
+            )
+
     def get_bulk_edit_enabled(self) -> bool:
         """
         Determine if bulk edit functionality should be enabled.
@@ -108,6 +131,18 @@ class OperationMixin:
         current = 0
         errors = []
         updated_count = 0
+
+        try:
+            self._validate_bulk_update_fields(
+                bulk_fields=bulk_fields,
+                fields_to_update=fields_to_update,
+            )
+        except ValidationError as e:
+            return {
+                "success": False,
+                "success_records": 0,
+                "errors": [("general", list(getattr(e, "messages", [str(e)])))],
+            }
 
         # Bulk update - collect all changes first, then apply in transaction
         updates_to_apply = []

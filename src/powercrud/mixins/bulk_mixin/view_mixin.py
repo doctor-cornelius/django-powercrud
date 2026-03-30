@@ -121,6 +121,42 @@ class ViewMixin:
                 )
         return context
 
+    def _render_bulk_edit_error(
+        self, request, template_errors: str, error_message: str
+    ) -> HttpResponse:
+        """
+        Render the standard bulk-edit error partial.
+
+        Args:
+            request: Current HTTP request.
+            template_errors: Base template path for bulk-edit error partials.
+            error_message: Human-readable error to show in the modal.
+
+        Returns:
+            HttpResponse: Rendered bulk-edit error partial.
+        """
+        return render(
+            request,
+            f"{template_errors}#bulk_edit_error",
+            {"error": error_message},
+        )
+
+    def _validate_bulk_fields_to_update(
+        self, *, fields_to_update: List[str], bulk_fields: List[str]
+    ) -> List[str]:
+        """
+        Return any submitted bulk-update fields that are not configured.
+
+        Args:
+            fields_to_update: Field names submitted by the client.
+            bulk_fields: Field names configured as bulk-editable for the view.
+
+        Returns:
+            list[str]: Invalid submitted field names, preserving request order.
+        """
+        allowed_fields = set(bulk_fields)
+        return [field for field in fields_to_update if field not in allowed_fields]
+
     def bulk_edit(self, request, *args, **kwargs) -> HttpResponse:
         """
         Handle GET and POST requests for bulk editing.
@@ -169,27 +205,25 @@ class ViewMixin:
                         ) or request.GET.getlist("selected_ids")
         except SuspiciousOperation as e:
             log.error(f"SuspiciousOperation during bulk edit parameter retrieval: {e}")
-            return render(
+            return self._render_bulk_edit_error(
                 request,
-                f"{template_errors}#bulk_edit_error",
-                {
-                    "error": "Too many items selected for bulk edit. Please select fewer items or contact your administrator to increase DATA_UPLOAD_MAX_NUMBER_FIELDS."
-                },
+                template_errors,
+                "Too many items selected for bulk edit. Please select fewer items or contact your administrator to increase DATA_UPLOAD_MAX_NUMBER_FIELDS.",
             )
         except Exception as e:
             log.error(f"Unexpected error during bulk edit parameter retrieval: {e}")
-            return render(
+            return self._render_bulk_edit_error(
                 request,
-                f"{template_errors}#bulk_edit_error",
-                {"error": f"An unexpected error occurred: {e}"},
+                template_errors,
+                f"An unexpected error occurred: {e}",
             )
 
         # If still no IDs, return an error
         if not selected_ids:
-            return render(
+            return self._render_bulk_edit_error(
                 request,
-                f"{template_errors}#bulk_edit_error",
-                {"error": "No items selected for bulk edit."},
+                template_errors,
+                "No items selected for bulk edit.",
             )
         # Get the queryset of selected objects
         queryset = self.model.objects.filter(pk__in=selected_ids)
@@ -210,10 +244,10 @@ class ViewMixin:
         # Get bulk fields (fields that can be bulk edited)
         bulk_fields = cfg.bulk_fields or []
         if not bulk_fields and not getattr(self, "bulk_delete", False):
-            return render(
+            return self._render_bulk_edit_error(
                 request,
-                f"{template_errors}#bulk_edit_error",
-                {"error": "No fields configured for bulk editing."},
+                template_errors,
+                "No fields configured for bulk editing.",
             )
         # Handle form submission
         if request.method == "POST" and "bulk_submit" in request.POST:
@@ -269,9 +303,26 @@ class ViewMixin:
         """
         cfg = resolve_config(self)
         field_info = self._get_bulk_field_info(bulk_fields)
+        template_errors = f"{cfg.templates_path}/partial/bulk_edit_errors.html"
         # extract necessary data from the request
         delete_selected = request.POST.get("delete_selected")
         fields_to_update = request.POST.getlist("fields_to_update")
+        invalid_fields = self._validate_bulk_fields_to_update(
+            fields_to_update=fields_to_update,
+            bulk_fields=bulk_fields,
+        )
+        if invalid_fields:
+            invalid_field_list = ", ".join(invalid_fields)
+            log.warning(
+                "Rejected bulk edit request for %s due to invalid submitted fields: %s",
+                self.__class__.__name__,
+                invalid_field_list,
+            )
+            return self._render_bulk_edit_error(
+                request,
+                template_errors,
+                f"Bulk edit request contained invalid fields: {invalid_field_list}.",
+            )
         field_data = []
         for field in fields_to_update:
             info = field_info.get(field, {})

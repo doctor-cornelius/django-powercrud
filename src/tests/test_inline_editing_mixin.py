@@ -940,6 +940,14 @@ def test_inline_edit_fields_intersects_form_fields():
     ), "Inline edit fields should be intersected with the actual form fields exposed by the form class."
 
 
+def test_inline_edit_fields_rejects_non_editable_model_fields():
+    class InlineInvalidHarness(CoreHarness):
+        inline_edit_fields = ["title", "uneditable_field"]
+
+    with pytest.raises(ValueError, match="inline_edit_fields"):
+        InlineInvalidHarness()
+
+
 @pytest.mark.django_db
 def test_inline_dependency_ignores_child_when_not_inline():
     view = CoreHarness()

@@ -86,6 +86,16 @@ def test_core_mixin_invalid_form_display_field_raises_value_error():
         BrokenView()
 
 
+def test_core_mixin_rejects_non_editable_bulk_fields():
+    class BrokenView(CoreMixin):
+        model = Book
+        fields = "__all__"
+        bulk_fields = ["uneditable_field"]
+
+    with pytest.raises(ValueError, match="bulk_fields"):
+        BrokenView()
+
+
 @pytest.mark.django_db
 def test_core_mixin_all_fields_and_excludes():
     class AllFieldsView(CoreMixin):

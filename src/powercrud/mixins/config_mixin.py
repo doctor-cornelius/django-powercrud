@@ -212,6 +212,7 @@ class ConfigMixin:
         self._configure_detail_fields()
         self._configure_detail_properties()
         self._configure_bulk_fields()
+        self._configure_inline_edit_fields()
         self._configure_form_fields()
         self._configure_form_display_fields()
 
@@ -329,20 +330,71 @@ class ConfigMixin:
         else:
             raise TypeError("detail_properties_exclude must be a list")
 
+    def _validate_declared_model_fields(
+        self,
+        field_names: list[str],
+        *,
+        config_name: str,
+        editable_only: bool = False,
+    ) -> None:
+        """
+        Validate configured model-field names against the current model.
+
+        Args:
+            field_names: Declared field names to validate.
+            config_name: Public config attribute being validated.
+            editable_only: When True, require the referenced model fields to be
+                editable as well as present on the model.
+        """
+        all_fields = set(self._get_all_fields())
+        invalid_fields = [field for field in field_names if field not in all_fields]
+        if invalid_fields:
+            raise ValueError(
+                f"The following {config_name} are not model fields in {self.model.__name__}: "
+                f"{', '.join(invalid_fields)}"
+            )
+
+        if not editable_only:
+            return
+
+        editable_fields = set(self._get_all_editable_fields())
+        non_editable_fields = [
+            field for field in field_names if field not in editable_fields
+        ]
+        if non_editable_fields:
+            raise ValueError(
+                f"The following {config_name} are not editable fields in {self.model.__name__}: "
+                f"{', '.join(non_editable_fields)}"
+            )
+
     def _configure_bulk_fields(self):
         if self.bulk_fields:
             if isinstance(self.bulk_fields, list):
-                all_fields = self._get_all_fields()
                 for field_name in self.bulk_fields:
                     if not isinstance(field_name, str):
                         raise ValueError(
                             f"Invalid bulk field configuration: {field_name}. Must be a string."
                         )
+                self._validate_declared_model_fields(
+                    self.bulk_fields,
+                    config_name="bulk_fields",
+                    editable_only=True,
+                )
 
-                    if field_name not in all_fields:
-                        raise ValueError(
-                            f"Bulk field '{field_name}' not defined in {self.model.__name__}"
-                        )
+    def _configure_inline_edit_fields(self):
+        """
+        Validate explicitly declared inline-edit fields.
+
+        Inline sentinel values are resolved later by InlineEditingMixin, but any
+        explicit list must reference editable model fields up front so
+        misconfiguration fails loudly instead of disappearing silently.
+        """
+        if isinstance(self.inline_edit_fields, list):
+            self._validate_declared_model_fields(
+                self.inline_edit_fields,
+                config_name="inline_edit_fields",
+                editable_only=True,
+            )
 
     def _configure_form_fields(self):
         """
@@ -366,12 +418,11 @@ class ConfigMixin:
         elif self.form_fields == "__fields__":
             self.form_fields = [f for f in self.fields if f in all_editable]
         else:
-            invalid_fields = [f for f in self.form_fields if f not in all_editable]
-            if invalid_fields:
-                raise ValueError(
-                    f"The following form_fields are not editable fields in {self.model.__name__}: "
-                    f"{', '.join(invalid_fields)}"
-                )
+            self._validate_declared_model_fields(
+                self.form_fields,
+                config_name="form_fields",
+                editable_only=True,
+            )
 
         if self.form_fields_exclude:
             self.form_fields = [
