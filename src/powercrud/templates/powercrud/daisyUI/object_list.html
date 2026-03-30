@@ -146,24 +146,25 @@
             {% extra_buttons view %}
 
             <!-- Page Size Selector -->
-            <form id="page-size-form" class="inline ml-2" style="white-space:nowrap;"
+            <form id="page-size-form" class="ml-2 inline-flex items-center gap-1 whitespace-nowrap"
                 hx-get="." hx-target="{{ original_target }}" hx-push-url="true"
                 hx-trigger="change" hx-include="[name]">
                 <label for="page-size-select" class="sr-only">Page size</label>
-                <select id="page-size-select" name="page_size"
-                    class="select select-bordered select-sm align-middle w-[10ch]">
-                    {% for size in page_size_options %}
-                        <option value="{{ size }}"
-                            {% if request.GET.page_size == size %}
-                                selected
-                            {% elif not request.GET.page_size and default_page_size == size %}
-                                selected
-                            {% endif %}>{{ size }}</option>
-                    {% endfor %}
-                    <option value="all" {% if request.GET.page_size == 'all' or default_page_size is None %}selected{% endif %}>
-                        All</option>
-                </select>
-                <span class="text-xs text-base-content/70 ml-1">per page</span>
+                <label class="select select-bordered select-sm w-[10ch]">
+                    <select id="page-size-select" name="page_size">
+                        {% for size in page_size_options %}
+                            <option value="{{ size }}"
+                                {% if request.GET.page_size == size %}
+                                    selected
+                                {% elif not request.GET.page_size and default_page_size == size %}
+                                    selected
+                                {% endif %}>{{ size }}</option>
+                        {% endfor %}
+                        <option value="all" {% if request.GET.page_size == 'all' or default_page_size is None %}selected{% endif %}>
+                            All</option>
+                    </select>
+                </label>
+                <span class="text-xs text-base-content/70">per page</span>
             </form>
         </div>
     
