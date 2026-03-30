@@ -37,7 +37,8 @@ class BookCRUDView(PowerCRUDMixin, CRUDView):
 
 - `inline_edit_fields` both enables inline editing and controls which columns show the hover/focus shim and respond to clicks.
 - Leave `inline_edit_fields` unset to disable inline editing for the view.
-- `inline_edit_fields` must match fields exposed by the actual form returned by `get_form_class()`. If you use a custom `form_class`, PowerCRUD filters the inline list to fields that really exist on that form.
+- Explicit `inline_edit_fields` entries must be editable model fields. If you include a field with `editable=False`, PowerCRUD raises a configuration error during view setup.
+- `inline_edit_fields` must match fields exposed by the actual form returned by `get_form_class()`. If you use a custom `form_class`, PowerCRUD still filters the inline list to fields that really exist on that form.
 - Stock inline editing still builds the full edit form, then reposts any non-rendered form fields as hidden inputs so inline saves behave like the normal edit form.
 - `form_disabled_fields` does not disable the same field inline. It remains an update-form feature only.
 - Only columns actually rendered in the list can be clicked inline, so a field must be both inline-configured and visible in the list to behave as an inline-editable cell.
@@ -81,7 +82,7 @@ Notes:
 
 ## 2. Configure dependencies and helpers
 
-Inline editing reuses the existing form machinery, so any widget or queryset customisations carry over. Keep `inline_edit_fields` aligned with whatever the form actually exposes; if a field is excluded from `form_class`, PowerCRUD drops it from the inline list. List rendering still controls which cells are clickable, so an inline field should normally also be present in your list `fields`. Fields that belong to the full form but are not rendered as visible inline widgets are still reposted as hidden inputs so save validation matches the normal edit form. One exception is `form_disabled_fields`: that setting does not lock the same field inline and remains update-form-only. For dynamic dropdowns, declare the shared queryset dependency once:
+Inline editing reuses the existing form machinery, so any widget or queryset customisations carry over. Keep `inline_edit_fields` aligned with whatever the form actually exposes; if a field is excluded from `form_class`, PowerCRUD drops it from the inline list after the initial editable-field validation. List rendering still controls which cells are clickable, so an inline field should normally also be present in your list `fields`. Fields that belong to the full form but are not rendered as visible inline widgets are still reposted as hidden inputs so save validation matches the normal edit form. One exception is `form_disabled_fields`: that setting does not lock the same field inline and remains update-form-only. For dynamic dropdowns, declare the shared queryset dependency once:
 
 ```python
 class BookCRUDView(PowerCRUDMixin, CRUDView):

@@ -118,6 +118,7 @@ Behavior:
 - they are not editable inputs
 - they are not submitted with the form
 - they are hidden on create forms because there is no saved instance to display yet
+- they remain the right place for `editable=False` model fields that you want users to see in normal edit flows, instead of trying to place those fields in `form_fields`, `inline_edit_fields`, or `bulk_fields`
 
 ---
 

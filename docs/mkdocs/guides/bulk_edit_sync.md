@@ -26,11 +26,12 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
     bulk_delete = True
 ```
 
-Every entry in `bulk_fields` must also appear in your normal `fields` list (or be part of the model’s editable fields) so the bulk form can render and save correctly.
+Every entry in `bulk_fields` must be an editable model field. If you include a field with `editable=False`, PowerCRUD raises a configuration error during view setup. In practice, bulk-edit fields should also appear in your normal `fields` list when you want the list and bulk-edit surfaces to stay aligned.
 
 - `bulk_fields` lists the fields that appear in the bulk edit form.
 - `bulk_delete = True` adds a “Delete selected” option.
 - HTMX + modal support are required for the bulk UI.
+- The server validates `fields_to_update` against configured `bulk_fields`, so tampered POST payloads cannot update fields outside the declared bulk-edit surface.
 
 Selections persist across pagination because PowerCRUD stores them in the session for the current view.
 
