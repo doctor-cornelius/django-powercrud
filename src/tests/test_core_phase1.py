@@ -1,4 +1,5 @@
 import re
+from pathlib import Path
 from types import SimpleNamespace
 from datetime import date
 
@@ -822,6 +823,30 @@ def test_book_list_renders_custom_inline_edit_highlight_css_variables(
         _extract_inline_css_variable(response_text, "--pc-inline-active-row-outline")
         == "rgba(59, 130, 246, 0.85)"
     ), "Custom inline-edit accent should drive the active-row outline variable."
+
+
+@pytest.mark.django_db
+def test_book_list_inline_edit_display_uses_truncating_label_wrapper():
+    """Keep the truncating wrapper and tooltip hook in the inline list template."""
+    template_text = (
+        Path(__file__).resolve().parents[1]
+        / "powercrud"
+        / "templates"
+        / "powercrud"
+        / "daisyUI"
+        / "partial"
+        / "list.html"
+    ).read_text(encoding="utf-8")
+
+    assert ".pc-inline-display-label" in template_text, (
+        "Inline-edit list markup should define the dedicated truncation wrapper styles."
+    )
+    assert 'class="pc-inline-display-label' in template_text, (
+        "Display-state inline edit cells should render the truncating label wrapper around their text."
+    )
+    assert 'data-powercrud-tooltip="overflow"' in template_text, (
+        "Inline display labels should keep the overflow-tooltip hook on the truncating wrapper."
+    )
 
 
 @pytest.mark.django_db

@@ -253,3 +253,53 @@ def test_inline_edit_searchable_select_updates_author(
     assert (
         book.author_id == replacement_author.pk
     ), "Inline searchable single-select should persist the selected author after save."
+
+
+def test_inline_edit_display_truncates_long_values(page: Page, books_url: str, inline_ready_books):
+    """Long inline display labels should clip inside the cell before edit mode opens."""
+    long_title = "Inline Display Title That Should Truncate Instead Of Bleeding Into The Next Column"
+    target_book = inline_ready_books[0]
+    target_book.title = long_title
+    target_book.save(update_fields=["title"])
+
+    page.set_viewport_size({"width": 900, "height": 900})
+    page.add_init_script(
+        """
+        () => {
+            const style = document.createElement('style');
+            style.id = 'playwright-inline-display-truncate-style';
+            style.textContent = `
+                table[data-inline-enabled="true"] {
+                    table-layout: fixed;
+                    width: 100%;
+                }
+                td[data-field-name="title"] {
+                    width: 12rem;
+                    max-width: 12rem;
+                }
+            `;
+            const attachStyle = () => {
+                if (document.getElementById(style.id)) {
+                    return;
+                }
+                document.head.appendChild(style.cloneNode(true));
+            };
+            if (document.head) {
+                attachStyle();
+            } else {
+                document.addEventListener('DOMContentLoaded', attachStyle, { once: true });
+            }
+        }
+        """
+    )
+
+    open_books_page(page, books_url)
+
+    overflow_label = page.locator(
+        "td[data-field-name='title'] "
+        f".pc-inline-display-label[data-powercrud-tooltip='overflow'][data-tippy-content=\"{long_title}\"]"
+    ).first
+    expect(overflow_label).to_be_visible()
+    assert overflow_label.evaluate("el => el.scrollWidth > el.clientWidth"), (
+        "Inline display labels should truncate long values inside the list cell so text does not spill into neighbouring columns."
+    )

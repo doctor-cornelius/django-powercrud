@@ -64,9 +64,21 @@
     .inline-edit-trigger {
         cursor: pointer;
         border-radius: 0.25rem;
+        display: block;
+        max-width: 100%;
+        min-width: 0;
         padding: 0.25rem 0.15rem;
         padding-right: calc(0.15rem + var(--pc-inline-icon-buffer, 2.25ch));
         transition: background-color 0.1s ease;
+    }
+
+    .pc-inline-display-label {
+        display: block;
+        max-width: 100%;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
     }
 
     .inline-edit-trigger.pc-inline-editable {
@@ -269,7 +281,6 @@
             <button type="button"
                     class="inline-edit-trigger pc-inline-editable w-full px-0 {% if align_class == 'center' %}flex justify-center text-center{% else %}text-left{% endif %}"
                     data-inline-field="{{ cell.name }}"
-                    {% if value_str|slice:":1" != "<" %}data-tippy-content="{{ cell.value }}" data-powercrud-tooltip="overflow"{% endif %}
                     {% if row.inline_url %}
                         hx-get="{{ row.inline_url }}"
                         hx-target="#{{ row.row_id }}"
@@ -277,7 +288,8 @@
                     {% endif %}
                     hx-trigger="click, keyup[key=='Enter'], keyup[key==' ']"
                     >
-                <span class="inline-flex whitespace-nowrap {% if align_class == 'center' %}items-center justify-center{% else %}w-full{% endif %}">
+                <span class="pc-inline-display-label {% if align_class == 'center' %}text-center{% else %}w-full{% endif %}"
+                    {% if value_str|slice:":1" != "<" %}data-tippy-content="{{ cell.value }}" data-powercrud-tooltip="overflow"{% endif %}>
                     {{ cell.value }}
                 </span>
             </button>
@@ -340,7 +352,6 @@
             <button type="button"
                     class="inline-edit-trigger pc-inline-editable w-full px-0 {% if align_class == 'center' %}flex justify-center text-center{% else %}text-left{% endif %}"
                     data-inline-field="{{ cell.name }}"
-                    {% if value_str|slice:":1" != "<" %}data-tippy-content="{{ cell.value }}" data-powercrud-tooltip="overflow"{% endif %}
                     {% if row.inline_url %}
                         hx-get="{{ row.inline_url }}"
                         hx-target="#{{ row.row_id }}"
@@ -348,7 +359,8 @@
                     {% endif %}
                     hx-trigger="click, keyup[key=='Enter'], keyup[key==' ']"
                     >
-                <span class="inline-flex whitespace-nowrap {% if align_class == 'center' %}items-center justify-center{% else %}w-full{% endif %}">
+                <span class="pc-inline-display-label {% if align_class == 'center' %}text-center{% else %}w-full{% endif %}"
+                    {% if value_str|slice:":1" != "<" %}data-tippy-content="{{ cell.value }}" data-powercrud-tooltip="overflow"{% endif %}>
                     {{ cell.value }}
                 </span>
             </button>
