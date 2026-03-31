@@ -45,7 +45,7 @@ docs = [
     "mkdocs>=1.6.1,<2",
     "mkdocs-material>=9.7.3,<10",
     "mkdocs-mermaid2-plugin>=1.2.3,<2",
-    "mkdocs-enumerate-headings-plugin>=0.6.2,<0.7",
+    "mkdocs-enumerate-headings-plugin>=0.7,<0.8",
     "mkdocs-awesome-nav>=3.3.0,<4"
 ]
 
