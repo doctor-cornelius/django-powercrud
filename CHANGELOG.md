@@ -1,3 +1,10 @@
+## 0.5.24 (2026-04-01)
+
+### Fix
+
+- **(template)**: make empty-state create prompt conditional
+- **(deps)**: update dependency mkdocs-enumerate-headings-plugin to >=0.7,<0.8 (#82)
+
 ## 0.5.23 (2026-03-30)
 
 ### Fix

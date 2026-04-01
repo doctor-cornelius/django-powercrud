@@ -485,7 +485,7 @@ wheels = [
 
 [[package]]
 name = "django-powercrud"
-version = "0.5.22"
+version = "0.5.23"
 source = { editable = "." }
 dependencies = [
     { name = "django-htmx" },
@@ -574,7 +574,7 @@ requires-dist = [
     { name = "ipykernel", marker = "extra == 'dev'", specifier = ">=7.2.0,<8" },
     { name = "mkdocs", marker = "extra == 'docs'", specifier = ">=1.6.1,<2" },
     { name = "mkdocs-awesome-nav", marker = "extra == 'docs'", specifier = ">=3.3.0,<4" },
-    { name = "mkdocs-enumerate-headings-plugin", marker = "extra == 'docs'", specifier = ">=0.6.2,<0.7" },
+    { name = "mkdocs-enumerate-headings-plugin", marker = "extra == 'docs'", specifier = ">=0.7,<0.8" },
     { name = "mkdocs-material", marker = "extra == 'docs'", specifier = ">=9.7.3,<10" },
     { name = "mkdocs-mermaid2-plugin", marker = "extra == 'docs'", specifier = ">=1.2.3,<2" },
     { name = "neapolitan", marker = "extra == 'tests-core'", specifier = ">=26.1,<27" },
@@ -1027,15 +1027,15 @@ wheels = [
 
 [[package]]
 name = "mkdocs-enumerate-headings-plugin"
-version = "0.6.2"
+version = "0.7.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "beautifulsoup4" },
     { name = "mkdocs" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/80/ee/cc24e435b543c2a974e8cbd91e69ead661799b4f3d7174801b104f3be251/mkdocs_enumerate_headings_plugin-0.6.2.tar.gz", hash = "sha256:392782dbbbb9f7f62af852b6f2724ae515043dbb7397cd68dd62f134dd1b3ab5", size = 14938, upload-time = "2024-04-16T19:13:41.75Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/8f/ce/6b2b9ee8f42fe40a74898c1a24f3192debb7ac6da38e00b9d8ef617296a3/mkdocs_enumerate_headings_plugin-0.7.0.tar.gz", hash = "sha256:5e63c5cf868de3d2c735ea4a0874c70b7f3214053f05248c1e22cb7bc8850f44", size = 16165, upload-time = "2026-03-26T17:28:25.293Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/6c/de/3c1a764e1db8991ed33c8cedc52d4a6b9b1b857b20ea3e625d0d7a2594ef/mkdocs_enumerate_headings_plugin-0.6.2-py3-none-any.whl", hash = "sha256:6bec6674091509290e1f24a0c9272b887c5242e8af6fbddb8eb2b089f52d5bfe", size = 11332, upload-time = "2024-04-16T19:13:40.093Z" },
+    { url = "https://files.pythonhosted.org/packages/08/6c/2b9fe10a9e2a27e72f88291f6f6957db09215d6782a758785cf1ce40ba6f/mkdocs_enumerate_headings_plugin-0.7.0-py3-none-any.whl", hash = "sha256:d3c644cdf736d0bfc3468dc7b5b4838870462038039e7fa3b2fd6910e9519c32", size = 12044, upload-time = "2026-03-26T17:28:23.942Z" },
 ]
 
 [[package]]
