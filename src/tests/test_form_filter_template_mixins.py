@@ -2,6 +2,7 @@ from datetime import date
 
 import pytest
 from django import forms
+from django.template.loader import render_to_string
 from django.test import RequestFactory
 
 from powercrud.mixins.form_mixin import FormMixin
@@ -304,3 +305,50 @@ def test_get_proper_elided_page_range():
     paginator = Paginator(range(50), 1)
     page_range = powercrud_tags.get_proper_elided_page_range(paginator, 10)
     assert "…" in page_range
+
+
+def test_filtered_results_empty_state_omits_create_prompt_without_create_url():
+    """Empty-state copy should stay neutral when create is unavailable."""
+    request = RequestFactory().get("/")
+
+    rendered = render_to_string(
+        "powercrud/daisyUI/object_list.html#filtered_results",
+        {
+            "request": request,
+            "object_list": [],
+            "object_verbose_name_plural": "blocking issues",
+            "show_record_count": False,
+            "show_bulk_selection_meta": False,
+            "create_view_url": None,
+        },
+        request=request,
+    )
+
+    assert (
+        "There are no blocking issues." in rendered
+    ), "Empty-state copy should still explain that no records are available."
+    assert (
+        "Create one now?" not in rendered
+    ), "Empty-state copy should not suggest creating a record when no create URL exists."
+
+
+def test_filtered_results_empty_state_keeps_create_prompt_with_create_url():
+    """Empty-state copy should preserve the create prompt when create is available."""
+    request = RequestFactory().get("/")
+
+    rendered = render_to_string(
+        "powercrud/daisyUI/object_list.html#filtered_results",
+        {
+            "request": request,
+            "object_list": [],
+            "object_verbose_name_plural": "blocking issues",
+            "show_record_count": False,
+            "show_bulk_selection_meta": False,
+            "create_view_url": "/issues/create/",
+        },
+        request=request,
+    )
+
+    assert (
+        "There are no blocking issues. Create one now?" in rendered
+    ), "Empty-state copy should keep the create prompt when a create URL is available."

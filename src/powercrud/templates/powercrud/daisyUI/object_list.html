@@ -302,7 +302,9 @@
         {% object_list object_list view %}
         {% partial pagination %}
     {% else %}
-        <p class="mt-4">There are no {{ object_verbose_name_plural }}. Create one now?</p>
+        <p class="mt-4">
+            There are no {{ object_verbose_name_plural }}.{% if create_view_url %} Create one now?{% endif %}
+        </p>
     {% endif %}
 {% endpartialdef filtered_results %}
 
