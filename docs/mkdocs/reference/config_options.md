@@ -338,5 +338,6 @@ See [Forms](../guides/forms.md#dependent-form-fields) for a fuller worked exampl
 - **Required settings**: Only `model` and `base_template_path` are required.
 - **Auto-detection**: `use_crispy` auto-detects whether `crispy_forms` is installed; everything else is opt-in.
 - **Dependencies**: Bulk operations require both `use_htmx = True` and `use_modal = True`.
+- **Duplicate entries**: Supported list-style config options quietly remove duplicates and keep the first occurrence.
 - **Field shortcuts**: Use `'__all__'` for all fields, `'__fields__'` to reference the `fields` setting.
 - **Property shortcuts**: Use `'__all__'` for all properties, `'__properties__'` to reference the `properties` setting.

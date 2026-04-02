@@ -15,7 +15,7 @@ from django.utils.text import capfirst
 
 from powercrud.conf import get_powercrud_setting
 from powercrud.logging import get_logger
-from .config_mixin import resolve_config
+from .config_mixin import ConfigMixin, resolve_config
 
 log = get_logger(__name__)
 
@@ -402,6 +402,8 @@ class FilteringMixin:
         """
         filterset_class = getattr(self, "filterset_class", None)
         filterset_fields = getattr(self, "filterset_fields", None)
+        if isinstance(filterset_fields, list):
+            filterset_fields = ConfigMixin._dedupe_preserving_first(filterset_fields)
         using_custom_filterset_class = filterset_class is not None
 
         if filterset_class is not None or filterset_fields is not None:

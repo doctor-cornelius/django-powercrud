@@ -148,6 +148,25 @@ class ConfigMixin:
         "paginate_by",
     }
 
+    DEDUPED_STRING_LIST_FIELDS = {
+        "fields",
+        "properties",
+        "exclude",
+        "properties_exclude",
+        "detail_fields",
+        "detail_exclude",
+        "detail_properties",
+        "detail_properties_exclude",
+        "form_fields",
+        "form_fields_exclude",
+        "form_display_fields",
+        "form_disabled_fields",
+        "bulk_fields",
+        "inline_edit_fields",
+        "filter_null_fields_exclude",
+        "filterset_fields",
+    }
+
     # ------------------------------------------------------------------
     # Sync-safe async defaults
     # ------------------------------------------------------------------
@@ -207,6 +226,7 @@ class ConfigMixin:
                 f"Invalid configuration in class '{class_name}': {str(e)}"
             )
 
+        self._normalize_declared_string_lists()
         self._configure_fields()
         self._configure_properties()
         self._configure_detail_fields()
@@ -233,6 +253,24 @@ class ConfigMixin:
         `resolve_config(self)` when they need a configuration view.
         """
         return self._build_config_namespace()
+
+    @staticmethod
+    def _dedupe_preserving_first(values: list[str] | None) -> list[str]:
+        """
+        Return the input list with duplicates removed, keeping first occurrence.
+        """
+        if not values:
+            return []
+        return list(dict.fromkeys(values))
+
+    def _normalize_declared_string_lists(self) -> None:
+        """
+        Quietly collapse duplicate configured list entries before resolution.
+        """
+        for attr_name in self.DEDUPED_STRING_LIST_FIELDS:
+            value = getattr(self, attr_name, None)
+            if isinstance(value, list):
+                setattr(self, attr_name, self._dedupe_preserving_first(value))
 
     def _configure_fields(self):
         if not self.fields or self.fields == "__all__":
@@ -720,15 +758,24 @@ class _ConfigShim:
             "fields",
             "detail_fields",
             "detail_properties",
+            "filterset_fields",
         }:
-            return self._raw(name, []) or []
+            return ConfigMixin._dedupe_preserving_first(self._raw(name, []) or [])
+        if name in {
+            "properties",
+            "exclude",
+            "properties_exclude",
+            "detail_exclude",
+            "detail_properties_exclude",
+            "form_fields_exclude",
+            "filter_null_fields_exclude",
+        }:
+            return ConfigMixin._dedupe_preserving_first(self._raw(name, []) or [])
         if name in {
             "dropdown_sort_options",
             "field_queryset_dependencies",
         }:
             return self._raw(name, {}) or {}
-        if name == "filter_null_fields_exclude":
-            return self._raw(name, []) or []
         return self._raw(name)
 
     def _inline_editing_declared(self) -> bool:

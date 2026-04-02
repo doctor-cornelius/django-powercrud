@@ -202,6 +202,32 @@ def test_finalize_form_skips_disabled_fields_on_create_forms():
 
 
 @pytest.mark.django_db
+def test_finalize_form_dedupes_disabled_field_configuration():
+    """Duplicate form_disabled_fields entries should be collapsed quietly."""
+    author = Author.objects.create(name="Ada")
+    book = Book.objects.create(
+        title="Existing Book",
+        author=author,
+        published_date="2024-01-01",
+        bestseller=False,
+        isbn="1234500000998",
+        pages=10,
+    )
+    request = attach_session(RequestFactory().get("/"))
+    view = DummyFormView(request)
+    view.form_disabled_fields = ["published_date", "published_date"]
+
+    form = view._finalize_form(view.get_form_class()(instance=book))
+
+    assert view.get_form_disabled_fields() == ["published_date"], (
+        "form_disabled_fields should quietly drop later duplicates while keeping first-occurrence order."
+    )
+    assert form.fields["published_date"].disabled is True, (
+        "Finalized forms should still disable the target field after duplicate configuration entries are normalized."
+    )
+
+
+@pytest.mark.django_db
 def test_disabled_form_field_preserves_instance_value_on_submit():
     """Disabled form fields should ignore submitted tampering and keep instance values."""
     author = Author.objects.create(name="Ada")
@@ -379,6 +405,29 @@ def test_get_form_display_items_returns_empty_for_create_forms():
 
     assert view.get_form_display_items() == [], (
         "Create forms should not render display-only context because there is no persisted object yet."
+    )
+
+
+@pytest.mark.django_db
+def test_get_form_display_items_dedupes_configured_fields():
+    """Duplicate form_display_fields entries should not repeat display-only rows."""
+    author = Author.objects.create(name="Display Author")
+    book = Book.objects.create(
+        title="Display Book",
+        author=author,
+        published_date="2024-01-01",
+        bestseller=False,
+        isbn="1234500000005",
+        pages=10,
+    )
+    request = attach_session(RequestFactory().get("/"))
+    view = DummyFormView(request)
+    view.form_display_fields = ["author", "author", "published_date"]
+
+    items = view.get_form_display_items(instance=book)
+
+    assert [item["name"] for item in items] == ["author", "published_date"], (
+        "form_display_fields should quietly drop later duplicates so display-only context items only render once."
     )
 
 

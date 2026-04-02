@@ -896,6 +896,26 @@ def test_inline_field_dependencies_derive_from_queryset_dependencies():
 
 
 @pytest.mark.django_db
+def test_inline_field_dependencies_dedupe_parent_names():
+    """Duplicate dependency parents should be collapsed to one ordered entry."""
+    view = CoreHarness()
+    view.inline_edit_fields = ["title", "isbn", "author", "genres"]
+    view.form_fields = ["title", "isbn", "author", "genres"]
+    view.field_queryset_dependencies = {
+        "genres": {
+            "depends_on": ["author", "author"],
+            "filter_by": {"authors": "author"},
+        }
+    }
+
+    deps = view.get_inline_field_dependencies()
+
+    assert deps["genres"]["depends_on"] == ["author"], (
+        "field_queryset_dependencies[*].depends_on should quietly drop later duplicates so inline wiring does not repeat parent bindings."
+    )
+
+
+@pytest.mark.django_db
 def test_inline_field_dependencies_setting_is_ignored_when_present():
     view = CoreHarness()
     view.inline_edit_fields = ["title", "isbn", "author", "genres"]

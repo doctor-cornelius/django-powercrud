@@ -197,7 +197,11 @@ class GenreCRUDView(SampleCRUDMixin):
     action_button_classes = "btn-xs"
     extra_button_classes = "btn-sm"
 
-    fields = ["name", "numeric_string"]
+    # ensure duplicates are de-duplicated
+    fields = ["name", "numeric_string", "name",]
+    inline_edit_fields = [
+        "name", "numeric_string", "name",
+    ]
 
 
 class ProfileCRUDView(SampleCRUDMixin):

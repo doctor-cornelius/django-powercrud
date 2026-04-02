@@ -17,7 +17,7 @@ except ImportError:  # pragma: no cover - environments without crispy_forms
     FormHelper = None  # type: ignore[assignment]
 from neapolitan.views import Role
 from powercrud.logging import get_logger
-from .config_mixin import resolve_config
+from .config_mixin import ConfigMixin, resolve_config
 
 log = get_logger(__name__)
 
@@ -301,6 +301,7 @@ class FormMixin:
                     unavailable_parents.add(parent)
                     continue
                 valid_depends_on.append(parent)
+            valid_depends_on = ConfigMixin._dedupe_preserving_first(valid_depends_on)
 
             if unavailable_parents and warn_on_unavailable:
                 log.warning(

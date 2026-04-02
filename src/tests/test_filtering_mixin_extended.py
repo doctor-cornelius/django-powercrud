@@ -53,6 +53,13 @@ class AuthorNullFilterHarness(BaseFilterHarness):
     filterset_fields = ["name", "birth_date"]
 
 
+class DuplicateFilterHarness(BaseFilterHarness):
+    """Harness proving duplicate filterset_fields are normalized quietly."""
+
+    model = Book
+    filterset_fields = ["author", "author", "genres"]
+
+
 class AuthorNullFilterExcludeHarness(AuthorNullFilterHarness):
     """Harness for opt-out coverage on nullable scalar fields."""
 
@@ -139,6 +146,19 @@ def test_filterset_builds_choices():
     assert (
         filterset.form.fields["author"].label == "Author"
     ), "Non-text auto-generated filter labels should continue to use the plain field label."
+
+
+@pytest.mark.django_db
+def test_filterset_dedupes_configured_fields():
+    """Duplicate filterset_fields entries should collapse to first occurrence."""
+    request = RequestFactory().get("/")
+    view = DuplicateFilterHarness(request)
+
+    filterset = view.get_filterset(Book.objects.all())
+
+    assert list(filterset.filters.keys()) == ["author", "genres"], (
+        "filterset_fields should quietly drop later duplicates while preserving first-occurrence order."
+    )
 
 
 @pytest.mark.django_db

@@ -86,6 +86,66 @@ def test_core_mixin_invalid_form_display_field_raises_value_error():
         BrokenView()
 
 
+@pytest.mark.django_db
+def test_core_mixin_dedupes_applicable_string_lists():
+    """Configured list-style options should quietly keep first occurrence only."""
+
+    class DedupedView(CoreMixin):
+        model = Book
+        fields = ["title", "author", "title", "published_date"]
+        properties = ["isbn_empty", "isbn_empty"]
+        exclude = ["published_date", "published_date"]
+        detail_fields = ["author", "title", "author"]
+        detail_exclude = ["author", "author"]
+        detail_properties = ["isbn_empty", "isbn_empty"]
+        detail_properties_exclude = []
+        form_fields = ["title", "author", "title"]
+        form_fields_exclude = ["author", "author"]
+        form_display_fields = ["author", "author"]
+        form_disabled_fields = ["title", "title"]
+        bulk_fields = ["author", "author"]
+        inline_edit_fields = ["title", "title"]
+
+    view = DedupedView()
+
+    assert view.fields == ["title", "author"], (
+        "fields should quietly drop later duplicates while keeping first-occurrence order after excludes are applied."
+    )
+    assert view.properties == ["isbn_empty"], (
+        "properties should quietly drop later duplicates while keeping first-occurrence order."
+    )
+    assert view.exclude == ["published_date"], (
+        "exclude should be normalized to a unique ordered list even though duplicate exclusions are already harmless."
+    )
+    assert view.detail_fields == ["title"], (
+        "detail_fields should quietly drop later duplicates, then apply detail_exclude once."
+    )
+    assert view.detail_exclude == ["author"], (
+        "detail_exclude should be normalized to a unique ordered list."
+    )
+    assert view.detail_properties == ["isbn_empty"], (
+        "detail_properties should quietly drop later duplicates while preserving first occurrence."
+    )
+    assert view.form_fields == ["title"], (
+        "form_fields should quietly drop later duplicates, then apply form_fields_exclude once."
+    )
+    assert view.form_fields_exclude == ["author"], (
+        "form_fields_exclude should be normalized to a unique ordered list."
+    )
+    assert view.form_display_fields == ["author"], (
+        "form_display_fields should quietly drop later duplicates so display-only context does not repeat rows."
+    )
+    assert view.form_disabled_fields == ["title"], (
+        "form_disabled_fields should quietly drop later duplicates before forms are finalized."
+    )
+    assert view.bulk_fields == ["author"], (
+        "bulk_fields should quietly drop later duplicates before bulk metadata is built."
+    )
+    assert view.inline_edit_fields == ["title"], (
+        "inline_edit_fields should quietly drop later duplicates before inline-edit validation runs."
+    )
+
+
 def test_core_mixin_rejects_non_editable_bulk_fields():
     class BrokenView(CoreMixin):
         model = Book
