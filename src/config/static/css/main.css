@@ -12,12 +12,13 @@ tailwind classes. You can get the correct path by doing:
 
 @plugin "daisyui" {
     /* themes: light --default, dark --prefersdark, corporate; */
-    themes: "light",
+    themes: all;
+    /* themes: "light",
         "dark",
         "corporate",
         "business",
         "caramellatte",
         "nord",
         "coffee",
-        "winter";
+        "winter"; */
 }
