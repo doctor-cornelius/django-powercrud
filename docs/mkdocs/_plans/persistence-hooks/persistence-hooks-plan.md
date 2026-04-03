@@ -6,7 +6,8 @@ Phases 1-5 complete
 
 ## Next
 
-- Finalize any remaining release-note or migration guidance around the shipped sync and async bulk persistence contracts.
+- Review the shipped async bulk backend contract before deciding whether phase 6 standalone `AsyncManager` reuse should be productized next.
+- Decide whether standalone async worker reuse is worth adding now or whether the CRUD-driven async bulk story is sufficient for the next release.
 - Keep delete persistence hooks deferred unless a concrete downstream need emerges.
 
 ## Desired outcomes
@@ -14,6 +15,7 @@ Phases 1-5 complete
 - Downstream apps can route standard form and inline writes through one explicit PowerCRUD hook.
 - Downstream apps can route sync bulk update through a first-class PowerCRUD hook without overriding several internal methods.
 - Async bulk has a worker-safe path to parity that does not require serializing live CRUD view instances.
+- Standalone `AsyncManager` tasks can reuse the same async persistence backend contract.
 
 ## Phase 1: Finalize Sync Hook Contracts
 
@@ -111,13 +113,29 @@ There is an agreed contract for async bulk persistence that is serializable, tes
 Done when:
 Async bulk update can match sync bulk persistence semantics without coupling the worker to a request-scoped view object.
 
-## Phase 6: Documentation and Rollout
+## Phase 6: Support Standalone `AsyncManager` Usage
+
+1. [ ] Define the standalone reuse story for the async backend contract.
+    - [ ] Confirm that workers launched via `AsyncManager.launch_async_task()` can use the same backend contract.
+    - [ ] Confirm the minimum worker payload needed for that path.
+2. [ ] Document and demonstrate the standalone path.
+    - [ ] Add documentation showing how standalone async workers can resolve and use the same backend.
+    - [ ] Provide at least one sample or reference implementation path for downstream projects.
+3. [ ] Prove lifecycle compatibility in the standalone path.
+    - [ ] Confirm that lifecycle metadata still works in the standalone usage pattern.
+    - [ ] Confirm that progress reporting still works in the standalone usage pattern.
+
+Done when:
+The async persistence backend model is reusable outside CRUD views and downstream teams do not need a second abstraction for custom async tasks.
+
+## Phase 7: Documentation and Rollout
 
 1. [ ] Document migration and adoption guidance after the sync release lands.
     - [ ] Add migration guidance for downstream projects currently overriding internal methods once the final sync API is confirmed in released docs.
     - [ ] Record any release-note level caveats or upgrade notes needed for maintainers.
 2. [ ] Document the async backend story after it lands.
     - [x] Add docs for async bulk backend resolution.
+    - [ ] Add docs for standalone `AsyncManager` reuse of the same backend contract.
 3. [ ] Document limitations and non-goals explicitly.
     - [x] Record that live CRUD view instances are not passed into async workers.
     - [x] Record that single-object and bulk persistence remain separate contracts.
@@ -126,7 +144,7 @@ Async bulk update can match sync bulk persistence semantics without coupling the
 Done when:
 PowerCRUD exposes a documented persistence extension story that downstream maintainers can understand without reading internal implementation paths.
 
-## Phase 7: Revisit Delete Persistence Hooks
+## Phase 8: Revisit Delete Persistence Hooks
 
 1. [ ] Reassess whether delete persistence hooks are needed after the update hook story has shipped and settled.
     - [ ] Review whether downstream projects now have a concrete need for single-object delete hooks.
