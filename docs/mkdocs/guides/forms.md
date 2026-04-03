@@ -102,6 +102,8 @@ Once the form is valid, PowerCRUD routes the standard create/update write throug
 
 For the canonical contract, see the [Hooks reference](../reference/hooks.md#persist_single_object).
 
+If you want a fuller walkthrough of how to route validated saves through an app service, see [Persistence Hooks for Real Write Logic](advanced/persistence_hooks_sync.md).
+
 ```python
 def persist_single_object(self, *, form, mode, instance=None):
     return form.save()

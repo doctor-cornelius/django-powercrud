@@ -2,12 +2,12 @@
 
 ## Status
 
-Phases 1-3 complete
+Phases 1-5 complete
 
 ## Next
 
-- Release the sync persistence hooks and gather downstream feedback on the shipped API.
-- Decide whether phase 4 async backend work should start immediately on a fresh branch or wait until after the sync release settles.
+- Review the shipped async bulk backend contract before deciding whether phase 6 standalone `AsyncManager` reuse should be productized next.
+- Decide whether standalone async worker reuse is worth adding now or whether the CRUD-driven async bulk story is sufficient for the next release.
 - Keep delete persistence hooks deferred unless a concrete downstream need emerges.
 
 ## Desired outcomes
@@ -79,36 +79,36 @@ Sync bulk update has an explicit extension seam, the sync hook story is document
 
 ## Phase 4: Define Async Bulk Persistence Backend Contract
 
-1. [ ] Lock the worker-safe backend abstraction for async bulk update.
-    - [ ] Define the async bulk persistence backend contract as a worker-safe abstraction rather than a live view hook.
-    - [ ] Decide whether PowerCRUD ships a base class, protocol-style contract, or documented callable shape.
-2. [ ] Lock the backend resolution surface.
-    - [ ] Decide the configuration surface for backend resolution, likely path plus config.
-    - [ ] Decide where backend resolution helpers should live so `AsyncManager` keeps a narrow responsibility.
-3. [ ] Lock the execution context shape.
-    - [ ] Define the plain-data execution context passed to the backend.
-    - [ ] Confirm that the context excludes live request/view state.
-4. [ ] Lock parity expectations between sync and async bulk.
-    - [ ] Confirm whether sync bulk can optionally delegate to the same backend when configured.
-    - [ ] Confirm what parity means for workflow-aware downstream apps that disable async until semantics match.
+1. [x] Lock the worker-safe backend abstraction for async bulk update.
+    - [x] Define the async bulk persistence backend contract as a worker-safe abstraction rather than a live view hook.
+    - [x] Decide whether PowerCRUD ships a base class, protocol-style contract, or documented callable shape.
+2. [x] Lock the backend resolution surface.
+    - [x] Decide the configuration surface for backend resolution, likely path plus config.
+    - [x] Decide where backend resolution helpers should live so `AsyncManager` keeps a narrow responsibility.
+3. [x] Lock the execution context shape.
+    - [x] Define the plain-data execution context passed to the backend.
+    - [x] Confirm that the context excludes live request/view state.
+4. [x] Lock parity expectations between sync and async bulk.
+    - [x] Confirm whether sync bulk can optionally delegate to the same backend when configured.
+    - [x] Confirm what parity means for workflow-aware downstream apps that disable async until semantics match.
 
 Done when:
 There is an agreed contract for async bulk persistence that is serializable, testable, and independent of live view instances.
 
 ## Phase 5: Implement Async Bulk Backend Resolution
 
-1. [ ] Add backend resolution support to async bulk launch.
-    - [ ] Pass backend path/config through worker-safe task payload from the async bulk launch path.
-    - [ ] Preserve existing conflict, progress, and lifecycle wiring.
-2. [ ] Delegate worker persistence through the configured backend.
-    - [ ] Update `powercrud.tasks.bulk_update_task` to resolve the backend and delegate persistence when configured.
-    - [ ] Preserve the existing internal bulk update path as the default fallback when no backend is configured.
-3. [ ] Decide delete behavior for async bulk.
-    - [ ] Confirm whether async bulk delete remains unchanged in this phase.
-    - [ ] Record any follow-up work if delete later needs a matching backend contract.
-4. [ ] Prove the async seam with tests.
-    - [ ] Add or update tests proving configured async bulk uses the backend contract rather than the raw default implementation.
-    - [ ] Add or update tests proving progress, conflict, and lifecycle behavior still work.
+1. [x] Add backend resolution support to async bulk launch.
+    - [x] Pass backend path/config through worker-safe task payload from the async bulk launch path.
+    - [x] Preserve existing conflict, progress, and lifecycle wiring.
+2. [x] Delegate worker persistence through the configured backend.
+    - [x] Update `powercrud.tasks.bulk_update_task` to resolve the backend and delegate persistence when configured.
+    - [x] Preserve the existing internal bulk update path as the default fallback when no backend is configured.
+3. [x] Decide delete behavior for async bulk.
+    - [x] Confirm whether async bulk delete remains unchanged in this phase.
+    - [x] Record any follow-up work if delete later needs a matching backend contract.
+4. [x] Prove the async seam with tests.
+    - [x] Add or update tests proving configured async bulk uses the backend contract rather than the raw default implementation.
+    - [x] Add or update tests proving progress, conflict, and lifecycle behavior still work.
 
 Done when:
 Async bulk update can match sync bulk persistence semantics without coupling the worker to a request-scoped view object.
@@ -134,12 +134,12 @@ The async persistence backend model is reusable outside CRUD views and downstrea
     - [ ] Add migration guidance for downstream projects currently overriding internal methods once the final sync API is confirmed in released docs.
     - [ ] Record any release-note level caveats or upgrade notes needed for maintainers.
 2. [ ] Document the async backend story after it lands.
-    - [ ] Add docs for async bulk backend resolution.
+    - [x] Add docs for async bulk backend resolution.
     - [ ] Add docs for standalone `AsyncManager` reuse of the same backend contract.
 3. [ ] Document limitations and non-goals explicitly.
-    - [ ] Record that live CRUD view instances are not passed into async workers.
-    - [ ] Record that single-object and bulk persistence remain separate contracts.
-    - [ ] Record any deferred items such as bulk delete parity or post-persist callbacks.
+    - [x] Record that live CRUD view instances are not passed into async workers.
+    - [x] Record that single-object and bulk persistence remain separate contracts.
+    - [x] Record any deferred items such as bulk delete parity or post-persist callbacks.
 
 Done when:
 PowerCRUD exposes a documented persistence extension story that downstream maintainers can understand without reading internal implementation paths.

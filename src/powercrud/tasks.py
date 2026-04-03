@@ -5,6 +5,10 @@ Async task functions for django-q2 (and future backends like Celery)
 from django.apps import apps
 
 from powercrud.logging import get_logger
+from powercrud.bulk_persistence import (
+    BulkUpdateExecutionContext,
+    resolve_bulk_update_persistence_backend,
+)
 
 from .mixins.bulk_mixin import BulkMixin
 from .async_manager import AsyncManager
@@ -22,6 +26,12 @@ def bulk_delete_task(model_path, selected_ids, user_id, **kwargs):
     """
     manager_class_path = kwargs.pop("manager_class", None)
     manager_config = kwargs.pop("manager_config", None)
+    bulk_update_persistence_backend_path = kwargs.pop(
+        "bulk_update_persistence_backend_path", None
+    )
+    bulk_update_persistence_backend_config = kwargs.pop(
+        "bulk_update_persistence_backend_config", None
+    )
     # Retrieve task identifier injected by AsyncManager
     task_name = kwargs.pop("task_key", None) or kwargs.get("task_name")
 
@@ -94,6 +104,12 @@ def bulk_update_task(
     """
     manager_class_path = kwargs.pop("manager_class", None)
     manager_config = kwargs.pop("manager_config", None)
+    bulk_update_persistence_backend_path = kwargs.pop(
+        "bulk_update_persistence_backend_path", None
+    )
+    bulk_update_persistence_backend_config = kwargs.pop(
+        "bulk_update_persistence_backend_config", None
+    )
     # Retrieve task identifier injected by AsyncManager
     task_name = kwargs.pop("task_key", None) or kwargs.get("task_name")
 
@@ -114,18 +130,27 @@ def bulk_update_task(
         model_class = apps.get_model(model_path)
         queryset = model_class.objects.filter(pk__in=selected_ids)
 
-        # Use the shared business logic with progress callback
-        mixin = BulkMixin()
-
         def progress_cb(current, total):
             if task_name:
                 manager.update_progress(task_name, f"updating: {current}/{total}")
-
-        result = mixin._perform_bulk_update(
-            queryset,
-            bulk_fields,
-            fields_to_update,
-            field_data,
+        backend = resolve_bulk_update_persistence_backend(
+            bulk_update_persistence_backend_path,
+            config=bulk_update_persistence_backend_config,
+        )
+        context = BulkUpdateExecutionContext(
+            mode="async",
+            model_path=model_path,
+            selected_ids=tuple(selected_ids),
+            user_id=user_id,
+            task_name=task_name,
+            manager_class_path=manager_class_path,
+        )
+        result = backend.persist_bulk_update(
+            queryset=queryset,
+            bulk_fields=bulk_fields,
+            fields_to_update=fields_to_update,
+            field_data=field_data,
+            context=context,
             progress_callback=progress_cb,
         )
 

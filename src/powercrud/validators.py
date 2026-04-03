@@ -84,6 +84,8 @@ class PowerCRUDMixinValidator(BaseModel):
     bulk_async_backend: Optional[str] = None
     bulk_async_notification: Optional[str] = None
     bulk_async_allow_anonymous: Optional[bool] = None
+    bulk_update_persistence_backend_path: Optional[str] = None
+    bulk_update_persistence_backend_config: Optional[Dict[str, Any]] = None
     dropdown_sort_options: Optional[Dict[str, str]] = None
     filter_null_fields_exclude: Optional[List[str]] = None
     m2m_filter_and_logic: Optional[bool] = None

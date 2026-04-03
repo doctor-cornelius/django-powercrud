@@ -104,7 +104,61 @@ class ProjectCRUDView(PowerCRUDAsyncMixin, CRUDView):
 
 ---
 
-## 5. Expose the progress endpoint in project-level `urls.py`
+## 5. Optional: route bulk updates through a worker-safe backend
+
+If your project needs async bulk updates to use the same domain write logic as sync bulk updates, configure a bulk update persistence backend.
+
+If you want the plain-English walkthrough for why this backend exists and how it relates to the sync hook, see [Async Bulk Persistence Without Surprises](advanced/persistence_hooks_async_bulk.md).
+
+```python
+from powercrud.bulk_persistence import BulkUpdatePersistenceBackend
+
+
+class ProjectBulkUpdateBackend(BulkUpdatePersistenceBackend):
+    """Route bulk updates through app-level orchestration."""
+
+    def persist_bulk_update(
+        self,
+        *,
+        queryset,
+        bulk_fields,
+        fields_to_update,
+        field_data,
+        context,
+        progress_callback=None,
+    ):
+        return ProjectBulkUpdateService().apply(
+            queryset=queryset,
+            fields_to_update=fields_to_update,
+            field_data=field_data,
+            mode=context.mode,
+            task_name=context.task_name,
+            progress_callback=progress_callback,
+        )
+```
+
+Then point the CRUD view at it:
+
+```python
+class ProjectCRUDView(PowerCRUDAsyncMixin, CRUDView):
+    # … existing configuration …
+
+    bulk_update_persistence_backend_path = "myapp.backends.ProjectBulkUpdateBackend"
+    bulk_update_persistence_backend_config = {"revalidate_workflows": True}
+```
+
+Notes:
+
+- The backend is an importable class, not a live view instance.
+- The backend receives plain execution context (`mode`, `task_name`, `user_id`, `selected_ids`, `model_path`).
+- When this backend is configured, the default sync bulk path also uses it, so sync and async bulk update can share one persistence contract.
+- Bulk delete still remains separate in the current release.
+
+See the [Hooks reference](../reference/hooks.md) for the backend contract and the [configuration reference](../reference/config_options.md) for the new settings.
+
+---
+
+## 6. Expose the progress endpoint in project-level `urls.py`
 
 ```python
 # urls.py
@@ -124,10 +178,10 @@ The modal polls this endpoint automatically and stops once it receives HTTP 286.
 
 ---
 
-## 6. Understand the lifecycle
+## 7. Understand the lifecycle
 
 1. **Launch** – The view reserves locks, creates a progress key, and enqueues `powercrud.tasks.bulk_update_task` or `bulk_delete_task`.
-2. **Worker** – The task runs inside `qcluster`, updating progress (e.g., `updating: 3/20`) and ultimately returning success/failure.
+2. **Worker** – The task runs inside `qcluster`, updates progress (e.g., `updating: 3/20`), and for bulk update resolves the configured persistence backend before performing the write.
 3. **Completion hook** – `powercrud.async_hooks.task_completion_hook` cleans up locks/progress and fires lifecycle events (which the dashboard manager consumes).
 4. **Cleanup command** – If a worker dies midway, `python manage.py pcrud_cleanup_async` removes stale locks and progress entries.
 
@@ -135,7 +189,7 @@ You can run the cleanup manually or add `powercrud.schedules.cleanup_async_artif
 
 ---
 
-## 7. Monitoring & troubleshooting
+## 8. Monitoring & troubleshooting
 
 | Symptom | Likely fix |
 |---------|------------|
@@ -163,6 +217,8 @@ Full command/reference details live in [configuration reference](../reference/co
 | `bulk_async` | `False` | bool | Enable async queueing for bulk operations. |
 | `bulk_min_async_records` | `20` | int | Threshold before a job is queued instead of run synchronously. |
 | `bulk_async_conflict_checking` | `True` | bool | Guard against overlapping operations. |
+| `bulk_update_persistence_backend_path` | `None` | import path string | Optional: route bulk update persistence through a worker-safe backend. |
+| `bulk_update_persistence_backend_config` | `None` | dict | Optional config payload passed to the backend constructor. |
 | `POWERCRUD_SETTINGS["ASYNC_ENABLED"]` | `False` | bool | Global master switch for async features. |
 | `CACHE_NAME` | `'default'` | cache alias | Cache used for locks and progress. |
 | `CONFLICT_TTL`, `PROGRESS_TTL` | `3600`, `7200` | seconds | TTLs for lock/progress entries. |

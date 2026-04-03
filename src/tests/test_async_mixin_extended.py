@@ -29,6 +29,8 @@ class DummyAsyncView(AsyncMixin):
     bulk_min_async_records = 3
     async_manager_class_path = None
     async_manager_class = CustomManager
+    bulk_update_persistence_backend_path = "sample.backends.DummyBackend"
+    bulk_update_persistence_backend_config = {"foo": "bar"}
     templates_path = "powercrud/daisyUI"
     bulk_async_allow_anonymous = True
     model = Book
@@ -77,7 +79,9 @@ def test_handle_async_bulk_operation_enqueues(monkeypatch):
         field_data=[],
     )
     assert result == "queued"
-    assert "conflict_ids" in captured["kwargs"]
+    assert "conflict_ids" in captured["kwargs"], (
+        "Async bulk queueing should still include conflict_ids when launching through AsyncManager."
+    )
 
 
 def test_get_async_manager_uses_settings(monkeypatch):
@@ -116,3 +120,47 @@ def test_handle_async_bulk_operation_failure(monkeypatch):
         field_data=[{"field": "author"}],
     )
     assert result.status_code == 500
+
+
+def test_handle_async_bulk_update_passes_persistence_backend_kwargs(monkeypatch):
+    captured = {}
+
+    class Manager(CustomManager):
+        def launch_async_task(self, *args, **kwargs):
+            captured["args"] = args
+            captured["kwargs"] = kwargs
+            return "queued"
+
+    view = DummyAsyncView()
+    view.async_manager_class = Manager
+    monkeypatch.setattr(view, "_check_for_conflicts", lambda ids: False)
+    monkeypatch.setattr(
+        view, "clear_selection_from_session", lambda request: None, raising=False
+    )
+    monkeypatch.setattr(
+        view, "async_queue_success", lambda request, task_name, ids: "queued"
+    )
+
+    result = view._handle_async_bulk_operation(
+        SimpleNamespace(user=SimpleNamespace(is_anonymous=False, id=1)),
+        [1, 2, 3],
+        delete_selected=False,
+        bulk_fields=["author"],
+        fields_to_update=["author"],
+        field_data=[{"field": "author"}],
+    )
+
+    assert result == "queued", (
+        "Async bulk update queueing should still succeed when a persistence backend is configured."
+    )
+    assert (
+        captured["kwargs"]["bulk_update_persistence_backend_path"]
+        == "sample.backends.DummyBackend"
+    ), (
+        "Async bulk launch should pass the configured bulk update persistence backend path into the worker payload."
+    )
+    assert captured["kwargs"]["bulk_update_persistence_backend_config"] == {
+        "foo": "bar"
+    }, (
+        "Async bulk launch should pass the configured bulk update persistence backend config into the worker payload."
+    )

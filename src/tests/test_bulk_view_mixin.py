@@ -345,7 +345,7 @@ def test_bulk_edit_process_post_update_error(rf, fake_render):
         },
     )
     view = HarnessView(request)
-    view._perform_bulk_update = lambda *args, **kwargs: {
+    view.persist_bulk_update = lambda **kwargs: {
         "success": False,
         "errors": [("author", ["bad value"])],
         "success_records": 0,

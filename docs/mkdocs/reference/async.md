@@ -14,13 +14,14 @@ This page collects the deeper details behind PowerCRUD’s async infrastructure 
 
 ## Overview
 
-PowerCRUD’s async support consists of four cooperating pieces:
+PowerCRUD’s async support consists of five cooperating pieces:
 
 | Layer | Responsibility | You customise by… |
 |-------|----------------|-------------------|
 | `AsyncMixin` | Decides when to queue work, runs conflict checks, and forwards metadata (manager path/config) to the worker. | Enabling `bulk_async`, setting thresholds, overriding helper methods. |
 | `AsyncManager` | Reserves & releases locks, stores progress, raises lifecycle events, exposes the HTMX polling view, performs cleanup. | Supplying a different manager class/config or overriding lifecycle hooks. |
-| Worker functions (`powercrud.tasks`) | Execute the bulk update/delete in the background, calling `update_progress` and returning a result payload. | Writing your own worker functions or adding custom behavior. |
+| Worker functions (`powercrud.tasks`) | Execute the bulk update/delete in the background, calling `update_progress` and returning a result payload. Bulk update workers can resolve a configured persistence backend before applying writes. | Writing your own worker functions or adding custom behavior. |
+| `BulkUpdatePersistenceBackend` | Owns the actual async bulk update write contract without depending on a live CRUD view instance. | Supplying `bulk_update_persistence_backend_path` and a backend class that subclasses `BulkUpdatePersistenceBackend`. |
 | Dashboard / lifecycle consumers | Persist task status, show progress, notify users. | Using `ModelTrackingAsyncManager`, building your own manager, or wiring lifecycle events elsewhere. |
 
 The guides (Async Manager → Bulk editing (async) → Async dashboard add-on) explain how to configure these layers in your project. This reference dives into the architecture, cache layout, lifecycle flow, and troubleshooting patterns.
@@ -32,7 +33,7 @@ The guides (Async Manager → Bulk editing (async) → Async dashboard add-on) e
 ### Lifecycle
 
 1. **Launch** – The view (via `AsyncMixin`) generates a UUID, optionally reserves locks (`add_conflict_ids`), seeds a progress key, and enqueues a worker via `django_q.tasks.async_task`. The manager class path/config is stored with the task.
-2. **Worker execution** – The worker rehydrates the same manager (`AsyncManager.resolve_manager`), updates progress (`update_progress`), and returns a serialisable result.
+2. **Worker execution** – The worker rehydrates the same manager (`AsyncManager.resolve_manager`), resolves any configured bulk update persistence backend, updates progress (`update_progress`), and returns a serialisable result.
 3. **Completion hook** – `powercrud.async_hooks.task_completion_hook` resolves the manager again, removes locks/progress, emits lifecycle events (`complete`, `fail`, always followed by `cleanup`), and persists any dashboard data.
 4. **Cleanup** – `AsyncManager.cleanup_completed_tasks()` (and the `pcrud_cleanup_async` command) reconcile the “active task” cache with `django_q.Task`, removing stale locks/progress/dashboard records if a worker died mid-flight.
 
@@ -63,6 +64,13 @@ Always configure a **shared** cache (Redis, Memcached, DatabaseCache). LocMem/Du
 | `ASYNC_MANAGER_DEFAULT` | `AsyncManager` | Manager class/config used by views and workers when no per-view override is supplied. |
 
 These live inside `POWERCRUD_SETTINGS`. Override them in your project’s `settings.py`.
+
+Per-view async bulk persistence can also be customized with:
+
+- `bulk_update_persistence_backend_path`
+- `bulk_update_persistence_backend_config`
+
+These are view attributes rather than global `POWERCRUD_SETTINGS` entries because they control bulk update behavior for a specific CRUD surface.
 
 ---
 

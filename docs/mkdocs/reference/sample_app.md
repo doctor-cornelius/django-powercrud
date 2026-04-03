@@ -96,6 +96,14 @@ The sample `BookCRUDView` also includes no-op illustrative overrides for the new
 
 They currently just call `super()`, but they mark the exact place where a downstream app would route validated writes through domain services while still letting PowerCRUD own validation and UI response flow.
 
+The sample app also now includes tutorial-oriented helper classes in `sample.services` and `sample.backends`:
+
+- `BookWriteService`
+- `BookBulkUpdateService`
+- `BookBulkUpdateBackend`
+
+These are deliberately small examples used by the advanced persistence-hook guides. They are there to make the documentation more inspectable, not to change the default sample app behavior.
+
 ### Inline dependency demo
 
 The sample app now includes a concrete inline dependency example:

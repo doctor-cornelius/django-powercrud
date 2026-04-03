@@ -416,6 +416,20 @@ class AsyncMixin:
                     affected_objects=f"{len(selected_ids)} {self.model._meta.verbose_name_plural}",
                     manager_class=self.get_async_manager_class_path(),
                     manager_config=self.get_async_manager_config(),
+                    bulk_update_persistence_backend_path=(
+                        self.get_bulk_update_persistence_backend_path()
+                        if hasattr(self, "get_bulk_update_persistence_backend_path")
+                        else getattr(self, "bulk_update_persistence_backend_path", None)
+                    ),
+                    bulk_update_persistence_backend_config=(
+                        self.get_bulk_update_persistence_backend_config()
+                        if hasattr(self, "get_bulk_update_persistence_backend_config")
+                        else getattr(
+                            self,
+                            "bulk_update_persistence_backend_config",
+                            None,
+                        )
+                    ),
                 )
             # Success - return response with task_key for progress polling
             return self.async_queue_success(request, task_name, selected_ids)

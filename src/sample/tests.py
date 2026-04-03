@@ -3,14 +3,18 @@ from django.utils import timezone
 from django.urls import reverse
 from datetime import date
 import uuid
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from django.contrib.auth import get_user_model
 
 from powercrud.async_context import task_context
+from powercrud.bulk_persistence import BulkUpdateExecutionContext
 
 from sample.async_manager import SampleAsyncManager
+from sample.backends import BookBulkUpdateBackend
+from sample.forms import BookForm
 from sample.models import AsyncTaskRecord, Author, Book, Genre
+from sample.services import BookBulkUpdateService, BookWriteService
 from sample.views import BookCRUDView
 
 
@@ -311,4 +315,112 @@ class SampleBookFormDependencyTests(TestCase):
         self.assertTrue(
             form.is_valid(),
             "BookCRUDView forms should validate without genres when the selected author has no available genre options.",
+        )
+
+
+class SamplePersistenceTutorialHelperTests(TestCase):
+    """Exercise the sample helper classes used by the advanced tutorials."""
+
+    def setUp(self):
+        """Create sample book data used by the tutorial helper tests."""
+        self.author = Author.objects.create(name="Tutorial Author")
+        self.genre = Genre.objects.create(name="Tutorial Genre")
+        self.author.genres.add(self.genre)
+
+    def test_tutorial_helpers_can_be_imported_and_instantiated(self):
+        """Sample tutorial helpers should remain importable for docs examples."""
+        write_service = BookWriteService()
+        bulk_service = BookBulkUpdateService()
+        backend = BookBulkUpdateBackend()
+
+        self.assertIsInstance(
+            write_service,
+            BookWriteService,
+            "BookWriteService should be importable and instantiable for tutorial examples.",
+        )
+        self.assertIsInstance(
+            bulk_service,
+            BookBulkUpdateService,
+            "BookBulkUpdateService should be importable and instantiable for tutorial examples.",
+        )
+        self.assertIsInstance(
+            backend,
+            BookBulkUpdateBackend,
+            "BookBulkUpdateBackend should be importable and instantiable for tutorial examples.",
+        )
+
+    def test_book_write_service_saves_book_and_many_to_many_values(self):
+        """The sample write service should persist the book and related genres."""
+        form = BookForm(
+            data={
+                "title": "Tutorial Save",
+                "author": str(self.author.pk),
+                "genres": [str(self.genre.pk)],
+                "published_date": "2024-01-05",
+                "bestseller": "",
+                "isbn": "9788888800099",
+                "pages": "111",
+                "description": "Saved via tutorial helper",
+            }
+        )
+
+        self.assertTrue(
+            form.is_valid(),
+            f"BookForm should validate in the tutorial helper test. Errors: {form.errors}",
+        )
+
+        book = BookWriteService().save_book(form=form, mode="form")
+
+        self.assertIsNotNone(
+            book.pk,
+            "BookWriteService.save_book should return a saved Book instance with a primary key.",
+        )
+        self.assertEqual(
+            list(book.genres.values_list("pk", flat=True)),
+            [self.genre.pk],
+            "BookWriteService.save_book should call form.save_m2m() so the selected genres are persisted.",
+        )
+
+    def test_book_bulk_update_backend_delegates_to_service_with_context(self):
+        """The sample backend should forward context and progress callback unchanged."""
+        backend = BookBulkUpdateBackend()
+        queryset = Book.objects.none()
+        progress_callback = Mock()
+        context = BulkUpdateExecutionContext(
+            mode="async",
+            task_name="tutorial-task",
+            user_id=123,
+        )
+        expected_result = {"success": True, "success_records": 2, "errors": []}
+
+        with patch.object(
+            BookBulkUpdateService,
+            "apply",
+            return_value=expected_result,
+        ) as mock_apply:
+            result = backend.persist_bulk_update(
+                queryset=queryset,
+                bulk_fields=["title"],
+                fields_to_update=["title"],
+                field_data=[{"field_name": "title", "value": "Updated"}],
+                context=context,
+                progress_callback=progress_callback,
+            )
+
+        self.assertEqual(
+            result,
+            expected_result,
+            "BookBulkUpdateBackend.persist_bulk_update should return the result from BookBulkUpdateService.apply unchanged.",
+        )
+        mock_apply.assert_called_once()
+        _, kwargs = mock_apply.call_args
+        self.assertIs(
+            kwargs["context"],
+            context,
+            "BookBulkUpdateBackend.persist_bulk_update should forward the execution context to BookBulkUpdateService.apply.",
+        )
+        self.assertIs(
+            kwargs["progress_callback"],
+            progress_callback,
+            "BookBulkUpdateBackend.persist_bulk_update should forward the progress callback to BookBulkUpdateService.apply.",
         )

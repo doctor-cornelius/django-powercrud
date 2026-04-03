@@ -4,6 +4,11 @@ This page is the canonical reference for PowerCRUD's main public override points
 
 This is a curated reference for the public hooks most downstream projects are expected to use. It does not try to inventory every internal extension seam.
 
+If you want step-by-step walkthroughs rather than contracts, start with the advanced guides:
+
+- [Persistence Hooks for Real Write Logic](../guides/advanced/persistence_hooks_sync.md)
+- [Async Bulk Persistence Without Surprises](../guides/advanced/persistence_hooks_async_bulk.md)
+
 ---
 
 ## View lifecycle and queryset hooks
@@ -95,7 +100,7 @@ This is a curated reference for the public hooks most downstream projects are ex
     - `progress_callback`: Optional callback used by callers that want per-record progress updates.
 - Default behavior: Delegates to PowerCRUD's standard sync bulk update implementation.
 - Return contract: A result dict with `success`, `success_records`, and `errors`.
-- Important note: This hook is sync bulk-update only in the current release. Bulk delete and async bulk persistence are separate follow-up concerns.
+- Important note: This is still the sync view hook. Async bulk update uses a worker-safe backend contract instead. If `bulk_update_persistence_backend_path` is configured and you do not override this hook yourself, the default sync implementation delegates to that same backend so sync and async can share one write path.
 - Short example:
 
     ```python
@@ -216,6 +221,54 @@ Inline row persistence itself does not use a separate hook. It routes through [`
     ```
 
 - Related docs: [Async Manager](../guides/async_manager.md#5-lifecycle-hooks), [Async architecture & reference](./async.md)
+
+### `BulkUpdatePersistenceBackend.persist_bulk_update()`
+
+- Purpose: Use this when async bulk update needs to go through app-level write orchestration without depending on a live CRUD view instance.
+- When it is called: By the async bulk worker, and by the default sync bulk path as well when `bulk_update_persistence_backend_path` is configured.
+- Signature: `def persist_bulk_update(self, *, queryset, bulk_fields, fields_to_update, field_data, context, progress_callback=None)`
+- Key arguments:
+    - `queryset`: The objects selected for update.
+    - `bulk_fields`: The resolved allow-list of configured bulk-edit fields.
+    - `fields_to_update`: The field names requested for this operation.
+    - `field_data`: The normalized bulk payload built from the request.
+    - `context`: Plain execution context describing whether the operation is running in `"sync"` or `"async"` mode, plus task and user metadata where available.
+    - `progress_callback`: Optional callback for per-record progress updates.
+- Default behavior: `DefaultBulkUpdatePersistenceBackend` preserves the built-in PowerCRUD bulk update implementation.
+- Return contract: A result dict with `success`, `success_records`, and `errors`.
+- Short example:
+
+    ```python
+    class ProjectBulkUpdateBackend(BulkUpdatePersistenceBackend):
+        def persist_bulk_update(
+            self,
+            *,
+            queryset,
+            bulk_fields,
+            fields_to_update,
+            field_data,
+            context,
+            progress_callback=None,
+        ):
+            return ProjectBulkUpdateService().apply(
+                queryset=queryset,
+                fields_to_update=fields_to_update,
+                field_data=field_data,
+                mode=context.mode,
+                task_name=context.task_name,
+                progress_callback=progress_callback,
+            )
+    ```
+
+- Related docs: [Bulk editing (async)](../guides/bulk_edit_async.md), [Async architecture & reference](./async.md), [Configuration options](./config_options.md)
+
+### `resolve_bulk_update_persistence_backend()`
+
+- Purpose: Resolve the configured import path into a concrete bulk update persistence backend instance.
+- When it is called: By PowerCRUD's sync bulk path and async bulk worker when backend configuration is present.
+- Signature: `resolve_bulk_update_persistence_backend(backend_path, *, config=None)`
+- Default behavior: Returns `DefaultBulkUpdatePersistenceBackend` when no backend path is configured.
+- Related docs: [Bulk editing (async)](../guides/bulk_edit_async.md), [Async architecture & reference](./async.md)
 
 ### `AsyncManager.resolve_manager()`
 

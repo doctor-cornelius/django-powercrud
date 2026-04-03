@@ -4,6 +4,10 @@ from django.db import models, transaction
 from django.core.exceptions import ValidationError, ObjectDoesNotExist
 
 from powercrud.logging import get_logger
+from powercrud.bulk_persistence import (
+    BulkUpdateExecutionContext,
+    resolve_bulk_update_persistence_backend,
+)
 from ..config_mixin import resolve_config
 
 log = get_logger(__name__)
@@ -11,6 +15,70 @@ log = get_logger(__name__)
 
 class OperationMixin:
     """Mixin for core bulk operations including delete, update, and permission checks."""
+
+    def _get_bulk_update_selected_ids(self, queryset: models.QuerySet) -> tuple[Any, ...]:
+        """Extract selected primary keys from a queryset-like object.
+
+        Args:
+            queryset: QuerySet or iterable of model instances.
+
+        Returns:
+            Tuple of selected primary key values, omitting missing ``pk``
+            attributes.
+        """
+        values_list = getattr(queryset, "values_list", None)
+        if callable(values_list):
+            try:
+                return tuple(values_list("pk", flat=True))
+            except Exception:
+                pass
+
+        selected_ids = []
+        for obj in queryset:
+            if hasattr(obj, "pk"):
+                selected_ids.append(getattr(obj, "pk"))
+        return tuple(selected_ids)
+
+    def _build_bulk_update_execution_context(
+        self,
+        *,
+        mode: str,
+        queryset: models.QuerySet,
+        task_name: str | None = None,
+        user_id: int | None = None,
+        manager_class_path: str | None = None,
+    ) -> BulkUpdateExecutionContext:
+        """Build plain execution context for bulk update persistence backends.
+
+        Args:
+            mode: Execution surface using the backend, currently ``"sync"`` or
+                ``"async"``.
+            queryset: QuerySet or queryset-like object being updated.
+            task_name: Optional async task identifier.
+            user_id: Optional initiating user primary key.
+            manager_class_path: Optional async manager class path.
+
+        Returns:
+            Plain-data execution context suitable for worker-safe backends.
+        """
+        model = getattr(self, "model", None)
+        model_path = None
+        if model is not None and hasattr(model, "_meta") and hasattr(model, "__name__"):
+            model_path = f"{model._meta.app_label}.{model.__name__}"
+
+        request = getattr(self, "request", None)
+        request_user = getattr(request, "user", None)
+        if user_id is None and request_user is not None:
+            user_id = getattr(request_user, "id", None)
+
+        return BulkUpdateExecutionContext(
+            mode=mode,
+            model_path=model_path,
+            selected_ids=self._get_bulk_update_selected_ids(queryset),
+            user_id=user_id,
+            task_name=task_name,
+            manager_class_path=manager_class_path,
+        )
 
     def persist_bulk_update(
         self,
@@ -34,11 +102,36 @@ class OperationMixin:
             ``success``, ``success_records``, and ``errors`` keys.
         """
         bulk_fields = list(resolve_config(self).bulk_fields or [])
-        return self._perform_bulk_update(
-            queryset,
+        backend_path_getter = getattr(
+            self, "get_bulk_update_persistence_backend_path", None
+        )
+        backend_config_getter = getattr(
+            self, "get_bulk_update_persistence_backend_config", None
+        )
+        backend_path = (
+            backend_path_getter()
+            if callable(backend_path_getter)
+            else getattr(self, "bulk_update_persistence_backend_path", None)
+        )
+        backend_config = (
+            backend_config_getter()
+            if callable(backend_config_getter)
+            else getattr(self, "bulk_update_persistence_backend_config", None)
+        )
+        backend = resolve_bulk_update_persistence_backend(
+            backend_path,
+            config=backend_config,
+        )
+        context = self._build_bulk_update_execution_context(
+            mode="sync",
+            queryset=queryset,
+        )
+        return backend.persist_bulk_update(
+            queryset=queryset,
             bulk_fields=bulk_fields,
             fields_to_update=fields_to_update,
             field_data=field_data,
+            context=context,
             progress_callback=progress_callback,
         )
 

@@ -73,6 +73,8 @@ class ConfigMixin:
     bulk_async_backend: str = "q2"
     bulk_async_notification: str = "status_page"
     bulk_async_allow_anonymous = True
+    bulk_update_persistence_backend_path: str | None = None
+    bulk_update_persistence_backend_config: dict | None = None
 
     # htmx
     use_htmx: bool | None = None
@@ -131,6 +133,8 @@ class ConfigMixin:
         "bulk_async_backend",
         "bulk_async_notification",
         "bulk_async_allow_anonymous",
+        "bulk_update_persistence_backend_path",
+        "bulk_update_persistence_backend_config",
         "field_queryset_dependencies",
         "dropdown_sort_options",
         "filter_null_fields_exclude",
@@ -184,6 +188,14 @@ class ConfigMixin:
 
     def get_bulk_async_notification(self) -> str:
         return str(getattr(self, "bulk_async_notification", "status_page"))
+
+    def get_bulk_update_persistence_backend_path(self) -> str | None:
+        """Return the configured bulk update persistence backend import path."""
+        return getattr(self, "bulk_update_persistence_backend_path", None)
+
+    def get_bulk_update_persistence_backend_config(self) -> dict | None:
+        """Return the configured bulk update persistence backend config."""
+        return getattr(self, "bulk_update_persistence_backend_config", None)
 
     def should_process_async(self, record_count: int) -> bool:
         return False

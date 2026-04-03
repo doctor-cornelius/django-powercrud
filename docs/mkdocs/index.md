@@ -19,17 +19,20 @@ PowerCRUD extends [`Neapolitan`](https://github.com/carltongibson/neapolitan)’
     - [Inline editing](guides/inline_editing.md) to adjust rows in place.  
     - [Forms](guides/forms.md) for generated vs custom forms, contextual display fields, disabled inputs, and parent/child dropdown queryset scoping.
     - [Bulk editing (synchronous)](guides/bulk_edit_sync.md) for multi-record updates with validation controls.
+    - [Persistence Hooks for Real Write Logic](guides/advanced/persistence_hooks_sync.md) for moving validated writes into app services without scattering save logic.
 
 3. **Handle long-running work**  
 
     - [Async Manager](guides/async_manager.md) explains locks, progress storage, and reusable helpers.  
     - [Bulk editing (async)](guides/bulk_edit_async.md) queues jobs through django-q2.  
+    - [Async Bulk Persistence Without Surprises](guides/advanced/persistence_hooks_async_bulk.md) shows how to keep sync and async bulk update behavior aligned.
     - [Async dashboard add-on](guides/async_dashboard.md) persists lifecycle data.
 
 4. **Tune styling and behaviour**  
 
     - [Styling & Tailwind](guides/styling_tailwind.md) covers framework options and safelists.  
     - [Customisation tips](guides/customisation_tips.md) shows template overrides, extra actions, and mixin hooks.
+    - [Advanced Guides](guides/advanced/index.md) collects deeper implementation walkthroughs for trickier extension patterns.
 
 ## What ships in the box
 
