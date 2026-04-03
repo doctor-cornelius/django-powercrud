@@ -1,3 +1,13 @@
+## 0.5.25 (2026-04-03)
+
+### Refactor
+
+- implement de-duplication of fieldname entries in class param lists
+
+### Feature
+
+- **(hooks)**: implement synchronous persistence hooks for single & bulk updates
+
 ## 0.5.24 (2026-04-01)
 
 ### Fix
