@@ -41,10 +41,47 @@ def select_single_value(page, container, field_name: str, option_value: str):
     select.select_option(option_value)
 
 
-def test_overflow_tooltips_reinitialize_after_htmx_refresh(page, books_url, sample_author, sample_books):
+def wait_for_tippy_instance(page, selector: str):
+    """Wait until the tooltip target exists, is visible, and has a Tippy instance."""
+    page.wait_for_function(
+        """
+        (tooltipSelector) => {
+            const element = document.querySelector(tooltipSelector);
+            if (!(element instanceof HTMLElement)) {
+                return false;
+            }
+            const style = window.getComputedStyle(element);
+            const isVisible = style.visibility !== 'hidden' && style.display !== 'none';
+            return isVisible && Boolean(element._tippy);
+        }
+        """,
+        arg=selector,
+    )
+
+
+def wait_for_overflow_truncation(page, selector: str):
+    """Wait until the tooltip target is visibly truncated."""
+    page.wait_for_function(
+        """
+        (tooltipSelector) => {
+            const element = document.querySelector(tooltipSelector);
+            if (!(element instanceof HTMLElement)) {
+                return false;
+            }
+            return element.scrollWidth > element.clientWidth;
+        }
+        """,
+        arg=selector,
+    )
+
+
+def test_overflow_tooltips_reinitialize_after_htmx_refresh(
+    page, books_url, sample_author, sample_books
+):
     """A truncated cell should keep its Tippy instance after HTMX refreshes the table."""
     long_title = "Existing Playwright Book With A Deliberately Very Long Title For Tooltip Coverage"
     target_book = sample_books[0]
+    filtered_out_title = sample_books[1].title
     target_book.title = long_title
     target_book.save(update_fields=["title"])
 
@@ -63,12 +100,19 @@ def test_overflow_tooltips_reinitialize_after_htmx_refresh(page, books_url, samp
             const style = document.createElement('style');
             style.id = 'playwright-tooltip-overflow-style';
             style.textContent = `
-                td[data-field-name="a_really_long_property_header_for_title"] [data-powercrud-tooltip="overflow"] {
-                    display: block;
-                    max-width: 12ch;
-                    overflow: hidden;
-                    text-overflow: ellipsis;
-                    white-space: nowrap;
+                td[data-field-name="title"] {
+                    width: 12ch !important;
+                    min-width: 12ch !important;
+                    max-width: 12ch !important;
+                }
+                td[data-field-name="title"] [data-powercrud-tooltip="overflow"] {
+                    display: block !important;
+                    width: 12ch !important;
+                    min-width: 0 !important;
+                    max-width: 12ch !important;
+                    overflow: hidden !important;
+                    text-overflow: ellipsis !important;
+                    white-space: nowrap !important;
                 }
             `;
             const attachStyle = () => {
@@ -88,17 +132,20 @@ def test_overflow_tooltips_reinitialize_after_htmx_refresh(page, books_url, samp
     page.goto(books_url)
     page.wait_for_load_state("networkidle")
 
-    overflow_trigger = page.locator(
-        "td[data-field-name='a_really_long_property_header_for_title'] "
+    overflow_selector = (
+        "td[data-field-name='title'] "
         f"[data-powercrud-tooltip='overflow'][data-tippy-content=\"{long_title}\"]"
-    ).first
+    )
+    overflow_trigger = page.locator(overflow_selector).first
     expect(overflow_trigger).to_be_visible()
-    assert (
-        overflow_trigger.evaluate("el => el.scrollWidth > el.clientWidth")
-    ), "Expected the long property cell to be visually truncated so the overflow tooltip path is exercised."
-    assert (
-        overflow_trigger.evaluate("el => Boolean(el._tippy)")
-    ), "Expected the truncated title to have a Tippy instance on initial page load."
+    wait_for_overflow_truncation(page, overflow_selector)
+    assert overflow_trigger.evaluate("el => el.scrollWidth > el.clientWidth"), (
+        "Expected the long property cell to be visually truncated so the overflow tooltip path is exercised."
+    )
+    wait_for_tippy_instance(page, overflow_selector)
+    assert overflow_trigger.evaluate("el => Boolean(el._tippy)"), (
+        "Expected the truncated title to have a Tippy instance on initial page load."
+    )
 
     page.get_by_role("button", name=re.compile("show filters", re.I)).click()
     select_single_value(
@@ -108,12 +155,18 @@ def test_overflow_tooltips_reinitialize_after_htmx_refresh(page, books_url, samp
         option_value=str(sample_author.pk),
     )
 
-    page.wait_for_load_state("networkidle")
-    overflow_trigger = page.locator(
-        "td[data-field-name='a_really_long_property_header_for_title'] "
-        f"[data-powercrud-tooltip='overflow'][data-tippy-content=\"{long_title}\"]"
-    ).first
+    filtered_out_cell = page.locator(
+        "td[data-field-name='title']",
+        has_text=filtered_out_title,
+    )
+    expect(filtered_out_cell).to_have_count(
+        0,
+        timeout=15000,
+    )
+
+    overflow_trigger = page.locator(overflow_selector).first
     expect(overflow_trigger).to_be_visible()
-    assert (
-        overflow_trigger.evaluate("el => Boolean(el._tippy)")
-    ), "Expected the truncated property cell to regain its Tippy instance after HTMX refreshed the filtered results."
+    wait_for_tippy_instance(page, overflow_selector)
+    assert overflow_trigger.evaluate("el => Boolean(el._tippy)"), (
+        "Expected the truncated property cell to regain its Tippy instance after HTMX refreshed the filtered results."
+    )
