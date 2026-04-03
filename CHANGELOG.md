@@ -1,3 +1,13 @@
+## 0.5.26 (2026-04-03)
+
+### Documentation
+
+- **(plans)**: remove standalone asyncmanager phase
+
+### Feature
+
+- **(hooks)**: implement bulk async persistence hooks
+
 ## 0.5.25 (2026-04-03)
 
 ### Refactor
