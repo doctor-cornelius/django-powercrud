@@ -128,6 +128,8 @@ In your custom template, poll the endpoint with the `task_name` returned from `l
 
 If you need custom behaviour when tasks are created, progress, complete, or fail:
 
+For the canonical hook summary, see the [Hooks reference](../reference/hooks.md#async-hooks-and-extension-points).
+
 ```python
 class NotificationsAsyncManager(AsyncManager):
     def async_task_lifecycle(self, event, task_name, **payload):

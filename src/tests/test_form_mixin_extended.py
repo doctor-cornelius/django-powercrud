@@ -97,11 +97,38 @@ class CustomFormPriorityView(FormMixin, CoreMixin):
     form_fields_exclude = ["published_date"]
 
 
+class RecordingSaveForm:
+    """Tiny form double that records save calls for persistence-hook tests."""
+
+    def __init__(self, result):
+        self.result = result
+        self.save_calls = 0
+
+    def save(self):
+        self.save_calls += 1
+        return self.result
+
+
 def attach_session(request):
     middleware = SessionMiddleware(lambda req: None)
     middleware.process_request(request)
     request.session.save()
     return request
+
+
+def test_persist_single_object_defaults_to_form_save():
+    view = CustomFormPriorityView()
+    saved = object()
+    form = RecordingSaveForm(saved)
+
+    result = view.persist_single_object(form=form, mode="form", instance=None)
+
+    assert result is saved, (
+        "persist_single_object should return the model instance produced by form.save() by default."
+    )
+    assert form.save_calls == 1, (
+        "persist_single_object should delegate to form.save() exactly once by default."
+    )
 
 
 @pytest.mark.django_db
@@ -499,6 +526,68 @@ def test_form_valid_htmx_returns_list(monkeypatch):
     assert isinstance(response, HttpResponse)
     assert json.loads(response["HX-Trigger"]) == {"formSuccess": True}
     assert response["HX-Retarget"] == view.get_original_target()
+
+
+@pytest.mark.django_db
+def test_form_valid_uses_persist_single_object_hook(monkeypatch):
+    author = Author.objects.create(name="Grace")
+    book = Book.objects.create(
+        title="Before Hook",
+        author=author,
+        published_date="2024-01-01",
+        bestseller=False,
+        isbn="5656565656000",
+        pages=50,
+    )
+    request = attach_session(RequestFactory().post("/"))
+    request.htmx = SimpleNamespace()
+    view = DummyFormView(request)
+    view._object = book
+    view.object = book
+    view.role = Role.UPDATE
+
+    monkeypatch.setattr(
+        "powercrud.mixins.form_mixin.reverse", lambda name, kwargs=None: f"/{name}"
+    )
+    monkeypatch.setattr(view, "_check_for_conflicts", lambda selected_ids: False)
+
+    form = view.get_form_class()(
+        instance=book,
+        data={
+            "title": "Saved Through Hook",
+            "author": author.pk,
+            "published_date": "2024-01-01",
+        },
+    )
+    assert form.is_valid(), (
+        "The form used to exercise persist_single_object should validate before form_valid() runs."
+    )
+
+    captured = {}
+    original_persist = view.persist_single_object
+
+    def fake_persist_single_object(*, form, mode, instance=None):
+        captured["mode"] = mode
+        captured["instance"] = instance
+        return original_persist(form=form, mode=mode, instance=instance)
+
+    monkeypatch.setattr(view, "persist_single_object", fake_persist_single_object)
+
+    response = view.form_valid(form)
+
+    assert captured["mode"] == "form", (
+        "form_valid should call persist_single_object with mode='form'."
+    )
+    assert captured["instance"] is book, (
+        "form_valid should pass the bound form instance through to persist_single_object."
+    )
+    assert json.loads(response["HX-Trigger"]) == {"formSuccess": True}, (
+        "HTMX form_valid responses should preserve the existing formSuccess trigger after routing through persist_single_object."
+    )
+    book.refresh_from_db()
+    assert book.title == "Saved Through Hook", (
+        "persist_single_object should still control the actual saved object used by form_valid."
+    )
 
 
 @pytest.mark.django_db

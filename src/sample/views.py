@@ -175,6 +175,30 @@ class BookCRUDView(SampleCRUDMixin):
         },
     ]
 
+    def persist_single_object(self, *, form, mode, instance=None):
+        """Sample override showing where downstream form/inline writes can hook in."""
+        return super().persist_single_object(
+            form=form,
+            mode=mode,
+            instance=instance,
+        )
+
+    def persist_bulk_update(
+        self,
+        *,
+        queryset,
+        fields_to_update,
+        field_data,
+        progress_callback=None,
+    ):
+        """Sample override showing where downstream sync bulk writes can hook in."""
+        return super().persist_bulk_update(
+            queryset=queryset,
+            fields_to_update=fields_to_update,
+            field_data=field_data,
+            progress_callback=progress_callback,
+        )
+
     # def get_bulk_choices_for_field(self, field_name, field):
     #     """Example of how to override to further restrict foreign key choices for
     #         dropdown in bulk edit form.

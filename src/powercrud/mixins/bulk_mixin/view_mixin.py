@@ -447,8 +447,10 @@ class ViewMixin:
                 fields_to_update,
                 field_data,
             )
-        result = self._perform_bulk_update(
-            queryset, bulk_fields, fields_to_update, field_data
+        result = self.persist_bulk_update(
+            queryset=queryset,
+            fields_to_update=fields_to_update,
+            field_data=field_data,
         )
         errors = result.get("errors", [])
         updated_count = result.get("success_records", 0)

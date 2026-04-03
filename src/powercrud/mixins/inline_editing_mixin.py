@@ -25,6 +25,25 @@ class InlineEditingMixin:
 
     inline_action: str | None = None
 
+    def persist_single_object(self, *, form, mode: str, instance=None):
+        """Persist one validated inline/form object and return the saved instance.
+
+        This fallback keeps ``InlineEditingMixin`` usable in lightweight test
+        harnesses or bespoke compositions that do not also include ``FormMixin``.
+        Full PowerCRUD views resolve the same hook name from the wider MRO, so
+        downstream projects can still override a single public method.
+
+        Args:
+            form: Validated Django form driving the persistence operation.
+            mode: Persistence surface using the hook, currently ``"form"`` or
+                ``"inline"``.
+            instance: Optional object reference supplied by the caller.
+
+        Returns:
+            Model instance returned by the default ``form.save()`` behavior.
+        """
+        return form.save()
+
     def dispatch(self, request, *args, **kwargs):  # pragma: no cover - thin wrapper
         inline_action = getattr(self, "inline_action", None)
         if inline_action == "inline_row":
@@ -73,7 +92,11 @@ class InlineEditingMixin:
                 if post_save_state["status"] != "ok":
                     return self._build_inline_guard_response(obj, post_save_state)
 
-                self.object = form.save()
+                self.object = self.persist_single_object(
+                    form=form,
+                    mode="inline",
+                    instance=obj,
+                )
                 row_html = self._render_inline_row_display(self.object)
                 response = HttpResponse(row_html)
                 response["HX-Trigger"] = json.dumps(

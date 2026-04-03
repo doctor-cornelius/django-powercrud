@@ -16,6 +16,7 @@ class OperationHarness(OperationMixin):
     bulk_delete = True
     use_modal = True
     use_htmx = True
+    bulk_fields = ["title", "author"]
 
 
 class DummyQueryset(list):
@@ -77,6 +78,53 @@ def test_perform_bulk_delete_collects_errors(noop_atomic):
     assert result["success"] is False
     assert result["success_records"] == 0
     assert result["errors"][0][1][0].startswith("explode")
+
+
+def test_persist_bulk_update_delegates_to_default_operation(monkeypatch):
+    mixin = OperationHarness()
+    queryset = DummyQueryset([])
+    field_data = [{"field": "title", "value": "Updated", "info": {}}]
+    captured = {}
+
+    def fake_perform_bulk_update(
+        queryset_arg,
+        *,
+        bulk_fields,
+        fields_to_update,
+        field_data,
+        progress_callback,
+    ):
+        captured["queryset"] = queryset_arg
+        captured["bulk_fields"] = bulk_fields
+        captured["fields_to_update"] = fields_to_update
+        captured["field_data"] = field_data
+        captured["progress_callback"] = progress_callback
+        return {"success": True, "success_records": 0, "errors": []}
+
+    monkeypatch.setattr(mixin, "_perform_bulk_update", fake_perform_bulk_update)
+
+    result = mixin.persist_bulk_update(
+        queryset=queryset,
+        fields_to_update=["title"],
+        field_data=field_data,
+        progress_callback=None,
+    )
+
+    assert result == {"success": True, "success_records": 0, "errors": []}, (
+        "persist_bulk_update should return the default bulk operation result payload."
+    )
+    assert captured["queryset"] is queryset, (
+        "persist_bulk_update should forward the queryset unchanged to the default bulk operation."
+    )
+    assert captured["bulk_fields"] == ["title", "author"], (
+        "persist_bulk_update should validate against the configured bulk_fields by default."
+    )
+    assert captured["fields_to_update"] == ["title"], (
+        "persist_bulk_update should forward the selected bulk field names unchanged."
+    )
+    assert captured["field_data"] == field_data, (
+        "persist_bulk_update should forward the normalized field_data payload unchanged."
+    )
 
 
 @pytest.mark.django_db

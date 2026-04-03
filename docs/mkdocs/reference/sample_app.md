@@ -89,6 +89,13 @@ The sample form configuration now also demonstrates two contextual form-surface 
 
 `BookForm` remains the source of truth for editable inputs, while PowerCRUD layers the display-only context block and disabled-field behavior on top of that custom form.
 
+The sample `BookCRUDView` also includes no-op illustrative overrides for the new sync persistence hooks:
+
+- `persist_single_object(...)`
+- `persist_bulk_update(...)`
+
+They currently just call `super()`, but they mark the exact place where a downstream app would route validated writes through domain services while still letting PowerCRUD own validation and UI response flow.
+
 ### Inline dependency demo
 
 The sample app now includes a concrete inline dependency example:

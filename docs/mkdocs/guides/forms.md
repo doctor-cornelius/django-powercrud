@@ -96,6 +96,45 @@ With that in place:
 
 ---
 
+## Persisting validated standard forms
+
+Once the form is valid, PowerCRUD routes the standard create/update write through `persist_single_object(...)`:
+
+For the canonical contract, see the [Hooks reference](../reference/hooks.md#persist_single_object).
+
+```python
+def persist_single_object(self, *, form, mode, instance=None):
+    return form.save()
+```
+
+For the standard object form flow:
+
+- `mode` is `"form"`
+- `instance` is the bound `form.instance`
+- the return value becomes `self.object`
+
+Use this hook when your app wants PowerCRUD to keep validation, modal handling, and HTMX response logic, but wants the actual write to pass through an application service.
+
+Example:
+
+```python
+class BookCRUDView(PowerCRUDMixin, CRUDView):
+    def persist_single_object(self, *, form, mode, instance=None):
+        book = form.save(commit=False)
+        book = BookWriteService().save(book=book, mode=mode)
+        form.instance = book
+        form.save_m2m()
+        return book
+```
+
+Important:
+
+- If you call `form.save()` directly, Django handles the normal `ModelForm` save path.
+- If you bypass `form.save()` and build your own persistence flow, your override owns any required `form.save_m2m()` handling.
+- The same public hook name is also used by inline editing, so downstream code can centralize single-object write orchestration.
+
+---
+
 ## Showing contextual read-only fields
 
 Use `form_display_fields` when users need to see contextual model values while editing, but those values are not editable form inputs.

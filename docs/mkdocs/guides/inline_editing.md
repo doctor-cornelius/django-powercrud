@@ -170,8 +170,10 @@ For a fuller explanation of `filter_by`, multiple-parent mappings, and migration
 Inline editing piggybacks on the same hooks the bulk/async flows use:
 
 - `inline_edit_requires_perm` – e.g. `"sample.change_book"`.
-- `inline_edit_allowed(self, obj, request)` – custom per-row checks.
+- `inline_edit_allowed(obj, request)` – custom per-row checks.
 - `is_inline_row_locked(self, obj)` / `get_inline_lock_details(self, obj)` – pair with `AsyncManager` to keep rows read-only while background jobs run.
+
+See the [Hooks reference](../reference/hooks.md#inline-editing-hooks) for the canonical contract details for these extension points.
 
 When a guard fails:
 
@@ -216,5 +218,35 @@ inline-row-forbidden # payload: {"message": …}
 4. Re-open the child dropdown without saving the row.
 5. Confirm only the allowed options are present.
 6. Save the row and confirm the same constraint still applies when reopening inline mode.
+
+---
+
+## Persisting validated inline rows
+
+After an inline row form validates, PowerCRUD routes the write through the same public `persist_single_object(...)` hook used by the standard object form flow.
+
+For the canonical contract, see the [Hooks reference](../reference/hooks.md#persist_single_object).
+
+For inline saves:
+
+- `mode` is `"inline"`
+- `instance` is the object currently being edited in the row
+- the returned object is used for the refreshed display row
+
+Example:
+
+```python
+class BookCRUDView(PowerCRUDMixin, CRUDView):
+    def persist_single_object(self, *, form, mode, instance=None):
+        book = super().persist_single_object(
+            form=form,
+            mode=mode,
+            instance=instance,
+        )
+        InlineAuditService().record(book=book, mode=mode)
+        return book
+```
+
+This lets downstream projects keep standard form saves and inline row saves on one shared single-object persistence seam.
 
 Continue with [Bulk editing (synchronous)](bulk_edit_sync.md) if you also need row-level bulk operations, or jump ahead to [Async Manager](async_manager.md) / [Bulk editing (async)](bulk_edit_async.md) once you want background processing and conflict locks.

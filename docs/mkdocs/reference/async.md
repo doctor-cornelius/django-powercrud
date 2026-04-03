@@ -160,6 +160,8 @@ All launch sites (PowerCRUD views, custom code) end up sharing the same lifecycl
 - Lifecycle events you can handle: `create`, `progress`, `complete`, `fail`, `cleanup`.
 - For a working reference, inspect the sample app (`sample/async_manager.py`, `sample/models.py`, `sample/views.py`, `sample/tests.py`).
 
+See also the [Hooks reference](./hooks.md) for the summary contract of `async_task_lifecycle(...)` and other public override points.
+
 ---
 
 ## Troubleshooting

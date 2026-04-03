@@ -1,5 +1,6 @@
 nav:
   - config_options.md
+  - hooks.md
   - complete_example.md
   - mgmt_commands.md
   - sample_app.md

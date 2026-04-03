@@ -29,6 +29,32 @@ class FormMixin:
 
     FIELD_QUERYSET_DEPENDENCY_EMPTY_BEHAVIORS = {"none", "all"}
 
+    def persist_single_object(
+        self,
+        *,
+        form: forms.BaseModelForm,
+        mode: str,
+        instance: Any | None = None,
+    ):
+        """Persist one validated form-backed object and return the saved instance.
+
+        Args:
+            form: Validated Django form driving the persistence operation.
+            mode: Persistence surface using the hook, currently ``"form"`` or
+                ``"inline"``.
+            instance: Optional object reference from the calling code. Downstream
+                overrides may use this to compare the original object with the
+                saved result.
+
+        Returns:
+            Model instance returned by the default ``form.save()`` behavior.
+
+        Important:
+            If an override bypasses ``form.save()`` directly, that override owns
+            any required ``form.save_m2m()`` handling.
+        """
+        return form.save()
+
     def get_form_disabled_fields(self) -> list[str]:
         """
         Return the configured list of form fields that should be disabled.
@@ -767,7 +793,11 @@ class FormMixin:
                 self.object = form.instance
                 return self._render_conflict_response(self.request, pk, "update")
 
-        self.object = form.save()
+        self.object = self.persist_single_object(
+            form=form,
+            mode="form",
+            instance=getattr(form, "instance", None),
+        )
 
         # If this is an HTMX request, handle it specially
         if hasattr(self, "request") and getattr(self.request, "htmx", False):

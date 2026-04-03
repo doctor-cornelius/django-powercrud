@@ -12,6 +12,36 @@ log = get_logger(__name__)
 class OperationMixin:
     """Mixin for core bulk operations including delete, update, and permission checks."""
 
+    def persist_bulk_update(
+        self,
+        *,
+        queryset: models.QuerySet,
+        fields_to_update: List[str],
+        field_data: List[Dict[str, Any]],
+        progress_callback: Optional[Callable[[int, int], None]] = None,
+    ) -> Dict[str, Any]:
+        """Persist a sync bulk update and return the standard result payload.
+
+        Args:
+            queryset: QuerySet of objects to update.
+            fields_to_update: Field names selected for the current operation.
+            field_data: Normalized bulk field payload built from the request.
+            progress_callback: Optional progress callback used by sync or async
+                callers to report progress during the operation.
+
+        Returns:
+            Dict matching PowerCRUD's standard bulk result contract with
+            ``success``, ``success_records``, and ``errors`` keys.
+        """
+        bulk_fields = list(resolve_config(self).bulk_fields or [])
+        return self._perform_bulk_update(
+            queryset,
+            bulk_fields=bulk_fields,
+            fields_to_update=fields_to_update,
+            field_data=field_data,
+            progress_callback=progress_callback,
+        )
+
     def _validate_bulk_update_fields(
         self, *, bulk_fields: List[str], fields_to_update: List[str]
     ) -> None:

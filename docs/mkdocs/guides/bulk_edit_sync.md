@@ -49,6 +49,38 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
 
 Operations remain atomic—if any record fails the whole transaction rolls back.
 
+### Routing sync bulk updates through one hook
+
+Once PowerCRUD has built the normalized sync bulk payload, it routes the write through `persist_bulk_update(...)`:
+
+For the canonical contract, see the [Hooks reference](../reference/hooks.md#persist_bulk_update).
+
+```python
+def persist_bulk_update(
+    self,
+    *,
+    queryset,
+    fields_to_update,
+    field_data,
+    progress_callback=None,
+):
+    return super().persist_bulk_update(
+        queryset=queryset,
+        fields_to_update=fields_to_update,
+        field_data=field_data,
+        progress_callback=progress_callback,
+    )
+```
+
+Use this hook when the app wants PowerCRUD to keep the modal UI, payload normalization, and result handling, but wants the actual sync bulk write orchestration to live in an application service.
+
+Notes:
+
+- `fields_to_update` is the normalized list of selected bulk-edit fields.
+- `field_data` contains the normalized field payload PowerCRUD built from the request, including relation and many-to-many metadata.
+- The hook returns the standard PowerCRUD bulk result dict with `success`, `success_records`, and `errors`.
+- This hook is sync bulk-update only in this release. Bulk delete and async bulk persistence are follow-up concerns.
+
 ---
 
 ## 3. Dropdowns & choices {#dropdowns-choices}
@@ -69,6 +101,8 @@ dropdown_sort_options = {
 #### Restrict options
 
 Override `get_bulk_choices_for_field` if the defaults are too broad:
+
+See the [Hooks reference](../reference/hooks.md#get_bulk_choices_for_field) for the canonical contract for this hook and [Hooks reference](../reference/hooks.md#get_bulk_selection_key_suffix) for bulk selection scoping.
 
 ```python
 def get_bulk_choices_for_field(self, field_name, field):

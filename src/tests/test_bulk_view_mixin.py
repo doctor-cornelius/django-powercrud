@@ -360,6 +360,59 @@ def test_bulk_edit_process_post_update_error(rf, fake_render):
 
 
 @pytest.mark.django_db
+def test_bulk_edit_process_post_uses_persist_bulk_update_hook(rf):
+    author = Author.objects.create(name="Hook Author")
+    book = Book.objects.create(
+        title="Needs Hook",
+        author=author,
+        published_date="2024-01-01",
+        bestseller=False,
+        isbn="6868686868686",
+        pages=22,
+    )
+
+    request = make_htmx_request(
+        rf,
+        method="post",
+        data={
+            "bulk_submit": "1",
+            "selected_ids[]": [book.pk],
+            "fields_to_update": ["author"],
+            "author": str(author.pk),
+        },
+    )
+    view = HarnessView(request)
+    captured = {}
+
+    def fake_persist_bulk_update(*, queryset, fields_to_update, field_data, progress_callback=None):
+        captured["queryset_ids"] = [obj.pk for obj in queryset]
+        captured["fields_to_update"] = fields_to_update
+        captured["field_data"] = field_data
+        captured["progress_callback"] = progress_callback
+        return {"success": True, "success_records": len(captured["queryset_ids"]), "errors": []}
+
+    view.persist_bulk_update = fake_persist_bulk_update
+
+    response = view.bulk_edit(request)
+
+    assert captured["queryset_ids"] == [book.pk], (
+        "Sync bulk update should pass the selected queryset through persist_bulk_update."
+    )
+    assert captured["fields_to_update"] == ["author"], (
+        "Sync bulk update should pass the normalized fields_to_update list through persist_bulk_update."
+    )
+    assert captured["field_data"][0]["field"] == "author", (
+        "Sync bulk update should pass the normalized field_data payload through persist_bulk_update."
+    )
+    assert json.loads(response["HX-Trigger"]) == {
+        "bulkEditSuccess": True,
+        "refreshTable": True,
+    }, (
+        "Sync bulk update responses should preserve the existing success trigger after routing through persist_bulk_update."
+    )
+
+
+@pytest.mark.django_db
 def test_bulk_field_info_flags_searchable_select_only_for_eligible_fields(rf):
     request = make_htmx_request(rf)
     view = HarnessView(request)

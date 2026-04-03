@@ -57,6 +57,7 @@ See [Async architecture](reference/async.md) for details.
 ## Reference map
 
 - Configuration reference: [config_options.md](reference/config_options.md)  
+- Hooks reference: [hooks.md](reference/hooks.md)  
 - Complete class example: [complete_example.md](reference/complete_example.md)  
 - Tooling: [dockerised_dev.md](reference/dockerised_dev.md), [mgmt_commands.md](reference/mgmt_commands.md), [testing.md](reference/testing.md)  
 - Sample app overview: [sample_app.md](reference/sample_app.md)  

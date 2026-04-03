@@ -332,6 +332,47 @@ def test_inline_post_success_swaps_display(sample_book, sample_author):
 
 
 @pytest.mark.django_db
+def test_inline_post_uses_persist_single_object_hook(sample_book, sample_author, monkeypatch):
+    request = _make_request(
+        "post",
+        data={
+            "title": "Saved Via Inline Hook",
+            "author": str(sample_author.pk),
+            "published_date": "2024-01-01",
+            "isbn": "9780000000011",
+            "pages": "123",
+            "bestseller": "",
+        },
+    )
+    view = InlineTestView(request, sample_book)
+    captured = {}
+    original_persist = view.persist_single_object
+
+    def fake_persist_single_object(*, form, mode, instance=None):
+        captured["mode"] = mode
+        captured["instance"] = instance
+        return original_persist(form=form, mode=mode, instance=instance)
+
+    monkeypatch.setattr(view, "persist_single_object", fake_persist_single_object)
+
+    response = view._dispatch_inline_row(request, pk=sample_book.pk)
+
+    assert response.status_code == 200, (
+        "Inline saves routed through persist_single_object should still succeed."
+    )
+    assert captured["mode"] == "inline", (
+        "Inline row saves should call persist_single_object with mode='inline'."
+    )
+    assert captured["instance"] is sample_book, (
+        "Inline row saves should pass the current object through to persist_single_object."
+    )
+    sample_book.refresh_from_db()
+    assert sample_book.title == "Saved Via Inline Hook", (
+        "Inline row saves should persist through the object returned by persist_single_object."
+    )
+
+
+@pytest.mark.django_db
 def test_inline_post_missing_required_field_is_preserved(sample_book, sample_author):
     request = _make_request(
         "post",
