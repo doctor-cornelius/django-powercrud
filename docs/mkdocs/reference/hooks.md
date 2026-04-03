@@ -11,6 +11,33 @@ If you want step-by-step walkthroughs rather than contracts, start with the adva
 
 ---
 
+## Adopting persistence hooks
+
+If your project already customizes PowerCRUD writes, use these hooks to move away from internal save-path overrides.
+
+Migration guide:
+
+- If you currently override `form_valid()` only to control the write, move that write logic into `persist_single_object()`.
+- If you currently override inline save internals only to control the write, move that write logic into the same `persist_single_object()` hook.
+- If you currently override sync bulk internals such as `bulk_edit_process_post()` or `_perform_bulk_update()` only to route updates through app code, move that write logic into `persist_bulk_update()`.
+- If you currently customize async bulk update by patching worker code or forking `powercrud.tasks.bulk_update_task`, move that write logic into a `BulkUpdatePersistenceBackend` and configure `bulk_update_persistence_backend_path`.
+
+Keep the older override only when it is doing something broader than persistence, such as:
+
+- changing validation rules
+- changing request/response flow
+- changing template context or UI behavior
+
+Upgrade notes:
+
+- `persist_single_object()` covers normal create/update forms and inline row update, but not delete flows.
+- `persist_bulk_update()` is the sync bulk-update hook only. Bulk delete remains separate.
+- `BulkUpdatePersistenceBackend` is the async bulk-update seam. It is not a general-purpose `AsyncManager` save hook.
+- When `bulk_update_persistence_backend_path` is configured, the default sync bulk-update path also uses that same backend so sync and async bulk update can share one write path.
+- Live CRUD view instances are not passed into async workers.
+
+---
+
 ## View lifecycle and queryset hooks
 
 ### `get_queryset()`

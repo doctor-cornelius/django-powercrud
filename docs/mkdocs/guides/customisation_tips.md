@@ -91,6 +91,17 @@ Notes:
 - `persist_bulk_update(...)` is sync bulk-update only in this release. Bulk delete and async bulk persistence remain separate follow-up concerns.
 - The full hook contract now lives in the [Hooks reference](../reference/hooks.md).
 
+### Migrating older write overrides
+
+If an existing downstream project is overriding internal methods only to take control of persistence, move that logic onto the public seams instead:
+
+- move standard form-save write logic from `form_valid()` into `persist_single_object(...)`
+- move inline write logic from inline-save internals into the same `persist_single_object(...)`
+- move sync bulk-update write logic from bulk internals into `persist_bulk_update(...)`
+- move async bulk-update write logic out of worker patches and into `BulkUpdatePersistenceBackend` plus `bulk_update_persistence_backend_path`
+
+Keep the older override only when it also changes validation, response handling, or another non-persistence part of the flow.
+
 ---
 
 ## 3. Custom buttons & actions
