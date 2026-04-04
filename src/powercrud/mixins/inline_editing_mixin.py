@@ -97,10 +97,14 @@ class InlineEditingMixin:
                     mode="inline",
                     instance=obj,
                 )
-                row_html = self._render_inline_row_display(self.object)
-                response = HttpResponse(row_html)
+                response = HttpResponse(status=204)
                 response["HX-Trigger"] = json.dumps(
-                    {"inline-row-saved": {"pk": self.object.pk}}
+                    {
+                        "inline-row-saved": {"pk": self.object.pk},
+                        "refreshTable": self._get_inline_refresh_table_payload(
+                            self.object
+                        ),
+                    }
                 )
                 return response
 
@@ -460,6 +464,12 @@ class InlineEditingMixin:
             request=self.request,
         )
 
+    def get_inline_save_refresh_policy(self) -> str:
+        """
+        Return how successful inline saves should refresh the surrounding list.
+        """
+        return str(resolve_config(self).inline_save_refresh_policy)
+
     def _resolve_inline_field_list(self, source: Sequence[str] | None) -> list[str]:
         if not source:
             return []
@@ -697,6 +707,67 @@ class InlineEditingMixin:
         else:
             list_url_name = f"{self.url_base}-list"
         return self.safe_reverse(list_url_name) or ""
+
+    def _get_inline_refresh_table_payload(self, obj) -> dict[str, Any]:
+        """
+        Return frontend refresh instructions after a successful inline save.
+        """
+        return {"reset_page": self._should_reset_inline_refresh_page(obj)}
+
+    def _should_reset_inline_refresh_page(self, obj) -> bool:
+        """
+        Resolve whether the list refresh should drop the current page parameter.
+        """
+        policy = self.get_inline_save_refresh_policy()
+        if policy == "keep_page":
+            return False
+        if policy == "reset_page":
+            return True
+        return not self._inline_object_matches_active_filters(obj)
+
+    def _inline_object_matches_active_filters(self, obj) -> bool:
+        """
+        Return True when the saved object still belongs to the active filters.
+
+        Pagination is intentionally ignored so this check answers membership in
+        the filtered queryset, not whether the row still appears on the current page.
+        """
+        if obj is None or getattr(obj, "pk", None) in (None, ""):
+            return False
+
+        filterset_getter = getattr(self, "get_filterset", None)
+        if not callable(filterset_getter):
+            return True
+
+        request = getattr(self, "request", None)
+        if request is None:
+            return True
+
+        original_get = request.GET
+        filter_params = original_get.copy()
+        if "page" in filter_params:
+            filter_params.pop("page")
+
+        try:
+            request.GET = filter_params
+            try:
+                queryset = self.get_queryset()
+            except AttributeError:
+                if getattr(self, "model", None) is None:
+                    raise
+                queryset = self.model._default_manager.all()
+            filterset = filterset_getter(queryset)
+            if filterset is None:
+                return True
+            return bool(filterset.qs.filter(pk=obj.pk).exists())
+        except Exception:
+            log.exception(
+                "Falling back to preserving the current page after inline save because filtered membership could not be resolved for pk %s.",
+                getattr(obj, "pk", None),
+            )
+            return True
+        finally:
+            request.GET = original_get
 
     # ------------------------------------------------------------------
     # Inline guard helpers

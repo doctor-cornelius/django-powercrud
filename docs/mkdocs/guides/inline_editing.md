@@ -233,7 +233,14 @@ For inline saves:
 
 - `mode` is `"inline"`
 - `instance` is the object currently being edited in the row
-- the returned object is used for the refreshed display row
+- the returned object is still the saved instance stored on `self.object`
+- after a successful save, PowerCRUD refreshes the current filtered list results instead of re-rendering only the row directly
+
+By default, inline-save refresh keeps the current `page`, `sort`, filters, and `page_size`. If the saved row no longer belongs to the active filtered queryset, PowerCRUD drops `page` so the list refresh restarts from page 1. You can override that behavior per view with `inline_save_refresh_policy`:
+
+- `"reset_if_filtered_out"` – default; keep the current page unless the saved row falls out of the active filters
+- `"keep_page"` – always preserve the current page during inline-save refresh
+- `"reset_page"` – always drop the current page during inline-save refresh
 
 Example:
 

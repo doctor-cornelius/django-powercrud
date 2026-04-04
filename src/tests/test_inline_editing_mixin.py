@@ -12,7 +12,13 @@ from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
 
 from powercrud.mixins.form_mixin import FormMixin
-from powercrud.mixins import InlineEditingMixin, TableMixin, HtmxMixin, CoreMixin
+from powercrud.mixins import (
+    CoreMixin,
+    FilteringMixin,
+    HtmxMixin,
+    InlineEditingMixin,
+    TableMixin,
+)
 from sample.models import Author, Book, Genre
 
 
@@ -272,6 +278,24 @@ class InlineDependencyMetadataView(InlineTestView):
         }
 
 
+class InlineFilterAwareView(FilteringMixin, InlineTestView):
+    """Exercise inline-save refresh policy against the active filterset."""
+
+    filterset_fields = ["title"]
+
+
+class InlineKeepPageView(InlineFilterAwareView):
+    """Force inline saves to preserve the current page during refresh."""
+
+    inline_save_refresh_policy = "keep_page"
+
+
+class InlineResetPageView(InlineFilterAwareView):
+    """Force inline saves to reset pagination during refresh."""
+
+    inline_save_refresh_policy = "reset_page"
+
+
 def _make_request(method="get", path="/inline/", data=None):
     rf = RequestFactory()
     request = getattr(rf, method)(path, data=data or {})
@@ -301,7 +325,7 @@ def test_inline_get_renders_form_html(sample_book):
 
 
 @pytest.mark.django_db
-def test_inline_post_success_swaps_display(sample_book, sample_author):
+def test_inline_post_success_triggers_list_refresh(sample_book, sample_author):
     request = _make_request(
         "post",
         data={
@@ -318,15 +342,18 @@ def test_inline_post_success_swaps_display(sample_book, sample_author):
     response = view._dispatch_inline_row(request, pk=sample_book.pk)
     payload = json.loads(response["HX-Trigger"])
 
-    assert response.status_code == 200, "Successful inline saves should return the refreshed display row."
-    assert b"actions" in response.content, "Successful inline saves should render the row actions again."
-    assert (
-        response.content.count(b"pc-inline-editable") == 2
-    ), "Only the inline-editable display cells should include the editable marker class after save."
-    assert (
-        b'data-inline-field="isbn"' not in response.content
-    ), "Non-editable display cells should not be rendered as inline edit triggers."
-    assert payload == {"inline-row-saved": {"pk": sample_book.pk}}, "Successful inline saves should trigger the expected HX event payload."
+    assert response.status_code == 204, (
+        "Successful inline saves should return 204 so the existing list can refresh without swapping the active row markup directly."
+    )
+    assert response.content == b"", (
+        "Successful inline saves should not return row HTML once refreshTable drives the visible list update."
+    )
+    assert payload == {
+        "inline-row-saved": {"pk": sample_book.pk},
+        "refreshTable": {"reset_page": False},
+    }, (
+        "Successful inline saves without active filters should keep the current page while triggering a list refresh."
+    )
     sample_book.refresh_from_db()
     assert sample_book.title == "Updated Inline Title", "Successful inline saves should persist the submitted field changes."
 
@@ -356,9 +383,13 @@ def test_inline_post_uses_persist_single_object_hook(sample_book, sample_author,
     monkeypatch.setattr(view, "persist_single_object", fake_persist_single_object)
 
     response = view._dispatch_inline_row(request, pk=sample_book.pk)
+    payload = json.loads(response["HX-Trigger"])
 
-    assert response.status_code == 200, (
+    assert response.status_code == 204, (
         "Inline saves routed through persist_single_object should still succeed."
+    )
+    assert payload["inline-row-saved"] == {"pk": sample_book.pk}, (
+        "Inline saves routed through persist_single_object should still emit the inline-row-saved event."
     )
     assert captured["mode"] == "inline", (
         "Inline row saves should call persist_single_object with mode='inline'."
@@ -389,8 +420,11 @@ def test_inline_post_missing_required_field_is_preserved(sample_book, sample_aut
     response = view._dispatch_inline_row(request, pk=sample_book.pk)
     payload = json.loads(response["HX-Trigger"])
 
-    assert response.status_code == 200
-    assert payload == {"inline-row-saved": {"pk": sample_book.pk}}
+    assert response.status_code == 204
+    assert payload == {
+        "inline-row-saved": {"pk": sample_book.pk},
+        "refreshTable": {"reset_page": False},
+    }
     sample_book.refresh_from_db()
     assert sample_book.pages == 321
 
@@ -413,8 +447,11 @@ def test_inline_post_preserved_fields_ignore_manual_input(sample_book, sample_au
     response = view._dispatch_inline_row(request, pk=sample_book.pk)
     payload = json.loads(response["HX-Trigger"])
 
-    assert response.status_code == 200
-    assert payload == {"inline-row-saved": {"pk": sample_book.pk}}
+    assert response.status_code == 204
+    assert payload == {
+        "inline-row-saved": {"pk": sample_book.pk},
+        "refreshTable": {"reset_page": False},
+    }
     sample_book.refresh_from_db()
     assert sample_book.pages == 321
 
@@ -469,10 +506,13 @@ def test_inline_post_preserves_optional_field_when_reposted_for_generated_form(
     payload = json.loads(response["HX-Trigger"])
 
     assert (
-        response.status_code == 200
+        response.status_code == 204
     ), "Inline saves built from form_fields should succeed when the row reposts hidden non-rendered fields."
-    assert payload == {"inline-row-saved": {"pk": sample_book.pk}}, (
-        "Inline saves built from form_fields should emit the normal inline-row-saved trigger after reposting hidden fields."
+    assert payload == {
+        "inline-row-saved": {"pk": sample_book.pk},
+        "refreshTable": {"reset_page": False},
+    }, (
+        "Inline saves built from form_fields should refresh the list after reposting hidden non-rendered fields."
     )
     sample_book.refresh_from_db()
     assert sample_book.description == "Preserve generated form description", (
@@ -530,14 +570,127 @@ def test_inline_post_preserves_optional_field_when_reposted_for_custom_form(
     payload = json.loads(response["HX-Trigger"])
 
     assert (
-        response.status_code == 200
+        response.status_code == 204
     ), "Inline saves built from form_class should succeed when the row reposts hidden non-rendered fields."
-    assert payload == {"inline-row-saved": {"pk": sample_book.pk}}, (
-        "Inline saves built from form_class should emit the normal inline-row-saved trigger after reposting hidden fields."
+    assert payload == {
+        "inline-row-saved": {"pk": sample_book.pk},
+        "refreshTable": {"reset_page": False},
+    }, (
+        "Inline saves built from form_class should refresh the list after reposting hidden non-rendered fields."
     )
     sample_book.refresh_from_db()
     assert sample_book.description == "Preserve custom form description", (
         "Inline saves built from form_class should preserve optional instance values when the row reposts hidden non-rendered fields."
+    )
+
+
+@pytest.mark.django_db
+def test_inline_post_resets_page_when_saved_row_falls_out_of_active_filters(
+    sample_book, sample_author
+):
+    request = _make_request(
+        "post",
+        path="/inline/?title=Original&page=3&page_size=50&sort=title",
+        data={
+            "title": "Updated Inline Title",
+            "author": str(sample_author.pk),
+            "published_date": "2024-01-01",
+            "isbn": "9780000000011",
+            "pages": "123",
+            "bestseller": "",
+        },
+    )
+    view = InlineFilterAwareView(request, sample_book)
+
+    response = view._dispatch_inline_row(request, pk=sample_book.pk)
+    payload = json.loads(response["HX-Trigger"])
+
+    assert response.status_code == 204, (
+        "Inline saves should still complete successfully when the saved row falls out of the active filters."
+    )
+    assert payload["refreshTable"] == {"reset_page": True}, (
+        "Inline saves should reset pagination when the saved row no longer belongs to the active filtered queryset."
+    )
+
+
+@pytest.mark.django_db
+def test_inline_post_keeps_page_when_saved_row_stays_in_active_filters(
+    sample_book, sample_author
+):
+    request = _make_request(
+        "post",
+        path="/inline/?title=Original&page=3&page_size=50&sort=title",
+        data={
+            "title": "Original Title",
+            "author": str(sample_author.pk),
+            "published_date": "2024-01-01",
+            "isbn": "9780000000011",
+            "pages": "999",
+            "bestseller": "",
+        },
+    )
+    view = InlineFilterAwareView(request, sample_book)
+
+    response = view._dispatch_inline_row(request, pk=sample_book.pk)
+    payload = json.loads(response["HX-Trigger"])
+
+    assert response.status_code == 204, (
+        "Inline saves should still complete successfully when the saved row remains in the active filters."
+    )
+    assert payload["refreshTable"] == {"reset_page": False}, (
+        "Inline saves should preserve the current page when the saved row still belongs to the active filtered queryset."
+    )
+
+
+@pytest.mark.django_db
+def test_inline_post_keep_page_policy_overrides_filter_membership(
+    sample_book, sample_author
+):
+    request = _make_request(
+        "post",
+        path="/inline/?title=Original&page=3",
+        data={
+            "title": "Updated Inline Title",
+            "author": str(sample_author.pk),
+            "published_date": "2024-01-01",
+            "isbn": "9780000000011",
+            "pages": "123",
+            "bestseller": "",
+        },
+    )
+    view = InlineKeepPageView(request, sample_book)
+
+    response = view._dispatch_inline_row(request, pk=sample_book.pk)
+    payload = json.loads(response["HX-Trigger"])
+
+    assert payload["refreshTable"] == {"reset_page": False}, (
+        "Explicit keep_page policy should preserve the current page even when the saved row falls out of the active filters."
+    )
+
+
+@pytest.mark.django_db
+def test_inline_post_reset_page_policy_overrides_filter_membership(
+    sample_book, sample_author
+):
+    request = _make_request(
+        "post",
+        path="/inline/?title=Original&page=3",
+        data={
+            "title": "Original Title",
+            "author": str(sample_author.pk),
+            "published_date": "2024-01-01",
+            "isbn": "9780000000011",
+            "pages": "123",
+            "bestseller": "",
+        },
+    )
+    view = InlineResetPageView(request, sample_book)
+
+    response = view._dispatch_inline_row(request, pk=sample_book.pk)
+    payload = json.loads(response["HX-Trigger"])
+
+    assert payload["refreshTable"] == {"reset_page": True}, (
+        "Explicit reset_page policy should drop the current page even when the saved row remains inside the active filters."
     )
 
 

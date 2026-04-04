@@ -49,6 +49,9 @@ class PowerCRUDMixinValidator(BaseModel):
     inline_edit_allowed: Optional[Callable] = None
     inline_edit_always_visible: Optional[bool] = True
     inline_edit_highlight_accent: Optional[str] = "#14b8a6"
+    inline_save_refresh_policy: Optional[
+        Literal["reset_if_filtered_out", "keep_page", "reset_page"]
+    ] = "reset_if_filtered_out"
 
     # modals
     use_modal: Optional[bool] = None

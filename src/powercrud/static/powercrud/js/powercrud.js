@@ -584,13 +584,18 @@
         return true;
     }
 
-    function getCurrentFilters() {
+    function getCurrentFilters(options = {}) {
         const params = new URLSearchParams(global.location.search);
         const clean = {};
+        const preservePage = options.preservePage === true;
         for (const [key, value] of params) {
-            if (value && key !== 'page') {
-                clean[key] = value;
+            if (!value) {
+                continue;
             }
+            if (!preservePage && key === 'page') {
+                continue;
+            }
+            clean[key] = value;
         }
         return clean;
     }
@@ -783,7 +788,7 @@
         state.lastRowSelectionAnchorId = checkbox.dataset.id || null;
     }
 
-    function refreshTable(root) {
+    function refreshTable(root, options = {}) {
         const htmx = getHtmxInstance();
         const listUrl = root?.dataset?.powercrudListUrl;
         const resultsTarget = root?.querySelector('#filtered_results');
@@ -797,7 +802,7 @@
             },
             swap: 'innerHTML',
             pushURL: true,
-            values: getCurrentFilters(),
+            values: getCurrentFilters({ preservePage: options.resetPage !== true }),
         });
     }
 
@@ -1632,8 +1637,9 @@
     document.body.addEventListener('refreshTable', event => {
         const eventTarget = asElement(event.target);
         const root = getObjectListRoot(eventTarget) || getAffectedObjectListRoots(document)[0];
+        const payload = event.detail && event.detail.value ? event.detail.value : (event.detail || {});
         if (root) {
-            refreshTable(root);
+            refreshTable(root, { resetPage: payload.reset_page === true });
         }
     });
 

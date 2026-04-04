@@ -258,6 +258,42 @@ def test_bulk_edit_searchable_select_updates_author(
     ), "Bulk searchable select should not change unselected rows."
 
 
+def test_pagination_controls_advance_across_multiple_pages(
+    page, books_url, sample_author, sample_books
+):
+    for idx in range(2, 12):
+        Book.objects.create(
+            title=f"Paginated Playwright Book {idx}",
+            author=sample_author,
+            published_date=date(2024, 4, (idx % 28) + 1),
+            bestseller=False,
+            isbn=f"97877777{idx:02d}00",
+            pages=300 + idx,
+            description="Created to exercise HTMX pagination controls across pages",
+        )
+
+    page.goto(books_url)
+    page.wait_for_load_state("networkidle")
+
+    pagination = page.get_by_role("navigation", name=re.compile("page navigation", re.I))
+    expect(pagination).to_be_visible()
+
+    page.get_by_role("link", name="Next").click()
+    page.wait_for_load_state("networkidle")
+    expect(page).to_have_url(re.compile(r"[?&]page=2(?:&|$)"))
+    expect(pagination.get_by_role("link", name="2")).to_have_class(re.compile(r"\bbtn-active\b"))
+
+    page.get_by_role("link", name="Next").click()
+    page.wait_for_load_state("networkidle")
+    expect(page).to_have_url(re.compile(r"[?&]page=3(?:&|$)"))
+    expect(pagination.get_by_role("link", name="3")).to_have_class(re.compile(r"\bbtn-active\b"))
+
+    page.get_by_role("link", name="1").click()
+    page.wait_for_load_state("networkidle")
+    expect(page).not_to_have_url(re.compile(r"[?&]page=3(?:&|$)"))
+    expect(pagination.get_by_role("link", name="1")).to_have_class(re.compile(r"\bbtn-active\b"))
+
+
 def test_filter_multiselect_searchable_select_applies_immediately(
     page, books_url, sample_author, sample_books
 ):

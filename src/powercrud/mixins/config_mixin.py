@@ -89,6 +89,7 @@ class ConfigMixin:
     inline_preserve_required_fields: bool = True
     inline_edit_always_visible: bool = True
     inline_edit_highlight_accent: str = "#14b8a6"
+    inline_save_refresh_policy: str = "reset_if_filtered_out"
 
     # modals (if htmx is active)
     use_modal: bool | None = None
@@ -759,6 +760,8 @@ class _ConfigShim:
             return True if value is None else bool(value)
         if name == "inline_edit_highlight_accent":
             return self._raw("inline_edit_highlight_accent") or "#14b8a6"
+        if name == "inline_save_refresh_policy":
+            return self._raw("inline_save_refresh_policy") or "reset_if_filtered_out"
         if name == "base_template_path":
             # Do not invent a default; projects must set this explicitly.
             return self._raw("base_template_path")
