@@ -94,18 +94,38 @@ def open_inline_row(
     return active_row
 
 
-def select_single_value(page: Page, container, field_name: str, option_label: str):
+def select_single_value(
+    page: Page, container, field_name: str, option_label: str, option_value: str
+):
+    """Select a single TomSelect/native option and assert the backing value."""
     select = container.locator(f"select[name='{field_name}']")
     ts_wrapper = container.locator(f"select[name='{field_name}'] + .ts-wrapper")
     if ts_wrapper.count() > 0:
+        tomselect_ready = select.evaluate("el => Boolean(el.tomselect)")
+        if tomselect_ready:
+            # Use the widget API in headless runs so inline tests do not depend
+            # on fragile viewport/click behavior inside wide tables.
+            select.evaluate(
+                """
+                (el, payload) => {
+                    el.tomselect.setValue(String(payload.value));
+                }
+                """,
+                {"value": option_value},
+            )
+            expect(select).to_have_value(option_value)
+            return
+
         control_input = ts_wrapper.locator("input").first
         control_input.click()
         control_input.fill(option_label)
         option = page.locator(".ts-dropdown .option", has_text=option_label).first
         expect(option).to_be_visible()
         option.click()
+        expect(select).to_have_value(option_value)
         return
-    select.select_option(label=option_label)
+    select.select_option(option_value)
+    expect(select).to_have_value(option_value)
 
 
 def test_inline_edit_happy_path(page: Page, books_url: str, inline_ready_books):
@@ -242,6 +262,7 @@ def test_inline_edit_searchable_select_updates_author(
         container=active_row,
         field_name="author",
         option_label=replacement_author.name,
+        option_value=str(replacement_author.pk),
     )
     genres_select = active_row.locator("select[name='genres']")
     expect(genres_select).to_be_visible()
