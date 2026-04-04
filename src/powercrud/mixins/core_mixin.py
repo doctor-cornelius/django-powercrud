@@ -1,5 +1,6 @@
 from typing import Any
 
+from django.core.exceptions import FieldDoesNotExist
 from django.http import Http404
 
 from .config_mixin import ConfigMixin
@@ -9,6 +10,80 @@ class CoreMixin(ConfigMixin):
     """
     Behavioural core mixin for queryset handling and list view orchestration.
     """
+
+    def get_column_sort_fields_override(self) -> dict[str, str]:
+        """
+        Return explicit queryset ordering overrides keyed by visible column name.
+        """
+        configured = getattr(self.config(), "column_sort_fields_override", None)
+        if isinstance(configured, dict):
+            return configured
+        return {}
+
+    def _get_sortable_field_map(self) -> dict[str, str]:
+        """
+        Return the visible sortable column names mapped to canonical field/property names.
+        """
+        valid_fields = {f.name: f.name for f in self.model._meta.fields}
+        properties = getattr(self.config(), "properties", []) or []
+        valid_fields.update({p: p for p in properties})
+        return valid_fields
+
+    def _resolve_sort_column_name(self, field_name: str) -> str | None:
+        """
+        Resolve a requested sort column name to the configured visible column key.
+        """
+        valid_fields = self._get_sortable_field_map()
+        if field_name in valid_fields:
+            return valid_fields[field_name]
+
+        matches = {key.lower(): value for key, value in valid_fields.items()}
+        return matches.get(field_name.lower())
+
+    def _resolve_default_sort_expression(self, column_name: str) -> str:
+        """
+        Resolve the default queryset ordering expression for a visible column.
+        """
+        try:
+            model_field = self.model._meta.get_field(column_name)
+        except FieldDoesNotExist:
+            return column_name
+
+        if (
+            not getattr(model_field, "is_relation", False)
+            or getattr(model_field, "many_to_many", False)
+            or getattr(model_field, "auto_created", False)
+        ):
+            return column_name
+
+        related_model = getattr(model_field, "related_model", None)
+        if related_model is None:
+            return column_name
+
+        try:
+            related_name_field = related_model._meta.get_field("name")
+        except FieldDoesNotExist:
+            return column_name
+
+        if not getattr(related_name_field, "concrete", False):
+            return column_name
+
+        return f"{column_name}__name"
+
+    def resolve_sort_expression(self, field_name: str) -> str | None:
+        """
+        Return the queryset ordering expression for a requested sort field.
+        """
+        column_name = self._resolve_sort_column_name(field_name)
+        if column_name is None:
+            return None
+
+        overrides = self.get_column_sort_fields_override()
+        override = overrides.get(column_name)
+        if override:
+            return override
+
+        return self._resolve_default_sort_expression(column_name)
 
     def get_inline_editing(self) -> bool:
         """
@@ -30,21 +105,7 @@ class CoreMixin(ConfigMixin):
             # Handle descending sort (prefixed with '-')
             descending = sort_param.startswith("-")
             field_name = sort_param[1:] if descending else sort_param
-
-            # Get all valid field names and properties
-            valid_fields = {f.name: f.name for f in self.model._meta.fields}
-            # Add any properties that are sortable
-            properties = getattr(self.config(), "properties", []) or []
-            valid_fields.update({p: p for p in properties})
-
-            # Try to match the sort parameter to a valid field
-            # First try exact match
-            if field_name in valid_fields:
-                sort_field = valid_fields[field_name]
-            else:
-                # Try case-insensitive match
-                matches = {k.lower(): v for k, v in valid_fields.items()}
-                sort_field = matches.get(field_name.lower())
+            sort_field = self.resolve_sort_expression(field_name)
 
             if sort_field:
                 # Re-add the minus sign if it was descending

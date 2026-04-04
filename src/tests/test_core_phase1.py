@@ -193,6 +193,160 @@ def test_core_mixin_invalid_fields_raise_value_error():
         BrokenView()
 
 
+class DummyQuerysetParent:
+    def get_queryset(self):
+        return self.model.objects.all()
+
+
+@pytest.mark.django_db
+def test_core_mixin_relation_sort_defaults_to_related_name_field():
+    alpha_author = Author.objects.create(name="Alpha Author")
+    zulu_author = Author.objects.create(name="Zulu Author")
+    zulu_book = Book.objects.create(
+        title="Zulu First By Id",
+        author=zulu_author,
+        published_date=date(2024, 1, 1),
+        bestseller=False,
+        isbn="9781000000001",
+        pages=100,
+    )
+    alpha_book = Book.objects.create(
+        title="Alpha Second By Id",
+        author=alpha_author,
+        published_date=date(2024, 1, 2),
+        bestseller=False,
+        isbn="9781000000002",
+        pages=100,
+    )
+
+    rf = RequestFactory()
+
+    class BookSortView(CoreMixin, DummyQuerysetParent):
+        model = Book
+        fields = ["title", "author"]
+
+    view = BookSortView()
+    view.request = rf.get("/?sort=author")
+
+    ordered_pks = list(view.get_queryset().values_list("pk", flat=True))
+
+    assert ordered_pks == [alpha_book.pk, zulu_book.pk], (
+        "Sorting by a relation column should default to the related model's concrete name field when one exists."
+    )
+
+
+@pytest.mark.django_db
+def test_core_mixin_relation_sort_descending_uses_related_name_field():
+    alpha_author = Author.objects.create(name="Alpha Author")
+    zulu_author = Author.objects.create(name="Zulu Author")
+    alpha_book = Book.objects.create(
+        title="Alpha First By Id",
+        author=alpha_author,
+        published_date=date(2024, 1, 1),
+        bestseller=False,
+        isbn="9781000000011",
+        pages=100,
+    )
+    zulu_book = Book.objects.create(
+        title="Zulu Second By Id",
+        author=zulu_author,
+        published_date=date(2024, 1, 2),
+        bestseller=False,
+        isbn="9781000000012",
+        pages=100,
+    )
+
+    rf = RequestFactory()
+
+    class BookSortView(CoreMixin, DummyQuerysetParent):
+        model = Book
+        fields = ["title", "author"]
+
+    view = BookSortView()
+    view.request = rf.get("/?sort=-author")
+
+    ordered_pks = list(view.get_queryset().values_list("pk", flat=True))
+
+    assert ordered_pks == [zulu_book.pk, alpha_book.pk], (
+        "Descending relation sorting should use the related model's name field before applying the descending flag."
+    )
+
+
+@pytest.mark.django_db
+def test_core_mixin_column_sort_fields_override_wins_over_relation_name_heuristic():
+    zulu_author = Author.objects.create(name="Zulu Author")
+    alpha_author = Author.objects.create(name="Alpha Author")
+    zulu_book = Book.objects.create(
+        title="Zulu First By Id",
+        author=zulu_author,
+        published_date=date(2024, 1, 1),
+        bestseller=False,
+        isbn="9781000000021",
+        pages=100,
+    )
+    alpha_book = Book.objects.create(
+        title="Alpha Second By Id",
+        author=alpha_author,
+        published_date=date(2024, 1, 2),
+        bestseller=False,
+        isbn="9781000000022",
+        pages=100,
+    )
+
+    rf = RequestFactory()
+
+    class BookSortView(CoreMixin, DummyQuerysetParent):
+        model = Book
+        fields = ["title", "author"]
+        column_sort_fields_override = {"author": "author"}
+
+    view = BookSortView()
+    view.request = rf.get("/?sort=author")
+
+    ordered_pks = list(view.get_queryset().values_list("pk", flat=True))
+
+    assert ordered_pks == [zulu_book.pk, alpha_book.pk], (
+        "Explicit column_sort_fields_override entries should take precedence over the default related-name sorting heuristic."
+    )
+
+
+@pytest.mark.django_db
+def test_book_list_sorts_author_column_by_visible_author_name(client):
+    zulu_author = Author.objects.create(name="Zulu Author")
+    alpha_author = Author.objects.create(name="Alpha Author")
+    Book.objects.create(
+        title="Zulu Author Book",
+        author=zulu_author,
+        published_date=date(2024, 1, 1),
+        bestseller=False,
+        isbn="9781000000031",
+        pages=100,
+    )
+    Book.objects.create(
+        title="Alpha Author Book",
+        author=alpha_author,
+        published_date=date(2024, 1, 2),
+        bestseller=False,
+        isbn="9781000000032",
+        pages=100,
+    )
+
+    response = client.get(
+        reverse("sample:bigbook-list"),
+        {"sort": "author", "page_size": "all"},
+    )
+    response_text = response.content.decode()
+
+    assert response.status_code == 200, (
+        "Book list view should render successfully when sorting by a relation column."
+    )
+    assert response_text.index("Alpha Author Book") < response_text.index(
+        "Zulu Author Book"
+    ), (
+        "Sorting the visible author column should order rows alphabetically by displayed author name rather than by foreign-key id."
+    )
+
+
 class DummyPaginateParent:
     def __init__(self):
         self.parent_called = False

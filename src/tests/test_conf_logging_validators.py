@@ -124,6 +124,18 @@ def test_validator_accepts_dropdown_sort_options():
     assert validator.dropdown_sort_options == {"author": "-name"}
 
 
+def test_validator_rejects_invalid_column_sort_fields_override():
+    with pytest.raises(ValueError):
+        PowerCRUDMixinValidator(column_sort_fields_override={"author": 1})
+
+
+def test_validator_accepts_column_sort_fields_override():
+    validator = PowerCRUDMixinValidator(
+        column_sort_fields_override={"author": "author__name"},
+    )
+    assert validator.column_sort_fields_override == {"author": "author__name"}
+
+
 def test_validator_accepts_show_bulk_selection_meta_toggle():
     validator = PowerCRUDMixinValidator(show_bulk_selection_meta=False)
     assert validator.show_bulk_selection_meta is False, (

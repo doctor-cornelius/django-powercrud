@@ -204,6 +204,18 @@ Use these when you are on the auto-generated `filterset_fields` path:
 - Toggle `m2m_filter_and_logic = True` if many-to-many filters must match *all* selected values instead of the default OR behaviour.
 - With `searchable_selects = True` (default), filter select widgets are Tom Select-enhanced: single-selects become searchable dropdowns and M2M filters become searchable multi-select controls.
 - Sorting is wired into the table headers. Clicking a column toggles `?sort=field` / `?sort=-field` on the URL (so you can share `/projects/?sort=status`). PowerCRUD applies that ordering server-side and always adds a secondary `pk` sort so pagination stays stable. Properties can be sorted too, as long as the property name is listed in `properties`.
+- Direct relation columns such as `author` sort by `author__name` automatically when the related model has a concrete `name` field. If a column should sort by something else, configure `column_sort_fields_override`:
+
+```python
+class ProjectCRUDView(PowerCRUDMixin, CRUDView):
+    # …
+    column_sort_fields_override = {
+        "owner": "owner__email",
+        "customer": "customer__code",
+    }
+```
+
+`column_sort_fields_override` is an override map, not an exhaustive declaration. If a sortable list field is not present, PowerCRUD falls back to the normal default for that field.
 
 Auto-generated text filters use `icontains` by default. There is no separate declarative parameter to change that lookup expression field by field. If you need custom lookup behavior such as `iexact`, `startswith`, or range-style filters, switch to a custom `filterset_class`.
 

@@ -16,6 +16,7 @@ class PowerCRUDMixinValidator(BaseModel):
     view_title: Optional[str] = None
     view_instructions: Optional[str] = None
     column_help_text: Optional[Dict[str, str]] = None
+    column_sort_fields_override: Optional[Dict[str, str]] = None
 
     # forms
     use_crispy: Optional[bool] = None
@@ -161,22 +162,22 @@ class PowerCRUDMixinValidator(BaseModel):
             )
         return v
 
-    @field_validator("column_help_text")
+    @field_validator("column_help_text", "column_sort_fields_override")
     @classmethod
-    def validate_column_help_text(cls, v):
-        """Ensure optional column help text is a string-to-string mapping."""
+    def validate_string_mapping(cls, v, info):
+        """Ensure optional mapping-style config values are string-to-string."""
         if v is None:
             return v
         if not isinstance(v, dict):
-            raise ValueError("column_help_text must be a dict when provided")
+            raise ValueError(f"{info.field_name} must be a dict when provided")
         for key, value in v.items():
             if not isinstance(key, str) or not key.strip():
                 raise ValueError(
-                    "column_help_text keys must be non-empty strings"
+                    f"{info.field_name} keys must be non-empty strings"
                 )
             if not isinstance(value, str) or not value.strip():
                 raise ValueError(
-                    "column_help_text values must be non-empty strings"
+                    f"{info.field_name} values must be non-empty strings"
                 )
         return v
 

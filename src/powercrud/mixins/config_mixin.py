@@ -36,6 +36,7 @@ class ConfigMixin:
     view_title: str | None = None
     view_instructions: str | None = None
     column_help_text: dict[str, str] | None = None
+    column_sort_fields_override: dict[str, str] | None = None
 
     # forms
     use_crispy: bool | None = None
@@ -762,6 +763,8 @@ class _ConfigShim:
             return self._raw("inline_edit_highlight_accent") or "#14b8a6"
         if name == "inline_save_refresh_policy":
             return self._raw("inline_save_refresh_policy") or "reset_if_filtered_out"
+        if name == "column_sort_fields_override":
+            return self._raw("column_sort_fields_override", {}) or {}
         if name == "base_template_path":
             # Do not invent a default; projects must set this explicitly.
             return self._raw("base_template_path")
@@ -787,6 +790,7 @@ class _ConfigShim:
         }:
             return ConfigMixin._dedupe_preserving_first(self._raw(name, []) or [])
         if name in {
+            "column_sort_fields_override",
             "dropdown_sort_options",
             "field_queryset_dependencies",
         }:
