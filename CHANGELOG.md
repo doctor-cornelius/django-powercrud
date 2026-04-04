@@ -1,3 +1,9 @@
+## 0.5.29 (2026-04-04)
+
+### Fix
+
+- **(core_mixin)**: sort relation columns by name
+
 ## 0.5.28 (2026-04-04)
 
 ### Fix
