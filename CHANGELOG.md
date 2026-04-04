@@ -1,16 +1,14 @@
+## 0.5.27 (2026-04-04)
+
+### Documentation
+
+- **(persistence)**: update docs with migration guides for persistence hooks
+
 ## 0.5.26 (2026-04-03)
 
 ### Documentation
 
-- add persistence hook migration and rollout guidance
-
-### Upgrade notes
-
-- Prefer `persist_single_object(...)` over overriding standard form or inline save internals when the goal is only to control single-object persistence.
-- Prefer `persist_bulk_update(...)` over overriding sync bulk update internals when the goal is only to control sync bulk persistence.
-- Prefer `BulkUpdatePersistenceBackend` plus `bulk_update_persistence_backend_path` over patching async bulk worker internals when sync and async bulk update need one shared write path.
-- Bulk delete and single-object delete remain outside the persistence-hook surface in this release.
-- Live CRUD view instances are not passed into async workers.
+- **(plans)**: remove standalone asyncmanager phase
 
 ### Feature
 
