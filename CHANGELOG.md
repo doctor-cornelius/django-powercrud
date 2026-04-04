@@ -1,3 +1,9 @@
+## 0.5.28 (2026-04-04)
+
+### Fix
+
+- **(inline_editing_mixin)**: refresh lists after inline saves
+
 ## 0.5.27 (2026-04-04)
 
 ### Documentation
