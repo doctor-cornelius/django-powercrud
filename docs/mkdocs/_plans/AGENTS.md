@@ -40,6 +40,21 @@ Optional (only when needed):
 - clear “Status” and “Next” sections
 - tasks phrased as testable outcomes (what “done” looks like)
 
+Follow the layout with checkboxes for tasks and emoji checkbox for phases similar to below:
+
+```
+## ✅ Phase A: Establish the First Proof Path
+
+1. [x] Lock the MVP rules that the first implementation will follow.
+    - [x] Keep local `attention_codes` row-local and code-owned.
+    - [x] Keep soft workflow concerns as summary or review flags.
+    - [x] Persist only hard blockers as blocker rows in `4.1`.
+2. [x] Lock the first naming and model decisions needed before code changes.
+    - [x] Choose the blocker model name as `BlockingIssue`.
+    - [x] Choose the blocker type model name as `BlockingIssueType`.
+    - [x] Confirm the first `DDMAction` summary fields to support in code.
+```
+
 `<feature>-notes.md`:
 
 - discovery notes, constraints, links, open questions

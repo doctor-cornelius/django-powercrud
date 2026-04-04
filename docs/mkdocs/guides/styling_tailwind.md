@@ -131,6 +131,12 @@ For manual mode, if dependencies are bundled through your own JS pipeline, make 
 
 Do not mix packaged-bundle mode and manual mode on the same page. Pick one path.
 
+### Tom Select theme behavior
+
+PowerCRUD applies daisyUI semantic-color overrides to Tom Select so searchable selects follow the active `data-theme` in both light and dark themes.
+
+If you manage assets yourself, keep Tom Select's vendor CSS loaded before `powercrud/css/powercrud.css`; the package stylesheet is the layer that replaces Tom Select's light-theme defaults with theme-aware daisyUI colors.
+
 If you manage assets yourself and still want the default visual style, refer to:
 
 - daisyUI docs: [https://daisyui.com/docs/](https://daisyui.com/docs/){ target="_blank" rel="noopener noreferrer" }

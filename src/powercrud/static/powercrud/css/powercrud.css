@@ -1,6 +1,32 @@
 /* Tom Select hardening for PowerCRUD surfaces.
    Keep this minimal and framework-neutral so selects remain usable even if
    vendor CSS load order changes in dev/runtime. */
+:root {
+    --pc-ts-border-width: var(--border, 1px);
+    --pc-ts-border-color: var(--color-base-300, #d0d0d0);
+    --pc-ts-control-bg: var(--color-base-100, #ffffff);
+    --pc-ts-control-bg-disabled: var(--color-base-200, #f3f4f6);
+    --pc-ts-control-text: var(--color-base-content, #303030);
+    --pc-ts-dropdown-bg: var(--color-base-100, #ffffff);
+    --pc-ts-dropdown-text: var(--color-base-content, #303030);
+    --pc-ts-dropdown-muted: color-mix(
+        in srgb,
+        var(--color-base-content, #303030) 65%,
+        transparent
+    );
+    --pc-ts-chip-bg: var(--color-neutral, #374151);
+    --pc-ts-chip-text: var(--color-neutral-content, #ffffff);
+    --pc-ts-chip-bg-active: color-mix(
+        in srgb,
+        var(--color-neutral, #374151) 86%,
+        var(--color-base-100, #ffffff)
+    );
+    --pc-ts-option-active-bg: var(--color-primary, #3b82f6);
+    --pc-ts-option-active-text: var(--color-primary-content, #ffffff);
+    --pc-ts-option-hover-bg: var(--color-base-200, #f3f4f6);
+    --pc-ts-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+
 select.ts-hidden-accessible {
     position: absolute !important;
     width: 1px !important;
@@ -16,9 +42,43 @@ select.ts-hidden-accessible {
 
 .ts-wrapper .ts-control {
     align-items: center;
-    background-color: var(--color-base-100);
+    background-color: var(--pc-ts-control-bg);
+    border: var(--pc-ts-border-width) solid var(--pc-ts-border-color);
+    color: var(--pc-ts-control-text);
+    box-shadow: none;
     min-height: 2.75rem;
     border-radius: var(--radius-field);
+}
+
+.ts-wrapper.focus .ts-control,
+.ts-wrapper.dropdown-active .ts-control,
+.plugin-dropdown_input.focus.dropdown-active .ts-control {
+    border-color: var(--pc-ts-option-active-bg);
+    box-shadow: none;
+}
+
+.ts-wrapper.single .ts-control,
+.ts-wrapper.single.input-active .ts-control,
+.ts-wrapper.full .ts-control {
+    background: var(--pc-ts-control-bg);
+}
+
+.ts-wrapper .ts-control > input,
+.ts-wrapper.single .ts-control > input,
+.ts-wrapper.single .ts-control input {
+    color: var(--pc-ts-control-text);
+    caret-color: var(--pc-ts-control-text);
+}
+
+.ts-wrapper .ts-control > input::placeholder,
+.ts-wrapper.plugin-dropdown_input .items-placeholder,
+.ts-wrapper.plugin-dropdown_input.has-items .items-placeholder,
+.ts-wrapper.plugin-dropdown_input.dropdown-active .items-placeholder {
+    color: var(--pc-ts-dropdown-muted);
+}
+
+.ts-wrapper.single .ts-control > .item {
+    color: var(--pc-ts-control-text);
 }
 
 .ts-wrapper.single.powercrud-clearable-single .ts-control {
@@ -61,8 +121,107 @@ select.ts-hidden-accessible {
     min-width: 1.5ch;
 }
 
+.ts-wrapper.multi .ts-control > div,
+.ts-wrapper.multi .ts-control > .item,
+.ts-wrapper.plugin-remove_button .item {
+    background: var(--pc-ts-chip-bg);
+    color: var(--pc-ts-chip-text);
+    border: 0;
+    border-radius: calc(var(--radius-field) * 0.85);
+}
+
+.ts-wrapper.multi .ts-control > div.active,
+.ts-wrapper.multi .ts-control > .item.active,
+.ts-wrapper.plugin-remove_button .item.active {
+    background: var(--pc-ts-chip-bg-active);
+    color: var(--pc-ts-chip-text);
+}
+
+.ts-wrapper.plugin-remove_button .item .remove,
+.ts-wrapper .dropdown-header-close,
+.ts-wrapper.single.powercrud-clearable-single .ts-control .clear-button {
+    color: inherit;
+}
+
+.ts-wrapper.plugin-remove_button .item .remove:hover,
+.ts-wrapper .dropdown-header-close:hover,
+.ts-wrapper.single.powercrud-clearable-single .ts-control .clear-button:hover {
+    background: color-mix(
+        in srgb,
+        var(--color-base-content, #303030) 8%,
+        transparent
+    );
+    color: inherit;
+}
+
+.ts-wrapper.multi.disabled .ts-control > div,
+.ts-wrapper.multi.disabled .ts-control > div.active,
+.ts-wrapper.multi.disabled .ts-control > .item,
+.ts-wrapper.multi.disabled .ts-control > .item.active,
+.ts-wrapper.disabled .ts-control {
+    background: var(--pc-ts-control-bg-disabled);
+    color: var(--pc-ts-dropdown-muted);
+    border-color: var(--pc-ts-border-color);
+}
+
 .ts-dropdown {
+    background: var(--pc-ts-dropdown-bg);
+    border: var(--pc-ts-border-width) solid var(--pc-ts-border-color);
+    border-top: 0;
+    color: var(--pc-ts-dropdown-text);
+    box-shadow: var(--pc-ts-shadow);
+    border-radius: 0 0 var(--radius-field) var(--radius-field);
     z-index: 1200;
+}
+
+.ts-dropdown,
+.ts-control,
+.ts-control input {
+    color: var(--pc-ts-dropdown-text);
+}
+
+.ts-dropdown .option,
+.ts-dropdown .optgroup-header,
+.ts-dropdown .no-results,
+.ts-dropdown .create {
+    color: var(--pc-ts-dropdown-text);
+}
+
+.ts-dropdown .optgroup-header,
+.ts-wrapper .dropdown-header {
+    background: var(--color-base-200, #f3f4f6);
+    color: var(--pc-ts-dropdown-text);
+    border-color: var(--pc-ts-border-color);
+}
+
+.ts-dropdown .create,
+.ts-dropdown .no-results {
+    color: var(--pc-ts-dropdown-muted);
+}
+
+.ts-dropdown [data-selectable]:hover,
+.ts-dropdown .option:hover {
+    background: var(--pc-ts-option-hover-bg);
+    color: var(--pc-ts-dropdown-text);
+}
+
+.ts-dropdown .active,
+.ts-dropdown [data-selectable].active,
+.ts-dropdown .active.create {
+    background-color: var(--pc-ts-option-active-bg);
+    color: var(--pc-ts-option-active-text);
+}
+
+.ts-dropdown [data-selectable] .highlight {
+    background: color-mix(
+        in srgb,
+        var(--pc-ts-option-active-bg) 24%,
+        transparent
+    );
+}
+
+.ts-dropdown .spinner::after {
+    border-color: var(--pc-ts-border-color) transparent var(--pc-ts-border-color) transparent;
 }
 
 /* Inline rows are intentionally narrow; allow the dropdown panel to

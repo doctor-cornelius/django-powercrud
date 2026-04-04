@@ -203,6 +203,7 @@ You can install PowerCRUD in two ways.
     Manual mode requirements:
 
     - Load vendor dependencies before `powercrud/js/powercrud.js`.
+    - Load Tom Select's vendor CSS before `powercrud/css/powercrud.css` so the package can override Tom Select with daisyUI semantic colors.
     - Register the Tom Select `remove_button` plugin if you want multi-select remove buttons.
     - If you use built-in daisyUI templates without the packaged bundle, you must provide your own daisyUI/Tailwind CSS stack.
 

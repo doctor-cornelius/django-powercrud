@@ -284,6 +284,7 @@ PowerCRUD enhances eligible select dropdowns with Tom Select when `searchable_se
 - Multi-select filter fields are enhanced as searchable multi-select controls.
 - Boolean-style selects remain native controls.
 - Preserves normal Django form POST semantics (the underlying `<select>` still submits the selected value).
+- When using the built-in daisyUI pack, package CSS overrides Tom Select with daisyUI semantic colors so controls follow the active theme.
 
 Per-field opt-out is available via a view hook:
 
