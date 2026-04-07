@@ -177,7 +177,7 @@ class BookBulkUpdateService:
         )
 ```
 
-This example still uses PowerCRUD's built-in bulk update behavior. The point is that your app now has one clear bulk-write seam where extra orchestration can live.
+This example still uses PowerCRUD's built-in bulk update behavior. The point is that your app now has one clear bulk-write hook where extra orchestration can live.
 
 ---
 

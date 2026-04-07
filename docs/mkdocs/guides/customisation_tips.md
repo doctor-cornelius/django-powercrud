@@ -93,7 +93,7 @@ Notes:
 
 ### Migrating older write overrides
 
-If an existing downstream project is overriding internal methods only to take control of persistence, move that logic onto the public seams instead:
+If an existing downstream project is overriding internal methods only to take control of persistence, move that logic onto the public hooks instead:
 
 - move standard form-save write logic from `form_valid()` into `persist_single_object(...)`
 - move inline write logic from inline-save internals into the same `persist_single_object(...)`

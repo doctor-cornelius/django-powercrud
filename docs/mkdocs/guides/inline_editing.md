@@ -227,7 +227,7 @@ After an inline row form validates, PowerCRUD routes the write through the same 
 
 For the canonical contract, see the [Hooks reference](../reference/hooks.md#persist_single_object).
 
-If you want a more practical walkthrough of keeping normal form saves and inline saves on one shared service seam, see [Persistence Hooks for Real Write Logic](advanced/persistence_hooks_sync.md).
+If you want a more practical walkthrough of keeping normal form saves and inline saves on one shared service hook, see [Persistence Hooks for Real Write Logic](advanced/persistence_hooks_sync.md).
 
 For inline saves:
 
@@ -256,6 +256,6 @@ class BookCRUDView(PowerCRUDMixin, CRUDView):
         return book
 ```
 
-This lets downstream projects keep standard form saves and inline row saves on one shared single-object persistence seam.
+This lets downstream projects keep standard form saves and inline row saves on one shared single-object persistence hook.
 
 Continue with [Bulk editing (synchronous)](bulk_edit_sync.md) if you also need row-level bulk operations, or jump ahead to [Async Manager](async_manager.md) / [Bulk editing (async)](bulk_edit_async.md) once you want background processing and conflict locks.

@@ -141,7 +141,7 @@ The backend exists for the cases where sync and async should share one deliberat
 ## 8. Recap
 
 - `persist_bulk_update()` is the sync bulk-update hook on the view.
-- `BulkUpdatePersistenceBackend` is the worker-safe async bulk-update seam.
+- `BulkUpdatePersistenceBackend` is the worker-safe async bulk-update hook.
 - When the backend path is configured, the default sync bulk path also uses it.
 - Async bulk delete is still separate in the current release.
 

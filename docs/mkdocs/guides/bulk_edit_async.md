@@ -153,7 +153,7 @@ Notes:
 - The backend receives plain execution context (`mode`, `task_name`, `user_id`, `selected_ids`, `model_path`).
 - When this backend is configured, the default sync bulk path also uses it, so sync and async bulk update can share one persistence contract.
 - Bulk delete still remains separate in the current release.
-- If you previously customized async bulk update by patching worker internals, this backend is the supported replacement seam.
+- If you previously customized async bulk update by patching worker internals, this backend is the supported replacement hook.
 
 See the [Hooks reference](../reference/hooks.md) for the backend contract and the [configuration reference](../reference/config_options.md) for the new settings.
 
