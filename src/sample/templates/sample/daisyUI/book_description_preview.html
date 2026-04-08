@@ -1,0 +1,25 @@
+{% extends './base.html' %}
+{% load partials %}
+
+{% block content %}
+    {% partial pcrud_content %}
+{% endblock %}
+
+{% partialdef pcrud_content %}
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body space-y-4">
+            <h2 class="card-title">{{ book.title }}</h2>
+            <p class="text-sm text-base-content/70">Description Preview</p>
+
+            {% if has_description %}
+                <div class="prose max-w-none">
+                    <p>{{ book.description }}</p>
+                </div>
+            {% else %}
+                <div class="alert alert-info">
+                    <span>This book does not have a description yet.</span>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+{% endpartialdef %}

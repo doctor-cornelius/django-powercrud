@@ -16,6 +16,7 @@ class SampleCRUDMixin(PowerCRUDAsyncMixin, CRUDView):
 
 
 def home(request):
+    """Render the sample home page."""
     template_name = (
         f"sample/{get_powercrud_setting('POWERCRUD_CSS_FRAMEWORK')}/index.html"
     )
@@ -111,6 +112,7 @@ class BookCRUDView(SampleCRUDMixin):
     # action_button_classes = 'btn-sm min-h-0 h-6 leading-6'
     action_button_classes = "btn-xs"
     extra_button_classes = "btn-sm"
+    extra_actions_mode = "dropdown"
 
     inline_edit_always_visible = True # default is True
     inline_edit_highlight_accent = "#f40b0b"  # default is "#14b8a6"
@@ -161,6 +163,16 @@ class BookCRUDView(SampleCRUDMixin):
             "display_modal": True,  # NB if True then htmx_target is ignored
             "extra_class_attrs": "bg-warning",
         },
+        {
+            "url_name": "sample:bigbook-selected-summary",
+            "text": "Selected Summary",
+            "button_class": "btn-primary",
+            "display_modal": True,
+            "uses_selection": True,
+            "selection_min_count": 1,
+            "selection_min_behavior": "disable",
+            "selection_min_reason": "Select at least one book first.",
+        },
     ]
 
     extra_actions = [
@@ -173,7 +185,27 @@ class BookCRUDView(SampleCRUDMixin):
             "display_modal": True,
             "lock_sensitive": True,  # this will be greyed out if async locks in force
         },
+        {
+            "url_name": "sample:bigbook-description-preview",
+            "text": "Description Preview",
+            "needs_pk": True,
+            "button_class": "btn-secondary",
+            "htmx_target": "powercrudModalContent",
+            "display_modal": True,
+            "disabled_if": "is_description_preview_disabled",
+            "disabled_reason": "get_description_preview_disabled_reason",
+        },
     ]
+
+    def is_description_preview_disabled(self, obj, request):
+        """Return True when the row lacks description content for preview."""
+        return not bool((obj.description or "").strip())
+
+    def get_description_preview_disabled_reason(self, obj, request):
+        """Return the tooltip shown when description preview is unavailable."""
+        if self.is_description_preview_disabled(obj, request):
+            return "This book does not have a description yet."
+        return None
 
     def persist_single_object(self, *, form, mode, instance=None):
         """Sample override showing where downstream form/inline writes can hook in."""
@@ -289,8 +321,6 @@ class AuthorCRUDView(SampleCRUDMixin):
         "genres",
     ]
 
-    extra_actions_mode = "dropdown"
-
     extra_actions = [
         {
             "url_name": "home",  # namespace:url_pattern
@@ -344,6 +374,7 @@ class AsyncTaskRecordCRUDView(SampleCRUDMixin):
 
 
 def async_task_detail(request, pk):
+    """Render a modal/detail view for one async task record."""
     record = get_object_or_404(models.AsyncTaskRecord, pk=pk)
     framework = get_powercrud_setting("POWERCRUD_CSS_FRAMEWORK")
     template = f"sample/{framework}/async_task_detail.html"
@@ -353,5 +384,45 @@ def async_task_detail(request, pk):
     context = {
         "record": record,
         "progress_url": progress_url,
+    }
+    return render(request, template, context)
+
+
+def book_selected_summary(request):
+    """Render a sample modal summarizing the current persisted book selection."""
+    framework = get_powercrud_setting("POWERCRUD_CSS_FRAMEWORK")
+    template = f"sample/{framework}/book_selected_summary.html"
+    if request.htmx:
+        template += "#pcrud_content"
+
+    view = BookCRUDView()
+    selected_ids = view.get_selected_ids_for_extra_button(
+        request,
+        {"uses_selection": True},
+    )
+    selected_books = list(
+        models.Book.objects.filter(pk__in=selected_ids)
+        .select_related("author")
+        .order_by("title")
+    )
+    context = {
+        "selected_books": selected_books,
+        "selected_count": len(selected_books),
+        "selection_required_message": "Select at least one book first.",
+    }
+    return render(request, template, context)
+
+
+def book_description_preview(request, pk):
+    """Render a sample modal previewing one book description."""
+    book = get_object_or_404(models.Book, pk=pk)
+    framework = get_powercrud_setting("POWERCRUD_CSS_FRAMEWORK")
+    template = f"sample/{framework}/book_description_preview.html"
+    if request.htmx:
+        template += "#pcrud_content"
+
+    context = {
+        "book": book,
+        "has_description": bool((book.description or "").strip()),
     }
     return render(request, template, context)

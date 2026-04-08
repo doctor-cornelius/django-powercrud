@@ -110,14 +110,37 @@ extra_buttons = [
         "htmx_target": "content",
     },
     {
-        "url_name": "home",
-        "text": "Home in Modal!",
-        "button_class": "btn-warning",
+        "url_name": "projects:selected-summary",
+        "text": "Selected Summary",
+        "button_class": "btn-primary",
         "needs_pk": False,
         "display_modal": True,
+        "uses_selection": True,
+        "selection_min_count": 1,
+        "selection_min_behavior": "disable",
+        "selection_min_reason": "Select at least one row first.",
     },
 ]
 ```
+
+Selection-aware header buttons read the current persisted PowerCRUD bulk selection at the endpoint rather than expecting row IDs in the URL. Keep server-side validation in the endpoint even when you also disable the button in the UI.
+
+??? info "Parameter Guide"
+
+    | Parameter | Type | What it does |
+    | --- | --- | --- |
+    | `url_name` | `str` | Django URL name for the endpoint to call when the button is clicked. |
+    | `text` | `str` | Visible button label shown above the table. |
+    | `button_class` | `str` | CSS class applied to the button, such as `btn-primary` or `btn-success`. |
+    | `needs_pk` | `bool` | Usually `False` for header buttons because they are page-level actions rather than row-level actions. |
+    | `display_modal` | `bool` | If `True`, PowerCRUD opens the response in the standard modal target instead of treating it as a normal page/content navigation. |
+    | `htmx_target` | `str` | HTMX target element to swap into when the button is clicked and it is not using the default modal target. |
+    | `extra_attrs` | `str` | Raw HTML attributes appended to the button element when you need custom HTMX or data attributes. |
+    | `extra_class_attrs` | `str` | Extra CSS classes appended to the button in addition to `button_class`. |
+    | `uses_selection` | `bool` | When `True`, the endpoint should operate on the current persisted PowerCRUD bulk selection. |
+    | `selection_min_count` | `int` | Minimum number of selected rows required before the button is considered ready. |
+    | `selection_min_behavior` | `str` | `'allow'` leaves the button clickable below the minimum and lets the endpoint handle the error; `'disable'` greys it out in the UI. |
+    | `selection_min_reason` | `str` | Tooltip/help text shown when a selection-aware button is disabled because too few rows are selected. |
 
 ### Extra Actions
 
@@ -136,22 +159,40 @@ class AuthorCRUDView(PowerCRUDMixin, CRUDView):
     extra_actions_mode = "dropdown"
     extra_actions = [
         {
-            "url_name": "home",
-            "text": "Home",
-            "needs_pk": False,
-            "button_class": "btn-warning",
-            "display_modal": True,
-        },
-        {
             "url_name": "sample:author-detail",
             "text": "View Again",
             "needs_pk": True,
             "display_modal": True,
+            "disabled_if": "is_view_again_disabled",
+            "disabled_reason": "get_view_again_disabled_reason",
         },
     ]
+
+    def is_view_again_disabled(self, obj, request):
+        return obj.birth_date is None
+
+    def get_view_again_disabled_reason(self, obj, request):
+        if obj.birth_date is None:
+            return "Birth date is required before viewing this record again."
+        return None
 ```
 
 `"buttons"` remains the default for backward compatibility, so existing projects only change if they opt in.
+
+??? info "Parameter Guide"
+
+    | Parameter | Type | What it does |
+    | --- | --- | --- |
+    | `url_name` | `str` | Django URL name for the per-row endpoint that the action should call. |
+    | `text` | `str` | Visible label for the row action button or dropdown entry. |
+    | `needs_pk` | `bool` | Usually `True` for row actions so PowerCRUD includes the current row primary key in the URL. |
+    | `button_class` | `str` | CSS class used when the action is rendered as a visible button. |
+    | `display_modal` | `bool` | If `True`, the response opens in the standard modal instead of replacing page content. |
+    | `htmx_target` | `str` | HTMX target element used for non-modal actions when you need a custom swap target. |
+    | `hx_post` | `bool` | If `True`, renders the action as an HTMX POST instead of the default GET. |
+    | `lock_sensitive` | `bool` | Reuses PowerCRUD's existing blocked-row/lock logic so the action disables automatically when the row is not currently actionable. |
+    | `disabled_if` | `str` | Name of a view method with signature `(obj, request) -> bool` that decides whether this row action should be disabled. |
+    | `disabled_reason` | `str` | Name of a view method with signature `(obj, request) -> str | None` that returns the tooltip/help text when the action is disabled. |
 
 !!! note
 

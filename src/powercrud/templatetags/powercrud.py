@@ -81,6 +81,95 @@ def _resolve_modal_action_url(
     return f"{url}{separator}{query_string}"
 
 
+def _resolve_named_view_method(view: Any, method_name: str | None) -> Any:
+    """
+    Resolve a named method on the view, returning None when unavailable.
+    """
+    if not method_name:
+        return None
+    resolver = getattr(view, method_name, None)
+    if callable(resolver):
+        return resolver
+    return None
+
+
+def _resolve_extra_action_disabled_state(
+    *,
+    view: Any,
+    object: Any,
+    action: Dict[str, Any],
+    request: Any,
+    lock_reason: str | None,
+    lock_label: str | None,
+) -> tuple[bool, str | None]:
+    """
+    Determine whether an extra action should render disabled and why.
+    """
+    disable = bool(lock_reason and action.get("lock_sensitive", False))
+    disabled_reason = lock_label if disable else None
+
+    disabled_if_name = action.get("disabled_if")
+    if disabled_if_name:
+        disabled_if = _resolve_named_view_method(view, disabled_if_name)
+        if disabled_if is not None:
+            try:
+                custom_disabled = bool(disabled_if(object, request))
+            except Exception:
+                custom_disabled = False
+            if custom_disabled:
+                disable = True
+                disabled_reason_name = action.get("disabled_reason")
+                disabled_reason_resolver = _resolve_named_view_method(
+                    view, disabled_reason_name
+                )
+                if disabled_reason_resolver is not None:
+                    try:
+                        disabled_reason = disabled_reason_resolver(object, request)
+                    except Exception:
+                        disabled_reason = None
+
+    return disable, disabled_reason
+
+
+def _get_selection_button_state(
+    view: Any,
+    request: Any,
+    button: Dict[str, Any],
+) -> dict[str, Any]:
+    """
+    Return selection-aware state metadata for an extra header button.
+    """
+    uses_selection = bool(button.get("uses_selection", False))
+    selected_ids: list[str] = []
+
+    if uses_selection and request is not None:
+        selection_getter = getattr(view, "get_selected_ids_for_extra_button", None)
+        if callable(selection_getter):
+            selected_ids = selection_getter(request, button) or []
+        elif hasattr(view, "get_selected_ids_from_session"):
+            selected_ids = view.get_selected_ids_from_session(request) or []
+        selected_ids = [str(selected_id) for selected_id in selected_ids]
+
+    selected_count = len(selected_ids)
+    selection_min_count = int(button.get("selection_min_count", 0) or 0)
+    selection_min_behavior = button.get("selection_min_behavior", "allow")
+    is_below_minimum = selected_count < selection_min_count
+    disable = bool(
+        uses_selection
+        and selection_min_behavior == "disable"
+        and is_below_minimum
+    )
+
+    return {
+        "uses_selection": uses_selection,
+        "selected_count": selected_count,
+        "selection_min_count": selection_min_count,
+        "selection_min_behavior": selection_min_behavior,
+        "disable": disable,
+        "disabled_reason": button.get("selection_min_reason") if disable else None,
+    }
+
+
 def _render_action_anchor(
     *,
     url: str,
@@ -231,7 +320,14 @@ def action_links(view: Any, object: Any) -> str:
             show_modal: bool = display_modal if use_modal else False
             modal_attrs: str = styles["modal_attrs"] if show_modal else " "
 
-            disable_extra = bool(lock_reason and action.get("lock_sensitive", False))
+            disable_extra, disabled_reason = _resolve_extra_action_disabled_state(
+                view=view,
+                object=object,
+                action=action,
+                request=getattr(view, "request", None),
+                lock_reason=lock_reason,
+                lock_label=lock_label,
+            )
 
             extra_action_items.append(
                 {
@@ -243,6 +339,7 @@ def action_links(view: Any, object: Any) -> str:
                     "show_modal": show_modal,
                     "modal_attrs": modal_attrs,
                     "disable": disable_extra,
+                    "disabled_reason": disabled_reason,
                 }
             )
 
@@ -258,7 +355,7 @@ def action_links(view: Any, object: Any) -> str:
             show_modal=action["show_modal"],
             modal_attrs=action["modal_attrs"],
             disable=action["disable"],
-            lock_label=lock_label,
+            lock_label=action.get("disabled_reason") or lock_label,
             use_htmx=use_htmx,
             query_string=query_string,
         )
@@ -277,7 +374,7 @@ def action_links(view: Any, object: Any) -> str:
                 show_modal=action["show_modal"],
                 modal_attrs=action["modal_attrs"],
                 disable=action["disable"],
-                lock_label=lock_label,
+                lock_label=action.get("disabled_reason") or lock_label,
                 use_htmx=use_htmx,
                 query_string=query_string,
             )
@@ -307,7 +404,7 @@ def action_links(view: Any, object: Any) -> str:
                 show_modal=action["show_modal"],
                 modal_attrs=action["modal_attrs"],
                 disable=action["disable"],
-                lock_label=lock_label,
+                lock_label=action.get("disabled_reason") or lock_label,
                 use_htmx=use_htmx,
                 query_string=query_string,
             )
@@ -713,12 +810,13 @@ def get_proper_elided_page_range(paginator, number, on_each_side=1, on_ends=1):
     return page_range
 
 
-@register.simple_tag
-def extra_buttons(view: Any) -> str:
+@register.simple_tag(takes_context=True)
+def extra_buttons(context: Dict[str, Any], view: Any) -> str:
     """
     Generate HTML for extra buttons in the list view header.
 
     Args:
+        context: The template context.
         view: The view instance
 
     Returns:
@@ -729,6 +827,7 @@ def extra_buttons(view: Any) -> str:
 
     use_htmx: bool = view.get_use_htmx()
     use_modal: bool = view.get_use_modal()
+    request = context.get("request") or getattr(view, "request", None)
 
     extra_buttons: List[Dict[str, Any]] = getattr(view, "extra_buttons", [])
     extra_button_classes = _resolve_view_option(
@@ -740,6 +839,7 @@ def extra_buttons(view: Any) -> str:
 
     buttons: List[str] = []
     for button in extra_buttons:
+        selection_state = _get_selection_button_state(view, request, button)
         display_modal = button.get("display_modal", False) and use_modal
         modal_attrs = ""
         extra_attrs = button.get("extra_attrs", "")
@@ -776,12 +876,35 @@ def extra_buttons(view: Any) -> str:
             htmx_attrs_str = " ".join(htmx_attrs)
 
             button_class = button.get("button_class", styles["extra_default"])
+            disabled_classes = ""
+            disabled_attrs: list[str] = []
+            if selection_state["disable"]:
+                disabled_classes = " btn-disabled opacity-50 pointer-events-none"
+                disabled_attrs.append('aria-disabled="true"')
+                if selection_state["disabled_reason"]:
+                    disabled_attrs.append(
+                        f'data-tippy-content="{selection_state["disabled_reason"]}"'
+                    )
+                    disabled_attrs.append('data-powercrud-tooltip="semantic"')
+
+            if selection_state["uses_selection"]:
+                disabled_attrs.append('data-powercrud-selection-aware="true"')
+                disabled_attrs.append(
+                    f'data-powercrud-selection-min-count="{selection_state["selection_min_count"]}"'
+                )
+                disabled_attrs.append(
+                    f'data-powercrud-selection-min-behavior="{selection_state["selection_min_behavior"]}"'
+                )
+                if button.get("selection_min_reason"):
+                    disabled_attrs.append(
+                        f'data-powercrud-selection-min-reason="{button["selection_min_reason"]}"'
+                    )
 
             new_button = (
                 f'<a href="{url}" '
-                f'class="{extra_class_attrs} {styles["base"]} {extra_button_classes} {button_class}" '
+                f'class="{extra_class_attrs} {styles["base"]} {extra_button_classes} {button_class}{disabled_classes}" '
                 f"{extra_attrs} {htmx_attrs_str} "
-                f"{modal_attrs}>"
+                f"{' '.join(disabled_attrs)} {modal_attrs}>"
                 f"{button['text']}</a>"
             )
 

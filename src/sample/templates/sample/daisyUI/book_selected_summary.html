@@ -1,0 +1,32 @@
+{% extends './base.html' %}
+{% load partials %}
+
+{% block content %}
+    {% partial pcrud_content %}
+{% endblock %}
+
+{% partialdef pcrud_content %}
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body space-y-4">
+            <h2 class="card-title">Selected Book Summary</h2>
+
+            {% if selected_count == 0 %}
+                <div class="alert alert-info">
+                    <span>{{ selection_required_message }}</span>
+                </div>
+            {% else %}
+                <p class="text-sm text-base-content/70">
+                    {{ selected_count }} selected book{{ selected_count|pluralize }} will be passed to the custom endpoint.
+                </p>
+                <ul class="space-y-2">
+                    {% for book in selected_books %}
+                        <li class="rounded-box border border-base-300 px-3 py-2">
+                            <div class="font-medium">{{ book.title }}</div>
+                            <div class="text-sm text-base-content/70">{{ book.author }}</div>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        </div>
+    </div>
+{% endpartialdef %}

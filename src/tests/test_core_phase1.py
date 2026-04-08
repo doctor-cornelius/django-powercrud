@@ -438,6 +438,97 @@ def test_table_header_wrap_never_exceeds_max_width():
     assert view.get_table_header_min_wrap_width() == "15ch"
 
 
+@pytest.mark.django_db
+def test_core_mixin_rejects_invalid_extra_button_selection_behavior():
+    class BrokenView(CoreMixin):
+        model = Book
+        fields = "__all__"
+        base_template_path = "sample/base.html"
+        extra_buttons = [
+            {
+                "url_name": "sample:bigbook-selected-summary",
+                "text": "Selected Summary",
+                "uses_selection": True,
+                "selection_min_behavior": "mystery",
+            }
+        ]
+
+    with pytest.raises(ImproperlyConfigured):
+        BrokenView()
+
+
+@pytest.mark.django_db
+def test_core_mixin_warns_when_selection_thresholds_without_uses_selection(caplog):
+    class WarningView(CoreMixin):
+        model = Book
+        fields = "__all__"
+        base_template_path = "sample/base.html"
+        extra_buttons = [
+            {
+                "url_name": "sample:bigbook-list",
+                "text": "Reload",
+                "selection_min_count": 2,
+            }
+        ]
+
+    with caplog.at_level("WARNING", logger="powercrud"):
+        view = WarningView()
+
+    assert view.extra_buttons[0]["uses_selection"] is False, (
+        "Extra buttons should default uses_selection to False when the setting is omitted."
+    )
+    assert "selection_min_* settings without uses_selection=True" in caplog.text, (
+        "PowerCRUD should warn when selection threshold settings are declared on buttons that are not selection-aware."
+    )
+
+
+@pytest.mark.django_db
+def test_core_mixin_rejects_unknown_extra_action_disabled_hook():
+    class BrokenView(CoreMixin):
+        model = Book
+        fields = "__all__"
+        base_template_path = "sample/base.html"
+        extra_actions = [
+            {
+                "url_name": "sample:bigbook-description-preview",
+                "text": "Description Preview",
+                "disabled_if": "missing_disabled_hook",
+            }
+        ]
+
+    with pytest.raises(ImproperlyConfigured):
+        BrokenView()
+
+
+@pytest.mark.django_db
+def test_core_mixin_warns_when_disabled_reason_without_disabled_if(caplog):
+    class WarningView(CoreMixin):
+        model = Book
+        fields = "__all__"
+        base_template_path = "sample/base.html"
+        extra_actions = [
+            {
+                "url_name": "sample:bigbook-description-preview",
+                "text": "Description Preview",
+                "disabled_reason": "description_reason",
+            }
+        ]
+
+        def description_reason(self, obj, request):
+            """Unused test helper."""
+            return "unused"
+
+    with caplog.at_level("WARNING", logger="powercrud"):
+        view = WarningView()
+
+    assert view.extra_actions[0]["disabled_reason"] is None, (
+        "PowerCRUD should ignore disabled_reason hooks that are declared without disabled_if."
+    )
+    assert "disabled_reason without disabled_if" in caplog.text, (
+        "PowerCRUD should warn when disabled_reason is configured without the corresponding disabled_if hook."
+    )
+
+
 def test_table_mixin_get_view_title_falls_back_to_model_verbose_name_plural():
     class TableView(TableMixin):
         model = Author
@@ -1126,6 +1217,133 @@ def test_book_list_filter_labels_do_not_append_contains(client):
 
 
 @pytest.mark.django_db
+def test_book_list_renders_selection_aware_extra_button(client):
+    """Render selection-aware extra button metadata on the sample book list."""
+    author = Author.objects.create(name="Selection Button Author")
+    selected_book = Book.objects.create(
+        title="Selected Summary Book",
+        author=author,
+        published_date=date(2024, 9, 1),
+        bestseller=False,
+        isbn="9876543210555",
+        pages=101,
+        description="Included in summary",
+    )
+    session = client.session
+    session["powercrud_selections"] = {"powercrud_bulk_book_": [str(selected_book.pk)]}
+    session.save()
+
+    response = client.get(reverse("sample:bigbook-list"))
+    response_text = " ".join(response.content.decode().split())
+
+    assert response.status_code == 200, (
+        "Book list view should render successfully so selection-aware extra buttons can be inspected."
+    )
+    assert 'data-powercrud-selection-aware="true"' in response_text, (
+        "Sample book list should mark selection-aware extra buttons with frontend metadata."
+    )
+    assert 'data-powercrud-selection-min-count="1"' in response_text, (
+        "Sample book list should expose the configured minimum selection count for the demo extra button."
+    )
+    assert "Selected Summary" in response_text, (
+        "Sample book list should render the configured selection-aware extra button label."
+    )
+
+
+@pytest.mark.django_db
+def test_book_list_renders_disabled_extra_action_with_reason(client):
+    """Render disabled row action state for books lacking a description."""
+    author = Author.objects.create(name="Descriptionless Author")
+    Book.objects.create(
+        title="No Description Yet",
+        author=author,
+        published_date=date(2024, 10, 1),
+        bestseller=False,
+        isbn="9876543210667",
+        pages=40,
+        description="",
+    )
+
+    response = client.get(reverse("sample:bigbook-list"))
+    response_text = " ".join(response.content.decode().split())
+
+    assert response.status_code == 200, (
+        "Book list view should render successfully so disabled row action state can be inspected."
+    )
+    assert "Description Preview" in response_text, (
+        "Sample book list should include the description-preview extra action label."
+    )
+    assert "This book does not have a description yet." in response_text, (
+        "Sample book list should expose the custom disabled reason for rows that fail the extra-action rule."
+    )
+    assert "btn-disabled opacity-50 pointer-events-none" in response_text, (
+        "Sample book list should render disabled styling for custom-disabled extra actions."
+    )
+
+
+@pytest.mark.django_db
+def test_book_selected_summary_uses_persisted_selection(client):
+    """Render selected book details from the persisted bulk selection."""
+    author = Author.objects.create(name="Summary Author")
+    selected_book = Book.objects.create(
+        title="Summary Target",
+        author=author,
+        published_date=date(2024, 11, 1),
+        bestseller=True,
+        isbn="9876543210888",
+        pages=88,
+        description="Included in selected summary",
+    )
+    session = client.session
+    session["powercrud_selections"] = {"powercrud_bulk_book_": [str(selected_book.pk)]}
+    session.save()
+
+    response = client.get(
+        reverse("sample:bigbook-selected-summary"),
+        HTTP_HX_REQUEST="true",
+    )
+    response_text = " ".join(response.content.decode().split())
+
+    assert response.status_code == 200, (
+        "Selected-summary endpoint should render successfully for the persisted sample selection."
+    )
+    assert "Selected Book Summary" in response_text, (
+        "Selected-summary endpoint should render the sample modal heading."
+    )
+    assert selected_book.title in response_text, (
+        "Selected-summary endpoint should include titles from the persisted selection."
+    )
+
+
+@pytest.mark.django_db
+def test_book_description_preview_reports_missing_description(client):
+    """Render the sample description-preview fallback message when content is blank."""
+    author = Author.objects.create(name="Preview Fallback Author")
+    book = Book.objects.create(
+        title="Blank Description",
+        author=author,
+        published_date=date(2024, 12, 1),
+        bestseller=False,
+        isbn="9876543210999",
+        pages=27,
+        description="",
+    )
+
+    response = client.get(
+        reverse("sample:bigbook-description-preview", args=[book.pk]),
+        HTTP_HX_REQUEST="true",
+    )
+    response_text = " ".join(response.content.decode().split())
+
+    assert response.status_code == 200, (
+        "Description-preview endpoint should still render a friendly fallback when a book has no description."
+    )
+    assert "This book does not have a description yet." in response_text, (
+        "Description-preview endpoint should explain why the sample modal cannot show book description content."
+    )
+
+
+@pytest.mark.django_db
 def test_author_list_centers_boolean_icon_cells(client):
     """Render centered wrappers for boolean icon cells in the list view."""
     Author.objects.create(
@@ -1146,22 +1364,50 @@ def test_author_list_centers_boolean_icon_cells(client):
 
 
 @pytest.mark.django_db
-def test_author_list_renders_extra_actions_in_dropdown(client):
-    """Render row extra actions in the sample author overflow dropdown."""
-    Author.objects.create(name="Dropdown Author")
+def test_author_list_renders_extra_actions_as_buttons_by_default(client):
+    """Render author extra actions as visible buttons when dropdown mode is unset."""
+    Author.objects.create(name="Author Buttons")
 
     response = client.get(reverse("sample:author-list"))
     response_text = " ".join(response.content.decode().split())
 
     assert response.status_code == 200, (
-        "Author list view should render successfully so dropdown row actions can be inspected."
-    )
-    assert "dropdown-content menu" in response_text, (
-        "Sample author list should render extra row actions inside the dropdown menu when dropdown mode is enabled."
-    )
-    assert ">More<" in response_text, (
-        "Sample author list should include the More trigger for overflow extra row actions."
+        "Author list view should render successfully so default row action buttons can be inspected."
     )
     assert "View Again" in response_text, (
-        "Sample author list should keep the configured extra action labels inside the dropdown markup."
+        "Sample author list should still render the configured extra action label."
+    )
+    assert "dropdown-content menu" not in response_text, (
+        "Sample author list should fall back to the default visible-button row action mode when dropdown mode is unset."
+    )
+
+
+@pytest.mark.django_db
+def test_book_list_renders_extra_actions_in_dropdown(client):
+    """Render row extra actions in the sample book overflow dropdown."""
+    author = Author.objects.create(name="Dropdown Author")
+    Book.objects.create(
+        title="Dropdown Book",
+        author=author,
+        published_date=date(2025, 1, 1),
+        bestseller=False,
+        isbn="9876543211111",
+        pages=64,
+        description="Dropdown description",
+    )
+
+    response = client.get(reverse("sample:bigbook-list"))
+    response_text = " ".join(response.content.decode().split())
+
+    assert response.status_code == 200, (
+        "Book list view should render successfully so dropdown row actions can be inspected."
+    )
+    assert "dropdown-content menu" in response_text, (
+        "Sample book list should render extra row actions inside the dropdown menu when dropdown mode is enabled."
+    )
+    assert ">More<" in response_text, (
+        "Sample book list should include the More trigger for overflow extra row actions."
+    )
+    assert "Description Preview" in response_text, (
+        "Sample book list should keep the configured extra action labels inside the dropdown markup."
     )

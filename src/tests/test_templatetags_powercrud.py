@@ -41,6 +41,8 @@ class TemplateViewStub:
                 "text": "Preview",
                 "button_class": "btn-secondary",
                 "display_modal": True,
+                "disabled_if": "is_preview_disabled",
+                "disabled_reason": "get_preview_disabled_reason",
             },
             {
                 "url_name": "sample:book-list",
@@ -61,6 +63,15 @@ class TemplateViewStub:
                 "url_name": "sample:book-create",
                 "text": "New",
                 "display_modal": True,
+            },
+            {
+                "url_name": "sample:book-list",
+                "text": "Selected Summary",
+                "display_modal": True,
+                "uses_selection": True,
+                "selection_min_count": 2,
+                "selection_min_behavior": "disable",
+                "selection_min_reason": "Select at least two rows first.",
             },
         ]
 
@@ -142,6 +153,17 @@ class TemplateViewStub:
     def get_selected_ids_from_session(self, request):
         return request.session.get("selected", [])
 
+    def get_selected_ids_for_extra_button(self, request, button_spec):
+        return self.get_selected_ids_from_session(request)
+
+    def is_preview_disabled(self, obj, request):
+        return not bool((obj.description or "").strip())
+
+    def get_preview_disabled_reason(self, obj, request):
+        if self.is_preview_disabled(obj, request):
+            return "Preview requires a description."
+        return None
+
     def get_bulk_selection_key_suffix(self):
         return "user"
 
@@ -159,6 +181,7 @@ def test_action_links_include_extra_actions():
         bestseller=True,
         isbn="9876543210987",
         pages=123,
+        description="Preview is available",
     )
     request = apply_session(RequestFactory().get("/?page=1"))
     view = TemplateViewStub(request)
@@ -182,6 +205,7 @@ def test_action_links_can_render_extra_actions_in_dropdown():
         bestseller=False,
         isbn="9876543210666",
         pages=88,
+        description="Dropdown preview",
     )
     request = apply_session(RequestFactory().get("/?page=2"))
     view = TemplateViewStub(request)
@@ -258,6 +282,7 @@ def test_action_links_disable_when_locked():
         bestseller=True,
         isbn="9876543210111",
         pages=42,
+        description="Locked preview",
     )
     book._blocked_reason = "locked"
     book._blocked_label = "Row locked"
@@ -290,6 +315,7 @@ def test_action_links_disable_dropdown_items_when_locked():
         bestseller=True,
         isbn="9876543210777",
         pages=52,
+        description="Locked dropdown preview",
     )
     book._blocked_reason = "locked"
     book._blocked_label = "Row locked"
@@ -321,6 +347,7 @@ def test_object_list_sets_alignment_metadata():
         bestseller=False,
         isbn="9876543210222",
         pages=999,
+        description="Alignment description",
     )
     book.genres.add(genre)
 
@@ -355,6 +382,7 @@ def test_object_list_marks_locked_rows_with_metadata():
         bestseller=True,
         isbn="9876543210333",
         pages=77,
+        description="Locked payload preview",
     )
 
     request = apply_session(RequestFactory().get("/"))
@@ -387,13 +415,59 @@ def test_object_list_marks_locked_rows_with_metadata():
     assert "btn-disabled" in row["actions"]
 
 
-def test_extra_buttons_handles_modal_and_htmx():
+@pytest.mark.django_db
+def test_action_links_disable_custom_extra_action_when_rule_matches():
+    author = Author.objects.create(name="No Preview")
+    book = Book.objects.create(
+        title="No Preview Available",
+        author=author,
+        published_date=date(2024, 8, 1),
+        bestseller=False,
+        isbn="9876543210444",
+        pages=18,
+        description="",
+    )
     request = apply_session(RequestFactory().get("/"))
     view = TemplateViewStub(request)
-    html = powercrud.extra_buttons(view)
+
+    html = powercrud.action_links(view, book)
+
+    assert "Preview requires a description." in html, (
+        "Custom-disabled extra actions should expose the configured disabled reason tooltip."
+    )
+    assert "btn-disabled opacity-50 pointer-events-none" in html, (
+        "Custom-disabled extra actions should reuse the standard disabled action styling."
+    )
+
+
+def test_extra_buttons_handles_modal_htmx_and_selection_thresholds():
+    request = apply_session(RequestFactory().get("/"))
+    request.session["selected"] = ["1"]
+    view = TemplateViewStub(request)
+    html = powercrud.extra_buttons({"request": request}, view)
     assert "Reload" in html
     assert 'hx-target="#filters"' in html
     assert 'onclick="modal.showModal()"' in html
+    assert 'data-powercrud-selection-aware="true"' in html
+    assert 'data-powercrud-selection-min-count="2"' in html
+    assert "Select at least two rows first." in html
+    assert "btn-disabled opacity-50 pointer-events-none" in html, (
+        "Selection-aware extra buttons should render disabled styling when the persisted selection is below the minimum."
+    )
+
+
+def test_extra_buttons_enable_selection_aware_button_when_minimum_is_met():
+    request = apply_session(RequestFactory().get("/"))
+    request.session["selected"] = ["1", "2"]
+    view = TemplateViewStub(request)
+
+    html = powercrud.extra_buttons({"request": request}, view)
+
+    assert "Selected Summary" in html
+    assert 'data-powercrud-selection-aware="true"' in html
+    assert "btn-disabled opacity-50 pointer-events-none" not in html, (
+        "Selection-aware extra buttons should stay enabled once the persisted selection meets the configured minimum."
+    )
 
 
 def test_get_powercrud_session_data_returns_value():

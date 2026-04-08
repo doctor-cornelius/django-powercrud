@@ -141,6 +141,10 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
             "button_class": "btn-accent",
             "needs_pk": False,
             "display_modal": True,
+            "uses_selection": True,
+            "selection_min_count": 1,
+            "selection_min_behavior": "disable",
+            "selection_min_reason": "Select at least one project first.",
         },
     ]
 
@@ -160,8 +164,18 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
             "needs_pk": True,
             "button_class": "btn-secondary",
             "display_modal": True,
+            "disabled_if": "is_history_action_disabled",
+            "disabled_reason": "get_history_action_disabled_reason",
         },
     ]
+
+    def is_history_action_disabled(self, obj, request):
+        return obj.archived_at is None
+
+    def get_history_action_disabled_reason(self, obj, request):
+        if obj.archived_at is None:
+            return "History is only available for archived projects."
+        return None
 ```
 
 ## Notes
@@ -176,6 +190,9 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
 - `form_disabled_fields` keeps real update-form inputs visible but disabled. PowerCRUD uses Django field disabling rather than widget-only attrs, so posted tampering is ignored and the saved instance value is preserved.
 - A good use case for `view_title` is when the page heading needs UX-friendly wording such as `My List of Books` or `Active Client Projects`, while the underlying model metadata should stay reusable elsewhere.
 - `extra_actions_mode = "dropdown"` is optional. When omitted, `extra_actions` keep the legacy visible-button behavior. Dropdown mode keeps `View/Edit/Delete` visible and moves only the extra row actions into the `More` menu.
+- `uses_selection = True` turns a header button into a selection-aware action that reads the persisted PowerCRUD selection at the endpoint.
+- `selection_min_behavior = "disable"` lets the frontend grey out a selection-aware header button until enough rows are selected, but the endpoint should still validate the selection server-side.
+- `disabled_if` / `disabled_reason` let row `extra_actions` disable themselves per object using named view methods.
 - `inline_edit_fields` is the current inline-editing configuration. Older `inline_edit_enabled` usage is legacy and should not be used in new code.
 - `inline_edit_always_visible = True` is the current default, so editable cells keep a subtle resting hint unless you disable it.
 - `inline_edit_highlight_accent = "#14b8a6"` is the current default accent. PowerCRUD derives the lighter resting tint and stronger hover/focus tint from that single hex value.

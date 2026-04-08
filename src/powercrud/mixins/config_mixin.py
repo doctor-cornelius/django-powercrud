@@ -152,6 +152,8 @@ class ConfigMixin:
         "async_manager_class_path",
         "async_manager_config",
         "paginate_by",
+        "extra_buttons",
+        "extra_actions",
     }
 
     DEDUPED_STRING_LIST_FIELDS = {
@@ -249,6 +251,14 @@ class ConfigMixin:
         self._configure_inline_edit_fields()
         self._configure_form_fields()
         self._configure_form_display_fields()
+        try:
+            self._configure_extra_buttons()
+            self._configure_extra_actions()
+        except (TypeError, ValueError) as e:
+            class_name = self.__class__.__name__
+            raise ImproperlyConfigured(
+                f"Invalid configuration in class '{class_name}': {str(e)}"
+            ) from e
 
         if self.bulk_async and not self.get_bulk_async_enabled():
             log.warning(
@@ -494,6 +504,138 @@ class ConfigMixin:
                 f"The following form_display_fields are not model fields in {self.model.__name__}: "
                 f"{', '.join(invalid_fields)}"
             )
+
+    def _configure_extra_buttons(self) -> None:
+        """
+        Validate and normalize extra button definitions.
+        """
+        extra_buttons = getattr(self, "extra_buttons", [])
+        if extra_buttons is None:
+            self.extra_buttons = []
+            return
+        if not isinstance(extra_buttons, list):
+            raise ValueError("extra_buttons must be a list of dictionaries")
+
+        normalized_buttons: list[dict[str, Any]] = []
+        for index, button in enumerate(extra_buttons):
+            if not isinstance(button, dict):
+                raise ValueError(
+                    f"extra_buttons[{index}] must be a dictionary of button settings"
+                )
+
+            normalized = button.copy()
+            uses_selection = bool(normalized.get("uses_selection", False))
+            selection_min_count = normalized.get("selection_min_count", 0)
+            selection_min_behavior = normalized.get("selection_min_behavior", "allow")
+
+            try:
+                selection_min_count = int(selection_min_count)
+            except (TypeError, ValueError) as exc:
+                raise ValueError(
+                    f"extra_buttons[{index}].selection_min_count must be an integer"
+                ) from exc
+
+            if selection_min_count < 0:
+                raise ValueError(
+                    f"extra_buttons[{index}].selection_min_count must be >= 0"
+                )
+
+            if selection_min_behavior not in {"allow", "disable"}:
+                raise ValueError(
+                    "extra_buttons[%s].selection_min_behavior must be "
+                    "'allow' or 'disable'" % index
+                )
+
+            if uses_selection and normalized.get("needs_pk", False):
+                raise ValueError(
+                    f"extra_buttons[{index}] cannot set needs_pk=True when uses_selection=True"
+                )
+
+            selection_keys_present = any(
+                key in normalized
+                for key in (
+                    "selection_min_count",
+                    "selection_min_behavior",
+                    "selection_min_reason",
+                )
+            )
+            if not uses_selection and selection_keys_present:
+                log.warning(
+                    "extra_buttons[%s] defines selection_min_* settings without uses_selection=True; "
+                    "PowerCRUD will ignore those selection thresholds",
+                    index,
+                )
+
+            normalized["uses_selection"] = uses_selection
+            normalized["selection_min_count"] = selection_min_count
+            normalized["selection_min_behavior"] = selection_min_behavior
+            normalized_buttons.append(normalized)
+
+        self.extra_buttons = normalized_buttons
+
+    def _resolve_extra_action_method(
+        self, method_name: Any, index: int, setting_name: str
+    ) -> str | None:
+        """
+        Resolve and validate a named extra-action hook declared on the view.
+        """
+        if method_name in {None, ""}:
+            return None
+        if not isinstance(method_name, str):
+            raise ValueError(
+                f"extra_actions[{index}].{setting_name} must be a method name string"
+            )
+
+        resolver = getattr(self, method_name, None)
+        if not callable(resolver):
+            raise ValueError(
+                f"extra_actions[{index}].{setting_name} references unknown method '{method_name}'"
+            )
+        return method_name
+
+    def _configure_extra_actions(self) -> None:
+        """
+        Validate and normalize extra row action definitions.
+        """
+        extra_actions = getattr(self, "extra_actions", [])
+        if extra_actions is None:
+            self.extra_actions = []
+            return
+        if not isinstance(extra_actions, list):
+            raise ValueError("extra_actions must be a list of dictionaries")
+
+        normalized_actions: list[dict[str, Any]] = []
+        for index, action in enumerate(extra_actions):
+            if not isinstance(action, dict):
+                raise ValueError(
+                    f"extra_actions[{index}] must be a dictionary of action settings"
+                )
+
+            normalized = action.copy()
+            disabled_if = self._resolve_extra_action_method(
+                normalized.get("disabled_if"),
+                index,
+                "disabled_if",
+            )
+            disabled_reason = self._resolve_extra_action_method(
+                normalized.get("disabled_reason"),
+                index,
+                "disabled_reason",
+            )
+
+            if disabled_reason and not disabled_if:
+                log.warning(
+                    "extra_actions[%s] defines disabled_reason without disabled_if; "
+                    "PowerCRUD will ignore the disabled reason hook",
+                    index,
+                )
+                disabled_reason = None
+
+            normalized["disabled_if"] = disabled_if
+            normalized["disabled_reason"] = disabled_reason
+            normalized_actions.append(normalized)
+
+        self.extra_actions = normalized_actions
 
     def _get_all_fields(self):
         return [

@@ -115,6 +115,14 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
             "button_class": "btn-primary",
             "display_modal": True,
         },
+        {
+            "url_name": "projects:selected-summary",
+            "text": "Selected summary",
+            "display_modal": True,
+            "uses_selection": True,
+            "selection_min_count": 1,
+            "selection_min_behavior": "disable",
+        },
     ]
 
     extra_actions = [
@@ -124,11 +132,13 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
             "needs_pk": True,
             "htmx_target": "#powercrudModalContent",
             "display_modal": True,
+            "disabled_if": "is_clone_disabled",
+            "disabled_reason": "get_clone_disabled_reason",
         },
     ]
 ```
 
-Button dictionaries support additional keys (HTMX targets, extra attributes)—see the reference for the full schema.
+Button dictionaries support additional keys such as selection-aware thresholds, while row actions can now use named disable hooks. See the reference for the full schema.
 
 ---
 

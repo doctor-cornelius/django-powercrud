@@ -57,6 +57,18 @@ class TableMixin:
         """
         return resolve_config(self).extra_actions_mode
 
+    def get_selected_ids_for_extra_button(self, request, button_spec) -> list[str]:
+        """
+        Return the persisted selection used by a selection-aware extra button.
+        """
+        if not request:
+            return []
+        resolver = getattr(self, "get_selected_ids_from_session", None)
+        if not callable(resolver):
+            return []
+        selected_ids = resolver(request)
+        return [str(selected_id) for selected_id in selected_ids]
+
     def get_view_title(self) -> str:
         """
         Return the visible heading for the list page.

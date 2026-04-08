@@ -240,6 +240,51 @@ field_queryset_dependencies = {
 
 For a full explanation of `filter_by`, migration from old inline-only configs, and regular-vs-inline behaviour, see [Forms](../guides/forms.md#dependent-form-fields).
 
+## Header buttons
+
+Use `extra_buttons` for list-level actions above the table.
+
+Selection-aware buttons can opt into the current persisted bulk selection:
+
+```python
+extra_buttons = [
+    {
+        "url_name": "projects:selected-summary",
+        "text": "Selected Summary",
+        "display_modal": True,
+        "uses_selection": True,
+        "selection_min_count": 1,
+        "selection_min_behavior": "disable",
+        "selection_min_reason": "Select at least one row first.",
+    },
+]
+```
+
+Notes:
+
+- `uses_selection` defaults to `False`.
+- `selection_min_count` defaults to `0`.
+- `selection_min_behavior` accepts `'allow'` or `'disable'` and defaults to `'allow'`.
+- When `uses_selection=True`, the endpoint contract is “operate on current persisted PowerCRUD selection”.
+- The endpoint should still validate selection size, permissions, and lock rules server-side.
+
+??? info "Parameter Guide"
+
+    | Parameter | Type | What it does |
+    | --- | --- | --- |
+    | `url_name` | `str` | Django URL name for the endpoint called by the header button. |
+    | `text` | `str` | Visible label rendered on the button. |
+    | `button_class` | `str` | Framework-specific button styling class such as `btn-primary`. |
+    | `needs_pk` | `bool` | Should usually stay `False` for header buttons because they are not tied to a single row. |
+    | `display_modal` | `bool` | Opens the response in the standard modal target when `True`. |
+    | `htmx_target` | `str` | HTMX target element to update for non-modal or custom-target flows. |
+    | `extra_attrs` | `str` | Raw HTML attributes appended to the button element. |
+    | `extra_class_attrs` | `str` | Additional CSS classes appended after the standard button classes. |
+    | `uses_selection` | `bool` | Declares that the endpoint should read the current persisted PowerCRUD selection. |
+    | `selection_min_count` | `int` | Minimum selected-row count required before the button is considered ready. |
+    | `selection_min_behavior` | `'allow' | 'disable'` | Controls whether the button stays clickable or becomes disabled when the selected count is below `selection_min_count`. |
+    | `selection_min_reason` | `str` | Tooltip/help text shown when a selection-aware header button is disabled. |
+
 ## Row actions
 
 Use `extra_actions` to add per-row actions beyond the built-in `View`, `Edit`, and `Delete` links.
@@ -256,17 +301,12 @@ extra_actions_mode = "dropdown"
 
 extra_actions = [
     {
-        "url_name": "home",
-        "text": "Home",
-        "needs_pk": False,
-        "button_class": "btn-warning",
-        "display_modal": True,
-    },
-    {
         "url_name": "sample:author-detail",
         "text": "View Again",
         "needs_pk": True,
         "display_modal": True,
+        "disabled_if": "is_view_again_disabled",
+        "disabled_reason": "get_view_again_disabled_reason",
     },
 ]
 ```
@@ -276,6 +316,23 @@ Notes:
 - The default is `'buttons'` for backward compatibility.
 - `extra_actions_mode` affects only row `extra_actions`, not top-of-page `extra_buttons`.
 - In dropdown mode, the `More` trigger uses the framework’s `extra_default` button styling unless you override the framework styles.
+- `disabled_if` and `disabled_reason` are optional view method names used to disable a row action based on the current object and request.
+- `lock_sensitive` remains available when an action should also disable under PowerCRUD's existing lock/blocked-row state.
+
+??? info "Parameter Guide"
+
+    | Parameter | Type | What it does |
+    | --- | --- | --- |
+    | `url_name` | `str` | Django URL name for the per-row endpoint that the action should call. |
+    | `text` | `str` | Visible label for the action button or dropdown entry. |
+    | `needs_pk` | `bool` | Usually `True` so the row primary key is included in the URL. |
+    | `button_class` | `str` | Styling class used when the action renders as a visible button. |
+    | `display_modal` | `bool` | Opens the response in the standard modal target when `True`. |
+    | `htmx_target` | `str` | HTMX target element to update for non-modal or custom-target flows. |
+    | `hx_post` | `bool` | Sends the action as an HTMX POST instead of the default GET when `True`. |
+    | `lock_sensitive` | `bool` | Disables the action automatically when PowerCRUD marks the row as blocked by its existing lock logic. |
+    | `disabled_if` | `str` | Name of a view method with signature `(obj, request) -> bool` that decides whether the action is disabled for that row. |
+    | `disabled_reason` | `str` | Name of a view method with signature `(obj, request) -> str | None` that returns the disabled tooltip/help text. |
 
 ### Searchable select enhancement
 

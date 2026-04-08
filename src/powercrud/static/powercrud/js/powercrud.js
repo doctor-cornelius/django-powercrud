@@ -609,6 +609,7 @@
         if (container) {
             container.classList.toggle('hidden', count === 0);
         }
+        syncSelectionAwareExtraButtons(root, count);
     }
 
     function showBulkActionsContainer(root) {
@@ -616,6 +617,50 @@
         if (container) {
             container.classList.remove('hidden');
         }
+    }
+
+    function syncSelectionAwareExtraButtons(root, explicitCount = null) {
+        if (!(root instanceof Element)) {
+            return;
+        }
+        const buttons = Array.from(root.querySelectorAll('[data-powercrud-selection-aware="true"]'));
+        if (!buttons.length) {
+            return;
+        }
+
+        let selectedCount = explicitCount;
+        if (selectedCount === null) {
+            const counter = root.querySelector('#selected-items-counter');
+            selectedCount = Number.parseInt(counter?.textContent || '0', 10);
+        }
+        if (!Number.isFinite(selectedCount)) {
+            selectedCount = 0;
+        }
+
+        buttons.forEach(button => {
+            const minCount = Number.parseInt(button.dataset.powercrudSelectionMinCount || '0', 10);
+            const behavior = button.dataset.powercrudSelectionMinBehavior || 'allow';
+            const reason = button.dataset.powercrudSelectionMinReason || '';
+            const disable = behavior === 'disable' && selectedCount < minCount;
+
+            button.classList.toggle('btn-disabled', disable);
+            button.classList.toggle('opacity-50', disable);
+            button.classList.toggle('pointer-events-none', disable);
+
+            if (disable) {
+                button.setAttribute('aria-disabled', 'true');
+                if (reason) {
+                    button.setAttribute('data-tippy-content', reason);
+                    button.setAttribute('data-powercrud-tooltip', 'semantic');
+                }
+            } else {
+                button.removeAttribute('aria-disabled');
+                if (button.dataset.powercrudSelectionMinReason) {
+                    button.removeAttribute('data-tippy-content');
+                    button.removeAttribute('data-powercrud-tooltip');
+                }
+            }
+        });
     }
 
     function syncBulkSelectionState(root) {
@@ -824,6 +869,7 @@
         maybeRestoreExpandedFilters(root);
         syncFilterToggleLabel(root);
         syncBulkSelectionState(root);
+        syncSelectionAwareExtraButtons(root);
 
         const filterCollapse = root.querySelector('#filterCollapse');
         if (filterCollapse && !filterCollapse.classList.contains('hidden')) {

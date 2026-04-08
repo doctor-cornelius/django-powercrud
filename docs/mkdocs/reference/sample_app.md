@@ -76,8 +76,8 @@ class BookCRUDView(PowerCRUDAsyncMixin, CRUDView):
     dropdown_sort_options = {"author": "name"}
     inline_edit_fields = ['title', 'author', 'genres', 'published_date', 'bestseller', 'isbn', 'description']
     
-    extra_buttons = [...]  # Custom action buttons
-    extra_actions = [...]  # Additional row actions
+    extra_buttons = [...]  # Includes a selection-aware "Selected Summary" demo
+    extra_actions = [...]  # Includes a conditional "Description Preview" demo
 ```
 
 The sample `BookCRUDView` uses `view_title = "My List of Books"` plus `view_instructions = "Here you can edit books"` to demonstrate the narrow heading/helper-text overrides. It also sets `column_help_text` for one field and one property so the sample list shows the new header-help tooltip pattern. That changes only the large title/header area above the table; other UI copy such as the create button still comes from the model verbose names, and both the instructions text and header help text are rendered as plain escaped text rather than HTML.
@@ -88,6 +88,13 @@ The sample form configuration now also demonstrates two contextual form-surface 
 - `form_disabled_fields = ["isbn"]` keeps the ISBN visible on update forms but locks the input so users can see it without changing it.
 
 `BookForm` remains the source of truth for editable inputs, while PowerCRUD layers the display-only context block and disabled-field behavior on top of that custom form.
+
+The sample `BookCRUDView` now also demonstrates both custom action enhancements discussed in the docs:
+
+- a selection-aware `extra_button` that opens a modal summary for the current persisted bulk selection
+- a row-level `extra_action` that disables itself with a tooltip when the book has no description
+
+These examples are intentionally simple so package users can inspect both the view config and the matching sample endpoints/templates.
 
 The sample `BookCRUDView` also includes no-op illustrative overrides for the new sync persistence hooks:
 
@@ -150,8 +157,8 @@ When the user changes `author` inline, PowerCRUD posts the current row data to t
 
 - **GenreCRUDView**: Minimal configuration example
 - **ProfileCRUDView**: OneToOneField, inline editing, bulk operations, merged nullable relation filtering on `favorite_genre`, and a static queryset rule that limits `favorite_genre` choices to genres whose names start with `S`
-- **AuthorCRUDView**: Properties, filtering, template debugging, companion nullable scalar filtering on `birth_date`, and row-level `extra_actions` rendered via the new `More` dropdown
-- **BookCRUDView**: Async bulk editing, dependent `author -> genres` queryset scoping, `view_title` / `view_instructions` heading-area overrides, and `column_help_text` header tooltips
+- **AuthorCRUDView**: Properties, filtering, template debugging, companion nullable scalar filtering on `birth_date`, and visible row-level `extra_actions` in the default button mode
+- **BookCRUDView**: Async bulk editing, dependent `author -> genres` queryset scoping, `view_title` / `view_instructions` heading-area overrides, `column_help_text` header tooltips, selection-aware `extra_buttons`, and dropdown row actions
 
 ### Static queryset demo
 
@@ -180,29 +187,35 @@ That same static rule is reused in three places:
 
 This makes `ProfileCRUDView` the sample app reference for static queryset rules, while `BookCRUDView` remains the reference for dynamic parent/child dependencies.
 
-Example `AuthorCRUDView` row-action config:
+Example `BookCRUDView` action config:
 
 ```python
 extra_actions_mode = "dropdown"
 
+extra_buttons = [
+    {
+        "url_name": "sample:bigbook-selected-summary",
+        "text": "Selected Summary",
+        "display_modal": True,
+        "uses_selection": True,
+        "selection_min_count": 1,
+        "selection_min_behavior": "disable",
+    },
+]
+
 extra_actions = [
     {
-        "url_name": "home",
-        "text": "Home",
-        "needs_pk": False,
-        "button_class": "btn-warning",
-        "display_modal": True,
-    },
-    {
-        "url_name": "sample:author-detail",
-        "text": "View Again",
+        "url_name": "sample:bigbook-description-preview",
+        "text": "Description Preview",
         "needs_pk": True,
         "display_modal": True,
+        "disabled_if": "is_description_preview_disabled",
+        "disabled_reason": "get_description_preview_disabled_reason",
     },
 ]
 ```
 
-That keeps the standard row actions visible while moving the sample app’s extra row actions into the overflow dropdown.
+That lets the sample app demonstrate both selection-aware header actions and conditionally disabled row actions in the same CRUD surface.
 
 ## Management Commands
 
