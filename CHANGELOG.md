@@ -1,3 +1,13 @@
+## 0.5.30 (2026-04-08)
+
+### Documentation
+
+- **(hooks)**: clarify interaction of various hooks with class params
+
+### Feature
+
+- **(buttons)**: implement selection-aware extra_buttons and conditional extra_actions
+
 ## 0.5.29 (2026-04-04)
 
 ### Fix

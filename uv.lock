@@ -485,7 +485,7 @@ wheels = [
 
 [[package]]
 name = "django-powercrud"
-version = "0.5.28"
+version = "0.5.29"
 source = { editable = "." }
 dependencies = [
     { name = "django-htmx" },
