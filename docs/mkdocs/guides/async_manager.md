@@ -141,6 +141,16 @@ class NotificationsAsyncManager(AsyncManager):
 
 Point `async_manager_class_path` (or the default setting) at your subclass so both launch sites and workers resolve the same logic.
 
+### What this does and does not provide
+
+PowerCRUD gives you the event hook where project-specific integrations can run.
+
+- Good fit: update a dashboard row, write an audit log, send an email, or call an external webhook from `async_task_lifecycle(...)`.
+- Not built in: webhook signing/auth, delivery retries, exponential backoff, dead-letter storage, or replay tooling.
+- Not built in: a PowerCRUD-level retry policy for failed async tasks. Retry behaviour belongs to your queue backend, worker wrapper, or surrounding application code.
+
+If you send outbound webhooks here, treat the handler as your integration point rather than as a built-in notification system. Your project still owns idempotency, retry policy, and any dead-letter handling for failed deliveries.
+
 ---
 
 ## 6. Cleanup and maintenance

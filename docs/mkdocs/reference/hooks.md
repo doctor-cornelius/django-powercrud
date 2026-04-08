@@ -258,6 +258,7 @@ Related docs:
 - When it is called: By the async manager and completion flow as task status changes.
 - Signature: `def async_task_lifecycle(self, event, task_name, **kwargs)`
 - Default behavior: `AsyncManager` provides a no-op hook; downstream manager subclasses can persist dashboard rows, notify users, or record audit data.
+- Important note: This is the hook to call an external webhook or notification service if your project needs that. PowerCRUD does not ship webhook delivery, retry/backoff, dead-letter handling, or replay logic as built-in features.
 - Return contract: No return value is required.
 - Short example:
 

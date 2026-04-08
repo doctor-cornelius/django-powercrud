@@ -26,6 +26,32 @@ PowerCRUD’s async support consists of five cooperating pieces:
 
 The guides (Async Manager → Bulk editing (async) → Async dashboard add-on) explain how to configure these layers in your project. This reference dives into the architecture, cache layout, lifecycle flow, and troubleshooting patterns.
 
+## Scope boundaries
+
+PowerCRUD's async layer provides:
+
+- queue launch helpers
+- conflict locks
+- progress tracking
+- lifecycle events
+- cleanup of stale locks, progress entries, and dashboard records
+- a worker-safe bulk update persistence backend contract
+
+PowerCRUD's async layer does **not** provide, as built-in features:
+
+- a PowerCRUD-level retry framework for failed tasks
+- dead-letter queue storage or replay tooling
+- outbound webhook delivery infrastructure
+- webhook retry, backoff, signing, or authentication policy
+
+If you need those capabilities:
+
+- Use your queue/backend configuration or worker wrapper for retry behaviour.
+- Use your own storage or messaging infrastructure for dead-letter handling.
+- Use `AsyncManager.async_task_lifecycle(...)` as the place to trigger webhooks or other notifications, while keeping delivery semantics in your application code.
+
+This distinction is intentional: PowerCRUD owns task coordination, progress, and cleanup; downstream projects own higher-level operational policy around retries and external integrations.
+
 ---
 
 ## Architecture
