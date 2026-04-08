@@ -12,10 +12,6 @@ edit_uri: blob/mkdocs/docs/
 watch:
   - docs
 
-draft_docs: |
-  _plans/**
-  !/_plans/index.md
-
 plugins:
   - search
   - awesome-nav

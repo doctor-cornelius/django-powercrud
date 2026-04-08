@@ -622,13 +622,13 @@ Following the Architect's hybrid approach, here's the comprehensive task plan br
 #### Delegation 1A: Restore Original Architecture
 - **Task**: Remove the consolidated `post` method from BulkMixin and restore original separate view methods
 - **Files**: `powercrud/mixins/bulk_mixin.py`
-- **Documentation**: Read sections "Debug Module Changes Assessment" and "Recommended Solution" from `@/docs/mkdocs/blog/posts/20250723_session_frontend.md`
+- **Documentation**: Read sections "Debug Module Changes Assessment" and "Recommended Solution" from `@/docs/archive/blog/posts/20250723_session_frontend.md`
 - **Testing Point**: ⚠️ **STOP FOR MANUAL TESTING** - Verify individual checkbox toggles work without errors
 
 #### Delegation 1B: Fix HTMX Target Strategy
 - **Task**: Revert HTMX targets from `#filtered_results` back to `#bulk-actions-container` in templates
 - **Files**: `powercrud/templates/powercrud/daisyUI/partial/list.html`
-- **Documentation**: Read "HTMX Target Strategy Analysis" section from `@/docs/mkdocs/blog/posts/20250723_session_frontend.md`
+- **Documentation**: Read "HTMX Target Strategy Analysis" section from `@/docs/archive/blog/posts/20250723_session_frontend.md`
 - **Testing Point**: ⚠️ **STOP FOR MANUAL TESTING** - Verify bulk actions container updates correctly
 
 ### Phase 2: Keep Valuable Additions
@@ -636,7 +636,7 @@ Following the Architect's hybrid approach, here's the comprehensive task plan br
 #### Delegation 2A: Preserve get_context_data Method
 - **Task**: Ensure the `get_context_data` method added by Debug module is properly integrated and working
 - **Files**: `powercrud/mixins/bulk_mixin.py`
-- **Documentation**: Read "Debug Module Changes Assessment" section from `@/docs/mkdocs/blog/posts/20250723_session_frontend.md`
+- **Documentation**: Read "Debug Module Changes Assessment" section from `@/docs/archive/blog/posts/20250723_session_frontend.md`
 - **Testing Point**: ⚠️ **STOP FOR MANUAL TESTING** - Verify bulk actions buttons show/hide correctly on page load
 
 ### Phase 3: Implement Missing Functionality
@@ -644,7 +644,7 @@ Following the Architect's hybrid approach, here's the comprehensive task plan br
 #### Delegation 3A: Add toggle_all_selection_view Method
 - **Task**: Implement the missing `toggle_all_selection_view` method in BulkMixin
 - **Files**: `powercrud/mixins/bulk_mixin.py`
-- **Documentation**: Read "Implementation Plan" section from `@/docs/mkdocs/blog/posts/20250723_session_frontend.md` and original context from `@/docs/mkdocs/blog/posts/20250722_django_sessions.md`
+- **Documentation**: Read "Implementation Plan" section from `@/docs/archive/blog/posts/20250723_session_frontend.md` and original context from `@/docs/archive/blog/posts/20250722_django_sessions.md`
 - **Testing Point**: ⚠️ **STOP FOR MANUAL TESTING** - Verify select-all checkbox functionality works
 
 ### Phase 4: Complete URL Configuration
@@ -652,7 +652,7 @@ Following the Architect's hybrid approach, here's the comprehensive task plan br
 #### Delegation 4A: Update URL Patterns
 - **Task**: Ensure all URL patterns are properly configured for the restored separate view methods
 - **Files**: `powercrud/mixins/url_mixin.py`
-- **Documentation**: Read "URL Pattern Analysis" section from `@/docs/mkdocs/blog/posts/20250723_session_frontend.md`
+- **Documentation**: Read "URL Pattern Analysis" section from `@/docs/archive/blog/posts/20250723_session_frontend.md`
 - **Testing Point**: ⚠️ **STOP FOR MANUAL TESTING** - Verify all selection endpoints return 200 status codes
 
 ### Phase 5: Implement HTMX Out-of-Band Strategy
@@ -660,7 +660,7 @@ Following the Architect's hybrid approach, here's the comprehensive task plan br
 #### Delegation 5A: Add Out-of-Band Swap Support
 - **Task**: Modify view methods to return HTMX out-of-band swaps for UI synchronization
 - **Files**: `powercrud/mixins/bulk_mixin.py`
-- **Documentation**: Read "HTMX Out-of-Band Swap Implementation" section from `@/docs/mkdocs/blog/posts/20250723_session_frontend.md`
+- **Documentation**: Read "HTMX Out-of-Band Swap Implementation" section from `@/docs/archive/blog/posts/20250723_session_frontend.md`
 - **Testing Point**: ⚠️ **STOP FOR MANUAL TESTING** - Verify checkboxes and bulk actions update simultaneously
 
 ### Phase 6: Template Updates
@@ -668,7 +668,7 @@ Following the Architect's hybrid approach, here's the comprehensive task plan br
 #### Delegation 6A: Update Template HTMX Attributes
 - **Task**: Add proper HTMX attributes and IDs for out-of-band swap targeting
 - **Files**: `powercrud/templates/powercrud/daisyUI/object_list.html`, `powercrud/templates/powercrud/daisyUI/partial/list.html`
-- **Documentation**: Read "Template Implementation Details" section from `@/docs/mkdocs/blog/posts/20250723_session_frontend.md`
+- **Documentation**: Read "Template Implementation Details" section from `@/docs/archive/blog/posts/20250723_session_frontend.md`
 - **Testing Point**: ⚠️ **STOP FOR MANUAL TESTING** - Verify complete UI synchronization works
 
 ### Phase 7: Final Integration
@@ -676,12 +676,12 @@ Following the Architect's hybrid approach, here's the comprehensive task plan br
 #### Delegation 7A: Cleanup and Verification
 - **Task**: Remove any remaining problematic code, verify all functionality works end-to-end
 - **Files**: All modified files
-- **Documentation**: Read "Testing Plan" section from `@/docs/mkdocs/blog/posts/20250723_session_frontend.md`
+- **Documentation**: Read "Testing Plan" section from `@/docs/archive/blog/posts/20250723_session_frontend.md`
 - **Testing Point**: ⚠️ **STOP FOR COMPREHENSIVE MANUAL TESTING** - Full functionality verification
 
 ### Key Instructions for All Delegations
 
-1. **Required Reading**: Each delegation MUST read the specified sections from `@/docs/mkdocs/blog/posts/20250723_session_frontend.md` and `@/docs/mkdocs/blog/posts/20250722_django_sessions.md`
+1. **Required Reading**: Each delegation MUST read the specified sections from `@/docs/archive/blog/posts/20250723_session_frontend.md` and `@/docs/archive/blog/posts/20250722_django_sessions.md`
 
 2. **Testing Stops**: When you see ⚠️ **STOP FOR MANUAL TESTING**, the delegation MUST pause and explicitly request manual testing before proceeding
 

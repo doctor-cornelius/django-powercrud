@@ -16,7 +16,7 @@ if [[ -z $SHORTNAME || $SHORTNAME == "?" || $SHORTNAME == "--help" || $SHORTNAME
 fi
 
 # Create the filename
-FILENAME="./docs/mkdocs/blog/posts/${DATE}_${SHORTNAME}.md"
+FILENAME="./docs/archive/blog/posts/${DATE}_${SHORTNAME}.md"
 
 # Check if file already exists
 if [[ -e $FILENAME ]]; then
