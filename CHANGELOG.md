@@ -1,3 +1,10 @@
+## 0.5.31 (2026-04-08)
+
+### Documentation
+
+- move internal notes outside mkdocs tree
+- clarify async scope boundaries
+
 ## 0.5.30 (2026-04-08)
 
 ### Documentation
