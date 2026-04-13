@@ -141,7 +141,11 @@ Upgrade notes:
     - `progress_callback`: Optional callback used by callers that want per-record progress updates.
 - Default behavior: Delegates to PowerCRUD's standard sync bulk update implementation.
 - Return contract: A result dict with `success`, `success_records`, and `errors`.
+    - `success`: `True` when the bulk operation completed without handled errors.
+    - `success_records`: Count of updated rows on success. In the built-in transactional path this is `0` when validation fails, because the batch is rolled back.
+    - `errors`: A list of `(label, messages)` tuples. `label` is a generic scope such as a field name or `"general"`, and `messages` is a list of user-displayable strings.
 - Important note: This is still the sync view hook. Async bulk update uses a worker-safe backend contract instead. If `bulk_update_persistence_backend_path` is configured and you do not override this hook yourself, the default sync implementation delegates to that same backend so sync and async can share one write path.
+- Important note: When `errors` is non-empty, PowerCRUD re-renders the bulk edit modal with those handled errors instead of treating the result as a server failure.
 - Short example:
 
     ```python
@@ -158,6 +162,25 @@ Upgrade notes:
             fields_to_update=fields_to_update,
             field_data=field_data,
         )
+    ```
+
+- Handled validation-error example:
+
+    ```python
+    def persist_bulk_update(
+        self,
+        *,
+        queryset,
+        fields_to_update,
+        field_data,
+        progress_callback=None,
+    ):
+        errors = [("status", ["Closed records cannot be bulk-reopened."])]
+        return {
+            "success": False,
+            "success_records": 0,
+            "errors": errors,
+        }
     ```
 
 - Related docs: [Bulk editing (synchronous)](../guides/bulk_edit_sync.md#routing-sync-bulk-updates-through-one-hook), [Customisation tips](../guides/customisation_tips.md)
@@ -206,6 +229,42 @@ Upgrade notes:
 
 ## Standard action guard hooks
 
+### `can_update_object()`
+
+- Purpose: Use this when some rows should keep the built-in Edit action visible but disabled, for example workflow-owned rows, canonical records, or objects that should stay read-only on a per-row basis.
+- When it is called: During standard row-action rendering for the built-in Edit action, and while evaluating whether a row may enter inline edit mode.
+- Signature: `def can_update_object(self, obj, request)`
+- Default behavior: Returns `True`, so built-in Edit and inline editing remain available unless a downstream override blocks the row.
+- Return contract: Truthy to allow row updates, falsy to disable the built-in Edit action and block inline editing for that row.
+- Important note: This is the broad row-level update policy hook. It does not replace `inline_edit_fields`, which still controls which fields are inline-editable on the screen, and it does not replace `inline_edit_allowed()`, which remains available as an extra inline-only restriction.
+- Short example:
+
+    ```python
+    def can_update_object(self, obj, request):
+        return not obj.is_workflow_owned
+    ```
+
+- Related docs: [Inline editing hooks](#inline-editing-hooks), [Sample app overview](sample_app.md)
+
+### `get_update_disabled_reason()`
+
+- Purpose: Use this with `can_update_object()` when you want disabled Edit and inline affordances to explain why the row cannot be edited.
+- When it is called: During standard row-action rendering, and while preparing inline blocked-row affordances when `can_update_object()` disables the row.
+- Signature: `def get_update_disabled_reason(self, obj, request)`
+- Default behavior: Returns `None`.
+- Return contract: A plain string tooltip, or `None` when no explanation should be shown.
+- Important note: Existing lock-based action blocking still takes precedence when a row is already blocked by PowerCRUD's lock metadata.
+- Short example:
+
+    ```python
+    def get_update_disabled_reason(self, obj, request):
+        if not self.can_update_object(obj, request):
+            return "Workflow-owned rows cannot be edited."
+        return None
+    ```
+
+- Related docs: [Sample app overview](sample_app.md)
+
 ### `can_delete_object()`
 
 - Purpose: Use this when some rows should keep the built-in Delete action visible but disabled, for example canonical records, workflow-owned rows, or rows that should remain undeletable except to privileged users.
@@ -253,6 +312,7 @@ Upgrade notes:
 - Signature: `inline_edit_allowed(obj, request)`
 - Default behavior: If unset, rows follow the standard inline permission and lock checks only.
 - Return contract: Truthy to allow inline editing for that row, falsy to block it.
+- Important note: This is an inline-only restriction layer. It does not replace `can_update_object()`, which is the broader row-level update policy hook used by both the built-in Edit action and inline editing.
 - Short example:
 
     ```python

@@ -294,6 +294,19 @@
                 </span>
             </button>
             {% endwith %}
+        {% elif inline_enabled and row.inline_blocked_label and cell.is_inline_editable %}
+            {% with align_class=cell.align %}
+            <button type="button"
+                    class="inline-edit-trigger w-full px-0 opacity-50 cursor-not-allowed {% if align_class == 'center' %}flex justify-center text-center{% else %}text-left{% endif %}"
+                    aria-disabled="true"
+                    tabindex="-1"
+                    data-tippy-content="{{ row.inline_blocked_label }}"
+                    data-powercrud-tooltip="semantic">
+                <span class="pc-inline-display-label {% if align_class == 'center' %}text-center{% else %}w-full{% endif %}">
+                    {{ cell.value }}
+                </span>
+            </button>
+            {% endwith %}
         {% else %}
             <div class="{% if cell.align == 'center' %}flex justify-center items-center w-full{% else %}w-full text-left{% endif %}"
                  {% if value_str|slice:":1" != "<" %}data-tippy-content="{{ cell.value }}" data-powercrud-tooltip="overflow"{% endif %}>
@@ -365,6 +378,19 @@
                 </span>
             </button>
             {% endwith %}
+        {% elif inline_enabled and row.inline_blocked_label and cell.is_inline_editable %}
+            {% with align_class=cell.align %}
+            <button type="button"
+                    class="inline-edit-trigger w-full px-0 opacity-50 cursor-not-allowed {% if align_class == 'center' %}flex justify-center text-center{% else %}text-left{% endif %}"
+                    aria-disabled="true"
+                    tabindex="-1"
+                    data-tippy-content="{{ row.inline_blocked_label }}"
+                    data-powercrud-tooltip="semantic">
+                <span class="pc-inline-display-label {% if align_class == 'center' %}text-center{% else %}w-full{% endif %}">
+                    {{ cell.value }}
+                </span>
+            </button>
+            {% endwith %}
         {% else %}
             <div class="{% if cell.align == 'center' %}flex justify-center items-center w-full{% else %}w-full text-left{% endif %}"
                  {% if value_str|slice:":1" != "<" %}data-tippy-content="{{ cell.value }}" data-powercrud-tooltip="overflow"{% endif %}>
@@ -375,8 +401,7 @@
         {% endwith %}
     {% endfor %}
     <td class="text-right py-1 align-middle" data-inline-actions="true">
-        <div class="pc-actions-default {% if row.inline_blocked_reason %}opacity-50 pointer-events-none{% endif %}"
-             {% if row.inline_blocked_label %}data-tippy-content="{{ row.inline_blocked_label }}" data-powercrud-tooltip="semantic"{% endif %}>
+        <div class="pc-actions-default">
             {{ row.actions }}
         </div>
     </td>

@@ -83,6 +83,71 @@ Notes:
 - The hook returns the standard PowerCRUD bulk result dict with `success`, `success_records`, and `errors`.
 - This hook is sync bulk-update only in this release. Bulk delete and async bulk persistence are follow-up concerns.
 
+### Handling validation errors in `persist_bulk_update()`
+
+If your bulk write logic needs to validate each selected row before the batch is applied, return the normal handled PowerCRUD bulk result payload instead of raising an unhandled exception.
+
+In the current contract:
+
+- `success` is `False`
+- `success_records` is usually `0` for a validation failure in the built-in transactional path
+- `errors` is a list of `(label, messages)` tuples
+- PowerCRUD re-renders the bulk edit modal with those errors and keeps the selection in place
+
+Example pattern for a bulk status-style update:
+
+```python
+def persist_bulk_update(
+    self,
+    *,
+    queryset,
+    fields_to_update,
+    field_data,
+    progress_callback=None,
+):
+    errors = []
+
+    for obj in queryset:
+        for item in field_data:
+            if item["field"] == "status":
+                obj.status = item["value"]
+
+        try:
+            obj.full_clean()
+        except ValidationError as exc:
+            if hasattr(exc, "message_dict"):
+                for field, messages in exc.message_dict.items():
+                    errors.append((field, list(messages)))
+            else:
+                errors.append(
+                    ("general", list(getattr(exc, "messages", [str(exc)])))
+                )
+
+    if errors:
+        return {
+            "success": False,
+            "success_records": 0,
+            "errors": errors,
+        }
+
+    for obj in queryset:
+        obj.save()
+
+    return {
+        "success": True,
+        "success_records": queryset.count(),
+        "errors": [],
+    }
+```
+
+Important behavior notes:
+
+- The built-in sync bulk update path is transactional. If validation fails while the built-in backend is applying the batch, the transaction is rolled back and the modal shows the handled errors.
+- If you override `persist_bulk_update(...)`, your app owns the validation strategy. You can still preserve PowerCRUD's UI behavior by returning the same handled result shape.
+- The first tuple item in `errors` is a generic label such as a field name or `"general"`. It is not limited to object primary keys.
+
+If you want a real importable sample of this pattern, see the sample app note in [Sample app overview](../reference/sample_app.md).
+
 ---
 
 ## 3. Dropdowns & choices {#dropdowns-choices}

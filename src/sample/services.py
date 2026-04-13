@@ -15,6 +15,7 @@ from powercrud.bulk_persistence import (
     BulkUpdateExecutionContext,
     DefaultBulkUpdatePersistenceBackend,
 )
+from sample.models import Book
 
 
 class BookWriteService:
@@ -48,8 +49,61 @@ class BookBulkUpdateService:
 
     This service deliberately delegates to PowerCRUD's built-in bulk update
     backend so the tutorials can focus on wiring and extension seams rather
-    than reimplementing the default update algorithm.
+    than reimplementing the default update algorithm. It also includes one
+    narrow sample validation rule so the docs can point at a real handled
+    bulk-error path.
     """
+
+    def _validate_demo_bulk_update(
+        self,
+        *,
+        queryset: QuerySet,
+        fields_to_update: list[str],
+        field_data: list[dict[str, Any]],
+    ) -> dict[str, Any] | None:
+        """Return a handled bulk error payload for the tutorial demo rule.
+
+        The sample app uses a deliberately small rule: if a selected book is
+        named ``Bulk Validation Sample Book`` and the current bulk operation
+        tries to set ``bestseller`` to ``true``, the service returns the normal
+        PowerCRUD bulk error payload instead of delegating the write.
+        """
+        if "bestseller" not in fields_to_update:
+            return None
+
+        submitted_bestseller = None
+        for item in field_data:
+            if item.get("field") == "bestseller":
+                submitted_bestseller = item.get("value")
+                break
+
+        if submitted_bestseller != "true":
+            return None
+
+        guarded_titles = list(
+            queryset.filter(title=Book.BULK_VALIDATION_SAMPLE_TITLE).values_list(
+                "title",
+                flat=True,
+            )
+        )
+        if not guarded_titles:
+            return None
+
+        return {
+            "success": False,
+            "success_records": 0,
+            "errors": [
+                (
+                    "bestseller",
+                    [
+                        (
+                            "Bulk Validation Sample Book refuses bulk bestseller "
+                            "promotion to demonstrate handled validation errors."
+                        )
+                    ],
+                )
+            ],
+        }
 
     def apply(
         self,
@@ -74,6 +128,14 @@ class BookBulkUpdateService:
         Returns:
             Standard PowerCRUD bulk result payload.
         """
+        demo_error = self._validate_demo_bulk_update(
+            queryset=queryset,
+            fields_to_update=fields_to_update,
+            field_data=field_data,
+        )
+        if demo_error is not None:
+            return demo_error
+
         backend = DefaultBulkUpdatePersistenceBackend()
         return backend.persist_bulk_update(
             queryset=queryset,

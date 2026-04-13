@@ -146,7 +146,27 @@ def _resolve_standard_action_disabled_state(
     disable = bool(lock_reason and action_name in {"Edit", "Delete"})
     disabled_reason = lock_label if disable else None
 
-    if disable or action_name != "Delete":
+    if disable:
+        return disable, disabled_reason
+
+    if action_name == "Edit":
+        can_update = getattr(view, "can_update_object", None)
+        if callable(can_update):
+            try:
+                allowed = bool(can_update(object, request))
+            except Exception:
+                allowed = True
+            if not allowed:
+                disable = True
+                get_reason = getattr(view, "get_update_disabled_reason", None)
+                if callable(get_reason):
+                    try:
+                        disabled_reason = get_reason(object, request)
+                    except Exception:
+                        disabled_reason = None
+        return disable, disabled_reason
+
+    if action_name != "Delete":
         return disable, disabled_reason
 
     can_delete = getattr(view, "can_delete_object", None)
@@ -643,6 +663,22 @@ def object_list(context, objects, view):
         inline_blocked_label = None
         inline_blocked_meta = {}
         inline_allowed = False
+        action_blocked_reason = None
+        action_blocked_label = None
+        can_update = getattr(view, "can_update_object", None)
+        update_allowed = True
+        if callable(can_update):
+            try:
+                update_allowed = bool(can_update(obj, request))
+            except Exception:
+                update_allowed = True
+        if not update_allowed:
+            get_update_reason = getattr(view, "get_update_disabled_reason", None)
+            if callable(get_update_reason):
+                try:
+                    action_blocked_label = get_update_reason(obj, request)
+                except Exception:
+                    action_blocked_label = None
 
         if inline_enabled and inline_row_url:
             lock_checker = getattr(view, "is_inline_row_locked", None)
@@ -678,6 +714,13 @@ def object_list(context, objects, view):
                 inline_blocked_label = lock_details.get("label") or _(
                     "Inline editing blocked – record is locked."
                 )
+                action_blocked_reason = "locked"
+                action_blocked_label = inline_blocked_label
+            elif not update_allowed:
+                inline_blocked_reason = "forbidden"
+                inline_blocked_label = action_blocked_label or _(
+                    "Editing not permitted for this row."
+                )
             elif not can_inline:
                 inline_blocked_reason = "forbidden"
                 inline_blocked_label = _("Inline editing not permitted for this row.")
@@ -710,8 +753,12 @@ def object_list(context, objects, view):
             return resolved
 
         # Attach inline metadata to the object for downstream helpers (e.g., action_links)
-        setattr(obj, "_blocked_reason", inline_blocked_reason)
-        setattr(obj, "_blocked_label", inline_blocked_label)
+        setattr(obj, "_blocked_reason", action_blocked_reason)
+        setattr(
+            obj,
+            "_blocked_label",
+            action_blocked_label if action_blocked_reason else None,
+        )
         setattr(
             obj,
             "_extra_actions_dropdown_open_upward",

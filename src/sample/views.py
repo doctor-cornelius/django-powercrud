@@ -7,6 +7,7 @@ from powercrud.conf import get_powercrud_setting
 
 from . import models
 from . import forms
+from .services import BookBulkUpdateService
 
 
 class SampleCRUDMixin(PowerCRUDAsyncMixin, CRUDView):
@@ -27,6 +28,8 @@ def home(request):
 
 
 class BookCRUDView(SampleCRUDMixin):
+    """Full-featured sample CRUD view for the Book model."""
+
     model = models.Book
     view_title = "My List of Books"
     view_instructions = "Here you can edit books"
@@ -65,6 +68,7 @@ class BookCRUDView(SampleCRUDMixin):
     bulk_delete = True
     bulk_async = True
     bulk_min_async_records = 2
+    bulk_update_persistence_backend_path = "sample.backends.BookBulkUpdateBackend"
 
     form_display_fields = ["uneditable_field"]
     form_disabled_fields = ["isbn"]
@@ -208,6 +212,16 @@ class BookCRUDView(SampleCRUDMixin):
             return "This book does not have a description yet."
         return None
 
+    def can_update_object(self, obj, request):
+        """Disable update affordances for the guarded sample row."""
+        return obj.title != models.Book.GUARDED_SAMPLE_TITLE
+
+    def get_update_disabled_reason(self, obj, request):
+        """Explain why the guarded sample row cannot be edited."""
+        if not self.can_update_object(obj, request):
+            return "Guarded Sample Book demonstrates built-in Edit and inline update guards."
+        return None
+
     def persist_single_object(self, *, form, mode, instance=None):
         """Sample override showing where downstream form/inline writes can hook in."""
         return super().persist_single_object(
@@ -224,11 +238,16 @@ class BookCRUDView(SampleCRUDMixin):
         field_data,
         progress_callback=None,
     ):
-        """Sample override showing where downstream sync bulk writes can hook in."""
-        return super().persist_bulk_update(
+        """Route sync bulk writes through the sample bulk service."""
+        return BookBulkUpdateService().apply(
             queryset=queryset,
+            bulk_fields=list(self.bulk_fields),
             fields_to_update=fields_to_update,
             field_data=field_data,
+            context=self._build_bulk_update_execution_context(
+                queryset=queryset,
+                mode="sync",
+            ),
             progress_callback=progress_callback,
         )
 

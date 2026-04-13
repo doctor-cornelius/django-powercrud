@@ -177,6 +177,12 @@ class TemplateViewStub:
     def can_delete_object(self, obj, request):
         return True
 
+    def can_update_object(self, obj, request):
+        return True
+
+    def get_update_disabled_reason(self, obj, request):
+        return None
+
     def get_delete_disabled_reason(self, obj, request):
         return None
 
@@ -561,6 +567,107 @@ def test_object_list_marks_locked_rows_with_metadata():
 
 
 @pytest.mark.django_db
+def test_object_list_disables_edit_and_inline_when_update_guard_blocks_row():
+    author = Author.objects.create(name="Update Guard")
+    book = Book.objects.create(
+        title="Guarded Edit",
+        author=author,
+        published_date=date(2024, 7, 5),
+        bestseller=False,
+        isbn="9876543210344",
+        pages=61,
+        description="Guarded edit preview",
+    )
+
+    request = apply_session(RequestFactory().get("/"))
+    view = TemplateViewStub(request)
+    view.can_update_object = lambda obj, request: False
+    view.get_update_disabled_reason = (
+        lambda obj, request: "Editing locked by policy."
+    )
+    view.can_inline_edit = lambda obj, request: True
+
+    inline_config = {
+        "enabled": True,
+        "fields": ["title"],
+        "dependencies": {},
+        "row_endpoint_name": "sample:book-inline-row",
+    }
+    context = {
+        "request": request,
+        "use_htmx": True,
+        "original_target": "#content",
+        "htmx_target": "#content",
+        "inline_edit": inline_config,
+    }
+
+    row = powercrud.object_list(context, [book], view)["object_list"][0]
+
+    assert row["inline_allowed"] is False, (
+        "Rows blocked by can_update_object should not expose inline editing even when inline editing is otherwise enabled."
+    )
+    assert row["inline_blocked_reason"] == "forbidden", (
+        "Rows blocked by can_update_object should expose the standard forbidden inline state."
+    )
+    assert row["inline_blocked_label"] == "Editing locked by policy.", (
+        "Rows blocked by can_update_object should reuse the configured update-guard reason for inline affordances."
+    )
+    assert "Editing locked by policy." in row["actions"], (
+        "Rows blocked by can_update_object should disable the built-in Edit action with the configured reason."
+    )
+    assert ">Delete<" in row["actions"], (
+        "Rows blocked by can_update_object should leave the built-in Delete action unaffected."
+    )
+
+
+@pytest.mark.django_db
+def test_object_list_keeps_edit_enabled_when_only_inline_policy_blocks_row():
+    author = Author.objects.create(name="Inline Only Guard")
+    book = Book.objects.create(
+        title="Inline Only",
+        author=author,
+        published_date=date(2024, 7, 6),
+        bestseller=False,
+        isbn="9876543210355",
+        pages=62,
+        description="Inline-only restriction",
+    )
+
+    request = apply_session(RequestFactory().get("/"))
+    view = TemplateViewStub(request)
+    view.can_inline_edit = lambda obj, request: False
+
+    inline_config = {
+        "enabled": True,
+        "fields": ["title"],
+        "dependencies": {},
+        "row_endpoint_name": "sample:book-inline-row",
+    }
+    context = {
+        "request": request,
+        "use_htmx": True,
+        "original_target": "#content",
+        "htmx_target": "#content",
+        "inline_edit": inline_config,
+    }
+
+    row = powercrud.object_list(context, [book], view)["object_list"][0]
+
+    assert row["inline_allowed"] is False, (
+        "Rows blocked by inline-only policy should still suppress inline editing."
+    )
+    assert row["inline_blocked_label"] == "Inline editing not permitted for this row.", (
+        "Inline-only row blocks should keep the existing inline-specific reason."
+    )
+    assert "Editing locked by policy." not in row["actions"], (
+        "Inline-only policy blocks should not leak update-guard reasons into standard row actions."
+    )
+    assert '/sample:book-update/' in row["actions"], (
+        "Rows blocked only for inline editing should keep the built-in Edit action enabled."
+    )
+
+
+@pytest.mark.django_db
 def test_action_links_disable_custom_extra_action_when_rule_matches():
     author = Author.objects.create(name="No Preview")
     book = Book.objects.create(
@@ -607,6 +714,60 @@ def test_action_links_leave_builtin_delete_enabled_by_default():
     )
     assert "Delete locked by policy." not in html, (
         "Built-in Delete should not expose any guard reason when the default hook allows the action."
+    )
+
+
+@pytest.mark.django_db
+def test_action_links_leave_builtin_edit_enabled_by_default():
+    author = Author.objects.create(name="Edit Default")
+    book = Book.objects.create(
+        title="Default Edit",
+        author=author,
+        published_date=date(2024, 8, 2),
+        bestseller=False,
+        isbn="9876543210556",
+        pages=22,
+        description="Edit remains enabled",
+    )
+    request = apply_session(RequestFactory().get("/"))
+    view = TemplateViewStub(request)
+
+    html = powercrud.action_links(view, book)
+
+    assert "Edit" in html, (
+        "Built-in Edit should still render when no update guard hook blocks the row."
+    )
+    assert "Editing locked by policy." not in html, (
+        "Built-in Edit should not expose any guard reason when the default update hook allows the action."
+    )
+
+
+@pytest.mark.django_db
+def test_action_links_disable_builtin_edit_when_update_guard_blocks_row():
+    author = Author.objects.create(name="Edit Guard")
+    book = Book.objects.create(
+        title="Edit Guarded",
+        author=author,
+        published_date=date(2024, 8, 2),
+        bestseller=False,
+        isbn="9876543210557",
+        pages=23,
+        description="Edit should be disabled",
+    )
+    request = apply_session(RequestFactory().get("/"))
+    view = TemplateViewStub(request)
+    view.can_update_object = lambda obj, request: False
+    view.get_update_disabled_reason = (
+        lambda obj, request: "Editing locked by policy."
+    )
+
+    html = powercrud.action_links(view, book)
+
+    assert "Editing locked by policy." in html, (
+        "Built-in Edit should expose the configured update-guard tooltip reason when the row is blocked."
+    )
+    assert html.count("btn-disabled opacity-50 pointer-events-none") >= 1, (
+        "Built-in Edit should reuse the standard disabled styling when an update guard hook blocks the row."
     )
 
 
@@ -665,6 +826,67 @@ def test_action_links_delete_guard_does_not_disable_builtin_edit():
     )
     assert 'title="Delete locked by policy.">Edit<' not in html, (
         "Built-in Edit should not inherit the delete guard tooltip reason."
+    )
+
+
+@pytest.mark.django_db
+def test_action_links_update_guard_does_not_disable_builtin_delete():
+    author = Author.objects.create(name="Edit Lock")
+    book = Book.objects.create(
+        title="Edit Lock Leaves Delete",
+        author=author,
+        published_date=date(2024, 8, 4),
+        bestseller=False,
+        isbn="9876543210777",
+        pages=27,
+        description="Delete should stay enabled",
+    )
+    request = apply_session(RequestFactory().get("/"))
+    view = TemplateViewStub(request)
+    view.can_update_object = lambda obj, request: False
+    view.get_update_disabled_reason = (
+        lambda obj, request: "Editing locked by policy."
+    )
+
+    html = powercrud.action_links(view, book)
+
+    assert 'title="Editing locked by policy.">Delete<' not in html, (
+        "Built-in Delete should not inherit the update guard tooltip reason."
+    )
+    assert ">Delete<" in html, (
+        "Built-in Delete should still render when only the update guard hook blocks the row."
+    )
+
+
+@pytest.mark.django_db
+def test_action_links_lock_reason_overrides_update_guard_reason():
+    author = Author.objects.create(name="Edit Lock Wins")
+    book = Book.objects.create(
+        title="Edit Lock Wins",
+        author=author,
+        published_date=date(2024, 8, 5),
+        bestseller=False,
+        isbn="9876543210888",
+        pages=28,
+        description="Lock should win",
+    )
+    book._blocked_reason = "locked"
+    book._blocked_label = "Row locked"
+
+    request = apply_session(RequestFactory().get("/"))
+    view = TemplateViewStub(request)
+    view.can_update_object = lambda obj, request: False
+    view.get_update_disabled_reason = (
+        lambda obj, request: "Editing locked by policy."
+    )
+
+    html = powercrud.action_links(view, book)
+
+    assert "Row locked" in html, (
+        "Existing row-lock reasons should remain the primary disabled reason when a row is already blocked."
+    )
+    assert "Editing locked by policy." not in html, (
+        "Update guard hooks should not override the established lock reason when both would disable the built-in Edit action."
     )
 
 

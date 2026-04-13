@@ -79,6 +79,9 @@ class Genre(models.Model):
 
 
 class Book(models.Model):
+    GUARDED_SAMPLE_TITLE = "Guarded Sample Book"
+    BULK_VALIDATION_SAMPLE_TITLE = "Bulk Validation Sample Book"
+
     class Meta:
         constraints = [
             models.UniqueConstraint(

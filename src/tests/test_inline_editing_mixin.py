@@ -296,6 +296,24 @@ class InlineResetPageView(InlineFilterAwareView):
     inline_save_refresh_policy = "reset_page"
 
 
+class InlineUpdateGuardView(InlineTestView):
+    """Block all row updates through the new built-in update guard hooks."""
+
+    def can_update_object(self, obj, request):
+        """Disable updates for the current test row."""
+        return False
+
+    def get_update_disabled_reason(self, obj, request):
+        """Return the reason shown when update guard hooks block the row."""
+        return "Editing locked by policy."
+
+
+class InlineOnlyRestrictionView(InlineTestView):
+    """Keep update allowed while adding an inline-only row restriction."""
+
+    inline_edit_allowed = staticmethod(lambda obj, request: False)
+
+
 def _make_request(method="get", path="/inline/", data=None):
     rf = RequestFactory()
     request = getattr(rf, method)(path, data=data or {})
@@ -809,6 +827,67 @@ def test_inline_guard_blocks_locked_state(sample_book, monkeypatch):
     assert response.status_code == 423
     assert payload["inline-row-locked"]["message"] == "Row locked"
     assert payload["inline-row-locked"]["lock"]["label"] == "Busy"
+
+
+@pytest.mark.django_db
+def test_inline_guard_blocks_get_when_update_guard_denies_row(sample_book):
+    request = _make_request("get")
+    view = InlineUpdateGuardView(request, sample_book)
+
+    response = view._dispatch_inline_row(request, pk=sample_book.pk)
+    payload = json.loads(response["HX-Trigger"])
+
+    assert response.status_code == 403, (
+        "Inline GET should reject rows blocked by can_update_object before rendering an editable form."
+    )
+    assert payload["inline-row-forbidden"]["message"] == "Editing locked by policy.", (
+        "Inline GET should reuse the configured update-guard reason when blocking the row."
+    )
+
+
+@pytest.mark.django_db
+def test_inline_guard_blocks_post_when_update_guard_denies_row(sample_book, sample_author):
+    request = _make_request(
+        "post",
+        data={
+            "title": "Blocked Inline Title",
+            "author": str(sample_author.pk),
+            "published_date": "2024-01-01",
+            "isbn": "9780000000022",
+            "pages": "123",
+            "bestseller": "",
+        },
+    )
+    view = InlineUpdateGuardView(request, sample_book)
+
+    response = view._dispatch_inline_row(request, pk=sample_book.pk)
+    payload = json.loads(response["HX-Trigger"])
+
+    assert response.status_code == 403, (
+        "Inline POST should reject rows blocked by can_update_object instead of saving them."
+    )
+    assert payload["inline-row-forbidden"]["message"] == "Editing locked by policy.", (
+        "Inline POST should reuse the configured update-guard reason when blocking the row."
+    )
+    sample_book.refresh_from_db()
+    assert sample_book.title == "Original Title", (
+        "Inline POST should not persist changes when can_update_object blocks the row."
+    )
+
+
+@pytest.mark.django_db
+def test_can_inline_edit_requires_update_guard_and_inline_only_policy(sample_book):
+    request = _make_request("get")
+
+    guarded_view = InlineUpdateGuardView(request, sample_book)
+    inline_only_view = InlineOnlyRestrictionView(request, sample_book)
+
+    assert guarded_view.can_inline_edit(sample_book, request) is False, (
+        "Inline editing should be blocked when the new update guard hook denies the row."
+    )
+    assert inline_only_view.can_inline_edit(sample_book, request) is False, (
+        "Inline editing should also remain blockable through the existing inline-only policy hook."
+    )
 
 
 @pytest.mark.django_db

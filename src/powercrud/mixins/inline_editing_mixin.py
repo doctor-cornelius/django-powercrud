@@ -638,6 +638,10 @@ class InlineEditingMixin:
         if self.is_inline_row_locked(obj):
             return False
 
+        update_state = self._get_update_permission_state(obj, request)
+        if not update_state["allowed"]:
+            return False
+
         cfg = resolve_config(self)
         perm = cfg.inline_edit_requires_perm
         user = getattr(request, "user", None)
@@ -651,6 +655,31 @@ class InlineEditingMixin:
             return bool(allowed_callable(obj, request))
 
         return True
+
+    def _get_update_permission_state(self, obj, request) -> dict[str, Any]:
+        """
+        Return whether row-level update affordances are allowed for this object.
+        """
+        checker = getattr(self, "can_update_object", None)
+        allowed = True
+        if callable(checker):
+            try:
+                allowed = bool(checker(obj, request))
+            except Exception:
+                allowed = True
+
+        if allowed:
+            return {"allowed": True, "reason": None}
+
+        reason = None
+        reason_getter = getattr(self, "get_update_disabled_reason", None)
+        if callable(reason_getter):
+            try:
+                reason = reason_getter(obj, request)
+            except Exception:
+                reason = None
+
+        return {"allowed": False, "reason": reason}
 
     def is_inline_row_locked(self, obj) -> bool:
         """
@@ -788,6 +817,14 @@ class InlineEditingMixin:
                 "status": "locked",
                 "message": _("Inline editing blocked – record is locked."),
                 "lock": self._get_inline_lock_metadata(obj),
+            }
+
+        update_state = self._get_update_permission_state(obj, request)
+        if not update_state["allowed"]:
+            return {
+                "status": "forbidden",
+                "message": update_state["reason"]
+                or _("Editing not permitted for this row."),
             }
 
         checker = getattr(self, "can_inline_edit", None)

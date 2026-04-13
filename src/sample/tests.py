@@ -8,6 +8,7 @@ from unittest.mock import Mock, patch
 from django.contrib.auth import get_user_model
 
 from powercrud.async_context import task_context
+from powercrud import tasks
 from powercrud.bulk_persistence import BulkUpdateExecutionContext
 
 from sample.async_manager import SampleAsyncManager
@@ -425,6 +426,189 @@ class SamplePersistenceTutorialHelperTests(TestCase):
             "BookBulkUpdateBackend.persist_bulk_update should forward the progress callback to BookBulkUpdateService.apply.",
         )
 
+    def test_book_bulk_update_service_returns_demo_validation_error_payload(self):
+        """The sample bulk service should expose a real handled validation-error example."""
+        book = Book.objects.create(
+            title=Book.BULK_VALIDATION_SAMPLE_TITLE,
+            author=self.author,
+            published_date=date(2024, 1, 6),
+            bestseller=False,
+            isbn="9788888800100",
+            pages=112,
+            description="Bulk validation sample",
+        )
+        book.genres.add(self.genre)
+
+        result = BookBulkUpdateService().apply(
+            queryset=Book.objects.filter(pk=book.pk),
+            bulk_fields=["bestseller"],
+            fields_to_update=["bestseller"],
+            field_data=[
+                {
+                    "field": "bestseller",
+                    "value": "true",
+                    "info": {
+                        "type": "BooleanField",
+                        "is_relation": False,
+                        "is_m2m": False,
+                        "verbose_name": "bestseller",
+                    },
+                }
+            ],
+            context=BulkUpdateExecutionContext(mode="sync"),
+        )
+
+        self.assertEqual(
+            result,
+            {
+                "success": False,
+                "success_records": 0,
+                "errors": [
+                    (
+                        "bestseller",
+                        [
+                            (
+                                "Bulk Validation Sample Book refuses bulk bestseller "
+                                "promotion to demonstrate handled validation errors."
+                            )
+                        ],
+                    )
+                ],
+            },
+            "BookBulkUpdateService should return the standard handled bulk error payload for the sample validation rule.",
+        )
+        book.refresh_from_db()
+        self.assertFalse(
+            book.bestseller,
+            "BookBulkUpdateService should not persist the sample bestseller change when the demo validation rule blocks it.",
+        )
+
+    def test_book_bulk_update_backend_returns_demo_validation_error_in_async_mode(self):
+        """The sample async backend should reuse the same handled validation rule."""
+        book = Book.objects.create(
+            title=Book.BULK_VALIDATION_SAMPLE_TITLE,
+            author=self.author,
+            published_date=date(2024, 1, 8),
+            bestseller=False,
+            isbn="9788888800102",
+            pages=114,
+            description="Async bulk validation sample",
+        )
+        book.genres.add(self.genre)
+
+        result = BookBulkUpdateBackend().persist_bulk_update(
+            queryset=Book.objects.filter(pk=book.pk),
+            bulk_fields=["bestseller"],
+            fields_to_update=["bestseller"],
+            field_data=[
+                {
+                    "field": "bestseller",
+                    "value": "true",
+                    "info": {
+                        "type": "BooleanField",
+                        "is_relation": False,
+                        "is_m2m": False,
+                        "verbose_name": "bestseller",
+                    },
+                }
+            ],
+            context=BulkUpdateExecutionContext(mode="async", task_name="sample-task"),
+        )
+
+        self.assertEqual(
+            result["success"],
+            False,
+            "BookBulkUpdateBackend should surface the demo validation refusal unchanged when running in async mode.",
+        )
+        self.assertEqual(
+            result["success_records"],
+            0,
+            "BookBulkUpdateBackend should report zero successful updates when the demo validation rule blocks the batch.",
+        )
+        self.assertEqual(
+            result["errors"][0][0],
+            "bestseller",
+            "BookBulkUpdateBackend should preserve the generic error label returned by the shared sample service.",
+        )
+        book.refresh_from_db()
+        self.assertFalse(
+            book.bestseller,
+            "BookBulkUpdateBackend should not persist the blocked bestseller change in async mode.",
+        )
+
+    def test_book_crud_view_declares_sample_async_bulk_backend(self):
+        """The sample view should wire async bulk updates through the sample backend."""
+        self.assertEqual(
+            BookCRUDView.bulk_update_persistence_backend_path,
+            "sample.backends.BookBulkUpdateBackend",
+            "BookCRUDView should configure the sample bulk update backend so async and sync tutorials share the same bulk service.",
+        )
+
+    def test_async_bulk_update_task_reports_failure_for_sample_validation_rule(self):
+        """The async worker should fail the task when the sample backend rejects the batch."""
+        book = Book.objects.create(
+            title=Book.BULK_VALIDATION_SAMPLE_TITLE,
+            author=self.author,
+            published_date=date(2024, 1, 9),
+            bestseller=False,
+            isbn="9788888800103",
+            pages=115,
+            description="Worker bulk validation sample",
+        )
+        book.genres.add(self.genre)
+        manager = Mock()
+
+        with patch.object(
+            tasks.AsyncManager,
+            "resolve_manager",
+            classmethod(lambda cls, manager_class_path=None, config=None: manager),
+        ):
+            result = tasks.bulk_update_task(
+                "sample.Book",
+                selected_ids=[book.pk],
+                user_id=77,
+                bulk_fields=["bestseller"],
+                fields_to_update=["bestseller"],
+                field_data=[
+                    {
+                        "field": "bestseller",
+                        "value": "true",
+                        "info": {
+                            "type": "BooleanField",
+                            "is_relation": False,
+                            "is_m2m": False,
+                            "verbose_name": "bestseller",
+                        },
+                    }
+                ],
+                task_key="sample-bulk-task",
+                manager_class="sample.async_manager.SampleAsyncManager",
+                bulk_update_persistence_backend_path=(
+                    "sample.backends.BookBulkUpdateBackend"
+                ),
+            )
+
+        self.assertFalse(
+            result,
+            "bulk_update_task should report failure when the configured sample async backend returns a handled validation refusal.",
+        )
+        manager.update_progress.assert_any_call(
+            "sample-bulk-task",
+            "starting update",
+        )
+        self.assertTrue(
+            any(
+                "failed update" in call.args[1]
+                for call in manager.update_progress.call_args_list
+            ),
+            "bulk_update_task should report a failed update progress message when the sample async backend rejects the batch.",
+        )
+        book.refresh_from_db()
+        self.assertFalse(
+            book.bestseller,
+            "bulk_update_task should leave the blocked bestseller value unchanged when the sample async backend rejects the batch.",
+        )
+
 
 class SampleGenreDeleteRefusalTests(TestCase):
     """Exercise the sample app's handled single-delete refusal demonstration."""
@@ -499,4 +683,119 @@ class SampleGenreDeleteRefusalTests(TestCase):
             response,
             "btn-disabled opacity-50 pointer-events-none",
             msg_prefix="The guarded sample genre should render the built-in Delete action with the standard disabled styling.",
+        )
+
+
+class SampleBookUpdateGuardTests(TestCase):
+    """Exercise the sample app's built-in update guard demonstration."""
+
+    def test_guarded_sample_book_disables_edit_and_inline_affordances(self):
+        """Guarded sample books should demonstrate disabled Edit and inline affordances."""
+        author = Author.objects.create(name="Guarded Sample Author")
+        genre = Genre.objects.create(name="Guarded Sample Book Genre")
+        guarded_book = Book.objects.create(
+            title=Book.GUARDED_SAMPLE_TITLE,
+            author=author,
+            published_date=date(2024, 1, 1),
+            bestseller=False,
+            isbn="9780000000099",
+            pages=111,
+            description="Demo row for built-in update guards.",
+        )
+        guarded_book.genres.add(genre)
+
+        response = self.client.get(reverse("sample:bigbook-list"))
+
+        self.assertEqual(
+            response.status_code,
+            200,
+            "The sample book list should render successfully when showing guarded update affordances.",
+        )
+        self.assertContains(
+            response,
+            Book.GUARDED_SAMPLE_TITLE,
+            msg_prefix="The guarded sample book should appear on the sample list page.",
+        )
+        self.assertContains(
+            response,
+            "Guarded Sample Book demonstrates built-in Edit and inline update guards.",
+            msg_prefix="The guarded sample book should expose the shared update-guard reason on the list page.",
+        )
+        self.assertContains(
+            response,
+            "btn-disabled opacity-50 pointer-events-none",
+            msg_prefix="The guarded sample book should render the built-in Edit action with the standard disabled styling.",
+        )
+        self.assertContains(
+            response,
+            'class="inline-edit-trigger w-full px-0 opacity-50 cursor-not-allowed',
+            msg_prefix="The guarded sample book should render disabled inline edit affordances for editable cells.",
+        )
+
+
+class SampleBookBulkValidationTests(TestCase):
+    """Exercise the sample app's handled bulk-validation demonstration."""
+
+    def test_bulk_validation_sample_book_rerenders_modal_with_error(self):
+        """The sample bulk validation rule should return a handled modal error response."""
+        author = Author.objects.create(name="Bulk Validation Author")
+        genre = Genre.objects.create(name="Bulk Validation Genre")
+        book = Book.objects.create(
+            title=Book.BULK_VALIDATION_SAMPLE_TITLE,
+            author=author,
+            published_date=date(2024, 1, 7),
+            bestseller=False,
+            isbn="9788888800101",
+            pages=113,
+            description="Bulk validation UI sample",
+        )
+        book.genres.add(genre)
+
+        response = self.client.post(
+            reverse("sample:bigbook-bulk-edit"),
+            data={
+                "bulk_submit": "1",
+                "selected_ids[]": [book.pk],
+                "fields_to_update": ["bestseller"],
+                "bestseller": "true",
+            },
+            HTTP_HX_REQUEST="true",
+            HTTP_HX_TARGET="content",
+        )
+
+        self.assertEqual(
+            response.status_code,
+            200,
+            "The sample bulk validation rule should re-render the bulk edit modal instead of returning a server error.",
+        )
+        self.assertContains(
+            response,
+            "Bulk Validation Sample Book refuses bulk bestseller promotion to demonstrate handled validation errors.",
+            msg_prefix="The sample bulk validation rule should surface the handled validation message in the modal response.",
+        )
+        self.assertContains(
+            response,
+            "<strong>Bestseller:</strong>",
+            html=True,
+            msg_prefix="The bulk error template should treat the first error tuple item as a generic label instead of hard-coding an object prefix.",
+        )
+        self.assertNotContains(
+            response,
+            "Object bestseller:",
+            msg_prefix="The bulk error template should no longer assume the first error tuple item is always an object identifier.",
+        )
+        self.assertEqual(
+            response.headers.get("HX-Retarget"),
+            "#powercrudModalContent",
+            "The sample bulk validation rule should retarget the handled error response back into the modal content container.",
+        )
+        self.assertIn(
+            "showModal",
+            response.headers.get("HX-Trigger", ""),
+            "The sample bulk validation rule should keep the bulk modal open after a handled validation error.",
+        )
+        book.refresh_from_db()
+        self.assertFalse(
+            book.bestseller,
+            "The sample bulk validation rule should leave the persisted bestseller value unchanged after the handled error.",
         )

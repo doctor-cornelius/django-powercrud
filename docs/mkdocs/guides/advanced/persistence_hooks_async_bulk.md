@@ -103,11 +103,15 @@ class BookCRUDView(SampleCRUDMixin):
 
 Now PowerCRUD can resolve that backend in the async worker.
 
+In the sample app, `BookCRUDView` also keeps a `persist_bulk_update(...)` override for the sync path, and both entry points call `BookBulkUpdateService`. That is intentional: the sample shows how to keep one bulk rule in one service while still using the right PowerCRUD seam for each execution mode.
+
 Important:
 
 - async bulk update uses this backend
 - if you leave the sync hook alone, the default sync bulk path also uses this same backend when the path is configured
 - that gives sync and async one shared bulk-update persistence contract
+
+If that shared service returns `success=False`, the async task is marked failed. In the current release, that failure surfaces through task progress and async dashboard state rather than the sync modal-style field error UI.
 
 ---
 

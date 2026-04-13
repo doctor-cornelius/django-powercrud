@@ -95,15 +95,18 @@ The sample `BookCRUDView` now also demonstrates both custom action enhancements 
 
 - a selection-aware `extra_button` that opens a modal summary for the current persisted bulk selection
 - a row-level `extra_action` that disables itself with a tooltip when the book has no description
+- a guarded row (`Guarded Sample Book`) that disables the built-in Edit action and inline editing before the user can start an update
+- a bulk-validation demo row (`Bulk Validation Sample Book`) that re-renders the bulk edit modal for sync bulk updates and fails the async task for queued bulk updates when a sample bulk rule is violated
 
 These examples are intentionally simple so package users can inspect both the view config and the matching sample endpoints/templates.
 
-The sample `BookCRUDView` also includes no-op illustrative overrides for the new sync persistence hooks:
+The sample `BookCRUDView` also includes illustrative persistence-hook wiring:
 
 - `persist_single_object(...)`
 - `persist_bulk_update(...)`
+- `bulk_update_persistence_backend_path = "sample.backends.BookBulkUpdateBackend"`
 
-They currently just call `super()`, but they mark the exact place where a downstream app would route validated writes through domain services while still letting PowerCRUD own validation and UI response flow.
+The single-object hook stays intentionally thin. For bulk updates, the sync hook and the async backend both route through `BookBulkUpdateService`, so the same sample validation rule applies in either execution mode.
 
 The sample app also now includes tutorial-oriented helper classes in `sample.services` and `sample.backends`:
 
@@ -111,7 +114,7 @@ The sample app also now includes tutorial-oriented helper classes in `sample.ser
 - `BookBulkUpdateService`
 - `BookBulkUpdateBackend`
 
-These are deliberately small examples used by the advanced persistence-hook guides. They are there to make the documentation more inspectable, not to change the default sample app behavior.
+These are deliberately small examples used by the advanced persistence-hook guides. They are there to make the documentation more inspectable, and `BookBulkUpdateBackend` is now also wired into the sample `BookCRUDView` so the async bulk example is real rather than purely illustrative.
 
 ### Inline dependency demo
 
@@ -160,7 +163,7 @@ When the user changes `author` inline, PowerCRUD posts the current row data to t
 - **GenreCRUDView**: Minimal configuration example plus two focused delete demos: a guarded row (`Guarded Sample Genre`) that disables the built-in Delete action before click, and a protected row (`Protected Sample Genre`) that demonstrates handled single-delete `ValidationError` responses after submit
 - **ProfileCRUDView**: OneToOneField, inline editing, bulk operations, merged nullable relation filtering on `favorite_genre`, and a static queryset rule that limits `favorite_genre` choices to genres whose names start with `S`
 - **AuthorCRUDView**: Properties, filtering, template debugging, companion nullable scalar filtering on `birth_date`, and visible row-level `extra_actions` in the default button mode
-- **BookCRUDView**: Async bulk editing, dependent `author -> genres` queryset scoping, `view_title` / `view_instructions` heading-area overrides, `column_help_text` header tooltips, selection-aware `extra_buttons`, and dropdown row actions that open upward for the last five rendered rows
+- **BookCRUDView**: Async bulk editing, dependent `author -> genres` queryset scoping, `view_title` / `view_instructions` heading-area overrides, `column_help_text` header tooltips, selection-aware `extra_buttons`, dropdown row actions that open upward for the last five rendered rows, and a guarded sample row for built-in Edit and inline update guards
 
 The `Genre` sample keeps these delete demos deliberately narrow:
 
@@ -171,6 +174,19 @@ That lets the sample app show both layers of the product story on the same light
 
 - pre-click Delete disablement
 - post-click handled delete refusal
+
+The `Book` sample includes a separate update-guard demo on the busier inline-editing screen:
+
+- If a row is titled `Guarded Sample Book`, `BookCRUDView.can_update_object(...)` returns `False`.
+- The built-in Edit action renders disabled with a tooltip reason.
+- Inline-editable cells stay visible but render as disabled affordances with the same reason, so the sample shows both update surfaces together on a screen that already exercises inline editing.
+
+The same `Book` screen now also includes a bulk-validation demo:
+
+- If a selected row is titled `Bulk Validation Sample Book`, `BookBulkUpdateService` rejects a sample bulk `bestseller=true` update.
+- If the selection stays below `bulk_min_async_records`, PowerCRUD re-renders the bulk edit modal with the handled error payload instead of treating the result as a server failure.
+- If the selection reaches the async threshold, the queued task fails instead and the sample async dashboard shows the failure state.
+- That makes `BookCRUDView` the sample app reference for shared sync/async bulk persistence wiring plus the current difference between sync modal errors and async task-level failures.
 
 ### Static queryset demo
 

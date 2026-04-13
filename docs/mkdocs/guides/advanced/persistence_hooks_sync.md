@@ -211,6 +211,12 @@ class BookCRUDView(SampleCRUDMixin):
 
 This keeps the view logic simple while giving your app one bulk-update service to grow later.
 
+### Validation errors in service-owned bulk writes
+
+If your bulk service validates rows before applying the batch, keep the PowerCRUD UI flow by returning the normal bulk result payload with `success=False` and an `errors` list instead of letting the exception escape.
+
+For the canonical contract and a concrete validation-error example, see [Bulk editing (synchronous)](../bulk_edit_sync.md#handling-validation-errors-in-persist_bulk_update).
+
 ---
 
 ## 10. Which hook should I use?

@@ -85,6 +85,24 @@ class TableMixin:
         """
         return True
 
+    def can_update_object(self, obj, request) -> bool:
+        """
+        Return whether the built-in Edit action should be enabled for a row.
+
+        Downstream views can override this to disable update affordances for
+        specific objects before the edit modal or page is opened.
+        """
+        return True
+
+    def get_update_disabled_reason(self, obj, request) -> str | None:
+        """
+        Return the tooltip shown when update affordances are disabled.
+
+        Downstream views can override this to explain why
+        ``can_update_object()`` returned ``False`` for a row.
+        """
+        return None
+
     def get_delete_disabled_reason(self, obj, request) -> str | None:
         """
         Return the tooltip shown when the built-in Delete action is disabled.

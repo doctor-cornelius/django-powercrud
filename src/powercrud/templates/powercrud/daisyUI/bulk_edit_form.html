@@ -1,11 +1,11 @@
 {% if errors %}
 <div class="alert alert-error mb-4">
     <ul>
-        {% for obj_pk, error_list in errors %}
+        {% for error_scope, error_list in errors %}
         {% for error in error_list %}
         <li>
-            {% if obj_pk %}
-            <strong>Object {{ obj_pk }}:</strong>
+            {% if error_scope and error_scope != "general" %}
+            <strong>{{ error_scope|capfirst }}:</strong>
             {% endif %}
             {{ error }}
         </li>

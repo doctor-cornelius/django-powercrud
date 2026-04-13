@@ -2,19 +2,21 @@
 
 ## Status
 
-Phases A, B, C, D, and E are shipped.
+Phases A, B, C, D, E, and F are shipped.
 
 PowerCRUD now handles single-object delete `ValidationError` refusals cleanly in HTMX/modal and non-HTMX flows, without changing the existing successful delete path.
 
 PowerCRUD also supports built-in row-level Delete guard hooks for the standard Delete action.
 
-The next active product phase is built-in row-level Update guard hooks for the standard Edit action.
+PowerCRUD also supports built-in row-level Update guard hooks for the standard Edit action, with matching inline-edit blocking for guarded rows.
+
+There is no further active implementation phase in this plan. The remaining items are later product follow-ups.
 
 ## Next
 
-1. Define the public hook contract for built-in Edit disablement.
-2. Apply the hook contract to standard row action rendering with a clear disabled reason tooltip.
-3. Add tests, sample-app coverage, and docs for the new built-in update guard behavior.
+1. Consider whether normal update views should also hard-block direct update-route access when `can_update_object()` returns `False`.
+2. Consider whether create/update should gain generic handled `ValidationError` response paths during persistence.
+3. Consider whether standard-action policy hooks should eventually generalize further, such as to View.
 
 ## ✅ Phase A: Lock the First Shipping Scope
 
@@ -89,22 +91,22 @@ The next active product phase is built-in row-level Update guard hooks for the s
     - [x] A disabled reason tooltip is shown for guarded rows.
     - [x] Sample-app and reference docs show the new built-in Delete guard capability.
 
-## 🔜 Phase F: Add Built-In Update Guard Hooks
+## ✅ Phase F: Add Built-In Update Guard Hooks
 
-1. [ ] Define the built-in update policy hook contract.
-    - [ ] Choose stable public hook names for "can update" and "why not".
-    - [ ] Ensure the contract accepts both `obj` and `request`.
-    - [ ] Default behavior allows updates unless a downstream override blocks them.
-2. [ ] Apply the contract to the standard Edit action.
-    - [ ] Built-in Edit can render disabled before the modal opens.
-    - [ ] Disabled rows expose a reason tooltip consistent with the delete-guard pattern.
-    - [ ] Existing inline-edit lock and permission affordances keep working predictably alongside the new standard Edit guard hooks.
-3. [ ] Keep broader persistence-refusal handling out of scope for this phase.
-    - [ ] This phase controls the built-in Edit affordance only.
-    - [ ] Save-time refusal handling for update persistence remains a separate concern.
-4. [ ] Verify and document the built-in update guard behavior.
-    - [ ] Standard Edit guard rendering is covered by focused tests.
-    - [ ] Sample-app and reference docs show the new built-in Update guard capability if shipped.
+1. [x] Define the built-in update policy hook contract.
+    - [x] Choose stable public hook names for "can update" and "why not".
+    - [x] Ensure the contract accepts both `obj` and `request`.
+    - [x] Default behavior allows updates unless a downstream override blocks them.
+2. [x] Apply the contract to the standard Edit action.
+    - [x] Built-in Edit can render disabled before the modal opens.
+    - [x] Disabled rows expose a reason tooltip consistent with the delete-guard pattern.
+    - [x] Existing inline-edit lock and permission affordances keep working predictably alongside the new standard Edit guard hooks.
+3. [x] Keep broader persistence-refusal handling out of scope for this phase.
+    - [x] This phase controls the built-in Edit affordance only.
+    - [x] Save-time refusal handling for update persistence remains a separate concern.
+4. [x] Verify and document the built-in update guard behavior.
+    - [x] Standard Edit guard rendering is covered by focused tests.
+    - [x] Sample-app and reference docs show the new built-in Update guard capability.
 
 ## Later
 
