@@ -35,6 +35,7 @@ Upgrade notes:
 - `BulkUpdatePersistenceBackend` is the async bulk-update hook for writes. It is not a general-purpose `AsyncManager` save hook.
 - When `bulk_update_persistence_backend_path` is configured, the default sync bulk-update path also uses that same backend so sync and async bulk update can share one write path.
 - Live CRUD view instances are not passed into async workers.
+- Built-in single delete now redisplays cleanly when `model.delete()` raises `ValidationError`, but delete still has no persistence hook equivalent to `persist_single_object()`.
 
 ---
 

@@ -46,6 +46,16 @@
     <p class="text-lg">Are you sure you want to delete the following {{ object_verbose_name }}?</p>
     <h2 class="card-title justify-center my-2 text-error">{{ object }}</h2>
 
+    {% if delete_errors %}
+    <div class="alert alert-error shadow-sm mb-4">
+        <div class="w-full">
+            {% for message in delete_errors %}
+            <div>{{ message }}</div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
     <form method="POST" action="{{ delete_view_url }}" {% if use_htmx and original_target %}
         hx-post="{{ delete_view_url }}" hx-target="{{ original_target }}" hx-push-url="false"
         hx-headers='{"X-Redisplay-Object-List": "true"}' {% endif %}>

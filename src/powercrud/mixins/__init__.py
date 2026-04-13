@@ -1,4 +1,5 @@
 from .htmx_mixin import HtmxMixin
+from .delete_mixin import DeleteMixin
 from .bulk_mixin import BulkEditRole, BulkMixin
 from .core_mixin import CoreMixin
 from .filtering_mixin import (
@@ -15,6 +16,7 @@ from .paginate_mixin import PaginateMixin
 
 class PowerCRUDMixin(
     HtmxMixin,
+    DeleteMixin,
     PaginateMixin,
     FormMixin,
     InlineEditingMixin,
@@ -54,6 +56,7 @@ __all__ = [
     "HTMXFilterSetMixin",
     "BulkEditRole",
     "InlineEditingMixin",
+    "DeleteMixin",
     "AsyncMixin",
     "PowerCRUDAsyncMixin",
 ]

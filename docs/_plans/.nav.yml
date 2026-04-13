@@ -2,3 +2,4 @@ title: "Plans"
 nav:
   - Overview: index.md
   - Persistence Hooks: persistence-hooks
+  - Single Delete UX: single-delete-ux

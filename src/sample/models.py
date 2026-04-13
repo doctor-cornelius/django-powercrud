@@ -53,15 +53,27 @@ class Profile(models.Model):
 
 
 class Genre(models.Model):
+    PROTECTED_SAMPLE_NAME = "Protected Sample Genre"
+
     name = models.CharField(max_length=100)
     description = models.TextField(blank=True)
     numeric_string = models.CharField(max_length=4, blank=True)
 
     def clean(self):
+        """Validate the sample genre fields."""
         if self.numeric_string and not self.numeric_string.isnumeric():
             raise ValidationError("Numeric string must be numeric")
 
+    def delete(self, *args, **kwargs):
+        """Refuse deletion for the protected demo row used by the sample app."""
+        if self.name == self.PROTECTED_SAMPLE_NAME:
+            raise ValidationError(
+                "Protected Sample Genre exists to demonstrate handled delete refusals."
+            )
+        return super().delete(*args, **kwargs)
+
     def __str__(self):
+        """Return the human-readable genre label."""
         return self.name
 
 

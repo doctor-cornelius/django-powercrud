@@ -7,3 +7,4 @@ Keep active plans as untracked files under `docs/mkdocs/plans/` (they are ignore
 ## Active plan folders
 
 - [Persistence Hooks](persistence-hooks/persistence-hooks-plan.md)
+- [Single Delete UX](single-delete-ux/single-delete-ux-plan.md)

@@ -424,3 +424,45 @@ class SamplePersistenceTutorialHelperTests(TestCase):
             progress_callback,
             "BookBulkUpdateBackend.persist_bulk_update should forward the progress callback to BookBulkUpdateService.apply.",
         )
+
+
+class SampleGenreDeleteRefusalTests(TestCase):
+    """Exercise the sample app's handled single-delete refusal demonstration."""
+
+    def test_protected_sample_genre_delete_keeps_modal_open_with_error(self):
+        """Protected sample genres should demonstrate modal-safe delete refusal handling."""
+        protected_genre = Genre.objects.create(
+            name=Genre.PROTECTED_SAMPLE_NAME,
+            description="Demo row for handled delete refusals.",
+        )
+
+        response = self.client.post(
+            reverse("sample:genre-delete", args=[protected_genre.pk]),
+            HTTP_HX_REQUEST="true",
+            HTTP_HX_TARGET="content",
+        )
+
+        self.assertEqual(
+            response.status_code,
+            200,
+            "The sample protected genre delete should return a handled 200 response instead of a server error.",
+        )
+        self.assertContains(
+            response,
+            "Protected Sample Genre exists to demonstrate handled delete refusals.",
+            msg_prefix="The sample protected genre delete should surface the refusal message in the rendered response.",
+        )
+        self.assertEqual(
+            response.headers.get("HX-Retarget"),
+            "#powercrudModalContent",
+            "The sample protected genre delete should retarget the handled error response back into the modal content container.",
+        )
+        self.assertIn(
+            "showModal",
+            response.headers.get("HX-Trigger", ""),
+            "The sample protected genre delete should explicitly keep the modal open after a handled refusal.",
+        )
+        self.assertTrue(
+            Genre.objects.filter(pk=protected_genre.pk).exists(),
+            "The protected sample genre should remain in the database after the delete refusal.",
+        )
