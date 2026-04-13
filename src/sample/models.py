@@ -54,6 +54,7 @@ class Profile(models.Model):
 
 class Genre(models.Model):
     PROTECTED_SAMPLE_NAME = "Protected Sample Genre"
+    GUARDED_SAMPLE_NAME = "Guarded Sample Genre"
 
     name = models.CharField(max_length=100)
     description = models.TextField(blank=True)

@@ -466,3 +466,37 @@ class SampleGenreDeleteRefusalTests(TestCase):
             Genre.objects.filter(pk=protected_genre.pk).exists(),
             "The protected sample genre should remain in the database after the delete refusal.",
         )
+
+    def test_guarded_sample_genre_disables_builtin_delete_action(self):
+        """Guarded sample genres should demonstrate pre-click Delete disablement."""
+        guarded_genre = Genre.objects.create(
+            name=Genre.GUARDED_SAMPLE_NAME,
+            description="Demo row for built-in Delete guards.",
+        )
+        Genre.objects.create(
+            name="Regular Sample Genre",
+            description="Control row with normal Delete behavior.",
+        )
+
+        response = self.client.get(reverse("sample:genre-list"))
+
+        self.assertEqual(
+            response.status_code,
+            200,
+            "The sample genre list should render successfully when showing guarded delete affordances.",
+        )
+        self.assertContains(
+            response,
+            Genre.GUARDED_SAMPLE_NAME,
+            msg_prefix="The guarded sample genre should appear on the sample list page.",
+        )
+        self.assertContains(
+            response,
+            "Guarded Sample Genre demonstrates built-in Delete disable hooks.",
+            msg_prefix="The guarded sample genre should expose the Delete guard tooltip reason on the list page.",
+        )
+        self.assertContains(
+            response,
+            "btn-disabled opacity-50 pointer-events-none",
+            msg_prefix="The guarded sample genre should render the built-in Delete action with the standard disabled styling.",
+        )

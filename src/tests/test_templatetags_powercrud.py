@@ -174,6 +174,12 @@ class TemplateViewStub:
     def get_model_session_key(self):
         return "sample.book"
 
+    def can_delete_object(self, obj, request):
+        return True
+
+    def get_delete_disabled_reason(self, obj, request):
+        return None
+
 
 @pytest.mark.django_db
 def test_action_links_include_extra_actions():
@@ -576,6 +582,121 @@ def test_action_links_disable_custom_extra_action_when_rule_matches():
     )
     assert "btn-disabled opacity-50 pointer-events-none" in html, (
         "Custom-disabled extra actions should reuse the standard disabled action styling."
+    )
+
+
+@pytest.mark.django_db
+def test_action_links_leave_builtin_delete_enabled_by_default():
+    author = Author.objects.create(name="Delete Default")
+    book = Book.objects.create(
+        title="Default Delete",
+        author=author,
+        published_date=date(2024, 8, 2),
+        bestseller=False,
+        isbn="9876543210555",
+        pages=21,
+        description="Delete remains enabled",
+    )
+    request = apply_session(RequestFactory().get("/"))
+    view = TemplateViewStub(request)
+
+    html = powercrud.action_links(view, book)
+
+    assert "Delete" in html, (
+        "Built-in Delete should still render when no delete guard hook blocks the row."
+    )
+    assert "Delete locked by policy." not in html, (
+        "Built-in Delete should not expose any guard reason when the default hook allows the action."
+    )
+
+
+@pytest.mark.django_db
+def test_action_links_disable_builtin_delete_when_delete_guard_blocks_row():
+    author = Author.objects.create(name="Delete Guard")
+    book = Book.objects.create(
+        title="Delete Guarded",
+        author=author,
+        published_date=date(2024, 8, 3),
+        bestseller=False,
+        isbn="9876543210667",
+        pages=24,
+        description="Delete should be disabled",
+    )
+    request = apply_session(RequestFactory().get("/"))
+    view = TemplateViewStub(request)
+    view.can_delete_object = lambda obj, request: False
+    view.get_delete_disabled_reason = (
+        lambda obj, request: "Delete locked by policy."
+    )
+
+    html = powercrud.action_links(view, book)
+
+    assert "Delete locked by policy." in html, (
+        "Built-in Delete should expose the configured delete-guard tooltip reason when the row is blocked."
+    )
+    assert html.count("btn-disabled opacity-50 pointer-events-none") >= 1, (
+        "Built-in Delete should reuse the standard disabled styling when a delete guard hook blocks the row."
+    )
+
+
+@pytest.mark.django_db
+def test_action_links_delete_guard_does_not_disable_builtin_edit():
+    author = Author.objects.create(name="Delete Only Guard")
+    book = Book.objects.create(
+        title="Delete Guard Leaves Edit",
+        author=author,
+        published_date=date(2024, 8, 3),
+        bestseller=False,
+        isbn="9876543210668",
+        pages=25,
+        description="Edit should stay enabled",
+    )
+    request = apply_session(RequestFactory().get("/"))
+    view = TemplateViewStub(request)
+    view.can_delete_object = lambda obj, request: False
+    view.get_delete_disabled_reason = (
+        lambda obj, request: "Delete locked by policy."
+    )
+
+    html = powercrud.action_links(view, book)
+
+    assert '/sample:book-update/' in html, (
+        "Built-in Edit should still render with its normal update URL when only the delete guard hook blocks the row."
+    )
+    assert 'title="Delete locked by policy.">Edit<' not in html, (
+        "Built-in Edit should not inherit the delete guard tooltip reason."
+    )
+
+
+@pytest.mark.django_db
+def test_action_links_lock_reason_overrides_delete_guard_reason():
+    author = Author.objects.create(name="Delete Lock")
+    book = Book.objects.create(
+        title="Delete Lock Wins",
+        author=author,
+        published_date=date(2024, 8, 4),
+        bestseller=False,
+        isbn="9876543210778",
+        pages=26,
+        description="Lock should win",
+    )
+    book._blocked_reason = "locked"
+    book._blocked_label = "Row locked"
+
+    request = apply_session(RequestFactory().get("/"))
+    view = TemplateViewStub(request)
+    view.can_delete_object = lambda obj, request: False
+    view.get_delete_disabled_reason = (
+        lambda obj, request: "Delete locked by policy."
+    )
+
+    html = powercrud.action_links(view, book)
+
+    assert "Row locked" in html, (
+        "Existing row-lock reasons should remain the primary disabled reason when a row is already blocked."
+    )
+    assert "Delete locked by policy." not in html, (
+        "Delete guard hooks should not override the established lock reason when both would disable the built-in Delete action."
     )
 
 

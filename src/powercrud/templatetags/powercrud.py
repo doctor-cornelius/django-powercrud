@@ -131,6 +131,42 @@ def _resolve_extra_action_disabled_state(
     return disable, disabled_reason
 
 
+def _resolve_standard_action_disabled_state(
+    *,
+    view: Any,
+    object: Any,
+    action_name: str,
+    request: Any,
+    lock_reason: str | None,
+    lock_label: str | None,
+) -> tuple[bool, str | None]:
+    """
+    Determine whether a built-in standard action should render disabled and why.
+    """
+    disable = bool(lock_reason and action_name in {"Edit", "Delete"})
+    disabled_reason = lock_label if disable else None
+
+    if disable or action_name != "Delete":
+        return disable, disabled_reason
+
+    can_delete = getattr(view, "can_delete_object", None)
+    if callable(can_delete):
+        try:
+            allowed = bool(can_delete(object, request))
+        except Exception:
+            allowed = True
+        if not allowed:
+            disable = True
+            get_reason = getattr(view, "get_delete_disabled_reason", None)
+            if callable(get_reason):
+                try:
+                    disabled_reason = get_reason(object, request)
+                except Exception:
+                    disabled_reason = None
+
+    return disable, disabled_reason
+
+
 def _get_selection_button_state(
     view: Any,
     request: Any,
@@ -287,7 +323,14 @@ def action_links(view: Any, object: Any) -> str:
     for name, url in standard_actions:
         if url is None:
             continue
-        disable = bool(lock_reason and name in {"Edit", "Delete"})
+        disable, disabled_reason = _resolve_standard_action_disabled_state(
+            view=view,
+            object=object,
+            action_name=name,
+            request=getattr(view, "request", None),
+            lock_reason=lock_reason,
+            lock_label=lock_label,
+        )
         standard_action_items.append(
             {
                 "url": url,
@@ -298,6 +341,7 @@ def action_links(view: Any, object: Any) -> str:
                 "show_modal": use_modal,
                 "modal_attrs": styles["modal_attrs"],
                 "disable": disable,
+                "disabled_reason": disabled_reason,
             }
         )
 
@@ -355,7 +399,7 @@ def action_links(view: Any, object: Any) -> str:
             show_modal=action["show_modal"],
             modal_attrs=action["modal_attrs"],
             disable=action["disable"],
-            lock_label=action.get("disabled_reason") or lock_label,
+            lock_label=action.get("disabled_reason"),
             use_htmx=use_htmx,
             query_string=query_string,
         )

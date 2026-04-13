@@ -260,6 +260,16 @@ class GenreCRUDView(SampleCRUDMixin):
         "name", "numeric_string", "name",
     ]
 
+    def can_delete_object(self, obj, request):
+        """Disable the built-in Delete action for the guarded sample row."""
+        return obj.name != models.Genre.GUARDED_SAMPLE_NAME
+
+    def get_delete_disabled_reason(self, obj, request):
+        """Explain why the guarded sample row cannot be deleted from the UI."""
+        if not self.can_delete_object(obj, request):
+            return "Guarded Sample Genre demonstrates built-in Delete disable hooks."
+        return None
+
 
 class ProfileCRUDView(SampleCRUDMixin):
     model = models.Profile

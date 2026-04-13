@@ -31,6 +31,7 @@ The sample app includes four interconnected models that showcase different relat
 
     - Simple model: `name`, `description`, `numeric_string`
     - Custom validation in `clean()` method
+    - Guarded demo row for built-in Delete disable hooks
     - Protected demo row for handled single-delete refusal UX
     - Used for many-to-many relationships and filtering
 
@@ -156,12 +157,20 @@ When the user changes `author` inline, PowerCRUD posts the current row data to t
 
 ### Other Views
 
-- **GenreCRUDView**: Minimal configuration example plus a sample protected row (`Protected Sample Genre`) that demonstrates handled single-delete `ValidationError` responses in the built-in modal delete flow
+- **GenreCRUDView**: Minimal configuration example plus two focused delete demos: a guarded row (`Guarded Sample Genre`) that disables the built-in Delete action before click, and a protected row (`Protected Sample Genre`) that demonstrates handled single-delete `ValidationError` responses after submit
 - **ProfileCRUDView**: OneToOneField, inline editing, bulk operations, merged nullable relation filtering on `favorite_genre`, and a static queryset rule that limits `favorite_genre` choices to genres whose names start with `S`
 - **AuthorCRUDView**: Properties, filtering, template debugging, companion nullable scalar filtering on `birth_date`, and visible row-level `extra_actions` in the default button mode
 - **BookCRUDView**: Async bulk editing, dependent `author -> genres` queryset scoping, `view_title` / `view_instructions` heading-area overrides, `column_help_text` header tooltips, selection-aware `extra_buttons`, and dropdown row actions that open upward for the last five rendered rows
 
-The `Genre` sample keeps this deliberately narrow: if a row is named `Protected Sample Genre`, its `delete()` method raises `ValidationError("Protected Sample Genre exists to demonstrate handled delete refusals.")`. That lets the sample app show the framework behavior added for built-in single delete without mixing it into the busier `BookCRUDView` demo surface.
+The `Genre` sample keeps these delete demos deliberately narrow:
+
+- If a row is named `Guarded Sample Genre`, `GenreCRUDView.can_delete_object(...)` returns `False` and the built-in Delete action renders disabled with a tooltip reason before the modal opens.
+- If a row is named `Protected Sample Genre`, its `delete()` method raises `ValidationError("Protected Sample Genre exists to demonstrate handled delete refusals.")`.
+
+That lets the sample app show both layers of the product story on the same lightweight CRUD surface:
+
+- pre-click Delete disablement
+- post-click handled delete refusal
 
 ### Static queryset demo
 

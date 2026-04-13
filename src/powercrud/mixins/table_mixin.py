@@ -76,6 +76,24 @@ class TableMixin:
         selected_ids = resolver(request)
         return [str(selected_id) for selected_id in selected_ids]
 
+    def can_delete_object(self, obj, request) -> bool:
+        """
+        Return whether the built-in Delete action should be enabled for a row.
+
+        Downstream views can override this to disable the standard Delete action
+        for specific objects before the modal opens.
+        """
+        return True
+
+    def get_delete_disabled_reason(self, obj, request) -> str | None:
+        """
+        Return the tooltip shown when the built-in Delete action is disabled.
+
+        Downstream views can override this to explain why
+        ``can_delete_object()`` returned ``False`` for a row.
+        """
+        return None
+
     def get_view_title(self) -> str:
         """
         Return the visible heading for the list page.

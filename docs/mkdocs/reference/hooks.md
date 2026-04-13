@@ -204,6 +204,46 @@ Upgrade notes:
 
 ---
 
+## Standard action guard hooks
+
+### `can_delete_object()`
+
+- Purpose: Use this when some rows should keep the built-in Delete action visible but disabled, for example canonical records, workflow-owned rows, or rows that should remain undeletable except to privileged users.
+- When it is called: During standard row-action rendering for the built-in Delete action.
+- Signature: `def can_delete_object(self, obj, request)`
+- Default behavior: Returns `True`, so the built-in Delete action remains enabled unless a downstream override blocks it.
+- Return contract: Truthy to allow the built-in Delete action, falsy to render it disabled.
+- Important note: This controls the pre-click UI affordance only. It does not replace server-side protection. If `delete()` still raises `ValidationError`, PowerCRUD's handled single-delete refusal flow remains the safety net.
+- Short example:
+
+    ```python
+    def can_delete_object(self, obj, request):
+        return not obj.is_canonical
+    ```
+
+- Related docs: [Customisation tips](../guides/customisation_tips.md), [Sample app overview](sample_app.md)
+
+### `get_delete_disabled_reason()`
+
+- Purpose: Use this with `can_delete_object()` when you want the disabled built-in Delete action to explain why the row cannot be deleted.
+- When it is called: During standard row-action rendering, only when the built-in Delete action is disabled by `can_delete_object()`.
+- Signature: `def get_delete_disabled_reason(self, obj, request)`
+- Default behavior: Returns `None`.
+- Return contract: A plain string tooltip, or `None` when no explanation should be shown.
+- Important note: Existing lock-based action blocking still takes precedence when a row is already blocked by PowerCRUD's lock metadata.
+- Short example:
+
+    ```python
+    def get_delete_disabled_reason(self, obj, request):
+        if not self.can_delete_object(obj, request):
+            return "Canonical records cannot be deleted."
+        return None
+    ```
+
+- Related docs: [Sample app overview](sample_app.md)
+
+---
+
 ## Inline editing hooks
 
 ### `inline_edit_allowed`
