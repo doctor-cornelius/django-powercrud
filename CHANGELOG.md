@@ -1,3 +1,10 @@
+## 0.5.33 (2026-04-13)
+
+### Feature
+
+- **(hooks)**: add built-in update guard hooks and improve docs for sync and async
+- **(hooks)**: implement delete guard hooks
+
 ## 0.5.32 (2026-04-13)
 
 ### Feature
