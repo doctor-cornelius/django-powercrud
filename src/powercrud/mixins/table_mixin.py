@@ -57,6 +57,13 @@ class TableMixin:
         """
         return resolve_config(self).extra_actions_mode
 
+    def get_extra_actions_dropdown_open_upward_bottom_rows(self) -> int:
+        """
+        Return how many rendered rows from the bottom should open the extra
+        actions dropdown upward when dropdown mode is active.
+        """
+        return int(resolve_config(self).extra_actions_dropdown_open_upward_bottom_rows)
+
     def get_selected_ids_for_extra_button(self, request, button_spec) -> list[str]:
         """
         Return the persisted selection used by a selection-aware extra button.

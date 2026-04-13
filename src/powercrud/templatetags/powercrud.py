@@ -363,6 +363,9 @@ def action_links(view: Any, object: Any) -> str:
     ]
 
     if extra_actions_mode == "dropdown" and extra_action_items:
+        dropdown_wrapper_classes = ["dropdown", "dropdown-end"]
+        if getattr(object, "_extra_actions_dropdown_open_upward", False):
+            dropdown_wrapper_classes.insert(1, "dropdown-top")
         dropdown_items = [
             "<li>"
             + _render_action_anchor(
@@ -382,7 +385,7 @@ def action_links(view: Any, object: Any) -> str:
             for action in extra_action_items
         ]
         extra_links = [
-            "<div class='dropdown dropdown-end'>"
+            f"<div class='{' '.join(dropdown_wrapper_classes)}'>"
             f"<div tabindex='0' role='button' class='{styles['base']} join-item {styles['extra_default']} {action_button_classes} gap-1' aria-label='More actions' data-inline-action='more'>More"
             "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='currentColor' class='h-3.5 w-3.5' aria-hidden='true'>"
             "<path fill-rule='evenodd' d='M5.23 7.21a.75.75 0 0 1 1.06.02L10 11.168l3.71-3.938a.75.75 0 1 1 1.08 1.04l-4.25 4.5a.75.75 0 0 1-1.08 0l-4.25-4.5a.75.75 0 0 1 .02-1.06Z' clip-rule='evenodd' />"
@@ -563,8 +566,23 @@ def object_list(context, objects, view):
     TICK_SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="green" class="size-4 inline-block"><path fill-rule="evenodd" d="M8 15A7 7 0 1 0 8 1a7 7 0 0 0 0 14Zm3.844-8.791a.75.75 0 0 0-1.188-.918l-3.7 4.79-1.649-1.833a.75.75 0 1 0-1.114 1.004l2.25 2.5a.75.75 0 0 0 1.15-.043l4.25-5.5Z" clip-rule="evenodd" /></svg>'
     CROSS_SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="crimson" class="size-4 inline-block"><path fill-rule="evenodd" d="M8 15A7 7 0 1 0 8 1a7 7 0 0 0 0 14Zm2.78-4.22a.75.75 0 0 1-1.06 0L8 9.06l-1.72 1.72a.75.75 0 1 1-1.06-1.06L6.94 8 5.22 6.28a.75.75 0 0 1 1.06-1.06L8 6.94l1.72-1.72a.75.75 0 1 1 1.06 1.06L9.06 8l1.72 1.72a.75.75 0 0 1 0 1.06Z" clip-rule="evenodd" /></svg>'
 
+    objects = list(objects)
+    bottom_row_count_for_upward_dropdown = _resolve_view_option(
+        view,
+        method_name="get_extra_actions_dropdown_open_upward_bottom_rows",
+        attr_name="extra_actions_dropdown_open_upward_bottom_rows",
+        default=3,
+    )
+    bottom_row_count_for_upward_dropdown = max(
+        int(bottom_row_count_for_upward_dropdown or 0), 0
+    )
+    first_upward_dropdown_index = max(
+        len(objects) - bottom_row_count_for_upward_dropdown,
+        0,
+    )
+
     object_list = []
-    for obj in objects:
+    for row_index, obj in enumerate(objects):
         row_id = getattr(view, "get_inline_row_id", None)
         if callable(row_id):
             row_id = row_id(obj)
@@ -650,6 +668,12 @@ def object_list(context, objects, view):
         # Attach inline metadata to the object for downstream helpers (e.g., action_links)
         setattr(obj, "_blocked_reason", inline_blocked_reason)
         setattr(obj, "_blocked_label", inline_blocked_label)
+        setattr(
+            obj,
+            "_extra_actions_dropdown_open_upward",
+            bottom_row_count_for_upward_dropdown > 0
+            and row_index >= first_upward_dropdown_index,
+        )
 
         record = {
             "object": obj,

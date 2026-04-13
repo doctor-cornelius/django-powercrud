@@ -113,6 +113,7 @@ class BookCRUDView(SampleCRUDMixin):
     action_button_classes = "btn-xs"
     extra_button_classes = "btn-sm"
     extra_actions_mode = "dropdown"
+    extra_actions_dropdown_open_upward_bottom_rows = 5
 
     inline_edit_always_visible = True # default is True
     inline_edit_highlight_accent = "#f40b0b"  # default is "#14b8a6"

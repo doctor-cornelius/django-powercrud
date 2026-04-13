@@ -30,6 +30,7 @@ class TemplateViewStub:
     url_base = "book"
     dropdown_sort_options = {"author": "name"}
     extra_actions_mode = "buttons"
+    extra_actions_dropdown_open_upward_bottom_rows = 3
 
     def __init__(self, request, *, use_htmx=True, use_modal=True):
         self.request = request
@@ -97,6 +98,9 @@ class TemplateViewStub:
 
     def get_extra_actions_mode(self):
         return self.extra_actions_mode
+
+    def get_extra_actions_dropdown_open_upward_bottom_rows(self):
+        return self.extra_actions_dropdown_open_upward_bottom_rows
 
     def get_prefix(self):
         return f"{self.namespace}:{self.url_base}"
@@ -229,6 +233,33 @@ def test_action_links_can_render_extra_actions_in_dropdown():
 
 
 @pytest.mark.django_db
+def test_action_links_can_render_upward_dropdown_when_row_requests_it():
+    author = Author.objects.create(name="Eve")
+    book = Book.objects.create(
+        title="Dropdown Up",
+        author=author,
+        published_date=date(2024, 2, 2),
+        bestseller=False,
+        isbn="9876543210123",
+        pages=99,
+        description="Dropdown preview",
+    )
+    request = apply_session(RequestFactory().get("/"))
+    view = TemplateViewStub(request)
+    view.extra_actions_mode = "dropdown"
+    book._extra_actions_dropdown_open_upward = True
+
+    html = powercrud.action_links(view, book)
+
+    assert "dropdown-top" in html, (
+        "Dropdown row action rendering should add the upward-opening class when the row metadata requests it."
+    )
+    assert "dropdown-end" in html, (
+        "Upward-opening dropdowns should preserve end alignment for the menu trigger."
+    )
+
+
+@pytest.mark.django_db
 def test_object_list_renders_booleans_dates_and_selection():
     author = Author.objects.create(name="Grace")
     genre = Genre.objects.create(name="Sci-Fi")
@@ -270,6 +301,114 @@ def test_object_list_renders_booleans_dates_and_selection():
     assert result["selected_ids"] == ["1"]
     assert result["selected_count"] == 1
     assert result["filter_params"] == "filter=1"
+
+
+@pytest.mark.django_db
+def test_object_list_opens_dropdown_upward_for_last_three_rows_by_default():
+    author = Author.objects.create(name="Bottom Rows")
+    books = [
+        Book.objects.create(
+            title=f"Bottom {index}",
+            author=author,
+            published_date=date(2024, 3, index),
+            bestseller=False,
+            isbn=f"9876543210{index:03d}",
+            pages=10 + index,
+            description="Dropdown preview",
+        )
+        for index in range(1, 5)
+    ]
+    request = apply_session(RequestFactory().get("/"))
+    view = TemplateViewStub(request)
+    view.extra_actions_mode = "dropdown"
+
+    context = {
+        "request": request,
+        "use_htmx": True,
+        "original_target": "#content",
+        "htmx_target": "#content",
+    }
+    result = powercrud.object_list(context, books, view)
+
+    first_row, second_row, third_row, fourth_row = result["object_list"]
+    assert "dropdown-top" not in first_row["actions"], (
+        "Only rows within the configured bottom-row threshold should open upward."
+    )
+    assert "dropdown-top" in second_row["actions"], (
+        "The third-to-last rendered row should open upward when the default threshold is three rows."
+    )
+    assert "dropdown-top" in third_row["actions"], (
+        "The second-to-last rendered row should open upward when the default threshold is three rows."
+    )
+    assert "dropdown-top" in fourth_row["actions"], (
+        "The last rendered row should open upward when the default threshold is three rows."
+    )
+
+
+@pytest.mark.django_db
+def test_object_list_disables_upward_dropdown_when_threshold_is_zero():
+    author = Author.objects.create(name="Zero Rows")
+    books = [
+        Book.objects.create(
+            title=f"Zero {index}",
+            author=author,
+            published_date=date(2024, 4, index),
+            bestseller=False,
+            isbn=f"9876543211{index:03d}",
+            pages=20 + index,
+            description="Dropdown preview",
+        )
+        for index in range(1, 3)
+    ]
+    request = apply_session(RequestFactory().get("/"))
+    view = TemplateViewStub(request)
+    view.extra_actions_mode = "dropdown"
+    view.extra_actions_dropdown_open_upward_bottom_rows = 0
+
+    context = {
+        "request": request,
+        "use_htmx": True,
+        "original_target": "#content",
+        "htmx_target": "#content",
+    }
+    result = powercrud.object_list(context, books, view)
+
+    assert all("dropdown-top" not in row["actions"] for row in result["object_list"]), (
+        "A zero bottom-row threshold should keep all rendered dropdowns opening downward."
+    )
+
+
+@pytest.mark.django_db
+def test_object_list_opens_all_dropdowns_upward_when_threshold_exceeds_page_rows():
+    author = Author.objects.create(name="All Up")
+    books = [
+        Book.objects.create(
+            title=f"All {index}",
+            author=author,
+            published_date=date(2024, 5, index),
+            bestseller=False,
+            isbn=f"9876543212{index:03d}",
+            pages=30 + index,
+            description="Dropdown preview",
+        )
+        for index in range(1, 3)
+    ]
+    request = apply_session(RequestFactory().get("/"))
+    view = TemplateViewStub(request)
+    view.extra_actions_mode = "dropdown"
+    view.extra_actions_dropdown_open_upward_bottom_rows = 5
+
+    context = {
+        "request": request,
+        "use_htmx": True,
+        "original_target": "#content",
+        "htmx_target": "#content",
+    }
+    result = powercrud.object_list(context, books, view)
+
+    assert all("dropdown-top" in row["actions"] for row in result["object_list"]), (
+        "A threshold larger than the rendered row count should make every rendered dropdown open upward."
+    )
 
 
 @pytest.mark.django_db

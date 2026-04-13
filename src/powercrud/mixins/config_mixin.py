@@ -108,6 +108,7 @@ class ConfigMixin:
     action_button_classes: str = ""
     extra_button_classes: str = ""
     extra_actions_mode: str = "buttons"
+    extra_actions_dropdown_open_upward_bottom_rows: int = 3
     show_record_count: bool = False
     show_bulk_selection_meta: bool = True
 
@@ -144,6 +145,7 @@ class ConfigMixin:
         "action_button_classes",
         "extra_button_classes",
         "extra_actions_mode",
+        "extra_actions_dropdown_open_upward_bottom_rows",
         "show_record_count",
         "show_bulk_selection_meta",
         "m2m_filter_and_logic",

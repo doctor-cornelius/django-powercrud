@@ -150,6 +150,7 @@ For row actions, `extra_actions_mode` controls whether the extra actions stay vi
 
 - `extra_actions_mode = "buttons"` keeps the legacy behavior and renders extra row actions as visible joined buttons after `View/Edit/Delete`.
 - `extra_actions_mode = "dropdown"` keeps `View/Edit/Delete` visible and moves only the configured `extra_actions` into a `More` dropdown.
+- `extra_actions_dropdown_open_upward_bottom_rows = 3` makes the `More` dropdown open upward for the last three rendered rows on the current page. Set it to `0` to keep every row opening downward.
 
 Example:
 
@@ -157,6 +158,7 @@ Example:
 class AuthorCRUDView(PowerCRUDMixin, CRUDView):
     # ...
     extra_actions_mode = "dropdown"
+    extra_actions_dropdown_open_upward_bottom_rows = 3
     extra_actions = [
         {
             "url_name": "sample:author-detail",

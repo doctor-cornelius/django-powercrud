@@ -122,6 +122,7 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
     action_button_classes = "btn-sm"
     extra_button_classes = "btn-sm"
     extra_actions_mode = "dropdown"
+    extra_actions_dropdown_open_upward_bottom_rows = 3
 
     # ------------------------------------------------------------------
     # Extra buttons / row actions
@@ -190,6 +191,7 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
 - `form_disabled_fields` keeps real update-form inputs visible but disabled. PowerCRUD uses Django field disabling rather than widget-only attrs, so posted tampering is ignored and the saved instance value is preserved.
 - A good use case for `view_title` is when the page heading needs UX-friendly wording such as `My List of Books` or `Active Client Projects`, while the underlying model metadata should stay reusable elsewhere.
 - `extra_actions_mode = "dropdown"` is optional. When omitted, `extra_actions` keep the legacy visible-button behavior. Dropdown mode keeps `View/Edit/Delete` visible and moves only the extra row actions into the `More` menu.
+- `extra_actions_dropdown_open_upward_bottom_rows = 3` makes the `More` menu open upward for the last three rendered rows on the current page. Set it to `0` if you want every dropdown to keep opening downward.
 - `uses_selection = True` turns a header button into a selection-aware action that reads the persisted PowerCRUD selection at the endpoint.
 - `selection_min_behavior = "disable"` lets the frontend grey out a selection-aware header button until enough rows are selected, but the endpoint should still validate the selection server-side.
 - `disabled_if` / `disabled_reason` let row `extra_actions` disable themselves per object using named view methods.

@@ -155,6 +155,20 @@ def test_validator_accepts_extra_actions_mode():
     )
 
 
+def test_validator_accepts_extra_actions_dropdown_upward_bottom_rows():
+    validator = PowerCRUDMixinValidator(
+        extra_actions_dropdown_open_upward_bottom_rows=0
+    )
+    assert validator.extra_actions_dropdown_open_upward_bottom_rows == 0, (
+        "Validator should accept a zero bottom-row threshold so projects can disable upward-opening dropdowns."
+    )
+
+
+def test_validator_rejects_negative_extra_actions_dropdown_upward_bottom_rows():
+    with pytest.raises(ValueError):
+        PowerCRUDMixinValidator(extra_actions_dropdown_open_upward_bottom_rows=-1)
+
+
 def test_validator_rejects_invalid_filter_null_fields_exclude():
     """Reject non-string entries for nullable-filter exclusions."""
     with pytest.raises(ValueError):

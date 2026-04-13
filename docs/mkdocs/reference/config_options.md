@@ -32,6 +32,7 @@ Types are shown next to each setting name. `Accepted values` is the contract for
 | `exclude` (`list[str]`) | `list[str]` | `[]` | Every concrete model field is shown | Remove individual fields from the list view while keeping the rest. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
 | `extra_actions` (`list[dict]`) | `list[action spec]` | `[]` | Only the default action buttons render | Define extra per-row actions (URL, label, attributes). | [Complete Example](complete_example.md) |
 | `extra_actions_mode` (`str`) | `'buttons'`, `'dropdown'` | `'buttons'` | Extra row actions render as visible buttons after the standard actions | Control how row-level `extra_actions` are rendered. Use `'dropdown'` to keep `View/Edit/Delete` visible and move only the extra row actions into a `More` overflow menu. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
+| `extra_actions_dropdown_open_upward_bottom_rows` (`int`) | `int >= 0` | `3` | All `More` menus open downward | In dropdown mode, open the `More` menu upward for the last N rendered rows on the current page. Set `0` to disable this behavior. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
 | `extra_button_classes` (`str`) | `str` | `""` | Extra buttons use the default button styling | Additional CSS classes shared by every entry in `extra_buttons`. | [Styling & Tailwind](../guides/styling_tailwind.md) |
 | `extra_buttons` (`list[dict]`) | `list[button spec]` | `[]` | No extra header buttons are shown | Add top-of-page buttons (e.g., custom actions, links). | [Complete Example](complete_example.md) |
 | `fields` (`list/str`) | `None`, `'__all__'`, `list[str]` | `'__all__'` | All concrete model fields show in the list view | Columns displayed in the list view. Combine with `exclude`. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
@@ -298,6 +299,7 @@ Example:
 
 ```python
 extra_actions_mode = "dropdown"
+extra_actions_dropdown_open_upward_bottom_rows = 3
 
 extra_actions = [
     {
@@ -316,6 +318,8 @@ Notes:
 - The default is `'buttons'` for backward compatibility.
 - `extra_actions_mode` affects only row `extra_actions`, not top-of-page `extra_buttons`.
 - In dropdown mode, the `More` trigger uses the framework’s `extra_default` button styling unless you override the framework styles.
+- `extra_actions_dropdown_open_upward_bottom_rows` counts from the bottom of the currently rendered rows after filtering and pagination.
+- Set `extra_actions_dropdown_open_upward_bottom_rows = 0` to keep every dropdown opening downward.
 - `disabled_if` and `disabled_reason` are optional view method names used to disable a row action based on the current object and request.
 - `lock_sensitive` remains available when an action should also disable under PowerCRUD's existing lock/blocked-row state.
 
