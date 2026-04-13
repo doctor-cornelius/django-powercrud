@@ -1,3 +1,9 @@
+## 0.5.32 (2026-04-13)
+
+### Feature
+
+- **(delete)**: for standard single delete action pass validation errors to modal form
+
 ## 0.5.31 (2026-04-08)
 
 ### Documentation
