@@ -27,6 +27,21 @@
     --pc-ts-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
 }
 
+.tippy-box[data-theme~="powercrud"],
+.tippy-box[data-theme~="powercrud-semantic-cell"] {
+    background-color: #333333;
+    color: #ffffff;
+}
+
+.tippy-box[data-theme~="powercrud"] > .tippy-arrow,
+.tippy-box[data-theme~="powercrud-semantic-cell"] > .tippy-arrow {
+    color: #333333;
+}
+
+.tippy-box[data-theme~="powercrud-semantic-cell"] .tippy-content {
+    white-space: pre-line;
+}
+
 select.ts-hidden-accessible {
     position: absolute !important;
     width: 1px !important;

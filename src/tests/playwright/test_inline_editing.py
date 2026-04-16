@@ -278,10 +278,10 @@ def test_inline_edit_searchable_select_updates_author(
 
 def test_inline_edit_display_truncates_long_values(page: Page, books_url: str, inline_ready_books):
     """Long inline display labels should clip inside the cell before edit mode opens."""
-    long_title = "Inline Display Title That Should Truncate Instead Of Bleeding Into The Next Column"
+    long_author_name = "Inline Display Author Name That Should Truncate Instead Of Bleeding Into The Next Column"
     target_book = inline_ready_books[0]
-    target_book.title = long_title
-    target_book.save(update_fields=["title"])
+    target_book.author.name = long_author_name
+    target_book.author.save(update_fields=["name"])
 
     page.set_viewport_size({"width": 900, "height": 900})
     page.add_init_script(
@@ -294,7 +294,7 @@ def test_inline_edit_display_truncates_long_values(page: Page, books_url: str, i
                     table-layout: fixed;
                     width: 100%;
                 }
-                td[data-field-name="title"] {
+                td[data-field-name="author"] {
                     width: 12rem;
                     max-width: 12rem;
                 }
@@ -317,8 +317,8 @@ def test_inline_edit_display_truncates_long_values(page: Page, books_url: str, i
     open_books_page(page, books_url)
 
     overflow_label = page.locator(
-        "td[data-field-name='title'] "
-        f".pc-inline-display-label[data-powercrud-tooltip='overflow'][data-tippy-content=\"{long_title}\"]"
+        "td[data-field-name='author'] "
+        f".pc-inline-display-label[data-powercrud-tooltip='overflow'][data-tippy-content=\"{long_author_name}\"]"
     ).first
     expect(overflow_label).to_be_visible()
     assert overflow_label.evaluate("el => el.scrollWidth > el.clientWidth"), (

@@ -346,9 +346,9 @@ This is useful when users need quick confirmation that a filter narrowed the que
 
 When synchronous bulk editing is enabled, the same metadata line can also host contextual selection actions such as `Select all N matching records` or `Add 998 more from 1030 matching records`. Leave `show_bulk_selection_meta = True` (the default) to keep that action available even when `show_record_count` is off, or disable it separately if you do not want selection prompts in that row.
 
-### List heading, helper text, and header help
+### List heading, helper text, and tooltips
 
-If you want the visible list heading to differ from the model’s `verbose_name_plural`, set `view_title` on the CRUD view. You can also add plain-text helper copy directly below it with `view_instructions`, and optional plain-text help tooltips to specific headers with `column_help_text`:
+If you want the visible list heading to differ from the model’s `verbose_name_plural`, set `view_title` on the CRUD view. You can also add plain-text helper copy directly below it with `view_instructions`, optional plain-text help tooltips to specific headers with `column_help_text`, and optional semantic tooltips for selected rendered cells with `list_cell_tooltip_fields` plus `get_list_cell_tooltip(...)`:
 
 ```python
 class ProjectCRUDView(PowerCRUDMixin, CRUDView):
@@ -359,9 +359,29 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
         "owner": "The client or business owner responsible for the project.",
         "display_status": "Calculated status shown for quick triage.",
     }
+    list_cell_tooltip_fields = ["owner", "display_status"]
+
+    def get_list_cell_tooltip(self, obj, field_name, *, is_property, request=None):
+        if field_name == "owner":
+            return f"{obj.owner.email} ({obj.owner.team.name})"
+        if field_name == "display_status":
+            return obj.status_explanation
+        return None
 ```
 
-`view_title` changes only the large heading above the list table. `view_instructions` adds a small escaped text block directly underneath that heading. `column_help_text` adds a separate info trigger next to only the configured header labels, so sorting still belongs to the header itself. PowerCRUD continues to use the model verbose names for other copy such as `Create project` and empty-state text, and both `view_instructions` and `column_help_text` are text-only rather than HTML.
+`view_title` changes only the large heading above the list table. `view_instructions` adds a small escaped text block directly underneath that heading. `column_help_text` adds a separate info trigger next to only the configured header labels, so sorting still belongs to the header itself.
+
+`list_cell_tooltip_fields` is opt-in. PowerCRUD only calls `get_list_cell_tooltip(...)` for rendered list fields or properties named in that list, and silently ignores configured names that are not actually visible in the table. Return plain text or `None`.
+
+Hook-backed semantic list-cell tooltip text may include newline characters when a tooltip should display as multiple lines. That multiline rendering is limited to semantic list-cell tooltips returned by `get_list_cell_tooltip(...)`; header-help and other tooltip surfaces keep their existing behavior.
+
+Tooltip behavior stays layered:
+
+- `column_help_text` is header help only.
+- `list_cell_tooltip_fields` plus `get_list_cell_tooltip(...)` provides semantic per-cell tooltip text for selected rendered columns.
+- Unconfigured cells keep the built-in overflow tooltip behavior when their rendered content is truncated.
+
+When a semantic list-cell tooltip is configured for a cell, it takes precedence over the overflow tooltip for that same cell. PowerCRUD continues to use the model verbose names for other copy such as `Create project` and empty-state text, and `view_instructions`, `column_help_text`, and semantic list-cell tooltip text are all escaped plain text rather than HTML.
 
 ---
 

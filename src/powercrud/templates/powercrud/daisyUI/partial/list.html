@@ -289,7 +289,7 @@
                     hx-trigger="click, keyup[key=='Enter'], keyup[key==' ']"
                     >
                 <span class="pc-inline-display-label {% if align_class == 'center' %}text-center{% else %}w-full{% endif %}"
-                    {% if value_str|slice:":1" != "<" %}data-tippy-content="{{ cell.value }}" data-powercrud-tooltip="overflow"{% endif %}>
+                    {% if cell.tooltip_text %}data-tippy-content="{{ cell.tooltip_text }}" data-powercrud-tooltip="semantic-cell"{% elif value_str|slice:":1" != "<" %}data-tippy-content="{{ cell.value }}" data-powercrud-tooltip="overflow"{% endif %}>
                     {{ cell.value }}
                 </span>
             </button>
@@ -309,7 +309,7 @@
             {% endwith %}
         {% else %}
             <div class="{% if cell.align == 'center' %}flex justify-center items-center w-full{% else %}w-full text-left{% endif %}"
-                 {% if value_str|slice:":1" != "<" %}data-tippy-content="{{ cell.value }}" data-powercrud-tooltip="overflow"{% endif %}>
+                 {% if cell.tooltip_text %}data-tippy-content="{{ cell.tooltip_text }}" data-powercrud-tooltip="semantic-cell"{% elif value_str|slice:":1" != "<" %}data-tippy-content="{{ cell.value }}" data-powercrud-tooltip="overflow"{% endif %}>
                 {{ cell.value }}
             </div>
         {% endif %}
@@ -373,7 +373,7 @@
                     hx-trigger="click, keyup[key=='Enter'], keyup[key==' ']"
                     >
                 <span class="pc-inline-display-label {% if align_class == 'center' %}text-center{% else %}w-full{% endif %}"
-                    {% if value_str|slice:":1" != "<" %}data-tippy-content="{{ cell.value }}" data-powercrud-tooltip="overflow"{% endif %}>
+                    {% if cell.tooltip_text %}data-tippy-content="{{ cell.tooltip_text }}" data-powercrud-tooltip="semantic-cell"{% elif value_str|slice:":1" != "<" %}data-tippy-content="{{ cell.value }}" data-powercrud-tooltip="overflow"{% endif %}>
                     {{ cell.value }}
                 </span>
             </button>
@@ -393,7 +393,7 @@
             {% endwith %}
         {% else %}
             <div class="{% if cell.align == 'center' %}flex justify-center items-center w-full{% else %}w-full text-left{% endif %}"
-                 {% if value_str|slice:":1" != "<" %}data-tippy-content="{{ cell.value }}" data-powercrud-tooltip="overflow"{% endif %}>
+                 {% if cell.tooltip_text %}data-tippy-content="{{ cell.tooltip_text }}" data-powercrud-tooltip="semantic-cell"{% elif value_str|slice:":1" != "<" %}data-tippy-content="{{ cell.value }}" data-powercrud-tooltip="overflow"{% endif %}>
                 {{ cell.value }}
             </div>
         {% endif %}

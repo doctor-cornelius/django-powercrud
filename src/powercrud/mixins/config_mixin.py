@@ -36,6 +36,7 @@ class ConfigMixin:
     view_title: str | None = None
     view_instructions: str | None = None
     column_help_text: dict[str, str] | None = None
+    list_cell_tooltip_fields: list[str] | None = None
     column_sort_fields_override: dict[str, str] | None = None
 
     # forms
@@ -173,6 +174,7 @@ class ConfigMixin:
         "form_disabled_fields",
         "bulk_fields",
         "inline_edit_fields",
+        "list_cell_tooltip_fields",
         "filter_null_fields_exclude",
         "filterset_fields",
     }
@@ -921,6 +923,7 @@ class _ConfigShim:
             "detail_fields",
             "detail_properties",
             "filterset_fields",
+            "list_cell_tooltip_fields",
         }:
             return ConfigMixin._dedupe_preserving_first(self._raw(name, []) or [])
         if name in {

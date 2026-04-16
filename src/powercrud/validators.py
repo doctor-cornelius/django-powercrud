@@ -16,6 +16,7 @@ class PowerCRUDMixinValidator(BaseModel):
     view_title: Optional[str] = None
     view_instructions: Optional[str] = None
     column_help_text: Optional[Dict[str, str]] = None
+    list_cell_tooltip_fields: Optional[List[str]] = None
     column_sort_fields_override: Optional[Dict[str, str]] = None
 
     # forms
@@ -200,6 +201,21 @@ class PowerCRUDMixinValidator(BaseModel):
             return v
         if isinstance(v, list) and not all(isinstance(x, str) for x in v):
             raise ValueError("inline_edit_fields must contain only strings")
+        return v
+
+    @field_validator("list_cell_tooltip_fields")
+    @classmethod
+    def validate_list_cell_tooltip_fields(cls, v):
+        """Require tooltip field declarations to be non-empty strings."""
+        if v is None:
+            return v
+        if not isinstance(v, list):
+            raise ValueError("list_cell_tooltip_fields must be a list of strings")
+        for value in v:
+            if not isinstance(value, str) or not value.strip():
+                raise ValueError(
+                    "list_cell_tooltip_fields must contain only non-empty strings"
+                )
         return v
 
     @field_validator("inline_edit_highlight_accent")

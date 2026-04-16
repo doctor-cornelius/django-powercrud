@@ -29,6 +29,7 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
         "owner": "Business owner responsible for the project.",
         "display_status": "Calculated status shown for quick triage.",
     }
+    list_cell_tooltip_fields = ["owner", "is_overdue"]
 
     # ------------------------------------------------------------------
     # HTMX / modal behaviour
@@ -177,6 +178,13 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
         if obj.archived_at is None:
             return "History is only available for archived projects."
         return None
+
+    def get_list_cell_tooltip(self, obj, field_name, *, is_property, request=None):
+        if field_name == "owner":
+            return f"{obj.owner.email} - {obj.owner.team.name}"
+        if field_name == "is_overdue":
+            return "Past due and needs follow-up" if obj.is_overdue else "On schedule"
+        return None
 ```
 
 ## Notes
@@ -186,6 +194,8 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
 - `view_title` overrides only the visible list heading. It does not change create-button text, empty-state copy, or the model’s own verbose names.
 - `view_instructions` adds plain-text helper copy directly below the visible list heading. The content is escaped and does not accept HTML.
 - `column_help_text` adds optional plain-text tooltips to specific header labels. The help trigger is a separate info icon, so sortable headers keep sorting behavior.
+- `list_cell_tooltip_fields` opts selected rendered columns into semantic list-cell tooltips. The shared `get_list_cell_tooltip(...)` hook is only called for configured names that are actually visible in the current list, and returned plain text may include newline characters when the semantic cell tooltip should render on multiple lines.
+- Semantic list-cell tooltips take precedence over the fallback overflow tooltip for the same cell. Unconfigured cells keep the existing overflow behavior.
 - `form_class` is the source of truth for editable inputs in this example. Because a custom form class is configured, the example intentionally does not also set `form_fields`.
 - `form_display_fields` renders model fields in a separate read-only `Context` block above update forms. This is useful for `editable=False` fields or other contextual data the user should see while editing.
 - `form_disabled_fields` keeps real update-form inputs visible but disabled. PowerCRUD uses Django field disabling rather than widget-only attrs, so posted tampering is ignored and the saved instance value is preserved.

@@ -598,6 +598,47 @@ def test_table_mixin_get_column_help_text_prefers_configured_mapping():
     )
 
 
+def test_table_mixin_get_list_cell_tooltip_fields_defaults_to_empty_list():
+    class TableView(TableMixin):
+        model = Author
+
+    view = TableView()
+
+    assert view.get_list_cell_tooltip_fields() == [], (
+        "List cell tooltip fields should default to an empty list when no semantic cell tooltips are configured."
+    )
+
+
+def test_table_mixin_get_list_cell_tooltip_fields_prefers_configured_list():
+    class TableView(TableMixin):
+        model = Author
+        list_cell_tooltip_fields = ["name", "has_bio"]
+
+    view = TableView()
+
+    assert view.get_list_cell_tooltip_fields() == ["name", "has_bio"], (
+        "List cell tooltip fields should use the configured ordered list when provided."
+    )
+
+
+def test_table_mixin_get_list_cell_tooltip_defaults_to_none():
+    class TableView(TableMixin):
+        model = Author
+
+    author = Author(name="Tooltip Default")
+    view = TableView()
+
+    assert (
+        view.get_list_cell_tooltip(
+            author,
+            "name",
+            is_property=False,
+            request=None,
+        )
+        is None
+    ), "The default list cell tooltip hook should return None so unconfigured cells keep existing behavior."
+
+
 def test_table_mixin_inline_edit_highlight_defaults_match_current_teal_styles():
     class TableView(TableMixin):
         pass
@@ -668,6 +709,16 @@ def test_column_help_text_blank_value_raises():
         model = Author
         fields = ["name"]
         column_help_text = {"name": "   "}
+
+    with pytest.raises(ImproperlyConfigured):
+        BrokenView()
+
+
+def test_list_cell_tooltip_fields_blank_value_raises():
+    class BrokenView(CoreMixin):
+        model = Author
+        fields = ["name"]
+        list_cell_tooltip_fields = ["name", "   "]
 
     with pytest.raises(ImproperlyConfigured):
         BrokenView()
@@ -935,6 +986,12 @@ def test_author_list_renders_column_help_icon_and_text(client, monkeypatch):
     assert 'data-tippy-content="Whether the author currently has bio text."' in response_text, (
         "Configured property help should be emitted as tooltip content on the header help trigger."
     )
+    assert 'data-powercrud-tooltip="semantic"' in response_text, (
+        "Header help triggers should keep the generic semantic tooltip marker."
+    )
+    assert 'data-powercrud-tooltip="semantic-cell"' not in response_text, (
+        "Header help triggers should not use the semantic list-cell marker reserved for hook-backed cell tooltips."
+    )
 
 
 @pytest.mark.django_db
@@ -1161,6 +1218,73 @@ def test_book_list_inline_edit_display_uses_truncating_label_wrapper():
     )
     assert 'data-powercrud-tooltip="overflow"' in template_text, (
         "Inline display labels should keep the overflow-tooltip hook on the truncating wrapper."
+    )
+
+
+@pytest.mark.django_db
+def test_book_list_renders_sample_semantic_list_cell_tooltips(client):
+    """Render the sample semantic list-cell tooltip markup for configured fields and properties."""
+    author = Author.objects.create(name="Semantic Tooltip Author")
+    Book.objects.create(
+        title="Semantic Tooltip Book",
+        author=author,
+        published_date=date(2024, 9, 20),
+        bestseller=False,
+        isbn="978-1-4028-9462-1",
+        pages=412,
+        description="Semantic tooltip sample",
+    )
+
+    response = client.get(reverse("sample:bigbook-list"))
+    response_text = response.content.decode()
+
+    assert response.status_code == 200, (
+        "Book list view should render successfully so semantic list-cell tooltip markup can be inspected."
+    )
+    assert 'data-tippy-content="Semantic Tooltip Author\n412 pages"' in response_text, (
+        "Configured sample title cells should preserve newline-separated semantic tooltip text from the shared hook."
+    )
+    assert 'data-tippy-content="ISBN: 978-1-4028-9462-1"' in response_text, (
+        "Configured sample property cells should render semantic list-cell tooltip text, even when the displayed value is an icon."
+    )
+    assert 'data-powercrud-tooltip="semantic-cell"' in response_text, (
+        "Configured sample list cells should use the dedicated semantic-cell tooltip channel rather than the generic semantic or overflow channels."
+    )
+
+
+@pytest.mark.django_db
+def test_book_list_escapes_semantic_list_cell_tooltip_html(client, monkeypatch):
+    """Escape HTML-like semantic cell tooltip text so list-cell tooltips remain plain text only."""
+    monkeypatch.setattr(
+        "sample.views.BookCRUDView.get_list_cell_tooltip",
+        lambda self, obj, field_name, *, is_property, request=None: (
+            "<strong>Unsafe</strong>" if field_name == "title" else None
+        ),
+        raising=False,
+    )
+
+    author = Author.objects.create(name="Escaped Tooltip Author")
+    Book.objects.create(
+        title="Escaped Tooltip Book",
+        author=author,
+        published_date=date(2024, 9, 21),
+        bestseller=False,
+        isbn="978-1-4028-9462-2",
+        pages=250,
+        description="Escaped tooltip sample",
+    )
+
+    response = client.get(reverse("sample:bigbook-list"))
+    response_text = response.content.decode()
+
+    assert response.status_code == 200, (
+        "Book list view should render successfully when HTML-like semantic list-cell tooltip text is configured."
+    )
+    assert 'data-tippy-content="&lt;strong&gt;Unsafe&lt;/strong&gt;"' in response_text, (
+        "Semantic list-cell tooltip text should be escaped in rendered attributes rather than interpreted as HTML."
+    )
+    assert 'data-tippy-content="<strong>Unsafe</strong>"' not in response_text, (
+        "Semantic list-cell tooltips should not expose raw HTML in rendered tooltip attributes."
     )
 
 

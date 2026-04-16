@@ -54,6 +54,7 @@ class BookCRUDView(SampleCRUDMixin):
         "title": "The book title shown throughout the app.",
         "isbn_empty": "Shows whether this row currently has an ISBN value.",
     }
+    list_cell_tooltip_fields = ["title", "isbn_empty"]
     detail_fields = "__all__"
     detail_properties = "__all__"
 
@@ -210,6 +211,16 @@ class BookCRUDView(SampleCRUDMixin):
         """Return the tooltip shown when description preview is unavailable."""
         if self.is_description_preview_disabled(obj, request):
             return "This book does not have a description yet."
+        return None
+
+    def get_list_cell_tooltip(self, obj, field_name, *, is_property, request=None):
+        """Return semantic tooltip text for selected list cells in the sample app."""
+        if field_name == "title":
+            return f"{obj.author}\n{obj.pages} pages"
+        if field_name == "isbn_empty":
+            if obj.isbn_empty:
+                return "This book does not currently have an ISBN."
+            return f"ISBN: {obj.isbn}"
         return None
 
     def can_update_object(self, obj, request):

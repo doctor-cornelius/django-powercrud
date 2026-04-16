@@ -442,6 +442,17 @@
         return trigger?.dataset?.powercrudTooltip === 'semantic';
     }
 
+    function isTooltipSemanticCellTarget(trigger) {
+        return trigger?.dataset?.powercrudTooltip === 'semantic-cell';
+    }
+
+    function getTooltipTheme(trigger) {
+        if (isTooltipSemanticCellTarget(trigger)) {
+            return 'powercrud-semantic-cell';
+        }
+        return 'powercrud';
+    }
+
     function isTruncated(trigger) {
         if (!(trigger instanceof HTMLElement) || !isElementVisible(trigger)) {
             return false;
@@ -475,11 +486,12 @@
             }
             const isOverflowTarget = isTooltipOverflowTarget(trigger);
             const isSemanticTarget = isTooltipSemanticTarget(trigger);
-            if (!isOverflowTarget && !isSemanticTarget) {
+            const isSemanticCellTarget = isTooltipSemanticCellTarget(trigger);
+            if (!isOverflowTarget && !isSemanticTarget && !isSemanticCellTarget) {
                 return;
             }
             tippyCtor(trigger, {
-                theme: 'dark',
+                theme: getTooltipTheme(trigger),
                 placement: 'top',
                 onShow(instance) {
                     if (!isOverflowTarget) {

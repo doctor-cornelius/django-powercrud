@@ -70,6 +70,36 @@ Upgrade notes:
 
 - Related docs: [Forms](../guides/forms.md), [Customisation tips](../guides/customisation_tips.md)
 
+### `get_list_cell_tooltip()`
+
+- Purpose: Use this when selected rendered list fields or properties should show semantic tooltip text that comes from the current row, for example expanded status context, related metadata, or a friendlier explanation behind an icon/badge cell.
+- When it is called: During list-row rendering, but only for rendered fields/properties named in `list_cell_tooltip_fields`.
+- Signature: `def get_list_cell_tooltip(self, obj, field_name, *, is_property, request=None)`
+- Default behavior: Returns `None`, so no semantic list-cell tooltip is shown.
+- Key arguments:
+    - `obj`: The current row object.
+    - `field_name`: The rendered field or property name for the current cell.
+    - `is_property`: `True` when the cell comes from `properties`, otherwise `False`.
+    - `request`: The current request when available.
+- Return contract: A plain string tooltip, or `None` when no semantic tooltip should be shown for that cell.
+- Important note: PowerCRUD only calls this hook for configured names that are actually rendered in the list. Configured names not present in the current list are ignored silently.
+- Important note: Semantic list-cell tooltips take precedence over the fallback overflow tooltip for the same cell, but existing blocked-inline tooltip states still win when the row is not editable inline.
+- Important note: Returned text may contain newline characters. PowerCRUD preserves those as multiple displayed lines for hook-backed semantic list-cell tooltips only.
+- Short example:
+
+    ```python
+    list_cell_tooltip_fields = ["status", "has_invoice"]
+
+    def get_list_cell_tooltip(self, obj, field_name, *, is_property, request=None):
+        if field_name == "status":
+            return obj.status_explanation
+        if field_name == "has_invoice":
+            return "Invoice attached" if obj.has_invoice else "Invoice missing"
+        return None
+    ```
+
+- Related docs: [Setup & Core CRUD basics](../guides/setup_core_crud.md), [Sample app overview](sample_app.md)
+
 ### `get_filter_queryset_for_field()`
 
 - Purpose: Use this when a filter-form dropdown should not show every possible related record, for example when you only want active owners, visible categories, or tenant-scoped choices.

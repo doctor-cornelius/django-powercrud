@@ -17,7 +17,7 @@ def test_bulk_selection_toggle(page, books_url, sample_books):
 
     checkbox = page.locator("input.row-select-checkbox").first
     expect(checkbox).to_be_visible()
-    checkbox.check()
+    checkbox.click()
 
     # HTMX briefly duplicates the container during swaps, so always pin to the first match.
     bulk_container = page.locator("#bulk-actions-container").first
@@ -183,7 +183,8 @@ def test_bulk_edit_refresh_reapplies_active_filters(
     expect(page.locator("#filtered_results")).not_to_contain_text(other_book.title)
 
     checkbox = page.locator("input.row-select-checkbox").first
-    checkbox.check()
+    expect(checkbox).to_be_visible()
+    checkbox.click()
 
     bulk_container = page.locator("#bulk-actions-container").first
     expect(bulk_container).to_be_visible()

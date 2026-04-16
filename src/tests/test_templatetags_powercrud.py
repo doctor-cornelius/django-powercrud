@@ -26,6 +26,7 @@ class TemplateViewStub:
         "title": "Primary title",
         "isbn_empty": "Whether the ISBN field is blank.",
     }
+    list_cell_tooltip_fields = []
     namespace = "sample"
     url_base = "book"
     dropdown_sort_options = {"author": "name"}
@@ -184,6 +185,16 @@ class TemplateViewStub:
         return None
 
     def get_delete_disabled_reason(self, obj, request):
+        return None
+
+    def get_list_cell_tooltip_fields(self):
+        return list(self.list_cell_tooltip_fields)
+
+    def get_list_cell_tooltip(self, obj, field_name, *, is_property, request=None):
+        if field_name == "title":
+            return f"Previewing {obj.title}"
+        if field_name == "isbn_empty":
+            return "ISBN is missing" if obj.isbn_empty else "ISBN is present"
         return None
 
 
@@ -521,6 +532,97 @@ def test_object_list_sets_alignment_metadata():
     assert cell_map["pages"]["align"] == "center"
     assert cell_map["bestseller"]["align"] == "center"
     assert cell_map["isbn_empty"]["align"] == "center"
+
+
+@pytest.mark.django_db
+def test_object_list_only_calls_semantic_tooltip_hook_for_configured_rendered_cells():
+    author = Author.objects.create(name="Tooltip Author")
+    book = Book.objects.create(
+        title="Tooltip Book",
+        author=author,
+        published_date=date(2024, 3, 16),
+        bestseller=False,
+        isbn="9876543210999",
+        pages=120,
+        description="Tooltip coverage",
+    )
+
+    request = apply_session(RequestFactory().get("/"))
+    view = TemplateViewStub(request)
+    view.fields = ["title", "author"]
+    view.properties = ["isbn_empty"]
+    view.list_cell_tooltip_fields = ["title", "isbn_empty", "missing_field", "title"]
+
+    seen_calls = []
+
+    def capture_tooltip(obj, field_name, *, is_property, request=None):
+        seen_calls.append((field_name, is_property, request is request_obj))
+        if field_name == "title":
+            return f"Previewing {obj.title}"
+        if field_name == "isbn_empty":
+            return "ISBN is present"
+        return None
+
+    request_obj = request
+    view.get_list_cell_tooltip = capture_tooltip
+
+    context = {
+        "request": request,
+        "use_htmx": True,
+        "original_target": "#content",
+        "htmx_target": "#content",
+    }
+    result = powercrud.object_list(context, [book], view)
+    cell_map = {cell["name"]: cell for cell in result["object_list"][0]["cells"]}
+
+    assert seen_calls == [
+        ("title", False, True),
+        ("isbn_empty", True, True),
+    ], (
+        "Semantic list cell tooltip hooks should only run for configured fields/properties that are actually rendered in the list."
+    )
+    assert cell_map["title"]["tooltip_text"] == "Previewing Tooltip Book", (
+        "Configured field cells should carry the resolved semantic tooltip text."
+    )
+    assert cell_map["isbn_empty"]["tooltip_text"] == "ISBN is present", (
+        "Configured property cells should carry the resolved semantic tooltip text."
+    )
+    assert cell_map["author"]["tooltip_text"] is None, (
+        "Unconfigured rendered cells should not carry semantic tooltip text."
+    )
+
+
+@pytest.mark.django_db
+def test_object_list_trims_blank_semantic_tooltip_results_to_none():
+    author = Author.objects.create(name="Blank Tooltip Author")
+    book = Book.objects.create(
+        title="Blank Tooltip Book",
+        author=author,
+        published_date=date(2024, 3, 17),
+        bestseller=False,
+        isbn="9876543210888",
+        pages=121,
+        description="Blank tooltip coverage",
+    )
+
+    request = apply_session(RequestFactory().get("/"))
+    view = TemplateViewStub(request)
+    view.fields = ["title"]
+    view.properties = []
+    view.list_cell_tooltip_fields = ["title"]
+    view.get_list_cell_tooltip = lambda obj, field_name, *, is_property, request=None: "   "
+
+    context = {
+        "request": request,
+        "use_htmx": True,
+        "original_target": "#content",
+        "htmx_target": "#content",
+    }
+    result = powercrud.object_list(context, [book], view)
+
+    assert result["object_list"][0]["cells"][0]["tooltip_text"] is None, (
+        "Blank semantic tooltip results should collapse to None so templates can keep existing fallback behavior."
+    )
 
 
 @pytest.mark.django_db

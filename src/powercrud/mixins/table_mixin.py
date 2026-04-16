@@ -147,6 +147,31 @@ class TableMixin:
             return configured_help
         return {}
 
+    def get_list_cell_tooltip_fields(self) -> list[str]:
+        """
+        Return the rendered list fields/properties eligible for semantic tooltips.
+        """
+        configured_fields = resolve_config(self).list_cell_tooltip_fields
+        if isinstance(configured_fields, list):
+            return list(configured_fields)
+        return []
+
+    def get_list_cell_tooltip(
+        self,
+        obj,
+        field_name: str,
+        *,
+        is_property: bool,
+        request=None,
+    ) -> str | None:
+        """
+        Return the optional semantic tooltip for one rendered list cell.
+
+        Downstream views can override this to provide plain-text tooltip
+        explanations for specific rendered list cells.
+        """
+        return None
+
     def get_inline_edit_always_visible(self) -> bool:
         """
         Return whether inline-editable cells keep a subtle resting highlight.

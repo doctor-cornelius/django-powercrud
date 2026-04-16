@@ -295,6 +295,35 @@ def _resolve_view_option(
     return default
 
 
+def _resolve_list_cell_tooltip(
+    *,
+    view: Any,
+    obj: Any,
+    field_name: str,
+    is_property: bool,
+    request: Any,
+) -> str | None:
+    """
+    Resolve a plain-text semantic tooltip for one rendered list cell.
+    """
+    resolver = getattr(view, "get_list_cell_tooltip", None)
+    if not callable(resolver):
+        return None
+    try:
+        tooltip_text = resolver(
+            obj,
+            field_name,
+            is_property=is_property,
+            request=request,
+        )
+    except Exception:
+        return None
+    if tooltip_text is None:
+        return None
+    tooltip_text = str(tooltip_text).strip()
+    return tooltip_text or None
+
+
 def action_links(view: Any, object: Any) -> str:
     """
     Generate HTML for action links (buttons) for a given object.
@@ -566,6 +595,21 @@ def object_list(context, objects, view):
     if not isinstance(column_help_text, dict):
         column_help_text = {}
 
+    configured_cell_tooltip_fields = _resolve_view_option(
+        view,
+        method_name="get_list_cell_tooltip_fields",
+        attr_name="list_cell_tooltip_fields",
+        default=[],
+    )
+    if not isinstance(configured_cell_tooltip_fields, list):
+        configured_cell_tooltip_fields = []
+    rendered_column_names = set(fields) | set(properties)
+    eligible_cell_tooltip_fields = {
+        field_name
+        for field_name in configured_cell_tooltip_fields
+        if field_name in rendered_column_names
+    }
+
     # Create header metadata for each field
     headers = []
     for f in fields:
@@ -815,6 +859,17 @@ def object_list(context, objects, view):
                     "is_inline_editable": inline_enabled and f in inline_fields,
                     "dependency": resolve_cell_dependency(f),
                     "align": cell_align,
+                    "tooltip_text": (
+                        _resolve_list_cell_tooltip(
+                            view=view,
+                            obj=obj,
+                            field_name=f,
+                            is_property=False,
+                            request=request,
+                        )
+                        if f in eligible_cell_tooltip_fields
+                        else None
+                    ),
                 }
             )
             record["fields"].append(display_value)
@@ -845,6 +900,17 @@ def object_list(context, objects, view):
                     "is_inline_editable": inline_enabled and prop in inline_fields,
                     "dependency": resolve_cell_dependency(prop),
                     "align": prop_align,
+                    "tooltip_text": (
+                        _resolve_list_cell_tooltip(
+                            view=view,
+                            obj=obj,
+                            field_name=prop,
+                            is_property=True,
+                            request=request,
+                        )
+                        if prop in eligible_cell_tooltip_fields
+                        else None
+                    ),
                 }
             )
             record["fields"].append(display_value)
