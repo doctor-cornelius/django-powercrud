@@ -1,3 +1,9 @@
+## 0.5.34 (2026-04-16)
+
+### Feature
+
+- **(tooltips)**: provide params and hook for specifying field level tooltip contents
+
 ## 0.5.33 (2026-04-13)
 
 ### Feature
