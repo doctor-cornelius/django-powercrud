@@ -1300,14 +1300,113 @@ def test_book_list_filter_form_uses_compact_grid_layout(client):
     assert 'id="filter-form"' in response_text, (
         "Book list view should render the filter form when filterset_fields are configured."
     )
-    assert 'class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4"' in response_text, (
-        "Book list filter form should use the responsive grid classes for a structured layout."
+    assert 'class="grid gap-x-2 gap-y-0.5 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4"' in response_text, (
+        "Book list filter form should use very tight vertical spacing relative to horizontal spacing for a denser multi-row filter layout."
     )
     assert "filter-field form-control w-full min-w-0" in response_text, (
         "Book list filter fields should use the compact wrapper class within the grid layout."
     )
+    assert "filter-field-shell px-1.5 py-0" in response_text, (
+        "Book list filter fields should keep near-zero vertical padding so wrapped rows do not feel overly separated."
+    )
+    assert 'text-xs font-medium text-base-content/80' in response_text, (
+        "Book list filter labels should use lighter compact label styling rather than loud heading-style labels."
+    )
+    assert "text-align: right;" in response_text and "justify-self: end;" in response_text, (
+        "Desktop filter labels should align tightly against their controls so the compact rows read as paired label-input units."
+    )
+    assert "grid-template-columns: minmax(6rem, 8.5rem) minmax(0, 1fr) auto;" in response_text, (
+        "Book list filter rows should reserve a wider label column so longer labels do not crowd their controls."
+    )
+    assert "rounded-box border border-base-300 bg-base-300" in response_text, (
+        "The filter panel should use a semantic base background tint so it does not disappear into a white page background."
+    )
     assert "sm:col-span-2" not in response_text, (
         "Filter multiselects should not automatically span two columns in the compact grid layout."
+    )
+
+
+@pytest.mark.django_db
+def test_book_list_shows_add_filter_control_and_hides_optional_filters_by_default(client):
+    """Book list should expose optional filters through the Add filter control only."""
+    response = client.get(reverse("sample:bigbook-list"))
+    response_text = " ".join(response.content.decode().split())
+
+    assert response.status_code == 200, (
+        "Book list view should render successfully so default-visible and optional filter controls can be inspected."
+    )
+    assert 'data-powercrud-add-filter-select' in response_text, (
+        "Book list view should render the Add filter control markup when some allowed filters are optional."
+    )
+    assert 'data-powercrud-add-filter-container' in response_text, (
+        "Book list view should wrap the Add filter control in a dedicated top-row container beside the filter actions."
+    )
+    assert 'data-powercrud-filter-toolbar' in response_text, (
+        "Book list view should render a distinct filter-toolbar cluster to visually separate filter actions from other page actions."
+    )
+    assert response_text.index('data-powercrud-add-filter-container') < response_text.index('id="filterCollapse"'), (
+        "The Add filter control should sit on the top action row rather than inside the collapsible filter panel."
+    )
+    assert '<div class="hidden" data-powercrud-add-filter-container>' in response_text, (
+        "Book list view should hide the Add filter control by default until the user opens the filter panel."
+    )
+    assert 'id="filterCollapse"' in response_text and 'class="hidden py-2"' in response_text, (
+        "Book list view should render the filter panel collapsed by default on the initial response."
+    )
+    assert '<option value="isbn">Isbn</option>' in response_text, (
+        "Optional Book filters should appear in the Add filter control by label when they are hidden by default."
+    )
+    assert 'name="description"' not in response_text, (
+        "Hidden optional filters should not render input controls before the user adds them."
+    )
+
+
+@pytest.mark.django_db
+def test_book_list_renders_visible_optional_filter_from_url_state(client):
+    """Book list should reveal optional filters requested via URL-backed visibility state."""
+    response = client.get(
+        reverse("sample:bigbook-list"),
+        {"visible_filters": ["description"]},
+    )
+    response_text = " ".join(response.content.decode().split())
+
+    assert response.status_code == 200, (
+        "Book list view should render successfully when an optional filter is requested via visible_filters."
+    )
+    assert 'name="description"' in response_text, (
+        "Requested optional filters should render their input controls even when they are not default-visible."
+    )
+    assert 'data-powercrud-remove-filter="description"' in response_text, (
+        "Visible optional filters should render a remove control so users can hide them explicitly."
+    )
+    assert 'aria-label="Remove Description filter"' in response_text, (
+        "Visible optional filters should expose an icon-only remove action with an accessible label."
+    )
+    assert 'name="visible_filters" value="description"' in response_text, (
+        "Visible optional filters should persist their visibility state through hidden visible_filters inputs."
+    )
+    assert '> Remove <' not in response_text and '>Remove<' not in response_text, (
+        "Optional filter remove actions should render as icon buttons rather than visible 'Remove' text."
+    )
+    assert 'class="hidden py-2"' in response_text, (
+        "Book list view should still render the filter panel closed on the server response even when optional filters are visible."
+    )
+
+
+@pytest.mark.django_db
+def test_book_list_keeps_filter_panel_closed_on_server_when_filter_value_is_active(client):
+    """Book list should keep the server-rendered filter panel closed even with active filters."""
+    response = client.get(
+        reverse("sample:bigbook-list"),
+        {"title": "PowerCRUD"},
+    )
+    response_text = " ".join(response.content.decode().split())
+
+    assert response.status_code == 200, (
+        "Book list view should render successfully when a filter value is active in the query string."
+    )
+    assert 'class="hidden py-2"' in response_text, (
+        "Book list view should leave panel-open decisions to client-side session state instead of auto-opening from active filter values."
     )
 
 
@@ -1337,6 +1436,29 @@ def test_book_list_filter_labels_do_not_append_contains(client):
     )
     assert "Description" in response_text, (
         "The description filter should still render with its plain field label."
+    )
+
+
+@pytest.mark.django_db
+def test_book_list_renders_modal_with_explicit_close_button(client):
+    """Render the shared DaisyUI modal with both explicit and backdrop close affordances."""
+    response = client.get(reverse("sample:bigbook-list"))
+    response_text = " ".join(response.content.decode().split())
+
+    assert response.status_code == 200, (
+        "Book list view should render successfully so the shared modal chrome can be inspected."
+    )
+    assert 'id="powercrudBaseModal"' in response_text, (
+        "Book list view should include the shared PowerCRUD dialog container when modal support is enabled."
+    )
+    assert 'aria-label="Close modal"' in response_text, (
+        "The shared PowerCRUD modal should render an explicit close button so dismissal is visually obvious."
+    )
+    assert "btn btn-sm btn-circle btn-ghost absolute right-2 top-2" in response_text, (
+        "The shared PowerCRUD modal should use the standard DaisyUI circular ghost close button styling."
+    )
+    assert 'class="modal-backdrop"' in response_text, (
+        "The shared PowerCRUD modal should continue to render the backdrop close affordance."
     )
 
 

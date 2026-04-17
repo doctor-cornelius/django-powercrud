@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import date
 
 import pytest
+from django.core.exceptions import ImproperlyConfigured
 from django_filters import FilterSet
 from django.test import RequestFactory
 
@@ -115,6 +116,30 @@ class PlainCustomBookFilterHarness(BaseFilterHarness):
 
     model = Book
     filterset_class = PlainBookFilterSet
+
+
+class DefaultVisibleBookFilterHarness(BaseFilterHarness):
+    """Harness for testing optional filter visibility on generated filtersets."""
+
+    model = Book
+    filterset_fields = ["author", "title", "pages", "genres"]
+    default_filterset_fields = ["author"]
+
+
+class CustomVisibleBookFilterHarness(BaseFilterHarness):
+    """Harness for testing optional filter visibility on custom filtersets."""
+
+    model = Book
+    filterset_class = PassiveHTMXBookFilterSet
+    default_filterset_fields = ["title"]
+
+
+class InvalidCustomVisibleBookFilterHarness(BaseFilterHarness):
+    """Harness proving invalid default-visible names fail loudly for custom sets."""
+
+    model = Book
+    filterset_class = PassiveHTMXBookFilterSet
+    default_filterset_fields = ["pages"]
 
 
 @pytest.mark.django_db
@@ -374,3 +399,81 @@ def test_plain_custom_filterset_class_without_htmx_helper_still_works():
     assert (
         "hx-get" not in filterset.form.fields["author"].widget.attrs
     ), "Custom filtersets without setup_htmx_attrs() should keep their existing widget attrs unchanged."
+
+
+@pytest.mark.django_db
+def test_default_filterset_fields_limit_initial_visibility_for_generated_filtersets():
+    """Generated filtersets should expose only the configured default-visible subset."""
+    author = Author.objects.create(name="Alan")
+    genre = Genre.objects.create(name="Sci-Fi")
+    book = Book.objects.create(
+        title="Visible Sample",
+        author=author,
+        published_date=date(2024, 1, 1),
+        bestseller=False,
+        isbn="9781000000101",
+        pages=100,
+    )
+    book.genres.add(genre)
+
+    request = RequestFactory().get(
+        "/",
+        {
+            "visible_filters": ["pages"],
+            "title": "Visible",
+        },
+    )
+    view = DefaultVisibleBookFilterHarness(request)
+    filterset = view.get_filterset(Book.objects.all())
+
+    context = view.get_filter_visibility_context(filterset)
+
+    assert [field.name for field in context["visible_filter_fields"]] == [
+        "author",
+        "title",
+        "pages",
+    ], (
+        "Visible generated filters should include default-visible fields plus active and explicitly requested optional filters in form order."
+    )
+    assert context["persisted_optional_filter_names"] == [
+        "title",
+        "pages",
+    ], (
+        "Any visible non-default generated filters should be persisted as optional visibility state."
+    )
+    assert context["addable_filter_choices"] == [
+        {"name": "genres", "label": "Genres"}
+    ], "Generated visibility context should offer only the remaining hidden filters in the Add filter menu."
+
+
+@pytest.mark.django_db
+def test_default_filterset_fields_limit_initial_visibility_for_custom_filtersets():
+    """Custom filtersets should validate and resolve default visibility by filter name."""
+    Author.objects.create(name="Alan")
+    request = RequestFactory().get("/")
+    view = CustomVisibleBookFilterHarness(request)
+    filterset = view.get_filterset(Book.objects.all())
+
+    context = view.get_filter_visibility_context(filterset)
+
+    assert [field.name for field in context["visible_filter_fields"]] == [
+        "title"
+    ], "Custom filtersets should use declared filter names when resolving the default-visible subset."
+    assert context["addable_filter_choices"] == [
+        {"name": "author", "label": "Author"}
+    ], "Custom filtersets should expose remaining declared custom filters through the Add filter menu."
+
+
+@pytest.mark.django_db
+def test_invalid_default_filterset_fields_raise_clear_error_for_custom_filtersets():
+    """Invalid default-visible names should fail loudly against effective custom filter names."""
+    request = RequestFactory().get("/")
+    view = InvalidCustomVisibleBookFilterHarness(request)
+    filterset = view.get_filterset(Book.objects.all())
+
+    with pytest.raises(ImproperlyConfigured) as exc_info:
+        view.get_filter_visibility_context(filterset)
+
+    assert "default_filterset_fields contains unknown filters: pages" in str(
+        exc_info.value
+    ), "Unknown default_filterset_fields entries should raise a clear configuration error naming the invalid filter."

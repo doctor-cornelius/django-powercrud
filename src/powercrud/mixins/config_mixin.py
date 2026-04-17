@@ -114,6 +114,7 @@ class ConfigMixin:
     show_bulk_selection_meta: bool = True
 
     # filtering options
+    default_filterset_fields: list[str] | None = None
     m2m_filter_and_logic = False
     dropdown_sort_options: dict = {}
     filter_null_fields_exclude: list[str] = []
@@ -142,6 +143,7 @@ class ConfigMixin:
         "field_queryset_dependencies",
         "dropdown_sort_options",
         "filter_null_fields_exclude",
+        "default_filterset_fields",
         "table_classes",
         "action_button_classes",
         "extra_button_classes",
@@ -176,6 +178,7 @@ class ConfigMixin:
         "inline_edit_fields",
         "list_cell_tooltip_fields",
         "filter_null_fields_exclude",
+        "default_filterset_fields",
         "filterset_fields",
     }
 
@@ -934,6 +937,7 @@ class _ConfigShim:
             "detail_properties_exclude",
             "form_fields_exclude",
             "filter_null_fields_exclude",
+            "default_filterset_fields",
         }:
             return ConfigMixin._dedupe_preserving_first(self._raw(name, []) or [])
         if name in {

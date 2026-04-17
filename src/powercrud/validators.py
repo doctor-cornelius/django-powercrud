@@ -95,6 +95,7 @@ class PowerCRUDMixinValidator(BaseModel):
     bulk_update_persistence_backend_path: Optional[str] = None
     bulk_update_persistence_backend_config: Optional[Dict[str, Any]] = None
     dropdown_sort_options: Optional[Dict[str, str]] = None
+    default_filterset_fields: Optional[List[str]] = None
     filter_null_fields_exclude: Optional[List[str]] = None
     m2m_filter_and_logic: Optional[bool] = None
     inline_preserve_required_fields: Optional[bool] = None
@@ -302,4 +303,14 @@ class PowerCRUDMixinValidator(BaseModel):
             return v
         if not all(isinstance(x, str) for x in v):
             raise ValueError("filter_null_fields_exclude must contain only strings")
+        return v
+
+    @field_validator("default_filterset_fields")
+    @classmethod
+    def validate_default_filterset_fields(cls, v):
+        """Ensure default filter visibility config is provided as filter-name strings."""
+        if v is None:
+            return v
+        if not all(isinstance(x, str) for x in v):
+            raise ValueError("default_filterset_fields must contain only strings")
         return v

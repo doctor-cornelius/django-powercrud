@@ -24,6 +24,7 @@ Types are shown next to each setting name. `Accepted values` is the contract for
 | `column_help_text` (`dict[str, str]`) | `None` or `dict[str, str]` | `None` | Column headers render without help icons | Add plain-text help tooltips to specific list headers by field/property name. Only configured columns show the adjacent info trigger. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
 | `column_sort_fields_override` (`dict[str, str]`) | `None` or `dict[str, str]` | `None` | Sortable list columns use their own field names, except direct relations with a concrete `name` field which default to `field__name` | Override the queryset `order_by()` expression used when a visible list column header is clicked. Keys are visible column names; values are Django ordering expressions such as `"author__name"` or `"customer__code"`. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
 | `default_htmx_target` (`str`) | `str` | `'#content'` | Responses target the main content container | Default HTMX target selector (ignored when HTMX is off). | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
+| `default_filterset_fields` (`list[str]`) | `None` or `list[str]` | `None` | All allowed filters render immediately | Limit the initially visible filter subset while keeping the remaining allowed filters available through the built-in Add filter control. Validated against effective filter names from the bound filter form. | [Filter controls](#filter-controls) |
 | `detail_exclude` (`list[str]`) | `list[str]` | `[]` | Detail view mirrors the resolved `detail_fields` | Remove specific fields from the detail layout. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
 | `detail_fields` (`list/str`) | `None`, `'__all__'`, `'__fields__'`, `list[str]` | `'__fields__'` | Inherits the list view fields | Fields rendered on the detail page. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
 | `detail_properties` (`list/str`) | `None`, `'__all__'`, `'__properties__'`, `list[str]` | `[]` | No properties appear on the detail page | Add computed properties to the detail view. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
@@ -98,7 +99,7 @@ All of the following keys live inside the optional `POWERCRUD_SETTINGS` dict in 
 
 ## Filter controls
 
-Fine-tune what users can filter and how options are presented by combining `filterset_fields`, `filter_queryset_options`, `dropdown_sort_options`, `filter_null_fields_exclude`, and `m2m_filter_and_logic`.
+Fine-tune what users can filter and how options are presented by combining `filterset_fields`, `default_filterset_fields`, `filter_queryset_options`, `dropdown_sort_options`, `filter_null_fields_exclude`, and `m2m_filter_and_logic`.
 
 ???+ note "filterset_fields vs filterset_class"
 
@@ -115,10 +116,19 @@ Fine-tune what users can filter and how options are presented by combining `filt
 
     These behaviors still apply to both generated and custom filtersets after the filterset exists:
 
+    - `default_filterset_fields`
     - `searchable_selects`
     - HTMX widget attrs when `use_htmx = True` and the custom filterset exposes `setup_htmx_attrs()`
 
     For custom filtersets, the recommended pattern is still to subclass `HTMXFilterSetMixin` when you want reactive filtering.
+
+`default_filterset_fields` controls which allowed filters are visible on first render.
+
+- Leave it unset to keep the current behavior and show every allowed filter immediately.
+- Set it to a subset to keep the remaining allowed filters hidden behind the Add filter control.
+- PowerCRUD validates it against the effective filter names from the bound filter form, not only against raw model field names.
+- Hidden optional filters become visible automatically when they carry an active value in the URL.
+- Visible optional filters persist through the reserved `visible_filters` query parameter until the user removes them explicitly.
 
 Nullable auto-generated filters behave differently by field type:
 
@@ -138,10 +148,11 @@ Example:
 
 ```python
 filterset_fields = ["owner", "published_date", "status"]
+default_filterset_fields = ["owner"]
 filter_null_fields_exclude = ["status"]
 ```
 
-In that configuration, `owner` keeps one dropdown with `Empty only`, `published_date` gains a separate `Published date is empty` companion filter, and `status` gets no built-in null helper.
+In that configuration, `owner` stays visible by default, while `published_date` and `status` remain allowed but optional. `owner` keeps one dropdown with `Empty only`, `published_date` gains a separate `Published date is empty` companion filter when added, and `status` gets no built-in null helper.
 
 If you want `title` to use `iexact` or `startswith` instead of the generated `icontains` behavior, move that filter into a custom `filterset_class`.
 

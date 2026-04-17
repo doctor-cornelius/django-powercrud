@@ -16,6 +16,8 @@
     const INLINE_TABLE_SELECTOR = 'table[data-inline-enabled="true"]';
     const INLINE_NOTICE_SELECTOR = '[data-powercrud-inline-alert]';
     const RANGE_SELECT_SUPPRESS_CLASS = 'powercrud-range-selecting';
+    const VISIBLE_FILTERS_PARAM = 'visible_filters';
+    const VISIBLE_FILTERS_STORAGE_PREFIX = 'powercrud:visible-filters:';
 
     const warnedDeps = {
         htmx: false,
@@ -82,8 +84,8 @@
     function ensureObjectListState(root) {
         if (!objectListState.has(root)) {
             objectListState.set(root, {
-                filterExpansionRestored: false,
                 lastRowSelectionAnchorId: null,
+                optionalFilterVisibilityRestored: false,
             });
         }
         return objectListState.get(root);
@@ -523,21 +525,58 @@
         label.textContent = isHidden ? 'Show Filters' : 'Hide Filters';
     }
 
-    function maybeRestoreExpandedFilters(root) {
-        const state = ensureObjectListState(root);
-        if (state.filterExpansionRestored) {
+    function getFilterPanelStorageKey(root) {
+        const listUrl = root?.dataset?.powercrudListUrl || global.location.pathname || 'default';
+        return `powercrud:filter-panel:${listUrl}`;
+    }
+
+    function getVisibleFiltersStorageKey(root) {
+        const listUrl = root?.dataset?.powercrudListUrl || global.location.pathname || 'default';
+
+        try {
+            const url = new URL(listUrl, global.location.origin);
+            return `${VISIBLE_FILTERS_STORAGE_PREFIX}${url.pathname}`;
+        } catch (_error) {
+            return `${VISIBLE_FILTERS_STORAGE_PREFIX}${listUrl}`;
+        }
+    }
+
+    function setPersistedFilterPanelState(root, isOpen) {
+        global.sessionStorage?.setItem(getFilterPanelStorageKey(root), isOpen ? 'open' : 'closed');
+    }
+
+    function getPersistedFilterPanelState(root) {
+        return global.sessionStorage?.getItem(getFilterPanelStorageKey(root)) || '';
+    }
+
+    function getAddFilterContainer(root) {
+        return root.querySelector('[data-powercrud-add-filter-container]');
+    }
+
+    function syncAddFilterVisibility(root, isOpen) {
+        const addFilterContainer = getAddFilterContainer(root);
+        if (!addFilterContainer) {
             return;
         }
-        state.filterExpansionRestored = true;
 
+        addFilterContainer.classList.toggle('hidden', !isOpen);
+        if (isOpen) {
+            global.setTimeout(() => initPowercrudSearchableSelects(addFilterContainer), 0);
+        }
+    }
+
+    function applyFilterPanelState(root) {
         const filterCollapse = root.querySelector('#filterCollapse');
         if (!filterCollapse) {
             return;
         }
-        if (localStorage.getItem('filterExpanded') === 'true') {
-            filterCollapse.classList.remove('hidden');
-            initPowercrudSearchableSelects(filterCollapse);
-            localStorage.removeItem('filterExpanded');
+
+        const shouldOpen = getPersistedFilterPanelState(root) === 'open';
+        filterCollapse.classList.toggle('hidden', !shouldOpen);
+        syncFilterToggleLabel(root);
+        syncAddFilterVisibility(root, shouldOpen);
+        if (shouldOpen) {
+            global.setTimeout(() => initPowercrudSearchableSelects(filterCollapse), 0);
         }
     }
 
@@ -547,8 +586,11 @@
             return;
         }
         filterCollapse.classList.toggle('hidden');
+        const isOpen = !filterCollapse.classList.contains('hidden');
+        setPersistedFilterPanelState(root, isOpen);
         syncFilterToggleLabel(root);
-        if (!filterCollapse.classList.contains('hidden')) {
+        syncAddFilterVisibility(root, isOpen);
+        if (isOpen) {
             global.setTimeout(() => initPowercrudSearchableSelects(filterCollapse), 0);
         }
     }
@@ -574,6 +616,278 @@
                 field.value = '';
             }
         });
+    }
+
+    function getVisibleFilterStateContainer(root) {
+        return root.querySelector('[data-powercrud-visible-filters-state]');
+    }
+
+    function getAddFilterSelect(root) {
+        return root.querySelector('[data-powercrud-add-filter-select]');
+    }
+
+    function getVisibleFilterField(root, fieldName) {
+        const form = root.querySelector('#filter-form');
+        if (!form || !fieldName) {
+            return null;
+        }
+        return form.querySelector(`[name="${CSS.escape(fieldName)}"]`);
+    }
+
+    function dedupeFilterNames(names) {
+        return Array.from(new Set((names || []).filter(Boolean).map(String)));
+    }
+
+    function getPersistedOptionalFilterNames(root) {
+        const container = getVisibleFilterStateContainer(root);
+        if (!container) {
+            return [];
+        }
+        return Array.from(
+            container.querySelectorAll(`input[name="${VISIBLE_FILTERS_PARAM}"]`)
+        ).map(input => input.value).filter(Boolean);
+    }
+
+    function getStoredOptionalFilterNames(root) {
+        try {
+            const rawValue = global.localStorage?.getItem(getVisibleFiltersStorageKey(root));
+            if (!rawValue) {
+                return [];
+            }
+
+            const parsedValue = JSON.parse(rawValue);
+            if (!Array.isArray(parsedValue)) {
+                return [];
+            }
+            return dedupeFilterNames(parsedValue);
+        } catch (_error) {
+            return [];
+        }
+    }
+
+    function setStoredOptionalFilterNames(root, names) {
+        const normalizedNames = dedupeFilterNames(names);
+        const storageKey = getVisibleFiltersStorageKey(root);
+
+        if (!normalizedNames.length) {
+            global.localStorage?.removeItem(storageKey);
+            return;
+        }
+
+        global.localStorage?.setItem(storageKey, JSON.stringify(normalizedNames));
+    }
+
+    function getCurrentVisibleFilterNames(root) {
+        const form = root.querySelector('#filter-form');
+        if (!form) {
+            return [];
+        }
+
+        return dedupeFilterNames(
+            Array.from(form.querySelectorAll('.filter-field-input [name]'))
+                .map(field => field.name)
+                .filter(name => name && name !== VISIBLE_FILTERS_PARAM)
+        );
+    }
+
+    function getAvailableOptionalFilterNames(root) {
+        const select = getAddFilterSelect(root);
+        if (!(select instanceof HTMLSelectElement)) {
+            return [];
+        }
+
+        return dedupeFilterNames(
+            Array.from(select.options)
+                .map(option => option.value)
+                .filter(Boolean)
+        );
+    }
+
+    function setPersistedOptionalFilterNames(root, names) {
+        const container = getVisibleFilterStateContainer(root);
+        if (!container) {
+            return;
+        }
+        container.innerHTML = '';
+        names.forEach(name => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = VISIBLE_FILTERS_PARAM;
+            input.value = name;
+            container.appendChild(input);
+        });
+    }
+
+    function maybeRestoreStoredOptionalFilterVisibility(root) {
+        const state = ensureObjectListState(root);
+        if (state.optionalFilterVisibilityRestored) {
+            return;
+        }
+        state.optionalFilterVisibilityRestored = true;
+
+        const normalizedNames = dedupeFilterNames([
+            ...getPersistedOptionalFilterNames(root),
+            ...getStoredOptionalFilterNames(root),
+        ]);
+        const currentVisibleNames = getCurrentVisibleFilterNames(root);
+        const availableOptionalNames = getAvailableOptionalFilterNames(root);
+        const allowedNames = normalizedNames.filter(
+            name => currentVisibleNames.includes(name) || availableOptionalNames.includes(name)
+        );
+
+        setStoredOptionalFilterNames(root, allowedNames);
+        setPersistedOptionalFilterNames(root, allowedNames);
+
+        if (!allowedNames.some(name => !currentVisibleNames.includes(name))) {
+            return;
+        }
+
+        // Keep this browser-local restoration out of the shared URL.
+        requestObjectListRefresh(root, { preservePage: true, pushURL: false });
+    }
+
+    function setFilterFieldValue(field, value) {
+        if (!(field instanceof Element)) {
+            return;
+        }
+
+        if (field instanceof HTMLSelectElement && field.tomselect) {
+            field.tomselect.setValue(value, true);
+            field.tomselect.setTextboxValue('');
+            return;
+        }
+
+        if (field instanceof HTMLSelectElement && field.multiple) {
+            Array.from(field.options).forEach(option => {
+                option.selected = false;
+            });
+            return;
+        }
+
+        if (field instanceof HTMLSelectElement) {
+            field.selectedIndex = 0;
+            return;
+        }
+
+        if (field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement) {
+            if (field.type === 'checkbox' || field.type === 'radio') {
+                field.checked = false;
+                return;
+            }
+            field.value = value;
+        }
+    }
+
+    function buildCurrentRootValues(root, options = {}) {
+        const preservePage = options.preservePage === true;
+        const values = {};
+
+        root.querySelectorAll('[name]').forEach(field => {
+            if (!(field instanceof HTMLInputElement || field instanceof HTMLSelectElement || field instanceof HTMLTextAreaElement)) {
+                return;
+            }
+            if (field.disabled) {
+                return;
+            }
+            const name = field.name;
+            if (!name) {
+                return;
+            }
+            if (!preservePage && name === 'page') {
+                return;
+            }
+
+            if (field instanceof HTMLInputElement && (field.type === 'checkbox' || field.type === 'radio')) {
+                if (!field.checked) {
+                    return;
+                }
+            }
+
+            if (field instanceof HTMLSelectElement && field.multiple) {
+                const selectedValues = Array.from(field.selectedOptions)
+                    .map(option => option.value)
+                    .filter(value => String(value).trim() !== '');
+                if (!selectedValues.length) {
+                    return;
+                }
+                values[name] = selectedValues;
+                return;
+            }
+
+            if (Array.isArray(values[name])) {
+                values[name].push(field.value);
+                return;
+            }
+            if (name in values) {
+                values[name] = [values[name], field.value];
+                return;
+            }
+            values[name] = field.value;
+        });
+
+        return values;
+    }
+
+    function requestObjectListRefresh(root, options = {}) {
+        if (!(root instanceof Element)) {
+            return;
+        }
+
+        const htmx = getHtmxInstance();
+        const listUrl = root.dataset.powercrudListUrl;
+        if (!htmx || !listUrl) {
+            const form = root.querySelector('#filter-form');
+            if (form) {
+                form.requestSubmit();
+            }
+            return;
+        }
+
+        const values = buildCurrentRootValues(root, {
+            preservePage: options.preservePage === true,
+        });
+        htmx.ajax('GET', listUrl, {
+            target: root,
+            swap: 'outerHTML',
+            values,
+            headers: {
+                'X-Filter-Setting-Request': 'true',
+            },
+            pushURL: options.pushURL !== false,
+        });
+    }
+
+    function addOptionalFilter(root, fieldName) {
+        if (!fieldName) {
+            return;
+        }
+
+        const persistedNames = getPersistedOptionalFilterNames(root);
+        if (!persistedNames.includes(fieldName)) {
+            persistedNames.push(fieldName);
+            setPersistedOptionalFilterNames(root, persistedNames);
+        }
+        setStoredOptionalFilterNames(root, persistedNames);
+
+        setPersistedFilterPanelState(root, true);
+        requestObjectListRefresh(root, { preservePage: true });
+    }
+
+    function removeOptionalFilter(root, fieldName) {
+        if (!fieldName) {
+            return;
+        }
+
+        const persistedNames = getPersistedOptionalFilterNames(root)
+            .filter(name => name !== fieldName);
+        setPersistedOptionalFilterNames(root, persistedNames);
+        setStoredOptionalFilterNames(root, persistedNames);
+
+        const field = getVisibleFilterField(root, fieldName);
+        setFilterFieldValue(field, '');
+
+        setPersistedFilterPanelState(root, true);
+        requestObjectListRefresh(root, { preservePage: true });
     }
 
     function removeEmptyFields(form) {
@@ -605,6 +919,14 @@
                 continue;
             }
             if (!preservePage && key === 'page') {
+                continue;
+            }
+            if (key in clean) {
+                if (Array.isArray(clean[key])) {
+                    clean[key].push(value);
+                } else {
+                    clean[key] = [clean[key], value];
+                }
                 continue;
             }
             clean[key] = value;
@@ -878,15 +1200,10 @@
                 selectAllCheckbox.dataset.powercrudInitialIndeterminate === 'true'
             );
         }
-        maybeRestoreExpandedFilters(root);
-        syncFilterToggleLabel(root);
+        applyFilterPanelState(root);
+        maybeRestoreStoredOptionalFilterVisibility(root);
         syncBulkSelectionState(root);
         syncSelectionAwareExtraButtons(root);
-
-        const filterCollapse = root.querySelector('#filterCollapse');
-        if (filterCollapse && !filterCollapse.classList.contains('hidden')) {
-            initPowercrudSearchableSelects(filterCollapse);
-        }
     }
 
     function bootstrapObjectLists(scope = document) {
@@ -1594,7 +1911,21 @@
         if (resetTrigger) {
             const root = getObjectListRoot(resetTrigger);
             if (root) {
+                setStoredOptionalFilterNames(root, []);
+                setPersistedOptionalFilterNames(root, []);
                 resetFilterForm(root);
+            }
+            return;
+        }
+
+        const removeFilterTrigger = trigger.closest('[data-powercrud-remove-filter]');
+        if (removeFilterTrigger) {
+            const root = getObjectListRoot(removeFilterTrigger);
+            if (root) {
+                removeOptionalFilter(
+                    root,
+                    removeFilterTrigger.dataset.powercrudRemoveFilter || '',
+                );
             }
             return;
         }
@@ -1646,6 +1977,15 @@
 
         if (target.matches('[data-powercrud-row-select="true"]')) {
             handleRowSelectionChange(target, event);
+        }
+
+        if (target.matches('[data-powercrud-add-filter-select]')) {
+            const root = getObjectListRoot(target);
+            if (!root || !target.value) {
+                return;
+            }
+            addOptionalFilter(root, target.value);
+            target.value = '';
         }
     });
 
@@ -1723,6 +2063,7 @@
             bootstrapObjectLists(root);
             initPowercrudTooltips(root);
         });
+        bootstrapObjectLists(document);
         schedulePowercrudTooltipRefresh(document, 50);
 
         const target = asElement(event.target);
@@ -1801,6 +2142,7 @@
             bootstrapObjectLists(root);
             initPowercrudTooltips(root);
         });
+        bootstrapObjectLists(document);
         schedulePowercrudTooltipRefresh(document, 50);
     });
 

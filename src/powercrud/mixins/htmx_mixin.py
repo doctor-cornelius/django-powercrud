@@ -292,15 +292,16 @@ class HtmxMixin:
 
             # Only set HX-Push-Url for GET requests and when role is LIST
             if self.request.method == "GET" and self.role == Role.LIST:
-                clean_params = {}
+                clean_params: list[tuple[str, str]] = []
                 for k in self.request.GET:
                     values = self.request.GET.getlist(k)
-                    if values and values[-1]:  # Only non-empty
-                        clean_params[k] = values[-1]
+                    clean_params.extend(
+                        (k, value) for value in values if str(value).strip()
+                    )
                 if clean_params:
                     from urllib.parse import urlencode
 
-                    canonical_query = urlencode(clean_params)
+                    canonical_query = urlencode(clean_params, doseq=True)
                     canonical_url = f"{self.request.path}?{canonical_query}"
                 else:
                     canonical_url = self.request.path

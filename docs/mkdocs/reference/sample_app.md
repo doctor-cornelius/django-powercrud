@@ -75,7 +75,8 @@ class BookCRUDView(PowerCRUDAsyncMixin, CRUDView):
     bulk_delete = True
     bulk_async = True
     
-    filterset_fields = ['author', 'title', 'published_date', 'isbn', 'pages', 'genres']
+    filterset_fields = ['author', 'title', 'published_date', 'isbn', 'pages', 'description', 'genres']
+    default_filterset_fields = ['author', 'title', 'published_date']
     dropdown_sort_options = {"author": "name"}
     inline_edit_fields = ['title', 'author', 'genres', 'published_date', 'bestseller', 'isbn', 'description']
     
@@ -95,6 +96,12 @@ class BookCRUDView(PowerCRUDAsyncMixin, CRUDView):
 ```
 
 The sample `BookCRUDView` uses `view_title = "My List of Books"` plus `view_instructions = "Here you can edit books"` to demonstrate the narrow heading/helper-text overrides. It also sets `column_help_text` for one field and one property so the sample list shows the header-help tooltip pattern, and `list_cell_tooltip_fields` plus `get_list_cell_tooltip(...)` so the list also demonstrates semantic field-level tooltips on both a normal text cell and the boolean-like `isbn_empty` property cell. The sample `title` tooltip intentionally uses a newline so the demo shows multiline semantic list-cell tooltip rendering, while header-help tooltips and other tooltip surfaces keep their normal single-line behavior. That changes only the list surface above and inside the table; other UI copy such as the create button still comes from the model verbose names, and the instructions text, header help text, and semantic cell tooltip text are all rendered as plain escaped text rather than HTML.
+
+The same sample view now also demonstrates progressive filter visibility:
+
+- `author`, `title`, and `published_date` are visible by default through `default_filterset_fields`
+- `isbn`, `pages`, `description`, and `genres` remain allowed filters but start hidden
+- the Add filter control reveals those optional filters on demand without changing the underlying filterset contract
 
 The sample frontend now also shows the downstream tooltip-styling path. In [`src/config/static/css/app.custom.css`](../../../src/config/static/css/app.custom.css), the sample app actively overrides `--pc-tooltip-bg` and `--pc-tooltip-fg` to use daisyUI's primary semantic tokens, while PowerCRUD itself keeps neutral tooltip defaults. The sample Vite entry imports that file after `powercrud/css/powercrud.css`, so readers can inspect the real app-level override pattern rather than only reading about it in the styling guide.
 

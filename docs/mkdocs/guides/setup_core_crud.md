@@ -219,12 +219,18 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
     # …
     use_htmx = True
     filterset_fields = ["owner", "status", "created_date"]
+    default_filterset_fields = ["owner", "status"]
 ```
 
 What happens by default:
 
 - With *no* `filterset_fields`, the view renders the list immediately and ignores any query parameters except `page`, `page_size`, and `sort`.
 - Setting `filterset_fields` automatically builds a `django-filter` `FilterSet` for those fields, including sensible widgets based on field type and optional HTMX attributes if `use_htmx` is True.
+- Leave `default_filterset_fields` unset to keep the current behavior and show every allowed filter immediately.
+- Set `default_filterset_fields` to a smaller subset when some filters should be visible by default and the rest should stay behind the built-in `Add filter` control.
+- Once an optional filter is shown, it stays visible until the user explicitly removes it, even if its current value is empty.
+- PowerCRUD persists optional filter visibility through the reserved `visible_filters` query parameter, so shared URLs can still open the same optional filters explicitly.
+- When HTMX is enabled, PowerCRUD also remembers optional filter visibility in browser-local storage for the current list route. That browser-local state restores the same optional filters on later refreshes or revisits without preserving any filter values.
 - Nullable auto-generated filters gain null helpers by default:
 
     - nullable `ForeignKey` and `OneToOneField` filters add an `Empty only` option to the existing dropdown
@@ -274,6 +280,11 @@ If you need even more control, pass a custom `filterset_class` for hand-crafted 
 
     `filterset_class` is the custom path. If you set it, it takes precedence over `filterset_fields`, and those auto-generated filter helpers no longer shape the filterset for you.
 
+    `default_filterset_fields` works on both paths. PowerCRUD validates it against the effective filter names from the bound filter form:
+
+    - for auto-generated filtersets, that includes generated companion controls such as `birth_date__isnull`
+    - for custom filtersets, that means declared custom filter names rather than model field names
+
     Shared runtime behavior still applies after the filterset is built:
 
     - `searchable_selects` still enhances eligible select widgets
@@ -286,6 +297,7 @@ Example:
 ```python
 class ProjectCRUDView(PowerCRUDMixin, CRUDView):
     filterset_fields = ["owner", "published_date", "status"]
+    default_filterset_fields = ["owner"]
     filter_null_fields_exclude = ["status"]
 ```
 
@@ -294,6 +306,7 @@ In that example:
 - a nullable relation such as `owner` keeps one dropdown and gains an `Empty only` option
 - a nullable scalar such as `published_date` gains a separate `Published date is empty` select
 - `status` gets no built-in null helper because it is excluded explicitly
+- `published_date` and `status` remain allowed filters, but start hidden until the user adds them
 
 If you want a generated text filter to use a different lookup than the default `icontains`, move that filter to a custom `filterset_class`.
 

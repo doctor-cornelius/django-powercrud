@@ -30,6 +30,26 @@ def test_author_sample_view_exposes_nullable_scalar_companion_filter():
 
 
 @pytest.mark.django_db
+def test_author_sample_view_keeps_nullable_scalar_companion_optional_by_default():
+    """Author sample view should allow the birth-date null companion without showing it by default."""
+    Author.objects.create(name="Alan", birth_date=None)
+
+    view = sample_views.AuthorCRUDView()
+    view.request = RequestFactory().get("/")
+    filterset = view.get_filterset(Author.objects.all())
+    context = view.get_filter_visibility_context(filterset)
+
+    assert [field.name for field in context["visible_filter_fields"]] == [
+        "name",
+        "birth_date",
+        "genres",
+    ], "AuthorCRUDView should keep its main filters visible by default without auto-showing the nullable companion control."
+    assert [choice["name"] for choice in context["addable_filter_choices"]] == [
+        "birth_date__isnull",
+    ], "AuthorCRUDView should still allow the nullable birth-date companion control to be added on demand."
+
+
+@pytest.mark.django_db
 def test_profile_sample_view_exposes_nullable_relation_empty_only_option():
     """Profile sample view should expose the merged null-only relation option."""
     author_one = Author.objects.create(name="Alan")
@@ -157,6 +177,32 @@ def test_book_sample_view_derives_inline_dependencies_from_queryset_config():
     assert (
         deps["genres"]["depends_on"] == ["author"]
     ), "BookCRUDView should derive inline dependency metadata from field_queryset_dependencies."
+
+
+@pytest.mark.django_db
+def test_book_sample_view_exposes_default_and_optional_filter_visibility():
+    """Book sample view should demonstrate default-visible and optional filters."""
+    Author.objects.create(name="Filter Demo Author")
+
+    view = sample_views.BookCRUDView()
+    view.request = RequestFactory().get("/", {"visible_filters": ["isbn"]})
+    filterset = view.get_filterset(Book.objects.all())
+    context = view.get_filter_visibility_context(filterset)
+
+    assert [field.name for field in context["visible_filter_fields"]] == [
+        "author",
+        "title",
+        "published_date",
+        "isbn",
+    ], "BookCRUDView should keep its configured default filters visible and allow optional filters to be revealed from the URL-backed visibility state."
+    assert context["persisted_optional_filter_names"] == [
+        "isbn"
+    ], "BookCRUDView should persist revealed optional filters separately from its default-visible filter set."
+    assert [choice["name"] for choice in context["addable_filter_choices"]] == [
+        "pages",
+        "description",
+        "genres",
+    ], "BookCRUDView should leave only the remaining hidden filters available in the Add filter menu."
 
 
 @pytest.mark.django_db

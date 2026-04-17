@@ -1,5 +1,6 @@
 from django import forms
 from collections import OrderedDict
+from django.core.exceptions import ImproperlyConfigured
 from django_filters import (
     FilterSet,
     CharFilter,
@@ -141,6 +142,8 @@ class FilteringMixin:
     """
     Provides dynamic FilterSet generation for powercrud views.
     """
+
+    visible_filters_query_param = "visible_filters"
 
     NULLABLE_SCALAR_FILTER_TYPES = (
         models.CharField,
@@ -308,6 +311,127 @@ class FilteringMixin:
         """Return the companion null-filter name for a base filter field."""
         return f"{field_name}__isnull"
 
+    def get_visible_filters_query_param(self) -> str:
+        """Return the reserved query parameter used for optional filter visibility."""
+        return self.visible_filters_query_param
+
+    def get_effective_filter_names(self, filterset: FilterSet | None) -> list[str]:
+        """Return the ordered effective filter names from the bound filter form."""
+        if filterset is None or not hasattr(filterset, "form"):
+            return []
+        return list((getattr(filterset.form, "fields", {}) or {}).keys())
+
+    def get_declared_default_filterset_fields(self) -> list[str] | None:
+        """Return the deduped declared default-visible filter names, if any."""
+        declared = getattr(self, "default_filterset_fields", None)
+        if declared is None:
+            return None
+        return ConfigMixin._dedupe_preserving_first(declared)
+
+    def get_default_visible_filter_names(self, filterset: FilterSet | None) -> list[str]:
+        """Return the default-visible subset for the current effective filterset."""
+        effective_names = self.get_effective_filter_names(filterset)
+        declared_defaults = self.get_declared_default_filterset_fields()
+        if declared_defaults is None:
+            return effective_names
+
+        invalid_names = [
+            name for name in declared_defaults if name not in effective_names
+        ]
+        if invalid_names:
+            class_name = self.__class__.__name__
+            raise ImproperlyConfigured(
+                "Invalid configuration in class "
+                f"'{class_name}': default_filterset_fields contains unknown "
+                f"filters: {', '.join(invalid_names)}. Allowed filters are: "
+                f"{', '.join(effective_names)}"
+            )
+
+        default_names = set(declared_defaults)
+        return [name for name in effective_names if name in default_names]
+
+    def get_active_filter_names(self, filterset: FilterSet | None) -> list[str]:
+        """Return filter names that currently carry a non-empty submitted value."""
+        active_filter_names: list[str] = []
+        for field_name in self.get_effective_filter_names(filterset):
+            values = self.request.GET.getlist(field_name)
+            if any(str(value).strip() for value in values):
+                active_filter_names.append(field_name)
+        return active_filter_names
+
+    def get_requested_visible_filter_names(
+        self, filterset: FilterSet | None
+    ) -> list[str]:
+        """Return optional filter names explicitly requested for visibility via URL."""
+        allowed_names = set(self.get_effective_filter_names(filterset))
+        return [
+            name
+            for name in ConfigMixin._dedupe_preserving_first(
+                self.request.GET.getlist(self.get_visible_filters_query_param())
+            )
+            if name in allowed_names
+        ]
+
+    def get_visible_filter_names(self, filterset: FilterSet | None) -> list[str]:
+        """Resolve the currently visible filter names in stable form order."""
+        effective_names = self.get_effective_filter_names(filterset)
+        default_names = set(self.get_default_visible_filter_names(filterset))
+        active_names = set(self.get_active_filter_names(filterset))
+        requested_names = set(self.get_requested_visible_filter_names(filterset))
+        visible_names = default_names | active_names | requested_names
+        return [name for name in effective_names if name in visible_names]
+
+    def get_filter_visibility_context(
+        self, filterset: FilterSet | None
+    ) -> dict[str, object]:
+        """Build template context for default-visible and optional filters."""
+        if filterset is None or not hasattr(filterset, "form"):
+            return {
+                "visible_filter_fields": [],
+                "addable_filter_choices": [],
+                "persisted_optional_filter_names": [],
+                "default_visible_filter_names": [],
+                "visible_filter_param_name": self.get_visible_filters_query_param(),
+            }
+
+        effective_names = self.get_effective_filter_names(filterset)
+        default_visible_names = self.get_default_visible_filter_names(filterset)
+        visible_filter_names = self.get_visible_filter_names(filterset)
+        default_visible_name_set = set(default_visible_names)
+        visible_name_set = set(visible_filter_names)
+
+        visible_filter_fields = [
+            filterset.form[field_name] for field_name in visible_filter_names
+        ]
+        addable_filter_choices = [
+            {
+                "name": field_name,
+                "label": filterset.form.fields[field_name].label,
+            }
+            for field_name in effective_names
+            if field_name not in visible_name_set
+        ]
+        persisted_optional_filter_names = [
+            field_name
+            for field_name in visible_filter_names
+            if field_name not in default_visible_name_set
+        ]
+
+        return {
+            "visible_filter_fields": visible_filter_fields,
+            "addable_filter_choices": addable_filter_choices,
+            "persisted_optional_filter_names": persisted_optional_filter_names,
+            "default_visible_filter_names": default_visible_names,
+            "visible_filter_param_name": self.get_visible_filters_query_param(),
+        }
+
+    def get_context_data(self, **kwargs):
+        """Add filter visibility metadata to list template context when available."""
+        context = super().get_context_data(**kwargs)
+        filterset = kwargs.get("filterset") or context.get("filterset")
+        context.update(self.get_filter_visibility_context(filterset))
+        return context
+
     def _get_filter_widget_attrs(
         self,
         base_attrs: dict[str, dict[str, str]] | dict[str, str],
@@ -411,7 +535,13 @@ class FilteringMixin:
             filter_keys = [
                 k
                 for k in self.request.GET.keys()
-                if k not in ("page", "sort", "page_size")
+                if k
+                not in (
+                    "page",
+                    "sort",
+                    "page_size",
+                    self.get_visible_filters_query_param(),
+                )
             ]
 
             # Only reset pagination for actual filter form submissions

@@ -3,7 +3,8 @@ set -euo pipefail
 
 function show_help {
     cat <<'EOF'
-Usage: ./runtests [OPTION|TEST_PATH]
+Usage: ./runtests [OPTION]
+       ./runtests TEST_PATH [TEST_PATH ...]
 
 Options:
   --help, -h     Show this help message and exit.
@@ -11,54 +12,79 @@ Options:
   --playwright   Run only Playwright tests (pytest -m playwright).
 
 Arguments:
-  TEST_PATH      Run only the specified test path/node id.
+  TEST_PATH      Run one or more pytest test paths/node ids in a single run.
 EOF
 }
 
 MODE="all"
-TEST_PATH=""
+declare -a TEST_PATHS=()
 
-if [ "$#" -gt 1 ]; then
-    echo "Error: only one option or one test path is supported."
-    show_help
-    exit 1
-fi
-
-if [ "$#" -eq 1 ]; then
-    case "$1" in
+for arg in "$@"; do
+    case "$arg" in
         --help|-h)
             show_help
             exit 0
             ;;
         --pytest)
+            if [ "$MODE" != "all" ] || [ "${#TEST_PATHS[@]}" -gt 0 ]; then
+                echo "Error: test suite options cannot be combined with other options or test paths."
+                show_help
+                exit 1
+            fi
             MODE="pytest"
             ;;
         --playwright)
+            if [ "$MODE" != "all" ] || [ "${#TEST_PATHS[@]}" -gt 0 ]; then
+                echo "Error: test suite options cannot be combined with other options or test paths."
+                show_help
+                exit 1
+            fi
             MODE="playwright"
             ;;
         --*)
-            echo "Error: unknown option '$1'."
+            echo "Error: unknown option '$arg'."
             show_help
             exit 1
             ;;
         *)
-            TEST_PATH="$1"
+            if [ "$MODE" != "all" ]; then
+                echo "Error: test suite options cannot be combined with explicit test paths."
+                show_help
+                exit 1
+            fi
+            TEST_PATHS+=("$arg")
             ;;
     esac
-fi
+done
 
-if [ -n "$TEST_PATH" ]; then
-    # Single-test mode: respect an existing DJANGO_SETTINGS_MODULE, or choose
-    # a default based on the test path. This avoids wiping coverage or running
-    # the full suite when you just want a quick check.
+if [ "${#TEST_PATHS[@]}" -gt 0 ]; then
+    # Explicit test-path mode: respect an existing DJANGO_SETTINGS_MODULE, or
+    # choose one based on the requested test paths. This avoids wiping
+    # coverage or running the full suite when you just want a focused check.
     if [ -z "${DJANGO_SETTINGS_MODULE:-}" ]; then
-        if [[ "$TEST_PATH" == *"minimal"* ]]; then
+        use_minimal_settings="false"
+        use_default_settings="false"
+        for test_path in "${TEST_PATHS[@]}"; do
+            if [[ "$test_path" == *"minimal"* ]]; then
+                use_minimal_settings="true"
+            else
+                use_default_settings="true"
+            fi
+        done
+
+        if [ "$use_minimal_settings" = "true" ] && [ "$use_default_settings" = "true" ]; then
+            echo "Error: cannot mix minimal-settings tests with regular tests in one ./runtests call."
+            echo "Set DJANGO_SETTINGS_MODULE explicitly if you really want to override this safeguard."
+            exit 1
+        fi
+
+        if [ "$use_minimal_settings" = "true" ]; then
             export DJANGO_SETTINGS_MODULE=tests.settings_minimal
         else
             export DJANGO_SETTINGS_MODULE=tests.settings
         fi
     fi
-    pytest "$TEST_PATH"
+    pytest "${TEST_PATHS[@]}"
     exit $?
 fi
 

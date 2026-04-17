@@ -36,8 +36,36 @@
             min-width: 0;
         }
 
-        #filter-form label {
-            @apply font-bold text-center block;
+        #filter-form .filter-field-shell {
+            display: grid;
+            grid-template-columns: minmax(6rem, 8.5rem) minmax(0, 1fr) auto;
+            align-items: center;
+            column-gap: 0.5rem;
+            row-gap: 0;
+            min-height: 100%;
+        }
+
+        #filter-form .filter-field-label .label-text {
+            text-align: right;
+            white-space: nowrap;
+        }
+
+        #filter-form .filter-field-label {
+            padding: 0;
+            min-height: 0;
+            align-self: center;
+            justify-self: end;
+        }
+
+        #filter-form .filter-field-action {
+            min-width: 1.125rem;
+            min-height: 1.125rem;
+            padding: 0;
+        }
+
+        #filter-form .filter-field-action svg {
+            width: 0.875rem;
+            height: 0.875rem;
         }
 
         #filter-form input:not([type="checkbox"]),
@@ -52,6 +80,10 @@
         }
 
         #filter-form .filter-field-input {
+            width: 100%;
+        }
+
+        #filter-form .filter-field-input > * {
             width: 100%;
         }
 
@@ -85,6 +117,44 @@
         #filter-form .ts-dropdown {
             font-size: var(--pc-filter-font-size);
         }
+
+        [data-powercrud-filter-toolbar] .ts-wrapper {
+            width: 100%;
+        }
+
+        [data-powercrud-filter-toolbar] .ts-wrapper .ts-control {
+            min-height: var(--pc-filter-control-height);
+            font-size: var(--pc-filter-font-size);
+            line-height: 1.2;
+        }
+
+        @media (max-width: 639px) {
+            #filter-form .filter-field-shell {
+                grid-template-columns: 1fr auto;
+                row-gap: 0.375rem;
+            }
+
+            #filter-form .filter-field-label {
+                grid-column: 1;
+                grid-row: 1;
+                justify-self: start;
+            }
+
+            #filter-form .filter-field-label .label-text {
+                text-align: left;
+            }
+
+            #filter-form .filter-field-input {
+                grid-column: 1 / -1;
+                grid-row: 2;
+            }
+
+            #filter-form .filter-field-action {
+                grid-column: 2;
+                grid-row: 1;
+                justify-self: end;
+            }
+        }
     </style>
 
     <title id="header_title">{{header_title}}</title>
@@ -97,31 +167,49 @@
             <p class="mt-1 text-sm text-base-content/80">{{ view.get_view_instructions }}</p>
         {% endif %}
 
-        <div class="flex gap-2 my-2 items-center flex-wrap">
+        <div class="my-3 flex flex-wrap items-center gap-3">
             {% if filterset %}
-                <div class="join">
-                    <button class="join-item btn btn-secondary {{ view.get_extra_button_classes }}" type="button"
-                        data-powercrud-filter-toggle
-                        id="filterToggleBtn">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-funnel" viewBox="0 0 16 16" aria-hidden="true">
-                            <path d="M1.5 1.5A.5.5 0 0 1 2 1h12a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-.128.334L10 8.692V13.5a.5.5 0 0 1-.342.474l-3 1A.5.5 0 0 1 6 14.5V8.692L1.628 3.834A.5.5 0 0 1 1.5 3.5zm1 .5v1.308l4.372 4.858A.5.5 0 0 1 7 8.5v5.306l2-.666V8.5a.5.5 0 0 1 .128-.334L13.5 3.308V2z"/>
-                        </svg>
-                        <span>Show Filters</span>
-                    </button>
-                    
-                    {% if not use_htmx %}
-                        <button type="submit"
-                            form="filter-form"
-                            class="join-item btn btn-info {{ view.get_extra_button_classes }}">Filter</button>
-                    {% endif %}
+                <div class="flex flex-wrap items-center gap-2"
+                     data-powercrud-filter-toolbar>
+                    <div class="join">
+                        <button class="join-item btn btn-secondary {{ view.get_extra_button_classes }}" type="button"
+                            data-powercrud-filter-toggle
+                            id="filterToggleBtn">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-funnel" viewBox="0 0 16 16" aria-hidden="true">
+                                <path d="M1.5 1.5A.5.5 0 0 1 2 1h12a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-.128.334L10 8.692V13.5a.5.5 0 0 1-.342.474l-3 1A.5.5 0 0 1 6 14.5V8.692L1.628 3.834A.5.5 0 0 1 1.5 3.5zm1 .5v1.308l4.372 4.858A.5.5 0 0 1 7 8.5v5.306l2-.666V8.5a.5.5 0 0 1 .128-.334L13.5 3.308V2z"/>
+                            </svg>
+                            <span>Show Filters</span>
+                        </button>
+                        
+                        {% if not use_htmx %}
+                            <button type="submit"
+                                form="filter-form"
+                                class="join-item btn btn-info {{ view.get_extra_button_classes }}">Filter</button>
+                        {% endif %}
 
-                    <div class="tooltip tooltip-bottom tooltip-info" data-tip="Reset filters, sort & page size">
-                    <a href="." class="join-item btn btn-outline btn-secondary {{ view.get_extra_button_classes }}" 
-                        hx-get="." hx-target="{{ original_target }}" hx-push-url="true"
-                        data-powercrud-filter-reset>Reset
-                    </a>
+                        <div class="tooltip tooltip-bottom tooltip-info" data-tip="Reset filters, sort & page size">
+                        <a href="." class="join-item btn btn-outline btn-secondary {{ view.get_extra_button_classes }}" 
+                            hx-get="." hx-target="{{ original_target }}" hx-push-url="true"
+                            data-powercrud-filter-reset>Reset
+                        </a>
+                        </div>
                     </div>
-                </div>
+                    {% if addable_filter_choices %}
+                        <div class="hidden"
+                             data-powercrud-add-filter-container>
+                            <label class="select select-bordered select-sm w-full border-base-300 bg-base-100 text-base-content shadow-sm sm:w-52">
+                                <select data-powercrud-add-filter-select
+                                        data-powercrud-searchable-select="true"
+                                        data-powercrud-searchable-placeholder="Add filter…">
+                                    <option value="">Add filter…</option>
+                                    {% for option in addable_filter_choices %}
+                                        <option value="{{ option.name }}">{{ option.label }}</option>
+                                    {% endfor %}
+                                </select>
+                            </label>
+                        </div>
+                    {% endif %}
+                    </div>
             {% endif %}
 
             {% if enable_bulk_edit %}
@@ -146,7 +234,7 @@
             {% extra_buttons view %}
 
             <!-- Page Size Selector -->
-            <form id="page-size-form" class="ml-2 inline-flex items-center gap-1 whitespace-nowrap"
+            <form id="page-size-form" class="inline-flex items-center gap-1 whitespace-nowrap"
                 hx-get="." hx-target="{{ original_target }}" hx-push-url="true"
                 hx-trigger="change" hx-include="[name]">
                 <label for="page-size-select" class="sr-only">Page size</label>
@@ -169,19 +257,59 @@
         </div>
     
         {% if filterset %}
-        <div class="hidden py-2" id="filterCollapse">
-            <div class="rounded-box border border-base-300/60 bg-base-100/40 p-3">
-            <form id="filter-form" method="get" class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4" hx-target="#filtered_results" hx-push-url="true"
+        <div class="hidden py-2"
+             id="filterCollapse">
+            <div class="rounded-box border border-base-300 bg-base-300 px-2.5 py-1.5 shadow-sm md:px-3 md:py-2">
+            <form id="filter-form" method="get" class="grid gap-x-2 gap-y-0.5 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4" hx-target="#filtered_results" hx-push-url="true"
                 hx-replace-url="true" hx-headers='{"X-Filter-Sort-Request": "true", "X-Filter-Setting-Request": "true"}'
                 action="{{ request.path }}"
                 data-powercrud-filter-form="true">
-                {% for field in filterset.form %}
+                <div class="hidden" data-powercrud-visible-filters-state>
+                    {% for field_name in persisted_optional_filter_names %}
+                        <input type="hidden" name="{{ visible_filter_param_name }}" value="{{ field_name }}">
+                    {% endfor %}
+                </div>
+                {% for field in visible_filter_fields %}
                 <div class="filter-field form-control w-full min-w-0">
-                    <label class="label py-0">
-                        <span class="label-text text-xs font-semibold font-bold text-center block">{{ field.label }}</span>
+                    <div class="filter-field-shell px-1.5 py-0">
+                    <label class="filter-field-label label">
+                        <span class="label-text block w-full text-xs font-medium text-base-content/80">{{ field.label }}</span>
                     </label>
                     <div class="filter-field-input">
                         {{ field }}
+                    </div>
+                        {% if field.name in persisted_optional_filter_names %}
+                            <button type="button"
+                                    class="filter-field-action btn btn-ghost btn-xs text-error/45 hover:bg-error/10 hover:text-error"
+                                    data-powercrud-remove-filter="{{ field.name }}"
+                                    aria-label="Remove {{ field.label }} filter"
+                                    title="Remove {{ field.label }} filter">
+                                <svg xmlns="http://www.w3.org/2000/svg"
+                                     viewBox="0 0 16 16"
+                                     fill="none"
+                                     stroke="currentColor"
+                                     stroke-width="1.75"
+                                     stroke-linecap="round"
+                                     stroke-linejoin="round"
+                                     aria-hidden="true">
+                                    <path d="M4 4l8 8M12 4l-8 8"/>
+                                </svg>
+                                <span class="sr-only">Remove {{ field.label }} filter</span>
+                            </button>
+                        {% else %}
+                            <span class="filter-field-action btn btn-ghost btn-xs invisible pointer-events-none"
+                                  aria-hidden="true">
+                                <svg xmlns="http://www.w3.org/2000/svg"
+                                     viewBox="0 0 16 16"
+                                     fill="none"
+                                     stroke="currentColor"
+                                     stroke-width="1.75"
+                                     stroke-linecap="round"
+                                     stroke-linejoin="round">
+                                    <path d="M4 4l8 8M12 4l-8 8"/>
+                                </svg>
+                            </span>
+                        {% endif %}
                     </div>
                 </div>
                 {% endfor %}
@@ -191,13 +319,15 @@
         {% endif %}
 
         <!-- Hidden fields to preserve current filter and sort parameters -->
-        {% for key, value in request.GET.items %}
-            {% if key != 'page_size' and key != 'page' %}
-                {% if filterset and key not in filterset.form.fields %}
-                    <input type="hidden" name="{{ key }}" value="{{ value }}">
-                {% elif not filterset %}
-                    <input type="hidden" name="{{ key }}" value="{{ value }}">
-                {% endif %}
+        {% for key, values in request.GET.lists %}
+            {% if key != 'page_size' and key != 'page' and key != visible_filter_param_name %}
+                {% for value in values %}
+                    {% if filterset and key not in filterset.form.fields %}
+                        <input type="hidden" name="{{ key }}" value="{{ value }}">
+                    {% elif not filterset %}
+                        <input type="hidden" name="{{ key }}" value="{{ value }}">
+                    {% endif %}
+                {% endfor %}
             {% endif %}
         {% endfor %}
 
@@ -209,6 +339,14 @@
     <!-- Modal -->
     <dialog id="powercrudBaseModal" class="modal">
         <div class="modal-box">
+            <form method="dialog">
+                <button type="submit"
+                        class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2"
+                        aria-label="Close modal"
+                        title="Close">
+                    ✕
+                </button>
+            </form>
             <!-- Header with primary background -->
             <!-- <div class="bg-primary text-primary-content p-4 -m-6 mb-6 rounded-t-lg">
                 <h3 class="font-bold text-lg">{{ header_title }}</h3>
