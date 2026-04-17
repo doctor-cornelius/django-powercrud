@@ -1,3 +1,13 @@
+## 0.5.37 (2026-04-17)
+
+### Fix
+
+- trigger multiselect updates
+
+### Feature
+
+- **(filters)**: support optional filters and browser display retention
+
 ## 0.5.36 (2026-04-17)
 
 ## 0.5.35 (2026-04-17)
