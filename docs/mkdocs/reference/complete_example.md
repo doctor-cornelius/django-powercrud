@@ -196,6 +196,7 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
 - `column_help_text` adds optional plain-text tooltips to specific header labels. The help trigger is a separate info icon, so sortable headers keep sorting behavior.
 - `list_cell_tooltip_fields` opts selected rendered columns into semantic list-cell tooltips. The shared `get_list_cell_tooltip(...)` hook is only called for configured names that are actually visible in the current list, and returned plain text may include newline characters when the semantic cell tooltip should render on multiple lines.
 - Semantic list-cell tooltips take precedence over the fallback overflow tooltip for the same cell. Unconfigured cells keep the existing overflow behavior.
+- Tooltip appearance is styled through CSS variables such as `--pc-tooltip-bg` and `--pc-tooltip-fg`, not Python view parameters. Override those in your app CSS when you want project-level theming.
 - `form_class` is the source of truth for editable inputs in this example. Because a custom form class is configured, the example intentionally does not also set `form_fields`.
 - `form_display_fields` renders model fields in a separate read-only `Context` block above update forms. This is useful for `editable=False` fields or other contextual data the user should see while editing.
 - `form_disabled_fields` keeps real update-form inputs visible but disabled. PowerCRUD uses Django field disabling rather than widget-only attrs, so posted tampering is ignored and the saved instance value is preserved.

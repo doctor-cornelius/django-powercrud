@@ -18,7 +18,7 @@ POWERCRUD_SETTINGS = {
 
 ---
 
-## 2. Table and button styles
+## 2. Common styling controls
 
 ```python
 class ProjectCRUDView(PowerCRUDMixin, CRUDView):
@@ -33,6 +33,36 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
 - `action_button_classes` targets edit/delete/etc. buttons per row.
 - `extra_button_classes` targets the buttons above the table.
 
+### Tooltip theme variables
+
+PowerCRUD exposes a small set of CSS custom properties for tooltip styling, so downstream projects can restyle tooltips in app CSS without adding Python configuration:
+
+```css
+:root {
+    --pc-tooltip-bg: var(--color-primary);
+    --pc-tooltip-fg: var(--color-primary-content);
+    --pc-tooltip-arrow: var(--pc-tooltip-bg);
+    --pc-tooltip-radius: var(--radius-field, 0.25rem);
+    --pc-tooltip-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+```
+
+Use CSS token values such as `var(--color-primary)` and `var(--color-primary-content)`, not utility class names such as `bg-primary` or `text-primary-content`.
+
+If you manage your own app bundle, load the override CSS after `powercrud/css/powercrud.css` so your `:root` variable values win in the cascade.
+
+??? note "Accepted Tooltip Variable Values"
+
+    Each tooltip variable accepts the normal CSS value type for the property it drives:
+
+    - `--pc-tooltip-bg`: any valid `background-color` value, such as `var(--color-primary)`, `#2563eb`, `rgb(37 99 235)`, or `oklch(...)`
+    - `--pc-tooltip-fg`: any valid text `color` value
+    - `--pc-tooltip-arrow`: any valid `color` value; this is usually kept the same as `--pc-tooltip-bg`
+    - `--pc-tooltip-radius`: any valid `border-radius` value, such as `0.25rem`, `8px`, or `var(--radius-field)`
+    - `--pc-tooltip-shadow`: any valid `box-shadow` value
+
+    In practice, the cleanest downstream overrides usually use design tokens such as `var(--color-primary)` and `var(--color-primary-content)`, plus existing radius tokens where available.
+
 ### Column size controls
 
 ```python
@@ -46,7 +76,26 @@ These values control truncation/popovers and scrollable table height.
 
 ### Dropdown sorting
 
-`dropdown_sort_options` affects choices in forms, filters, and bulk editing (see [Bulk editing (synchronous)](./bulk_edit_sync.md)).
+Use `dropdown_sort_options` when queryset-backed selects should be ordered by a predictable field instead of PowerCRUD's default heuristics.
+
+```python
+class ProjectCRUDView(PowerCRUDMixin, CRUDView):
+    model = models.Project
+
+    dropdown_sort_options = {
+        "owner": "name",
+        "category": "label",
+    }
+```
+
+In that example:
+
+- the `owner` dropdown is ordered by `name`
+- the `category` dropdown is ordered by `label`
+
+This affects queryset-backed choices across the standard PowerCRUD surfaces, including forms, filters, and bulk editing. Use it when the default `name` / `title` style ordering is not the field you want users to scan by.
+
+For broader bulk-editing context, see [Bulk editing (synchronous)](./bulk_edit_sync.md).
 
 ---
 
@@ -111,11 +160,12 @@ Re-run the command whenever you upgrade PowerCRUD or adjust templates heavily.
 
 ## 4. External assets
 
-Ensure your base template includes:
+Choose one loading path for PowerCRUD's frontend assets:
 
-- The PowerCRUD packaged bundle (`{% vite_asset 'config/static/js/main.js' app='powercrud' %}`), or:
-- Manual frontend dependencies (`HTMX`, `Tom Select`, `Tippy.js`) plus PowerCRUD runtime assets (`powercrud/js/powercrud.js`, `powercrud/css/powercrud.css`).
-- Optional: extra table tooling (for example `tablesort`) if you use it.
+- Bundled mode: load the packaged bundle with `{% vite_asset 'config/static/js/main.js' app='powercrud' %}`
+- Manual mode: load `HTMX`, `Tom Select`, `Tippy.js`, then PowerCRUD runtime assets (`powercrud/js/powercrud.js`, `powercrud/css/powercrud.css`)
+
+Optional extra table tooling such as `tablesort` can be layered on top of either path if your project uses it.
 
 If you use bundled mode via `django-vite`, ensure the PowerCRUD app entry is configured with:
 
@@ -137,6 +187,8 @@ PowerCRUD applies daisyUI semantic-color overrides to Tom Select so searchable s
 
 If you manage assets yourself, keep Tom Select's vendor CSS loaded before `powercrud/css/powercrud.css`; the package stylesheet is the layer that replaces Tom Select's light-theme defaults with theme-aware daisyUI colors.
 
+If you also override PowerCRUD tooltip variables in your own CSS, load that override stylesheet after `powercrud/css/powercrud.css`.
+
 If you manage assets yourself and still want the default visual style, refer to:
 
 - daisyUI docs: [https://daisyui.com/docs/](https://daisyui.com/docs/){ target="_blank" rel="noopener noreferrer" }
@@ -146,7 +198,7 @@ PowerCRUD does not ship a full HTML shell; instead, your project must define its
 
 ---
 
-### Key options
+## 5. Key options
 
 | Setting | Default | Typical values | Purpose |
 |---------|---------|----------------|---------|

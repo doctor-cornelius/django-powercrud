@@ -96,6 +96,8 @@ class BookCRUDView(PowerCRUDAsyncMixin, CRUDView):
 
 The sample `BookCRUDView` uses `view_title = "My List of Books"` plus `view_instructions = "Here you can edit books"` to demonstrate the narrow heading/helper-text overrides. It also sets `column_help_text` for one field and one property so the sample list shows the header-help tooltip pattern, and `list_cell_tooltip_fields` plus `get_list_cell_tooltip(...)` so the list also demonstrates semantic field-level tooltips on both a normal text cell and the boolean-like `isbn_empty` property cell. The sample `title` tooltip intentionally uses a newline so the demo shows multiline semantic list-cell tooltip rendering, while header-help tooltips and other tooltip surfaces keep their normal single-line behavior. That changes only the list surface above and inside the table; other UI copy such as the create button still comes from the model verbose names, and the instructions text, header help text, and semantic cell tooltip text are all rendered as plain escaped text rather than HTML.
 
+The sample frontend now also demonstrates the downstream tooltip-styling path. In [`src/config/static/css/app.custom.css`](../../../src/config/static/css/app.custom.css), the sample app overrides `--pc-tooltip-bg` and `--pc-tooltip-fg` to use daisyUI's primary semantic tokens. The sample Vite entry imports that file after `powercrud/css/powercrud.css`, so readers can inspect the real app-level override pattern rather than only reading about it in the styling guide.
+
 The sample form configuration now also demonstrates two contextual form-surface features:
 
 - `form_display_fields = ["uneditable_field"]` shows the model’s non-editable field in a separate read-only `Context` block above the update form.
@@ -108,6 +110,7 @@ The sample `BookCRUDView` now also demonstrates both custom action enhancements 
 - a selection-aware `extra_button` that opens a modal summary for the current persisted bulk selection
 - a row-level `extra_action` that disables itself with a tooltip when the book has no description
 - semantic field-level list-cell tooltips on the `title` field and `isbn_empty` property
+- app-level tooltip theme overrides through `--pc-tooltip-bg` / `--pc-tooltip-fg`
 - a guarded row (`Guarded Sample Book`) that disables the built-in Edit action and inline editing before the user can start an update
 - a bulk-validation demo row (`Bulk Validation Sample Book`) that re-renders the bulk edit modal for sync bulk updates and fails the async task for queued bulk updates when a sample bulk rule is violated
 

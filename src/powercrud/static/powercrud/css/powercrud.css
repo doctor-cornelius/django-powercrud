@@ -25,17 +25,24 @@
     --pc-ts-option-active-text: var(--color-primary-content, #ffffff);
     --pc-ts-option-hover-bg: var(--color-base-200, #f3f4f6);
     --pc-ts-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+    --pc-tooltip-bg: var(--color-primary, #3b82f6);
+    --pc-tooltip-fg: var(--color-primary-content, #ffffff);
+    --pc-tooltip-arrow: var(--pc-tooltip-bg);
+    --pc-tooltip-radius: var(--radius-field, 0.25rem);
+    --pc-tooltip-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
 }
 
 .tippy-box[data-theme~="powercrud"],
 .tippy-box[data-theme~="powercrud-semantic-cell"] {
-    background-color: #333333;
-    color: #ffffff;
+    background-color: var(--pc-tooltip-bg);
+    border-radius: var(--pc-tooltip-radius);
+    box-shadow: var(--pc-tooltip-shadow);
+    color: var(--pc-tooltip-fg);
 }
 
 .tippy-box[data-theme~="powercrud"] > .tippy-arrow,
 .tippy-box[data-theme~="powercrud-semantic-cell"] > .tippy-arrow {
-    color: #333333;
+    color: var(--pc-tooltip-arrow);
 }
 
 .tippy-box[data-theme~="powercrud-semantic-cell"] .tippy-content {

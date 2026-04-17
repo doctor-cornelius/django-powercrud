@@ -18,3 +18,6 @@ window.tippy = tippy
 // bundle entry key: config/static/js/main.js
 import '../../../powercrud/static/powercrud/css/powercrud.css'
 import '../../../powercrud/static/powercrud/js/powercrud.js'
+
+// Load sample-app overrides after package CSS so :root custom properties win.
+import '@/css/app.custom.css'

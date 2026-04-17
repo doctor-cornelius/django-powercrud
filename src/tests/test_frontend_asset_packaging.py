@@ -53,3 +53,56 @@ def test_runtime_css_themes_tomselect_with_daisyui_semantic_tokens() -> None:
     assert (
         ".ts-dropdown .active," in css
     ), "TomSelect runtime CSS should include an explicit active dropdown option override."
+
+
+def test_runtime_css_exposes_tooltip_theme_variables() -> None:
+    """Packaged runtime CSS should expose stable tooltip CSS variables and consume them."""
+    package_root = Path(powercrud.__file__).resolve().parent
+    runtime_css = package_root / "static" / "powercrud" / "css" / "powercrud.css"
+
+    css = runtime_css.read_text(encoding="utf-8")
+
+    assert (
+        "--pc-tooltip-bg: var(--color-primary, #3b82f6);" in css
+    ), "Tooltip runtime CSS should expose a background custom property that defaults to the daisyUI primary token."
+    assert (
+        "--pc-tooltip-fg: var(--color-primary-content, #ffffff);" in css
+    ), "Tooltip runtime CSS should expose a foreground custom property that defaults to the daisyUI primary-content token."
+    assert (
+        "--pc-tooltip-arrow: var(--pc-tooltip-bg);" in css
+    ), "Tooltip runtime CSS should expose an arrow-color custom property that defaults to the tooltip background."
+    assert (
+        "--pc-tooltip-radius: var(--radius-field, 0.25rem);" in css
+    ), "Tooltip runtime CSS should expose a border-radius custom property with a sensible field-radius default."
+    assert (
+        "--pc-tooltip-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);" in css
+    ), "Tooltip runtime CSS should expose a subtle shadow custom property."
+    assert (
+        "background-color: var(--pc-tooltip-bg);" in css
+    ), "Tooltip theme selectors should consume the tooltip background custom property instead of a hard-coded color."
+    assert (
+        "color: var(--pc-tooltip-fg);" in css
+    ), "Tooltip theme selectors should consume the tooltip foreground custom property instead of a hard-coded color."
+    assert (
+        "color: var(--pc-tooltip-arrow);" in css
+    ), "Tooltip arrow selectors should consume the tooltip arrow custom property."
+
+
+def test_sample_bundle_imports_tooltip_override_css_after_powercrud_runtime_css() -> None:
+    """The sample Vite entry should import app-level tooltip overrides after package runtime CSS."""
+    entry_js = (
+        Path(__file__).resolve().parents[1]
+        / "config"
+        / "static"
+        / "js"
+        / "main.js"
+    ).read_text(encoding="utf-8")
+
+    powercrud_css_index = entry_js.index(
+        "import '../../../powercrud/static/powercrud/css/powercrud.css'"
+    )
+    app_override_index = entry_js.index("import '@/css/app.custom.css'")
+
+    assert (
+        powercrud_css_index < app_override_index
+    ), "Sample app CSS overrides should load after package runtime CSS so downstream :root tooltip variables take effect."
