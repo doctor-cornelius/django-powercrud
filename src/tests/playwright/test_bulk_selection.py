@@ -122,7 +122,12 @@ def select_multi_value(page, container, field_name: str, option_label: str, opti
         select.evaluate(
             """
             (el, payload) => {
-                el.tomselect.addItem(String(payload.value));
+                const nextValue = String(payload.value);
+                const currentValues = Array.isArray(el.tomselect.items)
+                    ? el.tomselect.items.map(String)
+                    : [];
+                const mergedValues = Array.from(new Set([...currentValues, nextValue]));
+                el.tomselect.setValue(mergedValues);
                 el.tomselect.setTextboxValue('');
                 el.tomselect.refreshOptions(true);
             }
@@ -313,7 +318,7 @@ def test_filter_multiselect_searchable_select_applies_immediately(
     target_book.genres.set([target_genre])
     non_matching_book.genres.set([non_matching_genre])
 
-    page.goto(books_url)
+    page.goto(f"{books_url}?visible_filters=genres")
     page.wait_for_load_state("networkidle")
     page.get_by_role("button", name=re.compile("show filters", re.I)).click()
 

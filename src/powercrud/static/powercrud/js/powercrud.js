@@ -378,6 +378,12 @@
             onItemAdd() {
                 this.setTextboxValue('');
                 this.refreshOptions(true);
+                selectElement.dispatchEvent(new Event('change', { bubbles: true }));
+            },
+            onItemRemove() {
+                this.setTextboxValue('');
+                this.refreshOptions(true);
+                selectElement.dispatchEvent(new Event('change', { bubbles: true }));
             },
         };
         if (!dialogElement) {
