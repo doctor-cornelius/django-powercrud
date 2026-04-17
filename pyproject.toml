@@ -1,6 +1,6 @@
 [project]
 name = "django-powercrud"
-version = "0.5.35"
+version = "0.5.36"
 description = "Advanced CRUD for perfectionists with deadlines. An opinionated Neapolitan extension, with sprinkles."
 readme = "README.md"
 authors = [
