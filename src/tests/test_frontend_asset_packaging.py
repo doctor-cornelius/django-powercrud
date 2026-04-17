@@ -108,8 +108,8 @@ def test_sample_bundle_imports_tooltip_override_css_after_powercrud_runtime_css(
     ), "Sample app CSS overrides should load after package runtime CSS so downstream :root tooltip variables take effect."
 
 
-def test_sample_tooltip_override_css_uses_primary_sample_theme() -> None:
-    """The sample app should demonstrate an active primary-token tooltip override."""
+def test_sample_tooltip_override_css_uses_info_sample_theme() -> None:
+    """The sample app should demonstrate an active info-token tooltip override."""
     sample_css = (
         Path(__file__).resolve().parents[1]
         / "config"
@@ -122,8 +122,8 @@ def test_sample_tooltip_override_css_uses_primary_sample_theme() -> None:
         ":root {" in sample_css
     ), "Sample tooltip override CSS should include an active :root block so the sample app demonstrates downstream theming."
     assert (
-        "--pc-tooltip-bg: var(--color-primary);" in sample_css
-    ), "Sample tooltip override CSS should demonstrate the primary tooltip background token."
+        "--pc-tooltip-bg: var(--color-info);" in sample_css
+    ), "Sample tooltip override CSS should demonstrate the info tooltip background token."
     assert (
-        "--pc-tooltip-fg: var(--color-primary-content);" in sample_css
-    ), "Sample tooltip override CSS should demonstrate the primary tooltip foreground token."
+        "--pc-tooltip-fg: var(--color-info-content);" in sample_css
+    ), "Sample tooltip override CSS should demonstrate the info tooltip foreground token."
