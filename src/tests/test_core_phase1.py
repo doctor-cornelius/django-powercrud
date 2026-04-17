@@ -1300,14 +1300,14 @@ def test_book_list_filter_form_uses_compact_grid_layout(client):
     assert 'id="filter-form"' in response_text, (
         "Book list view should render the filter form when filterset_fields are configured."
     )
-    assert 'class="grid gap-x-2 gap-y-0.5 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4"' in response_text, (
-        "Book list filter form should use very tight vertical spacing relative to horizontal spacing for a denser multi-row filter layout."
+    assert 'class="grid gap-x-2 gap-y-0 sm:grid-cols-2 xl:grid-cols-3"' in response_text, (
+        "Book list filter form should cap itself at three columns and remove extra row gap so the panel feels compact rather than sprawling."
     )
     assert "filter-field form-control w-full min-w-0" in response_text, (
         "Book list filter fields should use the compact wrapper class within the grid layout."
     )
-    assert "filter-field-shell px-1.5 py-0" in response_text, (
-        "Book list filter fields should keep near-zero vertical padding so wrapped rows do not feel overly separated."
+    assert "filter-field-shell" in response_text and "padding: 0 0.25rem;" in response_text, (
+        "Book list filter fields should keep only a small amount of inline padding so the rows stay dense without collapsing into each other."
     )
     assert 'text-xs font-medium text-base-content/80' in response_text, (
         "Book list filter labels should use lighter compact label styling rather than loud heading-style labels."
@@ -1315,8 +1315,20 @@ def test_book_list_filter_form_uses_compact_grid_layout(client):
     assert "text-align: right;" in response_text and "justify-self: end;" in response_text, (
         "Desktop filter labels should align tightly against their controls so the compact rows read as paired label-input units."
     )
-    assert "grid-template-columns: minmax(6rem, 8.5rem) minmax(0, 1fr) auto;" in response_text, (
-        "Book list filter rows should reserve a wider label column so longer labels do not crowd their controls."
+    assert "grid-template-columns: minmax(5.25rem, 6.75rem) minmax(0, 1fr) auto;" in response_text, (
+        "Book list filter rows should keep a compact label column while leaving enough width for wrapped labels to stay readable."
+    )
+    assert "--pc-filter-control-height: 2rem;" in response_text, (
+        "Book list filters should use shorter controls so the compact panel does not feel like a full data-entry form."
+    )
+    assert "max-width: 78rem;" in response_text, (
+        "The filter panel should cap its width so it feels like a deliberate query workspace rather than spanning indefinitely."
+    )
+    assert "column-gap: 0.375rem;" in response_text, (
+        "Book list filter rows should tighten label-to-control spacing to reduce the sense of bloat."
+    )
+    assert "white-space: normal;" in response_text and "overflow-wrap: anywhere;" in response_text, (
+        "Book list filter labels should be allowed to wrap rather than forcing truncation or collisions with their controls."
     )
     assert "rounded-box border border-base-300 bg-base-300" in response_text, (
         "The filter panel should use a semantic base background tint so it does not disappear into a white page background."

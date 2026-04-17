@@ -10,7 +10,7 @@
     <style>
         :root {
             --pc-inline-icon-buffer: 2.25ch;
-            --pc-filter-control-height: 2.25rem;
+            --pc-filter-control-height: 2rem;
             --pc-filter-font-size: 0.8125rem;
         }
 
@@ -32,22 +32,31 @@
             max-width: {{ table_max_col_width }};
         }
 
+        #filterCollapse .filter-panel-shell {
+            width: 100%;
+            max-width: 78rem;
+            padding: 0.25rem 0.5rem;
+        }
+
         #filter-form .filter-field {
             min-width: 0;
         }
 
         #filter-form .filter-field-shell {
             display: grid;
-            grid-template-columns: minmax(6rem, 8.5rem) minmax(0, 1fr) auto;
+            grid-template-columns: minmax(5.25rem, 6.75rem) minmax(0, 1fr) auto;
             align-items: center;
-            column-gap: 0.5rem;
+            column-gap: 0.375rem;
             row-gap: 0;
             min-height: 100%;
+            padding: 0 0.25rem;
         }
 
         #filter-form .filter-field-label .label-text {
             text-align: right;
-            white-space: nowrap;
+            white-space: normal;
+            line-height: 1.15;
+            overflow-wrap: anywhere;
         }
 
         #filter-form .filter-field-label {
@@ -73,8 +82,8 @@
             height: var(--pc-filter-control-height) !important;
             min-height: var(--pc-filter-control-height) !important;
             max-height: var(--pc-filter-control-height) !important;
-            padding-top: 0.25rem !important;
-            padding-bottom: 0.25rem !important;
+            padding-top: 0.1875rem !important;
+            padding-bottom: 0.1875rem !important;
             font-size: var(--pc-filter-font-size) !important;
             line-height: 1.2 !important;
         }
@@ -99,8 +108,8 @@
 
         #filter-form .ts-wrapper.multi .ts-control {
             align-items: center;
-            padding-top: 0.25rem;
-            padding-bottom: 0.25rem;
+            padding-top: 0.125rem;
+            padding-bottom: 0.125rem;
             min-height: var(--pc-filter-control-height);
         }
 
@@ -129,9 +138,14 @@
         }
 
         @media (max-width: 639px) {
+            #filterCollapse .filter-panel-shell {
+                padding: 0.25rem 0.375rem;
+            }
+
             #filter-form .filter-field-shell {
                 grid-template-columns: 1fr auto;
                 row-gap: 0.375rem;
+                padding: 0;
             }
 
             #filter-form .filter-field-label {
@@ -259,8 +273,8 @@
         {% if filterset %}
         <div class="hidden py-2"
              id="filterCollapse">
-            <div class="rounded-box border border-base-300 bg-base-300 px-2.5 py-1.5 shadow-sm md:px-3 md:py-2">
-            <form id="filter-form" method="get" class="grid gap-x-2 gap-y-0.5 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4" hx-target="#filtered_results" hx-push-url="true"
+            <div class="filter-panel-shell rounded-box border border-base-300 bg-base-300 shadow-sm">
+            <form id="filter-form" method="get" class="grid gap-x-2 gap-y-0 sm:grid-cols-2 xl:grid-cols-3" hx-target="#filtered_results" hx-push-url="true"
                 hx-replace-url="true" hx-headers='{"X-Filter-Sort-Request": "true", "X-Filter-Setting-Request": "true"}'
                 action="{{ request.path }}"
                 data-powercrud-filter-form="true">
@@ -271,7 +285,7 @@
                 </div>
                 {% for field in visible_filter_fields %}
                 <div class="filter-field form-control w-full min-w-0">
-                    <div class="filter-field-shell px-1.5 py-0">
+                    <div class="filter-field-shell">
                     <label class="filter-field-label label">
                         <span class="label-text block w-full text-xs font-medium text-base-content/80">{{ field.label }}</span>
                     </label>
