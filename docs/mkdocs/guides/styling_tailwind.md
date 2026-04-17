@@ -39,15 +39,24 @@ PowerCRUD exposes a small set of CSS custom properties for tooltip styling, so d
 
 ```css
 :root {
-    --pc-tooltip-bg: var(--color-primary);
-    --pc-tooltip-fg: var(--color-primary-content);
+    --pc-tooltip-bg: var(--color-neutral);
+    --pc-tooltip-fg: var(--color-neutral-content);
     --pc-tooltip-arrow: var(--pc-tooltip-bg);
     --pc-tooltip-radius: var(--radius-field, 0.25rem);
     --pc-tooltip-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
 }
 ```
 
-Use CSS token values such as `var(--color-primary)` and `var(--color-primary-content)`, not utility class names such as `bg-primary` or `text-primary-content`.
+Those are the PowerCRUD defaults. Use CSS token values such as `var(--color-neutral)` and `var(--color-neutral-content)`, not utility class names such as `bg-neutral` or `text-neutral-content`.
+
+If you want a project-specific override, set different values in a stylesheet that loads after `powercrud/css/powercrud.css`, for example:
+
+```css
+:root {
+    --pc-tooltip-bg: var(--color-primary);
+    --pc-tooltip-fg: var(--color-primary-content);
+}
+```
 
 If you manage your own app bundle, load the override CSS after `powercrud/css/powercrud.css` so your `:root` variable values win in the cascade.
 
@@ -55,13 +64,13 @@ If you manage your own app bundle, load the override CSS after `powercrud/css/po
 
     Each tooltip variable accepts the normal CSS value type for the property it drives:
 
-    - `--pc-tooltip-bg`: any valid `background-color` value, such as `var(--color-primary)`, `#2563eb`, `rgb(37 99 235)`, or `oklch(...)`
+    - `--pc-tooltip-bg`: any valid `background-color` value, such as `var(--color-neutral)`, `#272728`, `rgb(39 39 40)`, or `oklch(...)`
     - `--pc-tooltip-fg`: any valid text `color` value
     - `--pc-tooltip-arrow`: any valid `color` value; this is usually kept the same as `--pc-tooltip-bg`
     - `--pc-tooltip-radius`: any valid `border-radius` value, such as `0.25rem`, `8px`, or `var(--radius-field)`
     - `--pc-tooltip-shadow`: any valid `box-shadow` value
 
-    In practice, the cleanest downstream overrides usually use design tokens such as `var(--color-primary)` and `var(--color-primary-content)`, plus existing radius tokens where available.
+    In practice, the cleanest downstream overrides usually use design tokens such as `var(--color-neutral)` / `var(--color-neutral-content)` for defaults or `var(--color-primary)` / `var(--color-primary-content)` for project-specific emphasis, plus existing radius tokens where available.
 
 ### Column size controls
 

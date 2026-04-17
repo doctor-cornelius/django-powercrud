@@ -63,11 +63,11 @@ def test_runtime_css_exposes_tooltip_theme_variables() -> None:
     css = runtime_css.read_text(encoding="utf-8")
 
     assert (
-        "--pc-tooltip-bg: var(--color-primary, #3b82f6);" in css
-    ), "Tooltip runtime CSS should expose a background custom property that defaults to the daisyUI primary token."
+        "--pc-tooltip-bg: var(--color-neutral, #272728);" in css
+    ), "Tooltip runtime CSS should expose a background custom property that defaults to the daisyUI neutral token."
     assert (
-        "--pc-tooltip-fg: var(--color-primary-content, #ffffff);" in css
-    ), "Tooltip runtime CSS should expose a foreground custom property that defaults to the daisyUI primary-content token."
+        "--pc-tooltip-fg: var(--color-neutral-content, #ffffff);" in css
+    ), "Tooltip runtime CSS should expose a foreground custom property that defaults to the daisyUI neutral-content token."
     assert (
         "--pc-tooltip-arrow: var(--pc-tooltip-bg);" in css
     ), "Tooltip runtime CSS should expose an arrow-color custom property that defaults to the tooltip background."
@@ -106,3 +106,24 @@ def test_sample_bundle_imports_tooltip_override_css_after_powercrud_runtime_css(
     assert (
         powercrud_css_index < app_override_index
     ), "Sample app CSS overrides should load after package runtime CSS so downstream :root tooltip variables take effect."
+
+
+def test_sample_tooltip_override_css_uses_primary_sample_theme() -> None:
+    """The sample app should demonstrate an active primary-token tooltip override."""
+    sample_css = (
+        Path(__file__).resolve().parents[1]
+        / "config"
+        / "static"
+        / "css"
+        / "app.custom.css"
+    ).read_text(encoding="utf-8")
+
+    assert (
+        ":root {" in sample_css
+    ), "Sample tooltip override CSS should include an active :root block so the sample app demonstrates downstream theming."
+    assert (
+        "--pc-tooltip-bg: var(--color-primary);" in sample_css
+    ), "Sample tooltip override CSS should demonstrate the primary tooltip background token."
+    assert (
+        "--pc-tooltip-fg: var(--color-primary-content);" in sample_css
+    ), "Sample tooltip override CSS should demonstrate the primary tooltip foreground token."
