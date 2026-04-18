@@ -11,9 +11,20 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
+        migrations.RemoveConstraint(
+            model_name="savedfilterfavourite",
+            name="uniq_powercrud_favourite_user_view_name",
+        ),
         migrations.AlterField(
             model_name="savedfilterfavourite",
             name="name",
             field=models.CharField(max_length=30),
+        ),
+        migrations.AddConstraint(
+            model_name="savedfilterfavourite",
+            constraint=models.UniqueConstraint(
+                fields=("user", "view_key", "name"),
+                name="uniq_powercrud_favourite_user_view_name",
+            ),
         ),
     ]
