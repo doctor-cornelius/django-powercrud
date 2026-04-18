@@ -30,6 +30,8 @@
     const FORM_SPINNER_STATE = new WeakMap();
     const BUTTON_SPINNER_STATE = new WeakMap();
     let tooltipResizeTimer = null;
+    let activeRowActionsMenu = null;
+    let activeRowActionsTrigger = null;
 
     function warnMissingDependency(name, detail) {
         if (warnedDeps[name]) {
@@ -568,6 +570,117 @@
 
     function getFilterFavouritesContainer(root) {
         return root.querySelector('[data-powercrud-filter-favourites-toolbar="true"]');
+    }
+
+    function getRowActionsDropdownContainer(trigger) {
+        if (!(trigger instanceof Element)) {
+            return null;
+        }
+        return trigger.closest('[data-powercrud-row-actions-dropdown="true"]');
+    }
+
+    function getRowActionsTemplate(trigger) {
+        const container = getRowActionsDropdownContainer(trigger);
+        if (!(container instanceof Element)) {
+            return null;
+        }
+        const template = container.querySelector('[data-powercrud-row-actions-template="true"]');
+        return template instanceof HTMLElement ? template : null;
+    }
+
+    function closeRowActionsMenu() {
+        if (activeRowActionsTrigger instanceof HTMLElement) {
+            activeRowActionsTrigger.setAttribute('aria-expanded', 'false');
+        }
+        if (activeRowActionsMenu instanceof HTMLElement && activeRowActionsMenu.parentNode) {
+            activeRowActionsMenu.parentNode.removeChild(activeRowActionsMenu);
+        }
+        activeRowActionsMenu = null;
+        activeRowActionsTrigger = null;
+    }
+
+    function positionRowActionsMenu(menuElement, triggerElement) {
+        if (!(menuElement instanceof HTMLElement) || !(triggerElement instanceof HTMLElement)) {
+            return;
+        }
+
+        const viewportPadding = 8;
+        const menuGap = 4;
+        const triggerRect = triggerElement.getBoundingClientRect();
+        const menuRect = menuElement.getBoundingClientRect();
+
+        const spaceBelow = global.innerHeight - triggerRect.bottom - viewportPadding;
+        const spaceAbove = triggerRect.top - viewportPadding;
+        const shouldOpenUpward = menuRect.height > spaceBelow && spaceAbove > spaceBelow;
+
+        let top = shouldOpenUpward
+            ? triggerRect.top - menuRect.height - menuGap
+            : triggerRect.bottom + menuGap;
+        let left = triggerRect.right - menuRect.width;
+
+        top = Math.max(
+            viewportPadding,
+            Math.min(top, global.innerHeight - menuRect.height - viewportPadding),
+        );
+        left = Math.max(
+            viewportPadding,
+            Math.min(left, global.innerWidth - menuRect.width - viewportPadding),
+        );
+
+        menuElement.style.top = `${top}px`;
+        menuElement.style.left = `${left}px`;
+    }
+
+    function openRowActionsMenu(trigger) {
+        if (!(trigger instanceof HTMLElement)) {
+            return;
+        }
+
+        const template = getRowActionsTemplate(trigger);
+        if (!(template instanceof HTMLElement)) {
+            return;
+        }
+
+        closeRowActionsMenu();
+
+        const menuElement = template.firstElementChild?.cloneNode(true);
+        if (!(menuElement instanceof HTMLElement)) {
+            return;
+        }
+
+        menuElement.dataset.powercrudRowActionsFloatingPanel = 'true';
+        menuElement.style.position = 'fixed';
+        menuElement.style.visibility = 'hidden';
+        menuElement.style.pointerEvents = 'none';
+
+        document.body.appendChild(menuElement);
+
+        if (global.htmx?.process) {
+            global.htmx.process(menuElement);
+        }
+        initPowercrudTooltips(menuElement);
+
+        positionRowActionsMenu(menuElement, trigger);
+
+        menuElement.style.visibility = '';
+        menuElement.style.pointerEvents = '';
+
+        trigger.setAttribute('aria-expanded', 'true');
+        activeRowActionsMenu = menuElement;
+        activeRowActionsTrigger = trigger;
+    }
+
+    function toggleRowActionsMenu(trigger) {
+        if (!(trigger instanceof HTMLElement)) {
+            return;
+        }
+
+        if (activeRowActionsTrigger === trigger && activeRowActionsMenu instanceof HTMLElement) {
+            closeRowActionsMenu();
+            return;
+        }
+
+        openRowActionsMenu(trigger);
     }
 
     function getFilterFavouritesDropdowns(scope = document) {
@@ -2376,6 +2489,7 @@
     });
 
     global.addEventListener('pagehide', () => {
+        closeRowActionsMenu();
         getAffectedObjectListRoots(document).forEach(root => {
             clearPendingFilterFavouriteSelection(root);
         });
@@ -2392,6 +2506,28 @@
             const root = getObjectListRoot(filterToggle);
             if (root) {
                 toggleFilterVisibility(root);
+            }
+            return;
+        }
+
+        const rowActionsTrigger = trigger.closest('[data-powercrud-row-actions-trigger="true"]');
+        if (rowActionsTrigger instanceof HTMLElement) {
+            event.preventDefault();
+            toggleRowActionsMenu(rowActionsTrigger);
+            return;
+        }
+
+        const floatingRowActionsPanel = trigger.closest('[data-powercrud-row-actions-floating-panel="true"]');
+        if (floatingRowActionsPanel instanceof Element) {
+            const actionableElement = trigger.closest('a, button');
+            if (
+                actionableElement instanceof HTMLElement
+                && actionableElement.getAttribute('aria-disabled') !== 'true'
+                && !actionableElement.classList.contains('pointer-events-none')
+            ) {
+                global.setTimeout(() => {
+                    closeRowActionsMenu();
+                }, 0);
             }
             return;
         }
@@ -2467,13 +2603,19 @@
         if (!trigger.closest('[data-powercrud-filter-favourites-dropdown="true"]')) {
             closeFilterFavouritesDropdowns();
         }
+        closeRowActionsMenu();
     });
 
     document.addEventListener('keydown', event => {
         if (event.key === 'Escape') {
             closeFilterFavouritesDropdowns();
+            closeRowActionsMenu();
         }
     });
+
+    document.addEventListener('scroll', () => {
+        closeRowActionsMenu();
+    }, true);
 
     document.addEventListener('click', event => {
         const target = asElement(event.target);
@@ -2731,6 +2873,7 @@
             destroyPowercrudSearchableSelects(root);
             destroyPowercrudTooltips(root);
         });
+        closeRowActionsMenu();
 
         if (!activeRowId) {
             return;
@@ -2934,6 +3077,7 @@
     });
 
     global.addEventListener('resize', () => {
+        closeRowActionsMenu();
         if (tooltipResizeTimer) {
             clearTimeout(tooltipResizeTimer);
         }

@@ -1650,7 +1650,7 @@ def test_author_list_renders_extra_actions_as_buttons_by_default(client):
     assert "View Again" in response_text, (
         "Sample author list should still render the configured extra action label."
     )
-    assert "dropdown-content menu" not in response_text, (
+    assert "data-powercrud-row-actions-trigger" not in response_text, (
         "Sample author list should fall back to the default visible-button row action mode when dropdown mode is unset."
     )
 
@@ -1675,8 +1675,8 @@ def test_book_list_renders_extra_actions_in_dropdown(client):
     assert response.status_code == 200, (
         "Book list view should render successfully so dropdown row actions can be inspected."
     )
-    assert "dropdown-content menu" in response_text, (
-        "Sample book list should render extra row actions inside the dropdown menu when dropdown mode is enabled."
+    assert "data-powercrud-row-actions-template='true'" in response_text, (
+        "Sample book list should render the floating row-actions menu template when dropdown mode is enabled."
     )
     assert ">More<" in response_text, (
         "Sample book list should include the More trigger for overflow extra row actions."

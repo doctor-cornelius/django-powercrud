@@ -194,6 +194,7 @@ def test_book_sample_view_exposes_default_and_optional_filter_visibility():
         "title",
         "published_date",
         "isbn",
+        "bestseller",
     ], "BookCRUDView should keep its configured default filters visible and allow optional filters to be revealed from the URL-backed visibility state."
     assert context["persisted_optional_filter_names"] == [
         "isbn"

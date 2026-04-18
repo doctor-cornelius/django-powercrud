@@ -8,8 +8,6 @@ from powercrud.conf import get_powercrud_setting
 from . import models
 from . import forms
 from .services import BookBulkUpdateService
-
-
 class SampleCRUDMixin(PowerCRUDAsyncMixin, CRUDView):
     """Base mixin to ensure sample views use the dashboard-aware manager."""
 
@@ -92,11 +90,13 @@ class BookCRUDView(SampleCRUDMixin):
         "pages",
         "description",
         "genres",
+        "bestseller",
     ]
     default_filterset_fields = [
         "author",
         "title",
         "published_date",
+        "bestseller",
     ]
     filter_favourites_enabled = True
     # Define how filter dropdown options should be sorted
@@ -356,6 +356,7 @@ class AuthorCRUDView(SampleCRUDMixin):
     fields = "__all__"
     # exclude = ['bio',]
     # filter_favourites_enabled = True
+    # filterset_class = AuthorFilterSet
     filterset_fields = ["name", "birth_date", "genres"]
     default_filterset_fields = ["name", "birth_date", "genres"]
     properties = "__all__"

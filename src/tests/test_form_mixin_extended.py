@@ -643,6 +643,20 @@ def test_searchable_select_marker_added_to_foreign_key_field():
 
 
 @pytest.mark.django_db
+def test_searchable_select_marker_kept_for_single_relation_choice_with_pk_one():
+    Author.objects.create(id=1, name="Alan")
+    request = attach_session(RequestFactory().get("/"))
+    view = DummyFormView(request)
+    form = view.get_form_class()()
+    view._apply_searchable_select_attrs(form)
+
+    assert (
+        form.fields["author"].widget.attrs.get("data-powercrud-searchable-select")
+        == "true"
+    ), "Relation-backed form selects should stay searchable even when the only current option value is pk=1."
+
+
+@pytest.mark.django_db
 def test_searchable_select_marker_respects_global_toggle():
     request = attach_session(RequestFactory().get("/"))
     view = DummyFormView(request)

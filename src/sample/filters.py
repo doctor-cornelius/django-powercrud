@@ -18,7 +18,7 @@ class AuthorFilterSet(HTMXFilterSetMixin, FilterSet):
 
     class Meta:
         model = Author
-        fields = ["name", "birth_date"]
+        fields = ["name", "birth_date", "genres"]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

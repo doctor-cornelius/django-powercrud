@@ -3,8 +3,9 @@ from __future__ import annotations
 from datetime import date
 
 import pytest
+from django import forms
 from django.core.exceptions import ImproperlyConfigured
-from django_filters import FilterSet
+from django_filters import BooleanFilter, CharFilter, FilterSet
 from django.test import RequestFactory
 
 from powercrud.mixins.filtering_mixin import (
@@ -96,6 +97,33 @@ class PlainBookFilterSet(FilterSet):
         fields = ["author"]
 
 
+class StyledCustomBookFilterSet(HTMXFilterSetMixin, FilterSet):
+    """Custom filterset proving framework widget attrs are merged for custom fields."""
+
+    title = CharFilter(
+        widget=forms.TextInput(
+            attrs={
+                "placeholder": "Search title",
+                "class": "custom-text-class",
+            }
+        )
+    )
+    bestseller = BooleanFilter(
+        widget=forms.Select(
+            attrs={"class": "custom-bool-class"},
+            choices=(
+                ("", "---------"),
+                ("true", "Yes"),
+                ("false", "No"),
+            ),
+        )
+    )
+
+    class Meta:
+        model = Book
+        fields = ["author", "title", "bestseller"]
+
+
 class CustomBookFilterHarness(BaseFilterHarness):
     """Harness for custom filterset precedence and shared runtime behavior."""
 
@@ -116,6 +144,13 @@ class PlainCustomBookFilterHarness(BaseFilterHarness):
 
     model = Book
     filterset_class = PlainBookFilterSet
+
+
+class StyledCustomBookFilterHarness(BaseFilterHarness):
+    """Harness for custom filterset styling parity tests."""
+
+    model = Book
+    filterset_class = StyledCustomBookFilterSet
 
 
 class DefaultVisibleBookFilterHarness(BaseFilterHarness):
@@ -365,6 +400,104 @@ def test_custom_filterset_class_preserves_htmx_and_searchable_selects():
         "data-powercrud-searchable-select"
         in filterset.form.fields["author"].widget.attrs
     ), "Shared searchable-select enhancement should still apply to eligible custom filterset select widgets."
+
+
+@pytest.mark.django_db
+def test_custom_filterset_relation_select_with_only_pk_one_choice_stays_searchable():
+    """Eligible relation filters should stay searchable when the only option value is pk=1."""
+    Author.objects.create(id=1, name="Alan")
+
+    request = RequestFactory().get("/")
+    view = CustomBookFilterHarness(request)
+    filterset = view.get_filterset(Book.objects.all())
+
+    assert (
+        filterset is not None
+    ), "Expected a filterset instance when checking single-choice relation filter searchable-select behavior."
+    assert (
+        filterset.form.fields["author"].widget.attrs.get(
+            "data-powercrud-searchable-select"
+        )
+        == "true"
+    ), "Custom filterset relation selects should remain searchable even when the only current option value is pk=1."
+
+
+@pytest.mark.django_db
+def test_boolean_filter_selects_remain_native():
+    """Boolean filter selects should stay native after relation-searchable refactoring."""
+    request = RequestFactory().get("/")
+    view = FilterHarness(request)
+    filterset = view.get_filterset(Book.objects.all())
+
+    assert (
+        filterset is not None
+    ), "Expected a filterset instance when checking native boolean filter select behavior."
+    assert (
+        "data-powercrud-searchable-select"
+        not in filterset.form.fields["bestseller"].widget.attrs
+    ), "Boolean filter selects should remain native and should not receive searchable-select enhancement."
+
+
+@pytest.mark.django_db
+def test_custom_filterset_text_filters_receive_framework_input_classes():
+    """Custom text filters should receive the same baseline framework input styling."""
+    request = RequestFactory().get("/")
+    view = StyledCustomBookFilterHarness(request)
+
+    filterset = view.get_filterset(Book.objects.all())
+
+    assert (
+        filterset is not None
+    ), "Expected a filterset instance when checking custom text filter styling."
+    title_attrs = filterset.form.fields["title"].widget.attrs
+    assert (
+        "input" in title_attrs.get("class", "").split()
+    ), "Custom text filters should receive the DaisyUI input class used by generated filters."
+    assert (
+        "input-bordered" in title_attrs.get("class", "").split()
+    ), "Custom text filters should receive the bordered filter styling used by generated filters."
+    assert (
+        "custom-text-class" in title_attrs.get("class", "").split()
+    ), "Custom text filters should preserve any developer-supplied widget classes when framework classes are merged."
+    assert title_attrs.get("placeholder") == "Search title", (
+        "Custom text filters should preserve existing widget attrs such as placeholders when framework styling is applied."
+    )
+
+
+@pytest.mark.django_db
+def test_custom_filterset_boolean_and_relation_filters_get_expected_select_behavior():
+    """Custom boolean filters should be styled like generated selects while relation selects stay searchable."""
+    Author.objects.create(name="Alan")
+
+    request = RequestFactory().get("/")
+    view = StyledCustomBookFilterHarness(request)
+
+    filterset = view.get_filterset(Book.objects.all())
+
+    assert (
+        filterset is not None
+    ), "Expected a filterset instance when checking custom select filter styling."
+    bestseller_attrs = filterset.form.fields["bestseller"].widget.attrs
+    assert (
+        "select" in bestseller_attrs.get("class", "").split()
+    ), "Custom boolean filters should receive the DaisyUI select class used by generated boolean filters."
+    assert (
+        "select-bordered" in bestseller_attrs.get("class", "").split()
+    ), "Custom boolean filters should receive the bordered select styling used by generated filters."
+    assert (
+        "custom-bool-class" in bestseller_attrs.get("class", "").split()
+    ), "Custom boolean filters should preserve any developer-supplied classes when framework classes are merged."
+    assert (
+        "data-powercrud-searchable-select" not in bestseller_attrs
+    ), "Custom boolean filters should remain native selects and should not receive searchable-select enhancement."
+
+    author_attrs = filterset.form.fields["author"].widget.attrs
+    assert (
+        "select" in author_attrs.get("class", "").split()
+    ), "Custom relation filters should receive the same base DaisyUI select styling as generated relation filters."
+    assert (
+        author_attrs.get("data-powercrud-searchable-select") == "true"
+    ), "Eligible custom relation filters should still receive searchable-select enhancement after the styling merge."
 
 
 @pytest.mark.django_db

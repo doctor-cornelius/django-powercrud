@@ -22,6 +22,32 @@ from .config_mixin import ConfigMixin, resolve_config
 log = get_logger(__name__)
 
 
+def is_boolean_like_select_field(field: forms.Field) -> bool:
+    """
+    Return whether a single-value select field should be treated as boolean-like.
+
+    Real boolean fields should remain native selects, but relation-backed model
+    choice fields must not be classified as boolean-like just because a current
+    option value happens to be ``0`` or ``1``.
+    """
+    if isinstance(field, forms.BooleanField):
+        return True
+
+    if isinstance(field, (forms.ModelChoiceField, forms.ModelMultipleChoiceField)):
+        return False
+
+    choices = [choice for choice in getattr(field, "choices", []) if choice]
+    normalized_values = {
+        str(value).strip().lower()
+        for value, _label in choices
+        if str(value).strip() != ""
+    }
+    if not normalized_values:
+        return False
+    boolean_values = {"true", "false", "1", "0"}
+    return normalized_values.issubset(boolean_values)
+
+
 class FormMixin:
     """
     Provides form handling and Crispy Forms integration for powercrud views.
@@ -114,19 +140,7 @@ class FormMixin:
         """
         Return True when a select field represents a boolean choice set.
         """
-        if isinstance(field, forms.BooleanField):
-            return True
-
-        choices = [choice for choice in getattr(field, "choices", []) if choice]
-        normalized_values = {
-            str(value).strip().lower()
-            for value, _label in choices
-            if str(value).strip() != ""
-        }
-        if not normalized_values:
-            return False
-        boolean_values = {"true", "false", "1", "0"}
-        return normalized_values.issubset(boolean_values)
+        return is_boolean_like_select_field(field)
 
     def _is_searchable_select_candidate(
         self, field_name: str, field: forms.Field

@@ -17,6 +17,7 @@ from django.utils.text import capfirst
 from powercrud.conf import get_powercrud_setting
 from powercrud.logging import get_logger
 from .config_mixin import ConfigMixin, resolve_config
+from .form_mixin import is_boolean_like_select_field
 
 log = get_logger(__name__)
 
@@ -163,19 +164,7 @@ class FilteringMixin:
         Boolean-like selects should remain native controls so users can reliably
         distinguish unset/true/false semantics in filter forms.
         """
-        if isinstance(field, forms.BooleanField):
-            return True
-
-        choices = [choice for choice in getattr(field, "choices", []) if choice]
-        normalized_values = {
-            str(value).strip().lower()
-            for value, _label in choices
-            if str(value).strip() != ""
-        }
-        if not normalized_values:
-            return False
-        boolean_values = {"true", "false", "1", "0"}
-        return normalized_values.issubset(boolean_values)
+        return is_boolean_like_select_field(field)
 
     def _is_filter_searchable_select_enabled_for_field(
         self, field_name: str, field: forms.Field
@@ -241,6 +230,109 @@ class FilteringMixin:
         setup_htmx_attrs = getattr(filterset, "setup_htmx_attrs", None)
         if callable(setup_htmx_attrs):
             setup_htmx_attrs()
+
+    def _merge_widget_attrs(
+        self,
+        existing_attrs: dict[str, str],
+        framework_attrs: dict[str, str],
+    ) -> dict[str, str]:
+        """
+        Merge framework widget attrs into an existing widget attrs mapping.
+
+        Existing custom attrs win for non-class/style keys so custom filterset
+        definitions keep any explicit placeholders, titles, and input behavior.
+        Framework classes are appended to existing classes so custom styling is
+        preserved while still applying the baseline DaisyUI filter treatment.
+        """
+        merged_attrs = existing_attrs.copy()
+
+        existing_classes = merged_attrs.get("class", "").split()
+        framework_classes = framework_attrs.get("class", "").split()
+        combined_classes = []
+        for class_name in [*existing_classes, *framework_classes]:
+            if class_name and class_name not in combined_classes:
+                combined_classes.append(class_name)
+        if combined_classes:
+            merged_attrs["class"] = " ".join(combined_classes)
+
+        existing_style = merged_attrs.get("style", "").strip().rstrip(";")
+        framework_style = framework_attrs.get("style", "").strip().rstrip(";")
+        if existing_style and framework_style:
+            merged_attrs["style"] = f"{existing_style}; {framework_style}"
+        elif framework_style and not existing_style:
+            merged_attrs["style"] = framework_style
+
+        for attr_name, attr_value in framework_attrs.items():
+            if attr_name in {"class", "style"}:
+                continue
+            merged_attrs.setdefault(attr_name, attr_value)
+
+        return merged_attrs
+
+    def _get_framework_filter_widget_attrs_for_form_field(
+        self,
+        field: forms.Field,
+    ) -> dict[str, str]:
+        """
+        Resolve framework filter widget attrs for a bound custom filter form field.
+
+        Custom `filterset_class` definitions expose Django form fields rather than
+        the model-field metadata used by the auto-generated filterset path, so
+        this helper chooses the same framework attrs from the bound field/widget
+        shape directly.
+        """
+        framework = get_powercrud_setting("POWERCRUD_CSS_FRAMEWORK")
+        base_attrs = self.get_framework_styles()[framework]["filter_attrs"]
+        widget = field.widget
+
+        if isinstance(widget, forms.SelectMultiple):
+            return base_attrs.get(
+                "multiselect",
+                base_attrs.get("select", base_attrs.get("default", {})),
+            ).copy()
+        if isinstance(widget, forms.Select):
+            return base_attrs.get("select", base_attrs.get("default", {})).copy()
+        if isinstance(widget, forms.DateInput):
+            return base_attrs.get("date", base_attrs.get("default", {})).copy()
+        if isinstance(widget, forms.TimeInput):
+            return base_attrs.get("time", base_attrs.get("default", {})).copy()
+        if isinstance(widget, forms.NumberInput) or isinstance(
+            field,
+            (
+                forms.IntegerField,
+                forms.DecimalField,
+                forms.FloatField,
+            ),
+        ):
+            return base_attrs.get("number", base_attrs.get("default", {})).copy()
+        if isinstance(widget, (forms.TextInput, forms.Textarea)):
+            return base_attrs.get("text", base_attrs.get("default", {})).copy()
+        return base_attrs.get("default", {}).copy()
+
+    def _apply_custom_filterset_framework_attrs(
+        self, filterset: FilterSet | None
+    ) -> None:
+        """
+        Apply baseline framework widget attrs to custom filterset form fields.
+
+        Auto-generated filters already receive these attrs when each filter is
+        constructed. Custom filtersets need the same base styling pass so text,
+        boolean, date, number, and relation filters render consistently with the
+        generated PowerCRUD filter UI.
+        """
+        if filterset is None:
+            return
+
+        for field in filterset.form.fields.values():
+            framework_attrs = self._get_framework_filter_widget_attrs_for_form_field(
+                field
+            )
+            if not framework_attrs:
+                continue
+            field.widget.attrs = self._merge_widget_attrs(
+                field.widget.attrs,
+                framework_attrs,
+            )
 
     def get_filter_queryset_for_field(self, field_name, model_field):
         """Get an efficiently filtered and sorted queryset for filter options."""
@@ -709,5 +801,6 @@ class FilteringMixin:
         )
         if using_custom_filterset_class:
             self._apply_custom_filterset_htmx_attrs(filterset)
+            self._apply_custom_filterset_framework_attrs(filterset)
         self._apply_filter_searchable_select_attrs(filterset)
         return filterset

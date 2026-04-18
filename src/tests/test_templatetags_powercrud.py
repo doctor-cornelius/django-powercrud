@@ -219,7 +219,9 @@ def test_action_links_include_extra_actions():
     assert "btn-info" in html, "Standard row actions should keep their framework button classes."
     # Modal actions should include query string parameters from the request
     assert "?page=1" in html, "Modal row actions should preserve the current query string."
-    assert "dropdown-content menu" not in html, "Default row actions mode should not render extra actions inside a dropdown."
+    assert "data-powercrud-row-actions-trigger" not in html, (
+        "Default row actions mode should not render the overflow More trigger."
+    )
 
 
 @pytest.mark.django_db
@@ -242,8 +244,11 @@ def test_action_links_can_render_extra_actions_in_dropdown():
 
     assert "More" in html, "Dropdown row action mode should render a More trigger for extra actions."
     assert (
-        "dropdown-content menu" in html
-    ), "Dropdown row action mode should render daisyUI dropdown menu markup for extra actions."
+        "data-powercrud-row-actions-trigger='true'" in html
+    ), "Dropdown row action mode should render the row-actions trigger hook for the floating overflow menu."
+    assert (
+        "data-powercrud-row-actions-template='true'" in html
+    ), "Dropdown row action mode should render a hidden template for the floating overflow menu content."
     assert "Preview" in html and "Refresh" in html, (
         "Dropdown row action mode should still include each extra action inside the overflow menu."
     )
@@ -256,7 +261,7 @@ def test_action_links_can_render_extra_actions_in_dropdown():
 
 
 @pytest.mark.django_db
-def test_action_links_can_render_upward_dropdown_when_row_requests_it():
+def test_action_links_ignore_inline_dropdown_direction_metadata():
     author = Author.objects.create(name="Eve")
     book = Book.objects.create(
         title="Dropdown Up",
@@ -274,11 +279,11 @@ def test_action_links_can_render_upward_dropdown_when_row_requests_it():
 
     html = powercrud.action_links(view, book)
 
-    assert "dropdown-top" in html, (
-        "Dropdown row action rendering should add the upward-opening class when the row metadata requests it."
+    assert "dropdown-top" not in html, (
+        "Row action rendering should no longer rely on inline daisy dropdown direction classes once the floating menu is used."
     )
-    assert "dropdown-end" in html, (
-        "Upward-opening dropdowns should preserve end alignment for the menu trigger."
+    assert "data-powercrud-row-actions-template='true'" in html, (
+        "Row action rendering should continue to emit the floating menu template even when legacy upward-dropdown metadata is present."
     )
 
 
@@ -327,7 +332,7 @@ def test_object_list_renders_booleans_dates_and_selection():
 
 
 @pytest.mark.django_db
-def test_object_list_opens_dropdown_upward_for_last_three_rows_by_default():
+def test_object_list_renders_row_actions_without_inline_dropdown_direction_classes():
     author = Author.objects.create(name="Bottom Rows")
     books = [
         Book.objects.create(
@@ -353,84 +358,16 @@ def test_object_list_opens_dropdown_upward_for_last_three_rows_by_default():
     }
     result = powercrud.object_list(context, books, view)
 
-    first_row, second_row, third_row, fourth_row = result["object_list"]
-    assert "dropdown-top" not in first_row["actions"], (
-        "Only rows within the configured bottom-row threshold should open upward."
+    assert all(
+        "dropdown-top" not in row["actions"] for row in result["object_list"]
+    ), (
+        "Object-list row actions should no longer encode inline upward/downward dropdown classes now that viewport-aware floating menus handle placement."
     )
-    assert "dropdown-top" in second_row["actions"], (
-        "The third-to-last rendered row should open upward when the default threshold is three rows."
-    )
-    assert "dropdown-top" in third_row["actions"], (
-        "The second-to-last rendered row should open upward when the default threshold is three rows."
-    )
-    assert "dropdown-top" in fourth_row["actions"], (
-        "The last rendered row should open upward when the default threshold is three rows."
-    )
-
-
-@pytest.mark.django_db
-def test_object_list_disables_upward_dropdown_when_threshold_is_zero():
-    author = Author.objects.create(name="Zero Rows")
-    books = [
-        Book.objects.create(
-            title=f"Zero {index}",
-            author=author,
-            published_date=date(2024, 4, index),
-            bestseller=False,
-            isbn=f"9876543211{index:03d}",
-            pages=20 + index,
-            description="Dropdown preview",
-        )
-        for index in range(1, 3)
-    ]
-    request = apply_session(RequestFactory().get("/"))
-    view = TemplateViewStub(request)
-    view.extra_actions_mode = "dropdown"
-    view.extra_actions_dropdown_open_upward_bottom_rows = 0
-
-    context = {
-        "request": request,
-        "use_htmx": True,
-        "original_target": "#content",
-        "htmx_target": "#content",
-    }
-    result = powercrud.object_list(context, books, view)
-
-    assert all("dropdown-top" not in row["actions"] for row in result["object_list"]), (
-        "A zero bottom-row threshold should keep all rendered dropdowns opening downward."
-    )
-
-
-@pytest.mark.django_db
-def test_object_list_opens_all_dropdowns_upward_when_threshold_exceeds_page_rows():
-    author = Author.objects.create(name="All Up")
-    books = [
-        Book.objects.create(
-            title=f"All {index}",
-            author=author,
-            published_date=date(2024, 5, index),
-            bestseller=False,
-            isbn=f"9876543212{index:03d}",
-            pages=30 + index,
-            description="Dropdown preview",
-        )
-        for index in range(1, 3)
-    ]
-    request = apply_session(RequestFactory().get("/"))
-    view = TemplateViewStub(request)
-    view.extra_actions_mode = "dropdown"
-    view.extra_actions_dropdown_open_upward_bottom_rows = 5
-
-    context = {
-        "request": request,
-        "use_htmx": True,
-        "original_target": "#content",
-        "htmx_target": "#content",
-    }
-    result = powercrud.object_list(context, books, view)
-
-    assert all("dropdown-top" in row["actions"] for row in result["object_list"]), (
-        "A threshold larger than the rendered row count should make every rendered dropdown open upward."
+    assert all(
+        "data-powercrud-row-actions-template='true'" in row["actions"]
+        for row in result["object_list"]
+    ), (
+        "Each dropdown-mode row should render the floating row-actions menu template."
     )
 
 
@@ -489,8 +426,8 @@ def test_action_links_disable_dropdown_items_when_locked():
 
     html = powercrud.action_links(view, book)
 
-    assert "dropdown-content menu" in html, (
-        "Locked rows should still render dropdown markup when dropdown mode is enabled."
+    assert "data-powercrud-row-actions-template='true'" in html, (
+        "Locked rows should still render floating-menu template markup when dropdown mode is enabled."
     )
     assert "Preview" in html, "Locked dropdown rows should still include the extra action label inside the menu."
     assert "btn-disabled opacity-50 pointer-events-none" in html, (

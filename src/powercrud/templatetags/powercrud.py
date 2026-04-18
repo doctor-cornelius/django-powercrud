@@ -456,9 +456,6 @@ def action_links(view: Any, object: Any) -> str:
     ]
 
     if extra_actions_mode == "dropdown" and extra_action_items:
-        dropdown_wrapper_classes = ["dropdown", "dropdown-end"]
-        if getattr(object, "_extra_actions_dropdown_open_upward", False):
-            dropdown_wrapper_classes.insert(1, "dropdown-top")
         dropdown_items = [
             "<li>"
             + _render_action_anchor(
@@ -478,14 +475,15 @@ def action_links(view: Any, object: Any) -> str:
             for action in extra_action_items
         ]
         extra_links = [
-            f"<div class='{' '.join(dropdown_wrapper_classes)}'>"
-            f"<div tabindex='0' role='button' class='{styles['base']} join-item {styles['extra_default']} {action_button_classes} gap-1' aria-label='More actions' data-inline-action='more'>More"
+            "<div class='relative' data-powercrud-row-actions-dropdown='true'>"
+            f"<button type='button' class='{styles['base']} join-item {styles['extra_default']} {action_button_classes} gap-1' aria-label='More actions' aria-expanded='false' data-inline-action='more' data-powercrud-row-actions-trigger='true'>More"
             "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='currentColor' class='h-3.5 w-3.5' aria-hidden='true'>"
             "<path fill-rule='evenodd' d='M5.23 7.21a.75.75 0 0 1 1.06.02L10 11.168l3.71-3.938a.75.75 0 1 1 1.08 1.04l-4.25 4.5a.75.75 0 0 1-1.08 0l-4.25-4.5a.75.75 0 0 1 .02-1.06Z' clip-rule='evenodd' />"
-            "</svg></div>"
-            "<ul tabindex='0' class='dropdown-content menu bg-base-100 rounded-box z-[10] min-w-40 p-2 shadow border border-base-300'>"
+            "</svg></button>"
+            "<div hidden data-powercrud-row-actions-template='true'>"
+            "<ul tabindex='0' role='menu' class='menu bg-base-100 rounded-box z-[1200] min-w-40 p-2 shadow border border-base-300' data-powercrud-row-actions-panel='true'>"
             + "".join(dropdown_items)
-            + "</ul></div>"
+            + "</ul></div></div>"
         ]
     else:
         extra_links = [

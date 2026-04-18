@@ -104,17 +104,19 @@ class SampleAsyncDashboardTests(TestCase):
 
     def test_fail_event_marks_failed(self):
         self.manager.async_task_lifecycle(event="create", task_name="task-fail")
+        failed_at = timezone.now()
         self.manager.async_task_lifecycle(
             event="fail",
             task_name="task-fail",
             message="Boom",
             result="traceback",
             status=AsyncTaskRecord.STATUS.FAILED,
+            timestamp=failed_at,
         )
         record = AsyncTaskRecord.objects.get(task_name="task-fail")
         self.assertEqual(record.status, AsyncTaskRecord.STATUS.FAILED)
         self.assertEqual(record.result_payload, "traceback")
-        self.assertIsNotNone(record.failed_at)
+        self.assertEqual(record.failed_at, failed_at)
 
     def test_cleanup_event_sets_flag_without_overwriting_status(self):
         self.manager.async_task_lifecycle(event="create", task_name="task-cleanup")
@@ -153,14 +155,14 @@ class SampleAsyncDashboardTests(TestCase):
         self.assertEqual(record.progress_payload, "Working")
 
     def test_async_task_detail_view_renders(self):
-        AsyncTaskRecord.objects.create(
+        record = AsyncTaskRecord.objects.create(
             task_name="task-detail", status=AsyncTaskRecord.STATUS.PENDING
         )
         response = self.client.get(
-            reverse("sample:asynctaskrecord-detail", args=["task-detail"])
+            reverse("sample:async-dashboard-detail", args=[record.pk])
         )
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "task-progress")
+        self.assertContains(response, "task-detail")
 
 
 class SampleAsyncContextDemoTests(TestCase):
