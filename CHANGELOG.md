@@ -1,6 +1,14 @@
-## 0.5.38 (2026-04-17)
+## 0.5.39 (2026-04-18)
 
-## 0.5.37 (2026-04-17)
+### Documentation
+
+- streamline filter docs
+
+### Feature
+
+- **(favourites)**: support named filter favourites through optional contrib app
+
+## 0.5.38 (2026-04-17)
 
 ### Fix
 
