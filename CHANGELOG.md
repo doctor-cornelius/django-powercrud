@@ -1,3 +1,9 @@
+## 0.5.40 (2026-04-18)
+
+### Fix
+
+- **(favourites)**: make name migration mssql-safe
+
 ## 0.5.39 (2026-04-18)
 
 ### Documentation
