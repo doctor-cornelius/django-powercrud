@@ -95,6 +95,7 @@ INSTALLED_APPS = [
     "django_vite",
     "neapolitan",
     "powercrud",
+    "powercrud.contrib.favourites",
     "sample",
     "tests",
 ]

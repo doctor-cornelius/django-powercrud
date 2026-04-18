@@ -2,6 +2,7 @@ from .htmx_mixin import HtmxMixin
 from .delete_mixin import DeleteMixin
 from .bulk_mixin import BulkEditRole, BulkMixin
 from .core_mixin import CoreMixin
+from .favourites_mixin import FavouritesMixin
 from .filtering_mixin import (
     FilteringMixin,
     AllValuesModelMultipleChoiceFilter,
@@ -22,6 +23,7 @@ class PowerCRUDMixin(
     InlineEditingMixin,
     TableMixin,
     BulkMixin,
+    FavouritesMixin,
     FilteringMixin,
     CoreMixin,
     UrlMixin,
@@ -57,6 +59,7 @@ __all__ = [
     "BulkEditRole",
     "InlineEditingMixin",
     "DeleteMixin",
+    "FavouritesMixin",
     "AsyncMixin",
     "PowerCRUDAsyncMixin",
 ]

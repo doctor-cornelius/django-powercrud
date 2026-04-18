@@ -77,6 +77,7 @@ class BookCRUDView(PowerCRUDAsyncMixin, CRUDView):
     
     filterset_fields = ['author', 'title', 'published_date', 'isbn', 'pages', 'description', 'genres']
     default_filterset_fields = ['author', 'title', 'published_date']
+    filter_favourites_enabled = True
     dropdown_sort_options = {"author": "name"}
     inline_edit_fields = ['title', 'author', 'genres', 'published_date', 'bestseller', 'isbn', 'description']
     
@@ -102,6 +103,13 @@ The same sample view now also demonstrates progressive filter visibility:
 - `author`, `title`, and `published_date` are visible by default through `default_filterset_fields`
 - `isbn`, `pages`, `description`, and `genres` remain allowed filters but start hidden
 - the Add filter control reveals those optional filters on demand without changing the underlying filterset contract
+
+The sample `BookCRUDView` also demonstrates the optional saved-favourites contrib app:
+
+- `filter_favourites_enabled = True` turns on the toolbar for this list
+- saved favourites persist the current filters, optional filter visibility, sort, and page size for the signed-in user, scoped to the list view's derived identity
+
+See [Filtering](../guides/filtering.md) for the core filter behavior and [Saved Filter Favourites](../guides/advanced/filter_favourites.md) for the optional contrib add-on.
 
 The sample frontend now also shows the downstream tooltip-styling path. In [`src/config/static/css/app.custom.css`](../../../src/config/static/css/app.custom.css), the sample app actively overrides `--pc-tooltip-bg` and `--pc-tooltip-fg` to use daisyUI's primary semantic tokens, while PowerCRUD itself keeps neutral tooltip defaults. The sample Vite entry imports that file after `powercrud/css/powercrud.css`, so readers can inspect the real app-level override pattern rather than only reading about it in the styling guide.
 

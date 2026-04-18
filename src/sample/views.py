@@ -98,6 +98,7 @@ class BookCRUDView(SampleCRUDMixin):
         "title",
         "published_date",
     ]
+    filter_favourites_enabled = True
     # Define how filter dropdown options should be sorted
     dropdown_sort_options = {
         "author": "name",  # Sort authors by name field in all dropdowns
@@ -354,6 +355,7 @@ class AuthorCRUDView(SampleCRUDMixin):
     # fields = ["name","bio","birth_date",]
     fields = "__all__"
     # exclude = ['bio',]
+    # filter_favourites_enabled = True
     filterset_fields = ["name", "birth_date", "genres"]
     default_filterset_fields = ["name", "birth_date", "genres"]
     properties = "__all__"

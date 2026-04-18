@@ -13,6 +13,11 @@ pip install neapolitan
 pip install django-powercrud
 ```
 
+Optional add-on:
+
+- If you want saved filter favourites, also add the optional contrib app to `INSTALLED_APPS` and run migrations.
+- The detailed behavior and UI guidance live in [Saved Filter Favourites](./advanced/filter_favourites.md).
+
 ## Dependencies
 
 ### Backend dependencies
@@ -94,6 +99,21 @@ POWERCRUD_SETTINGS = {
     "POWERCRUD_CSS_FRAMEWORK": "daisyui",  # built-in default
 }
 ```
+
+If you want the optional saved filter favourites feature:
+
+```python
+INSTALLED_APPS = [
+    ...,
+    "powercrud.contrib.favourites",
+]
+```
+
+```bash
+python manage.py migrate
+```
+
+If you do not install that contrib app, filtering still works normally and the favourites UI simply remains unavailable.
 
 ## Frontend Integration
 

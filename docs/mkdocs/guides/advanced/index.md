@@ -12,6 +12,7 @@ Use this section when:
 
 Current advanced guides:
 
+- [Saved Filter Favourites](filter_favourites.md) explains the optional contrib app for per-user saved filter states, including installation, enablement, and guard behavior when the app is absent.
 - [Persistence Hooks for Real Write Logic](persistence_hooks_sync.md) explains how to keep PowerCRUD in charge of validation and UI flow while moving the actual write into app services.
 - [Async Bulk Persistence Without Surprises](persistence_hooks_async_bulk.md) explains how to keep sync and async bulk update behavior aligned without relying on a live view instance in the worker.
 

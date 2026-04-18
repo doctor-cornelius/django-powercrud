@@ -100,7 +100,7 @@ Here async queueing is explicit: you opt in by using `PowerCRUDAsyncMixin`, enab
 ## Getting Started
 
 - Install `django-powercrud` and `neapolitan`, add `powercrud`, `neapolitan`, and `django_htmx`, then follow the [Getting Started](https://doctor-cornelius.github.io/django-powercrud/guides/getting_started/) guide for base template requirements.
-- Continue with [Setup & Core CRUD basics](https://doctor-cornelius.github.io/django-powercrud/guides/setup_core_crud/) to enable filters, pagination, and modals.
+- Continue with [Setup & Core CRUD basics](https://doctor-cornelius.github.io/django-powercrud/guides/setup_core_crud/) for the first full view configuration, then use [Filtering](https://doctor-cornelius.github.io/django-powercrud/guides/filtering/) for the dedicated filter guide.
 - Add [Inline editing](https://doctor-cornelius.github.io/django-powercrud/guides/inline_editing/) and [Bulk editing (synchronous)](https://doctor-cornelius.github.io/django-powercrud/guides/bulk_edit_sync/), then move to [Async Manager](https://doctor-cornelius.github.io/django-powercrud/guides/async_manager/) and [Bulk editing (async)](https://doctor-cornelius.github.io/django-powercrud/guides/bulk_edit_async/) when you need background work.
 - Use [Styling & Tailwind](https://doctor-cornelius.github.io/django-powercrud/guides/styling_tailwind/) and [Customisation tips](https://doctor-cornelius.github.io/django-powercrud/guides/customisation_tips/) to adapt templates.
 

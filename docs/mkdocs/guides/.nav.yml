@@ -2,6 +2,7 @@ title: Setup Guides
 nav:
   - getting_started.md
   - setup_core_crud.md
+  - filtering.md
   - forms.md
   - inline_editing.md
   - bulk_edit_sync.md

@@ -1,0 +1,108 @@
+<form method="post"
+      class="space-y-3"
+      data-powercrud-favourite-action-form="true">
+    {% csrf_token %}
+    <input type="hidden" name="view_key" value="{{ filter_favourites_view_key }}">
+    <input type="hidden" name="list_view_url" value="{{ list_view_url }}">
+    <input type="hidden" name="toolbar_dom_id" value="{{ filter_favourites_toolbar_dom_id }}">
+    <input type="hidden" name="current_state_json" value="{{ current_list_state_json|escape }}">
+    <input type="hidden" name="state_json" value="{{ current_list_state_json|escape }}">
+    <input type="hidden" name="original_target" value="{{ original_target }}">
+    <input type="hidden" name="selected_favourite_id" value="{{ selected_filter_favourite_id|default:'' }}">
+
+    <label class="form-control">
+        <span class="mb-1 text-xs font-medium text-base-content/70">Saved favourites</span>
+        <select name="favourite_id"
+                class="select select-bordered select-sm h-10 min-h-10 w-full px-3 [line-height:2.25rem]"
+                data-powercrud-favourite-select="true"
+                hx-get="{{ filter_favourites_apply_url }}"
+                hx-include="closest form"
+                hx-target="{{ original_target|default:'#content' }}"
+                hx-swap="innerHTML"
+                hx-push-url="false"
+                {% if saved_filter_favourites %}required{% endif %}
+                {% if not filter_favourites_can_manage or not saved_filter_favourites %}disabled{% endif %}>
+            <option value="">
+                {% if saved_filter_favourites %}
+                    Saved favourite…
+                {% else %}
+                    No saved favourites
+                {% endif %}
+            </option>
+                {% for favourite in saved_filter_favourites %}
+                <option value="{{ favourite.pk }}"
+                        data-powercrud-favourite-query-string="{{ favourite.powercrud_query_string|escape }}"
+                        data-powercrud-favourite-visible-filters='{{ favourite.powercrud_visible_filters_json|escapejs }}'
+                        {% if selected_filter_favourite_id == favourite.pk %}selected{% endif %}>
+                    {{ favourite.name }}
+                </option>
+            {% endfor %}
+        </select>
+    </label>
+
+    <div class="flex flex-wrap gap-2 border-t border-base-300 pt-3">
+        <button type="button"
+                class="btn btn-outline btn-secondary btn-sm"
+                hx-post="{{ filter_favourites_update_url }}"
+                hx-include="closest form"
+                hx-target="#{{ filter_favourites_toolbar_dom_id }}-panel"
+                hx-swap="innerHTML"
+                data-powercrud-favourite-manage-action="true"
+                {% if not filter_favourites_can_manage or not saved_filter_favourites %}disabled{% endif %}>
+            Update selected
+        </button>
+        <button type="button"
+                class="btn btn-outline btn-error btn-sm"
+                hx-post="{{ filter_favourites_delete_url }}"
+                hx-include="closest form"
+                hx-target="#{{ filter_favourites_toolbar_dom_id }}-panel"
+                hx-swap="innerHTML"
+                data-powercrud-favourite-manage-action="true"
+                {% if not filter_favourites_can_manage or not saved_filter_favourites %}disabled{% endif %}>
+            Delete selected
+        </button>
+    </div>
+
+</form>
+
+{% if filter_favourite_save_form %}
+    <form method="post"
+          class="mt-3 space-y-3 border-t border-base-300 pt-3"
+          data-powercrud-favourite-save-form="true">
+        {% csrf_token %}
+        {{ filter_favourite_save_form.view_key }}
+        {{ filter_favourite_save_form.list_view_url }}
+        {{ filter_favourite_save_form.toolbar_dom_id }}
+        {{ filter_favourite_save_form.current_state_json }}
+        {{ filter_favourite_save_form.original_target }}
+        {{ filter_favourite_save_form.state_json }}
+        {{ filter_favourite_save_form.selected_favourite_id }}
+
+        <div class="form-control">
+            <label class="label" for="{{ filter_favourite_save_form.name.id_for_label }}">
+                <span class="label-text text-xs font-medium text-base-content/70">Favourite name</span>
+            </label>
+            {{ filter_favourite_save_form.name }}
+            {% if filter_favourite_save_form.name.errors %}
+                <div class="mt-1 text-sm text-error">{{ filter_favourite_save_form.name.errors|join:", " }}</div>
+            {% endif %}
+        </div>
+
+        {% if filter_favourite_save_form.non_field_errors %}
+            <div class="text-sm text-error">{{ filter_favourite_save_form.non_field_errors|join:", " }}</div>
+        {% endif %}
+
+        <div class="flex justify-end gap-2">
+            <button type="button"
+                    class="btn btn-primary btn-sm"
+                    data-powercrud-favourite-save-url="{{ filter_favourites_save_url }}"
+                    data-powercrud-favourite-save-submit="true">
+                Save favourite
+            </button>
+        </div>
+    </form>
+{% endif %}
+
+{% if filter_favourites_requires_login %}
+    <div class="mt-3 text-xs text-base-content/60">Sign in to save favourites.</div>
+{% endif %}

@@ -1374,6 +1374,21 @@ def test_book_list_shows_add_filter_control_and_hides_optional_filters_by_defaul
 
 
 @pytest.mark.django_db
+def test_book_list_page_size_form_includes_only_page_size_and_filter_form(client):
+    """Book list page-size HTMX wiring should not sweep up unrelated toolbar controls."""
+
+    response = client.get(reverse("sample:bigbook-list"))
+    response_text = " ".join(response.content.decode().split())
+
+    assert 'id="page-size-form"' in response_text, (
+        "Book list should render the dedicated page-size form markup."
+    )
+    assert 'id="page-size-select" name="page_size" data-powercrud-page-size-select="true"' in response_text, (
+        "Page-size changes should use the dedicated PowerCRUD page-size selector hook rather than a broad form-level include."
+    )
+
+
+@pytest.mark.django_db
 def test_book_list_renders_visible_optional_filter_from_url_state(client):
     """Book list should reveal optional filters requested via URL-backed visibility state."""
     response = client.get(

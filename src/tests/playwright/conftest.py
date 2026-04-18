@@ -22,6 +22,15 @@ def books_url(live_server):
 
 
 @pytest.fixture
+def authors_url(live_server):
+    path = reverse("sample:author-list")
+    base = os.getenv("PLAYWRIGHT_BASE_URL")
+    if base:
+        return f"{base.rstrip('/')}{path}"
+    return f"{live_server.url.rstrip('/')}{path}"
+
+
+@pytest.fixture
 def sample_author(db):
     return Author.objects.create(
         name="Playwright Author",

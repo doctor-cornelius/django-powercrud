@@ -12,7 +12,8 @@ PowerCRUD extends [`Neapolitan`](https://github.com/carltongibson/neapolitan)’
 1. **First view online**
 
     - [Getting Started](guides/getting_started.md) for installation and base template requirements.  
-    - [Setup & Core CRUD basics](guides/setup_core_crud.md) for filters, pagination, and modals.
+    - [Setup & Core CRUD basics](guides/setup_core_crud.md) for the first full view configuration.
+    - [Filtering](guides/filtering.md) for default vs optional filters, sorting, null helpers, and custom filterset behavior.
 
 2. **Improve day-to-day editing**  
 
@@ -32,7 +33,7 @@ PowerCRUD extends [`Neapolitan`](https://github.com/carltongibson/neapolitan)’
 
     - [Styling & Tailwind](guides/styling_tailwind.md) covers framework options and safelists.  
     - [Customisation tips](guides/customisation_tips.md) shows template overrides, extra actions, and mixin hooks.
-    - [Advanced Guides](guides/advanced/index.md) collects deeper implementation walkthroughs for trickier extension patterns.
+    - [Advanced Guides](guides/advanced/index.md) collects deeper implementation walkthroughs for trickier extension patterns, including the optional saved filter favourites add-on.
 
 ## What ships in the box
 

@@ -1,6 +1,7 @@
 title: Advanced Guides
 nav:
   - index.md
+  - filter_favourites.md
   - persistence_hooks_sync.md
   - persistence_hooks_async_bulk.md
   - ../customisation_tips.md
