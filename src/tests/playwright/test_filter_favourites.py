@@ -25,7 +25,9 @@ BOOK_VIEW_KEY = f"{BookCRUDView.__module__}.{BookCRUDView.__name__}"
 def open_favourites_dropdown(page):
     """Open the filter favourites dropdown using its stable trigger selector."""
 
-    page.locator("[data-powercrud-filter-favourites-trigger='true']").click()
+    trigger = page.locator("[data-powercrud-filter-favourites-trigger='true']:visible").first
+    expect(trigger).to_be_visible()
+    trigger.click()
 
 
 def install_htmx_init_script(page):
@@ -497,6 +499,8 @@ def test_returning_to_page_via_sample_shell_htmx_clears_selected_filter_favourit
 
     page.locator("a", has_text=re.compile(r"book list \(htmx\)", re.I)).click()
     page.wait_for_load_state("networkidle")
+    expect(page.locator("#content")).to_contain_text("My List of Books")
+    expect(page.locator("#filterToggleBtn")).to_be_visible()
 
     filter_toggle = page.locator("#filterToggleBtn")
     if re.search(r"show filters", filter_toggle.inner_text(), re.I):
