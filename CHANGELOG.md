@@ -1,3 +1,9 @@
+## 0.5.41 (2026-04-18)
+
+### Feature
+
+- ensure styling of filter class filters and fix More button dropdown
+
 ## 0.5.40 (2026-04-18)
 
 ### Fix
