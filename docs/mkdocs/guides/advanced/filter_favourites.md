@@ -40,7 +40,22 @@ Then run migrations:
 python manage.py migrate
 ```
 
-This step is optional. If you never install the contrib app, the rest of PowerCRUD filtering still works normally.
+Mount the shared PowerCRUD URLs with the `powercrud` namespace:
+
+```python
+# urls.py
+from django.urls import include, path
+
+
+urlpatterns = [
+    # ...
+    path("powercrud/", include("powercrud.urls", namespace="powercrud")),
+]
+```
+
+The URL prefix can be different, but the namespace must stay `powercrud`.
+
+These setup steps are optional. If you never install the contrib app, the rest of PowerCRUD filtering still works normally.
 
 ## Enable it on a list view
 
@@ -50,7 +65,7 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
     filter_favourites_enabled = True
 ```
 
-That turns on the favourites toolbar for that list view, provided the contrib app is installed.
+That turns on the favourites toolbar for that list view, provided the contrib app is installed and the shared PowerCRUD URLs are mounted.
 
 ## Scoping
 
@@ -70,17 +85,26 @@ The view identity is derived automatically from `"<module>.<ClassName>"`.
     - the toolbar stays hidden until the filter panel is open
     - long selected favourite names are truncated in the trigger and exposed through a tooltip
 
-## Missing-app guard
+## Availability guard
 
-If a developer sets `filter_favourites_enabled = True` on a view but does not install `powercrud.contrib.favourites`, PowerCRUD silently disables the feature.
+If a developer sets `filter_favourites_enabled = True` on a view but either:
+
+- does not install `powercrud.contrib.favourites`
+- or does not mount the shared `powercrud` URLs
+
+PowerCRUD silently disables the feature at runtime.
 
 That means:
 
 - no toolbar renders
 - no favourites URLs are included
-- no separate global setting is required to declare that favourites are available
+- no broken `None` endpoint values appear in the rendered HTML
+- Django emits a system check warning when the contrib app is installed but the shared `powercrud` URLs are missing
 
-PowerCRUD detects this directly from `apps.is_installed("powercrud.contrib.favourites")`.
+PowerCRUD detects this from both:
+
+- `apps.is_installed("powercrud.contrib.favourites")`
+- successful reversing of the required `powercrud:favourites-*` routes
 
 ## Sample app
 

@@ -15,7 +15,7 @@ pip install django-powercrud
 
 Optional add-on:
 
-- If you want saved filter favourites, also add the optional contrib app to `INSTALLED_APPS` and run migrations.
+- If you want saved filter favourites, also add the optional contrib app to `INSTALLED_APPS`, run migrations, and mount `powercrud.urls` with namespace `powercrud`.
 - The detailed behavior and UI guidance live in [Saved Filter Favourites](./advanced/filter_favourites.md).
 
 ## Dependencies
@@ -113,7 +113,16 @@ INSTALLED_APPS = [
 python manage.py migrate
 ```
 
-If you do not install that contrib app, filtering still works normally and the favourites UI simply remains unavailable.
+```python
+urlpatterns = [
+    # ...
+    path("powercrud/", include("powercrud.urls", namespace="powercrud")),
+]
+```
+
+The URL prefix can be different, but the namespace must stay `powercrud`.
+
+If you do not install that contrib app and mount its shared URLs, filtering still works normally and the favourites UI simply remains unavailable.
 
 ## Frontend Integration
 
