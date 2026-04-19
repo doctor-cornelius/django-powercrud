@@ -1,3 +1,9 @@
+## 0.5.42 (2026-04-19)
+
+### Fix
+
+- **(favourites)**: filter favourites guard and documentation (#92)
+
 ## 0.5.41 (2026-04-18)
 
 ### Feature
