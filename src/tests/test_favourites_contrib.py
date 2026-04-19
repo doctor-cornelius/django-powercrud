@@ -7,7 +7,9 @@ from unittest.mock import patch
 
 import pytest
 from django.contrib.auth import get_user_model
+from django.core.checks import run_checks
 from django.test import RequestFactory
+from django.test.utils import override_settings
 from django.urls import NoReverseMatch, reverse
 from neapolitan.views import Role
 
@@ -155,6 +157,67 @@ def test_book_view_silently_disables_favourites_when_contrib_app_is_unavailable(
         }, (
             "Views should expose the disabled favourites context instead of raising when the contrib app is unavailable."
         )
+
+
+@override_settings(ROOT_URLCONF="tests.urls_without_powercrud")
+@pytest.mark.django_db
+def test_book_view_silently_disables_favourites_when_shared_routes_are_unavailable(client):
+    """Opted-in views should not render favourites when the shared URLs are missing."""
+
+    user = get_user_model().objects.create_user(username="fav-missing-routes-user")
+    client.force_login(user)
+
+    response = client.get(reverse("sample:bigbook-list"))
+    response_text = response.content.decode()
+
+    assert response.status_code == 200, (
+        "Book list should still render successfully even when the shared favourites routes are not mounted."
+    )
+    assert 'data-powercrud-filter-favourites-toolbar="true"' not in response_text, (
+        "Book list should hide the favourites toolbar entirely when the shared favourites routes are unavailable."
+    )
+    assert 'hx-get="None"' not in response_text and 'hx-post="None"' not in response_text, (
+        "Book list should never render literal None HTMX URLs when favourites are unavailable."
+    )
+    assert 'data-powercrud-favourite-save-url="None"' not in response_text, (
+        "Book list should not expose a broken save URL payload when the shared favourites routes are unavailable."
+    )
+
+
+@override_settings(ROOT_URLCONF="tests.urls_without_powercrud")
+def test_favourites_system_check_warns_when_shared_routes_are_unavailable():
+    """Installing favourites without mounting the shared PowerCRUD URLs should emit a warning."""
+
+    favourites_warnings = [
+        check
+        for check in run_checks()
+        if check.id == "powercrud.W001"
+    ]
+
+    assert len(favourites_warnings) == 1, (
+        "Expected exactly one favourites configuration warning when the shared PowerCRUD routes are unavailable."
+    )
+    warning = favourites_warnings[0]
+    assert "shared URLs are not mounted" in warning.msg, (
+        "The favourites configuration warning should explain that the shared URLs are missing."
+    )
+    assert "include('powercrud.urls', namespace='powercrud')" in warning.hint, (
+        "The favourites configuration warning should tell projects how to mount the required shared URLs."
+    )
+
+
+def test_favourites_system_check_is_clean_when_shared_routes_are_available():
+    """The favourites configuration warning should disappear when the shared routes are mounted."""
+
+    favourites_warnings = [
+        check
+        for check in run_checks()
+        if check.id == "powercrud.W001"
+    ]
+
+    assert favourites_warnings == [], (
+        "Expected no favourites configuration warning when the shared PowerCRUD routes are mounted."
+    )
 
 
 @pytest.mark.django_db

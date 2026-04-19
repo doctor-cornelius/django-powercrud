@@ -6,14 +6,48 @@ from collections import OrderedDict
 import json
 
 from django.http import QueryDict
+from django.urls import NoReverseMatch, reverse
 
 from .models import SavedFilterFavourite
+
+
+REQUIRED_FAVOURITES_ROUTE_NAMES = (
+    "powercrud:favourites-toolbar",
+    "powercrud:favourites-save",
+    "powercrud:favourites-apply",
+    "powercrud:favourites-update",
+    "powercrud:favourites-delete",
+)
 
 
 def _dedupe_preserving_order(values: list[str]) -> list[str]:
     """Return unique string values in first-seen order."""
 
     return list(OrderedDict.fromkeys(str(value) for value in values if str(value).strip()))
+
+
+def get_required_favourites_route_names() -> tuple[str, ...]:
+    """Return the named routes required for the favourites contrib UI."""
+
+    return REQUIRED_FAVOURITES_ROUTE_NAMES
+
+
+def get_unavailable_favourites_route_names() -> list[str]:
+    """Return any favourites route names that are not currently reversible."""
+
+    unavailable_routes: list[str] = []
+    for route_name in REQUIRED_FAVOURITES_ROUTE_NAMES:
+        try:
+            reverse(route_name)
+        except NoReverseMatch:
+            unavailable_routes.append(route_name)
+    return unavailable_routes
+
+
+def favourites_routes_available() -> bool:
+    """Return whether the shared favourites endpoints are mounted and reversible."""
+
+    return not get_unavailable_favourites_route_names()
 
 
 def normalise_saved_state(raw_state: object) -> dict[str, object]:
