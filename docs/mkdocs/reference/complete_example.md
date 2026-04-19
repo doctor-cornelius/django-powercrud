@@ -216,8 +216,8 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
 - `bulk_fields` and `bulk_delete` enable the synchronous bulk-edit UI. The queryset-wide bulk-selection metadata action also depends on the global `POWERCRUD_SETTINGS["BULK_MAX_SELECTED_RECORDS"]` cap.
 - `searchable_selects = True` enables Tom Select enhancement for eligible select widgets in forms, inline editing, bulk edit forms, and filter forms.
 - `default_filterset_fields = ["owner", "status"]` keeps the rest of the allowed filters available but hidden behind the built-in `Add filter` control on first render.
-- `filter_favourites_enabled = True` turns on the optional saved filter favourites toolbar when the `powercrud.contrib.favourites` app is installed. If the contrib app is not installed, PowerCRUD silently leaves the favourites UI disabled.
-- Saved filter favourites are optional. They require adding `powercrud.contrib.favourites` to `INSTALLED_APPS`, running its migrations, and following the setup described in the advanced guide.
+- `filter_favourites_enabled = True` turns on the optional saved filter favourites toolbar when the `powercrud.contrib.favourites` app is installed and the shared `powercrud` URLs are mounted. Otherwise, PowerCRUD silently leaves the favourites UI disabled.
+- Saved filter favourites are optional. They require adding `powercrud.contrib.favourites` to `INSTALLED_APPS`, running its migrations, mounting `include("powercrud.urls", namespace="powercrud")`, and following the setup described in the advanced guide.
 
 For focused explanations of individual options, use the dedicated guides and the main [Configuration Options](config_options.md) reference:
 

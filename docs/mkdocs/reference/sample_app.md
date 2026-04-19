@@ -108,6 +108,7 @@ The sample `BookCRUDView` also demonstrates the optional saved-favourites contri
 
 - `filter_favourites_enabled = True` turns on the toolbar for this list
 - saved favourites persist the current filters, optional filter visibility, sort, and page size for the signed-in user, scoped to the list view's derived identity
+- the sample project mounts `include("powercrud.urls", namespace="powercrud")`, which is required for the optional favourites endpoints
 
 See [Filtering](../guides/filtering.md) for the core filter behavior and [Saved Filter Favourites](../guides/advanced/filter_favourites.md) for the optional contrib add-on.
 

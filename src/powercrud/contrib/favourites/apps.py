@@ -9,3 +9,10 @@ class PowercrudFavouritesConfig(AppConfig):
     default_auto_field = "django.db.models.BigAutoField"
     name = "powercrud.contrib.favourites"
     verbose_name = "PowerCRUD favourites"
+
+    def ready(self) -> None:
+        """Register favourites system checks when Django loads the app."""
+
+        from . import checks
+
+        del checks

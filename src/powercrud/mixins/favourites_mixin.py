@@ -20,6 +20,16 @@ class FavouritesMixin:
 
         return apps.is_installed(self.favourites_app_label)
 
+    def get_favourites_routes_available(self) -> bool:
+        """Return True when the shared favourites endpoints are mounted."""
+
+        if not self.get_favourites_contrib_installed():
+            return False
+
+        from powercrud.contrib.favourites.services import favourites_routes_available
+
+        return favourites_routes_available()
+
     def get_favourites_enabled(self) -> bool:
         """Return True when favourites should render for the current list view."""
 
@@ -27,6 +37,7 @@ class FavouritesMixin:
             self.role == Role.LIST
             and bool(getattr(self, "filter_favourites_enabled", False))
             and self.get_favourites_contrib_installed()
+            and self.get_favourites_routes_available()
         )
 
     def get_favourites_key(self) -> str:
