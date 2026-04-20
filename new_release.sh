@@ -26,6 +26,7 @@ Examples:
 
 Notes:
   - --prepare must be run from a clean main branch.
+  - Run this script from inside the dev container, not from the host shell.
   - The bump level remains explicitly controlled by you; the script does not
     infer patch/minor/major from commit history.
   - Commitizen is used only to generate the changelog entry.
@@ -41,6 +42,12 @@ function die {
 
 function current_branch {
     git rev-parse --abbrev-ref HEAD
+}
+
+function require_container_runtime {
+    if [[ ! -f "/.dockerenv" ]]; then
+        die "run this script from inside the dev container."
+    fi
 }
 
 function require_main_branch {
@@ -488,11 +495,18 @@ function build_assets {
     )
 }
 
+function run_prepare_validation {
+    ./runtests
+    build_assets
+    uv lock
+}
+
 function prepare_release {
     local new_version
     local last_tag
     local prepare_failed="true"
 
+    require_container_runtime
     require_main_branch
     require_clean_worktree
     require_state_absent
@@ -505,9 +519,7 @@ function prepare_release {
         die "tag $new_version already exists."
     fi
 
-    ./runproj exec ./runtests
-    build_assets
-    uv lock
+    run_prepare_validation
 
     update_project_version "$new_version"
     cz changelog --incremental --unreleased-version="$new_version"
@@ -536,6 +548,7 @@ function publish_release {
     local prepared_paths=()
     local prepared_untracked=()
 
+    require_container_runtime
     require_state_present
     validate_non_prepare_args
     validate_state_context "--publish"
@@ -573,6 +586,7 @@ function abort_release {
     local tracked_paths=()
     local untracked_paths=()
 
+    require_container_runtime
     require_state_present
     validate_non_prepare_args
     validate_state_context "--abort"
