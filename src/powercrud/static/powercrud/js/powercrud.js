@@ -97,6 +97,7 @@
             objectListState.set(root, {
                 lastRowSelectionAnchorId: null,
                 optionalFilterVisibilityRestored: false,
+                selectionRequestVersion: 0,
             });
         }
         return objectListState.get(root);
@@ -1830,6 +1831,38 @@
         }
     }
 
+    function nextSelectionRequestVersion(root) {
+        const state = ensureObjectListState(root);
+        state.selectionRequestVersion += 1;
+        return state.selectionRequestVersion;
+    }
+
+    function getSelectionRequestVersion(root) {
+        return ensureObjectListState(root).selectionRequestVersion;
+    }
+
+    function clearRowSelectionRequestState(checkbox) {
+        if (!(checkbox instanceof HTMLInputElement)) {
+            return;
+        }
+        delete checkbox.dataset.powercrudSelectionRequestPending;
+        delete checkbox.dataset.powercrudSelectionRequestVersion;
+    }
+
+    function abortPendingRowSelectionRequests(root) {
+        const htmx = getHtmxInstance();
+        if (!root || !htmx) {
+            return;
+        }
+        getRowSelectionCheckboxes(root).forEach(checkbox => {
+            if (checkbox.dataset.powercrudSelectionRequestPending !== 'true') {
+                return;
+            }
+            htmx.trigger(checkbox, 'htmx:abort');
+            clearRowSelectionRequestState(checkbox);
+        });
+    }
+
     function setRangeSelectionSuppressed(suppressed) {
         if (!(document.body instanceof HTMLBodyElement)) {
             return;
@@ -1923,6 +1956,8 @@
             delete checkbox.dataset.powercrudShiftRange;
         }
         if (useShiftRange && hasValidAnchor) {
+            nextSelectionRequestVersion(root);
+            abortPendingRowSelectionRequests(root);
             clearDocumentSelection();
             const checkboxes = getRowSelectionCheckboxes(root);
             const anchorIndex = checkboxes.indexOf(anchor);
@@ -2921,6 +2956,13 @@
                 event.preventDefault();
                 return;
             }
+            const root = getObjectListRoot(target);
+            if (root) {
+                target.dataset.powercrudSelectionRequestPending = 'true';
+                target.dataset.powercrudSelectionRequestVersion = String(
+                    nextSelectionRequestVersion(root),
+                );
+            }
         }
         if (target && target.matches && target.matches('[data-powercrud-bulk-delete-submit]')) {
             startButtonSpinner(target);
@@ -3080,6 +3122,27 @@
     });
 
     document.addEventListener('htmx:beforeSwap', event => {
+        const requestTarget = event.detail?.requestConfig?.elt || event.detail?.elt || null;
+        if (
+            requestTarget instanceof HTMLInputElement
+            && requestTarget.matches('[data-powercrud-row-select="true"]')
+        ) {
+            const root = getObjectListRoot(requestTarget);
+            const requestVersion = Number.parseInt(
+                requestTarget.dataset.powercrudSelectionRequestVersion || '0',
+                10,
+            );
+            if (
+                root
+                && Number.isFinite(requestVersion)
+                && requestVersion < getSelectionRequestVersion(root)
+            ) {
+                clearRowSelectionRequestState(requestTarget);
+                event.preventDefault();
+                return;
+            }
+        }
+
         getHtmxEventRoots(event).forEach(root => {
             destroyPowercrudSearchableSelects(root);
             destroyPowercrudTooltips(root);
@@ -3241,6 +3304,12 @@
 
     document.addEventListener('htmx:afterRequest', event => {
         const target = event.detail && event.detail.elt;
+        if (
+            target instanceof HTMLInputElement
+            && target.matches('[data-powercrud-row-select="true"]')
+        ) {
+            clearRowSelectionRequestState(target);
+        }
         if (target && target.matches && target.matches('[data-powercrud-form="object"], [data-powercrud-form="bulk"]')) {
             stopFormSpinner(target);
             if (target.matches('[data-powercrud-form="bulk"]')) {
@@ -3259,6 +3328,12 @@
 
     document.addEventListener('htmx:responseError', event => {
         const target = event.detail && event.detail.elt;
+        if (
+            target instanceof HTMLInputElement
+            && target.matches('[data-powercrud-row-select="true"]')
+        ) {
+            clearRowSelectionRequestState(target);
+        }
         if (target && target.matches && target.matches('[data-powercrud-form="object"], [data-powercrud-form="bulk"]')) {
             stopFormSpinner(target);
             if (target.matches('[data-powercrud-form="bulk"]')) {
