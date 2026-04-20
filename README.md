@@ -28,7 +28,7 @@ PowerCRUD extends [Neapolitan](https://github.com/carltongibson/neapolitan)’s 
 
 > ℹ️ **Status**
 >
-> PowerCRUD is still evolving, but now ships with a comprehensive pytest suite (including Playwright UI smoke tests). Expect rough edges while APIs settle, and pin the package if you rely on current behaviour.
+> PowerCRUD is still evolving, but now ships with a comprehensive pytest suite. CI blocks on a curated Playwright smoke subset, while the full browser regression suite remains available locally and for broader release validation. Expect rough edges while APIs settle, and pin the package if you rely on current behaviour.
 
 See the [full documentation](https://doctor-cornelius.github.io/django-powercrud/).
 
@@ -109,7 +109,7 @@ Here async queueing is explicit: you opt in by using `PowerCRUDAsyncMixin`, enab
 - **Sample app** – complete walkthrough of every feature.  
 - **Docker dev environment** – Django, Postgres, Redis, Vite, django-q2.  
 - **Management commands** – template scaffolding, Tailwind safelist extraction, async cleanup.  
-- **Testing** – pytest matrix plus Playwright smoke tests.
+- **Testing** – pytest matrix, blocking Playwright smoke tests, and a fuller local browser regression suite.
 
 ## Supported Versions
 
@@ -127,7 +127,7 @@ PowerCRUD’s development environment is Docker-first. From the project root:
 
 ```bash
 ./runproj up          # build images, start services, enter the Django container
-./runtests                # run the full test suite, including Playwright smoke tests
+./runtests           # run the full local test suite, including the full Playwright browser suite
 ```
 
 Dependencies are managed with [`uv`](https://github.com/astral-sh/uv); the Docker image installs them into the system interpreter so you never need to activate a virtual environment inside the container. See the [Dockerised Development Environment guide](https://doctor-cornelius.github.io/django-powercrud/reference/dockerised_dev/) for full details.

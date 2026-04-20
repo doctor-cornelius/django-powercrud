@@ -5,7 +5,7 @@
 PowerCRUD extends [`Neapolitan`](https://github.com/carltongibson/neapolitan)’s view layer with the practical infrastructure needed for real operational interfaces.
 
 !!! info "Project status"
-    PowerCRUD is still evolving, but now ships with a full pytest suite (including Playwright smoke tests). Expect breaking changes while APIs settle, and pin the package if you rely on current behaviour.
+    PowerCRUD is still evolving, but now ships with a full pytest suite. CI blocks on a curated Playwright smoke subset, while the full browser suite remains part of the local and release-preparation workflow. Expect breaking changes while APIs settle, and pin the package if you rely on current behaviour.
 
 ## Where to start
 
