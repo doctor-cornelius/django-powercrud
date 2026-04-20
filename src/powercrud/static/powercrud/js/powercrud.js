@@ -3034,6 +3034,9 @@
             }
             setPendingSelectedFilterFavouriteId(root, toolbar, favouriteId);
         });
+        global.setTimeout(() => {
+            closeFilterFavouritesDropdowns();
+        }, 0);
     });
 
     document.body.addEventListener('powercrud:favourite-updated', event => {
@@ -3049,6 +3052,9 @@
             }
             setPendingSelectedFilterFavouriteId(root, toolbar, favouriteId);
         });
+        global.setTimeout(() => {
+            closeFilterFavouritesDropdowns();
+        }, 0);
     });
 
     document.body.addEventListener('powercrud:favourite-deleted', () => {
@@ -3059,6 +3065,9 @@
             }
             setPendingSelectedFilterFavouriteId(root, toolbar, '');
         });
+        global.setTimeout(() => {
+            closeFilterFavouritesDropdowns();
+        }, 0);
     });
 
     document.body.addEventListener('refreshTable', event => {
