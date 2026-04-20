@@ -2,7 +2,8 @@ name: Deploy Documentation
 
 on:
   push:
-    branches: [ main ]
+    tags:
+      - "*.*.*"
 
 permissions:
   contents: read
@@ -15,44 +16,48 @@ concurrency:
 
 jobs:
   build:
-    if: contains(github.event.head_commit.message, 'release(')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      
-      - name: Get Version
-        id: get_version
+
+      - name: Validate release tag against project version
+        env:
+          RELEASE_VERSION: ${{ github.ref_name }}
         run: |
           python - <<'PY'
           import os
           import pathlib
+          import re
           import tomllib
 
+          release_version = os.environ["RELEASE_VERSION"]
+          if not re.fullmatch(r"\d+\.\d+\.\d+(?:(?:a|b|rc)\d+)?", release_version):
+              raise SystemExit(f"Tag {release_version!r} is not a publishable release tag")
+
           data = tomllib.loads(pathlib.Path("pyproject.toml").read_text())
-          with open(os.environ["GITHUB_OUTPUT"], "a") as fh:
-              print(f"version={data['project']['version']}", file=fh)
+          actual_version = data["project"]["version"]
+          if actual_version != release_version:
+              raise SystemExit(
+                  f"pyproject.toml version {actual_version!r} does not match tag {release_version!r}"
+              )
           PY
 
-      - name: Export release version
-        run: echo "RELEASE_VERSION=${{ steps.get_version.outputs.version }}" >> "$GITHUB_ENV"
-      
       - uses: actions/setup-python@v6
         with:
           python-version: 3.14.3
-      
+
       - name: Install MkDocs and dependencies
         run: |
           pip install mkdocs-material
           pip install mkdocs-awesome-nav
           pip install mkdocs-blog-plugin
-          
-      
+
       - name: Build documentation
         run: mkdocs build
-      
+
       - name: Setup Pages
         uses: actions/configure-pages@v5
-      
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v4
         with:

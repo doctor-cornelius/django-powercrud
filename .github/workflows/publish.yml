@@ -2,62 +2,163 @@ name: Release and Publish
 
 on:
   push:
-    branches: [ main ]
+    tags:
+      - "*.*.*"
+
+permissions:
+  contents: write
 
 jobs:
+  classify-tag:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.classify.outputs.version }}
+      prerelease: ${{ steps.classify.outputs.prerelease }}
+    steps:
+      - name: Classify release tag
+        id: classify
+        env:
+          TAG_NAME: ${{ github.ref_name }}
+        run: |
+          python - <<'PY'
+          import os
+          import re
+
+          tag_name = os.environ["TAG_NAME"]
+          if not re.fullmatch(r"\d+\.\d+\.\d+(?:(?:a|b|rc)\d+)?", tag_name):
+              raise SystemExit(f"Tag {tag_name!r} is not a publishable release tag")
+
+          prerelease = re.search(r"(?:a|b|rc)\d+$", tag_name) is not None
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as fh:
+              print(f"version={tag_name}", file=fh)
+              print(f"prerelease={'true' if prerelease else 'false'}", file=fh)
+          PY
+
   test-matrix:
-    if: contains(github.event.head_commit.message, 'release(') && !contains(github.event.head_commit.message, '[skip tests]')
+    needs: classify-tag
     uses: ./.github/workflows/run_tests.yml
     secrets: inherit
 
   release:
-    if: contains(github.event.head_commit.message, 'release(')
-    needs: test-matrix
+    needs:
+      - classify-tag
+      - test-matrix
     runs-on: ubuntu-latest
-    outputs:
-      version: ${{ steps.get_version.outputs.version }}
     steps:
       - uses: actions/checkout@v6
+
       - uses: actions/setup-python@v6
         with:
           python-version: "3.14.3"
-      - name: Get Version
-        id: get_version
+
+      - name: Validate project version
+        env:
+          RELEASE_VERSION: ${{ needs.classify-tag.outputs.version }}
         run: |
           python - <<'PY'
           import os
           import pathlib
           import tomllib
 
+          expected = os.environ["RELEASE_VERSION"]
           data = tomllib.loads(pathlib.Path("pyproject.toml").read_text())
-          with open(os.environ["GITHUB_OUTPUT"], "a") as fh:
-              print(f"version={data['project']['version']}", file=fh)
+          actual = data["project"]["version"]
+          if actual != expected:
+              raise SystemExit(
+                  f"pyproject.toml version {actual!r} does not match tag {expected!r}"
+              )
           PY
+
+      - name: Extract release notes from changelog
+        id: notes
+        env:
+          RELEASE_VERSION: ${{ needs.classify-tag.outputs.version }}
+        run: |
+          python - <<'PY'
+          import os
+          import pathlib
+          import re
+
+          version = os.environ["RELEASE_VERSION"]
+          changelog_path = pathlib.Path("CHANGELOG.md")
+          text = changelog_path.read_text(encoding="utf-8")
+
+          heading = re.compile(rf"^##\s+{re.escape(version)}\s+\([^)]+\)\s*$", re.M)
+          match = heading.search(text)
+          if not match:
+              raise SystemExit(f"Could not find changelog section for {version}")
+
+          section_start = match.end()
+          next_heading = re.search(r"^##\s+", text[section_start:], re.M)
+          section_end = section_start + next_heading.start() if next_heading else len(text)
+          notes = text[section_start:section_end].strip()
+          if not notes:
+              notes = "Release without curated notes."
+
+          notes_path = pathlib.Path(os.environ["RUNNER_TEMP"]) / "release-notes.md"
+          notes_path.write_text(notes + "\n", encoding="utf-8")
+
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as fh:
+              print(f"path={notes_path}", file=fh)
+          PY
+
       - name: Create GitHub Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_VERSION: ${{ needs.classify-tag.outputs.version }}
+          IS_PRERELEASE: ${{ needs.classify-tag.outputs.prerelease }}
+          RELEASE_NOTES_PATH: ${{ steps.notes.outputs.path }}
         run: |
-          gh release create ${{ steps.get_version.outputs.version }} \
-            --title "Release ${{ steps.get_version.outputs.version }}" \
-            --notes "${{ github.event.head_commit.message }}"
+          prerelease_flag=()
+          if [[ "$IS_PRERELEASE" == "true" ]]; then
+              prerelease_flag+=(--prerelease)
+          fi
+
+          gh release create "$RELEASE_VERSION" \
+            --title "Release $RELEASE_VERSION" \
+            --notes-file "$RELEASE_NOTES_PATH" \
+            "${prerelease_flag[@]}"
 
   publish:
-    needs: release
-    if: contains(github.event.head_commit.message, 'release(')
+    needs:
+      - classify-tag
+      - release
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+
       - uses: actions/setup-python@v6
         with:
           python-version: "3.14.3"
+
       - uses: astral-sh/setup-uv@v7
         with:
           version: "0.11.2"
+
+      - name: Validate project version
+        env:
+          RELEASE_VERSION: ${{ needs.classify-tag.outputs.version }}
+        run: |
+          python - <<'PY'
+          import os
+          import pathlib
+          import tomllib
+
+          expected = os.environ["RELEASE_VERSION"]
+          data = tomllib.loads(pathlib.Path("pyproject.toml").read_text())
+          actual = data["project"]["version"]
+          if actual != expected:
+              raise SystemExit(
+                  f"pyproject.toml version {actual!r} does not match tag {expected!r}"
+              )
+          PY
+
       - name: Sync dependencies
         run: uv sync --all-extras
+
       - name: Build and publish
         env:
           PYPI_TOKEN_CI: ${{ secrets.PYPI_TOKEN_CI }}
         run: |
           uv build
-          TWINE_USERNAME=__token__ TWINE_PASSWORD=$PYPI_TOKEN_CI uvx twine upload --non-interactive dist/*
+          TWINE_USERNAME=__token__ TWINE_PASSWORD="$PYPI_TOKEN_CI" uvx twine upload --non-interactive dist/*
