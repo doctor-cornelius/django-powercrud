@@ -46,3 +46,8 @@ def test_row_actions_menu_stays_visible_for_top_and_bottom_rows(
             "Expected floating row-actions panel to stay inside the bottom of the viewport "
             f"for visible row index {index}, but its bottom was {panel_box['y'] + panel_box['height']} while the viewport height was {viewport['height']}."
         )
+
+
+test_row_actions_menu_stays_visible_for_top_and_bottom_rows = pytest.mark.playwright_smoke(
+    test_row_actions_menu_stays_visible_for_top_and_bottom_rows
+)

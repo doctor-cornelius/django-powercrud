@@ -182,6 +182,11 @@ def test_filter_favourite_apply_preserves_sample_shell(
     expect(page.locator("#filtered_results")).not_to_contain_text(other_book.title)
 
 
+test_filter_favourite_apply_preserves_sample_shell = pytest.mark.playwright_smoke(
+    test_filter_favourite_apply_preserves_sample_shell
+)
+
+
 def test_book_page_size_query_still_renders_correctly_when_filter_favourites_enabled(
     page, books_url, sample_author, sample_books
 ):

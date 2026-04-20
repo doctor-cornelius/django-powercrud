@@ -152,3 +152,8 @@ def test_inline_dependency_refreshes_genre_options_without_save(
     assert (
         genre_a_name not in option_set
     ), "Dependent genre options should exclude values from the previously selected author."
+
+
+test_inline_dependency_refreshes_genre_options_without_save = pytest.mark.playwright_smoke(
+    test_inline_dependency_refreshes_genre_options_without_save
+)

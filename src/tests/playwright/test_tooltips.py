@@ -174,6 +174,11 @@ def test_overflow_tooltips_reinitialize_after_htmx_refresh(
     )
 
 
+test_overflow_tooltips_reinitialize_after_htmx_refresh = pytest.mark.playwright_smoke(
+    test_overflow_tooltips_reinitialize_after_htmx_refresh
+)
+
+
 def test_semantic_list_cell_tooltips_reinitialize_after_htmx_refresh(
     page, books_url, sample_author, sample_books
 ):

@@ -32,6 +32,9 @@ def test_bulk_selection_toggle(page, books_url, sample_books):
     )
 
 
+test_bulk_selection_toggle = pytest.mark.playwright_smoke(test_bulk_selection_toggle)
+
+
 def test_bulk_selection_shift_click_selects_visible_range(
     page, books_url, sample_author, sample_books
 ):

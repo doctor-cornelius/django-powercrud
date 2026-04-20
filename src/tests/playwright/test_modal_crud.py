@@ -123,3 +123,6 @@ def test_create_book_via_modal(page, books_url, sample_author, sample_genre):
     assert Book.objects.filter(title=title, author=sample_author).exists(), (
         "Submitting the create modal should persist a Book linked to the selected author."
     )
+
+
+test_create_book_via_modal = pytest.mark.playwright_smoke(test_create_book_via_modal)

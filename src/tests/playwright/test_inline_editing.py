@@ -154,6 +154,9 @@ def test_inline_edit_happy_path(page: Page, books_url: str, inline_ready_books):
     assert book.title == new_title
 
 
+test_inline_edit_happy_path = pytest.mark.playwright_smoke(test_inline_edit_happy_path)
+
+
 def test_inline_edit_validation_error_recovers(
     page: Page, books_url: str, inline_ready_books
 ):
