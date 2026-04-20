@@ -21,6 +21,7 @@ env:
 
 jobs:
   tests:
+    name: Python Matrix (Required)
     runs-on: ubuntu-latest
     env:
       DJANGO_SETTINGS_MODULE: tests.settings
@@ -66,6 +67,7 @@ jobs:
         run: pytest -m "not playwright"
 
   playwright-smoke:
+    name: Playwright Smoke (Required)
     runs-on: ubuntu-latest
     needs: tests
     env:
@@ -126,8 +128,11 @@ jobs:
           fail_ci_if_error: true
 
   playwright-full:
+    name: Playwright Full (Non-blocking)
     if: ${{ inputs.run_playwright_full }}
     continue-on-error: true
+    outputs:
+      suite_status: ${{ steps.capture_status.outputs.suite_status }}
     runs-on: ubuntu-latest
     needs:
       - tests
@@ -173,4 +178,83 @@ jobs:
         run: python -m playwright install --with-deps chromium
 
       - name: Run full Playwright suite
+        id: full_suite
+        continue-on-error: true
         run: pytest -m playwright --no-cov-on-fail
+
+      - name: Capture non-blocking suite status
+        id: capture_status
+        if: always()
+        run: |
+          suite_status="success"
+          if [[ "${{ steps.full_suite.outcome }}" == "failure" ]]; then
+            suite_status="failure"
+          fi
+          echo "suite_status=${suite_status}" >> "$GITHUB_OUTPUT"
+
+      - name: Summarise non-blocking regression outcome
+        if: always()
+        run: |
+          if [[ "${{ steps.capture_status.outputs.suite_status }}" == "failure" ]]; then
+            echo "::warning::Non-blocking Playwright regression suite failed. Review the 'Playwright Full (Non-blocking)' job before release."
+            {
+              echo "## Non-blocking Browser Regression"
+              echo
+              echo "Playwright smoke passed, but the full non-blocking Playwright regression suite failed."
+              echo "Review the 'Playwright Full (Non-blocking)' job before release."
+            } >> "$GITHUB_STEP_SUMMARY"
+          else
+            {
+              echo "## Non-blocking Browser Regression"
+              echo
+              echo "Full non-blocking Playwright regression suite passed."
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+  playwright-summary:
+    name: Browser Summary
+    if: always()
+    runs-on: ubuntu-latest
+    needs:
+      - tests
+      - playwright-smoke
+      - playwright-full
+    steps:
+      - name: Summarise browser check outcomes
+        env:
+          REQUIRED_TESTS_RESULT: ${{ needs.tests.result }}
+          REQUIRED_SMOKE_RESULT: ${{ needs.playwright-smoke.result }}
+          FULL_RESULT: ${{ needs.playwright-full.result }}
+          FULL_SUITE_STATUS: ${{ needs.playwright-full.outputs.suite_status }}
+        run: |
+          {
+            echo "## Browser Check Summary"
+            echo
+            echo "- Required Python matrix: ${REQUIRED_TESTS_RESULT}"
+            echo "- Required Playwright smoke: ${REQUIRED_SMOKE_RESULT}"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [[ "${FULL_RESULT}" == "skipped" ]]; then
+            {
+              echo "- Non-blocking Playwright full: skipped"
+              echo
+              echo "The full non-blocking browser regression suite did not run for this event."
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          full_suite_status="${FULL_SUITE_STATUS:-unknown}"
+
+          {
+            echo "- Non-blocking Playwright full: ${full_suite_status}"
+            echo
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [[ "${full_suite_status}" == "failure" ]]; then
+            {
+              echo "Playwright smoke passed, but the full non-blocking regression suite failed."
+              echo "Review the 'Playwright Full (Non-blocking)' job before release."
+            } >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "All configured browser checks passed." >> "$GITHUB_STEP_SUMMARY"
+          fi
