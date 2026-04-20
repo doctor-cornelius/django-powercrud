@@ -1,0 +1,21 @@
+{% set preferred_order = ["Feature", "Fix", "Documentation", "Refactor", "Performance", "Style"] %}
+{% for release in tree %}
+## {{ release.version }} ({{ release.date }})
+{% for change_type in preferred_order %}
+{% if change_type in release.changes %}
+{% for change in release.changes[change_type] -%}
+- **{{ change_type }}{% if change.scope %} ({{ change.scope }}){% endif %}**: {{ change.message }}
+{% endfor %}
+{% endif %}
+{% endfor %}
+{% for change_type, changes in release.changes.items() %}
+{% if change_type not in preferred_order %}
+{% for change in changes -%}
+- **{{ change_type }}{% if change.scope %} ({{ change.scope }}){% endif %}**: {{ change.message }}
+{% endfor %}
+{% endif %}
+{% endfor %}
+{% if not loop.last %}
+
+{% endif %}
+{% endfor %}

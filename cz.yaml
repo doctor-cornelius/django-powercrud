@@ -9,6 +9,7 @@ commitizen:
   version_file: pyproject.toml
   tag_format: "$version"  #without leading "v"
   update_changelog_on_bump: true
+  template: CHANGELOG.md.j2
   major_version_zero: true
 
   customize:
@@ -31,28 +32,17 @@ commitizen:
     # # Customized information content
     info: |
       See cz.yaml for customised configuration of commitizen
-    # The commit parser is a regex statement used to extract commits to **potentially** include in changelogs.
-    # Only user-facing change types are included here; internal types (style/test/build/ci/chore/wip) are omitted
-    # so they don't clutter the changelog even though they remain valid commit types.
-    commit_parser: "^(?P<change_type>feat|fix|refactor|perf|docs)(?P<scope>\\([^)]*\\))?(?P<breaking>!)?:\\s(?P<message>.+)$"
-
-    # changelog_pattern is supposed to further restrict the commits to be included in the changelog, but doesn't seem to work
-    # changelog_pattern: "^(feat|fix|style|refactor|perf|docs|test|build|ci)?(!)?"
-
-    # change_type_order is supposed to order the change types in the changelog, but doesn't seem to work
-    # change_type_order: ["BREAKING CHANGE", "feat", "fix", "style", "refactor", "perf", "test", "build", "ci", "docs", "chore"]
-    # change_type_order:
-    #   - "BREAKING CHANGE"
-    #   - "feat"
-    #   - "fix"
-    #   - "style"
-    #   - "refactor"
-    #   - "perf"
-    #   - "test"
-    #   - "build"
-    #   - "ci"
-    #   - "docs"
-    #   - "chore"
+    # The commit parser drives changelog generation. We keep the public-facing
+    # change types, include style updates, and capture scope without parentheses
+    # so the changelog template can render labels like "Feature (filters)".
+    commit_parser: "^(?P<change_type>feat|fix|style|refactor|perf|docs)(?:\\((?P<scope>[^)]*)\\))?(?P<breaking>!)?:\\s(?P<message>.+)$"
+    change_type_order:
+      - feat
+      - fix
+      - docs
+      - refactor
+      - perf
+      - style
     # Mapping of change types to more descriptive names
     change_type_map:
       feat: "Feature"
