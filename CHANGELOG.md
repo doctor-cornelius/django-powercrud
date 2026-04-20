@@ -4,6 +4,13 @@ PowerCRUD is still evolving quickly, and the early release history was cut at a 
 
 Version numbers below correspond to published git tags. The more important releases include a little extra narrative and upgrade context; smaller patch releases remain deliberately brief. For full detail between any two versions, use the GitHub compare view for the matching tags.
 
+## 0.5.43 (2026-04-20)
+- **Fix (bulk_selection)**: ignore stale row-select responses during range selection
+- **Fix (release)**: run prepare flow inside container
+- **Fix (favourites)**: allow favourites panel to overlay fully (#93)
+- **Documentation (testing)**: describe smoke and full browser workflows
+- **Documentation (changelog)**: curate flattened release history
+
 ## 0.5.42 (2026-04-19)
 - **Fix (favourites)**: filter favourites guard and documentation (#92)
 
