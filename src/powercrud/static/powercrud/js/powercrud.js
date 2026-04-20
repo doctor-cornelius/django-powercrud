@@ -3033,9 +3033,7 @@
                 return;
             }
             setPendingSelectedFilterFavouriteId(root, toolbar, favouriteId);
-            syncFilterFavouritesSelection(root);
         });
-        closeFilterFavouritesDropdowns();
     });
 
     document.body.addEventListener('powercrud:favourite-updated', event => {
@@ -3050,16 +3048,17 @@
                 return;
             }
             setPendingSelectedFilterFavouriteId(root, toolbar, favouriteId);
-            syncFilterFavouritesSelection(root);
         });
-        closeFilterFavouritesDropdowns();
     });
 
     document.body.addEventListener('powercrud:favourite-deleted', () => {
         getAffectedObjectListRoots(document).forEach(root => {
-            clearPendingFilterFavouriteSelection(root);
+            const toolbar = getFilterFavouritesContainer(root);
+            if (!(toolbar instanceof Element)) {
+                return;
+            }
+            setPendingSelectedFilterFavouriteId(root, toolbar, '');
         });
-        closeFilterFavouritesDropdowns();
     });
 
     document.body.addEventListener('refreshTable', event => {
@@ -3109,8 +3108,9 @@
             copyFilterFavouritesPanelMarkupToTemplate(favouritePanel);
             const toolbar = getFilterFavouritesToolbarFromElement(favouritePanel);
             const root = toolbar ? getObjectListRoot(toolbar) : null;
-            if (root) {
+            if (root && toolbar instanceof Element) {
                 syncFilterFavouritesSelection(root);
+                syncFavouritePanelState(favouritePanel, toolbar);
             }
         }
 
