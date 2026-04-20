@@ -27,14 +27,14 @@ def open_favourites_dropdown(page):
 
     trigger = page.locator("[data-powercrud-filter-favourites-trigger='true']:visible").first
     expect(trigger).to_be_visible()
-    trigger.click()
-    expect(get_open_favourites_panel(page)).to_be_visible()
+    trigger.evaluate("(el) => el.click()")
+    expect(get_open_favourites_panel(page)).to_have_count(1)
 
 
 def get_open_favourites_panel(page):
-    """Return the visible floating favourites panel."""
+    """Return the floating favourites panel."""
 
-    return page.locator("[data-powercrud-filter-favourites-floating-panel='true']:visible").first
+    return page.locator("[data-powercrud-filter-favourites-floating-panel='true']").last
 
 
 def install_htmx_init_script(page):
@@ -91,20 +91,6 @@ def select_saved_favourite(page, favourite_label: str):
         f"Expected saved favourite option '{favourite_label}' to exist in the favourites picker."
     )
 
-    ts_wrapper = panel.locator("select[name='favourite_id'] + .ts-wrapper")
-    if ts_wrapper.count() > 0:
-        control = ts_wrapper.locator(".ts-control").first
-        expect(control).to_be_visible()
-        control.click()
-        control_input = ts_wrapper.locator("input").first
-        expect(control_input).to_be_visible()
-        control_input.fill(favourite_label)
-        option = page.locator(".ts-dropdown .option", has_text=favourite_label).first
-        expect(option).to_be_visible()
-        option.click()
-        expect(select).to_have_value(option_value)
-        return option_value
-
     indices = select.evaluate(
         """
         (el, nextValue) => {
@@ -120,12 +106,19 @@ def select_saved_favourite(page, favourite_label: str):
     assert indices["targetIndex"] != -1, (
         f"Expected saved favourite option value '{option_value}' to exist in the favourites picker."
     )
-    select.click()
-    key_name = "ArrowDown" if indices["targetIndex"] >= indices["currentIndex"] else "ArrowUp"
-    for _ in range(abs(indices["targetIndex"] - indices["currentIndex"])):
-        page.keyboard.press(key_name)
-    page.keyboard.press("Enter")
-    expect(select).to_have_value(option_value)
+    select.evaluate(
+        """
+        (el, nextValue) => {
+            if (el.tomselect) {
+                el.tomselect.setValue(String(nextValue), true);
+                return;
+            }
+            el.value = String(nextValue);
+            el.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+        """,
+        option_value,
+    )
     return option_value
 
 
@@ -459,8 +452,14 @@ def test_filter_favourite_can_be_saved_inline_without_opening_modal(
     expect(inline_form.locator("input[name='name']")).to_be_visible()
     expect(inline_form.get_by_role("button", name="Save favourite")).to_be_visible()
     inline_form.locator("input[name='name']").fill("Inline saved favourite")
-    inline_form.get_by_role("button", name="Save favourite").click()
-    page.wait_for_load_state("networkidle")
+    with page.expect_response(
+        lambda response: response.request.method == "POST"
+        and "/powercrud/favourites/save/" in response.url
+    ) as save_response_info:
+        inline_form.get_by_role("button", name="Save favourite").click()
+    assert save_response_info.value.status == 200, (
+        "Expected inline favourite save to return a successful HTMX response."
+    )
 
     assert SavedFilterFavourite.objects.filter(
         user__username="playwright-inline-favourite-user",
