@@ -321,6 +321,7 @@ class ProfileCRUDView(SampleCRUDMixin):
     fields = "__all__"
     properties = "__all__"
     filterset_fields = ["author", "nickname", "favorite_genre"]
+    filter_favourites_enabled = True
     inline_edit_fields = ["nickname", "favorite_genre"]
     field_queryset_dependencies = {
         "favorite_genre": {

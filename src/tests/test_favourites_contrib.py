@@ -221,6 +221,46 @@ def test_favourites_system_check_is_clean_when_shared_routes_are_available():
 
 
 @pytest.mark.django_db
+def test_duplicate_favourite_save_rerenders_form_errors_for_htmx(client):
+    """Duplicate favourite names should rerender validation errors into the toolbar panel."""
+
+    user = get_user_model().objects.create_user(username="fav-duplicate-save-user")
+    client.force_login(user)
+    SavedFilterFavourite.objects.create(
+        user=user,
+        view_key=BOOK_VIEW_KEY,
+        name="Existing favourite",
+        state={"filters": {}, "visible_filters": [], "sort": "", "page_size": ""},
+    )
+
+    response = client.post(
+        reverse("powercrud:favourites-save"),
+        {
+            "view_key": BOOK_VIEW_KEY,
+            "list_view_url": reverse("sample:bigbook-list"),
+            "toolbar_dom_id": "powercrud-favourites-toolbar-test",
+            "current_state_json": json.dumps(
+                {"filters": {}, "visible_filters": [], "sort": "", "page_size": ""}
+            ),
+            "state_json": json.dumps(
+                {"filters": {}, "visible_filters": [], "sort": "", "page_size": ""}
+            ),
+            "original_target": "#content",
+            "name": "Existing favourite",
+        },
+        HTTP_HX_REQUEST="true",
+    )
+    response_text = response.content.decode()
+
+    assert response.status_code == 200, (
+        "Duplicate favourites should return a normal HTMX swap response so validation errors render inline."
+    )
+    assert "already exists for this list" in response_text, (
+        "Duplicate favourite saves should render the validation error back into the toolbar panel."
+    )
+
+
+@pytest.mark.django_db
 def test_author_list_does_not_render_favourites_toolbar_when_view_not_enabled(client):
     """Views that do not opt in should not render favourites controls."""
 
@@ -308,8 +348,8 @@ def test_favourite_save_view_rejects_duplicate_names_per_user_and_view(client):
         HTTP_HX_REQUEST="true",
     )
 
-    assert response.status_code == 400, (
-        "Duplicate favourite saves should return a validation response instead of succeeding."
+    assert response.status_code == 200, (
+        "Duplicate favourite saves should return an HTMX-swappable validation response instead of surfacing a transport error."
     )
     assert SavedFilterFavourite.objects.filter(user=user, view_key=BOOK_VIEW_KEY).count() == 1, (
         "Duplicate favourite saves should not create an additional database row."
@@ -343,8 +383,8 @@ def test_favourite_save_view_rejects_names_longer_than_thirty_chars(client):
         HTTP_HX_REQUEST="true",
     )
 
-    assert response.status_code == 400, (
-        "Saving a favourite with a name longer than thirty characters should return a validation response."
+    assert response.status_code == 200, (
+        "Overlong favourite names should return an HTMX-swappable validation response so the inline form can show the error."
     )
     assert (
         SavedFilterFavourite.objects.filter(user=user, view_key=BOOK_VIEW_KEY).count() == 0

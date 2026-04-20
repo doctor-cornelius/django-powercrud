@@ -252,7 +252,7 @@ def favourite_save(request: HttpRequest) -> HttpResponse:
             ),
             show_save_form=True,
             save_form=form,
-            status=400,
+            status=200,
         )
 
     response = _render_toolbar_panel_response(
