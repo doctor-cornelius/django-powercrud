@@ -32,6 +32,8 @@
     let tooltipResizeTimer = null;
     let activeRowActionsMenu = null;
     let activeRowActionsTrigger = null;
+    let activeFilterFavouritesPanel = null;
+    let activeFilterFavouritesTrigger = null;
 
     function warnMissingDependency(name, detail) {
         if (warnedDeps[name]) {
@@ -572,6 +574,31 @@
         return root.querySelector('[data-powercrud-filter-favourites-toolbar="true"]');
     }
 
+    function getFilterFavouritesToolbarById(toolbarDomId) {
+        if (!toolbarDomId) {
+            return null;
+        }
+        const toolbar = document.getElementById(toolbarDomId);
+        return toolbar instanceof Element ? toolbar : null;
+    }
+
+    function getFilterFavouritesToolbarFromElement(element) {
+        if (!(element instanceof Element)) {
+            return null;
+        }
+        const directToolbar = element.closest('[data-powercrud-filter-favourites-toolbar="true"]');
+        if (directToolbar instanceof Element) {
+            return directToolbar;
+        }
+        const floatingPanel = element.closest('[data-powercrud-filter-favourites-floating-panel="true"]');
+        if (!(floatingPanel instanceof HTMLElement)) {
+            return null;
+        }
+        return getFilterFavouritesToolbarById(
+            floatingPanel.dataset.powercrudToolbarDomId || ''
+        );
+    }
+
     function getRowActionsDropdownContainer(trigger) {
         if (!(trigger instanceof Element)) {
             return null;
@@ -687,6 +714,22 @@
         return queryAllWithSelf(scope, '[data-powercrud-filter-favourites-dropdown="true"]');
     }
 
+    function getFilterFavouritesTemplate(toolbar) {
+        if (!(toolbar instanceof Element)) {
+            return null;
+        }
+        const template = toolbar.querySelector('[data-powercrud-filter-favourites-template="true"]');
+        return template instanceof HTMLElement ? template : null;
+    }
+
+    function getFilterFavouritesPanelFromElement(element) {
+        if (!(element instanceof Element)) {
+            return null;
+        }
+        const panel = element.closest('[data-powercrud-filter-favourites-panel="true"]');
+        return panel instanceof HTMLElement ? panel : null;
+    }
+
     function getFilterFavouritesSelect(toolbar) {
         if (!(toolbar instanceof Element)) {
             return null;
@@ -773,11 +816,29 @@
 
     function closeFilterFavouritesDropdowns(exceptToolbar = null) {
         getFilterFavouritesDropdowns(document).forEach(toolbar => {
-            if (exceptToolbar && toolbar === exceptToolbar) {
+            const shouldRemainOpen = (
+                exceptToolbar instanceof Element
+                && toolbar === exceptToolbar
+                && activeFilterFavouritesPanel instanceof HTMLElement
+            );
+            setFilterFavouritesDropdownOpen(toolbar, shouldRemainOpen);
+        });
+
+        if (exceptToolbar instanceof Element && activeFilterFavouritesTrigger instanceof HTMLElement) {
+            const activeToolbar = activeFilterFavouritesTrigger.closest('[data-powercrud-filter-favourites-toolbar="true"]');
+            if (activeToolbar === exceptToolbar) {
                 return;
             }
-            setFilterFavouritesDropdownOpen(toolbar, false);
-        });
+        }
+
+        if (activeFilterFavouritesTrigger instanceof HTMLElement) {
+            activeFilterFavouritesTrigger.setAttribute('aria-expanded', 'false');
+        }
+        if (activeFilterFavouritesPanel instanceof HTMLElement && activeFilterFavouritesPanel.parentNode) {
+            activeFilterFavouritesPanel.parentNode.removeChild(activeFilterFavouritesPanel);
+        }
+        activeFilterFavouritesPanel = null;
+        activeFilterFavouritesTrigger = null;
     }
 
     function getSelectedFilterFavouriteStorageKey(root, toolbar = null) {
@@ -901,6 +962,30 @@
                 button.disabled = favouriteSelect.disabled || !hasSelectableOption || !hasSelectedFavourite;
             });
         syncFilterFavouritesTriggerLabel(favouritesContainer);
+
+        const activeToolbar = getFilterFavouritesToolbarFromElement(activeFilterFavouritesPanel);
+        if (activeToolbar !== favouritesContainer) {
+            return;
+        }
+
+        const floatingSelect = getFilterFavouritesSelect(activeFilterFavouritesPanel);
+        if (!(floatingSelect instanceof HTMLSelectElement)) {
+            return;
+        }
+
+        if (hasSelectedOption && floatingSelect.value !== effectiveSelectedId) {
+            floatingSelect.value = effectiveSelectedId;
+        } else if (!effectiveSelectedId) {
+            floatingSelect.value = '';
+        } else if (!hasSelectedOption) {
+            floatingSelect.value = '';
+        }
+
+        activeFilterFavouritesPanel
+            .querySelectorAll('[data-powercrud-favourite-manage-action="true"]')
+            .forEach(button => {
+                button.disabled = floatingSelect.disabled || !hasSelectableOption || !Boolean(floatingSelect.value);
+            });
     }
 
     function clearPendingFilterFavouriteSelection(root) {
@@ -949,6 +1034,161 @@
                 selectedFavouriteField.value = favouriteSelect.value || '';
             }
         }
+    }
+
+    function syncFavouritePanelState(panel, toolbar) {
+        if (!(panel instanceof Element) || !(toolbar instanceof Element)) {
+            return;
+        }
+
+        const root = getObjectListRoot(toolbar);
+        if (!root) {
+            return;
+        }
+
+        const stateJson = JSON.stringify(collectFavouriteStateFromRoot(root));
+        panel
+            .querySelectorAll('input[name="current_state_json"], input[name="state_json"]')
+            .forEach(field => {
+                if (field instanceof HTMLInputElement) {
+                    field.value = stateJson;
+                }
+            });
+
+        const toolbarSelect = getFilterFavouritesSelect(toolbar);
+        const panelSelect = getFilterFavouritesSelect(panel);
+        const selectedFavouriteId = panelSelect?.value || toolbarSelect?.value || '';
+        if (panelSelect instanceof HTMLSelectElement) {
+            panelSelect.value = selectedFavouriteId;
+        }
+        panel.querySelectorAll('input[name="selected_favourite_id"]').forEach(field => {
+            if (field instanceof HTMLInputElement) {
+                field.value = selectedFavouriteId;
+            }
+        });
+
+        const hasSelectableOption = panelSelect instanceof HTMLSelectElement
+            ? Array.from(panelSelect.options).some(option => option.value)
+            : false;
+        panel
+            .querySelectorAll('[data-powercrud-favourite-manage-action="true"]')
+            .forEach(button => {
+                button.disabled = !(panelSelect instanceof HTMLSelectElement)
+                    || panelSelect.disabled
+                    || !hasSelectableOption
+                    || !Boolean(panelSelect.value);
+            });
+    }
+
+    function copyFilterFavouritesPanelMarkupToTemplate(sourcePanel) {
+        if (!(sourcePanel instanceof HTMLElement)) {
+            return;
+        }
+
+        const toolbar = getFilterFavouritesToolbarFromElement(sourcePanel);
+        const template = getFilterFavouritesTemplate(toolbar);
+        const templatePanel = template?.querySelector('[data-powercrud-filter-favourites-panel="true"]');
+        if (!(templatePanel instanceof HTMLElement)) {
+            return;
+        }
+
+        templatePanel.innerHTML = sourcePanel.innerHTML;
+    }
+
+    function positionFilterFavouritesPanel(panelElement, triggerElement) {
+        if (!(panelElement instanceof HTMLElement) || !(triggerElement instanceof HTMLElement)) {
+            return;
+        }
+
+        const viewportPadding = 8;
+        const panelGap = 8;
+        const triggerRect = triggerElement.getBoundingClientRect();
+        const panelRect = panelElement.getBoundingClientRect();
+        const spaceBelow = global.innerHeight - triggerRect.bottom - viewportPadding;
+        const spaceAbove = triggerRect.top - viewportPadding;
+        const shouldOpenUpward = panelRect.height > spaceBelow && spaceAbove > spaceBelow;
+
+        let top = shouldOpenUpward
+            ? triggerRect.top - panelRect.height - panelGap
+            : triggerRect.bottom + panelGap;
+        let left = triggerRect.left;
+
+        top = Math.max(
+            viewportPadding,
+            Math.min(top, global.innerHeight - panelRect.height - viewportPadding),
+        );
+        left = Math.max(
+            viewportPadding,
+            Math.min(left, global.innerWidth - panelRect.width - viewportPadding),
+        );
+
+        panelElement.style.top = `${top}px`;
+        panelElement.style.left = `${left}px`;
+    }
+
+    function openFilterFavouritesPanel(trigger) {
+        if (!(trigger instanceof HTMLElement)) {
+            return;
+        }
+
+        const toolbar = trigger.closest('[data-powercrud-filter-favourites-toolbar="true"]');
+        const template = getFilterFavouritesTemplate(toolbar);
+        if (!(toolbar instanceof Element) || !(template instanceof HTMLElement)) {
+            return;
+        }
+
+        closeFilterFavouritesDropdowns();
+
+        const panelShell = template.firstElementChild?.cloneNode(true);
+        if (!(panelShell instanceof HTMLElement)) {
+            return;
+        }
+
+        panelShell.dataset.powercrudFilterFavouritesFloatingPanel = 'true';
+        panelShell.dataset.powercrudToolbarDomId = toolbar.id || '';
+        panelShell.style.position = 'fixed';
+        panelShell.style.visibility = 'hidden';
+        panelShell.style.pointerEvents = 'none';
+
+        const panel = panelShell.querySelector('[data-powercrud-filter-favourites-panel="true"]');
+        if (!(panel instanceof HTMLElement)) {
+            return;
+        }
+
+        syncFavouriteToolbarState(toolbar);
+        syncFavouritePanelState(panel, toolbar);
+
+        document.body.appendChild(panelShell);
+
+        if (global.htmx?.process) {
+            global.htmx.process(panelShell);
+        }
+        initPowercrudSearchableSelects(panelShell);
+        initPowercrudTooltips(panelShell);
+        positionFilterFavouritesPanel(panelShell, trigger);
+
+        panelShell.style.visibility = '';
+        panelShell.style.pointerEvents = '';
+        setFilterFavouritesDropdownOpen(toolbar, true);
+        trigger.setAttribute('aria-expanded', 'true');
+        activeFilterFavouritesPanel = panelShell;
+        activeFilterFavouritesTrigger = trigger;
+    }
+
+    function toggleFilterFavouritesPanel(trigger) {
+        if (!(trigger instanceof HTMLElement)) {
+            return;
+        }
+
+        if (
+            activeFilterFavouritesTrigger === trigger
+            && activeFilterFavouritesPanel instanceof HTMLElement
+        ) {
+            closeFilterFavouritesDropdowns();
+            return;
+        }
+
+        openFilterFavouritesPanel(trigger);
     }
 
     function applyFilterPanelState(root) {
@@ -1357,12 +1597,10 @@
 
     function toggleFavouriteSaveForm(trigger, isVisible) {
         const triggerElement = asElement(trigger);
-        const toolbar = triggerElement?.closest('[data-powercrud-filter-favourites-toolbar="true"]');
-        if (!(toolbar instanceof Element)) {
-            return;
-        }
-
-        const saveForm = toolbar.querySelector('[data-powercrud-favourite-save-form="true"]');
+        const toolbar = getFilterFavouritesToolbarFromElement(triggerElement);
+        const saveForm = triggerElement?.closest('[data-powercrud-favourite-save-form="true"]')
+            || activeFilterFavouritesPanel?.querySelector('[data-powercrud-favourite-save-form="true"]')
+            || toolbar?.querySelector('[data-powercrud-favourite-save-form="true"]');
         if (!(saveForm instanceof HTMLFormElement)) {
             return;
         }
@@ -1377,47 +1615,6 @@
         if (nameField instanceof HTMLInputElement && !saveForm.querySelector('.text-error')) {
             nameField.value = '';
         }
-    }
-
-    function submitFavouriteSave(trigger) {
-        const triggerElement = asElement(trigger);
-        const toolbar = triggerElement?.closest('[data-powercrud-filter-favourites-toolbar="true"]');
-        const saveForm = triggerElement?.closest('[data-powercrud-favourite-save-form="true"]');
-        const panel = toolbar?.querySelector('[data-powercrud-filter-favourites-panel="true"]');
-        const saveUrl = triggerElement?.dataset?.powercrudFavouriteSaveUrl || '';
-        if (
-            !(toolbar instanceof Element)
-            || !(saveForm instanceof HTMLFormElement)
-            || !(panel instanceof Element)
-            || !saveUrl
-            || !global.htmx?.ajax
-        ) {
-            return;
-        }
-
-        syncFavouriteToolbarState(toolbar);
-        populateFavouriteSaveForm(saveForm);
-        const requestValues = Object.fromEntries(new FormData(saveForm).entries());
-        const csrfToken = saveForm.querySelector('input[name="csrfmiddlewaretoken"]')?.value || '';
-        global.htmx.ajax('POST', saveUrl, {
-            target: panel,
-            swap: 'innerHTML',
-            values: requestValues,
-            headers: csrfToken ? { 'X-CSRFToken': csrfToken } : {},
-        });
-    }
-
-    function bindFavouriteSaveButtons(scope = document) {
-        queryAllWithSelf(scope, '[data-powercrud-favourite-save-submit="true"]').forEach(button => {
-            if (!(button instanceof HTMLButtonElement) || button.dataset.powercrudBound === 'true') {
-                return;
-            }
-            button.dataset.powercrudBound = 'true';
-            button.addEventListener('click', event => {
-                event.preventDefault();
-                submitFavouriteSave(button);
-            });
-        });
     }
 
     function requestObjectListRefresh(root, options = {}) {
@@ -2462,7 +2659,6 @@
     global.initPowercrudTooltips = initPowercrudTooltips;
     global.destroyPowercrudTooltips = destroyPowercrudTooltips;
     global.powercrudToggleFavouriteSaveForm = toggleFavouriteSaveForm;
-    global.powercrudSubmitFavouriteSave = submitFavouriteSave;
 
     const selectionSuppressionStyle = document.createElement('style');
     selectionSuppressionStyle.textContent = `
@@ -2484,12 +2680,12 @@
         initPowercrudSearchableSelects(document);
         bootstrapObjectLists(document);
         initPowercrudTooltips(document);
-        bindFavouriteSaveButtons(document);
         bootstrapInlineRow();
     });
 
     global.addEventListener('pagehide', () => {
         closeRowActionsMenu();
+        closeFilterFavouritesDropdowns();
         getAffectedObjectListRoots(document).forEach(root => {
             clearPendingFilterFavouriteSelection(root);
         });
@@ -2534,18 +2730,8 @@
 
         const favouritesTrigger = trigger.closest('[data-powercrud-filter-favourites-trigger="true"]');
         if (favouritesTrigger) {
-            const favouritesDropdown = favouritesTrigger.closest('[data-powercrud-filter-favourites-dropdown="true"]');
-            if (favouritesDropdown instanceof Element) {
-                const shouldOpen = !favouritesDropdown.classList.contains('dropdown-open');
-                closeFilterFavouritesDropdowns(shouldOpen ? favouritesDropdown : null);
-                setFilterFavouritesDropdownOpen(favouritesDropdown, shouldOpen);
-            }
-            return;
-        }
-
-        const favouriteSaveSubmit = trigger.closest('[data-powercrud-favourite-save-submit="true"]');
-        if (favouriteSaveSubmit) {
-            submitFavouriteSave(favouriteSaveSubmit);
+            event.preventDefault();
+            toggleFilterFavouritesPanel(favouritesTrigger);
             return;
         }
 
@@ -2600,7 +2786,10 @@
             }
         }
 
-        if (!trigger.closest('[data-powercrud-filter-favourites-dropdown="true"]')) {
+        if (
+            !trigger.closest('[data-powercrud-filter-favourites-dropdown="true"]')
+            && !trigger.closest('[data-powercrud-filter-favourites-floating-panel="true"]')
+        ) {
             closeFilterFavouritesDropdowns();
         }
         closeRowActionsMenu();
@@ -2676,12 +2865,16 @@
         }
 
         if (target.matches('[data-powercrud-favourite-select="true"]')) {
-            const root = getObjectListRoot(target);
-            const toolbar = target.closest('[data-powercrud-filter-favourites-toolbar="true"]');
+            const toolbar = getFilterFavouritesToolbarFromElement(target);
+            const root = toolbar ? getObjectListRoot(toolbar) : null;
             if (!root || !(toolbar instanceof Element)) {
                 return;
             }
             syncFavouriteToolbarState(toolbar);
+            const activePanel = getFilterFavouritesPanelFromElement(target);
+            if (activePanel instanceof Element) {
+                syncFavouritePanelState(activePanel, toolbar);
+            }
             if (!target.value) {
                 syncFilterFavouritesSelection(root);
                 return;
@@ -2704,14 +2897,6 @@
     document.addEventListener('submit', event => {
         const form = asElement(event.target);
         if (!form) {
-            return;
-        }
-        if (form.matches('[data-powercrud-favourite-save-form="true"]')) {
-            event.preventDefault();
-            const saveButton = form.querySelector('[data-powercrud-favourite-save-submit="true"]');
-            if (saveButton instanceof HTMLElement) {
-                saveButton.click();
-            }
             return;
         }
         if (form.matches('[data-powercrud-filter-form="true"]')) {
@@ -2744,17 +2929,28 @@
 
         if (target && target.closest) {
             const root = getObjectListRoot(target);
-            const favouritesToolbar = target.closest('[data-powercrud-filter-favourites-toolbar="true"]')
+            const favouritesToolbar = getFilterFavouritesToolbarFromElement(target)
                 || (root ? getFilterFavouritesContainer(root) : null);
-            if (root && favouritesToolbar instanceof Element) {
+            const effectiveRoot = root || (favouritesToolbar instanceof Element
+                ? getObjectListRoot(favouritesToolbar)
+                : null);
+            if (effectiveRoot && favouritesToolbar instanceof Element) {
                 const favouriteSelect = getFilterFavouritesSelect(favouritesToolbar);
                 const selectedFavouriteId = favouriteSelect?.value
                     || getServerSelectedFilterFavouriteId(favouritesToolbar);
-                setPendingSelectedFilterFavouriteId(root, favouritesToolbar, selectedFavouriteId);
+                setPendingSelectedFilterFavouriteId(
+                    effectiveRoot,
+                    favouritesToolbar,
+                    selectedFavouriteId,
+                );
             }
 
             if (favouritesToolbar instanceof Element) {
                 syncFavouriteToolbarState(favouritesToolbar);
+                const activePanel = getFilterFavouritesPanelFromElement(target);
+                if (activePanel instanceof Element) {
+                    syncFavouritePanelState(activePanel, favouritesToolbar);
+                }
 
                 const requiresSelectedFavourite = (
                     target.matches('[data-powercrud-favourite-manage-action="true"]')
@@ -2791,7 +2987,7 @@
             return;
         }
 
-        const favouritesToolbar = target.closest('[data-powercrud-filter-favourites-toolbar="true"]');
+        const favouritesToolbar = getFilterFavouritesToolbarFromElement(target);
         if (!(favouritesToolbar instanceof Element)) {
             return;
         }
@@ -2805,6 +3001,11 @@
         if (event.detail && event.detail.parameters) {
             event.detail.parameters.current_state_json = stateJson;
             event.detail.parameters.state_json = stateJson;
+        }
+
+        const activePanel = getFilterFavouritesPanelFromElement(target);
+        if (activePanel instanceof Element) {
+            syncFavouritePanelState(activePanel, favouritesToolbar);
         }
     });
 
@@ -2832,6 +3033,7 @@
                 return;
             }
             setPendingSelectedFilterFavouriteId(root, toolbar, favouriteId);
+            syncFilterFavouritesSelection(root);
         });
         closeFilterFavouritesDropdowns();
     });
@@ -2848,6 +3050,7 @@
                 return;
             }
             setPendingSelectedFilterFavouriteId(root, toolbar, favouriteId);
+            syncFilterFavouritesSelection(root);
         });
         closeFilterFavouritesDropdowns();
     });
@@ -2890,15 +3093,25 @@
             initPowercrudSearchableSelects(root);
             bootstrapObjectLists(root);
             initPowercrudTooltips(root);
-            bindFavouriteSaveButtons(root);
         });
         bootstrapObjectLists(document);
-        bindFavouriteSaveButtons(document);
         schedulePowercrudTooltipRefresh(document, 50);
 
         const target = asElement(event.target);
         if (!(target instanceof HTMLElement)) {
             return;
+        }
+
+        const favouritePanel = target.matches('[data-powercrud-filter-favourites-panel="true"]')
+            ? target
+            : target.querySelector('[data-powercrud-filter-favourites-panel="true"]');
+        if (favouritePanel instanceof HTMLElement) {
+            copyFilterFavouritesPanelMarkupToTemplate(favouritePanel);
+            const toolbar = getFilterFavouritesToolbarFromElement(favouritePanel);
+            const root = toolbar ? getObjectListRoot(toolbar) : null;
+            if (root) {
+                syncFilterFavouritesSelection(root);
+            }
         }
 
         const favouriteSaveForm = target.matches('[data-powercrud-favourite-save-form="true"]')
@@ -2978,10 +3191,8 @@
             initPowercrudSearchableSelects(root);
             bootstrapObjectLists(root);
             initPowercrudTooltips(root);
-            bindFavouriteSaveButtons(root);
         });
         bootstrapObjectLists(document);
-        bindFavouriteSaveButtons(document);
         schedulePowercrudTooltipRefresh(document, 50);
     });
 

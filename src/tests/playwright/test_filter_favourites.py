@@ -28,6 +28,13 @@ def open_favourites_dropdown(page):
     trigger = page.locator("[data-powercrud-filter-favourites-trigger='true']:visible").first
     expect(trigger).to_be_visible()
     trigger.click()
+    expect(get_open_favourites_panel(page)).to_be_visible()
+
+
+def get_open_favourites_panel(page):
+    """Return the visible floating favourites panel."""
+
+    return page.locator("[data-powercrud-filter-favourites-floating-panel='true']:visible").first
 
 
 def install_htmx_init_script(page):
@@ -67,8 +74,8 @@ def ensure_htmx_available(page):
 def select_saved_favourite(page, favourite_label: str):
     """Select one saved favourite through the rendered TomSelect/native control."""
 
-    toolbar = page.locator("[data-powercrud-filter-favourites-toolbar='true']")
-    select = toolbar.locator("select[name='favourite_id']")
+    panel = get_open_favourites_panel(page)
+    select = panel.locator("select[name='favourite_id']")
     option_value = select.evaluate(
         """
         (el, label) => {
@@ -84,7 +91,7 @@ def select_saved_favourite(page, favourite_label: str):
         f"Expected saved favourite option '{favourite_label}' to exist in the favourites picker."
     )
 
-    ts_wrapper = toolbar.locator("select[name='favourite_id'] + .ts-wrapper")
+    ts_wrapper = panel.locator("select[name='favourite_id'] + .ts-wrapper")
     if ts_wrapper.count() > 0:
         control = ts_wrapper.locator(".ts-control").first
         expect(control).to_be_visible()
@@ -238,9 +245,7 @@ def test_filter_reset_clears_remembered_selected_favourite(
 
     page.get_by_role("button", name=re.compile("show filters", re.I)).click()
     open_favourites_dropdown(page)
-    favourites_select = page.locator(
-        "[data-powercrud-filter-favourites-toolbar='true'] select[name='favourite_id']"
-    )
+    favourites_select = get_open_favourites_panel(page).locator("select[name='favourite_id']")
     select_saved_favourite(page, "Reset me")
     page.wait_for_load_state("networkidle")
     expect(page.locator("#filter-form input[name='title']")).to_have_value(target_book.title)
@@ -344,9 +349,7 @@ def test_returning_to_page_clears_selected_filter_favourite(
         filter_toggle.click()
 
     open_favourites_dropdown(page)
-    favourites_select = page.locator(
-        "[data-powercrud-filter-favourites-toolbar='true'] select[name='favourite_id']"
-    )
+    favourites_select = get_open_favourites_panel(page).locator("select[name='favourite_id']")
     expect(favourites_select).to_have_value("")
     expect(page.locator("#filter-form input[name='title']")).to_have_value("")
     expect(page.locator("#filtered_results")).to_contain_text(target_book.title)
@@ -450,11 +453,22 @@ def test_filter_favourite_can_be_saved_inline_without_opening_modal(
     page.get_by_role("button", name=re.compile("show filters", re.I)).click()
     open_favourites_dropdown(page)
 
-    inline_form = page.locator("[data-powercrud-favourite-save-form='true']")
+    inline_form = get_open_favourites_panel(page).locator("[data-powercrud-favourite-save-form='true']")
     expect(inline_form).to_be_visible()
     expect(page.locator("#powercrudBaseModal")).not_to_be_visible()
     expect(inline_form.locator("input[name='name']")).to_be_visible()
     expect(inline_form.get_by_role("button", name="Save favourite")).to_be_visible()
+    inline_form.locator("input[name='name']").fill("Inline saved favourite")
+    inline_form.get_by_role("button", name="Save favourite").click()
+    page.wait_for_load_state("networkidle")
+
+    assert SavedFilterFavourite.objects.filter(
+        user__username="playwright-inline-favourite-user",
+        view_key=BOOK_VIEW_KEY,
+        name="Inline saved favourite",
+    ).exists(), (
+        "Expected inline favourites save to persist a saved favourite instead of failing CSRF validation."
+    )
 
 
 def test_returning_to_page_via_sample_shell_htmx_clears_selected_filter_favourite(
@@ -507,9 +521,7 @@ def test_returning_to_page_via_sample_shell_htmx_clears_selected_filter_favourit
         filter_toggle.click()
 
     open_favourites_dropdown(page)
-    favourites_select = page.locator(
-        "[data-powercrud-filter-favourites-toolbar='true'] select[name='favourite_id']"
-    )
+    favourites_select = get_open_favourites_panel(page).locator("select[name='favourite_id']")
     expect(favourites_select).to_have_value("")
     expect(page.locator("#filter-form input[name='title']")).to_have_value("")
     expect(page.locator("#filtered_results")).to_contain_text(target_book.title)

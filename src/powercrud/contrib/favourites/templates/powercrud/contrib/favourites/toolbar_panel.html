@@ -45,7 +45,7 @@
                 class="btn btn-outline btn-secondary btn-sm"
                 hx-post="{{ filter_favourites_update_url }}"
                 hx-include="closest form"
-                hx-target="#{{ filter_favourites_toolbar_dom_id }}-panel"
+                hx-target="closest [data-powercrud-filter-favourites-panel='true']"
                 hx-swap="innerHTML"
                 data-powercrud-favourite-manage-action="true"
                 {% if not filter_favourites_can_manage or not saved_filter_favourites %}disabled{% endif %}>
@@ -55,7 +55,7 @@
                 class="btn btn-outline btn-error btn-sm"
                 hx-post="{{ filter_favourites_delete_url }}"
                 hx-include="closest form"
-                hx-target="#{{ filter_favourites_toolbar_dom_id }}-panel"
+                hx-target="closest [data-powercrud-filter-favourites-panel='true']"
                 hx-swap="innerHTML"
                 data-powercrud-favourite-manage-action="true"
                 {% if not filter_favourites_can_manage or not saved_filter_favourites %}disabled{% endif %}>
@@ -68,6 +68,9 @@
 {% if filter_favourite_save_form %}
     <form method="post"
           class="mt-3 space-y-3 border-t border-base-300 pt-3"
+          hx-post="{{ filter_favourites_save_url }}"
+          hx-target="closest [data-powercrud-filter-favourites-panel='true']"
+          hx-swap="innerHTML"
           data-powercrud-favourite-save-form="true">
         {% csrf_token %}
         {{ filter_favourite_save_form.view_key }}
@@ -93,10 +96,8 @@
         {% endif %}
 
         <div class="flex justify-end gap-2">
-            <button type="button"
-                    class="btn btn-primary btn-sm"
-                    data-powercrud-favourite-save-url="{{ filter_favourites_save_url }}"
-                    data-powercrud-favourite-save-submit="true">
+            <button type="submit"
+                    class="btn btn-primary btn-sm">
                 Save favourite
             </button>
         </div>
