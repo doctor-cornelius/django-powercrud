@@ -305,19 +305,52 @@ This is useful when users need quick confirmation that a filter narrowed the que
 
 When synchronous bulk editing is enabled, the same metadata line can also host contextual selection actions such as `Select all N matching records` or `Add 998 more from 1030 matching records`. Leave `show_bulk_selection_meta = True` (the default) to keep that action available even when `show_record_count` is off, or disable it separately if you do not want selection prompts in that row.
 
-### List heading, helper text, and tooltips
+### List heading
 
-If you want the visible list heading to differ from the model’s `verbose_name_plural`, set `view_title` on the CRUD view. You can also add plain-text helper copy directly below it with `view_instructions`, optional plain-text help tooltips to specific headers with `column_help_text`, and optional semantic tooltips for selected rendered cells with `list_cell_tooltip_fields` plus `get_list_cell_tooltip(...)`:
+If you want the visible list heading to differ from the model’s `verbose_name_plural`, set `view_title` on the CRUD view:
 
 ```python
 class ProjectCRUDView(PowerCRUDMixin, CRUDView):
     # …
     view_title = "Active Client Projects"
+```
+
+`view_title` changes only the large heading above the list table. It does not affect model verbose names or other UI copy such as button labels.
+
+### Helper text
+
+If you want plain-text helper copy directly below the visible list heading, set `view_instructions`:
+
+```python
+class ProjectCRUDView(PowerCRUDMixin, CRUDView):
+    # …
     view_instructions = "Use the table below to review and update active projects."
+```
+
+`view_instructions` adds a small escaped text block directly underneath the heading.
+
+### Header tooltips
+
+If you want plain-text help tooltips on selected column headers, use `column_help_text`:
+
+```python
+class ProjectCRUDView(PowerCRUDMixin, CRUDView):
+    # …
     column_help_text = {
         "owner": "The client or business owner responsible for the project.",
         "display_status": "Calculated status shown for quick triage.",
     }
+```
+
+`column_help_text` adds a separate info trigger next to only the configured header labels, so sorting still belongs to the header itself.
+
+### List-cell tooltips
+
+If you want semantic tooltips for selected rendered list cells, configure `list_cell_tooltip_fields` and override `get_list_cell_tooltip(...)`:
+
+```python
+class ProjectCRUDView(PowerCRUDMixin, CRUDView):
+    # …
     list_cell_tooltip_fields = ["owner", "display_status"]
 
     def get_list_cell_tooltip(self, obj, field_name, *, is_property, request=None):
@@ -328,22 +361,7 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
         return None
 ```
 
-`view_title` changes only the large heading above the list table. `view_instructions` adds a small escaped text block directly underneath that heading. `column_help_text` adds a separate info trigger next to only the configured header labels, so sorting still belongs to the header itself.
-
 `list_cell_tooltip_fields` is opt-in. PowerCRUD only calls `get_list_cell_tooltip(...)` for rendered list fields or properties named in that list, and silently ignores configured names that are not actually visible in the table. Return plain text or `None`.
-
-If a short categorical column would scan better centered than the default heuristic allows, use `column_alignments` to override just the list body cells for that column:
-
-```python
-class ProjectCRUDView(PowerCRUDMixin, CRUDView):
-    # ...
-    column_alignments = {
-        "status": "center",
-        "priority_band": "center",
-    }
-```
-
-Accepted values are `left`, `center`, and `right`. This is a semantic presentation override for rendered list body cells only; table headers keep their normal alignment, and any column not listed here continues to use PowerCRUD's built-in alignment heuristic.
 
 Hook-backed semantic list-cell tooltip text may include newline characters when a tooltip should display as multiple lines. That multiline rendering is limited to semantic list-cell tooltips returned by `get_list_cell_tooltip(...)`; header-help and other tooltip surfaces keep their existing behavior.
 
@@ -354,6 +372,21 @@ Tooltip behavior stays layered:
 - Unconfigured cells keep the built-in overflow tooltip behavior when their rendered content is truncated.
 
 When a semantic list-cell tooltip is configured for a cell, it takes precedence over the overflow tooltip for that same cell. PowerCRUD continues to use the model verbose names for other copy such as `Create project` and empty-state text, and `view_instructions`, `column_help_text`, and semantic list-cell tooltip text are all escaped plain text rather than HTML.
+
+### Column alignment
+
+If a short categorical column would scan better centered than the default heuristic allows, use `column_alignments` to override just the list body cells for that column:
+
+```python
+class ProjectCRUDView(PowerCRUDMixin, CRUDView):
+    # ...
+    column_alignments = {
+        "status": "center",
+        "priority_band": "center",
+}
+```
+
+Accepted values are `left`, `center`, and `right`. This is a semantic presentation override for rendered list body cells only; table headers keep their normal alignment, and any column not listed here continues to use PowerCRUD's built-in alignment heuristic.
 
 ---
 
