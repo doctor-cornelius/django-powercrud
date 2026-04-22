@@ -125,13 +125,14 @@ def test_profile_sample_view_applies_static_queryset_filters_to_forms_and_bulk()
 
 @pytest.mark.django_db
 def test_profile_sample_view_exposes_centered_alignment_overrides():
-    """Profile sample view should center short categorical label columns."""
+    """Profile sample view should expose the current mixed alignment demo."""
     view = sample_views.ProfileCRUDView()
 
     assert view.get_column_alignments() == {
         "status": "center",
-        "priority_band": "center",
-    }, "ProfileCRUDView should demonstrate centered alignment overrides for short categorical columns."
+        "priority_band": "right",
+        "favorite_genre": "left",
+    }, "ProfileCRUDView should expose the current sample alignment overrides for its categorical and text demo columns."
 
 
 @pytest.mark.django_db
