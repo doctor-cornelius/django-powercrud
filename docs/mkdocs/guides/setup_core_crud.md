@@ -305,6 +305,10 @@ This is useful when users need quick confirmation that a filter narrowed the que
 
 When synchronous bulk editing is enabled, the same metadata line can also host contextual selection actions such as `Select all N matching records` or `Add 998 more from 1030 matching records`. Leave `show_bulk_selection_meta = True` (the default) to keep that action available even when `show_record_count` is off, or disable it separately if you do not want selection prompts in that row.
 
+## 5. List presentation adjustments
+
+These options adjust how the list surface reads and scans once the core CRUD page is already working: heading text, helper copy, tooltip affordances, and per-column body-cell alignment.
+
 ### List heading
 
 If you want the visible list heading to differ from the model’s `verbose_name_plural`, set `view_title` on the CRUD view:
@@ -390,7 +394,7 @@ Accepted values are `left`, `center`, and `right`. This is a semantic presentati
 
 ---
 
-## 5. Verify the page
+## 6. Verify the page
 
 Run the development server and open `/projects/` (or whatever path you configured). You should see:
 
@@ -407,7 +411,7 @@ If something renders incorrectly, double-check:
 
 ---
 
-## Next steps
+## 7. Next steps
 
 - Continue with [Forms](./forms.md) to learn how PowerCRUD builds forms, how `form_class` changes the rules, and how contextual display fields, disabled inputs, and dependent dropdowns fit together.
 - Then move on to [Inline editing](./inline_editing.md) to reuse those form rules in HTMX row editing.
