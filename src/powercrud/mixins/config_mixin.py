@@ -36,6 +36,7 @@ class ConfigMixin:
     view_title: str | None = None
     view_instructions: str | None = None
     column_help_text: dict[str, str] | None = None
+    column_alignments: dict[str, str] | None = None
     list_cell_tooltip_fields: list[str] | None = None
     column_sort_fields_override: dict[str, str] | None = None
 
@@ -254,6 +255,7 @@ class ConfigMixin:
         self._configure_properties()
         self._configure_detail_fields()
         self._configure_detail_properties()
+        self._configure_column_alignments()
         self._configure_bulk_fields()
         self._configure_inline_edit_fields()
         self._configure_form_fields()
@@ -510,6 +512,31 @@ class ConfigMixin:
             raise ValueError(
                 f"The following form_display_fields are not model fields in {self.model.__name__}: "
                 f"{', '.join(invalid_fields)}"
+            )
+
+    def _configure_column_alignments(self) -> None:
+        """
+        Validate optional rendered-column alignment overrides.
+
+        Keys may reference either model fields or model properties so the
+        mapping can describe whichever columns a downstream list chooses to
+        render.
+        """
+        if self.column_alignments is None:
+            self.column_alignments = {}
+            return
+
+        if not isinstance(self.column_alignments, dict):
+            raise ValueError("column_alignments must be a dictionary when provided")
+
+        valid_names = set(self._get_all_fields()) | set(self._get_all_properties())
+        invalid_names = [
+            name for name in self.column_alignments.keys() if name not in valid_names
+        ]
+        if invalid_names:
+            raise ValueError(
+                "The following column_alignments keys are not model fields or properties "
+                f"in {self.model.__name__}: {', '.join(invalid_names)}"
             )
 
     def _configure_extra_buttons(self) -> None:
@@ -914,6 +941,8 @@ class _ConfigShim:
             return self._raw("inline_save_refresh_policy") or "reset_if_filtered_out"
         if name == "column_sort_fields_override":
             return self._raw("column_sort_fields_override", {}) or {}
+        if name == "column_alignments":
+            return self._raw("column_alignments", {}) or {}
         if name == "base_template_path":
             # Do not invent a default; projects must set this explicitly.
             return self._raw("base_template_path")
@@ -941,6 +970,7 @@ class _ConfigShim:
         }:
             return ConfigMixin._dedupe_preserving_first(self._raw(name, []) or [])
         if name in {
+            "column_alignments",
             "column_sort_fields_override",
             "dropdown_sort_options",
             "field_queryset_dependencies",

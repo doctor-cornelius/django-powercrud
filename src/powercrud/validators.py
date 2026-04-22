@@ -16,6 +16,7 @@ class PowerCRUDMixinValidator(BaseModel):
     view_title: Optional[str] = None
     view_instructions: Optional[str] = None
     column_help_text: Optional[Dict[str, str]] = None
+    column_alignments: Optional[Dict[str, Literal["left", "center", "right"]]] = None
     list_cell_tooltip_fields: Optional[List[str]] = None
     column_sort_fields_override: Optional[Dict[str, str]] = None
 
@@ -167,7 +168,11 @@ class PowerCRUDMixinValidator(BaseModel):
             )
         return v
 
-    @field_validator("column_help_text", "column_sort_fields_override")
+    @field_validator(
+        "column_help_text",
+        "column_sort_fields_override",
+        "column_alignments",
+    )
     @classmethod
     def validate_string_mapping(cls, v, info):
         """Ensure optional mapping-style config values are string-to-string."""
@@ -184,6 +189,15 @@ class PowerCRUDMixinValidator(BaseModel):
                 raise ValueError(
                     f"{info.field_name} values must be non-empty strings"
                 )
+            if info.field_name == "column_alignments":
+                normalized = value.strip().lower()
+                if normalized not in {"left", "center", "right"}:
+                    raise ValueError(
+                        "column_alignments values must be 'left', 'center', or 'right'"
+                    )
+                v[key.strip()] = normalized
+                continue
+            v[key.strip()] = value.strip()
         return v
 
     @field_validator("form_fields")
