@@ -30,9 +30,6 @@ jobs:
       matrix:
         include:
           - python-version: "3.12"
-            django: "4.2"
-            constraints-file: "requirements/constraints-django42.txt"
-          - python-version: "3.12"
             django: "5.2"
             constraints-file: "requirements/constraints-django52.txt"
           - python-version: "3.13"
