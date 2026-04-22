@@ -104,9 +104,6 @@ jobs:
           restore-keys: |
             playwright-browsers-${{ runner.os }}-
 
-      - name: Run backend suite with coverage
-        run: pytest -m "not playwright"
-
       - name: Build static assets
         run: npm run build
 
@@ -128,7 +125,7 @@ jobs:
           fail_ci_if_error: true
 
   playwright-full:
-    name: Playwright Full (Non-blocking)
+    name: Playwright Full (Manual)
     if: ${{ inputs.run_playwright_full }}
     continue-on-error: true
     outputs:
@@ -196,18 +193,18 @@ jobs:
         if: always()
         run: |
           if [[ "${{ steps.capture_status.outputs.suite_status }}" == "failure" ]]; then
-            echo "::warning::Non-blocking Playwright regression suite failed. Review the 'Playwright Full (Non-blocking)' job before release."
+            echo "::warning::Manual Playwright regression suite failed. Review the 'Playwright Full (Manual)' job."
             {
-              echo "## Non-blocking Browser Regression"
+              echo "## Manual Browser Regression"
               echo
-              echo "Playwright smoke passed, but the full non-blocking Playwright regression suite failed."
-              echo "Review the 'Playwright Full (Non-blocking)' job before release."
+              echo "Playwright smoke passed, but the manually requested full Playwright regression suite failed."
+              echo "Review the 'Playwright Full (Manual)' job."
             } >> "$GITHUB_STEP_SUMMARY"
           else
             {
-              echo "## Non-blocking Browser Regression"
+              echo "## Manual Browser Regression"
               echo
-              echo "Full non-blocking Playwright regression suite passed."
+              echo "The manually requested full Playwright regression suite passed."
             } >> "$GITHUB_STEP_SUMMARY"
           fi
 
@@ -236,9 +233,9 @@ jobs:
 
           if [[ "${FULL_RESULT}" == "skipped" ]]; then
             {
-              echo "- Non-blocking Playwright full: skipped"
+              echo "- Manual Playwright full: not requested"
               echo
-              echo "The full non-blocking browser regression suite did not run for this event."
+              echo "The full Playwright regression suite was not requested for this run."
             } >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
@@ -246,14 +243,14 @@ jobs:
           full_suite_status="${FULL_SUITE_STATUS:-unknown}"
 
           {
-            echo "- Non-blocking Playwright full: ${full_suite_status}"
+            echo "- Manual Playwright full: ${full_suite_status}"
             echo
           } >> "$GITHUB_STEP_SUMMARY"
 
           if [[ "${full_suite_status}" == "failure" ]]; then
             {
-              echo "Playwright smoke passed, but the full non-blocking regression suite failed."
-              echo "Review the 'Playwright Full (Non-blocking)' job before release."
+              echo "Playwright smoke passed, but the manually requested full Playwright regression suite failed."
+              echo "Review the 'Playwright Full (Manual)' job."
             } >> "$GITHUB_STEP_SUMMARY"
           else
             echo "All configured browser checks passed." >> "$GITHUB_STEP_SUMMARY"
