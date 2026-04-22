@@ -29,6 +29,9 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
         "owner": "Business owner responsible for the project.",
         "display_status": "Calculated status shown for quick triage.",
     }
+    column_alignments = {
+        "status": "center",
+    }
     list_cell_tooltip_fields = ["owner", "is_overdue"]
 
     # ------------------------------------------------------------------
@@ -196,6 +199,7 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
 - `view_title` overrides only the visible list heading. It does not change create-button text, empty-state copy, or the model’s own verbose names.
 - `view_instructions` adds plain-text helper copy directly below the visible list heading. The content is escaped and does not accept HTML.
 - `column_help_text` adds optional plain-text tooltips to specific header labels. The help trigger is a separate info icon, so sortable headers keep sorting behavior.
+- `column_alignments` lets you override list body-cell alignment for specific rendered fields or properties without changing the default heuristic for the rest of the table.
 - `list_cell_tooltip_fields` opts selected rendered columns into semantic list-cell tooltips. The shared `get_list_cell_tooltip(...)` hook is only called for configured names that are actually visible in the current list, and returned plain text may include newline characters when the semantic cell tooltip should render on multiple lines.
 - Semantic list-cell tooltips take precedence over the fallback overflow tooltip for the same cell. Unconfigured cells keep the existing overflow behavior.
 - Tooltip appearance is styled through CSS variables such as `--pc-tooltip-bg` and `--pc-tooltip-fg`, not Python view parameters. PowerCRUD defaults those to neutral daisyUI tokens, and you can override them in your app CSS when you want project-level theming.

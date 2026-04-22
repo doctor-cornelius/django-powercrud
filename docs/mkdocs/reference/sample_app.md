@@ -193,7 +193,7 @@ When the user changes `author` inline, PowerCRUD posts the current row data to t
 ### Other Views
 
 - **GenreCRUDView**: Minimal configuration example plus two focused delete demos: a guarded row (`Guarded Sample Genre`) that disables the built-in Delete action before click, and a protected row (`Protected Sample Genre`) that demonstrates handled single-delete `ValidationError` responses after submit
-- **ProfileCRUDView**: OneToOneField, inline editing, bulk operations, merged nullable relation filtering on `favorite_genre`, and a static queryset rule that limits `favorite_genre` choices to genres whose names start with `S`
+- **ProfileCRUDView**: OneToOneField, centered categorical list columns via `column_alignments`, inline editing, bulk operations, merged nullable relation filtering on `favorite_genre`, and a static queryset rule that limits `favorite_genre` choices to genres whose names start with `S`
 - **AuthorCRUDView**: Properties, filtering, template debugging, companion nullable scalar filtering on `birth_date`, and visible row-level `extra_actions` in the default button mode
 - **BookCRUDView**: Async bulk editing, dependent `author -> genres` queryset scoping, `view_title` / `view_instructions` heading-area overrides, `column_help_text` header tooltips, semantic field-level list-cell tooltips, selection-aware `extra_buttons`, dropdown row actions that open upward for the last five rendered rows, and a guarded sample row for built-in Edit and inline update guards
 
@@ -219,6 +219,12 @@ The same `Book` screen now also includes a bulk-validation demo:
 - If the selection stays below `bulk_min_async_records`, PowerCRUD re-renders the bulk edit modal with the handled error payload instead of treating the result as a server failure.
 - If the selection reaches the async threshold, the queued task fails instead and the sample async dashboard shows the failure state.
 - That makes `BookCRUDView` the sample app reference for shared sync/async bulk persistence wiring plus the current difference between sync modal errors and async task-level failures.
+
+The `Profile` sample now carries the alignment demo for short categorical labels:
+
+- `Profile.status` and `Profile.priority_band` are small choice-backed fields added so the sample shows a realistic centered-label use case instead of centering general text columns
+- `ProfileCRUDView` sets `column_alignments = {"status": "center", "priority_band": "center"}`
+- those same fields stay visible in the list and participate in inline and bulk editing, so the sample demonstrates alignment overrides across the main list display states without moving the feature onto the much busier `Book` screen
 
 ### Static queryset demo
 

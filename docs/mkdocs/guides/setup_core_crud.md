@@ -332,6 +332,19 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
 
 `list_cell_tooltip_fields` is opt-in. PowerCRUD only calls `get_list_cell_tooltip(...)` for rendered list fields or properties named in that list, and silently ignores configured names that are not actually visible in the table. Return plain text or `None`.
 
+If a short categorical column would scan better centered than the default heuristic allows, use `column_alignments` to override just the list body cells for that column:
+
+```python
+class ProjectCRUDView(PowerCRUDMixin, CRUDView):
+    # ...
+    column_alignments = {
+        "status": "center",
+        "priority_band": "center",
+    }
+```
+
+Accepted values are `left`, `center`, and `right`. This is a semantic presentation override for rendered list body cells only; table headers keep their normal alignment, and any column not listed here continues to use PowerCRUD's built-in alignment heuristic.
+
 Hook-backed semantic list-cell tooltip text may include newline characters when a tooltip should display as multiple lines. That multiline rendering is limited to semantic list-cell tooltips returned by `get_list_cell_tooltip(...)`; header-help and other tooltip surfaces keep their existing behavior.
 
 Tooltip behavior stays layered:
