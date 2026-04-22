@@ -1299,8 +1299,16 @@ def test_book_list_renders_sample_semantic_list_cell_tooltips(client):
 
 
 @pytest.mark.django_db
-def test_profile_list_renders_centered_categorical_columns(client):
+def test_profile_list_renders_centered_categorical_columns(client, monkeypatch):
     """Profile sample list should center the categorical alignment-demo columns."""
+    monkeypatch.setattr(
+        "sample.views.ProfileCRUDView.column_alignments",
+        {
+            "status": "center",
+            "priority_band": "center",
+        },
+        raising=False,
+    )
     author = Author.objects.create(name="Profile Alignment Author")
     Profile.objects.create(
         author=author,
@@ -1324,7 +1332,7 @@ def test_profile_list_renders_centered_categorical_columns(client):
     assert "Review" in response_text and "High" in response_text, (
         "Profile list should render the categorical sample values that demonstrate centered alignment."
     )
-    assert response_text.count("pc-inline-editable w-full px-0 flex justify-center text-center") >= 2, (
+    assert response_text.count("pc-inline-editable w-full px-0 pc-inline-align-center flex justify-center text-center") >= 2, (
         "Profile list should render centered inline-display button markup for the configured categorical alignment demo columns."
     )
 
