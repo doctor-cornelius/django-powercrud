@@ -485,7 +485,7 @@ wheels = [
 
 [[package]]
 name = "django-powercrud"
-version = "0.5.43"
+version = "0.5.44"
 source = { editable = "." }
 dependencies = [
     { name = "django-htmx" },
@@ -563,7 +563,7 @@ requires-dist = [
     { name = "commitizen", marker = "extra == 'dev'", specifier = ">=4.13.8,<5" },
     { name = "coverage", marker = "extra == 'tests-core'", specifier = ">=7.13.4,<8" },
     { name = "crispy-tailwind", marker = "extra == 'tests-core'", specifier = ">=1.0.3,<2" },
-    { name = "django", marker = "extra == 'tests-core'", specifier = ">=4.2.25,<6" },
+    { name = "django", marker = "extra == 'tests-core'", specifier = ">=5.2,<6" },
     { name = "django-crispy-forms", marker = "extra == 'tests-core'", specifier = ">=2.5,<3" },
     { name = "django-htmx", specifier = ">=1.27.0,<2.0" },
     { name = "django-q2", marker = "extra == 'tests-core'", specifier = ">=1.9.0,<2" },
@@ -601,7 +601,7 @@ dev = [
 tests-core = [
     { name = "coverage", specifier = ">=7.13.4,<8" },
     { name = "crispy-tailwind", specifier = ">=1.0.3,<2" },
-    { name = "django", specifier = ">=4.2.25,<6" },
+    { name = "django", specifier = ">=5.2,<6" },
     { name = "django-crispy-forms", specifier = ">=2.5,<3" },
     { name = "django-q2", specifier = ">=1.9.0,<2" },
     { name = "django-redis", specifier = ">=6.0.0,<7" },

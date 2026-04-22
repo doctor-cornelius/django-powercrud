@@ -1,2 +1,0 @@
-django==4.2.*
-django-crispy-forms<2.6
