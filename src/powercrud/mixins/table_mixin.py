@@ -147,6 +147,15 @@ class TableMixin:
             return configured_help
         return {}
 
+    def get_column_alignments(self) -> dict[str, str]:
+        """
+        Return optional per-column list body-cell alignment overrides.
+        """
+        configured_alignments = resolve_config(self).column_alignments
+        if isinstance(configured_alignments, dict):
+            return dict(configured_alignments)
+        return {}
+
     def get_list_cell_tooltip_fields(self) -> list[str]:
         """
         Return the rendered list fields/properties eligible for semantic tooltips.

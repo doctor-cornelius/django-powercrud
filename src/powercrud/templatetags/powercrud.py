@@ -55,6 +55,18 @@ def _should_center_field(model_field: models.Field) -> bool:
     return True
 
 
+def _resolve_cell_alignment(
+    *,
+    column_alignments: dict[str, str],
+    name: str,
+    default_align: str,
+) -> str:
+    """
+    Return the configured alignment override for a rendered cell when present.
+    """
+    return column_alignments.get(name, default_align)
+
+
 @register.filter
 def get_form_field(form, field_name):
     """
@@ -592,6 +604,14 @@ def object_list(context, objects, view):
     )
     if not isinstance(column_help_text, dict):
         column_help_text = {}
+    column_alignments = _resolve_view_option(
+        view,
+        method_name="get_column_alignments",
+        attr_name="column_alignments",
+        default={},
+    )
+    if not isinstance(column_alignments, dict):
+        column_alignments = {}
 
     configured_cell_tooltip_fields = _resolve_view_option(
         view,
@@ -847,7 +867,12 @@ def object_list(context, objects, view):
             else:
                 display_value = model_field.value_to_string(obj)
 
-            cell_align = "center" if _should_center_field(model_field) else "left"
+            default_align = "center" if _should_center_field(model_field) else "left"
+            cell_align = _resolve_cell_alignment(
+                column_alignments=column_alignments,
+                name=f,
+                default_align=default_align,
+            )
 
             record["cells"].append(
                 {
@@ -874,7 +899,12 @@ def object_list(context, objects, view):
 
         for prop in properties:
             prop_value = getattr(obj, prop)
-            prop_align = "center" if isinstance(prop_value, bool) else "left"
+            default_align = "center" if isinstance(prop_value, bool) else "left"
+            prop_align = _resolve_cell_alignment(
+                column_alignments=column_alignments,
+                name=prop,
+                default_align=default_align,
+            )
             if (
                 isinstance(getattr(obj.__class__, prop), property)
                 and prop_value is True

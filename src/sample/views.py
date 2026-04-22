@@ -308,6 +308,8 @@ class GenreCRUDView(SampleCRUDMixin):
 
 
 class ProfileCRUDView(SampleCRUDMixin):
+    """Sample CRUD view demonstrating centered categorical list columns."""
+
     model = models.Profile
     namespace = "sample"
     base_template_path = "sample/base.html"
@@ -320,9 +322,14 @@ class ProfileCRUDView(SampleCRUDMixin):
 
     fields = "__all__"
     properties = "__all__"
+    column_alignments = {
+        "status": "center",
+        "priority_band": "right",
+        "favorite_genre": "left",
+    }
     filterset_fields = ["author", "nickname", "favorite_genre"]
     filter_favourites_enabled = True
-    inline_edit_fields = ["nickname", "favorite_genre"]
+    inline_edit_fields = ["nickname", "status", "priority_band", "favorite_genre"]
     field_queryset_dependencies = {
         "favorite_genre": {
             "static_filters": {"name__startswith": "S"},
@@ -334,6 +341,8 @@ class ProfileCRUDView(SampleCRUDMixin):
     bulk_fields = [
         "author",  # OneToOneField
         "nickname",
+        "status",
+        "priority_band",
         "favorite_genre",
     ]
 

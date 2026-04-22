@@ -16,7 +16,7 @@ from powercrud.mixins.table_mixin import TableMixin
 from powercrud.mixins.paginate_mixin import PaginateMixin
 from powercrud.mixins.url_mixin import UrlMixin
 
-from sample.models import Author, Book, Genre
+from sample.models import Author, Book, Genre, Profile
 
 
 @pytest.mark.django_db
@@ -598,6 +598,29 @@ def test_table_mixin_get_column_help_text_prefers_configured_mapping():
     )
 
 
+def test_table_mixin_get_column_alignments_defaults_to_empty_mapping():
+    class TableView(TableMixin):
+        model = Author
+
+    view = TableView()
+
+    assert view.get_column_alignments() == {}, (
+        "Column alignment overrides should default to an empty mapping when no per-column alignment is configured."
+    )
+
+
+def test_table_mixin_get_column_alignments_prefers_configured_mapping():
+    class TableView(TableMixin):
+        model = Author
+        column_alignments = {"name": "center"}
+
+    view = TableView()
+
+    assert view.get_column_alignments() == {"name": "center"}, (
+        "Column alignment overrides should use the configured mapping when provided."
+    )
+
+
 def test_table_mixin_get_list_cell_tooltip_fields_defaults_to_empty_list():
     class TableView(TableMixin):
         model = Author
@@ -637,6 +660,26 @@ def test_table_mixin_get_list_cell_tooltip_defaults_to_none():
         )
         is None
     ), "The default list cell tooltip hook should return None so unconfigured cells keep existing behavior."
+
+
+def test_core_mixin_rejects_unknown_column_alignment_keys():
+    class BrokenView(CoreMixin):
+        model = Author
+        fields = "__all__"
+        column_alignments = {"missing_field": "center"}
+
+    with pytest.raises(ValueError, match="column_alignments"):
+        BrokenView()
+
+
+def test_core_mixin_rejects_invalid_column_alignment_values():
+    class BrokenView(CoreMixin):
+        model = Author
+        fields = "__all__"
+        column_alignments = {"name": "middle"}
+
+    with pytest.raises(ImproperlyConfigured, match="column_alignments"):
+        BrokenView()
 
 
 def test_table_mixin_inline_edit_highlight_defaults_match_current_teal_styles():
@@ -1219,6 +1262,9 @@ def test_book_list_inline_edit_display_uses_truncating_label_wrapper():
     assert 'data-powercrud-tooltip="overflow"' in template_text, (
         "Inline display labels should keep the overflow-tooltip hook on the truncating wrapper."
     )
+    assert "text-right" in template_text, (
+        "List template should include explicit right-alignment branches so column_alignments can render right-aligned cells."
+    )
 
 
 @pytest.mark.django_db
@@ -1249,6 +1295,45 @@ def test_book_list_renders_sample_semantic_list_cell_tooltips(client):
     )
     assert 'data-powercrud-tooltip="semantic-cell"' in response_text, (
         "Configured sample list cells should use the dedicated semantic-cell tooltip channel rather than the generic semantic or overflow channels."
+    )
+
+
+@pytest.mark.django_db
+def test_profile_list_renders_centered_categorical_columns(client, monkeypatch):
+    """Profile sample list should center the categorical alignment-demo columns."""
+    monkeypatch.setattr(
+        "sample.views.ProfileCRUDView.column_alignments",
+        {
+            "status": "center",
+            "priority_band": "center",
+        },
+        raising=False,
+    )
+    author = Author.objects.create(name="Profile Alignment Author")
+    Profile.objects.create(
+        author=author,
+        nickname="Centered Profile",
+        status=Profile.Status.REVIEW,
+        priority_band=Profile.PriorityBand.HIGH,
+    )
+
+    response = client.get(reverse("sample:profile-list"))
+    response_text = response.content.decode()
+
+    assert response.status_code == 200, (
+        "Profile list should render successfully so the centered alignment demo columns can be inspected."
+    )
+    assert 'data-field-name="status"' in response_text, (
+        "Profile list should render the sample status column used for the alignment demo."
+    )
+    assert 'data-field-name="priority_band"' in response_text, (
+        "Profile list should render the sample priority band column used for the alignment demo."
+    )
+    assert "Review" in response_text and "High" in response_text, (
+        "Profile list should render the categorical sample values that demonstrate centered alignment."
+    )
+    assert response_text.count("pc-inline-editable w-full px-0 pc-inline-align-center flex justify-center text-center") >= 2, (
+        "Profile list should render centered inline-display button markup for the configured categorical alignment demo columns."
     )
 
 

@@ -26,6 +26,7 @@ class TemplateViewStub:
         "title": "Primary title",
         "isbn_empty": "Whether the ISBN field is blank.",
     }
+    column_alignments = {}
     list_cell_tooltip_fields = []
     namespace = "sample"
     url_base = "book"
@@ -189,6 +190,9 @@ class TemplateViewStub:
 
     def get_list_cell_tooltip_fields(self):
         return list(self.list_cell_tooltip_fields)
+
+    def get_column_alignments(self):
+        return dict(self.column_alignments)
 
     def get_list_cell_tooltip(self, obj, field_name, *, is_property, request=None):
         if field_name == "title":
@@ -469,6 +473,44 @@ def test_object_list_sets_alignment_metadata():
     assert cell_map["pages"]["align"] == "center"
     assert cell_map["bestseller"]["align"] == "center"
     assert cell_map["isbn_empty"]["align"] == "center"
+
+
+@pytest.mark.django_db
+def test_object_list_applies_column_alignment_overrides_for_fields_and_properties():
+    author = Author.objects.create(name="Ada")
+    book = Book.objects.create(
+        title="Override Matters",
+        author=author,
+        published_date=date(2024, 3, 15),
+        bestseller=False,
+        isbn="9876543210223",
+        pages=999,
+        description="Alignment description",
+    )
+
+    request = apply_session(RequestFactory().get("/"))
+    view = TemplateViewStub(request)
+    view.fields = ["title", "pages"]
+    view.properties = ["isbn_empty"]
+    view.column_alignments = {
+        "title": "center",
+        "pages": "right",
+        "isbn_empty": "left",
+    }
+
+    context = {
+        "request": request,
+        "use_htmx": True,
+        "original_target": "#content",
+        "htmx_target": "#content",
+    }
+    result = powercrud.object_list(context, [book], view)
+    row = result["object_list"][0]
+    cell_map = {cell["name"]: cell for cell in row["cells"]}
+
+    assert cell_map["title"]["align"] == "center"
+    assert cell_map["pages"]["align"] == "right"
+    assert cell_map["isbn_empty"]["align"] == "left"
 
 
 @pytest.mark.django_db
