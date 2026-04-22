@@ -324,7 +324,7 @@ class ProfileCRUDView(SampleCRUDMixin):
     properties = "__all__"
     column_alignments = {
         "status": "center",
-        "priority_band": "center",
+        "priority_band": "right",
     }
     filterset_fields = ["author", "nickname", "favorite_genre"]
     filter_favourites_enabled = True
