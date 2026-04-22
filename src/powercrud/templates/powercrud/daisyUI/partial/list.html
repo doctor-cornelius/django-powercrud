@@ -279,7 +279,7 @@
         {% if inline_enabled and row.inline_allowed and cell.is_inline_editable %}
             {% with align_class=cell.align %}
             <button type="button"
-                    class="inline-edit-trigger pc-inline-editable w-full px-0 {% if align_class == 'center' %}flex justify-center text-center{% else %}text-left{% endif %}"
+                    class="inline-edit-trigger pc-inline-editable w-full px-0 {% if align_class == 'center' %}flex justify-center text-center{% elif align_class == 'right' %}text-right{% else %}text-left{% endif %}"
                     data-inline-field="{{ cell.name }}"
                     {% if row.inline_url %}
                         hx-get="{{ row.inline_url }}"
@@ -288,7 +288,7 @@
                     {% endif %}
                     hx-trigger="click, keyup[key=='Enter'], keyup[key==' ']"
                     >
-                <span class="pc-inline-display-label {% if align_class == 'center' %}text-center{% else %}w-full{% endif %}"
+                <span class="pc-inline-display-label {% if align_class == 'center' %}text-center{% elif align_class == 'right' %}w-full text-right{% else %}w-full{% endif %}"
                     {% if cell.tooltip_text %}data-tippy-content="{{ cell.tooltip_text }}" data-powercrud-tooltip="semantic-cell"{% elif value_str|slice:":1" != "<" %}data-tippy-content="{{ cell.value }}" data-powercrud-tooltip="overflow"{% endif %}>
                     {{ cell.value }}
                 </span>
@@ -297,18 +297,18 @@
         {% elif inline_enabled and row.inline_blocked_label and cell.is_inline_editable %}
             {% with align_class=cell.align %}
             <button type="button"
-                    class="inline-edit-trigger w-full px-0 opacity-50 cursor-not-allowed {% if align_class == 'center' %}flex justify-center text-center{% else %}text-left{% endif %}"
+                    class="inline-edit-trigger w-full px-0 opacity-50 cursor-not-allowed {% if align_class == 'center' %}flex justify-center text-center{% elif align_class == 'right' %}text-right{% else %}text-left{% endif %}"
                     aria-disabled="true"
                     tabindex="-1"
                     data-tippy-content="{{ row.inline_blocked_label }}"
                     data-powercrud-tooltip="semantic">
-                <span class="pc-inline-display-label {% if align_class == 'center' %}text-center{% else %}w-full{% endif %}">
+                <span class="pc-inline-display-label {% if align_class == 'center' %}text-center{% elif align_class == 'right' %}w-full text-right{% else %}w-full{% endif %}">
                     {{ cell.value }}
                 </span>
             </button>
             {% endwith %}
         {% else %}
-            <div class="{% if cell.align == 'center' %}flex justify-center items-center w-full{% else %}w-full text-left{% endif %}"
+            <div class="{% if cell.align == 'center' %}flex justify-center items-center w-full{% elif cell.align == 'right' %}w-full text-right{% else %}w-full text-left{% endif %}"
                  {% if cell.tooltip_text %}data-tippy-content="{{ cell.tooltip_text }}" data-powercrud-tooltip="semantic-cell"{% elif value_str|slice:":1" != "<" %}data-tippy-content="{{ cell.value }}" data-powercrud-tooltip="overflow"{% endif %}>
                 {{ cell.value }}
             </div>
@@ -356,14 +356,14 @@
     {% for cell in row.cells %}
         {% with value_str=cell.value|stringformat:"s" %}
     <td class="py-0 align-middle px-2 truncate table-column-width"
-        style="text-align:{% if cell.align == 'center' %}center{% else %}left{% endif %};"
+        style="text-align:{% if cell.align == 'center' %}center{% elif cell.align == 'right' %}right{% else %}left{% endif %};"
         data-field-name="{{ cell.name }}"
         {% if cell.is_inline_editable %}data-inline-cell="true"{% endif %}
         >
         {% if inline_enabled and row.inline_allowed and cell.is_inline_editable %}
             {% with align_class=cell.align %}
             <button type="button"
-                    class="inline-edit-trigger pc-inline-editable w-full px-0 {% if align_class == 'center' %}flex justify-center text-center{% else %}text-left{% endif %}"
+                    class="inline-edit-trigger pc-inline-editable w-full px-0 {% if align_class == 'center' %}flex justify-center text-center{% elif align_class == 'right' %}text-right{% else %}text-left{% endif %}"
                     data-inline-field="{{ cell.name }}"
                     {% if row.inline_url %}
                         hx-get="{{ row.inline_url }}"
@@ -372,7 +372,7 @@
                     {% endif %}
                     hx-trigger="click, keyup[key=='Enter'], keyup[key==' ']"
                     >
-                <span class="pc-inline-display-label {% if align_class == 'center' %}text-center{% else %}w-full{% endif %}"
+                <span class="pc-inline-display-label {% if align_class == 'center' %}text-center{% elif align_class == 'right' %}w-full text-right{% else %}w-full{% endif %}"
                     {% if cell.tooltip_text %}data-tippy-content="{{ cell.tooltip_text }}" data-powercrud-tooltip="semantic-cell"{% elif value_str|slice:":1" != "<" %}data-tippy-content="{{ cell.value }}" data-powercrud-tooltip="overflow"{% endif %}>
                     {{ cell.value }}
                 </span>
@@ -381,18 +381,18 @@
         {% elif inline_enabled and row.inline_blocked_label and cell.is_inline_editable %}
             {% with align_class=cell.align %}
             <button type="button"
-                    class="inline-edit-trigger w-full px-0 opacity-50 cursor-not-allowed {% if align_class == 'center' %}flex justify-center text-center{% else %}text-left{% endif %}"
+                    class="inline-edit-trigger w-full px-0 opacity-50 cursor-not-allowed {% if align_class == 'center' %}flex justify-center text-center{% elif align_class == 'right' %}text-right{% else %}text-left{% endif %}"
                     aria-disabled="true"
                     tabindex="-1"
                     data-tippy-content="{{ row.inline_blocked_label }}"
                     data-powercrud-tooltip="semantic">
-                <span class="pc-inline-display-label {% if align_class == 'center' %}text-center{% else %}w-full{% endif %}">
+                <span class="pc-inline-display-label {% if align_class == 'center' %}text-center{% elif align_class == 'right' %}w-full text-right{% else %}w-full{% endif %}">
                     {{ cell.value }}
                 </span>
             </button>
             {% endwith %}
         {% else %}
-            <div class="{% if cell.align == 'center' %}flex justify-center items-center w-full{% else %}w-full text-left{% endif %}"
+            <div class="{% if cell.align == 'center' %}flex justify-center items-center w-full{% elif cell.align == 'right' %}w-full text-right{% else %}w-full text-left{% endif %}"
                  {% if cell.tooltip_text %}data-tippy-content="{{ cell.tooltip_text }}" data-powercrud-tooltip="semantic-cell"{% elif value_str|slice:":1" != "<" %}data-tippy-content="{{ cell.value }}" data-powercrud-tooltip="overflow"{% endif %}>
                 {{ cell.value }}
             </div>

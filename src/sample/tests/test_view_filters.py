@@ -124,6 +124,17 @@ def test_profile_sample_view_applies_static_queryset_filters_to_forms_and_bulk()
 
 
 @pytest.mark.django_db
+def test_profile_sample_view_exposes_centered_alignment_overrides():
+    """Profile sample view should center short categorical label columns."""
+    view = sample_views.ProfileCRUDView()
+
+    assert view.get_column_alignments() == {
+        "status": "center",
+        "priority_band": "center",
+    }, "ProfileCRUDView should demonstrate centered alignment overrides for short categorical columns."
+
+
+@pytest.mark.django_db
 def test_book_sample_view_scopes_genres_queryset_for_regular_forms():
     """Book sample view should scope genres from the selected author in regular forms."""
     author_a = Author.objects.create(name="Author A")

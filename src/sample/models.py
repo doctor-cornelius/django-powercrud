@@ -40,10 +40,30 @@ class Author(models.Model):
 class Profile(models.Model):
     """Just for testing logic for OneToOneFields"""
 
+    class Status(models.TextChoices):
+        ACTIVE = "Active", "Active"
+        REVIEW = "Review", "Review"
+        PAUSED = "Paused", "Paused"
+
+    class PriorityBand(models.TextChoices):
+        LOW = "Low", "Low"
+        MEDIUM = "Medium", "Medium"
+        HIGH = "High", "High"
+
     author = models.OneToOneField(
         Author, on_delete=models.CASCADE, related_name="profile"
     )
     nickname = models.CharField(max_length=100)
+    status = models.CharField(
+        max_length=16,
+        choices=Status.choices,
+        default=Status.ACTIVE,
+    )
+    priority_band = models.CharField(
+        max_length=16,
+        choices=PriorityBand.choices,
+        default=PriorityBand.MEDIUM,
+    )
     favorite_genre = models.ForeignKey(
         "Genre", on_delete=models.SET_NULL, null=True, blank=True
     )
