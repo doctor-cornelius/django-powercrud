@@ -4,6 +4,10 @@ PowerCRUD is still evolving quickly, and the early release history was cut at a 
 
 Version numbers below correspond to published git tags. The more important releases include a little extra narrative and upgrade context; smaller patch releases remain deliberately brief. For full detail between any two versions, use the GitHub compare view for the matching tags.
 
+## 0.5.45 (2026-04-22)
+
+
+Maintenance release with internal-only or tooling-only changes; no curated user-facing changelog entries.
 ## 0.5.44 (2026-04-22)
 - **Feature (style)**: introduce column_alignment
 
