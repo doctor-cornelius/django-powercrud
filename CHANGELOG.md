@@ -6,6 +6,7 @@ Version numbers below correspond to published git tags. The more important relea
 
 ## 0.5.45 (2026-04-22)
 
+- **Build (Django)**: remove django 4.2 tests from CI test matrix
 
 Maintenance release with internal-only or tooling-only changes; no curated user-facing changelog entries.
 ## 0.5.44 (2026-04-22)
