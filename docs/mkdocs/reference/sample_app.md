@@ -193,7 +193,7 @@ When the user changes `author` inline, PowerCRUD posts the current row data to t
 ### Other Views
 
 - **GenreCRUDView**: Minimal configuration example plus two focused delete demos: a guarded row (`Guarded Sample Genre`) that disables the built-in Delete action before click, and a protected row (`Protected Sample Genre`) that demonstrates handled single-delete `ValidationError` responses after submit
-- **ProfileCRUDView**: OneToOneField, centered categorical list columns via `column_alignments`, inline editing, bulk operations, merged nullable relation filtering on `favorite_genre`, and a static queryset rule that limits `favorite_genre` choices to genres whose names start with `S`
+- **ProfileCRUDView**: OneToOneField, mixed list-column alignment via `column_alignments`, inline editing, bulk operations, merged nullable relation filtering on `favorite_genre`, and a static queryset rule that limits `favorite_genre` choices to genres whose names start with `S`
 - **AuthorCRUDView**: Properties, filtering, template debugging, companion nullable scalar filtering on `birth_date`, and visible row-level `extra_actions` in the default button mode
 - **BookCRUDView**: Async bulk editing, dependent `author -> genres` queryset scoping, `view_title` / `view_instructions` heading-area overrides, `column_help_text` header tooltips, semantic field-level list-cell tooltips, selection-aware `extra_buttons`, dropdown row actions that open upward for the last five rendered rows, and a guarded sample row for built-in Edit and inline update guards
 
@@ -220,15 +220,32 @@ The same `Book` screen now also includes a bulk-validation demo:
 - If the selection reaches the async threshold, the queued task fails instead and the sample async dashboard shows the failure state.
 - That makes `BookCRUDView` the sample app reference for shared sync/async bulk persistence wiring plus the current difference between sync modal errors and async task-level failures.
 
-The `Profile` sample now carries the alignment demo for short categorical labels:
+### ProfileCRUDView alignment and queryset demo
 
-- `Profile.status` and `Profile.priority_band` are small choice-backed fields added so the sample shows a realistic centered-label use case instead of centering general text columns
-- `ProfileCRUDView` sets `column_alignments = {"status": "center", "priority_band": "center"}`
-- those same fields stay visible in the list and participate in inline and bulk editing, so the sample demonstrates alignment overrides across the main list display states without moving the feature onto the much busier `Book` screen
+`ProfileCRUDView` is the sample app reference for two smaller-but-practical list customizations:
 
-### Static queryset demo
+- mixed per-column list alignment through `column_alignments`
+- static queryset rules shared across normal forms, inline editing, and bulk edit choices
 
-The sample app also includes a static queryset example on `ProfileCRUDView`:
+The view uses three list columns to demonstrate the alignment feature in a way that is easy to inspect on screen:
+
+- `status` is a short categorical value and is centered
+- `priority_band` is a short categorical value and is right-aligned
+- `favorite_genre` is ordinary text and is kept left-aligned
+
+Current sample config:
+
+```python
+column_alignments = {
+    "status": "center",
+    "priority_band": "right",
+    "favorite_genre": "left",
+}
+```
+
+That same screen also keeps those fields in inline editing and bulk editing, so the sample shows how alignment overrides behave across the main list display states without moving the feature onto the much busier `Book` screen.
+
+`Profile` also carries the static queryset demo for `favorite_genre`:
 
 ```python
 field_queryset_dependencies = {
@@ -251,7 +268,7 @@ That same static rule is reused in three places:
 - inline editing on the Profiles list
 - the bulk edit dropdown for `favorite_genre`
 
-This makes `ProfileCRUDView` the sample app reference for static queryset rules, while `BookCRUDView` remains the reference for dynamic parent/child dependencies.
+This makes `ProfileCRUDView` the sample app reference for static queryset rules and mixed list alignment overrides, while `BookCRUDView` remains the reference for dynamic parent/child dependencies.
 
 Example `BookCRUDView` action config:
 
