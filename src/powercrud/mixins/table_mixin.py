@@ -1,3 +1,5 @@
+from typing import Any
+
 from django.utils.text import capfirst
 
 from .config_mixin import resolve_config
