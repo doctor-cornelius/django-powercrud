@@ -287,20 +287,26 @@ def test_pagination_controls_advance_across_multiple_pages(
     pagination = page.get_by_role("navigation", name=re.compile("page navigation", re.I))
     expect(pagination).to_be_visible()
 
-    page.get_by_role("link", name="Next").click()
+    pagination.get_by_role("link", name="Next", exact=True).click()
     page.wait_for_load_state("networkidle")
     expect(page).to_have_url(re.compile(r"[?&]page=2(?:&|$)"))
-    expect(pagination.get_by_role("link", name="2")).to_have_class(re.compile(r"\bbtn-active\b"))
+    expect(pagination.get_by_role("link", name="2", exact=True)).to_have_class(
+        re.compile(r"\bbtn-active\b")
+    )
 
-    page.get_by_role("link", name="Next").click()
+    pagination.get_by_role("link", name="Next", exact=True).click()
     page.wait_for_load_state("networkidle")
     expect(page).to_have_url(re.compile(r"[?&]page=3(?:&|$)"))
-    expect(pagination.get_by_role("link", name="3")).to_have_class(re.compile(r"\bbtn-active\b"))
+    expect(pagination.get_by_role("link", name="3", exact=True)).to_have_class(
+        re.compile(r"\bbtn-active\b")
+    )
 
-    page.get_by_role("link", name="1").click()
+    pagination.get_by_role("link", name="1", exact=True).click()
     page.wait_for_load_state("networkidle")
     expect(page).not_to_have_url(re.compile(r"[?&]page=3(?:&|$)"))
-    expect(pagination.get_by_role("link", name="1")).to_have_class(re.compile(r"\bbtn-active\b"))
+    expect(pagination.get_by_role("link", name="1", exact=True)).to_have_class(
+        re.compile(r"\bbtn-active\b")
+    )
 
 
 def test_filter_multiselect_searchable_select_applies_immediately(

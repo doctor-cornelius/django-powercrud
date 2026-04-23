@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+from datetime import date
 
 import pytest
 from django.test import Client
@@ -8,6 +9,7 @@ from django.test import RequestFactory
 from django.urls import reverse
 
 from powercrud.mixins.filtering_mixin import NULL_FILTER_SENTINEL
+from powercrud.templatetags import powercrud as powercrud_tags
 from sample import views as sample_views
 from sample.models import Author, Book, Genre, Profile
 
@@ -216,6 +218,38 @@ def test_book_sample_view_exposes_default_and_optional_filter_visibility():
         "description",
         "genres",
     ], "BookCRUDView should leave only the remaining hidden filters available in the Add filter menu."
+
+
+@pytest.mark.django_db
+def test_book_sample_view_demonstrates_property_link_fields():
+    """Book sample view should expose a real list-cell link demo on a non-inline property column."""
+    author = Author.objects.create(name="Link Demo Author")
+    book = Book.objects.create(
+        title="Linked Sample Book",
+        author=author,
+        published_date=date(2024, 1, 1),
+        bestseller=False,
+        isbn="9781234500099",
+        pages=321,
+    )
+
+    view = sample_views.BookCRUDView()
+    request = RequestFactory().get("/")
+    request.session = {}
+    view.request = request
+
+    row = powercrud_tags.object_list({"request": request}, [book], view)["object_list"][
+        0
+    ]
+    cell_map = {cell["name"]: cell for cell in row["cells"]}
+
+    assert (
+        cell_map["a_really_long_property_header_for_title"]["link"]["url"]
+        == reverse("sample:author-detail", kwargs={"pk": author.pk})
+    ), "BookCRUDView should keep a real sample list-cell link on its non-inline title-like property column, now targeting the related author detail."
+    assert (
+        cell_map["a_really_long_property_header_for_title"]["link"]["use_modal"] is True
+    ), "BookCRUDView should now demonstrate modal list-cell links on its existing non-inline sample column."
 
 
 @pytest.mark.django_db

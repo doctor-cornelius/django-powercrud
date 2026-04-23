@@ -243,6 +243,12 @@ class StubView:
     def get_table_classes(self):
         return "table"
 
+    def get_link_fields(self):
+        return {}
+
+    def get_list_cell_link(self, obj, field_name, value, *, is_property, request=None):
+        return None
+
 
 @pytest.mark.django_db
 def test_object_detail_renders_fields_and_properties():
@@ -297,6 +303,119 @@ def test_object_list_formats_rows_and_headers():
     # property renders truthy icon (contains svg markup)
     property_output = row[-1]
     assert "<svg" in property_output
+
+
+@pytest.mark.django_db
+def test_list_partial_renders_anchor_for_linked_non_inline_cell():
+    author = Author.objects.create(
+        name="Link Render Author",
+        bio="Biography",
+        birth_date=date(2024, 1, 1),
+    )
+    request = RequestFactory().get("/")
+
+    class LinkedStubView(StubView):
+        def get_link_fields(self):
+            return {"name": "sample:author-detail"}
+
+        def safe_reverse(self, url_name, kwargs=None):
+            if kwargs:
+                return f"/resolved/{url_name}/{kwargs['pk']}"
+            return f"/resolved/{url_name}"
+
+    view = LinkedStubView(request)
+    context = {"request": request}
+    result = powercrud_tags.object_list(context, [author], view)
+
+    rendered = render_to_string(
+        "powercrud/daisyUI/partial/list.html",
+        {
+            **result,
+            "request": request,
+            "view": view,
+            "list_view_url": "/sample/author/",
+            "inline_edit": {},
+        },
+        request=request,
+    )
+
+    assert (
+        'href="/resolved/sample:author-detail/%s"' % author.pk in rendered
+    ), "Rendered list rows should output a real anchor for linked non-inline cells."
+    assert "link link-primary" in rendered, (
+        "Rendered linked list cells should use the default list-link styling when no hook classes override it."
+    )
+
+
+@pytest.mark.django_db
+def test_list_partial_renders_modal_attrs_for_linked_modal_cell():
+    author = Author.objects.create(
+        name="Modal Link Render Author",
+        bio="Biography",
+        birth_date=date(2024, 1, 1),
+    )
+    request = RequestFactory().get("/")
+
+    class ModalLinkedStubView(StubView):
+        def get_use_htmx(self):
+            return True
+
+        def get_use_modal(self):
+            return True
+
+        def get_modal_target(self):
+            return "#sample-modal"
+
+        def get_framework_styles(self):
+            return {
+                "daisyUI": {
+                    "base": "btn",
+                    "actions": {
+                        "View": "btn-info",
+                        "Edit": "btn-primary",
+                        "Delete": "btn-error",
+                    },
+                    "extra_default": "btn-secondary",
+                    "modal_attrs": 'onclick="sampleModal.showModal()"',
+                }
+            }
+
+        def get_link_fields(self):
+            return {"name": {"view_name": "sample:author-detail", "use_modal": True}}
+
+        def safe_reverse(self, url_name, kwargs=None):
+            if kwargs:
+                return f"/resolved/{url_name}/{kwargs['pk']}"
+            return f"/resolved/{url_name}"
+
+    view = ModalLinkedStubView(request)
+    context = {"request": request}
+    result = powercrud_tags.object_list(context, [author], view)
+
+    rendered = render_to_string(
+        "powercrud/daisyUI/partial/list.html",
+        {
+            **result,
+            "request": request,
+            "view": view,
+            "list_view_url": "/sample/author/",
+            "inline_edit": {},
+        },
+        request=request,
+    )
+
+    assert 'hx-get="/resolved/sample:author-detail/%s"' % author.pk in rendered, (
+        "Modal list-cell links should add hx-get for the resolved cell URL."
+    )
+    assert 'hx-target="#sample-modal"' in rendered, (
+        "Modal list-cell links should target the resolved modal content container."
+    )
+    assert 'onclick="sampleModal.showModal()"' in rendered, (
+        "Modal list-cell links should reuse the framework modal open attrs already used by actions and extra buttons."
+    )
+    assert "&quot;sampleModal.showModal()&quot;" not in rendered, (
+        "Modal list-cell links should render modal_attrs as a real HTML attribute, not an escaped string literal."
+    )
 
 
 def test_get_proper_elided_page_range():

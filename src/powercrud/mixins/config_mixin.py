@@ -38,6 +38,7 @@ class ConfigMixin:
     column_help_text: dict[str, str] | None = None
     column_alignments: dict[str, str] | None = None
     list_cell_tooltip_fields: list[str] | None = None
+    link_fields: dict[str, Any] | None = None
     column_sort_fields_override: dict[str, str] | None = None
 
     # forms
@@ -256,8 +257,10 @@ class ConfigMixin:
         self._configure_detail_fields()
         self._configure_detail_properties()
         self._configure_column_alignments()
+        self._configure_link_fields()
         self._configure_bulk_fields()
         self._configure_inline_edit_fields()
+        self._warn_link_fields_inline_overlap()
         self._configure_form_fields()
         self._configure_form_display_fields()
         try:
@@ -537,6 +540,78 @@ class ConfigMixin:
             raise ValueError(
                 "The following column_alignments keys are not model fields or properties "
                 f"in {self.model.__name__}: {', '.join(invalid_names)}"
+            )
+
+    def _configure_link_fields(self) -> None:
+        """
+        Validate and normalize declarative list-cell link configuration.
+
+        Keys may reference either model fields or model properties. Unrendered
+        names remain harmless, but unknown names should fail loudly so public
+        config mistakes do not silently disappear.
+        """
+        if self.link_fields is None:
+            self.link_fields = {}
+            return
+
+        if not isinstance(self.link_fields, dict):
+            raise ValueError("link_fields must be a dictionary when provided")
+
+        valid_names = set(self._get_all_fields()) | set(self._get_all_properties())
+        invalid_names = [
+            name for name in self.link_fields.keys() if name not in valid_names
+        ]
+        if invalid_names:
+            raise ValueError(
+                "The following link_fields keys are not model fields or properties "
+                f"in {self.model.__name__}: {', '.join(invalid_names)}"
+            )
+
+        normalized: dict[str, dict[str, str]] = {}
+        for name, config in self.link_fields.items():
+            if isinstance(config, str):
+                normalized[name] = {"view_name": config}
+                continue
+
+            if not isinstance(config, dict):
+                raise ValueError(
+                    "link_fields values must be either a view-name string or a dict"
+                )
+
+            normalized[name] = {
+                "view_name": str(config["view_name"]),
+            }
+            if config.get("pk_attr"):
+                normalized[name]["pk_attr"] = str(config["pk_attr"])
+            if "use_modal" in config:
+                normalized[name]["use_modal"] = bool(config["use_modal"])
+
+        self.link_fields = normalized
+
+    def _warn_link_fields_inline_overlap(self) -> None:
+        """
+        Warn when a configured list-cell link can never render because inline
+        editing will always take precedence for the same field.
+        """
+        configured_links = set((self.link_fields or {}).keys())
+        if not configured_links:
+            return
+
+        inline_value = getattr(self, "inline_edit_fields", None)
+        overlapping_model_fields: set[str] = set()
+        model_fields = set(self._get_all_fields())
+
+        if isinstance(inline_value, list):
+            overlapping_model_fields = configured_links & set(inline_value)
+        elif inline_value in {"__all__", "__fields__"}:
+            overlapping_model_fields = configured_links & model_fields
+
+        if overlapping_model_fields:
+            log.warning(
+                "link_fields entries for %s overlap inline_edit_fields on %s; "
+                "PowerCRUD will skip linking for inline-editable cells",
+                ", ".join(sorted(overlapping_model_fields)),
+                self.model.__name__,
             )
 
     def _configure_extra_buttons(self) -> None:
@@ -943,6 +1018,8 @@ class _ConfigShim:
             return self._raw("column_sort_fields_override", {}) or {}
         if name == "column_alignments":
             return self._raw("column_alignments", {}) or {}
+        if name == "link_fields":
+            return self._raw("link_fields", {}) or {}
         if name == "base_template_path":
             # Do not invent a default; projects must set this explicitly.
             return self._raw("base_template_path")
@@ -974,6 +1051,7 @@ class _ConfigShim:
             "column_sort_fields_override",
             "dropdown_sort_options",
             "field_queryset_dependencies",
+            "link_fields",
         }:
             return self._raw(name, {}) or {}
         return self._raw(name)

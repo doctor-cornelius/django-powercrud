@@ -18,6 +18,7 @@ class PowerCRUDMixinValidator(BaseModel):
     column_help_text: Optional[Dict[str, str]] = None
     column_alignments: Optional[Dict[str, Literal["left", "center", "right"]]] = None
     list_cell_tooltip_fields: Optional[List[str]] = None
+    link_fields: Optional[Dict[str, Union[str, Dict[str, Any]]]] = None
     column_sort_fields_override: Optional[Dict[str, str]] = None
 
     # forms
@@ -199,6 +200,69 @@ class PowerCRUDMixinValidator(BaseModel):
                 continue
             v[key.strip()] = value.strip()
         return v
+
+    @field_validator("link_fields")
+    @classmethod
+    def validate_link_fields(cls, v):
+        """Ensure link_fields stays on the narrow public declarative contract."""
+        if v is None:
+            return v
+        if not isinstance(v, dict):
+            raise ValueError("link_fields must be a dict when provided")
+
+        normalized: Dict[str, Dict[str, str]] = {}
+        for key, value in v.items():
+            if not isinstance(key, str) or not key.strip():
+                raise ValueError("link_fields keys must be non-empty strings")
+
+            field_name = key.strip()
+            if isinstance(value, str):
+                view_name = value.strip()
+                if not view_name:
+                    raise ValueError(
+                        "link_fields string values must be non-empty view names"
+                    )
+                normalized[field_name] = {"view_name": view_name}
+                continue
+
+            if not isinstance(value, dict):
+                raise ValueError(
+                    "link_fields values must be either a view-name string or a dict"
+                )
+
+            unsupported_keys = set(value.keys()) - {"view_name", "pk_attr", "use_modal"}
+            if unsupported_keys:
+                raise ValueError(
+                    "link_fields dict values only support 'view_name' and optional "
+                    f"'pk_attr' / 'use_modal'. Unsupported keys: {', '.join(sorted(unsupported_keys))}"
+                )
+
+            view_name = value.get("view_name")
+            if not isinstance(view_name, str) or not view_name.strip():
+                raise ValueError(
+                    "link_fields dict values must include a non-empty 'view_name'"
+                )
+
+            normalized_value = {"view_name": view_name.strip()}
+            pk_attr = value.get("pk_attr")
+            if pk_attr is not None:
+                if not isinstance(pk_attr, str) or not pk_attr.strip():
+                    raise ValueError(
+                        "link_fields.pk_attr must be a non-empty string when provided"
+                    )
+                normalized_value["pk_attr"] = pk_attr.strip()
+
+            use_modal = value.get("use_modal")
+            if use_modal is not None:
+                if not isinstance(use_modal, bool):
+                    raise ValueError(
+                        "link_fields.use_modal must be a boolean when provided"
+                    )
+                normalized_value["use_modal"] = use_modal
+
+            normalized[field_name] = normalized_value
+
+        return normalized
 
     @field_validator("form_fields")
     @classmethod

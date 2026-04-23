@@ -53,6 +53,13 @@ class BookCRUDView(SampleCRUDMixin):
         "isbn_empty": "Shows whether this row currently has an ISBN value.",
     }
     list_cell_tooltip_fields = ["title", "isbn_empty"]
+    link_fields = {
+        "a_really_long_property_header_for_title": {
+            "view_name": "sample:author-detail",
+            "pk_attr": "author_id",
+            "use_modal": True,
+        },
+    }
     detail_fields = "__all__"
     detail_properties = "__all__"
 

@@ -165,6 +165,15 @@ class TableMixin:
             return list(configured_fields)
         return []
 
+    def get_link_fields(self) -> dict[str, dict[str, Any]]:
+        """
+        Return narrow declarative list-cell link configuration.
+        """
+        configured_links = resolve_config(self).link_fields
+        if isinstance(configured_links, dict):
+            return dict(configured_links)
+        return {}
+
     def get_list_cell_tooltip(
         self,
         obj,
@@ -178,6 +187,24 @@ class TableMixin:
 
         Downstream views can override this to provide plain-text tooltip
         explanations for specific rendered list cells.
+        """
+        return None
+
+    def get_list_cell_link(
+        self,
+        obj,
+        field_name: str,
+        value,
+        *,
+        is_property: bool,
+        request=None,
+    ) -> dict[str, Any] | bool | None:
+        """
+        Return optional link metadata for one rendered list cell.
+
+        Return a metadata dict with at least ``url`` to link the cell, ``False``
+        to suppress declarative link_fields fallback for this cell, or ``None``
+        to allow the declarative fallback path.
         """
         return None
 

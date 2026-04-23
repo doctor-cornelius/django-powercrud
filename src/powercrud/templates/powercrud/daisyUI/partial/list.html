@@ -313,10 +313,24 @@
             </button>
             {% endwith %}
         {% else %}
+            {% if cell.link %}
+            <a href="{{ cell.link.url }}"
+               class="{% if cell.align == 'center' %}flex justify-center items-center w-full{% elif cell.align == 'right' %}block w-full text-right{% else %}block w-full text-left{% endif %} {{ cell.link.classes }}"
+               {% if cell.link.hx_method == 'get' %}hx-get="{{ cell.link.url }}"{% endif %}
+               {% if cell.link.hx_target %}hx-target="{{ cell.link.hx_target }}"{% endif %}
+               {% if cell.link.title %}title="{{ cell.link.title }}"{% endif %}
+               {% if cell.link.target %}target="{{ cell.link.target }}"{% endif %}
+               {% if cell.link.rel %}rel="{{ cell.link.rel }}"{% endif %}
+               {{ cell.link.modal_attrs|safe }}
+               {% if cell.tooltip_text %}data-tippy-content="{{ cell.tooltip_text }}" data-powercrud-tooltip="semantic-cell"{% elif value_str|slice:":1" != "<" %}data-tippy-content="{{ cell.value }}" data-powercrud-tooltip="overflow"{% endif %}>
+                {{ cell.value }}
+            </a>
+            {% else %}
             <div class="{% if cell.align == 'center' %}flex justify-center items-center w-full{% elif cell.align == 'right' %}w-full text-right{% else %}w-full text-left{% endif %}"
                  {% if cell.tooltip_text %}data-tippy-content="{{ cell.tooltip_text }}" data-powercrud-tooltip="semantic-cell"{% elif value_str|slice:":1" != "<" %}data-tippy-content="{{ cell.value }}" data-powercrud-tooltip="overflow"{% endif %}>
                 {{ cell.value }}
             </div>
+            {% endif %}
         {% endif %}
                     </td>
                         {% endwith %}
@@ -397,10 +411,24 @@
             </button>
             {% endwith %}
         {% else %}
+            {% if cell.link %}
+            <a href="{{ cell.link.url }}"
+               class="{% if cell.align == 'center' %}flex justify-center items-center w-full{% elif cell.align == 'right' %}block w-full text-right{% else %}block w-full text-left{% endif %} {{ cell.link.classes }}"
+               {% if cell.link.hx_method == 'get' %}hx-get="{{ cell.link.url }}"{% endif %}
+               {% if cell.link.hx_target %}hx-target="{{ cell.link.hx_target }}"{% endif %}
+               {% if cell.link.title %}title="{{ cell.link.title }}"{% endif %}
+               {% if cell.link.target %}target="{{ cell.link.target }}"{% endif %}
+               {% if cell.link.rel %}rel="{{ cell.link.rel }}"{% endif %}
+               {{ cell.link.modal_attrs|safe }}
+               {% if cell.tooltip_text %}data-tippy-content="{{ cell.tooltip_text }}" data-powercrud-tooltip="semantic-cell"{% elif value_str|slice:":1" != "<" %}data-tippy-content="{{ cell.value }}" data-powercrud-tooltip="overflow"{% endif %}>
+                {{ cell.value }}
+            </a>
+            {% else %}
             <div class="{% if cell.align == 'center' %}flex justify-center items-center w-full{% elif cell.align == 'right' %}w-full text-right{% else %}w-full text-left{% endif %}"
                  {% if cell.tooltip_text %}data-tippy-content="{{ cell.tooltip_text }}" data-powercrud-tooltip="semantic-cell"{% elif value_str|slice:":1" != "<" %}data-tippy-content="{{ cell.value }}" data-powercrud-tooltip="overflow"{% endif %}>
                 {{ cell.value }}
             </div>
+            {% endif %}
         {% endif %}
     </td>
         {% endwith %}

@@ -28,6 +28,7 @@ class TemplateViewStub:
     }
     column_alignments = {}
     list_cell_tooltip_fields = []
+    link_fields = {}
     namespace = "sample"
     url_base = "book"
     dropdown_sort_options = {"author": "name"}
@@ -194,11 +195,17 @@ class TemplateViewStub:
     def get_column_alignments(self):
         return dict(self.column_alignments)
 
+    def get_link_fields(self):
+        return dict(self.link_fields)
+
     def get_list_cell_tooltip(self, obj, field_name, *, is_property, request=None):
         if field_name == "title":
             return f"Previewing {obj.title}"
         if field_name == "isbn_empty":
             return "ISBN is missing" if obj.isbn_empty else "ISBN is present"
+        return None
+
+    def get_list_cell_link(self, obj, field_name, value, *, is_property, request=None):
         return None
 
 
@@ -602,6 +609,301 @@ def test_object_list_trims_blank_semantic_tooltip_results_to_none():
     assert result["object_list"][0]["cells"][0]["tooltip_text"] is None, (
         "Blank semantic tooltip results should collapse to None so templates can keep existing fallback behavior."
     )
+
+
+@pytest.mark.django_db
+def test_object_list_resolves_relation_link_fields_via_related_id_by_default():
+    author = Author.objects.create(name="Linked Author")
+    book = Book.objects.create(
+        title="Linked Book",
+        author=author,
+        published_date=date(2024, 4, 1),
+        bestseller=False,
+        isbn="9876543211111",
+        pages=120,
+        description="Link coverage",
+    )
+
+    request = apply_session(RequestFactory().get("/"))
+    view = TemplateViewStub(request)
+    view.link_fields = {"author": "sample:author-detail"}
+
+    context = {
+        "request": request,
+        "use_htmx": True,
+        "original_target": "#content",
+        "htmx_target": "#content",
+    }
+    row = powercrud.object_list(context, [book], view)["object_list"][0]
+    cell_map = {cell["name"]: cell for cell in row["cells"]}
+
+    assert cell_map["author"]["link"] == {
+        "url": f"/sample:author-detail/{author.pk}",
+        "classes": "link link-primary",
+        "use_modal": False,
+    }, "Relation list links should default to the related object's <field>_id when pk_attr is omitted."
+
+
+@pytest.mark.django_db
+def test_object_list_resolves_non_relation_link_fields_via_row_pk_by_default():
+    author = Author.objects.create(name="Default PK Author")
+    book = Book.objects.create(
+        title="Linked Title",
+        author=author,
+        published_date=date(2024, 4, 2),
+        bestseller=False,
+        isbn="9876543211112",
+        pages=121,
+        description="Link coverage",
+    )
+
+    request = apply_session(RequestFactory().get("/"))
+    view = TemplateViewStub(request)
+    view.link_fields = {"title": "sample:book-detail"}
+
+    context = {
+        "request": request,
+        "use_htmx": True,
+        "original_target": "#content",
+        "htmx_target": "#content",
+    }
+    row = powercrud.object_list(context, [book], view)["object_list"][0]
+    cell_map = {cell["name"]: cell for cell in row["cells"]}
+
+    assert cell_map["title"]["link"] == {
+        "url": f"/sample:book-detail/{book.pk}",
+        "classes": "link link-primary",
+        "use_modal": False,
+    }, "Non-relation declarative list links should default to the current row's primary key."
+
+
+@pytest.mark.django_db
+def test_object_list_allows_explicit_pk_attr_override_for_list_links():
+    author = Author.objects.create(name="Explicit PK Author")
+    book = Book.objects.create(
+        title="Explicit Link Book",
+        author=author,
+        published_date=date(2024, 4, 3),
+        bestseller=False,
+        isbn="9876543211113",
+        pages=122,
+        description="Link coverage",
+    )
+
+    request = apply_session(RequestFactory().get("/"))
+    view = TemplateViewStub(request)
+    view.link_fields = {
+        "title": {"view_name": "sample:author-detail", "pk_attr": "author_id"}
+    }
+
+    context = {
+        "request": request,
+        "use_htmx": True,
+        "original_target": "#content",
+        "htmx_target": "#content",
+    }
+    row = powercrud.object_list(context, [book], view)["object_list"][0]
+    cell_map = {cell["name"]: cell for cell in row["cells"]}
+
+    assert cell_map["title"]["link"]["url"] == f"/sample:author-detail/{author.pk}", (
+        "Explicit pk_attr overrides should let declarative list links target a different row-related object."
+    )
+    assert cell_map["title"]["link"]["use_modal"] is False, (
+        "Explicit declarative list links should stay plain-navigation links unless use_modal=True is configured."
+    )
+
+
+@pytest.mark.django_db
+def test_object_list_hook_link_overrides_declarative_config():
+    author = Author.objects.create(name="Hook Author")
+    book = Book.objects.create(
+        title="Hook Link Book",
+        author=author,
+        published_date=date(2024, 4, 4),
+        bestseller=False,
+        isbn="9876543211114",
+        pages=123,
+        description="Link coverage",
+    )
+
+    request = apply_session(RequestFactory().get("/"))
+    view = TemplateViewStub(request)
+    view.link_fields = {"title": "sample:book-detail"}
+    view.get_list_cell_link = lambda obj, field_name, value, *, is_property, request=None: (
+        {
+            "url": f"/hook/{obj.pk}",
+            "title": "Hook wins",
+            "classes": "custom-link",
+        }
+        if field_name == "title"
+        else None
+    )
+
+    context = {
+        "request": request,
+        "use_htmx": True,
+        "original_target": "#content",
+        "htmx_target": "#content",
+    }
+    row = powercrud.object_list(context, [book], view)["object_list"][0]
+    cell_map = {cell["name"]: cell for cell in row["cells"]}
+
+    assert cell_map["title"]["link"] == {
+        "url": f"/hook/{book.pk}",
+        "title": "Hook wins",
+        "classes": "custom-link",
+        "use_modal": False,
+    }, "Hook-provided list-cell link metadata should override declarative link_fields when both are present."
+
+
+@pytest.mark.django_db
+def test_object_list_hook_can_suppress_declarative_links():
+    author = Author.objects.create(name="Suppress Author")
+    book = Book.objects.create(
+        title="Suppressed Link Book",
+        author=author,
+        published_date=date(2024, 4, 5),
+        bestseller=False,
+        isbn="9876543211115",
+        pages=124,
+        description="Link coverage",
+    )
+
+    request = apply_session(RequestFactory().get("/"))
+    view = TemplateViewStub(request)
+    view.link_fields = {"title": "sample:book-detail"}
+    view.get_list_cell_link = (
+        lambda obj, field_name, value, *, is_property, request=None: False
+        if field_name == "title"
+        else None
+    )
+
+    context = {
+        "request": request,
+        "use_htmx": True,
+        "original_target": "#content",
+        "htmx_target": "#content",
+    }
+    row = powercrud.object_list(context, [book], view)["object_list"][0]
+    cell_map = {cell["name"]: cell for cell in row["cells"]}
+
+    assert cell_map["title"]["link"] is None, (
+        "Returning False from get_list_cell_link should suppress declarative link_fields for that cell."
+    )
+
+
+@pytest.mark.django_db
+def test_object_list_skips_links_for_inline_editable_cells():
+    author = Author.objects.create(name="Inline Link Author")
+    book = Book.objects.create(
+        title="Inline Link Book",
+        author=author,
+        published_date=date(2024, 4, 6),
+        bestseller=False,
+        isbn="9876543211116",
+        pages=125,
+        description="Link coverage",
+    )
+
+    request = apply_session(RequestFactory().get("/"))
+    view = TemplateViewStub(request)
+    view.link_fields = {"title": "sample:book-detail"}
+    inline_config = {
+        "enabled": True,
+        "fields": ["title"],
+        "dependencies": {},
+        "row_endpoint_name": "sample:book-inline-row",
+    }
+    context = {
+        "request": request,
+        "use_htmx": True,
+        "original_target": "#content",
+        "htmx_target": "#content",
+        "inline_edit": inline_config,
+    }
+
+    row = powercrud.object_list(context, [book], view)["object_list"][0]
+    cell_map = {cell["name"]: cell for cell in row["cells"]}
+
+    assert cell_map["title"]["is_inline_editable"] is True, (
+        "The test fixture should confirm the title cell is inline-editable before asserting link suppression."
+    )
+    assert cell_map["title"]["link"] is None, (
+        "Inline-editable cells should skip declarative list linking so click-to-edit behavior remains authoritative."
+    )
+
+
+@pytest.mark.django_db
+def test_object_list_resolves_modal_link_metadata_when_requested():
+    author = Author.objects.create(name="Modal Link Author")
+    book = Book.objects.create(
+        title="Modal Link Book",
+        author=author,
+        published_date=date(2024, 4, 7),
+        bestseller=False,
+        isbn="9876543211117",
+        pages=126,
+        description="Link coverage",
+    )
+
+    request = apply_session(RequestFactory().get("/"))
+    view = TemplateViewStub(request)
+    view.link_fields = {
+        "title": {"view_name": "sample:book-detail", "use_modal": True}
+    }
+
+    context = {
+        "request": request,
+        "use_htmx": True,
+        "original_target": "#content",
+        "htmx_target": "#content",
+    }
+    row = powercrud.object_list(context, [book], view)["object_list"][0]
+    cell_map = {cell["name"]: cell for cell in row["cells"]}
+
+    assert cell_map["title"]["link"] == {
+        "url": f"/sample:book-detail/{book.pk}",
+        "classes": "link link-primary",
+        "use_modal": True,
+        "hx_method": "get",
+        "hx_target": "#modal",
+        "modal_attrs": 'onclick="modal.showModal()"',
+    }, "Declarative list links should reuse the existing modal target and framework modal attrs when use_modal=True is configured."
+
+
+@pytest.mark.django_db
+def test_object_list_modal_links_degrade_to_plain_links_when_modal_stack_disabled():
+    author = Author.objects.create(name="Plain Fallback Author")
+    book = Book.objects.create(
+        title="Plain Fallback Book",
+        author=author,
+        published_date=date(2024, 4, 8),
+        bestseller=False,
+        isbn="9876543211118",
+        pages=127,
+        description="Link coverage",
+    )
+
+    request = apply_session(RequestFactory().get("/"))
+    view = TemplateViewStub(request, use_htmx=False, use_modal=False)
+    view.link_fields = {
+        "title": {"view_name": "sample:book-detail", "use_modal": True}
+    }
+
+    context = {
+        "request": request,
+        "use_htmx": False,
+        "original_target": "#content",
+        "htmx_target": "#content",
+    }
+    row = powercrud.object_list(context, [book], view)["object_list"][0]
+    cell_map = {cell["name"]: cell for cell in row["cells"]}
+
+    assert cell_map["title"]["link"] == {
+        "url": f"/sample:book-detail/{book.pk}",
+        "classes": "link link-primary",
+        "use_modal": True,
+    }, "use_modal=True should fall back to a normal anchor when the view's HTMX/modal stack is disabled."
 
 
 @pytest.mark.django_db

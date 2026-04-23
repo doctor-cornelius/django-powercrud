@@ -33,6 +33,13 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
         "status": "center",
     }
     list_cell_tooltip_fields = ["owner", "is_overdue"]
+    link_fields = {
+        "owner": "crm:owner-detail",
+        "reference_code": {
+            "view_name": "projects:project-detail",
+            "use_modal": True,
+        },
+    }
 
     # ------------------------------------------------------------------
     # HTMX / modal behaviour
@@ -190,6 +197,21 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
         if field_name == "is_overdue":
             return "Past due and needs follow-up" if obj.is_overdue else "On schedule"
         return None
+
+    def get_list_cell_link(self, obj, field_name, value, *, is_property, request=None):
+        if field_name == "display_status" and obj.status_report_url:
+            return {
+                "url": obj.status_report_url,
+                "title": "Open external status report",
+                "target": "_blank",
+                "rel": "noopener noreferrer",
+            }
+        if field_name == "owner_card":
+            return {
+                "url": self.safe_reverse("crm:owner-detail", kwargs={"pk": obj.owner_id}),
+                "use_modal": True,
+            }
+        return None
 ```
 
 ## Notes
@@ -201,8 +223,11 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
 - `column_help_text` adds optional plain-text tooltips to specific header labels. The help trigger is a separate info icon, so sortable headers keep sorting behavior.
 - `column_alignments` lets you override list body-cell alignment for specific rendered fields or properties without changing the default heuristic for the rest of the table.
 - `list_cell_tooltip_fields` opts selected rendered columns into semantic list-cell tooltips. The shared `get_list_cell_tooltip(...)` hook is only called for configured names that are actually visible in the current list, and returned plain text may include newline characters when the semantic cell tooltip should render on multiple lines.
+- `link_fields` is intentionally narrow. Use it for the boring common case of “this visible column should reverse to a named detail page”. Use the dict form when you want the same link to open in PowerCRUD’s normal modal flow via `use_modal=True`.
+- `get_list_cell_link(...)` is the escape hatch for conditional or richer link behavior. Returning `None` falls back to `link_fields`; returning `False` suppresses declarative linking for that cell. Hook metadata can also set `use_modal=True`.
 - Semantic list-cell tooltips take precedence over the fallback overflow tooltip for the same cell. Unconfigured cells keep the existing overflow behavior.
 - Tooltip appearance is styled through CSS variables such as `--pc-tooltip-bg` and `--pc-tooltip-fg`, not Python view parameters. PowerCRUD defaults those to neutral daisyUI tokens, and you can override them in your app CSS when you want project-level theming.
+- Inline-editable cells are never linked, so if a field appears in both `inline_edit_fields` and `link_fields`, PowerCRUD logs a warning and silently keeps inline editing authoritative.
 - `form_class` is the source of truth for editable inputs in this example. Because a custom form class is configured, the example intentionally does not also set `form_fields`.
 - `form_display_fields` renders model fields in a separate read-only `Context` block above update forms. This is useful for `editable=False` fields or other contextual data the user should see while editing.
 - `form_disabled_fields` keeps real update-form inputs visible but disabled. PowerCRUD uses Django field disabling rather than widget-only attrs, so posted tampering is ignored and the saved instance value is preserved.

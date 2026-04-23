@@ -100,6 +100,55 @@ Upgrade notes:
 
 - Related docs: [Setup & Core CRUD basics](../guides/setup_core_crud.md), [Sample app overview](sample_app.md)
 
+### `get_list_cell_link()`
+
+- Purpose: Use this when a rendered list cell should navigate somewhere conditionally, or when the narrow declarative `link_fields` config is not expressive enough.
+- When it is called: During list-row rendering for non-inline-editable cells.
+- Signature: `def get_list_cell_link(self, obj, field_name, value, *, is_property, request=None)`
+- Default behavior: Returns `None`, so PowerCRUD falls back to `link_fields` when configured.
+- Key arguments:
+    - `obj`: The current row object.
+    - `field_name`: The rendered field or property name for the current cell.
+    - `value`: The already-resolved display value for the cell.
+    - `is_property`: `True` when the cell comes from `properties`, otherwise `False`.
+    - `request`: The current request when available.
+- Return contract:
+    - return a dict with at least `url` to link that cell
+    - return `None` to allow declarative `link_fields` fallback
+    - return `False` to suppress declarative `link_fields` for that cell
+- Supported dict keys:
+    - `url` (required)
+    - `title`, `target`, `rel`, `classes`, `use_modal` (optional)
+- Important note: Inline-editable cells are never linked. Inline click-to-edit always wins, even if the hook or `link_fields` would otherwise provide a link.
+- Important note: This hook can override or suppress declarative config row by row. That overlap is intentional and does not generate warnings.
+- Important note: `use_modal=True` reuses the view’s normal PowerCRUD modal flow when HTMX modal support is active on that view. If modal support is off, PowerCRUD keeps the link as a normal anchor.
+- Short example:
+
+    ```python
+    link_fields = {
+        "owner": "crm:owner-detail",
+    }
+
+    def get_list_cell_link(self, obj, field_name, value, *, is_property, request=None):
+        if field_name == "status" and obj.status_report_url:
+            return {
+                "url": obj.status_report_url,
+                "title": "Open external status report",
+                "target": "_blank",
+                "rel": "noopener noreferrer",
+            }
+        if field_name == "reference_code":
+            return {
+                "url": self.safe_reverse("projects:project-detail", kwargs={"pk": obj.pk}),
+                "use_modal": True,
+            }
+        if field_name == "owner" and request and not request.user.has_perm("crm.view_owner"):
+            return False
+        return None
+    ```
+
+- Related docs: [Setup & Core CRUD basics](../guides/setup_core_crud.md), [Configuration options](./config_options.md)
+
 ### `get_filter_queryset_for_field()`
 
 - Purpose: Use this when a filter-form dropdown should not show every possible related record, for example when you only want active owners, visible categories, or tenant-scoped choices.

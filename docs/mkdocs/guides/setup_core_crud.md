@@ -377,6 +377,92 @@ Tooltip behavior stays layered:
 
 When a semantic list-cell tooltip is configured for a cell, it takes precedence over the overflow tooltip for that same cell. PowerCRUD continues to use the model verbose names for other copy such as `Create project` and empty-state text, and `view_instructions`, `column_help_text`, and semantic list-cell tooltip text are all escaped plain text rather than HTML.
 
+### Clickable list cells
+
+If a rendered list cell should navigate somewhere, configure `link_fields`:
+
+```python
+class ProjectCRUDView(PowerCRUDMixin, CRUDView):
+    # …
+    link_fields = {
+        "owner": "crm:owner-detail",
+        "reference_code": {
+            "view_name": "projects:project-detail",
+            "use_modal": True,
+        },
+        "display_status": {
+            "view_name": "projects:project-detail",
+            "pk_attr": "pk",
+        },
+    }
+```
+
+`link_fields` is intentionally narrow:
+
+- keys are rendered list field/property names
+- a string value is treated as a Django `view_name`
+- a dict value supports only `view_name` plus optional `pk_attr` / `use_modal`
+
+When `pk_attr` is omitted, PowerCRUD uses sensible defaults:
+
+- relation fields such as `owner` use `<field_name>_id`
+- non-relation fields and properties use the current row `pk`
+
+That makes the common cases short:
+
+- `{"owner": "crm:owner-detail"}` means “link the `owner` column to the related owner detail using `owner_id`”
+- `{"reference_code": "projects:project-detail"}` means “link the `reference_code` column to this project row’s own detail using `pk`”
+
+If you want the link to open in PowerCRUD’s normal modal flow, switch to the dict form and add `use_modal`:
+
+- `{"reference_code": {"view_name": "projects:project-detail", "use_modal": True}}` means “open this row’s project detail in the configured PowerCRUD modal when modal support is active”
+
+Modal link behavior stays narrow too:
+
+- `use_modal=True` reuses the view’s existing `get_modal_target()` and framework modal-open attrs
+- if the view is not running with HTMX modal support, the link gracefully falls back to a normal anchor
+- string shorthand stays plain-navigation-only
+
+If you need conditional logic or richer link metadata, override `get_list_cell_link(...)`:
+
+```python
+class ProjectCRUDView(PowerCRUDMixin, CRUDView):
+    # …
+    link_fields = {
+        "owner": "crm:owner-detail",
+    }
+
+    def get_list_cell_link(self, obj, field_name, value, *, is_property, request=None):
+        if field_name == "display_status" and obj.status_report_url:
+            return {
+                "url": obj.status_report_url,
+                "title": "Open external status report",
+                "target": "_blank",
+                "rel": "noopener noreferrer",
+            }
+        if field_name == "reference_code":
+            return {
+                "url": self.safe_reverse("projects:project-detail", kwargs={"pk": obj.pk}),
+                "use_modal": True,
+            }
+        if field_name == "owner" and request and not request.user.has_perm("crm.view_owner"):
+            return False
+        return None
+```
+
+Hook behavior is deliberately simple:
+
+- return a dict with at least `url` to link that cell
+- include `use_modal=True` when the cell should reuse the normal PowerCRUD modal flow
+- return `None` to fall back to `link_fields`
+- return `False` to suppress `link_fields` for that cell
+
+Important behavior:
+
+- inline-editable cells are never linked, because inline click-to-edit takes precedence
+- if a field appears in both `link_fields` and `inline_edit_fields`, PowerCRUD logs a warning and silently skips the link at render time
+- the hook applies to fields and properties, not only relations
+
 ### Column alignment
 
 If a short categorical column would scan better centered than the default heuristic allows, use `column_alignments` to override just the list body cells for that column:

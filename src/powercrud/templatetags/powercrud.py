@@ -336,6 +336,189 @@ def _resolve_list_cell_tooltip(
     return tooltip_text or None
 
 
+def _resolve_list_cell_modal_metadata(
+    *,
+    view: Any,
+    use_modal: bool,
+) -> dict[str, str]:
+    """
+    Resolve HTMX/modal metadata for a linked list cell when requested.
+    """
+    if not use_modal:
+        return {}
+
+    use_htmx = getattr(view, "get_use_htmx", None)
+    use_modal_enabled = getattr(view, "get_use_modal", None)
+    if not callable(use_htmx) or not callable(use_modal_enabled):
+        return {}
+    if not use_htmx() or not use_modal_enabled():
+        return {}
+
+    framework = get_powercrud_setting("POWERCRUD_CSS_FRAMEWORK")
+    styles = view.get_framework_styles()[framework]
+    target = _resolve_view_option(
+        view,
+        method_name="get_modal_target",
+        attr_name="modal_target",
+        default="#powercrudModalContent",
+    )
+    if target and not str(target).startswith("#"):
+        target = f"#{target}"
+
+    return {
+        "hx_method": "get",
+        "hx_target": str(target or ""),
+        "modal_attrs": str(styles.get("modal_attrs", "")).strip(),
+    }
+
+
+def _normalize_list_cell_link_result(result: Any, *, view: Any) -> dict[str, Any] | None:
+    """
+    Normalize hook-returned list-cell link metadata.
+    """
+    if result is None or result is False:
+        return None
+    if not isinstance(result, dict):
+        return None
+
+    url = result.get("url")
+    if url is None:
+        return None
+
+    url = str(url).strip()
+    if not url:
+        return None
+
+    use_modal = bool(result.get("use_modal", False))
+
+    normalized: dict[str, Any] = {
+        "url": url,
+        "classes": str(result.get("classes") or "link link-primary").strip(),
+        "use_modal": use_modal,
+    }
+    for key in ("title", "target", "rel"):
+        value = result.get(key)
+        if value is None:
+            continue
+        value = str(value).strip()
+        if value:
+            normalized[key] = value
+    normalized.update(_resolve_list_cell_modal_metadata(view=view, use_modal=use_modal))
+    return normalized
+
+
+def _resolve_declarative_list_cell_link(
+    *,
+    view: Any,
+    obj: Any,
+    field_name: str,
+    is_property: bool,
+) -> dict[str, Any] | None:
+    """
+    Resolve narrow declarative list-cell link config for one rendered cell.
+    """
+    configured_links = _resolve_view_option(
+        view,
+        method_name="get_link_fields",
+        attr_name="link_fields",
+        default={},
+    )
+    if not isinstance(configured_links, dict):
+        return None
+
+    config = configured_links.get(field_name)
+    if not config:
+        return None
+
+    if isinstance(config, str):
+        config = {"view_name": config}
+    if not isinstance(config, dict):
+        return None
+
+    view_name = str(config.get("view_name") or "").strip()
+    if not view_name:
+        return None
+
+    pk_attr = config.get("pk_attr")
+    if pk_attr is None:
+        if is_property:
+            pk_attr = "pk"
+        else:
+            try:
+                model_field = obj._meta.get_field(field_name)
+            except Exception:
+                model_field = None
+            if model_field is not None and getattr(model_field, "is_relation", False):
+                pk_attr = f"{field_name}_id"
+            else:
+                pk_attr = "pk"
+
+    if not isinstance(pk_attr, str) or not pk_attr.strip():
+        return None
+
+    pk_value = getattr(obj, pk_attr.strip(), None)
+    if pk_value in {None, ""}:
+        return None
+
+    url = view.safe_reverse(view_name, kwargs={"pk": pk_value})
+    if not url:
+        return None
+
+    use_modal = bool(config.get("use_modal", False))
+
+    normalized: dict[str, Any] = {
+        "url": url,
+        "classes": "link link-primary",
+        "use_modal": use_modal,
+    }
+    normalized.update(_resolve_list_cell_modal_metadata(view=view, use_modal=use_modal))
+    return normalized
+
+
+def _resolve_list_cell_link(
+    *,
+    view: Any,
+    obj: Any,
+    field_name: str,
+    value: Any,
+    is_property: bool,
+    is_inline_editable: bool,
+    request: Any,
+) -> dict[str, Any] | None:
+    """
+    Resolve final list-cell link metadata, preferring hook overrides.
+    """
+    if is_inline_editable:
+        return None
+
+    resolver = getattr(view, "get_list_cell_link", None)
+    if callable(resolver):
+        try:
+            hook_result = resolver(
+                obj,
+                field_name,
+                value,
+                is_property=is_property,
+                request=request,
+            )
+        except Exception:
+            hook_result = None
+
+        if hook_result is False:
+            return None
+
+        normalized = _normalize_list_cell_link_result(hook_result, view=view)
+        if normalized is not None:
+            return normalized
+
+    return _resolve_declarative_list_cell_link(
+        view=view,
+        obj=obj,
+        field_name=field_name,
+        is_property=is_property,
+    )
+
+
 def action_links(view: Any, object: Any) -> str:
     """
     Generate HTML for action links (buttons) for a given object.
@@ -893,6 +1076,15 @@ def object_list(context, objects, view):
                         if f in eligible_cell_tooltip_fields
                         else None
                     ),
+                    "link": _resolve_list_cell_link(
+                        view=view,
+                        obj=obj,
+                        field_name=f,
+                        value=display_value,
+                        is_property=False,
+                        is_inline_editable=inline_enabled and f in inline_fields,
+                        request=request,
+                    ),
                 }
             )
             record["fields"].append(display_value)
@@ -938,6 +1130,15 @@ def object_list(context, objects, view):
                         )
                         if prop in eligible_cell_tooltip_fields
                         else None
+                    ),
+                    "link": _resolve_list_cell_link(
+                        view=view,
+                        obj=obj,
+                        field_name=prop,
+                        value=display_value,
+                        is_property=True,
+                        is_inline_editable=inline_enabled and prop in inline_fields,
+                        request=request,
                     ),
                 }
             )

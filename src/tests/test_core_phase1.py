@@ -662,6 +662,48 @@ def test_table_mixin_get_list_cell_tooltip_defaults_to_none():
     ), "The default list cell tooltip hook should return None so unconfigured cells keep existing behavior."
 
 
+def test_table_mixin_get_link_fields_defaults_to_empty_mapping():
+    class TableView(TableMixin):
+        model = Author
+
+    view = TableView()
+
+    assert view.get_link_fields() == {}, (
+        "Declarative list-cell links should default to an empty mapping when no link_fields config is provided."
+    )
+
+
+def test_table_mixin_get_link_fields_prefers_configured_mapping():
+    class TableView(TableMixin):
+        model = Author
+        link_fields = {"name": {"view_name": "sample:author-detail"}}
+
+    view = TableView()
+
+    assert view.get_link_fields() == {
+        "name": {"view_name": "sample:author-detail"}
+    }, "TableMixin should expose the configured narrow link_fields mapping unchanged."
+
+
+def test_table_mixin_get_list_cell_link_defaults_to_none():
+    class TableView(TableMixin):
+        model = Author
+
+    author = Author(name="Link Default")
+    view = TableView()
+
+    assert (
+        view.get_list_cell_link(
+            author,
+            "name",
+            author.name,
+            is_property=False,
+            request=None,
+        )
+        is None
+    ), "The default list-cell link hook should return None so declarative config remains the only link source unless overridden."
+
+
 def test_core_mixin_rejects_unknown_column_alignment_keys():
     class BrokenView(CoreMixin):
         model = Author
@@ -680,6 +722,78 @@ def test_core_mixin_rejects_invalid_column_alignment_values():
 
     with pytest.raises(ImproperlyConfigured, match="column_alignments"):
         BrokenView()
+
+
+@pytest.mark.django_db
+def test_core_mixin_normalizes_string_and_dict_link_fields():
+    class LinkedView(CoreMixin):
+        model = Book
+        fields = "__all__"
+        link_fields = {
+            "author": "sample:author-detail",
+            "title": {
+                "view_name": "sample:bigbook-detail",
+                "pk_attr": "pk",
+                "use_modal": True,
+            },
+        }
+
+    view = LinkedView()
+
+    assert view.link_fields == {
+        "author": {"view_name": "sample:author-detail"},
+        "title": {
+            "view_name": "sample:bigbook-detail",
+            "pk_attr": "pk",
+            "use_modal": True,
+        },
+    }, "link_fields should normalize the public shorthand and tiny-dict forms into one internal mapping shape."
+
+
+def test_core_mixin_rejects_unknown_link_field_keys():
+    class BrokenView(CoreMixin):
+        model = Author
+        fields = "__all__"
+        link_fields = {"missing_field": "sample:author-detail"}
+
+    with pytest.raises(ValueError, match="link_fields"):
+        BrokenView()
+
+
+def test_core_mixin_rejects_invalid_link_field_shapes():
+    class BrokenView(CoreMixin):
+        model = Author
+        fields = "__all__"
+        link_fields = {"name": {"url": "/authors/1/"}}
+
+    with pytest.raises(ImproperlyConfigured, match="link_fields"):
+        BrokenView()
+
+
+def test_core_mixin_rejects_non_boolean_link_field_use_modal():
+    class BrokenView(CoreMixin):
+        model = Author
+        fields = "__all__"
+        link_fields = {"name": {"view_name": "sample:author-detail", "use_modal": "yes"}}
+
+    with pytest.raises(ImproperlyConfigured, match="link_fields"):
+        BrokenView()
+
+
+@pytest.mark.django_db
+def test_core_mixin_warns_when_link_fields_overlap_inline_edit_fields(caplog):
+    class OverlapView(CoreMixin):
+        model = Book
+        fields = "__all__"
+        inline_edit_fields = ["title"]
+        link_fields = {"title": "sample:bigbook-detail"}
+
+    with caplog.at_level("WARNING"):
+        OverlapView()
+
+    assert "overlap inline_edit_fields" in caplog.text, (
+        "Config validation should log a warning when link_fields target cells that inline editing will always make non-linkable."
+    )
 
 
 def test_table_mixin_inline_edit_highlight_defaults_match_current_teal_styles():

@@ -25,10 +25,20 @@ BOOK_VIEW_KEY = f"{BookCRUDView.__module__}.{BookCRUDView.__name__}"
 def open_favourites_dropdown(page):
     """Open the filter favourites dropdown using its stable trigger selector."""
 
-    trigger = page.locator("[data-powercrud-filter-favourites-trigger='true']:visible").first
+    trigger_selector = "[data-powercrud-filter-favourites-trigger='true']:visible"
+    trigger = page.locator(trigger_selector).first
     expect(trigger).to_be_visible()
-    trigger.evaluate("(el) => el.click()")
-    expect(get_open_favourites_panel(page)).to_have_count(1)
+    trigger.click(force=True)
+    panel = get_open_favourites_panel(page)
+    try:
+        expect(panel).to_have_count(1, timeout=1500)
+    except AssertionError:
+        # HTMX reset/list swaps can leave the first click racing the refreshed toolbar.
+        # Re-resolve the visible trigger and retry once against the new DOM.
+        trigger = page.locator(trigger_selector).first
+        expect(trigger).to_be_visible()
+        trigger.click(force=True)
+        expect(panel).to_have_count(1)
 
 
 def get_open_favourites_panel(page):
