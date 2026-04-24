@@ -491,6 +491,14 @@
         });
     }
 
+    function hidePowercrudTooltips(root = document) {
+        queryAllWithSelf(root, TOOLTIP_TRIGGER_SELECTOR).forEach(trigger => {
+            if (trigger._tippy) {
+                trigger._tippy.hide();
+            }
+        });
+    }
+
     function initPowercrudTooltips(root = document) {
         const tippyCtor = getTippyCtor();
         if (!tippyCtor) {
@@ -2692,6 +2700,7 @@
     global.initPowercrudSearchableSelects = initPowercrudSearchableSelects;
     global.destroyPowercrudSearchableSelects = destroyPowercrudSearchableSelects;
     global.initPowercrudTooltips = initPowercrudTooltips;
+    global.hidePowercrudTooltips = hidePowercrudTooltips;
     global.destroyPowercrudTooltips = destroyPowercrudTooltips;
     global.powercrudToggleFavouriteSaveForm = toggleFavouriteSaveForm;
 
@@ -2718,7 +2727,25 @@
         bootstrapInlineRow();
     });
 
+    document.addEventListener('pointerdown', () => {
+        hidePowercrudTooltips(document);
+    }, true);
+
+    document.addEventListener('click', () => {
+        global.setTimeout(() => {
+            hidePowercrudTooltips(document);
+        }, 0);
+    }, true);
+
+    document.addEventListener('focusin', event => {
+        const focusedElement = asElement(event.target);
+        if (!focusedElement?.closest(TOOLTIP_TRIGGER_SELECTOR)) {
+            hidePowercrudTooltips(document);
+        }
+    }, true);
+
     global.addEventListener('pagehide', () => {
+        hidePowercrudTooltips(document);
         closeRowActionsMenu();
         closeFilterFavouritesDropdowns();
         getAffectedObjectListRoots(document).forEach(root => {
@@ -2946,6 +2973,8 @@
     }, true);
 
     document.addEventListener('htmx:beforeRequest', event => {
+        hidePowercrudTooltips(document);
+
         const target = event.detail && event.detail.elt;
         if (isShellContentNavigationTrigger(target)) {
             clearAllPendingFilterFavouriteSelections();
@@ -3122,6 +3151,8 @@
     });
 
     document.addEventListener('htmx:beforeSwap', event => {
+        hidePowercrudTooltips(document);
+
         const requestTarget = event.detail?.requestConfig?.elt || event.detail?.elt || null;
         if (
             requestTarget instanceof HTMLInputElement

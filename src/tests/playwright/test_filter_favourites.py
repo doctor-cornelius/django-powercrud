@@ -47,6 +47,12 @@ def get_open_favourites_panel(page):
     return page.locator("[data-powercrud-filter-favourites-floating-panel='true']").last
 
 
+def get_sample_navigation(page):
+    """Return the sample shell navigation."""
+
+    return page.locator("nav[aria-label='Sample navigation']")
+
+
 def install_htmx_init_script(page):
     """Install HTMX before navigation so page scripts can use it during page load."""
 
@@ -180,13 +186,13 @@ def test_filter_favourite_apply_preserves_sample_shell(
     page.wait_for_load_state("networkidle")
     ensure_htmx_available(page)
 
-    expect(page.locator("body")).to_contain_text("Home (Reload)")
+    expect(get_sample_navigation(page).get_by_role("link", name="Home")).to_be_visible()
     page.get_by_role("button", name=re.compile("show filters", re.I)).click()
     open_favourites_dropdown(page)
     select_saved_favourite(page, "Only target")
     page.wait_for_load_state("networkidle")
 
-    expect(page.locator("body")).to_contain_text("Home (Reload)")
+    expect(get_sample_navigation(page).get_by_role("link", name="Home")).to_be_visible()
     expect(page.locator("#filter-form input[name='title']")).to_have_value(target_book.title)
     expect(page.locator("#filtered_results")).to_contain_text(target_book.title)
     expect(page.locator("#filtered_results")).not_to_contain_text(other_book.title)
@@ -521,11 +527,11 @@ def test_returning_to_page_via_sample_shell_htmx_clears_selected_filter_favourit
     page.wait_for_load_state("networkidle")
     expect(page.locator("#filter-form input[name='title']")).to_have_value(target_book.title)
 
-    page.locator("a", has_text=re.compile(r"author list \(htmx\)", re.I)).click()
+    get_sample_navigation(page).locator("a", has_text="Authors").click()
     page.wait_for_load_state("networkidle")
     expect(page.locator("body")).to_contain_text("The Author Persons")
 
-    page.locator("a", has_text=re.compile(r"book list \(htmx\)", re.I)).click()
+    get_sample_navigation(page).locator("a", has_text="Books").click()
     page.wait_for_load_state("networkidle")
     expect(page.locator("#content")).to_contain_text("My List of Books")
     expect(page.locator("#filterToggleBtn")).to_be_visible()

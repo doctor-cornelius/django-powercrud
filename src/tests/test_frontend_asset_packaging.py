@@ -88,6 +88,37 @@ def test_runtime_css_exposes_tooltip_theme_variables() -> None:
     ), "Tooltip arrow selectors should consume the tooltip arrow custom property."
 
 
+def test_runtime_js_hides_tooltips_before_interactive_transitions() -> None:
+    """Runtime JS should hide active Tippy instances before modal and HTMX transitions."""
+    package_root = Path(powercrud.__file__).resolve().parent
+    runtime_js = package_root / "static" / "powercrud" / "js" / "powercrud.js"
+
+    js = runtime_js.read_text(encoding="utf-8")
+
+    assert (
+        "function hidePowercrudTooltips(root = document)" in js
+    ), "Runtime JS should expose a helper that hides active PowerCRUD Tippy instances."
+    assert (
+        "trigger._tippy.hide();" in js
+    ), "Tooltip hide helper should hide, rather than destroy, active Tippy instances during interactions."
+    assert (
+        "global.hidePowercrudTooltips = hidePowercrudTooltips;" in js
+    ), "Runtime JS should expose the tooltip hide helper for modal-opening integrations."
+    assert (
+        "document.addEventListener('pointerdown', () => {" in js
+    ), "Runtime JS should hide visible tooltips as soon as pointer interactions begin."
+    assert (
+        "document.addEventListener('click', () => {" in js
+    ), "Runtime JS should hide visible tooltips after click handlers that can open modals have run."
+    assert (
+        "document.addEventListener('focusin', event => {" in js
+    ), "Runtime JS should hide visible tooltips when focus leaves tooltip triggers."
+    assert (
+        "document.addEventListener('htmx:beforeRequest', event => {\n        hidePowercrudTooltips(document);"
+        in js
+    ), "Runtime JS should hide visible tooltips before HTMX requests can open modal content."
+
+
 def test_sample_bundle_imports_tooltip_override_css_after_powercrud_runtime_css() -> None:
     """The sample Vite entry should import app-level tooltip overrides after package runtime CSS."""
     entry_js = (
