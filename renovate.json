@@ -86,9 +86,8 @@
     },
     {
       "matchPackageNames": ["django", "Django"],
-      "allowedVersions": ">=4.2.25,<6",
-      "rangeStrategy": "update-lockfile",
-      "enabled": false
+      "allowedVersions": ">=5.2,<7",
+      "rangeStrategy": "update-lockfile"
     },
     {
       "matchManagers": ["poetry"],
