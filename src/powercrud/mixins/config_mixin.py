@@ -13,6 +13,9 @@ from powercrud.logging import get_logger
 
 log = get_logger(__name__)
 
+DEFAULT_MODAL_BOX_CLASSES = "modal-box flex max-h-[calc(100dvh-2rem)] flex-col"
+DEFAULT_MODAL_BODY_CLASSES = "min-h-0 flex-1 overflow-y-auto py-4"
+
 
 class ConfigMixin:
     """
@@ -99,6 +102,10 @@ class ConfigMixin:
     use_modal: bool | None = None
     modal_id: str | None = None
     modal_target: str | None = None
+    modal_classes: str | None = "modal"
+    modal_box_classes: str | None = DEFAULT_MODAL_BOX_CLASSES
+    modal_body_classes: str | None = DEFAULT_MODAL_BODY_CLASSES
+    bulk_modal_box_classes: str | None = None
 
     # table display parameters
     table_pixel_height_other_page_elements: int | float = 0
@@ -819,6 +826,17 @@ class ConfigMixin:
         config["modal_target_resolved"] = (
             config.get("modal_target") or "powercrudModalContent"
         )
+        config["modal_classes_resolved"] = config.get("modal_classes") or "modal"
+        config["modal_box_classes_resolved"] = (
+            config.get("modal_box_classes") or DEFAULT_MODAL_BOX_CLASSES
+        )
+        config["modal_body_classes_resolved"] = (
+            config.get("modal_body_classes") or DEFAULT_MODAL_BODY_CLASSES
+        )
+        config["bulk_modal_box_classes_resolved"] = (
+            config.get("bulk_modal_box_classes")
+            or config["modal_box_classes_resolved"]
+        )
 
         # Table presentation helpers
         config["table_pixel_height_px"] = (
@@ -982,6 +1000,17 @@ class _ConfigShim:
             return self._raw("modal_id") or "powercrudBaseModal"
         if name == "modal_target_resolved":
             return self._raw("modal_target") or "powercrudModalContent"
+        if name == "modal_classes_resolved":
+            return self._raw("modal_classes") or "modal"
+        if name == "modal_box_classes_resolved":
+            return self._raw("modal_box_classes") or DEFAULT_MODAL_BOX_CLASSES
+        if name == "modal_body_classes_resolved":
+            return self._raw("modal_body_classes") or DEFAULT_MODAL_BODY_CLASSES
+        if name == "bulk_modal_box_classes_resolved":
+            return (
+                self._raw("bulk_modal_box_classes")
+                or self.__getattr__("modal_box_classes_resolved")
+            )
         if name == "table_pixel_height_px":
             value = self._raw("table_pixel_height_other_page_elements", 0) or 0
             return f"{value}px"

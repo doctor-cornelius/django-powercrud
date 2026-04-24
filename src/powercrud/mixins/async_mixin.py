@@ -452,6 +452,10 @@ class AsyncMixin:
         # Return async success response with task_name for progress polling
         template = f"{self.templates_path}/bulk_edit_form.html#async_queue_success"
         progress_url = reverse("powercrud:async_progress")
+        modal_context_getter = getattr(self, "get_modal_context", None)
+        modal_context = (
+            modal_context_getter() if callable(modal_context_getter) else {}
+        )
         response = render(
             request,
             template,
@@ -460,6 +464,7 @@ class AsyncMixin:
                 "selected_count": len(selected_ids),
                 "model_name_plural": self.model._meta.verbose_name_plural,
                 "progress_url": progress_url,
+                **modal_context,
             },
         )
         response["HX-ReTarget"] = self.get_modal_target()

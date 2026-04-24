@@ -107,6 +107,12 @@ def test_select_all_matching_endpoint_expands_session_selection_and_triggers_ref
     assert "Bulk Edit <span id=\"selected-items-counter\">16</span>" in response.content.decode(), (
         "Select-all matching endpoint should return the updated bulk-actions toolbar count."
     )
+    assert 'hx-target="#powercrudModalContent"' in response.content.decode(), (
+        "Bulk-action toolbar partials should keep the default modal target when rendered outside the full list context."
+    )
+    assert "document.getElementById('powercrudBaseModal').showModal();" in response.content.decode(), (
+        "Bulk-action toolbar partials should keep the default modal opener when rendered outside the full list context."
+    )
 
 
 @pytest.mark.django_db

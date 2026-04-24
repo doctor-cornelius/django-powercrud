@@ -61,6 +61,10 @@ class PowerCRUDMixinValidator(BaseModel):
     use_modal: Optional[bool] = None
     modal_id: Optional[str] = None
     modal_target: Optional[str] = None
+    modal_classes: Optional[str] = None
+    modal_box_classes: Optional[str] = None
+    modal_body_classes: Optional[str] = None
+    bulk_modal_box_classes: Optional[str] = None
 
     # table display parameters
     table_pixel_height_other_page_elements: Optional[Union[int, float]] = Field(

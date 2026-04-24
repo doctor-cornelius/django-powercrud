@@ -64,6 +64,10 @@ def test_validator_accepts_valid_payload():
         use_modal=False,
         modal_id="modal",
         modal_target="target",
+        modal_classes="modal modal-bottom sm:modal-middle",
+        modal_box_classes="modal-box w-11/12 max-w-4xl",
+        modal_body_classes="py-6",
+        bulk_modal_box_classes="modal-box w-11/12 max-w-6xl",
         use_htmx=True,
         default_htmx_target="#content",
         hx_trigger={"refresh": True},
@@ -74,6 +78,9 @@ def test_validator_accepts_valid_payload():
         table_max_col_width=20,
     )
     assert validator.hx_trigger == {"refresh": True}
+    assert validator.modal_box_classes == "modal-box w-11/12 max-w-4xl", (
+        "Modal class settings should be valid PowerCRUD configuration options."
+    )
 
 
 def test_validator_rejects_bad_hx_trigger():

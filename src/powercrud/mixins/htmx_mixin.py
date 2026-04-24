@@ -74,7 +74,10 @@ class HtmxMixin:
                 # default colour for extra action buttons
                 "extra_default": "btn-accent",
                 # modal class attributes
-                "modal_attrs": f'onclick="{self.get_modal_id()[1:]}.showModal()"',
+                "modal_attrs": (
+                    'data-powercrud-modal-trigger="true" '
+                    f"onclick=\"document.getElementById('{self.get_modal_id()[1:]}').showModal()\""
+                ),
             },
         }
 
@@ -137,6 +140,43 @@ class HtmxMixin:
             str: The modal target ID with a '#' prefix
         """
         return f"#{resolve_config(self).modal_target_resolved}"
+
+    def get_modal_classes(self) -> str:
+        """
+        Return CSS classes for the PowerCRUD modal dialog element.
+        """
+        return str(resolve_config(self).modal_classes_resolved)
+
+    def get_modal_box_classes(self) -> str:
+        """
+        Return CSS classes for the PowerCRUD modal box element.
+        """
+        return str(resolve_config(self).modal_box_classes_resolved)
+
+    def get_modal_body_classes(self) -> str:
+        """
+        Return CSS classes for the PowerCRUD modal body wrapper.
+        """
+        return str(resolve_config(self).modal_body_classes_resolved)
+
+    def get_bulk_modal_box_classes(self) -> str:
+        """
+        Return CSS classes for the modal box used by the built-in bulk edit action.
+        """
+        return str(resolve_config(self).bulk_modal_box_classes_resolved)
+
+    def get_modal_context(self) -> dict[str, str]:
+        """
+        Return template context values needed to render and target the modal shell.
+        """
+        return {
+            "modal_id": self.get_modal_id()[1:],
+            "modal_target": self.get_modal_target()[1:],
+            "modal_classes": self.get_modal_classes(),
+            "modal_box_classes": self.get_modal_box_classes(),
+            "modal_body_classes": self.get_modal_body_classes(),
+            "bulk_modal_box_classes": self.get_bulk_modal_box_classes(),
+        }
 
     def get_hx_trigger(self):
         """

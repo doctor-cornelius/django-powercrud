@@ -49,6 +49,8 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
     default_htmx_target = "#content"
     modal_id = "projectModal"
     modal_target = "projectModalContent"
+    modal_box_classes = "modal-box flex max-h-[calc(100dvh-2rem)] w-11/12 max-w-4xl flex-col"
+    bulk_modal_box_classes = "modal-box flex max-h-[calc(100dvh-2rem)] w-11/12 max-w-6xl flex-col"
     hx_trigger = {
         "projectsChanged": True,
         "refreshSidebar": True,
@@ -159,6 +161,7 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
             "selection_min_count": 1,
             "selection_min_behavior": "disable",
             "selection_min_reason": "Select at least one project first.",
+            "modal_box_classes": "modal-box flex max-h-[calc(100dvh-2rem)] w-11/12 max-w-5xl flex-col",
         },
     ]
 
@@ -180,6 +183,7 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
             "display_modal": True,
             "disabled_if": "is_history_action_disabled",
             "disabled_reason": "get_history_action_disabled_reason",
+            "modal_box_classes": "modal-box flex max-h-[calc(100dvh-2rem)] w-11/12 max-w-5xl flex-col",
         },
     ]
 
@@ -236,7 +240,9 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
 - `extra_actions_dropdown_open_upward_bottom_rows = 3` makes the `More` menu open upward for the last three rendered rows on the current page. Set it to `0` if you want every dropdown to keep opening downward.
 - `uses_selection = True` turns a header button into a selection-aware action that reads the persisted PowerCRUD selection at the endpoint.
 - `selection_min_behavior = "disable"` lets the frontend grey out a selection-aware header button until enough rows are selected, but the endpoint should still validate the selection server-side.
+- `modal_box_classes` on a modal `extra_buttons` item replaces the view-level modal box classes only while that button's modal is open. Keep `flex max-h-[calc(100dvh-2rem)] flex-col` in the string if you want the supplied viewport-bounded behavior plus a custom width.
 - `disabled_if` / `disabled_reason` let row `extra_actions` disable themselves per object using named view methods.
+- `modal_box_classes` works the same way on modal `extra_actions`, including actions rendered inside the dropdown `More` menu.
 - `inline_edit_fields` is the current inline-editing configuration. Older `inline_edit_enabled` usage is legacy and should not be used in new code.
 - `inline_edit_always_visible = True` is the current default, so editable cells keep a subtle resting hint unless you disable it.
 - `inline_edit_highlight_accent = "#14b8a6"` is the current default accent. PowerCRUD derives the lighter resting tint and stronger hover/focus tint from that single hex value.

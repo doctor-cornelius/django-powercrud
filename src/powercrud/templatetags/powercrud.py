@@ -17,6 +17,7 @@ from datetime import date, datetime  # Import both date and datetime classes
 from typing import Any, Dict, List, Optional
 
 from django import template
+from django.utils.html import conditional_escape
 from django.utils.safestring import mark_safe
 from django.utils.translation import gettext_lazy as _
 from django.db import models
@@ -251,6 +252,7 @@ def _render_action_anchor(
     lock_label: str | None,
     use_htmx: bool,
     query_string: str,
+    modal_box_classes: str | None = None,
 ) -> str:
     """
     Render a single row-action anchor with HTMX and disabled metadata.
@@ -275,6 +277,11 @@ def _render_action_anchor(
 
     if show_modal and modal_attrs:
         attrs.append(modal_attrs)
+        if modal_box_classes:
+            attrs.append(
+                "data-powercrud-modal-box-classes="
+                f"'{conditional_escape(str(modal_box_classes))}'"
+            )
 
     if disable and lock_label:
         attrs.append("aria-disabled='true'")
@@ -584,6 +591,7 @@ def action_links(view: Any, object: Any) -> str:
                 "hx_post": False,
                 "show_modal": use_modal,
                 "modal_attrs": styles["modal_attrs"],
+                "modal_box_classes": "",
                 "disable": disable,
                 "disabled_reason": disabled_reason,
             }
@@ -607,6 +615,9 @@ def action_links(view: Any, object: Any) -> str:
             display_modal = action.get("display_modal", use_modal)
             show_modal: bool = display_modal if use_modal else False
             modal_attrs: str = styles["modal_attrs"] if show_modal else " "
+            modal_box_classes: str = (
+                str(action.get("modal_box_classes") or "") if show_modal else ""
+            )
 
             disable_extra, disabled_reason = _resolve_extra_action_disabled_state(
                 view=view,
@@ -626,6 +637,7 @@ def action_links(view: Any, object: Any) -> str:
                     "hx_post": action.get("hx_post", False),
                     "show_modal": show_modal,
                     "modal_attrs": modal_attrs,
+                    "modal_box_classes": modal_box_classes,
                     "disable": disable_extra,
                     "disabled_reason": disabled_reason,
                 }
@@ -646,6 +658,7 @@ def action_links(view: Any, object: Any) -> str:
             lock_label=action.get("disabled_reason"),
             use_htmx=use_htmx,
             query_string=query_string,
+            modal_box_classes=action["modal_box_classes"],
         )
         for action in standard_action_items
     ]
@@ -665,6 +678,7 @@ def action_links(view: Any, object: Any) -> str:
                 lock_label=action.get("disabled_reason") or lock_label,
                 use_htmx=use_htmx,
                 query_string=query_string,
+                modal_box_classes=action["modal_box_classes"],
             )
             + "</li>"
             for action in extra_action_items
@@ -696,6 +710,7 @@ def action_links(view: Any, object: Any) -> str:
                 lock_label=action.get("disabled_reason") or lock_label,
                 use_htmx=use_htmx,
                 query_string=query_string,
+                modal_box_classes=action["modal_box_classes"],
             )
             for action in extra_action_items
         ]
@@ -1252,6 +1267,7 @@ def extra_buttons(context: Dict[str, Any], view: Any) -> str:
         selection_state = _get_selection_button_state(view, request, button)
         display_modal = button.get("display_modal", False) and use_modal
         modal_attrs = ""
+        modal_box_attrs = ""
         extra_attrs = button.get("extra_attrs", "")
         extra_class_attrs = button.get("extra_class_attrs", "")
 
@@ -1271,6 +1287,14 @@ def extra_buttons(context: Dict[str, Any], view: Any) -> str:
                     if htmx_target and not htmx_target.startswith("#"):
                         htmx_target = f"#{htmx_target}"
                     modal_attrs = styles.get("modal_attrs", "")
+                    if button.get("modal_box_classes"):
+                        escaped_modal_box_classes = conditional_escape(
+                            str(button["modal_box_classes"])
+                        )
+                        modal_box_attrs = (
+                            'data-powercrud-modal-box-classes="'
+                            f'{escaped_modal_box_classes}"'
+                        )
                 else:
                     htmx_target = button.get("htmx_target", "")
                     if htmx_target and not htmx_target.startswith("#"):
@@ -1314,7 +1338,7 @@ def extra_buttons(context: Dict[str, Any], view: Any) -> str:
                 f'<a href="{url}" '
                 f'class="{extra_class_attrs} {styles["base"]} {extra_button_classes} {button_class}{disabled_classes}" '
                 f"{extra_attrs} {htmx_attrs_str} "
-                f"{' '.join(disabled_attrs)} {modal_attrs}>"
+                f"{' '.join(disabled_attrs)} {modal_attrs} {modal_box_attrs}>"
                 f"{button['text']}</a>"
             )
 

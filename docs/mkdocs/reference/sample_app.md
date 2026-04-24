@@ -134,6 +134,7 @@ The sample `BookCRUDView` now also demonstrates both custom action enhancements 
 
 - a selection-aware `extra_button` that opens a modal summary for the current persisted bulk selection
 - a row-level `extra_action` that disables itself with a tooltip when the book has no description
+- per-trigger modal sizing on a modal `extra_button` and modal `extra_actions` through `modal_box_classes`
 - semantic field-level list-cell tooltips on the `title` field and `isbn_empty` property
 - declarative list-cell linking on the non-inline `Really Long Title` property column
 - an active sample app-level tooltip theme override through `--pc-tooltip-bg` / `--pc-tooltip-fg`
@@ -288,6 +289,12 @@ extra_actions_dropdown_open_upward_bottom_rows = 5
 
 extra_buttons = [
     {
+        "url_name": "home",
+        "text": "Home in Modal!",
+        "display_modal": True,
+        "modal_box_classes": "modal-box flex max-h-[calc(100dvh-2rem)] w-11/12 max-w-3xl flex-col",
+    },
+    {
         "url_name": "sample:bigbook-selected-summary",
         "text": "Selected Summary",
         "display_modal": True,
@@ -305,11 +312,12 @@ extra_actions = [
         "display_modal": True,
         "disabled_if": "is_description_preview_disabled",
         "disabled_reason": "get_description_preview_disabled_reason",
+        "modal_box_classes": "modal-box flex max-h-[calc(100dvh-2rem)] w-11/12 max-w-5xl flex-col",
     },
 ]
 ```
 
-That lets the sample app demonstrate both selection-aware header actions and conditionally disabled row actions in the same CRUD surface.
+That lets the sample app demonstrate selection-aware header actions, conditionally disabled row actions, and per-trigger modal sizing in the same CRUD surface. `Selected Summary` intentionally uses the view default modal width, while `Home in Modal!` shows a header-button override. The `modal_box_classes` entries are full replacement strings: they keep the default viewport-height classes and add per-trigger width classes for those specific modal calls.
 
 ## Management Commands
 

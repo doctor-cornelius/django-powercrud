@@ -1,0 +1,20 @@
+{# Tailwind source classes for runtime modal class defaults: max-h-[calc(100dvh-2rem)] min-h-0 flex flex-1 flex-col overflow-y-auto py-4 #}
+<dialog id="{{ modal_id }}" class="{{ modal_classes }}" data-powercrud-modal>
+    <div class="{{ modal_box_classes }}"
+         data-powercrud-modal-box
+         data-powercrud-default-modal-box-classes="{{ modal_box_classes }}">
+        <form method="dialog">
+            <button type="submit"
+                    class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2"
+                    aria-label="Close modal"
+                    title="Close">
+                ✕
+            </button>
+        </form>
+
+        <div id="{{ modal_target }}" class="{{ modal_body_classes }}"></div>
+    </div>
+    <form method="dialog" class="modal-backdrop">
+        <button>close</button>
+    </form>
+</dialog>

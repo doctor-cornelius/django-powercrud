@@ -17,6 +17,7 @@ from powercrud.mixins.paginate_mixin import PaginateMixin
 from powercrud.mixins.url_mixin import UrlMixin
 
 from sample.models import Author, Book, Genre, Profile
+from sample import views as sample_views
 
 
 @pytest.mark.django_db
@@ -1686,6 +1687,65 @@ def test_book_list_renders_modal_with_explicit_close_button(client):
     assert 'class="modal-backdrop"' in response_text, (
         "The shared PowerCRUD modal should continue to render the backdrop close affordance."
     )
+    assert 'data-powercrud-modal' in response_text, (
+        "The shared PowerCRUD modal should expose a stable frontend hook."
+    )
+    assert 'data-powercrud-modal-box' in response_text, (
+        "The shared PowerCRUD modal box should expose a stable frontend hook for sizing."
+    )
+    assert 'class="modal-box flex max-h-[calc(100dvh-2rem)] flex-col"' in response_text, (
+        "The default modal box should be bounded to the viewport."
+    )
+    assert 'class="min-h-0 flex-1 overflow-y-auto py-4"' in response_text, (
+        "The default modal body should scroll when modal content exceeds the viewport."
+    )
+
+
+@pytest.mark.django_db
+def test_book_list_renders_custom_modal_context(client, monkeypatch):
+    """Render configured modal IDs, targets, and class hooks in the shared modal shell."""
+    monkeypatch.setattr(sample_views.BookCRUDView, "modal_id", "customBookModal")
+    monkeypatch.setattr(sample_views.BookCRUDView, "modal_target", "customBookModalContent")
+    monkeypatch.setattr(sample_views.BookCRUDView, "modal_classes", "modal modal-bottom sm:modal-middle")
+    monkeypatch.setattr(
+        sample_views.BookCRUDView,
+        "modal_box_classes",
+        "modal-box w-11/12 max-w-4xl",
+    )
+    monkeypatch.setattr(sample_views.BookCRUDView, "modal_body_classes", "py-6")
+    monkeypatch.setattr(
+        sample_views.BookCRUDView,
+        "bulk_modal_box_classes",
+        "modal-box w-11/12 max-w-6xl",
+    )
+
+    response = client.get(reverse("sample:bigbook-list"))
+    response_text = " ".join(response.content.decode().split())
+
+    assert response.status_code == 200, (
+        "Book list view should render successfully with customized modal settings."
+    )
+    assert 'id="customBookModal"' in response_text, (
+        "The modal shell should use the configured modal_id."
+    )
+    assert 'id="customBookModalContent"' in response_text, (
+        "The modal shell should use the configured modal_target."
+    )
+    assert 'class="modal modal-bottom sm:modal-middle"' in response_text, (
+        "The modal shell should render configured dialog classes."
+    )
+    assert 'class="modal-box w-11/12 max-w-4xl"' in response_text, (
+        "The modal box should render configured default classes."
+    )
+    assert 'class="py-6"' in response_text, (
+        "The modal content target should render configured body classes."
+    )
+    assert 'hx-target="#customBookModalContent"' in response_text, (
+        "Modal triggers should target the configured modal content element."
+    )
+    assert 'data-powercrud-modal-box-classes="modal-box w-11/12 max-w-6xl"' in response_text, (
+        "The built-in bulk edit trigger should expose configured bulk modal box classes."
+    )
 
 
 @pytest.mark.django_db
@@ -1720,6 +1780,30 @@ def test_book_list_renders_selection_aware_extra_button(client):
     assert "Selected Summary" in response_text, (
         "Sample book list should render the configured selection-aware extra button label."
     )
+    selected_summary_index = response_text.find("Selected Summary")
+    selected_summary_anchor_start = response_text.rfind("<a ", 0, selected_summary_index)
+    selected_summary_anchor_end = response_text.find(">", selected_summary_anchor_start)
+    selected_summary_link = response_text[
+        selected_summary_anchor_start:selected_summary_anchor_end
+    ]
+    assert selected_summary_anchor_start != -1 and selected_summary_anchor_end != -1, (
+        "Sample book list should render Selected Summary as a modal header button."
+    )
+    assert "selected-summary" in selected_summary_link, (
+        "Selected Summary should point at the sample selected-summary endpoint."
+    )
+    assert "data-powercrud-modal-box-classes" not in selected_summary_link, (
+        "Selected Summary should use the view default modal width rather than a per-button override."
+    )
+    assert "Home in Modal!" in response_text, (
+        "Sample book list should keep a separate modal header button for per-button sizing."
+    )
+    assert (
+        'data-powercrud-modal-box-classes="modal-box flex max-h-[calc(100dvh-2rem)] '
+        'w-11/12 max-w-3xl flex-col"'
+    ) in response_text, (
+        "Home in Modal should demonstrate per-button modal sizing without changing Selected Summary."
+    )
 
 
 @pytest.mark.django_db
@@ -1750,6 +1834,12 @@ def test_book_list_renders_disabled_extra_action_with_reason(client):
     )
     assert "btn-disabled opacity-50 pointer-events-none" in response_text, (
         "Sample book list should render disabled styling for custom-disabled extra actions."
+    )
+    assert (
+        "data-powercrud-modal-box-classes='modal-box flex max-h-[calc(100dvh-2rem)] "
+        "w-11/12 max-w-5xl flex-col'"
+    ) in response_text, (
+        "Sample modal extra action should demonstrate per-action modal sizing."
     )
 
 

@@ -119,6 +119,7 @@ extra_buttons = [
         "selection_min_count": 1,
         "selection_min_behavior": "disable",
         "selection_min_reason": "Select at least one row first.",
+        "modal_box_classes": "modal-box flex max-h-[calc(100dvh-2rem)] w-11/12 max-w-5xl flex-col",
     },
 ]
 ```
@@ -134,6 +135,7 @@ Selection-aware header buttons read the current persisted PowerCRUD bulk selecti
     | `button_class` | `str` | CSS class applied to the button, such as `btn-primary` or `btn-success`. |
     | `needs_pk` | `bool` | Usually `False` for header buttons because they are page-level actions rather than row-level actions. |
     | `display_modal` | `bool` | If `True`, PowerCRUD opens the response in the standard modal target instead of treating it as a normal page/content navigation. |
+    | `modal_box_classes` | `str` | Optional replacement classes for the shared modal box while this modal button is open. Use it for one-off width/height changes, and keep the default `flex max-h-[calc(100dvh-2rem)] flex-col` classes if you still want viewport-bounded scrolling. |
     | `htmx_target` | `str` | HTMX target element to swap into when the button is clicked and it is not using the default modal target. |
     | `extra_attrs` | `str` | Raw HTML attributes appended to the button element when you need custom HTMX or data attributes. |
     | `extra_class_attrs` | `str` | Extra CSS classes appended to the button in addition to `button_class`. |
@@ -167,6 +169,7 @@ class AuthorCRUDView(PowerCRUDMixin, CRUDView):
             "display_modal": True,
             "disabled_if": "is_view_again_disabled",
             "disabled_reason": "get_view_again_disabled_reason",
+            "modal_box_classes": "modal-box flex max-h-[calc(100dvh-2rem)] w-11/12 max-w-5xl flex-col",
         },
     ]
 
@@ -190,6 +193,7 @@ class AuthorCRUDView(PowerCRUDMixin, CRUDView):
     | `needs_pk` | `bool` | Usually `True` for row actions so PowerCRUD includes the current row primary key in the URL. |
     | `button_class` | `str` | CSS class used when the action is rendered as a visible button. |
     | `display_modal` | `bool` | If `True`, the response opens in the standard modal instead of replacing page content. |
+    | `modal_box_classes` | `str` | Optional replacement classes for the shared modal box while this modal action is open. Use it for one-off width/height changes, and keep the default `flex max-h-[calc(100dvh-2rem)] flex-col` classes if you still want viewport-bounded scrolling. |
     | `htmx_target` | `str` | HTMX target element used for non-modal actions when you need a custom swap target. |
     | `hx_post` | `bool` | If `True`, renders the action as an HTMX POST instead of the default GET. |
     | `lock_sensitive` | `bool` | Reuses PowerCRUD's existing blocked-row/lock logic so the action disables automatically when the row is not currently actionable. |
@@ -267,7 +271,49 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
     use_modal = True
 ```
 
-Modal behaviour piggybacks on HTMX. Set `use_htmx = True` first, then `use_modal = True` to have create/edit/delete views load into the default dialog (`powercrudBaseModal` / `powercrudModalContent`). If your base template already defines modal markup, override `modal_id` / `modal_target` to match your DOM IDs. When forms fail validation, the mixin keeps the modal open and injects an HX-Trigger so the dialog re-renders with error feedback.
+Modal behaviour piggybacks on HTMX:
+
+- Set `use_htmx = True` first.
+- Set `use_modal = True` to load create, edit, delete, bulk, and modal-enabled custom actions into the shared dialog.
+- By default, PowerCRUD renders `powercrudBaseModal` as the dialog and `powercrudModalContent` as the HTMX content target.
+- The supplied modal is viewport-bounded by default: the modal box uses `max-h-[calc(100dvh-2rem)]`, and the modal content target scrolls with `overflow-y-auto`.
+- When a modal form fails validation, PowerCRUD keeps the modal open and retargets the error response back into the modal content area.
+
+Common modal settings:
+
+| Setting | Use it for |
+| --- | --- |
+| `modal_id` | Match a custom dialog DOM id when you provide your own modal shell. Do not include `#`. |
+| `modal_target` | Match the DOM id that receives HTMX modal content. Do not include `#`. |
+| `modal_classes` | Change classes on the shared daisyUI `<dialog>` element. |
+| `modal_box_classes` | Replace the default modal box classes for the whole view. Keep the default flex and `max-h-*` classes if you only want to add width. |
+| `modal_body_classes` | Replace classes on the modal content target wrapper. Keep `min-h-0 flex-1 overflow-y-auto` if modal content should scroll inside the dialog. |
+| `bulk_modal_box_classes` | Replace the modal box classes only while the built-in Bulk Edit modal is open. |
+
+Example wider modal defaults:
+
+```python
+class ProjectCRUDView(PowerCRUDMixin, CRUDView):
+    # …
+    use_htmx = True
+    use_modal = True
+
+    modal_box_classes = "modal-box flex max-h-[calc(100dvh-2rem)] w-11/12 max-w-4xl flex-col"
+    bulk_modal_box_classes = "modal-box flex max-h-[calc(100dvh-2rem)] w-11/12 max-w-6xl flex-col"
+```
+
+Individual modal `extra_buttons` and `extra_actions` may also set `modal_box_classes` when one action needs different sizing:
+
+```python
+extra_actions = [
+    {
+        "url_name": "projects:timeline",
+        "text": "Timeline",
+        "display_modal": True,
+        "modal_box_classes": "modal-box flex max-h-[calc(100dvh-2rem)] w-11/12 max-w-5xl flex-col",
+    },
+]
+```
 
 ### Pagination
 

@@ -21,6 +21,7 @@ Types are shown next to each setting name. `Accepted values` is the contract for
 | `bulk_fields` (`list[str]`) | `list[str]` | `[]` | Bulk edit form is disabled | Editable model fields exposed in the bulk edit form. Non-editable fields raise a configuration error. | [Bulk editing (synchronous)](../guides/bulk_edit_sync.md) |
 | `bulk_full_clean` (`bool`) | `True`, `False` | `True` | Each object runs `full_clean()` during bulk edits | Skip expensive validation by setting to `False`. | [Bulk editing (synchronous)](../guides/bulk_edit_sync.md) |
 | `bulk_min_async_records` (`int`) | `int` | `20` | Async path activates when at least 20 rows are selected | Threshold for switching from sync to async bulk operations. | [Bulk editing (async)](../guides/bulk_edit_async.md) |
+| `bulk_modal_box_classes` (`str`) | `None` or `str` | `None` | Uses `modal_box_classes` | CSS classes that replace the shared modal box classes when the built-in Bulk Edit action opens the modal. Include the default viewport-height classes if Bulk Edit should stay internally scrollable. | [Setup & Core CRUD basics](../guides/setup_core_crud.md#modals) |
 | `column_alignments` (`dict[str, str]`) | `None` or `dict[str, 'left' \| 'center' \| 'right']` | `None` | Rendered list body cells use the built-in type-based alignment heuristic | Override list body-cell alignment for specific rendered fields or properties by name. Unconfigured columns keep the default heuristic. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
 | `column_help_text` (`dict[str, str]`) | `None` or `dict[str, str]` | `None` | Column headers render without help icons | Add plain-text help tooltips to specific list headers by field/property name. Only configured columns show the adjacent info trigger. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
 | `column_sort_fields_override` (`dict[str, str]`) | `None` or `dict[str, str]` | `None` | Sortable list columns use their own field names, except direct relations with a concrete `name` field which default to `field__name` | Override the queryset `order_by()` expression used when a visible list column header is clicked. Keys are visible column names; values are Django ordering expressions such as `"author__name"` or `"customer__code"`. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
@@ -32,11 +33,11 @@ Types are shown next to each setting name. `Accepted values` is the contract for
 | `detail_properties_exclude` (`list[str]`) | `list[str]` | `[]` | All listed detail properties render | Remove specific properties from the detail page. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
 | `dropdown_sort_options` (`dict`) | `dict[str, str]` | `{}` | PowerCRUD orders dropdowns by `name/title/...` heuristics | Explicit ordering for dropdowns in filters, forms, and bulk edit widgets. | [Bulk editing (synchronous)](../guides/bulk_edit_sync.md) |
 | `exclude` (`list[str]`) | `list[str]` | `[]` | Every concrete model field is shown | Remove individual fields from the list view while keeping the rest. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
-| `extra_actions` (`list[dict]`) | `list[action spec]` | `[]` | Only the default action buttons render | Define extra per-row actions (URL, label, attributes). | [Complete Example](complete_example.md) |
+| `extra_actions` (`list[dict]`) | `list[action spec]` | `[]` | Only the default action buttons render | Define extra per-row actions (URL, label, attributes). Modal actions may set per-trigger `modal_box_classes` for custom width/height. | [Complete Example](complete_example.md) |
 | `extra_actions_mode` (`str`) | `'buttons'`, `'dropdown'` | `'buttons'` | Extra row actions render as visible buttons after the standard actions | Control how row-level `extra_actions` are rendered. Use `'dropdown'` to keep `View/Edit/Delete` visible and move only the extra row actions into a `More` overflow menu. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
 | `extra_actions_dropdown_open_upward_bottom_rows` (`int`) | `int >= 0` | `3` | All `More` menus open downward | In dropdown mode, open the `More` menu upward for the last N rendered rows on the current page. Set `0` to disable this behavior. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
 | `extra_button_classes` (`str`) | `str` | `""` | Extra buttons use the default button styling | Additional CSS classes shared by every entry in `extra_buttons`. | [Styling & Tailwind](../guides/styling_tailwind.md) |
-| `extra_buttons` (`list[dict]`) | `list[button spec]` | `[]` | No extra header buttons are shown | Add top-of-page buttons (e.g., custom actions, links). | [Complete Example](complete_example.md) |
+| `extra_buttons` (`list[dict]`) | `list[button spec]` | `[]` | No extra header buttons are shown | Add top-of-page buttons (e.g., custom actions, links). Modal buttons may set per-trigger `modal_box_classes` for custom width/height. | [Complete Example](complete_example.md) |
 | `filter_favourites_enabled` (`bool`) | `True`, `False` | `False` | No saved-favourites toolbar is rendered | Enable the optional saved filter favourites UI for this list view when the `powercrud.contrib.favourites` app is installed and `powercrud.urls` is mounted under the `powercrud` namespace. | [Saved Filter Favourites](../guides/advanced/filter_favourites.md) |
 | `fields` (`list/str`) | `None`, `'__all__'`, `list[str]` | `'__all__'` | All concrete model fields show in the list view | Columns displayed in the list view. Combine with `exclude`. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
 | `filter_null_fields_exclude` (`list[str]`) | `list[str]` | `[]` | Nullable auto-generated filters gain built-in null filtering | Opt out specific `filterset_fields` from automatic null-filter controls. | [Filter controls](#filter-controls) |
@@ -60,6 +61,9 @@ Types are shown next to each setting name. `Accepted values` is the contract for
 | `link_fields` (`dict[str, str \| dict[str, str \| bool]]`) | `None` or mapping of rendered field/property name to either `view_name` string or `{"view_name": str, "pk_attr": str, "use_modal": bool}` | `None` | List cells render as plain text/value output | Make selected rendered list cells clickable. String shorthand uses the named view plus a default pk source (`<field>_id` for relation fields, row `pk` otherwise). Dict form is intentionally narrow and only supports `view_name` plus optional `pk_attr` / `use_modal`. When `use_modal=True`, PowerCRUD reuses the existing modal target/framework attrs and falls back to a normal anchor if modal support is not active. Inline-editable cells are never linked. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
 | `list_cell_tooltip_fields` (`list[str]`) | `None` or `list[str]` | `None` | No semantic list-cell tooltips are rendered | Opt specific rendered list fields/properties into semantic cell tooltips. PowerCRUD only evaluates configured names that are actually visible in the current list and silently ignores configured names that are not rendered. Hook-backed semantic cell tooltip text may include newline characters for multiline display. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
 | `m2m_filter_and_logic` (`bool`) | `True`, `False` | `False` | Multi-select filters use OR logic | Switch ManyToMany filters to AND logic. | [Filter controls](#filter-controls) |
+| `modal_body_classes` (`str`) | `None` or `str` | `'min-h-0 flex-1 overflow-y-auto py-4'` | Falls back to `'min-h-0 flex-1 overflow-y-auto py-4'` | CSS classes applied to the modal content target wrapper. The default makes overflowing modal content scroll inside the dialog. | [Setup & Core CRUD basics](../guides/setup_core_crud.md#modals) |
+| `modal_box_classes` (`str`) | `None` or `str` | `'modal-box flex max-h-[calc(100dvh-2rem)] flex-col'` | Falls back to `'modal-box flex max-h-[calc(100dvh-2rem)] flex-col'` | CSS classes applied to the shared daisyUI modal box. Use this for view-level width sizing while keeping the default viewport-height classes, such as `'modal-box flex max-h-[calc(100dvh-2rem)] w-11/12 max-w-4xl flex-col'`. | [Setup & Core CRUD basics](../guides/setup_core_crud.md#modals) |
+| `modal_classes` (`str`) | `None` or `str` | `'modal'` | Falls back to `'modal'` | CSS classes applied to the shared daisyUI `<dialog>` element. | [Setup & Core CRUD basics](../guides/setup_core_crud.md#modals) |
 | `modal_id` (`str`) | `None` or `str` | `None` | Falls back to `'powercrudBaseModal'` | DOM id of the modal element (without `#`). | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
 | `modal_target` (`str`) | `None` or `str` | `None` | Falls back to `'powercrudModalContent'` | DOM id of the element that receives modal content. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
 | `model` (`Model`) | Django model class | **Required** | PowerCRUD cannot run without a model | Django model class for the CRUD view. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
@@ -265,6 +269,12 @@ Selection-aware buttons can opt into the current persisted bulk selection:
 ```python
 extra_buttons = [
     {
+        "url_name": "projects:summary-help",
+        "text": "Summary Help",
+        "display_modal": True,
+        "modal_box_classes": "modal-box flex max-h-[calc(100dvh-2rem)] w-11/12 max-w-3xl flex-col",
+    },
+    {
         "url_name": "projects:selected-summary",
         "text": "Selected Summary",
         "display_modal": True,
@@ -281,6 +291,7 @@ Notes:
 - `uses_selection` defaults to `False`.
 - `selection_min_count` defaults to `0`.
 - `selection_min_behavior` accepts `'allow'` or `'disable'` and defaults to `'allow'`.
+- `modal_box_classes` is only used when `display_modal=True`; it replaces the view-level `modal_box_classes` while that button's modal is open. Omit it when the button should use the default modal width.
 - When `uses_selection=True`, the endpoint contract is “operate on current persisted PowerCRUD selection”.
 - The endpoint should still validate selection size, permissions, and lock rules server-side.
 
@@ -293,6 +304,7 @@ Notes:
     | `button_class` | `str` | Framework-specific button styling class such as `btn-primary`. |
     | `needs_pk` | `bool` | Should usually stay `False` for header buttons because they are not tied to a single row. |
     | `display_modal` | `bool` | Opens the response in the standard modal target when `True`. |
+    | `modal_box_classes` | `str` | Replacement classes for the shared modal box while this modal button is open. Use it for per-button width/height changes, and keep the default viewport-height classes if the modal should stay internally scrollable. |
     | `htmx_target` | `str` | HTMX target element to update for non-modal or custom-target flows. |
     | `extra_attrs` | `str` | Raw HTML attributes appended to the button element. |
     | `extra_class_attrs` | `str` | Additional CSS classes appended after the standard button classes. |
@@ -324,6 +336,7 @@ extra_actions = [
         "display_modal": True,
         "disabled_if": "is_view_again_disabled",
         "disabled_reason": "get_view_again_disabled_reason",
+        "modal_box_classes": "modal-box flex max-h-[calc(100dvh-2rem)] w-11/12 max-w-5xl flex-col",
     },
 ]
 ```
@@ -335,6 +348,7 @@ Notes:
 - In dropdown mode, the `More` trigger uses the framework’s `extra_default` button styling unless you override the framework styles.
 - `extra_actions_dropdown_open_upward_bottom_rows` counts from the bottom of the currently rendered rows after filtering and pagination.
 - Set `extra_actions_dropdown_open_upward_bottom_rows = 0` to keep every dropdown opening downward.
+- `modal_box_classes` is only used when `display_modal=True`; it replaces the view-level `modal_box_classes` while this row action's modal is open.
 - `disabled_if` and `disabled_reason` are optional view method names used to disable a row action based on the current object and request.
 - `lock_sensitive` remains available when an action should also disable under PowerCRUD's existing lock/blocked-row state.
 
@@ -347,6 +361,7 @@ Notes:
     | `needs_pk` | `bool` | Usually `True` so the row primary key is included in the URL. |
     | `button_class` | `str` | Styling class used when the action renders as a visible button. |
     | `display_modal` | `bool` | Opens the response in the standard modal target when `True`. |
+    | `modal_box_classes` | `str` | Replacement classes for the shared modal box while this modal action is open. Use it for per-action width/height changes, and keep the default viewport-height classes if the modal should stay internally scrollable. |
     | `htmx_target` | `str` | HTMX target element to update for non-modal or custom-target flows. |
     | `hx_post` | `bool` | Sends the action as an HTMX POST instead of the default GET when `True`. |
     | `lock_sensitive` | `bool` | Disables the action automatically when PowerCRUD marks the row as blocked by its existing lock logic. |

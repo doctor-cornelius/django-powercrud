@@ -24,7 +24,7 @@
 <div class="p-4">
     <h2 class="text-xl font-bold mb-4">Bulk Edit {{ selected_count }} {{ model_name_plural }}</h2>
 
-    <form id="bulk-edit-form" method="post" hx-post="{{ request.path }}" hx-target="#powercrudModalContent"
+    <form id="bulk-edit-form" method="post" hx-post="{{ request.path }}" hx-target="#{{ modal_target|default:'powercrudModalContent' }}"
         data-powercrud-form="bulk">
         {% csrf_token %}
         <input type="hidden" name="bulk_submit" value="1">
@@ -179,7 +179,7 @@
                         Cancel
                     </button>
                     <button type="button" id="confirm-delete-button" class="btn btn-error" hx-post="{{ request.path }}"
-                        hx-target="#powercrudModalContent" hx-include="#bulk-edit-form"
+                        hx-target="#{{ modal_target|default:'powercrudModalContent' }}" hx-include="#bulk-edit-form"
                         hx-vals='{"delete_selected": "1", "bulk_submit": "1"}'
                         data-powercrud-bulk-delete-submit disabled>
                         Delete Items
@@ -297,7 +297,7 @@
         </div>
     </div>
 
-    <button type="button" class="btn btn-outline" onclick="powercrudBaseModal.close()">
+    <button type="button" class="btn btn-outline" onclick="document.getElementById('{{ modal_id|default:'powercrudBaseModal' }}').close()">
         Close
     </button>
 </div>

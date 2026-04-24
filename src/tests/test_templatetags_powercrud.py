@@ -236,6 +236,34 @@ def test_action_links_include_extra_actions():
 
 
 @pytest.mark.django_db
+def test_action_links_render_modal_box_classes_for_modal_extra_actions():
+    """Render modal box sizing metadata only for modal row actions."""
+    author = Author.objects.create(name="Modal")
+    book = Book.objects.create(
+        title="Modal sizing",
+        author=author,
+        published_date=date(2024, 1, 2),
+        bestseller=False,
+        isbn="9876543210001",
+        pages=42,
+    )
+    request = apply_session(RequestFactory().get("/"))
+    view = TemplateViewStub(request)
+    view.extra_actions[0]["modal_box_classes"] = "modal-box w-11/12 max-w-3xl"
+    view.extra_actions[1]["display_modal"] = False
+    view.extra_actions[1]["modal_box_classes"] = "modal-box max-w-7xl"
+
+    html = powercrud.action_links(view, book)
+
+    assert "data-powercrud-modal-box-classes='modal-box w-11/12 max-w-3xl'" in html, (
+        "Modal extra actions should render trigger-specific modal box classes."
+    )
+    assert "max-w-7xl" not in html, (
+        "Non-modal extra actions should ignore modal_box_classes metadata."
+    )
+
+
+@pytest.mark.django_db
 def test_action_links_can_render_extra_actions_in_dropdown():
     author = Author.objects.create(name="Dana")
     book = Book.objects.create(
@@ -1318,6 +1346,22 @@ def test_extra_buttons_handles_modal_htmx_and_selection_thresholds():
     assert "Select at least two rows first." in html
     assert "btn-disabled opacity-50 pointer-events-none" in html, (
         "Selection-aware extra buttons should render disabled styling when the persisted selection is below the minimum."
+    )
+
+
+def test_extra_buttons_render_modal_box_classes_only_for_modal_buttons():
+    request = apply_session(RequestFactory().get("/"))
+    view = TemplateViewStub(request)
+    view.extra_buttons[0]["modal_box_classes"] = "modal-box max-w-7xl"
+    view.extra_buttons[1]["modal_box_classes"] = "modal-box w-11/12 max-w-5xl"
+
+    html = powercrud.extra_buttons({"request": request}, view)
+
+    assert 'data-powercrud-modal-box-classes="modal-box w-11/12 max-w-5xl"' in html, (
+        "Modal extra buttons should render trigger-specific modal box classes."
+    )
+    assert "max-w-7xl" not in html, (
+        "Non-modal extra buttons should ignore modal_box_classes metadata."
     )
 
 

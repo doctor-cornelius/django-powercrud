@@ -19,6 +19,7 @@
     const VISIBLE_FILTERS_PARAM = 'visible_filters';
     const VISIBLE_FILTERS_STORAGE_PREFIX = 'powercrud:visible-filters:';
     const FILTER_FAVOURITE_STORAGE_PREFIX = 'powercrud:selected-filter-favourite:';
+    const DEFAULT_MODAL_BOX_CLASSES = 'modal-box flex max-h-[calc(100dvh-2rem)] flex-col';
 
     const warnedDeps = {
         htmx: false,
@@ -90,6 +91,25 @@
             return null;
         }
         return node.closest(OBJECT_LIST_ROOT_SELECTOR);
+    }
+
+    function applyPowercrudModalClasses(trigger) {
+        if (!(trigger instanceof Element)) {
+            return;
+        }
+        const modalTrigger = trigger.closest('[data-powercrud-modal-trigger="true"]');
+        if (!(modalTrigger instanceof Element)) {
+            return;
+        }
+        const root = getObjectListRoot(modalTrigger) || document;
+        const modal = root.querySelector('[data-powercrud-modal]') || document.querySelector('[data-powercrud-modal]');
+        const modalBox = modal?.querySelector('[data-powercrud-modal-box]');
+        if (!(modalBox instanceof HTMLElement)) {
+            return;
+        }
+        const defaultClasses = modalBox.dataset.powercrudDefaultModalBoxClasses || DEFAULT_MODAL_BOX_CLASSES;
+        const requestedClasses = modalTrigger.getAttribute('data-powercrud-modal-box-classes');
+        modalBox.className = requestedClasses || defaultClasses;
     }
 
     function ensureObjectListState(root) {
@@ -2737,6 +2757,10 @@
         }, 0);
     }, true);
 
+    document.addEventListener('click', event => {
+        applyPowercrudModalClasses(asElement(event.target));
+    }, true);
+
     document.addEventListener('focusin', event => {
         const focusedElement = asElement(event.target);
         if (!focusedElement?.closest(TOOLTIP_TRIGGER_SELECTOR)) {
@@ -3081,7 +3105,7 @@
     });
 
     document.body.addEventListener('bulkEditSuccess', () => {
-        const modal = document.getElementById('powercrudBaseModal');
+        const modal = document.querySelector('[data-powercrud-modal]');
         if (modal && typeof modal.close === 'function') {
             modal.close();
         }

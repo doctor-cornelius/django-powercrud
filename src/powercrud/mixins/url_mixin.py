@@ -6,7 +6,11 @@ from neapolitan.views import Role
 from .bulk_mixin import BulkEditRole, BulkActions
 
 from powercrud.logging import get_logger
-from .config_mixin import resolve_config
+from .config_mixin import (
+    DEFAULT_MODAL_BODY_CLASSES,
+    DEFAULT_MODAL_BOX_CLASSES,
+    resolve_config,
+)
 
 log = get_logger(__name__)
 
@@ -348,6 +352,20 @@ class UrlMixin:
         kwargs["use_htmx"] = self.get_use_htmx()
         kwargs["use_modal"] = self.get_use_modal()
         kwargs["original_target"] = self.get_original_target()
+        modal_context_getter = getattr(self, "get_modal_context", None)
+        if callable(modal_context_getter):
+            kwargs.update(modal_context_getter())
+        else:
+            kwargs.update(
+                {
+                    "modal_id": "powercrudBaseModal",
+                    "modal_target": "powercrudModalContent",
+                    "modal_classes": "modal",
+                    "modal_box_classes": DEFAULT_MODAL_BOX_CLASSES,
+                    "modal_body_classes": DEFAULT_MODAL_BODY_CLASSES,
+                    "bulk_modal_box_classes": DEFAULT_MODAL_BOX_CLASSES,
+                }
+            )
 
         # bulk edit context vars
         kwargs["enable_bulk_edit"] = self.get_bulk_edit_enabled()

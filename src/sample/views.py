@@ -181,6 +181,7 @@ class BookCRUDView(SampleCRUDMixin):
             "htmx_target": "content",
             "display_modal": True,  # NB if True then htmx_target is ignored
             "extra_class_attrs": "bg-warning",
+            "modal_box_classes": "modal-box flex max-h-[calc(100dvh-2rem)] w-11/12 max-w-3xl flex-col",
         },
         {
             "url_name": "sample:bigbook-selected-summary",
@@ -203,6 +204,7 @@ class BookCRUDView(SampleCRUDMixin):
             "htmx_target": "powercrudModalContent",
             "display_modal": True,
             "lock_sensitive": True,  # this will be greyed out if async locks in force
+            "modal_box_classes": "modal-box flex max-h-[calc(100dvh-2rem)] w-11/12 max-w-4xl flex-col",
         },
         {
             "url_name": "sample:bigbook-description-preview",
@@ -213,6 +215,7 @@ class BookCRUDView(SampleCRUDMixin):
             "display_modal": True,
             "disabled_if": "is_description_preview_disabled",
             "disabled_reason": "get_description_preview_disabled_reason",
+            "modal_box_classes": "modal-box flex max-h-[calc(100dvh-2rem)] w-11/12 max-w-5xl flex-col",
         },
     ]
 

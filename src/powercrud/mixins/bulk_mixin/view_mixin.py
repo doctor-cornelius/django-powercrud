@@ -273,6 +273,7 @@ class ViewMixin:
             "field_info": self._get_bulk_field_info(bulk_fields),
             "storage_key": self.get_storage_key(),
             "original_target": self.get_original_target(),
+            **self.get_modal_context(),
         }
         # Render the bulk edit form
         # log.debug(f"bulk_edit: template_name = {template_name}")
@@ -387,6 +388,7 @@ class ViewMixin:
                     "field_info": field_info,
                     "storage_key": self.get_storage_key(),
                     "original_target": self.get_original_target(),
+                    **self.get_modal_context(),
                 }
                 response = render(
                     request, f"{cfg.templates_path}/bulk_edit_form.html", context
@@ -474,6 +476,7 @@ class ViewMixin:
                 "field_info": field_info,
                 "storage_key": self.get_storage_key(),
                 "original_target": self.get_original_target(),
+                **self.get_modal_context(),
             }
             response = render(
                 request, f"{cfg.templates_path}/bulk_edit_form.html", context
