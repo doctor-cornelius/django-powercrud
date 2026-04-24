@@ -4,6 +4,10 @@ PowerCRUD is still evolving quickly, and the early release history was cut at a 
 
 Version numbers below correspond to published git tags. The more important releases include a little extra narrative and upgrade context; smaller patch releases remain deliberately brief. For full detail between any two versions, use the GitHub compare view for the matching tags.
 
+## 0.5.47 (2026-04-24)
+- **Fix (tooltips)**: hide tooltips during modal transitions
+- **Style (sample)**: restructure sample menu buttons
+
 ## 0.5.46 (2026-04-24)
 - **Feature (links)**: support cell level url links on list view via:
   - `link_fields` parameter for simple cases; or
