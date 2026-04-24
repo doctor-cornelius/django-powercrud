@@ -25,56 +25,86 @@
     {% block app_content %}{% endblock app_content %}
 
     <div class="container mt-20 mb-5 mx-5 p-5">
-        <div class="mb-3 flex items-center gap-2">
-            <a class="btn btn-primary" href="{% url 'home' %}">
-                Home (Reload)
+        <nav class="mb-5 flex flex-wrap items-center gap-2" aria-label="Sample navigation">
+            <a class="btn btn-sm btn-primary" href="{% url 'home' %}">
+                Home
             </a>
             <div class="join" role="group" aria-label="Book List buttons">
-                <a class="btn btn-secondary join-item" hx-get="{% url 'sample:bigbook-list' %}" hx-target="#content"
-                    hx-swap="innerHTML" hx-replace-url="true" hx-push-url="true">
-                    Book List (htmx)
+                <a class="btn btn-sm btn-secondary join-item" hx-get="{% url 'sample:bigbook-list' %}" hx-target="#content"
+                    hx-swap="innerHTML" hx-replace-url="true" hx-push-url="true"
+                    aria-label="Load books with HTMX"
+                    data-powercrud-tooltip="semantic"
+                    data-tippy-content="Load with HTMX">
+                    Books
                 </a>
-                <a class="btn join-item btn-info" href="{% url 'sample:bigbook-list' %}">
-                    Book List (reload)
-                </a>
-            </div>
-            <div class="join" role="group" aria-label="Author List buttons">
-                <a class="btn btn-secondary join-item" hx-get="{% url 'sample:author-list' %}" hx-target="#content"
-                    hx-swap="innerHTML" hx-replace-url="true" hx-push-url="true">
-                    Author List (htmx)
-                </a>
-                <a class="btn join-item btn-info" href="{% url 'sample:author-list' %}">
-                    Author List (reload)
+                <a class="btn btn-sm btn-info btn-square join-item" href="{% url 'sample:bigbook-list' %}"
+                    aria-label="Full page reload for books"
+                    data-powercrud-tooltip="semantic"
+                    data-tippy-content="Full page reload">
+                    <span aria-hidden="true">&#8635;</span>
                 </a>
             </div>
             <div class="join" role="group" aria-label="Author List buttons">
-                <a class="btn btn-secondary join-item" hx-get="{% url 'sample:profile-list' %}" hx-target="#content"
-                    hx-swap="innerHTML" hx-replace-url="true" hx-push-url="true">
-                    Profile (htmx)
+                <a class="btn btn-sm btn-secondary join-item" hx-get="{% url 'sample:author-list' %}" hx-target="#content"
+                    hx-swap="innerHTML" hx-replace-url="true" hx-push-url="true"
+                    aria-label="Load authors with HTMX"
+                    data-powercrud-tooltip="semantic"
+                    data-tippy-content="Load with HTMX">
+                    Authors
                 </a>
-                <a class="btn join-item btn-info" href="{% url 'sample:profile-list' %}">
-                    Profile (reload)
+                <a class="btn btn-sm btn-info btn-square join-item" href="{% url 'sample:author-list' %}"
+                    aria-label="Full page reload for authors"
+                    data-powercrud-tooltip="semantic"
+                    data-tippy-content="Full page reload">
+                    <span aria-hidden="true">&#8635;</span>
                 </a>
             </div>
-            <div class="join" role="group" aria-label="Author List buttons">
-                <a class="btn btn-secondary join-item" hx-get="{% url 'sample:genre-list' %}" hx-target="#content"
-                    hx-swap="innerHTML" hx-replace-url="true" hx-push-url="true">
-                    Genre List (htmx)
+            <div class="join" role="group" aria-label="Profile buttons">
+                <a class="btn btn-sm btn-secondary join-item" hx-get="{% url 'sample:profile-list' %}" hx-target="#content"
+                    hx-swap="innerHTML" hx-replace-url="true" hx-push-url="true"
+                    aria-label="Load profiles with HTMX"
+                    data-powercrud-tooltip="semantic"
+                    data-tippy-content="Load with HTMX">
+                    Profiles
                 </a>
-                <a class="btn join-item btn-info" href="{% url 'sample:genre-list' %}">
-                    Genre List (reload)
+                <a class="btn btn-sm btn-info btn-square join-item" href="{% url 'sample:profile-list' %}"
+                    aria-label="Full page reload for profiles"
+                    data-powercrud-tooltip="semantic"
+                    data-tippy-content="Full page reload">
+                    <span aria-hidden="true">&#8635;</span>
+                </a>
+            </div>
+            <div class="join" role="group" aria-label="Genre List buttons">
+                <a class="btn btn-sm btn-secondary join-item" hx-get="{% url 'sample:genre-list' %}" hx-target="#content"
+                    hx-swap="innerHTML" hx-replace-url="true" hx-push-url="true"
+                    aria-label="Load genres with HTMX"
+                    data-powercrud-tooltip="semantic"
+                    data-tippy-content="Load with HTMX">
+                    Genres
+                </a>
+                <a class="btn btn-sm btn-info btn-square join-item" href="{% url 'sample:genre-list' %}"
+                    aria-label="Full page reload for genres"
+                    data-powercrud-tooltip="semantic"
+                    data-tippy-content="Full page reload">
+                    <span aria-hidden="true">&#8635;</span>
                 </a>
             </div>
             <div class="join" role="group" aria-label="Async dashboard buttons">
-                <a class="btn btn-secondary join-item" hx-get="{% url 'sample:asynctaskrecord-list' %}" hx-target="#content"
-                    hx-swap="innerHTML" hx-replace-url="true" hx-push-url="true">
-                    Async Dashboard (htmx)
+                <a class="btn btn-sm btn-secondary join-item" hx-get="{% url 'sample:asynctaskrecord-list' %}" hx-target="#content"
+                    hx-swap="innerHTML" hx-replace-url="true" hx-push-url="true"
+                    aria-label="Load async dashboard with HTMX"
+                    data-powercrud-tooltip="semantic"
+                    data-tippy-content="Load with HTMX">
+                    Async
                 </a>
-                <a class="btn join-item btn-info" href="{% url 'sample:asynctaskrecord-list' %}">
-                    Async Dashboard (reload)
+                <a class="btn btn-sm btn-info btn-square join-item" href="{% url 'sample:asynctaskrecord-list' %}"
+                    aria-label="Full page reload for async dashboard"
+                    data-powercrud-tooltip="semantic"
+                    data-tippy-content="Full page reload">
+                    <span aria-hidden="true">&#8635;</span>
                 </a>
             </div>
-        </div>
+        </nav>
         <div id="content">
             {% block content %}{% endblock content %}
             <div id="powercrud"></div>
