@@ -1,5 +1,7 @@
 import os
 
+import django
+
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 DEBUG = True
 ALLOWED_HOSTS = ["*"]
@@ -52,6 +54,8 @@ STATICFILES_DIRS = [
     os.path.join(BASE_DIR, "powercrud", "assets"),
 ]
 
+TEMPLATE_PARTIALS_APPS = ["template_partials"] if django.VERSION < (6, 0) else []
+
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
@@ -71,7 +75,6 @@ TEMPLATES = [
                 "django.templatetags.i18n",
                 "django.templatetags.static",
                 "django_htmx.templatetags.django_htmx",
-                "template_partials.templatetags.partials",
             ],
         },
     },
@@ -86,7 +89,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "crispy_forms",
     "crispy_tailwind",
-    "template_partials",
+    *TEMPLATE_PARTIALS_APPS,
     "django_htmx",
     "django_filters",
     # for async

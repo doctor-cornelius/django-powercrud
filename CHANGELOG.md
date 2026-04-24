@@ -4,6 +4,11 @@ PowerCRUD is still evolving quickly, and the early release history was cut at a 
 
 Version numbers below correspond to published git tags. The more important releases include a little extra narrative and upgrade context; smaller patch releases remain deliberately brief. For full detail between any two versions, use the GitHub compare view for the matching tags.
 
+## Unreleased
+
+- **Feature (Django)**: add Django 6.0 compatibility while keeping Django 5.2 support
+- **Feature (templates)**: add a PowerCRUD template partial compatibility shim for Django 5.2/6.0 projects
+
 ## 0.5.47 (2026-04-24)
 - **Fix (tooltips)**: hide tooltips during modal transitions
 - **Style (sample)**: restructure sample menu buttons

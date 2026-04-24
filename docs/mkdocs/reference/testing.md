@@ -47,14 +47,24 @@ Use the constraints file in `requirements/` when you want to reproduce the exact
 uv pip install -c requirements/constraints-django52.txt ".[tests-core]"
 pytest -m "not playwright"
 
+# Django 6.0 core suite
+uv pip install -c requirements/constraints-django60.txt ".[tests-core]"
+pytest -m "not playwright"
+
 # Django 5.2 Playwright smoke subset
 uv pip install -c requirements/constraints-django52.txt ".[tests-core]" ".[tests-ui]"
 npm ci
 npm run build
 pytest -m playwright_smoke
 
-# Django 5.2 full Playwright suite
-uv pip install -c requirements/constraints-django52.txt ".[tests-core]" ".[tests-ui]"
+# Django 6.0 Playwright smoke subset
+uv pip install -c requirements/constraints-django60.txt ".[tests-core]" ".[tests-ui]"
+npm ci
+npm run build
+pytest -m playwright_smoke
+
+# Django 6.0 full Playwright suite
+uv pip install -c requirements/constraints-django60.txt ".[tests-core]" ".[tests-ui]"
 npm ci
 npm run build
 pytest -m playwright
@@ -82,7 +92,7 @@ To point Playwright at a different host, set `PLAYWRIGHT_BASE_URL` (defaults to 
 - `./runtests --playwright <node-id>` lets you run a focused Playwright subset while still forcing the normal test settings and browser marker selection.
 - `./runtests --rebuild-assets <node-id>` is useful when debugging frontend flakes or asset-sensitive browser failures and you want to force a fresh bundle before a focused run.
 - `./runtests` also accepts multiple explicit pytest node ids or paths in one invocation. In plain path mode it auto-selects `tests.settings_minimal` only if every requested path is a minimal-settings test; mixed minimal and regular test selections are rejected unless you set `DJANGO_SETTINGS_MODULE` explicitly.
-- Use `requirements/constraints-django52.txt` when you need to reproduce the exact support-matrix environment rather than the default local workflow.
+- Use `requirements/constraints-django52.txt` or `requirements/constraints-django60.txt` when you need to reproduce the exact support-matrix environment rather than the default local workflow.
 - A bare `pytest` will use `DJANGO_SETTINGS_MODULE=tests.settings` from `pytest.ini`, but it will not build assets or install browser/OS dependencies; expect Playwright tests (and async/system checks) to fail unless you provision those prerequisites yourself.
 - Async-only tests rely on `django_q` (installed via the `tests-core` extras group) and are guarded with `pytest.importorskip("django_q")` so the core suite can be exercised even when async deps are omitted.
 - The `tests.settings_minimal` module and `test_minimal_settings_no_async.py` provide a smoke test for importing `PowerCRUDMixin` in a project that never configures async or `POWERCRUD_SETTINGS`.

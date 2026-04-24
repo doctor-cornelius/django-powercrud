@@ -27,7 +27,7 @@ Install `django-powercrud` and `neapolitan` via `pip`, then add the required Dja
 PowerCRUD installs these Python dependencies automatically:
 
 - `django-htmx`
-- `django-template-partials`
+- `django-template-partials` for Django 5.2 template partial compatibility
 - `pydantic`
 
 ??? note "Backend library docs"
@@ -68,7 +68,8 @@ Projects that use the built-in templates but manage assets manually should read 
 
     PowerCRUD depends on these Django integrations:
 
-    - Add to `INSTALLED_APPS`: `powercrud`, `neapolitan`, `django_htmx`, `template_partials`
+    - Add to `INSTALLED_APPS`: `powercrud`, `neapolitan`, `django_htmx`
+    - On Django 5.2 only, also add `template_partials`
     - Add to `MIDDLEWARE`: `django_htmx.middleware.HtmxMiddleware`
     - Load the PowerCRUD frontend bundle in your base template, or provide equivalent frontend assets yourself
     - `pydantic` is installed automatically and needs no extra Django setup
@@ -79,12 +80,19 @@ Add to your `settings.py`:
 
 ```python
 # Required settings
+import django
+
+
+POWERCRUD_COMPAT_APPS = []
+if django.VERSION < (6, 0):
+    POWERCRUD_COMPAT_APPS.append("template_partials")
+
 INSTALLED_APPS = [
     ...
     "powercrud",
     "neapolitan",
     "django_htmx",
-    "template_partials",
+    *POWERCRUD_COMPAT_APPS,
     ...
 ]
 
@@ -99,6 +107,18 @@ POWERCRUD_SETTINGS = {
     "POWERCRUD_CSS_FRAMEWORK": "daisyui",  # built-in default
 }
 ```
+
+If your own templates define partials and need to support both Django 5.2 and 6.0, load PowerCRUD's compatibility tag library:
+
+```django
+{% load powercrud_partials %}
+{% partialdef toolbar %}
+    ...
+{% endpartialdef toolbar %}
+{% partial toolbar %}
+```
+
+Django 6.0 includes template partials in core, so do not add `template_partials` to `INSTALLED_APPS` on Django 6 projects.
 
 If you want the optional saved filter favourites feature:
 

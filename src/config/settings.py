@@ -1,6 +1,8 @@
 from pathlib import Path
 import os
 
+import django
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -43,6 +45,8 @@ LOGGING = {
 
 # Application definition
 
+TEMPLATE_PARTIALS_APPS = ["template_partials"] if django.VERSION < (6, 0) else []
+
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
@@ -51,7 +55,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "django_vite",
-    "template_partials",
+    *TEMPLATE_PARTIALS_APPS,
     "django_htmx",
     "crispy_forms",
     # "crispy_daisyui",
@@ -104,7 +108,6 @@ TEMPLATES = [
                 "django.templatetags.i18n",
                 "django.templatetags.static",
                 "django_htmx.templatetags.django_htmx",
-                "template_partials.templatetags.partials",
             ],
         },
     },
