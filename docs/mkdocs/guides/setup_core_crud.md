@@ -6,7 +6,7 @@ Kick off your project by wiring PowerCRUD into an existing Django site, creating
 
 ## Prerequisites
 
-- A working Django project (any recent 4.x/5.x release).
+- A working Django project on Django 5.2 or 6.0.
 - Python 3.12+ (Docker images currently default to Python 3.14).
 - Optional but recommended: virtual environment to isolate dependencies.
 
