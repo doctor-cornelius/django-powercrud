@@ -78,6 +78,17 @@ jobs:
       - name: Run pytest
         run: pytest -m "not playwright"
 
+      - name: Preserve canonical core coverage data
+        if: matrix.python-version == '3.14' && matrix.django == '6.0'
+        run: cp .coverage coverage-core.sqlite
+
+      - name: Upload canonical core coverage data
+        if: matrix.python-version == '3.14' && matrix.django == '6.0'
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-core-py314-django60
+          path: coverage-core.sqlite
+
   playwright-smoke:
     name: ${{ matrix.label }} (Required)
     runs-on: ubuntu-latest
@@ -133,6 +144,17 @@ jobs:
 
       - name: Install Playwright browsers
         run: python -m playwright install --with-deps chromium
+
+      - name: Download canonical core coverage data
+        if: matrix.django == '6.0'
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage-core-py314-django60
+          path: .
+
+      - name: Restore canonical core coverage data
+        if: matrix.django == '6.0'
+        run: mv coverage-core.sqlite .coverage
 
       - name: Run Playwright smoke suite with coverage append
         run: pytest -m playwright_smoke --cov-append --no-cov-on-fail
