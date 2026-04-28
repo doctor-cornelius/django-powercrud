@@ -82,6 +82,7 @@ class MetadataMixin:
                     "bulk_choices": bulk_choices,
                     "verbose_name": field.verbose_name,
                     "null": field.null if hasattr(field, "null") else False,
+                    "blank": field.blank if hasattr(field, "blank") else False,
                     "choices": getattr(
                         field, "choices", None
                     ),  # Add choices for fields with choices

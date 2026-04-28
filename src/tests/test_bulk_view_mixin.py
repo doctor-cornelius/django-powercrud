@@ -6,6 +6,7 @@ from types import SimpleNamespace
 import pytest
 from django.contrib.sessions.middleware import SessionMiddleware
 from django.http import HttpResponse
+from django.template.loader import render_to_string
 from django.test import RequestFactory
 
 from powercrud.mixins.async_mixin import AsyncMixin
@@ -414,6 +415,7 @@ def test_bulk_edit_process_post_uses_persist_bulk_update_hook(rf):
 
 @pytest.mark.django_db
 def test_bulk_field_info_flags_searchable_select_only_for_eligible_fields(rf):
+    """Flag only select-like bulk fields for searchable select enhancement."""
     request = make_htmx_request(rf)
     view = HarnessView(request)
     field_info = view._get_bulk_field_info(["author", "bestseller"])
@@ -424,6 +426,55 @@ def test_bulk_field_info_flags_searchable_select_only_for_eligible_fields(rf):
     assert (
         field_info["bestseller"]["searchable_select"] is False
     ), "Boolean bulk fields should remain native selects and not use searchable-select enhancement."
+
+
+def test_bulk_edit_template_renders_nullable_charfield_choices_without_leaked_tags(rf):
+    """Render nullable choice fields as one select without leaking template source."""
+    request = rf.get("/bulk-edit/")
+    rendered = render_to_string(
+        "powercrud/daisyUI/bulk_edit_form.html#full_form",
+        {
+            "request": request,
+            "selected_count": 2,
+            "selected_ids": ["1", "2"],
+            "bulk_fields": ["uptick_target_pattern"],
+            "enable_bulk_delete": False,
+            "model_name_plural": "ddm cases",
+            "field_info": {
+                "uptick_target_pattern": {
+                    "type": "CharField",
+                    "is_relation": False,
+                    "is_m2m": False,
+                    "verbose_name": "Uptick Target Pattern",
+                    "null": True,
+                    "blank": True,
+                    "choices": [
+                        ("task_and_remarks", "Task & Remarks"),
+                        ("remarks_only", "Remarks only"),
+                    ],
+                    "searchable_select": False,
+                }
+            },
+            "modal_target": "powercrudModalContent",
+        },
+        request=request,
+    )
+
+    assert "{% elif info.type ==" not in rendered, (
+        "Bulk edit template tags should be parsed, not emitted into the modal."
+    )
+    assert 'name="uptick_target_pattern"' in rendered, (
+        "Nullable CharField choices should render a select control for the bulk field."
+    )
+    assert '<option value="null">-- None --</option>' in rendered, (
+        "Nullable choice fields should offer an explicit null option."
+    )
+    assert '<option value="task_and_remarks">Task &amp; Remarks</option>' in rendered, (
+        "Bulk edit choice selects should include the model field choices."
+    )
+    assert 'type="number" name="uptick_target_pattern"' not in rendered, (
+        "Choice fields should not fall through into the numeric field branch."
+    )
 
 
 @pytest.mark.django_db

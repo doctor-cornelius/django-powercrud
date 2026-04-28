@@ -308,6 +308,7 @@ def test_perform_bulk_update_mutates_boolean_fk_and_m2m(noop_atomic):
 
 @pytest.mark.django_db
 def test_perform_bulk_update_returns_validation_errors(monkeypatch, noop_atomic):
+    """Return structured validation errors from failed bulk updates."""
 
     author = Author.objects.create(name="Alpha")
     book = Book.objects.create(
@@ -351,6 +352,46 @@ def test_perform_bulk_update_returns_validation_errors(monkeypatch, noop_atomic)
     assert errors["success"] is False
     assert errors["success_records"] == 0
     assert errors["errors"] == [("title", ["invalid state"])]
+
+
+def test_perform_bulk_update_normalizes_nullable_choice_null_sentinel(noop_atomic):
+    """Convert nullable choice-field clear sentinels to None before saving."""
+    obj = SimpleNamespace(
+        pk=1,
+        status="legacy",
+        full_clean=lambda: None,
+        save=lambda: None,
+    )
+    queryset = DummyQueryset([obj])
+    harness = OperationHarness()
+    result = harness._perform_bulk_update(
+        queryset,
+        bulk_fields=["status"],
+        fields_to_update=["status"],
+        field_data=[
+            {
+                "field": "status",
+                "value": "null",
+                "info": {
+                    "type": "CharField",
+                    "is_relation": False,
+                    "is_m2m": False,
+                    "field": SimpleNamespace(),
+                    "verbose_name": "status",
+                    "choices": [("legacy", "Legacy")],
+                    "null": True,
+                    "blank": True,
+                },
+            }
+        ],
+    )
+
+    assert result["success"] is True, (
+        "Bulk updates should accept the null sentinel for nullable choice fields."
+    )
+    assert obj.status is None, (
+        "Nullable choice field null sentinels should be persisted as None."
+    )
 
 
 @pytest.mark.django_db

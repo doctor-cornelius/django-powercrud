@@ -115,13 +115,15 @@
                             {% if info.searchable_select %}data-powercrud-searchable-select="true"{% endif %}
                             disabled>
                             <option value="">-- No change --</option>
+                            {% if info.null or info.blank %}
+                            <option value="null">{% if info.null %}-- None --{% else %}-- Blank --{% endif %}</option>
+                            {% endif %}
                             {% for value, label in info.choices %}
                             <option value="{{ value }}">{{ label }}</option>
                             {% endfor %}
                         </select>
 
-                        {% elif info.type == 'IntegerField' or info.type == 'FloatField' or info.type == 'DecimalField'
-                        %}
+                        {% elif info.type == 'IntegerField' or info.type == 'FloatField' or info.type == 'DecimalField' %}
                         <!-- Numeric field -->
                         <input type="number" name="{{ field_name }}" class="input input-bordered w-full"
                             step="{% if info.type == 'IntegerField' %}1{% else %}any{% endif %}" disabled>

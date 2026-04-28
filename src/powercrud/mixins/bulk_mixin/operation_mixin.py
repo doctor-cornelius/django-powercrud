@@ -290,6 +290,15 @@ class OperationMixin:
                         value = False
                     elif value in (None, "", "null"):
                         value = None
+                elif (
+                    value == "null"
+                    and info.get("choices")
+                    and not info.get("is_relation")
+                ):
+                    if info.get("null"):
+                        value = None
+                    elif info.get("blank"):
+                        value = ""
 
                 # Store the change to apply later
                 obj_changes["changes"][field] = {
