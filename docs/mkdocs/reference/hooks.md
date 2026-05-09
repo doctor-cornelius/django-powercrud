@@ -118,10 +118,11 @@ Upgrade notes:
     - return `False` to suppress declarative `link_fields` for that cell
 - Supported dict keys:
     - `url` (required)
-    - `title`, `target`, `rel`, `classes`, `use_modal` (optional)
+    - `open_in`, `title`, `rel`, `classes`, `modal_box_classes` (optional)
 - Important note: Inline-editable cells are never linked. Inline click-to-edit always wins, even if the hook or `link_fields` would otherwise provide a link.
 - Important note: This hook can override or suppress declarative config row by row. That overlap is intentional and does not generate warnings.
-- Important note: `use_modal=True` reuses the view’s normal PowerCRUD modal flow when HTMX modal support is active on that view. If modal support is off, PowerCRUD keeps the link as a normal anchor.
+- Important note: Omitted `open_in` values use the view's optional `list_cell_link_default_open_in`. If the view omits that option too, PowerCRUD assumes `"new"`. Use `"current"` for a same-page anchor or `"modal"` for the normal PowerCRUD modal flow. If modal support is off, PowerCRUD keeps the link as a normal anchor.
+- Important note: `modal_box_classes` is only used with `open_in = "modal"`. It replaces the shared modal box classes for that clicked cell, so keep the default viewport-height classes when you only want to change width.
 - Short example:
 
     ```python
@@ -134,13 +135,16 @@ Upgrade notes:
             return {
                 "url": obj.status_report_url,
                 "title": "Open external status report",
-                "target": "_blank",
-                "rel": "noopener noreferrer",
+                "open_in": "new",
             }
         if field_name == "reference_code":
             return {
                 "url": self.safe_reverse("projects:project-detail", kwargs={"pk": obj.pk}),
-                "use_modal": True,
+                "open_in": "modal",
+                "modal_box_classes": (
+                    "modal-box flex max-h-[calc(100dvh-2rem)] "
+                    "w-11/12 max-w-5xl flex-col"
+                ),
             }
         if field_name == "owner" and request and not request.user.has_perm("crm.view_owner"):
             return False

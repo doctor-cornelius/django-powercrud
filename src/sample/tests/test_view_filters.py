@@ -248,8 +248,81 @@ def test_book_sample_view_demonstrates_property_link_fields():
         == reverse("sample:author-detail", kwargs={"pk": author.pk})
     ), "BookCRUDView should keep a real sample list-cell link on its non-inline title-like property column, now targeting the related author detail."
     assert (
-        cell_map["a_really_long_property_header_for_title"]["link"]["use_modal"] is True
-    ), "BookCRUDView should now demonstrate modal list-cell links on its existing non-inline sample column."
+        cell_map["a_really_long_property_header_for_title"]["link"]["open_in"]
+        == "modal"
+    ), "BookCRUDView should demonstrate view-default modal list-cell links on its existing non-inline sample column."
+    assert sample_views.BookCRUDView.list_cell_link_default_open_in == "modal", (
+        "BookCRUDView should make modal opening the view-wide default for list-cell link demos."
+    )
+    assert cell_map["pages"]["tooltip_text"] == "Page count: 321", (
+        "BookCRUDView should demonstrate semantic list-cell tooltips on a visible non-inline model field."
+    )
+    assert cell_map["pages"]["link"] == {
+        "url": reverse("sample:bigbook-detail", kwargs={"pk": book.pk}),
+        "classes": "link link-primary",
+        "open_in": "current",
+    }, "BookCRUDView should demonstrate current-page list-cell links on a visible non-inline sample field."
+    assert cell_map["isbn"]["is_inline_editable"] is False, (
+        "BookCRUDView should keep ISBN out of inline editing so the external-link demo remains clickable."
+    )
+    assert cell_map["isbn"]["link"] == {
+        "url": "https://www.isbn-international.org/content/what-isbn",
+        "classes": "link link-primary",
+        "open_in": "new",
+        "target": "_blank",
+        "rel": "noopener noreferrer",
+    }, "BookCRUDView should demonstrate declarative static URL list-cell links on a visible non-inline sample field."
+
+
+@pytest.mark.django_db
+def test_book_sample_list_renders_external_link_field_attrs(client: Client):
+    """Book sample list should render the declarative static URL demo as a safe external link."""
+    author = Author.objects.create(name="External Link Render Author")
+    Book.objects.create(
+        title="External Link Render Book",
+        author=author,
+        published_date=date(2024, 1, 2),
+        bestseller=False,
+        isbn="9781234500105",
+        pages=222,
+    )
+
+    response = client.get(reverse("sample:bigbook-list"))
+
+    assert response.status_code == 200, (
+        "Book sample list should render successfully before inspecting link-field attributes."
+    )
+    response_text = response.content.decode()
+    assert "container mt-20 mb-5 mx-5 p-5" not in response_text, (
+        "Sample base template should not keep the old large top margin wrapper."
+    )
+    assert "container mx-5 my-5 p-5" in response_text, (
+        "Sample base template should render the reduced page margin wrapper."
+    )
+    assert 'href="https://www.isbn-international.org/content/what-isbn"' in response_text, (
+        "Book sample list should render the static external URL from link_fields."
+    )
+    assert 'data-tippy-content="Demo link: opens this book detail in the current page."' in response_text, (
+        "Book sample Pages header should explain the current-page link demo."
+    )
+    assert 'data-tippy-content="Demo link: opens an external ISBN reference in a new tab or window."' in response_text, (
+        "Book sample ISBN header should explain the new-context link demo."
+    )
+    assert 'data-tippy-content="Demo link: opens the related author detail in a larger PowerCRUD modal."' in response_text, (
+        "Book sample Really Long Title header should explain the modal link demo."
+    )
+    assert (
+        'data-powercrud-modal-box-classes="modal-box flex max-h-[calc(100dvh-2rem)] '
+        'w-11/12 max-w-6xl flex-col"'
+    ) in response_text, (
+        "Book sample modal list-cell link should request the larger per-cell modal box."
+    )
+    assert 'target="_blank"' in response_text, (
+        "Book sample external URL demo should request a new browser context."
+    )
+    assert 'rel="noopener noreferrer"' in response_text, (
+        "Book sample external URL demo should render the default safe rel value."
+    )
 
 
 @pytest.mark.django_db

@@ -18,6 +18,7 @@ class PowerCRUDMixinValidator(BaseModel):
     column_help_text: Optional[Dict[str, str]] = None
     column_alignments: Optional[Dict[str, Literal["left", "center", "right"]]] = None
     list_cell_tooltip_fields: Optional[List[str]] = None
+    list_cell_link_default_open_in: Optional[Literal["current", "new", "modal"]] = "new"
     link_fields: Optional[Dict[str, Union[str, Dict[str, Any]]]] = None
     column_sort_fields_override: Optional[Dict[str, str]] = None
 
@@ -234,35 +235,77 @@ class PowerCRUDMixinValidator(BaseModel):
                     "link_fields values must be either a view-name string or a dict"
                 )
 
-            unsupported_keys = set(value.keys()) - {"view_name", "pk_attr", "use_modal"}
+            unsupported_keys = set(value.keys()) - {
+                "view_name",
+                "url",
+                "pk_attr",
+                "open_in",
+                "modal_box_classes",
+            }
             if unsupported_keys:
                 raise ValueError(
-                    "link_fields dict values only support 'view_name' and optional "
-                    f"'pk_attr' / 'use_modal'. Unsupported keys: {', '.join(sorted(unsupported_keys))}"
+                    "link_fields dict values only support one of 'view_name' or "
+                    "'url', plus optional 'pk_attr', 'open_in', and "
+                    "'modal_box_classes'. Unsupported keys: "
+                    f"{', '.join(sorted(unsupported_keys))}"
                 )
 
             view_name = value.get("view_name")
-            if not isinstance(view_name, str) or not view_name.strip():
+            url = value.get("url")
+            has_view_name = isinstance(view_name, str) and bool(view_name.strip())
+            has_url = isinstance(url, str) and bool(url.strip())
+            if has_view_name == has_url:
                 raise ValueError(
-                    "link_fields dict values must include a non-empty 'view_name'"
+                    "link_fields dict values must include exactly one non-empty "
+                    "'view_name' or 'url'"
                 )
 
-            normalized_value = {"view_name": view_name.strip()}
+            normalized_value = {}
+            if has_view_name:
+                normalized_value["view_name"] = view_name.strip()
+            if has_url:
+                normalized_value["url"] = url.strip()
+
             pk_attr = value.get("pk_attr")
             if pk_attr is not None:
+                if not has_view_name:
+                    raise ValueError(
+                        "link_fields.pk_attr is only supported with view_name links"
+                    )
                 if not isinstance(pk_attr, str) or not pk_attr.strip():
                     raise ValueError(
                         "link_fields.pk_attr must be a non-empty string when provided"
                     )
                 normalized_value["pk_attr"] = pk_attr.strip()
 
-            use_modal = value.get("use_modal")
-            if use_modal is not None:
-                if not isinstance(use_modal, bool):
+            open_in = value.get("open_in")
+            if open_in is not None:
+                if not isinstance(open_in, str) or open_in.strip() not in {
+                    "current",
+                    "new",
+                    "modal",
+                }:
                     raise ValueError(
-                        "link_fields.use_modal must be a boolean when provided"
+                        "link_fields.open_in must be 'current', 'new', or 'modal'"
                     )
-                normalized_value["use_modal"] = use_modal
+                normalized_value["open_in"] = open_in.strip()
+
+            modal_box_classes = value.get("modal_box_classes")
+            if modal_box_classes is not None:
+                if normalized_value.get("open_in") not in {None, "modal"}:
+                    raise ValueError(
+                        "link_fields.modal_box_classes is only supported when "
+                        "open_in is 'modal'"
+                    )
+                if (
+                    not isinstance(modal_box_classes, str)
+                    or not modal_box_classes.strip()
+                ):
+                    raise ValueError(
+                        "link_fields.modal_box_classes must be a non-empty string "
+                        "when provided"
+                    )
+                normalized_value["modal_box_classes"] = modal_box_classes.strip()
 
             normalized[field_name] = normalized_value
 

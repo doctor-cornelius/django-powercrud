@@ -41,6 +41,7 @@ class ConfigMixin:
     column_help_text: dict[str, str] | None = None
     column_alignments: dict[str, str] | None = None
     list_cell_tooltip_fields: list[str] | None = None
+    list_cell_link_default_open_in: str = "new"
     link_fields: dict[str, Any] | None = None
     column_sort_fields_override: dict[str, str] | None = None
 
@@ -575,9 +576,12 @@ class ConfigMixin:
             )
 
         normalized: dict[str, dict[str, str]] = {}
+        default_open_in = self._normalize_list_cell_open_in(
+            self.list_cell_link_default_open_in
+        )
         for name, config in self.link_fields.items():
             if isinstance(config, str):
-                normalized[name] = {"view_name": config}
+                normalized[name] = {"view_name": config, "open_in": default_open_in}
                 continue
 
             if not isinstance(config, dict):
@@ -585,15 +589,79 @@ class ConfigMixin:
                     "link_fields values must be either a view-name string or a dict"
                 )
 
-            normalized[name] = {
-                "view_name": str(config["view_name"]),
+            unsupported_keys = set(config.keys()) - {
+                "view_name",
+                "url",
+                "pk_attr",
+                "open_in",
+                "modal_box_classes",
             }
+            if unsupported_keys:
+                raise ValueError(
+                    "link_fields dict values only support one of 'view_name' or "
+                    "'url', plus optional 'pk_attr', 'open_in', and "
+                    "'modal_box_classes'. Unsupported keys: "
+                    f"{', '.join(sorted(unsupported_keys))}"
+                )
+
+            view_name = str(config.get("view_name") or "").strip()
+            url = str(config.get("url") or "").strip()
+            if bool(view_name) == bool(url):
+                raise ValueError(
+                    "link_fields dict values must include exactly one non-empty "
+                    "'view_name' or 'url'"
+                )
+
+            normalized[name] = {
+                "open_in": self._normalize_list_cell_open_in(
+                    config.get("open_in") or default_open_in
+                )
+            }
+            if view_name:
+                normalized[name]["view_name"] = view_name
+            if url:
+                normalized[name]["url"] = url
+
             if config.get("pk_attr"):
+                if not view_name:
+                    raise ValueError(
+                        "link_fields.pk_attr is only supported with view_name links"
+                    )
                 normalized[name]["pk_attr"] = str(config["pk_attr"])
-            if "use_modal" in config:
-                normalized[name]["use_modal"] = bool(config["use_modal"])
+
+            modal_box_classes = config.get("modal_box_classes")
+            if modal_box_classes is not None:
+                if normalized[name]["open_in"] != "modal":
+                    raise ValueError(
+                        "link_fields.modal_box_classes is only supported when "
+                        "open_in is 'modal'"
+                    )
+                if (
+                    not isinstance(modal_box_classes, str)
+                    or not modal_box_classes.strip()
+                ):
+                    raise ValueError(
+                        "link_fields.modal_box_classes must be a non-empty string "
+                        "when provided"
+                    )
+                normalized[name]["modal_box_classes"] = modal_box_classes.strip()
 
         self.link_fields = normalized
+
+    @staticmethod
+    def _normalize_list_cell_open_in(value: Any) -> str:
+        """
+        Normalize list-cell link opening modes for view-level configuration.
+        """
+        if not isinstance(value, str) or value.strip() not in {
+            "current",
+            "new",
+            "modal",
+        }:
+            raise ValueError(
+                "list_cell_link_default_open_in must be 'current', 'new', or 'modal'"
+            )
+        return value.strip()
 
     def _warn_link_fields_inline_overlap(self) -> None:
         """
@@ -1049,6 +1117,11 @@ class _ConfigShim:
             return self._raw("column_alignments", {}) or {}
         if name == "link_fields":
             return self._raw("link_fields", {}) or {}
+        if name == "list_cell_link_default_open_in":
+            value = self._raw("list_cell_link_default_open_in") or "new"
+            if value not in {"current", "new", "modal"}:
+                return "new"
+            return value
         if name == "base_template_path":
             # Do not invent a default; projects must set this explicitly.
             return self._raw("base_template_path")

@@ -33,11 +33,16 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
         "status": "center",
     }
     list_cell_tooltip_fields = ["owner", "is_overdue"]
+    list_cell_link_default_open_in = "modal"
     link_fields = {
         "owner": "crm:owner-detail",
         "reference_code": {
             "view_name": "projects:project-detail",
-            "use_modal": True,
+            "modal_box_classes": "modal-box flex max-h-[calc(100dvh-2rem)] w-11/12 max-w-5xl flex-col",
+        },
+        "is_overdue": {
+            "url": "https://docs.example.com/projects",
+            "open_in": "new",
         },
     }
 
@@ -207,13 +212,13 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
             return {
                 "url": obj.status_report_url,
                 "title": "Open external status report",
-                "target": "_blank",
-                "rel": "noopener noreferrer",
+                "open_in": "new",
             }
         if field_name == "owner_card":
             return {
                 "url": self.safe_reverse("crm:owner-detail", kwargs={"pk": obj.owner_id}),
-                "use_modal": True,
+                "open_in": "modal",
+                "modal_box_classes": "modal-box flex max-h-[calc(100dvh-2rem)] w-11/12 max-w-5xl flex-col",
             }
         return None
 ```
@@ -227,8 +232,9 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
 - `column_help_text` adds optional plain-text tooltips to specific header labels. The help trigger is a separate info icon, so sortable headers keep sorting behavior.
 - `column_alignments` lets you override list body-cell alignment for specific rendered fields or properties without changing the default heuristic for the rest of the table.
 - `list_cell_tooltip_fields` opts selected rendered columns into semantic list-cell tooltips. The shared `get_list_cell_tooltip(...)` hook is only called for configured names that are actually visible in the current list, and returned plain text may include newline characters when the semantic cell tooltip should render on multiple lines.
-- `link_fields` is intentionally narrow. Use it for the boring common case of “this visible column should reverse to a named detail page”. Use the dict form when you want the same link to open in PowerCRUD’s normal modal flow via `use_modal=True`.
-- `get_list_cell_link(...)` is the escape hatch for conditional or richer link behavior. Returning `None` falls back to `link_fields`; returning `False` suppresses declarative linking for that cell. Hook metadata can also set `use_modal=True`.
+- `list_cell_link_default_open_in` is optional and sets the default opening mode for list-cell links on this view. If omitted, PowerCRUD assumes `"new"`. Use `"modal"` when internal drill-in links should preserve the current list context.
+- `link_fields` is intentionally narrow. Use it for the common cases where a visible column should reverse to a named detail page or use a static external URL. Dict values accept exactly one of `view_name` or `url`, plus optional `pk_attr`, `open_in`, and `modal_box_classes` for modal links.
+- `get_list_cell_link(...)` is the escape hatch for conditional or row-specific link behavior. Returning `None` falls back to `link_fields`; returning `False` suppresses declarative linking for that cell. Hook metadata can also set `open_in = "new"` or `open_in = "modal"`, and modal hook links can set `modal_box_classes`.
 - Semantic list-cell tooltips take precedence over the fallback overflow tooltip for the same cell. Unconfigured cells keep the existing overflow behavior.
 - Tooltip appearance is styled through CSS variables such as `--pc-tooltip-bg` and `--pc-tooltip-fg`, not Python view parameters. PowerCRUD defaults those to neutral daisyUI tokens, and you can override them in your app CSS when you want project-level theming.
 - Inline-editable cells are never linked, so if a field appears in both `inline_edit_fields` and `link_fields`, PowerCRUD logs a warning and silently keeps inline editing authoritative.
@@ -241,6 +247,7 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
 - `uses_selection = True` turns a header button into a selection-aware action that reads the persisted PowerCRUD selection at the endpoint.
 - `selection_min_behavior = "disable"` lets the frontend grey out a selection-aware header button until enough rows are selected, but the endpoint should still validate the selection server-side.
 - `modal_box_classes` on a modal `extra_buttons` item replaces the view-level modal box classes only while that button's modal is open. Keep `flex max-h-[calc(100dvh-2rem)] flex-col` in the string if you want the supplied viewport-bounded behavior plus a custom width.
+- `modal_box_classes` also works on list-cell links and hook-returned list-cell links when `open_in = "modal"`.
 - `disabled_if` / `disabled_reason` let row `extra_actions` disable themselves per object using named view methods.
 - `modal_box_classes` works the same way on modal `extra_actions`, including actions rendered inside the dropdown `More` menu.
 - `inline_edit_fields` is the current inline-editing configuration. Older `inline_edit_enabled` usage is legacy and should not be used in new code.

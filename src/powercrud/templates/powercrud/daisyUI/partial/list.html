@@ -322,6 +322,7 @@
                {% if cell.link.target %}target="{{ cell.link.target }}"{% endif %}
                {% if cell.link.rel %}rel="{{ cell.link.rel }}"{% endif %}
                {{ cell.link.modal_attrs|safe }}
+               {% if cell.link.modal_box_classes %}data-powercrud-modal-box-classes="{{ cell.link.modal_box_classes }}"{% endif %}
                {% if cell.tooltip_text %}data-tippy-content="{{ cell.tooltip_text }}" data-powercrud-tooltip="semantic-cell"{% elif value_str|slice:":1" != "<" %}data-tippy-content="{{ cell.value }}" data-powercrud-tooltip="overflow"{% endif %}>
                 {{ cell.value }}
             </a>
@@ -420,6 +421,7 @@
                {% if cell.link.target %}target="{{ cell.link.target }}"{% endif %}
                {% if cell.link.rel %}rel="{{ cell.link.rel }}"{% endif %}
                {{ cell.link.modal_attrs|safe }}
+               {% if cell.link.modal_box_classes %}data-powercrud-modal-box-classes="{{ cell.link.modal_box_classes }}"{% endif %}
                {% if cell.tooltip_text %}data-tippy-content="{{ cell.tooltip_text }}" data-powercrud-tooltip="semantic-cell"{% elif value_str|slice:":1" != "<" %}data-tippy-content="{{ cell.value }}" data-powercrud-tooltip="overflow"{% endif %}>
                 {{ cell.value }}
             </a>

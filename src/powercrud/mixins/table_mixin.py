@@ -176,6 +176,12 @@ class TableMixin:
             return dict(configured_links)
         return {}
 
+    def get_list_cell_link_default_open_in(self) -> str:
+        """
+        Return the default opening mode for list-cell links.
+        """
+        return str(resolve_config(self).list_cell_link_default_open_in)
+
     def get_list_cell_tooltip(
         self,
         obj,

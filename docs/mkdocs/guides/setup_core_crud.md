@@ -423,33 +423,69 @@ Tooltip behavior stays layered:
 
 When a semantic list-cell tooltip is configured for a cell, it takes precedence over the overflow tooltip for that same cell. PowerCRUD continues to use the model verbose names for other copy such as `Create project` and empty-state text, and `view_instructions`, `column_help_text`, and semantic list-cell tooltip text are all escaped plain text rather than HTML.
 
-### Clickable list cells
+### List-cell links
 
-If a rendered list cell should navigate somewhere, configure `link_fields`:
+If a rendered list cell should navigate somewhere, configure `link_fields`.
+The key is the rendered field or property name, and the value is either a
+short Django `view_name` string or an explicit dict:
 
 ```python
 class ProjectCRUDView(PowerCRUDMixin, CRUDView):
     # …
+    list_cell_link_default_open_in = "modal"
+
     link_fields = {
+        # Minimal internal link. Because owner is a relation, PowerCRUD uses
+        # obj.owner_id as the pk for reversing crm:owner-detail. Because this
+        # view sets list_cell_link_default_open_in, it opens in the modal.
         "owner": "crm:owner-detail",
+
+        # Link this row's own project detail in the shared PowerCRUD modal
+        # with per-cell modal sizing. Because reference_code is not a relation,
+        # pk_attr defaults to "pk".
         "reference_code": {
             "view_name": "projects:project-detail",
-            "use_modal": True,
+            "modal_box_classes": (
+                "modal-box flex max-h-[calc(100dvh-2rem)] "
+                "w-11/12 max-w-5xl flex-col"
+            ),
         },
+
+        # Link a property column to this row's detail view in the current page.
         "display_status": {
             "view_name": "projects:project-detail",
             "pk_attr": "pk",
+            "open_in": "current",
+        },
+
+        # Static external URL for a rendered property. Browser settings decide
+        # tab vs window.
+        "is_overdue": {
+            "url": "https://docs.example.com/projects",
+            "open_in": "new",
         },
     }
 ```
 
-`link_fields` is intentionally narrow:
+Current allowed shapes:
 
 - keys are rendered list field/property names
-- a string value is treated as a Django `view_name`
-- a dict value supports only `view_name` plus optional `pk_attr` / `use_modal`
+- string values are treated as Django `view_name` links
+- dict values must include exactly one of `view_name` or `url`
+- dict values may also include `pk_attr` for `view_name` links
+- dict values may include `open_in`
+- dict values may include `modal_box_classes` only for modal-opening links
 
-When `pk_attr` is omitted, PowerCRUD uses sensible defaults:
+`list_cell_link_default_open_in` is optional and sets the view-wide default for
+list-cell links. It accepts `"current"`, `"new"`, or `"modal"`. If the view
+omits it, PowerCRUD assumes `"new"`, so links open in a new browser context by
+default. Use `"modal"` on CRUD list views where drill-in links should preserve
+the current list context, or `"current"` when you want normal same-page anchor
+navigation. Explicit per-link `open_in` always overrides the view default.
+
+`pk_attr` names the attribute on the current row object that PowerCRUD should
+use as the `pk` URL kwarg when reversing a `view_name`. When it is omitted,
+PowerCRUD uses sensible defaults:
 
 - relation fields such as `owner` use `<field_name>_id`
 - non-relation fields and properties use the current row `pk`
@@ -459,15 +495,21 @@ That makes the common cases short:
 - `{"owner": "crm:owner-detail"}` means “link the `owner` column to the related owner detail using `owner_id`”
 - `{"reference_code": "projects:project-detail"}` means “link the `reference_code` column to this project row’s own detail using `pk`”
 
-If you want the link to open in PowerCRUD’s normal modal flow, switch to the dict form and add `use_modal`:
+`open_in` controls how an individual link opens:
 
-- `{"reference_code": {"view_name": "projects:project-detail", "use_modal": True}}` means “open this row’s project detail in the configured PowerCRUD modal when modal support is active”
+- omitted uses `list_cell_link_default_open_in`; if that view option is also omitted, PowerCRUD assumes `"new"`
+- `"current"` opens as a normal same-page anchor
+- `"new"` renders `target="_blank"` and defaults `rel="noopener noreferrer"`
+- `"modal"` reuses the view’s existing PowerCRUD modal target and modal-open attributes
 
-Modal link behavior stays narrow too:
+When `open_in = "modal"` is configured but the view is not running with HTMX
+modal support, PowerCRUD gracefully falls back to a normal current-page anchor.
 
-- `use_modal=True` reuses the view’s existing `get_modal_target()` and framework modal-open attrs
-- if the view is not running with HTMX modal support, the link gracefully falls back to a normal anchor
-- string shorthand stays plain-navigation-only
+`modal_box_classes` on a modal list-cell link replaces the view-level modal box
+classes only for that clicked cell. It uses the same per-trigger sizing behavior
+as modal `extra_buttons` and `extra_actions`. Treat it as a full replacement
+class string, so keep `flex max-h-[calc(100dvh-2rem)] flex-col` when you want
+the default viewport-bounded scrolling plus a custom width.
 
 If you need conditional logic or richer link metadata, override `get_list_cell_link(...)`:
 
@@ -483,13 +525,16 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
             return {
                 "url": obj.status_report_url,
                 "title": "Open external status report",
-                "target": "_blank",
-                "rel": "noopener noreferrer",
+                "open_in": "new",
             }
         if field_name == "reference_code":
             return {
                 "url": self.safe_reverse("projects:project-detail", kwargs={"pk": obj.pk}),
-                "use_modal": True,
+                "open_in": "modal",
+                "modal_box_classes": (
+                    "modal-box flex max-h-[calc(100dvh-2rem)] "
+                    "w-11/12 max-w-5xl flex-col"
+                ),
             }
         if field_name == "owner" and request and not request.user.has_perm("crm.view_owner"):
             return False
@@ -499,7 +544,8 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
 Hook behavior is deliberately simple:
 
 - return a dict with at least `url` to link that cell
-- include `use_modal=True` when the cell should reuse the normal PowerCRUD modal flow
+- include `open_in` when the cell should open somewhere other than the view-wide default
+- include `modal_box_classes` only with `open_in = "modal"` for per-cell modal sizing
 - return `None` to fall back to `link_fields`
 - return `False` to suppress `link_fields` for that cell
 

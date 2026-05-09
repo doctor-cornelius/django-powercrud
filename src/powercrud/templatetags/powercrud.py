@@ -343,15 +343,47 @@ def _resolve_list_cell_tooltip(
     return tooltip_text or None
 
 
+LIST_CELL_OPEN_IN_VALUES = {"current", "new", "modal"}
+
+
+def _normalize_list_cell_open_in(value: Any, *, default: str = "new") -> str:
+    """
+    Normalize public list-cell link opening modes.
+    """
+    default_open_in = str(default or "new").strip()
+    if default_open_in not in LIST_CELL_OPEN_IN_VALUES:
+        default_open_in = "new"
+
+    open_in = str(value or default_open_in).strip()
+    if open_in in LIST_CELL_OPEN_IN_VALUES:
+        return open_in
+    return default_open_in
+
+
+def _resolve_list_cell_default_open_in(view: Any) -> str:
+    """
+    Resolve the view-wide default opening mode for list-cell links.
+    """
+    return _normalize_list_cell_open_in(
+        _resolve_view_option(
+            view,
+            method_name="get_list_cell_link_default_open_in",
+            attr_name="list_cell_link_default_open_in",
+            default="new",
+        )
+    )
+
+
 def _resolve_list_cell_modal_metadata(
     *,
     view: Any,
-    use_modal: bool,
+    open_in: str,
+    modal_box_classes: Any = None,
 ) -> dict[str, str]:
     """
     Resolve HTMX/modal metadata for a linked list cell when requested.
     """
-    if not use_modal:
+    if open_in != "modal":
         return {}
 
     use_htmx = getattr(view, "get_use_htmx", None)
@@ -372,11 +404,16 @@ def _resolve_list_cell_modal_metadata(
     if target and not str(target).startswith("#"):
         target = f"#{target}"
 
-    return {
+    metadata = {
         "hx_method": "get",
         "hx_target": str(target or ""),
         "modal_attrs": str(styles.get("modal_attrs", "")).strip(),
     }
+    if modal_box_classes is not None:
+        modal_box_classes = str(modal_box_classes).strip()
+        if modal_box_classes:
+            metadata["modal_box_classes"] = modal_box_classes
+    return metadata
 
 
 def _normalize_list_cell_link_result(result: Any, *, view: Any) -> dict[str, Any] | None:
@@ -396,21 +433,33 @@ def _normalize_list_cell_link_result(result: Any, *, view: Any) -> dict[str, Any
     if not url:
         return None
 
-    use_modal = bool(result.get("use_modal", False))
+    open_in = _normalize_list_cell_open_in(
+        result.get("open_in"),
+        default=_resolve_list_cell_default_open_in(view),
+    )
 
     normalized: dict[str, Any] = {
         "url": url,
         "classes": str(result.get("classes") or "link link-primary").strip(),
-        "use_modal": use_modal,
+        "open_in": open_in,
     }
-    for key in ("title", "target", "rel"):
+    for key in ("title", "rel"):
         value = result.get(key)
         if value is None:
             continue
         value = str(value).strip()
         if value:
             normalized[key] = value
-    normalized.update(_resolve_list_cell_modal_metadata(view=view, use_modal=use_modal))
+    if open_in == "new":
+        normalized["target"] = "_blank"
+        normalized.setdefault("rel", "noopener noreferrer")
+    normalized.update(
+        _resolve_list_cell_modal_metadata(
+            view=view,
+            open_in=open_in,
+            modal_box_classes=result.get("modal_box_classes"),
+        )
+    )
     return normalized
 
 
@@ -443,42 +492,56 @@ def _resolve_declarative_list_cell_link(
         return None
 
     view_name = str(config.get("view_name") or "").strip()
-    if not view_name:
+    url = str(config.get("url") or "").strip()
+    if not view_name and not url:
         return None
 
-    pk_attr = config.get("pk_attr")
-    if pk_attr is None:
-        if is_property:
-            pk_attr = "pk"
-        else:
-            try:
-                model_field = obj._meta.get_field(field_name)
-            except Exception:
-                model_field = None
-            if model_field is not None and getattr(model_field, "is_relation", False):
-                pk_attr = f"{field_name}_id"
-            else:
+    if view_name:
+        pk_attr = config.get("pk_attr")
+        if pk_attr is None:
+            if is_property:
                 pk_attr = "pk"
+            else:
+                try:
+                    model_field = obj._meta.get_field(field_name)
+                except Exception:
+                    model_field = None
+                if model_field is not None and getattr(model_field, "is_relation", False):
+                    pk_attr = f"{field_name}_id"
+                else:
+                    pk_attr = "pk"
 
-    if not isinstance(pk_attr, str) or not pk_attr.strip():
-        return None
+        if not isinstance(pk_attr, str) or not pk_attr.strip():
+            return None
 
-    pk_value = getattr(obj, pk_attr.strip(), None)
-    if pk_value in {None, ""}:
-        return None
+        pk_value = getattr(obj, pk_attr.strip(), None)
+        if pk_value in {None, ""}:
+            return None
 
-    url = view.safe_reverse(view_name, kwargs={"pk": pk_value})
+        url = view.safe_reverse(view_name, kwargs={"pk": pk_value})
     if not url:
         return None
 
-    use_modal = bool(config.get("use_modal", False))
+    open_in = _normalize_list_cell_open_in(
+        config.get("open_in"),
+        default=_resolve_list_cell_default_open_in(view),
+    )
 
     normalized: dict[str, Any] = {
         "url": url,
         "classes": "link link-primary",
-        "use_modal": use_modal,
+        "open_in": open_in,
     }
-    normalized.update(_resolve_list_cell_modal_metadata(view=view, use_modal=use_modal))
+    if open_in == "new":
+        normalized["target"] = "_blank"
+        normalized["rel"] = "noopener noreferrer"
+    normalized.update(
+        _resolve_list_cell_modal_metadata(
+            view=view,
+            open_in=open_in,
+            modal_box_classes=config.get("modal_box_classes"),
+        )
+    )
     return normalized
 
 

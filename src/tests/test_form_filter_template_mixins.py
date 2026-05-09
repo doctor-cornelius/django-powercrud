@@ -381,7 +381,7 @@ def test_list_partial_renders_modal_attrs_for_linked_modal_cell():
             }
 
         def get_link_fields(self):
-            return {"name": {"view_name": "sample:author-detail", "use_modal": True}}
+            return {"name": {"view_name": "sample:author-detail", "open_in": "modal"}}
 
         def safe_reverse(self, url_name, kwargs=None):
             if kwargs:

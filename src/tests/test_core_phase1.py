@@ -677,12 +677,12 @@ def test_table_mixin_get_link_fields_defaults_to_empty_mapping():
 def test_table_mixin_get_link_fields_prefers_configured_mapping():
     class TableView(TableMixin):
         model = Author
-        link_fields = {"name": {"view_name": "sample:author-detail"}}
+        link_fields = {"name": {"view_name": "sample:author-detail", "open_in": "current"}}
 
     view = TableView()
 
     assert view.get_link_fields() == {
-        "name": {"view_name": "sample:author-detail"}
+        "name": {"view_name": "sample:author-detail", "open_in": "current"}
     }, "TableMixin should expose the configured narrow link_fields mapping unchanged."
 
 
@@ -735,20 +735,101 @@ def test_core_mixin_normalizes_string_and_dict_link_fields():
             "title": {
                 "view_name": "sample:bigbook-detail",
                 "pk_attr": "pk",
-                "use_modal": True,
+                "open_in": "modal",
+                "modal_box_classes": "modal-box w-11/12 max-w-6xl",
+            },
+            "a_really_long_property_header_for_title": {
+                "url": "https://example.test/books",
+                "open_in": "new",
             },
         }
 
     view = LinkedView()
 
     assert view.link_fields == {
-        "author": {"view_name": "sample:author-detail"},
+        "author": {"view_name": "sample:author-detail", "open_in": "new"},
         "title": {
             "view_name": "sample:bigbook-detail",
             "pk_attr": "pk",
-            "use_modal": True,
+            "open_in": "modal",
+            "modal_box_classes": "modal-box w-11/12 max-w-6xl",
         },
-    }, "link_fields should normalize the public shorthand and tiny-dict forms into one internal mapping shape."
+        "a_really_long_property_header_for_title": {
+            "url": "https://example.test/books",
+            "open_in": "new",
+        },
+    }, "link_fields should normalize shorthand, view-name dicts, and static-url dicts into one internal mapping shape."
+
+
+@pytest.mark.django_db
+def test_core_mixin_uses_view_default_for_omitted_link_field_open_in():
+    class LinkedView(CoreMixin):
+        model = Book
+        fields = "__all__"
+        list_cell_link_default_open_in = "modal"
+        link_fields = {
+            "author": "sample:author-detail",
+            "title": {
+                "view_name": "sample:bigbook-detail",
+                "modal_box_classes": "modal-box w-11/12 max-w-6xl",
+            },
+            "a_really_long_property_header_for_title": {
+                "url": "https://example.test/books",
+                "open_in": "new",
+            },
+        }
+
+    view = LinkedView()
+
+    assert view.link_fields["author"]["open_in"] == "modal", (
+        "String shorthand link_fields should use the view-wide default opening mode."
+    )
+    assert view.link_fields["title"] == {
+        "view_name": "sample:bigbook-detail",
+        "open_in": "modal",
+        "modal_box_classes": "modal-box w-11/12 max-w-6xl",
+    }, (
+        "Dict link_fields without open_in should use the view-wide default and still allow modal sizing."
+    )
+    assert view.link_fields[
+        "a_really_long_property_header_for_title"
+    ]["open_in"] == "new", (
+        "Explicit per-link open_in should override the view-wide default opening mode."
+    )
+
+
+def test_core_mixin_defaults_omitted_list_cell_link_open_in_to_new():
+    class LinkedView(CoreMixin):
+        model = Book
+        fields = "__all__"
+        link_fields = {
+            "author": "sample:author-detail",
+            "title": {
+                "view_name": "sample:bigbook-detail",
+            },
+        }
+
+    view = LinkedView()
+
+    assert view.list_cell_link_default_open_in == "new", (
+        "The view-wide list-cell link opening default should assume a new browser context when omitted."
+    )
+    assert view.link_fields["author"]["open_in"] == "new", (
+        "String shorthand link_fields should use the package default when no view default is configured."
+    )
+    assert view.link_fields["title"]["open_in"] == "new", (
+        "Dict link_fields without open_in should use the package default when no view default is configured."
+    )
+
+
+def test_core_mixin_rejects_invalid_list_cell_link_default_open_in():
+    class BrokenView(CoreMixin):
+        model = Author
+        fields = "__all__"
+        list_cell_link_default_open_in = "popup"
+
+    with pytest.raises(ImproperlyConfigured, match="list_cell_link_default_open_in"):
+        BrokenView()
 
 
 def test_core_mixin_rejects_unknown_link_field_keys():
@@ -765,17 +846,90 @@ def test_core_mixin_rejects_invalid_link_field_shapes():
     class BrokenView(CoreMixin):
         model = Author
         fields = "__all__"
-        link_fields = {"name": {"url": "/authors/1/"}}
+        link_fields = {"name": {"label": "Author"}}
 
     with pytest.raises(ImproperlyConfigured, match="link_fields"):
         BrokenView()
 
 
-def test_core_mixin_rejects_non_boolean_link_field_use_modal():
+def test_core_mixin_rejects_legacy_link_field_use_modal():
     class BrokenView(CoreMixin):
         model = Author
         fields = "__all__"
-        link_fields = {"name": {"view_name": "sample:author-detail", "use_modal": "yes"}}
+        link_fields = {"name": {"view_name": "sample:author-detail", "use_modal": True}}
+
+    with pytest.raises(ImproperlyConfigured, match="link_fields"):
+        BrokenView()
+
+
+def test_core_mixin_rejects_invalid_link_field_open_in():
+    class BrokenView(CoreMixin):
+        model = Author
+        fields = "__all__"
+        link_fields = {"name": {"view_name": "sample:author-detail", "open_in": "popup"}}
+
+    with pytest.raises(ImproperlyConfigured, match="link_fields"):
+        BrokenView()
+
+
+@pytest.mark.parametrize("open_in", ["current", "new"])
+def test_core_mixin_rejects_link_field_modal_box_classes_without_modal(open_in):
+    class BrokenView(CoreMixin):
+        model = Author
+        fields = "__all__"
+        link_fields = {
+            "name": {
+                "view_name": "sample:author-detail",
+                "open_in": open_in,
+                "modal_box_classes": "modal-box w-11/12 max-w-6xl",
+            }
+        }
+
+    with pytest.raises(ImproperlyConfigured, match="link_fields"):
+        BrokenView()
+
+
+def test_core_mixin_rejects_blank_link_field_modal_box_classes():
+    class BrokenView(CoreMixin):
+        model = Author
+        fields = "__all__"
+        link_fields = {
+            "name": {
+                "view_name": "sample:author-detail",
+                "open_in": "modal",
+                "modal_box_classes": " ",
+            }
+        }
+
+    with pytest.raises(ImproperlyConfigured, match="link_fields"):
+        BrokenView()
+
+
+def test_core_mixin_rejects_ambiguous_link_field_url_source():
+    class BrokenView(CoreMixin):
+        model = Author
+        fields = "__all__"
+        link_fields = {
+            "name": {
+                "view_name": "sample:author-detail",
+                "url": "https://example.test/authors",
+            }
+        }
+
+    with pytest.raises(ImproperlyConfigured, match="link_fields"):
+        BrokenView()
+
+
+def test_core_mixin_rejects_link_field_pk_attr_with_static_url():
+    class BrokenView(CoreMixin):
+        model = Author
+        fields = "__all__"
+        link_fields = {
+            "name": {
+                "url": "https://example.test/authors",
+                "pk_attr": "pk",
+            }
+        }
 
     with pytest.raises(ImproperlyConfigured, match="link_fields"):
         BrokenView()
@@ -1405,6 +1559,9 @@ def test_book_list_renders_sample_semantic_list_cell_tooltips(client):
     assert 'data-tippy-content="Semantic Tooltip Author\n412 pages"' in response_text, (
         "Configured sample title cells should preserve newline-separated semantic tooltip text from the shared hook."
     )
+    assert 'data-tippy-content="Page count: 412"' in response_text, (
+        "Configured sample pages cells should render semantic tooltip text on a visible non-inline model field."
+    )
     assert 'data-tippy-content="ISBN: 978-1-4028-9462-1"' in response_text, (
         "Configured sample property cells should render semantic list-cell tooltip text, even when the displayed value is an icon."
     )
@@ -1704,6 +1861,17 @@ def test_book_list_renders_modal_with_explicit_close_button(client):
 @pytest.mark.django_db
 def test_book_list_renders_custom_modal_context(client, monkeypatch):
     """Render configured modal IDs, targets, and class hooks in the shared modal shell."""
+    author = Author.objects.create(name="Large Modal Link Author")
+    Book.objects.create(
+        title="Large Modal Link Book",
+        author=author,
+        published_date=date(2024, 11, 1),
+        bestseller=False,
+        isbn="9876543210777",
+        pages=88,
+        description="List-cell modal sizing coverage",
+    )
+
     monkeypatch.setattr(sample_views.BookCRUDView, "modal_id", "customBookModal")
     monkeypatch.setattr(sample_views.BookCRUDView, "modal_target", "customBookModalContent")
     monkeypatch.setattr(sample_views.BookCRUDView, "modal_classes", "modal modal-bottom sm:modal-middle")
@@ -1745,6 +1913,12 @@ def test_book_list_renders_custom_modal_context(client, monkeypatch):
     )
     assert 'data-powercrud-modal-box-classes="modal-box w-11/12 max-w-6xl"' in response_text, (
         "The built-in bulk edit trigger should expose configured bulk modal box classes."
+    )
+    assert (
+        'data-powercrud-modal-box-classes="modal-box flex max-h-[calc(100dvh-2rem)] '
+        'w-11/12 max-w-6xl flex-col"'
+    ) in response_text, (
+        "The sample modal list-cell link should expose its larger per-cell modal box classes."
     )
 
 

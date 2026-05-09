@@ -50,14 +50,31 @@ class BookCRUDView(SampleCRUDMixin):
     properties = "__all__"
     column_help_text = {
         "title": "The book title shown throughout the app.",
+        "pages": "Demo link: opens this book detail in the current page.",
+        "isbn": "Demo link: opens an external ISBN reference in a new tab or window.",
         "isbn_empty": "Shows whether this row currently has an ISBN value.",
+        "a_really_long_property_header_for_title": (
+            "Demo link: opens the related author detail in a larger PowerCRUD modal."
+        ),
     }
-    list_cell_tooltip_fields = ["title", "isbn_empty"]
+    list_cell_tooltip_fields = ["title", "pages", "isbn_empty"]
+    list_cell_link_default_open_in = "modal"
     link_fields = {
         "a_really_long_property_header_for_title": {
             "view_name": "sample:author-detail",
             "pk_attr": "author_id",
-            "use_modal": True,
+            "modal_box_classes": (
+                "modal-box flex max-h-[calc(100dvh-2rem)] w-11/12 "
+                "max-w-6xl flex-col"
+            ),
+        },
+        "pages": {
+            "view_name": "sample:bigbook-detail",
+            "open_in": "current",
+        },
+        "isbn": {
+            "url": "https://www.isbn-international.org/content/what-isbn",
+            "open_in": "new",
         },
     }
     detail_fields = "__all__"
@@ -143,7 +160,6 @@ class BookCRUDView(SampleCRUDMixin):
         "genres",
         "published_date",
         "bestseller",
-        "isbn",
         # "pages",
         "description",
     ]
@@ -233,6 +249,8 @@ class BookCRUDView(SampleCRUDMixin):
         """Return semantic tooltip text for selected list cells in the sample app."""
         if field_name == "title":
             return f"{obj.author}\n{obj.pages} pages"
+        if field_name == "pages":
+            return f"Page count: {obj.pages}"
         if field_name == "isbn_empty":
             if obj.isbn_empty:
                 return "This book does not currently have an ISBN."

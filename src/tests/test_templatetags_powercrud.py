@@ -668,7 +668,9 @@ def test_object_list_resolves_relation_link_fields_via_related_id_by_default():
     assert cell_map["author"]["link"] == {
         "url": f"/sample:author-detail/{author.pk}",
         "classes": "link link-primary",
-        "use_modal": False,
+        "open_in": "new",
+        "target": "_blank",
+        "rel": "noopener noreferrer",
     }, "Relation list links should default to the related object's <field>_id when pk_attr is omitted."
 
 
@@ -701,7 +703,9 @@ def test_object_list_resolves_non_relation_link_fields_via_row_pk_by_default():
     assert cell_map["title"]["link"] == {
         "url": f"/sample:book-detail/{book.pk}",
         "classes": "link link-primary",
-        "use_modal": False,
+        "open_in": "new",
+        "target": "_blank",
+        "rel": "noopener noreferrer",
     }, "Non-relation declarative list links should default to the current row's primary key."
 
 
@@ -736,9 +740,99 @@ def test_object_list_allows_explicit_pk_attr_override_for_list_links():
     assert cell_map["title"]["link"]["url"] == f"/sample:author-detail/{author.pk}", (
         "Explicit pk_attr overrides should let declarative list links target a different row-related object."
     )
-    assert cell_map["title"]["link"]["use_modal"] is False, (
-        "Explicit declarative list links should stay plain-navigation links unless use_modal=True is configured."
+    assert cell_map["title"]["link"]["open_in"] == "new", (
+        "Declarative list links should use the package default opening mode unless open_in is configured."
     )
+
+
+@pytest.mark.django_db
+def test_object_list_uses_view_default_open_in_for_declarative_links():
+    author = Author.objects.create(name="Default Open In Author")
+    book = Book.objects.create(
+        title="Default Open In Book",
+        author=author,
+        published_date=date(2024, 4, 12),
+        bestseller=False,
+        isbn="9876543211122",
+        pages=131,
+        description="Default open_in coverage",
+    )
+
+    request = apply_session(RequestFactory().get("/"))
+    view = TemplateViewStub(request)
+    view.list_cell_link_default_open_in = "modal"
+    view.link_fields = {
+        "author": "sample:author-detail",
+        "title": {
+            "view_name": "sample:book-detail",
+            "open_in": "current",
+        },
+    }
+
+    context = {
+        "request": request,
+        "use_htmx": True,
+        "original_target": "#content",
+        "htmx_target": "#content",
+    }
+    row = powercrud.object_list(context, [book], view)["object_list"][0]
+    cell_map = {cell["name"]: cell for cell in row["cells"]}
+
+    assert cell_map["author"]["link"] == {
+        "url": f"/sample:author-detail/{author.pk}",
+        "classes": "link link-primary",
+        "open_in": "modal",
+        "hx_method": "get",
+        "hx_target": "#modal",
+        "modal_attrs": 'onclick="modal.showModal()"',
+    }, (
+        "Declarative links without open_in should use the view-wide default opening mode."
+    )
+    assert cell_map["title"]["link"] == {
+        "url": f"/sample:book-detail/{book.pk}",
+        "classes": "link link-primary",
+        "open_in": "current",
+    }, "Explicit declarative open_in should override the view-wide default opening mode."
+
+
+@pytest.mark.django_db
+def test_object_list_resolves_static_url_link_fields():
+    author = Author.objects.create(name="Static URL Author")
+    book = Book.objects.create(
+        title="Static URL Book",
+        author=author,
+        published_date=date(2024, 4, 9),
+        bestseller=False,
+        isbn="9876543211119",
+        pages=128,
+        description="Static URL coverage",
+    )
+
+    request = apply_session(RequestFactory().get("/"))
+    view = TemplateViewStub(request)
+    view.link_fields = {
+        "isbn_empty": {
+            "url": "https://example.test/books/help",
+            "open_in": "new",
+        }
+    }
+
+    context = {
+        "request": request,
+        "use_htmx": True,
+        "original_target": "#content",
+        "htmx_target": "#content",
+    }
+    row = powercrud.object_list(context, [book], view)["object_list"][0]
+    cell_map = {cell["name"]: cell for cell in row["cells"]}
+
+    assert cell_map["isbn_empty"]["link"] == {
+        "url": "https://example.test/books/help",
+        "classes": "link link-primary",
+        "open_in": "new",
+        "target": "_blank",
+        "rel": "noopener noreferrer",
+    }, "Static URL list links should render directly and use safe new-context anchor attributes."
 
 
 @pytest.mark.django_db
@@ -780,8 +874,146 @@ def test_object_list_hook_link_overrides_declarative_config():
         "url": f"/hook/{book.pk}",
         "title": "Hook wins",
         "classes": "custom-link",
-        "use_modal": False,
+        "open_in": "new",
+        "target": "_blank",
+        "rel": "noopener noreferrer",
     }, "Hook-provided list-cell link metadata should override declarative link_fields when both are present."
+
+
+@pytest.mark.django_db
+def test_object_list_hook_link_uses_view_default_open_in_when_omitted():
+    author = Author.objects.create(name="Hook Default Author")
+    book = Book.objects.create(
+        title="Hook Default Link Book",
+        author=author,
+        published_date=date(2024, 4, 13),
+        bestseller=False,
+        isbn="9876543211123",
+        pages=132,
+        description="Hook default open_in coverage",
+    )
+
+    request = apply_session(RequestFactory().get("/"))
+    view = TemplateViewStub(request)
+    view.list_cell_link_default_open_in = "modal"
+    view.get_list_cell_link = lambda obj, field_name, value, *, is_property, request=None: (
+        {
+            "url": f"/hook-default/{obj.pk}",
+        }
+        if field_name == "title"
+        else None
+    )
+
+    context = {
+        "request": request,
+        "use_htmx": True,
+        "original_target": "#content",
+        "htmx_target": "#content",
+    }
+    row = powercrud.object_list(context, [book], view)["object_list"][0]
+    cell_map = {cell["name"]: cell for cell in row["cells"]}
+
+    assert cell_map["title"]["link"] == {
+        "url": f"/hook-default/{book.pk}",
+        "classes": "link link-primary",
+        "open_in": "modal",
+        "hx_method": "get",
+        "hx_target": "#modal",
+        "modal_attrs": 'onclick="modal.showModal()"',
+    }, "Hook links without open_in should use the view-wide default opening mode."
+
+
+@pytest.mark.django_db
+def test_object_list_hook_link_supports_new_context_links():
+    author = Author.objects.create(name="Hook New Author")
+    book = Book.objects.create(
+        title="Hook New Link Book",
+        author=author,
+        published_date=date(2024, 4, 10),
+        bestseller=False,
+        isbn="9876543211120",
+        pages=129,
+        description="Hook new-context coverage",
+    )
+
+    request = apply_session(RequestFactory().get("/"))
+    view = TemplateViewStub(request)
+    view.get_list_cell_link = lambda obj, field_name, value, *, is_property, request=None: (
+        {
+            "url": f"https://reports.example.test/books/{obj.pk}",
+            "title": "Open report",
+            "open_in": "new",
+            "modal_box_classes": "modal-box w-11/12 max-w-6xl",
+        }
+        if field_name == "title"
+        else None
+    )
+
+    context = {
+        "request": request,
+        "use_htmx": True,
+        "original_target": "#content",
+        "htmx_target": "#content",
+    }
+    row = powercrud.object_list(context, [book], view)["object_list"][0]
+    cell_map = {cell["name"]: cell for cell in row["cells"]}
+
+    assert cell_map["title"]["link"] == {
+        "url": f"https://reports.example.test/books/{book.pk}",
+        "title": "Open report",
+        "classes": "link link-primary",
+        "open_in": "new",
+        "target": "_blank",
+        "rel": "noopener noreferrer",
+    }, "Hook-provided new-context links should render safe native anchor attributes."
+    assert "modal_box_classes" not in cell_map["title"]["link"], (
+        "Hook-provided modal_box_classes should only affect modal list-cell links."
+    )
+
+
+@pytest.mark.django_db
+def test_object_list_hook_link_supports_modal_links():
+    author = Author.objects.create(name="Hook Modal Author")
+    book = Book.objects.create(
+        title="Hook Modal Link Book",
+        author=author,
+        published_date=date(2024, 4, 11),
+        bestseller=False,
+        isbn="9876543211121",
+        pages=130,
+        description="Hook modal coverage",
+    )
+
+    request = apply_session(RequestFactory().get("/"))
+    view = TemplateViewStub(request)
+    view.get_list_cell_link = lambda obj, field_name, value, *, is_property, request=None: (
+        {
+            "url": f"/hook-modal/{obj.pk}",
+            "open_in": "modal",
+            "modal_box_classes": "modal-box w-11/12 max-w-6xl",
+        }
+        if field_name == "title"
+        else None
+    )
+
+    context = {
+        "request": request,
+        "use_htmx": True,
+        "original_target": "#content",
+        "htmx_target": "#content",
+    }
+    row = powercrud.object_list(context, [book], view)["object_list"][0]
+    cell_map = {cell["name"]: cell for cell in row["cells"]}
+
+    assert cell_map["title"]["link"] == {
+        "url": f"/hook-modal/{book.pk}",
+        "classes": "link link-primary",
+        "open_in": "modal",
+        "hx_method": "get",
+        "hx_target": "#modal",
+        "modal_attrs": 'onclick="modal.showModal()"',
+        "modal_box_classes": "modal-box w-11/12 max-w-6xl",
+    }, "Hook-provided modal links should reuse the same PowerCRUD modal metadata as declarative links."
 
 
 @pytest.mark.django_db
@@ -877,7 +1109,11 @@ def test_object_list_resolves_modal_link_metadata_when_requested():
     request = apply_session(RequestFactory().get("/"))
     view = TemplateViewStub(request)
     view.link_fields = {
-        "title": {"view_name": "sample:book-detail", "use_modal": True}
+        "title": {
+            "view_name": "sample:book-detail",
+            "open_in": "modal",
+            "modal_box_classes": "modal-box w-11/12 max-w-5xl",
+        }
     }
 
     context = {
@@ -892,11 +1128,12 @@ def test_object_list_resolves_modal_link_metadata_when_requested():
     assert cell_map["title"]["link"] == {
         "url": f"/sample:book-detail/{book.pk}",
         "classes": "link link-primary",
-        "use_modal": True,
+        "open_in": "modal",
         "hx_method": "get",
         "hx_target": "#modal",
         "modal_attrs": 'onclick="modal.showModal()"',
-    }, "Declarative list links should reuse the existing modal target and framework modal attrs when use_modal=True is configured."
+        "modal_box_classes": "modal-box w-11/12 max-w-5xl",
+    }, "Declarative list links should reuse the existing modal target, framework modal attrs, and per-cell modal box classes when open_in='modal' is configured."
 
 
 @pytest.mark.django_db
@@ -915,7 +1152,11 @@ def test_object_list_modal_links_degrade_to_plain_links_when_modal_stack_disable
     request = apply_session(RequestFactory().get("/"))
     view = TemplateViewStub(request, use_htmx=False, use_modal=False)
     view.link_fields = {
-        "title": {"view_name": "sample:book-detail", "use_modal": True}
+        "title": {
+            "view_name": "sample:book-detail",
+            "open_in": "modal",
+            "modal_box_classes": "modal-box w-11/12 max-w-5xl",
+        }
     }
 
     context = {
@@ -930,8 +1171,8 @@ def test_object_list_modal_links_degrade_to_plain_links_when_modal_stack_disable
     assert cell_map["title"]["link"] == {
         "url": f"/sample:book-detail/{book.pk}",
         "classes": "link link-primary",
-        "use_modal": True,
-    }, "use_modal=True should fall back to a normal anchor when the view's HTMX/modal stack is disabled."
+        "open_in": "modal",
+    }, "open_in='modal' should fall back to a normal anchor when the view's HTMX/modal stack is disabled."
 
 
 @pytest.mark.django_db

@@ -57,14 +57,31 @@ class BookCRUDView(PowerCRUDAsyncMixin, CRUDView):
     view_instructions = "Here you can edit books"
     column_help_text = {
         "title": "The book title shown throughout the app.",
+        "pages": "Demo link: opens this book detail in the current page.",
+        "isbn": "Demo link: opens an external ISBN reference in a new tab or window.",
         "isbn_empty": "Shows whether this row currently has an ISBN value.",
+        "a_really_long_property_header_for_title": (
+            "Demo link: opens the related author detail in a larger PowerCRUD modal."
+        ),
     }
-    list_cell_tooltip_fields = ["title", "isbn_empty"]
+    list_cell_tooltip_fields = ["title", "pages", "isbn_empty"]
+    list_cell_link_default_open_in = "modal"
     link_fields = {
         "a_really_long_property_header_for_title": {
             "view_name": "sample:author-detail",
             "pk_attr": "author_id",
-            "use_modal": True,
+            "modal_box_classes": (
+                "modal-box flex max-h-[calc(100dvh-2rem)] w-11/12 "
+                "max-w-6xl flex-col"
+            ),
+        },
+        "pages": {
+            "view_name": "sample:bigbook-detail",
+            "open_in": "current",
+        },
+        "isbn": {
+            "url": "https://www.isbn-international.org/content/what-isbn",
+            "open_in": "new",
         },
     }
     form_class = BookForm
@@ -86,7 +103,7 @@ class BookCRUDView(PowerCRUDAsyncMixin, CRUDView):
     default_filterset_fields = ['author', 'title', 'published_date']
     filter_favourites_enabled = True
     dropdown_sort_options = {"author": "name"}
-    inline_edit_fields = ['title', 'author', 'genres', 'published_date', 'bestseller', 'isbn', 'description']
+    inline_edit_fields = ['title', 'author', 'genres', 'published_date', 'bestseller', 'description']
     
     extra_buttons = [...]  # Includes a selection-aware "Selected Summary" demo
     extra_actions = [...]  # Includes a conditional "Description Preview" demo
@@ -94,6 +111,8 @@ class BookCRUDView(PowerCRUDAsyncMixin, CRUDView):
     def get_list_cell_tooltip(self, obj, field_name, *, is_property, request=None):
         if field_name == "title":
             return f"{obj.author}\n{obj.pages} pages"
+        if field_name == "pages":
+            return f"Page count: {obj.pages}"
         if field_name == "isbn_empty":
             return (
                 "This book does not currently have an ISBN."
@@ -103,9 +122,9 @@ class BookCRUDView(PowerCRUDAsyncMixin, CRUDView):
         return None
 ```
 
-The sample `BookCRUDView` uses `view_title = "My List of Books"` plus `view_instructions = "Here you can edit books"` to demonstrate the narrow heading/helper-text overrides. It also sets `column_help_text` for one field and one property so the sample list shows the header-help tooltip pattern, and `list_cell_tooltip_fields` plus `get_list_cell_tooltip(...)` so the list also demonstrates semantic field-level tooltips on both a normal text cell and the boolean-like `isbn_empty` property cell. The sample `title` tooltip intentionally uses a newline so the demo shows multiline semantic list-cell tooltip rendering, while header-help tooltips and other tooltip surfaces keep their normal single-line behavior. That changes only the list surface above and inside the table; other UI copy such as the create button still comes from the model verbose names, and the instructions text, header help text, and semantic cell tooltip text are all rendered as plain escaped text rather than HTML.
+The sample `BookCRUDView` uses `view_title = "My List of Books"` plus `view_instructions = "Here you can edit books"` to demonstrate the narrow heading/helper-text overrides. It also sets `column_help_text` for one field and one property so the sample list shows the header-help tooltip pattern; on linked demo columns, the header help explicitly says whether the link opens in the current page, a new tab/window, or the PowerCRUD modal. `list_cell_tooltip_fields` plus `get_list_cell_tooltip(...)` demonstrates semantic field-level tooltips on the inline-editable `title`, the visible non-inline `pages` field, and the boolean-like `isbn_empty` property cell. The sample `title` tooltip intentionally uses a newline so the demo shows multiline semantic list-cell tooltip rendering, while header-help tooltips and other tooltip surfaces keep their normal single-line behavior. That changes only the list surface above and inside the table; other UI copy such as the create button still comes from the model verbose names, and the instructions text, header help text, and semantic cell tooltip text are all rendered as plain escaped text rather than HTML.
 
-The same sample view now also demonstrates list-cell linking through the narrow declarative `link_fields` API. The live sample uses the non-inline property column `a_really_long_property_header_for_title` so the screen can keep its primary `title` and `author` columns reserved for inline-edit and dependency demos. That is deliberate: PowerCRUD never turns inline-editable cells into links. The sample uses the dict form with `pk_attr = "author_id"` plus `use_modal = True`, so that existing non-inline link now opens the related author detail through PowerCRUD's normal modal flow when the sample page is running with modal support.
+The same sample view now also demonstrates list-cell linking through the narrow declarative `link_fields` API. The live sample uses the non-inline property column `a_really_long_property_header_for_title` so the screen can keep its primary `title` and `author` columns reserved for inline-edit and dependency demos. That is deliberate: PowerCRUD never turns inline-editable cells into links. The sample sets `list_cell_link_default_open_in = "modal"` and uses the dict form with `pk_attr = "author_id"` plus `modal_box_classes`, so that existing non-inline link opens the related author detail through a noticeably larger PowerCRUD modal when the sample page is running with modal support. In views that omit `list_cell_link_default_open_in`, PowerCRUD assumes `"new"`. The sample links `pages` to the current book detail with explicit `open_in = "current"`, and keeps `isbn` out of `inline_edit_fields` so that visible field can link to a static external ISBN reference with explicit `open_in = "new"`.
 
 The same sample view now also demonstrates progressive filter visibility:
 
@@ -134,9 +153,9 @@ The sample `BookCRUDView` now also demonstrates both custom action enhancements 
 
 - a selection-aware `extra_button` that opens a modal summary for the current persisted bulk selection
 - a row-level `extra_action` that disables itself with a tooltip when the book has no description
-- per-trigger modal sizing on a modal `extra_button` and modal `extra_actions` through `modal_box_classes`
-- semantic field-level list-cell tooltips on the `title` field and `isbn_empty` property
-- declarative list-cell linking on the non-inline `Really Long Title` property column
+- per-trigger modal sizing on a modal list-cell link, a modal `extra_button`, and modal `extra_actions` through `modal_box_classes`
+- semantic field-level list-cell tooltips on the inline `title`, non-inline `pages`, and `isbn_empty` property columns
+- declarative list-cell linking on `pages` (`current`), visible `isbn` (`new`), and the non-inline `Really Long Title` property column (`modal`)
 - an active sample app-level tooltip theme override through `--pc-tooltip-bg` / `--pc-tooltip-fg`
 - a guarded row (`Guarded Sample Book`) that disables the built-in Edit action and inline editing before the user can start an update
 - a bulk-validation demo row (`Bulk Validation Sample Book`) that re-renders the bulk edit modal for sync bulk updates and fails the async task for queued bulk updates when a sample bulk rule is violated
@@ -206,7 +225,7 @@ When the user changes `author` inline, PowerCRUD posts the current row data to t
 - **GenreCRUDView**: Minimal configuration example plus two focused delete demos: a guarded row (`Guarded Sample Genre`) that disables the built-in Delete action before click, and a protected row (`Protected Sample Genre`) that demonstrates handled single-delete `ValidationError` responses after submit
 - **ProfileCRUDView**: OneToOneField, the sample app's column-alignment demo (`status` centered, `priority_band` right-aligned, `favorite_genre` left-aligned), inline editing, bulk operations, merged nullable relation filtering on `favorite_genre`, and a static queryset rule that limits `favorite_genre` choices to genres whose names start with `S`
 - **AuthorCRUDView**: Properties, filtering, template debugging, companion nullable scalar filtering on `birth_date`, and visible row-level `extra_actions` in the default button mode
-- **BookCRUDView**: Async bulk editing, dependent `author -> genres` queryset scoping, `view_title` / `view_instructions` heading-area overrides, `column_help_text` header tooltips, semantic field-level list-cell tooltips, a declarative modal list-cell link demo on a non-inline property column, selection-aware `extra_buttons`, dropdown row actions that open upward for the last five rendered rows, and a guarded sample row for built-in Edit and inline update guards
+- **BookCRUDView**: Async bulk editing, dependent `author -> genres` queryset scoping, `view_title` / `view_instructions` heading-area overrides, `column_help_text` header tooltips, semantic field-level list-cell tooltips on inline and non-inline columns, declarative modal and external list-cell link demos, selection-aware `extra_buttons`, dropdown row actions that open upward for the last five rendered rows, and a guarded sample row for built-in Edit and inline update guards
 
 The `Genre` sample keeps these delete demos deliberately narrow:
 

@@ -83,6 +83,27 @@ def test_validator_accepts_valid_payload():
     )
 
 
+def test_validator_accepts_list_cell_link_default_open_in():
+    validator = PowerCRUDMixinValidator(list_cell_link_default_open_in="modal")
+
+    assert validator.list_cell_link_default_open_in == "modal", (
+        "The validator should accept supported list-cell link default opening modes."
+    )
+
+
+def test_validator_defaults_list_cell_link_default_open_in_to_new():
+    validator = PowerCRUDMixinValidator()
+
+    assert validator.list_cell_link_default_open_in == "new", (
+        "Omitted list_cell_link_default_open_in should validate to the package default new browser context."
+    )
+
+
+def test_validator_rejects_invalid_list_cell_link_default_open_in():
+    with pytest.raises(ValueError):
+        PowerCRUDMixinValidator(list_cell_link_default_open_in="popup")
+
+
 def test_validator_rejects_bad_hx_trigger():
     with pytest.raises(ValueError):
         PowerCRUDMixinValidator(use_htmx=False, hx_trigger={1: "value"})
