@@ -8,7 +8,7 @@ This area exists to capture in-flight engineering work in a way that is:
 - easy to hand over to another developer later
 - safe to delete/archive once the stable truth is promoted into `docs/mkdocs/`
 
-These pages are intended for the MkDocs dev server and internal collaboration. They are not the official long-lived documentation set.
+These pages are internal engineering notes only. They are not part of the MkDocs documentation tree and are not published by the docs site.
 
 ## Core rules
 
@@ -67,16 +67,9 @@ Follow a checkbox-oriented layout with explicit phases, for example:
 
 ## Navigation
 
-Every feature folder should have a `.nav.yml` with short labels in the nav:
+Do not create or maintain `.nav.yml` files for `docs/_plans/`.
 
-```yaml
-title: "Feature Name"
-nav:
-  - Plan: <feature>-plan.md
-  - Notes: <feature>-notes.md
-```
-
-Also ensure `docs/_plans/.nav.yml` includes the feature folder so it appears in the dev server nav.
+Planning documents are outside the MkDocs `docs_dir`, so MkDocs navigation files are not needed for active plans or archived plans.
 
 ## Promotion workflow
 
