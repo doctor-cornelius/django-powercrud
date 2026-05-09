@@ -4,6 +4,10 @@ PowerCRUD is still evolving quickly, and the early release history was cut at a 
 
 Version numbers below correspond to published git tags. The more important releases include a little extra narrative and upgrade context; smaller patch releases remain deliberately brief. For full detail between any two versions, use the GitHub compare view for the matching tags.
 
+## 0.6.3 (2026-05-09)
+- **Feature (list-links)**: add configurable list-cell link opening
+- **Documentation (plan)**: plan for extensible list fields feature
+
 ## 0.6.2 (2026-04-28)
 - **Fix (bulk)**: repair code syntax error for bulk choices char fields
 
