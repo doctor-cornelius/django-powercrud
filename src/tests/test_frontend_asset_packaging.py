@@ -53,6 +53,9 @@ def test_runtime_css_themes_tomselect_with_daisyui_semantic_tokens() -> None:
     assert (
         ".ts-dropdown .active," in css
     ), "TomSelect runtime CSS should include an explicit active dropdown option override."
+    assert (
+        ".ts-dropdown.powercrud-inline-single-dropdown {" in css
+    ), "Inline TomSelect dropdowns should be allowed to extend wider than narrow table cells."
 
 
 def test_runtime_css_exposes_tooltip_theme_variables() -> None:
@@ -86,6 +89,9 @@ def test_runtime_css_exposes_tooltip_theme_variables() -> None:
     assert (
         "color: var(--pc-tooltip-arrow);" in css
     ), "Tooltip arrow selectors should consume the tooltip arrow custom property."
+    assert (
+        ".pc-inline-error-popover" in css
+    ), "Runtime CSS should include a visible inline field-error popover style."
 
 
 def test_runtime_js_hides_tooltips_before_interactive_transitions() -> None:
@@ -117,6 +123,89 @@ def test_runtime_js_hides_tooltips_before_interactive_transitions() -> None:
         "document.addEventListener('htmx:beforeRequest', event => {\n        hidePowercrudTooltips(document);"
         in js
     ), "Runtime JS should hide visible tooltips before HTMX requests can open modal content."
+
+
+def test_runtime_js_opens_inline_tomselect_on_focus() -> None:
+    """Inline searchable selects should keep the original focus-and-open behavior."""
+    package_root = Path(powercrud.__file__).resolve().parent
+    runtime_js = package_root / "static" / "powercrud" / "js" / "powercrud.js"
+
+    js = runtime_js.read_text(encoding="utf-8")
+
+    assert (
+        "function maybeOpenSelectDropdown(focusTarget, triggerField)" in js
+    ), "Runtime JS should use the inline-select dropdown opener."
+    assert (
+        "candidate.tomselect.open()" in js
+    ), "Inline TomSelect focus should open the dropdown for direct field edits."
+    assert (
+        "instance.control.addEventListener('pointerdown'" not in js
+    ), "Inline TomSelect should not use a custom pointerdown opener."
+    assert (
+        "openOnFocus: true" in js
+    ), "Inline TomSelect should preserve normal open-on-focus behavior."
+
+
+def test_runtime_js_shows_inline_field_error_popovers() -> None:
+    """Inline validation errors should get forced-visible field popovers."""
+    package_root = Path(powercrud.__file__).resolve().parent
+    runtime_js = package_root / "static" / "powercrud" / "js" / "powercrud.js"
+
+    js = runtime_js.read_text(encoding="utf-8")
+
+    assert (
+        "function showInlineFieldErrorPopovers(root = document)" in js
+    ), "Runtime JS should expose a helper for inline field error popovers."
+    assert (
+        "document.body.appendChild(popover)" in js
+    ), "Inline field error popovers should escape clipping containers."
+    assert (
+        "popover.dataset.powercrudInlineErrorPopover = 'true'" in js
+    ), "Inline field error popovers should expose a deterministic selector."
+    assert (
+        "function positionInlineFieldErrorPopover(widget, popover)" in js
+    ), "Inline field error popovers should be explicitly positioned outside table layout."
+    assert (
+        "function getInlineFieldErrorText(widget)" in js
+    ), "Runtime JS should find inline field error text for progressive enhancement."
+    assert (
+        "errorText.classList.add('sr-only');" in js
+    ), "Runtime JS should visually hide duplicate inline error text while the popover is visible."
+    assert (
+        "errorText.classList.remove('sr-only');" in js
+    ), "Runtime JS should restore inline error text when the popover is dismissed."
+    assert (
+        "role', 'alert'" in js
+    ), "Inline field error callouts should be announced as alerts."
+
+
+def test_runtime_js_does_not_render_inline_toasts() -> None:
+    """Inline runtime should not render package-owned top toast notices."""
+    package_root = Path(powercrud.__file__).resolve().parent
+    runtime_js = package_root / "static" / "powercrud" / "js" / "powercrud.js"
+    object_list_template = (
+        package_root
+        / "templates"
+        / "powercrud"
+        / "daisyUI"
+        / "object_list.html"
+    )
+
+    js = runtime_js.read_text(encoding="utf-8")
+    template = object_list_template.read_text(encoding="utf-8")
+
+    assert (
+        "showInlineNotice" not in js
+    ), "Runtime JS should not render native inline top notices."
+    assert (
+        "data-powercrud-inline-alert" not in template
+    ), "Object-list template should not include a native inline toast container."
+    assert (
+        "pc-inline-alert" not in template
+    ), "Object-list template should not include a native inline alert host."
+    assert (
+        "data-inline-dismiss" not in js
+    ), "Runtime JS should not include dismissible inline-toast controls."
 
 
 def test_sample_bundle_imports_tooltip_override_css_after_powercrud_runtime_css() -> None:

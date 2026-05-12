@@ -755,14 +755,22 @@ def test_inline_post_validation_error_returns_inline_form(sample_book, sample_au
     payload = json.loads(response["HX-Trigger"])
 
     assert response.status_code == 200
-    assert payload == {
-        "inline-row-error": {
-            "pk": sample_book.pk,
-            "row_id": f"pc-row-{sample_book.pk}",
+    assert payload["inline-row-error"]["pk"] == sample_book.pk
+    assert payload["inline-row-error"]["row_id"] == f"pc-row-{sample_book.pk}"
+    assert payload["inline-row-error"]["message"] == "This field is required."
+    assert payload["inline-row-error"]["field_errors"] == [
+        {
+            "field": "title",
+            "label": "Title",
             "message": "This field is required.",
         }
-    }
+    ]
+    assert payload["inline-row-error"]["non_field_errors"] == []
     assert b"text-error" in response.content
+    assert b'data-inline-field-error="true"' in response.content
+    assert b'data-inline-error-field="title"' in response.content
+    assert b'aria-invalid="true"' in response.content
+    assert b'id_title_inline_error' in response.content
 
 
 @pytest.mark.django_db
@@ -785,6 +793,10 @@ def test_inline_post_non_field_error_renders_alert(sample_book, sample_author):
 
     assert response.status_code == 200
     assert payload["inline-row-error"]["message"] == "Custom non-field problem"
+    assert payload["inline-row-error"]["field_errors"] == []
+    assert payload["inline-row-error"]["non_field_errors"] == [
+        {"message": "Custom non-field problem"}
+    ]
     assert response.content.count(b"alert alert-error") >= 1
 
 

@@ -14,7 +14,8 @@
     const TOOLTIP_TRIGGER_SELECTOR = '[data-powercrud-tooltip][data-tippy-content]';
     const INLINE_ROW_SELECTOR = 'tr[data-inline-row="true"]';
     const INLINE_TABLE_SELECTOR = 'table[data-inline-enabled="true"]';
-    const INLINE_NOTICE_SELECTOR = '[data-powercrud-inline-alert]';
+    const INLINE_FIELD_ERROR_SELECTOR = '[data-inline-field-error="true"]';
+    const INLINE_FIELD_ERROR_POPOVER_SELECTOR = '[data-powercrud-inline-error-popover="true"]';
     const RANGE_SELECT_SUPPRESS_CLASS = 'powercrud-range-selecting';
     const VISIBLE_FILTERS_PARAM = 'visible_filters';
     const VISIBLE_FILTERS_STORAGE_PREFIX = 'powercrud:visible-filters:';
@@ -2082,7 +2083,6 @@
     }
 
     let activeRowId = null;
-    let inlineNoticeEl = null;
     let pendingColumnWidths = null;
     let activeColumnWidths = null;
     let lockedTableRef = null;
@@ -2191,6 +2191,7 @@
 
     function clearActiveRow() {
         activeRowId = null;
+        destroyInlineFieldErrorPopovers(document);
         document
             .querySelectorAll(`${INLINE_ROW_SELECTOR}[data-inline-active="true"]`)
             .forEach(el => {
@@ -2524,21 +2525,159 @@
         }
     }
 
-    function getNoticeElement() {
-        if (inlineNoticeEl && document.body.contains(inlineNoticeEl)) {
-            return inlineNoticeEl;
-        }
-        inlineNoticeEl = document.querySelector(INLINE_NOTICE_SELECTOR) || document.getElementById('pc-inline-alert');
-        return inlineNoticeEl;
-    }
-
-    function clearNotice() {
-        const host = getNoticeElement();
-        if (!host) {
+    function removeInlineFieldErrorPopover(widget) {
+        if (!(widget instanceof HTMLElement)) {
             return;
         }
-        host.innerHTML = '';
-        host.classList.add('hidden');
+        const errorText = getInlineFieldErrorText(widget);
+        if (errorText) {
+            errorText.classList.remove('sr-only');
+            delete errorText.dataset.inlineErrorTextHidden;
+        }
+        if (widget._powercrudInlineErrorTippy) {
+            widget._powercrudInlineErrorTippy.destroy();
+            delete widget._powercrudInlineErrorTippy;
+        }
+        if (widget._powercrudInlineErrorPopover) {
+            widget._powercrudInlineErrorPopover.remove();
+            delete widget._powercrudInlineErrorPopover;
+        }
+    }
+
+    function getInlineFieldErrorText(widget) {
+        if (!(widget instanceof HTMLElement)) {
+            return null;
+        }
+        const control = widget.querySelector('[aria-describedby]');
+        const describedBy = control instanceof HTMLElement
+            ? (control.getAttribute('aria-describedby') || '')
+            : '';
+        const errorId = describedBy
+            .split(/\s+/)
+            .find(id => id.endsWith('_inline_error'));
+        if (errorId) {
+            const errorText = document.getElementById(errorId);
+            if (errorText instanceof HTMLElement) {
+                return errorText;
+            }
+        }
+        const siblingError = widget.nextElementSibling;
+        if (
+            siblingError instanceof HTMLElement
+            && siblingError.dataset.inlineErrorText === 'true'
+        ) {
+            return siblingError;
+        }
+        return null;
+    }
+
+    function positionInlineFieldErrorPopover(widget, popover) {
+        if (!(widget instanceof HTMLElement) || !(popover instanceof HTMLElement)) {
+            return;
+        }
+
+        const viewportWidth = document.documentElement.clientWidth || global.innerWidth;
+        const gap = 8;
+        const edgePadding = 8;
+        const widgetRect = widget.getBoundingClientRect();
+
+        popover.style.left = '0px';
+        popover.style.top = '0px';
+
+        const popoverRect = popover.getBoundingClientRect();
+        const hasRoomAbove = widgetRect.top >= popoverRect.height + gap + edgePadding;
+        const placement = hasRoomAbove ? 'top' : 'bottom';
+        const top = placement === 'top'
+            ? global.scrollY + widgetRect.top - popoverRect.height - gap
+            : global.scrollY + widgetRect.bottom + gap;
+        const preferredLeft = global.scrollX + widgetRect.left;
+        const minLeft = global.scrollX + edgePadding;
+        const maxLeft = global.scrollX + viewportWidth - popoverRect.width - edgePadding;
+        const left = Math.max(minLeft, Math.min(preferredLeft, maxLeft));
+
+        popover.dataset.placement = placement;
+        popover.style.left = `${left}px`;
+        popover.style.top = `${top}px`;
+    }
+
+    function repositionInlineFieldErrorPopovers(root = document) {
+        queryAllWithSelf(root, INLINE_FIELD_ERROR_SELECTOR).forEach(widget => {
+            if (
+                widget instanceof HTMLElement
+                && widget._powercrudInlineErrorPopover instanceof HTMLElement
+            ) {
+                positionInlineFieldErrorPopover(widget, widget._powercrudInlineErrorPopover);
+            }
+        });
+    }
+
+    function destroyInlineFieldErrorPopovers(root = document) {
+        queryAllWithSelf(root, INLINE_FIELD_ERROR_SELECTOR).forEach(widget => {
+            removeInlineFieldErrorPopover(widget);
+        });
+        if (root === document) {
+            document.querySelectorAll(INLINE_FIELD_ERROR_POPOVER_SELECTOR).forEach(popover => {
+                popover.remove();
+            });
+        }
+    }
+
+    function removeOrphanedInlineFieldErrorPopovers() {
+        const ownedPopovers = new Set();
+        queryAllWithSelf(document, INLINE_FIELD_ERROR_SELECTOR).forEach(widget => {
+            if (
+                widget instanceof HTMLElement
+                && widget._powercrudInlineErrorPopover instanceof HTMLElement
+            ) {
+                ownedPopovers.add(widget._powercrudInlineErrorPopover);
+            }
+        });
+        document.querySelectorAll(INLINE_FIELD_ERROR_POPOVER_SELECTOR).forEach(popover => {
+            if (!ownedPopovers.has(popover)) {
+                popover.remove();
+            }
+        });
+    }
+
+    function bindInlineFieldErrorDismissal(widget) {
+        if (!(widget instanceof HTMLElement) || widget.dataset.inlineErrorDismissBound === 'true') {
+            return;
+        }
+        widget.dataset.inlineErrorDismissBound = 'true';
+        const dismiss = () => {
+            removeInlineFieldErrorPopover(widget);
+        };
+        widget.querySelectorAll('input, select, textarea').forEach(control => {
+            control.addEventListener('input', dismiss, { once: true });
+            control.addEventListener('change', dismiss, { once: true });
+        });
+    }
+
+    function showInlineFieldErrorPopovers(root = document) {
+        queryAllWithSelf(root, INLINE_FIELD_ERROR_SELECTOR).forEach(widget => {
+            if (!(widget instanceof HTMLElement)) {
+                return;
+            }
+            const message = widget.dataset.inlineErrorMessage || '';
+            if (!message) {
+                return;
+            }
+            removeInlineFieldErrorPopover(widget);
+            const popover = document.createElement('div');
+            popover.className = 'pc-inline-error-popover';
+            popover.dataset.powercrudInlineErrorPopover = 'true';
+            popover.setAttribute('role', 'alert');
+            popover.textContent = message;
+            document.body.appendChild(popover);
+            widget._powercrudInlineErrorPopover = popover;
+            positionInlineFieldErrorPopover(widget, popover);
+            const errorText = getInlineFieldErrorText(widget);
+            if (errorText) {
+                errorText.classList.add('sr-only');
+                errorText.dataset.inlineErrorTextHidden = 'true';
+            }
+            bindInlineFieldErrorDismissal(widget);
+        });
     }
 
     function refreshInlineRow(refresh) {
@@ -2556,67 +2695,14 @@
         });
     }
 
-    function showInlineNotice(options) {
-        const host = getNoticeElement();
-        if (!host) {
-            return;
-        }
-        const level = options.level || 'info';
-        const levelClasses = {
-            warning: 'alert-warning',
-            error: 'alert-error',
-            info: 'alert-info',
-        };
-        const alertClass = levelClasses[level] || levelClasses.info;
-        host.classList.remove('hidden');
-
-        const lockLabel = options.lockLabel ? `<div class="text-xs opacity-80">${options.lockLabel}</div>` : '';
-        const message = options.message || 'Inline editing unavailable.';
-        const actionButton = options.refresh && options.refresh.url
-            ? `
-                <button type="button"
-                        class="btn btn-xs btn-outline"
-                        data-inline-refresh-btn>
-                    Refresh Row
-                </button>
-            `
-            : '';
-
-        host.innerHTML = `
-            <div class="alert ${alertClass} shadow-sm flex flex-wrap gap-2 items-center">
-                <span class="flex-1">${message}</span>
-                ${lockLabel}
-                ${actionButton}
-                <button type="button" class="btn btn-xs btn-ghost" data-inline-dismiss>
-                    Dismiss
-                </button>
-            </div>
-        `;
-
-        const refreshBtn = host.querySelector('[data-inline-refresh-btn]');
-        if (refreshBtn) {
-            refreshBtn.addEventListener('click', () => refreshInlineRow(options.refresh));
-        }
-        const dismissBtn = host.querySelector('[data-inline-dismiss]');
-        if (dismissBtn) {
-            dismissBtn.addEventListener('click', clearNotice);
-        }
-    }
-
-    function handleInlineGuardEvent(event, level) {
+    function handleInlineGuardEvent(event) {
         const payload = event.detail && event.detail.value ? event.detail.value : (event.detail || {});
         const refreshPayload = payload.refresh;
-        const lockMeta = payload.lock || {};
         clearActiveRow();
-        showInlineNotice({
-            level,
-            message: payload.message,
-            lockLabel: lockMeta.label,
-            refresh: refreshPayload,
-        });
         pendingColumnWidths = null;
         activeColumnWidths = null;
         unlockTableWidth();
+        refreshInlineRow(refreshPayload);
     }
 
     function startFormSpinner(form) {
@@ -2758,6 +2844,13 @@
     }, true);
 
     document.addEventListener('click', event => {
+        const trigger = asElement(event.target);
+        if (trigger?.closest('[data-inline-cancel]')) {
+            destroyInlineFieldErrorPopovers(document);
+        }
+    }, true);
+
+    document.addEventListener('click', event => {
         applyPowercrudModalClasses(asElement(event.target));
     }, true);
 
@@ -2882,6 +2975,10 @@
     });
 
     document.addEventListener('keydown', event => {
+        const target = asElement(event.target);
+        if (event.key === 'Escape' && target?.closest(INLINE_ROW_SELECTOR)) {
+            destroyInlineFieldErrorPopovers(document);
+        }
         if (event.key === 'Escape') {
             closeFilterFavouritesDropdowns();
             closeRowActionsMenu();
@@ -3201,6 +3298,7 @@
         getHtmxEventRoots(event).forEach(root => {
             destroyPowercrudSearchableSelects(root);
             destroyPowercrudTooltips(root);
+            destroyInlineFieldErrorPopovers(root);
         });
         closeRowActionsMenu();
 
@@ -3210,7 +3308,6 @@
         const target = asElement(event.target);
         if (targetTouchesInlineRows(target)) {
             clearActiveRow();
-            clearNotice();
         }
     });
 
@@ -3258,17 +3355,18 @@
                 setActiveRow(inlineFormRow);
                 wireInlineRow(inlineFormRow);
                 focusRow(inlineFormRow);
+                showInlineFieldErrorPopovers(inlineFormRow);
                 const widthsToApply = pendingColumnWidths || activeColumnWidths;
                 if (widthsToApply && widthsToApply.length) {
                     applyRowWidths(inlineFormRow, widthsToApply);
                     activeColumnWidths = widthsToApply.slice();
                     pendingColumnWidths = null;
                 }
+                removeOrphanedInlineFieldErrorPopovers();
                 return;
             }
             if (!targetHasActiveInlineRow) {
                 clearActiveRow();
-                clearNotice();
             }
         }
 
@@ -3277,6 +3375,7 @@
                 setActiveRow(target);
                 wireInlineRow(target);
                 focusRow(target);
+                showInlineFieldErrorPopovers(target);
                 const widthsToApply = pendingColumnWidths || activeColumnWidths;
                 if (widthsToApply && widthsToApply.length) {
                     applyRowWidths(target, widthsToApply);
@@ -3285,6 +3384,7 @@
                 }
             } else if (activeRowId && target.id === activeRowId) {
                 setActiveRow(null);
+                destroyInlineFieldErrorPopovers(document);
                 clearRowWidths(target);
                 unlockTableWidth(target.closest(INLINE_TABLE_SELECTOR));
                 pendingColumnWidths = null;
@@ -3297,20 +3397,24 @@
                     pendingColumnWidths = null;
                 }
             }
+            removeOrphanedInlineFieldErrorPopovers();
             return;
         }
 
         if (target.matches('.inline-field-widget[data-inline-field]')) {
             setWidgetRefreshing(target, false);
             initInlineSearchableSelects(target);
+            showInlineFieldErrorPopovers(target);
         }
 
         if (activeRowId) {
             const row = target.closest(INLINE_ROW_SELECTOR);
             if (row && row.id === activeRowId && row.dataset.inlineActive === 'true') {
                 wireInlineRow(row);
+                showInlineFieldErrorPopovers(row);
             }
         }
+        removeOrphanedInlineFieldErrorPopovers();
     });
 
     document.addEventListener('htmx:afterSettle', event => {
@@ -3318,13 +3422,18 @@
             initPowercrudSearchableSelects(root);
             bootstrapObjectLists(root);
             initPowercrudTooltips(root);
+            showInlineFieldErrorPopovers(root);
         });
         bootstrapObjectLists(document);
         schedulePowercrudTooltipRefresh(document, 50);
+        removeOrphanedInlineFieldErrorPopovers();
     });
 
     document.addEventListener('htmx:beforeRequest', event => {
         const target = event.detail && event.detail.elt;
+        if (target && target.matches && target.matches('[data-inline-cancel]')) {
+            destroyInlineFieldErrorPopovers(document);
+        }
         if (target && target.matches && target.matches('[data-inline-save]')) {
             const row = target.closest(INLINE_ROW_SELECTOR);
             syncTomSelectValues(row);
@@ -3405,32 +3514,37 @@
     });
 
     document.body.addEventListener('inline-row-locked', event => {
-        handleInlineGuardEvent(event, 'warning');
+        handleInlineGuardEvent(event);
     });
 
     document.body.addEventListener('inline-row-forbidden', event => {
-        handleInlineGuardEvent(event, 'error');
+        handleInlineGuardEvent(event);
+    });
+
+    document.body.addEventListener('inline-row-saved', () => {
+        destroyInlineFieldErrorPopovers(document);
     });
 
     document.body.addEventListener('inline-row-error', event => {
         const payload = event.detail && event.detail.value ? event.detail.value : (event.detail || {});
         if (payload.row_id) {
-            const bannerRow = document.getElementById(payload.row_id);
-            if (bannerRow) {
-                focusRow(bannerRow);
+            const errorRow = document.getElementById(payload.row_id);
+            if (errorRow) {
+                focusRow(errorRow);
+                showInlineFieldErrorPopovers(errorRow);
             }
         }
-        showInlineNotice({
-            level: 'error',
-            message: payload.message || 'Inline save failed. Check the highlighted fields.',
-        });
     });
 
     global.addEventListener('resize', () => {
         closeRowActionsMenu();
+        repositionInlineFieldErrorPopovers(document);
         if (tooltipResizeTimer) {
             clearTimeout(tooltipResizeTimer);
         }
         tooltipResizeTimer = setTimeout(() => initPowercrudTooltips(document), 100);
     });
+    global.addEventListener('scroll', () => {
+        repositionInlineFieldErrorPopovers(document);
+    }, true);
 })(window);

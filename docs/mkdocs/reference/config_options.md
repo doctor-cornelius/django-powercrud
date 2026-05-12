@@ -375,6 +375,7 @@ PowerCRUD enhances eligible select dropdowns with Tom Select when `searchable_se
 
 - Applies to regular create/update forms, inline row forms, bulk edit form selects, and filter form selects.
 - Single-select fields are enhanced as searchable dropdowns.
+- Inline single-selects focus when their row enters edit mode, but the dropdown stays closed until the user clicks or types.
 - Multi-select filter fields are enhanced as searchable multi-select controls.
 - Boolean-style selects remain native controls.
 - Preserves normal Django form POST semantics (the underlying `<select>` still submits the selected value).

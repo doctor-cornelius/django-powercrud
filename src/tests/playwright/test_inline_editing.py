@@ -175,17 +175,31 @@ def test_inline_edit_validation_error_recovers(
 
     active_row = page.locator(INLINE_ACTIVE_SELECTOR)
     expect(active_row).to_have_count(1)
-    expect(active_row.locator(".text-error")).to_contain_text("This field is required")
+    inline_error_text = active_row.locator("[data-inline-error-text='true']")
+    expect(inline_error_text).to_contain_text("This field is required")
+    expect(inline_error_text).to_have_attribute("data-inline-error-text-hidden", "true")
+    expect(page.locator("[data-powercrud-inline-alert]")).to_have_count(0)
+    expect(
+        page.locator('[data-powercrud-inline-error-popover="true"]')
+    ).to_contain_text("This field is required")
 
     recovery_title = f"Recovered Title {uuid4().hex[:6]}"
     title_input = active_row.locator("input[name='title']")
     title_input.fill(recovery_title)
+    expect(page.locator('[data-powercrud-inline-error-popover="true"]')).to_have_count(0)
+    expect(inline_error_text).not_to_have_attribute(
+        "data-inline-error-text-hidden",
+        "true",
+    )
 
     watch_inline_event(page, "inline-row-saved")
     active_row.locator("[data-inline-save]").click()
     wait_for_inline_event(page, "inline-row-saved")
 
     expect(page.locator(INLINE_ACTIVE_SELECTOR)).to_have_count(0)
+    expect(
+        page.locator('[data-powercrud-inline-error-popover="true"]')
+    ).to_have_count(0)
     refreshed_row = get_inline_row(page, row_path)
     expect(refreshed_row.locator("td[data-field-name='title']")).to_contain_text(
         recovery_title
@@ -193,6 +207,32 @@ def test_inline_edit_validation_error_recovers(
 
     book.refresh_from_db()
     assert book.title == recovery_title
+
+
+def test_inline_edit_validation_error_cancel_clears_popover(
+    page: Page, books_url: str, inline_ready_books
+):
+    book = inline_ready_books[0]
+    row_path = build_inline_row_path(books_url, book.pk)
+    open_books_page(page, books_url)
+    watch_inline_event(page, "inline-row-error")
+
+    active_row = open_inline_row(page, row=get_inline_row(page, row_path))
+    active_row.locator("input[name='title']").fill("")
+    active_row.locator("[data-inline-save]").click()
+    error_payload = wait_for_inline_event(page, "inline-row-error")
+    assert error_payload.get("pk") == book.pk
+
+    expect(
+        page.locator('[data-powercrud-inline-error-popover="true"]')
+    ).to_contain_text("This field is required")
+
+    active_row.locator("[data-inline-cancel]").click()
+
+    expect(page.locator(INLINE_ACTIVE_SELECTOR)).to_have_count(0)
+    expect(
+        page.locator('[data-powercrud-inline-error-popover="true"]')
+    ).to_have_count(0)
 
 
 def test_inline_edit_guard_focuses_active_row(
@@ -277,6 +317,33 @@ def test_inline_edit_searchable_select_updates_author(
     assert (
         book.author_id == replacement_author.pk
     ), "Inline searchable single-select should persist the selected author after save."
+
+
+def test_inline_searchable_select_focus_opens_dropdown(
+    page: Page, books_url: str, inline_ready_books
+):
+    book = inline_ready_books[0]
+    row_path = build_inline_row_path(books_url, book.pk)
+
+    open_books_page(page, books_url)
+
+    active_row = open_inline_row(page, row=get_inline_row(page, row_path), field_name="author")
+    select = active_row.locator("select[name='author']")
+    expect(select).to_have_attribute("data-powercrud-searchable-select", "true")
+    select.evaluate(
+        """
+        (el) => {
+            if (!el.tomselect) {
+                throw new Error("Expected TomSelect instance for inline author field.");
+            }
+        }
+        """
+    )
+
+    assert select.evaluate(
+        "el => el.tomselect.isOpen === true"
+    ), "Inline searchable select should open its dropdown when the author field enters edit mode."
+    expect(page.locator(".ts-dropdown .option").first).to_be_visible()
 
 
 def test_inline_edit_display_truncates_long_values(page: Page, books_url: str, inline_ready_books):

@@ -128,6 +128,7 @@ class InlineEditingMixin:
             )
 
             error_summary = self._get_inline_form_error_summary(form)
+            error_payload = self._get_inline_form_error_payload(form)
             html = self._render_inline_row_form(
                 obj, form=form, error_summary=error_summary
             )
@@ -139,16 +140,14 @@ class InlineEditingMixin:
                     row_id = row_id_getter(obj)
                 except Exception:
                     row_id = None
-            response["HX-Trigger"] = json.dumps(
-                {
-                    "inline-row-error": {
-                        "pk": obj.pk,
-                        "row_id": row_id,
-                        "message": error_summary
-                        or str(_("Inline save failed. Fix the errors and try again.")),
-                    }
-                }
-            )
+            trigger_payload = {
+                "pk": obj.pk,
+                "row_id": row_id,
+                "message": error_summary
+                or str(_("Inline save failed. Fix the errors and try again.")),
+            }
+            trigger_payload.update(error_payload)
+            response["HX-Trigger"] = json.dumps({"inline-row-error": trigger_payload})
             return response
 
         html = self._render_inline_row_form(obj, form=None)
@@ -383,6 +382,7 @@ class InlineEditingMixin:
         row_payload = self._build_inline_row_payload(obj)
         inline_form = form or self.build_inline_form(instance=obj)
         self._prepare_inline_number_widgets(inline_form)
+        self._prepare_inline_error_widgets(inline_form)
         inline_hidden_fields = self._get_inline_hidden_bound_fields(
             inline_form, row_payload
         )
@@ -1038,6 +1038,30 @@ class InlineEditingMixin:
             cloned.attrs = attrs
             field.widget = cloned
 
+    def _prepare_inline_error_widgets(self, form) -> None:
+        """Annotate invalid inline widgets for accessible field error popovers."""
+        if not form or not getattr(form, "errors", None):
+            return
+
+        for field_name, messages in form.errors.items():
+            if field_name == NON_FIELD_ERRORS or not messages:
+                continue
+            field = form.fields.get(field_name)
+            if not field:
+                continue
+            attrs = dict(getattr(field.widget, "attrs", {}))
+            describedby_values = attrs.get("aria-describedby", "").split()
+            error_id = self._get_inline_field_error_id(form, field_name)
+            if error_id not in describedby_values:
+                describedby_values.append(error_id)
+            attrs["aria-invalid"] = "true"
+            attrs["aria-describedby"] = " ".join(describedby_values).strip()
+            field.widget.attrs = attrs
+
+    def _get_inline_field_error_id(self, form, field_name: str) -> str:
+        """Return the stable DOM id used for an inline field's error text."""
+        return f"{form[field_name].auto_id}_inline_error"
+
     def _get_inline_form_error_summary(self, form) -> str:
         if not form or not getattr(form, "errors", None):
             return ""
@@ -1054,3 +1078,38 @@ class InlineEditingMixin:
             if messages:
                 return str(messages[0])
         return ""
+
+    def _get_inline_form_error_payload(self, form) -> dict[str, list[dict[str, str]]]:
+        """Return structured inline form errors for the frontend error UI."""
+        payload: dict[str, list[dict[str, str]]] = {
+            "field_errors": [],
+            "non_field_errors": [],
+        }
+        if not form or not getattr(form, "errors", None):
+            return payload
+
+        try:
+            non_field = form.non_field_errors()
+        except Exception:
+            non_field = []
+        for message in non_field:
+            payload["non_field_errors"].append({"message": str(message)})
+
+        errors = getattr(form, "errors", {})
+        for field_name, messages in errors.items():
+            if field_name == NON_FIELD_ERRORS:
+                continue
+            field = form.fields.get(field_name)
+            label = str(
+                getattr(field, "label", None)
+                or field_name.replace("_", " ").title()
+            )
+            for message in messages:
+                payload["field_errors"].append(
+                    {
+                        "field": field_name,
+                        "label": label,
+                        "message": str(message),
+                    }
+                )
+        return payload

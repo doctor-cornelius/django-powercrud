@@ -401,9 +401,23 @@ That lets the sample app demonstrate selection-aware header actions, conditional
 - **Modal Interactions**: All CRUD operations in modals
 - **HTMX Features**: Reactive filtering, pagination, form updates
 - **Inline Dependencies**: Changing a Book author inline immediately refreshes the allowed genre choices derived from the shared form dependency config
+- **Inline Validation Errors**: Clear a Book title inline and save to see the row stay open with field-level error text and a field popover
 - **Static Queryset Rules**: Editing a Profile only offers `favorite_genre` choices whose names start with `S`, and the same restriction carries through inline and bulk edit
 - **CSS Frameworks**: Easy switching between daisyUI and Bootstrap
 - **Responsive Design**: Table layouts with column width controls
+
+### Manual Inline Error Repro
+
+Use the Book list to inspect the inline validation UI:
+
+1. Open `/sample/bigbook/`.
+2. Click the inline edit affordance on a book title.
+3. Clear the title field.
+4. Click **Save**.
+
+Expected result: the row remains in edit mode, the title field is marked invalid, and a forced-visible popover says `This field is required.`. The inline error text remains in the markup as an accessibility/fallback message but is visually hidden while the popover is active.
+
+To check inline searchable selects on the same screen, click the `author` inline-edit affordance. The field should focus and open the dropdown.
 
 ### Configuration Examples
 

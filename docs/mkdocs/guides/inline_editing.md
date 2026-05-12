@@ -100,7 +100,7 @@ class BookCRUDView(PowerCRUDMixin, CRUDView):
 - `depends_on` lists the parent fields that drive the child queryset.
 - `filter_by` maps child queryset lookups to those parent form fields.
 - Each dependent field renders a placeholder + spinner; the JS helper issues a POST to the dependency endpoint and swaps the widget.
-- If the underlying form raises a validation error, the inline row re-renders with the field errors plus a banner (`inline-row-error` HTMX trigger).
+- If the underlying form raises a validation error, the inline row re-renders with field errors and a forced-visible field popover for the first invalid inline widget. The popover is appended outside the table so scroll containers and narrow cells do not hide the message.
 
 The same helpers drive both inline rows and lock-sensitive action buttons, so `_build_inline_row_payload()` contains everything the template needs (row id, inline URLs, lock metadata).
 
@@ -189,13 +189,14 @@ The DaisyUI template also disables Save/Cancel buttons and shows a spinner while
 
 ```text
 inline-row-saved     # payload: {"pk": …}
-inline-row-error     # payload: {"pk": …, "message": …}
+inline-row-error     # payload: {"pk": …, "message": …, "field_errors": […], "non_field_errors": […]}
 inline-row-locked    # payload: {"message": …, "refresh": {...}}
 inline-row-forbidden # payload: {"message": …}
 ```
 
-- Listen for these events (e.g. via `document.body.addEventListener`) to flash custom banners or refresh related widgets.
-- The inline helper script already listens for `inline-row-locked` / `inline-row-forbidden`, shows a toast with an optional “Refresh Row” button, and clears the active state.
+- Listen for these events (e.g. via `document.body.addEventListener`) to show custom notices or refresh related widgets.
+- The inline helper script listens for `inline-row-locked` / `inline-row-forbidden`, clears the active state, and refreshes the affected row when a refresh payload is available.
+- The inline helper script also listens for `inline-row-error`, keeps the row open, and pins a field-level popover to invalid inline widgets.
 - When a row finishes saving, HTMX swaps the table row back to display mode and restores the previous column widths so the layout does not jump.
 
 ---
@@ -204,7 +205,8 @@ inline-row-forbidden # payload: {"message": …}
 
 - **Fields you don’t expose inline** – Stock inline editing reposts the rest of the full form as hidden inputs, so saves preserve non-rendered values and validate against the same form surface as regular edits. `inline_preserve_required_fields` remains as a defensive fallback for custom inline builders that still omit required inputs from POST data.
 - **Column widths** – editable columns reserve a small width buffer so swapping to a widget (with icons or date pickers) does not push neighbouring columns. Non-editable columns keep their natural width.
-- **Single-select fields** – eligible dropdowns are enhanced with Tom Select by default, so users can type to filter options inline without changing backend form contracts. Disable globally with `searchable_selects = False` or per field with `get_searchable_select_enabled_for_field()`.
+- **Single-select fields** – eligible dropdowns are enhanced with Tom Select by default, so users can type to filter options inline without changing backend form contracts. Inline activation focuses the field and opens the dropdown when the selected cell is a searchable select. Disable globally with `searchable_selects = False` or per field with `get_searchable_select_enabled_for_field()`.
+- **Validation errors** – field errors remain in the row markup for accessibility and fallback rendering. When the runtime successfully shows a forced-visible popover, it visually hides the duplicate inline error text with `sr-only`; if the popover cannot be created, the inline text stays visible. If you override the inline row partial, preserve the `data-inline-field-error`, `data-inline-error-message`, `aria-invalid`, and `aria-describedby` attributes so the package runtime can find the invalid widget.
 - **Multi-select fields** – a row can temporarily grow taller when editing ManyToMany fields (e.g., genres). This is expected; if you need a single-line control, swap the widget for a chips/combobox style component.
 - **HTMX targets** – inline rows target themselves (`hx-target="#pc-row-{{ pk }}"`) so partial updates do not reload the entire table.
 - **Keyboard flow** – the row automatically focuses the cell that triggered edit mode (or the first editable field) so users can start typing immediately. Text/number inputs are pre-selected on first focus so typing replaces the current value. Press `Enter` to trigger the same Save action as the button (except inside textareas), and `Esc` mirrors the Cancel button. `<Tab>` will tab between editable fields in the row.
