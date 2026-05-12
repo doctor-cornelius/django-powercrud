@@ -4,6 +4,15 @@ PowerCRUD is still evolving quickly, and the early release history was cut at a 
 
 Version numbers below correspond to published git tags. The more important releases include a little extra narrative and upgrade context; smaller patch releases remain deliberately brief. For full detail between any two versions, use the GitHub compare view for the matching tags.
 
+## 0.6.4 (2026-05-12)
+
+**Fix (inline)**: show popover error message inline so always visible. 
+- previously if there was an error with an inline form, it displayed an inline form error
+- this could be obscured if the vertical height was short, or if the field was a dropdown
+- so now a popover is displayed near the field with semantic error colouring
+- the inline field is hidden if the popover display succeeds
+
+
 ## 0.6.3 (2026-05-09)
 - **Feature (list-links)**: add configurable list-cell link opening
 - **Documentation (plan)**: plan for extensible list fields feature
