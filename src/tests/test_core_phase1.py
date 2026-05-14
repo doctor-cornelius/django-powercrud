@@ -5,6 +5,7 @@ from datetime import date
 
 import pytest
 from django.core.exceptions import ImproperlyConfigured
+from django.db.models import BooleanField, Case, Value, When
 from django.template import Context, Template
 from django.urls import reverse
 from django.test import RequestFactory
@@ -194,6 +195,76 @@ def test_core_mixin_invalid_fields_raise_value_error():
         BrokenView()
 
 
+@pytest.mark.django_db
+def test_core_mixin_accepts_static_queryset_annotation_fields():
+    class AnnotatedBookView(CoreMixin):
+        model = Book
+        queryset = Book.objects.annotate(
+            long_book=Case(
+                When(pages__gte=400, then=Value(True)),
+                default=Value(False),
+                output_field=BooleanField(),
+            )
+        )
+        fields = ["title", "long_book", "pages"]
+        detail_fields = "__fields__"
+
+    view = AnnotatedBookView()
+
+    assert view.fields == ["title", "long_book", "pages"], (
+        "fields should preserve explicitly ordered queryset annotation columns."
+    )
+    assert view.detail_fields == ["title", "pages"], (
+        "detail_fields inherited from __fields__ should stay model-field-only."
+    )
+
+
+@pytest.mark.parametrize(
+    ("config_name", "config_value"),
+    [
+        ("bulk_fields", ["long_book"]),
+        ("inline_edit_fields", ["long_book"]),
+        ("form_fields", ["long_book"]),
+    ],
+)
+def test_core_mixin_rejects_queryset_annotations_on_editable_surfaces(
+    config_name,
+    config_value,
+):
+    class BrokenView(CoreMixin):
+        model = Book
+        queryset = Book.objects.annotate(
+            long_book=Case(
+                When(pages__gte=400, then=Value(True)),
+                default=Value(False),
+                output_field=BooleanField(),
+            )
+        )
+        fields = ["title", "long_book"]
+
+    setattr(BrokenView, config_name, config_value)
+
+    with pytest.raises(ValueError, match=config_name):
+        BrokenView()
+
+
+def test_core_mixin_rejects_explicit_queryset_annotation_detail_fields():
+    class BrokenView(CoreMixin):
+        model = Book
+        queryset = Book.objects.annotate(
+            long_book=Case(
+                When(pages__gte=400, then=Value(True)),
+                default=Value(False),
+                output_field=BooleanField(),
+            )
+        )
+        fields = ["title", "long_book"]
+        detail_fields = ["long_book"]
+
+    with pytest.raises(ValueError, match="detail_field"):
+        BrokenView()
+
+
 class DummyQuerysetParent:
     def get_queryset(self):
         return self.model.objects.all()
@@ -308,6 +379,53 @@ def test_core_mixin_column_sort_fields_override_wins_over_relation_name_heuristi
 
     assert ordered_pks == [zulu_book.pk, alpha_book.pk], (
         "Explicit column_sort_fields_override entries should take precedence over the default related-name sorting heuristic."
+    )
+
+
+@pytest.mark.django_db
+def test_core_mixin_sorts_request_time_queryset_annotation_fields():
+    short_book = Book.objects.create(
+        title="Short Book",
+        author=Author.objects.create(name="Short Author"),
+        published_date=date(2024, 1, 1),
+        bestseller=False,
+        isbn="9781000000041",
+        pages=120,
+    )
+    long_book = Book.objects.create(
+        title="Long Book",
+        author=Author.objects.create(name="Long Author"),
+        published_date=date(2024, 1, 2),
+        bestseller=False,
+        isbn="9781000000042",
+        pages=600,
+    )
+
+    rf = RequestFactory()
+
+    class AnnotatedBookSortView(CoreMixin, DummyQuerysetParent):
+        model = Book
+        fields = ["title", "long_book"]
+
+        def get_queryset(self):
+            """Annotate the operational column after the parent queryset exists."""
+            return super().get_queryset().annotate(
+                long_book=Case(
+                    When(pages__gte=400, then=Value(True)),
+                    default=Value(False),
+                    output_field=BooleanField(),
+                )
+            )
+
+    view = AnnotatedBookSortView()
+    view.request = rf.get("/?sort=-long_book")
+
+    queryset = view._apply_queryset_sorting(view.get_queryset())
+    view.validate_list_fields_against_queryset(view.fields, queryset)
+    ordered_pks = list(queryset.values_list("pk", flat=True))
+
+    assert ordered_pks == [long_book.pk, short_book.pk], (
+        "Request-time queryset annotations should sort after the effective queryset exposes the annotation."
     )
 
 

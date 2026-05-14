@@ -2,7 +2,7 @@ from types import SimpleNamespace
 import warnings
 
 from django.conf import settings
-from django.core.exceptions import ImproperlyConfigured
+from django.core.exceptions import FieldDoesNotExist, ImproperlyConfigured
 from django.db.models.fields.reverse_related import ManyToOneRel
 from typing import Any, Callable
 
@@ -320,12 +320,19 @@ class ConfigMixin:
         if not self.fields or self.fields == "__all__":
             self.fields = self._get_all_fields()
         elif isinstance(self.fields, list):
-            all_fields = self._get_all_fields()
-            for field in self.fields:
-                if field not in all_fields:
-                    raise ValueError(
-                        f"Field {field} not defined in {self.model.__name__}"
-                    )
+            invalid_fields = [
+                field
+                for field in self.fields
+                if not self._is_known_list_field_name(field)
+            ]
+            if invalid_fields and not self._can_defer_queryset_field_validation():
+                raise ValueError(
+                    "The following fields are not model fields or queryset "
+                    f"annotations in {self.model.__name__}: "
+                    f"{', '.join(invalid_fields)}. If a field is a queryset "
+                    "annotation, declare it with annotate(public_name=...) before "
+                    "PowerCRUD resolves the list."
+                )
         elif not isinstance(self.fields, list):
             raise TypeError("fields must be a list")
         else:
@@ -363,7 +370,10 @@ class ConfigMixin:
         if self.detail_fields == "__all__":
             self.detail_fields = self._get_all_fields()
         elif not self.detail_fields or self.detail_fields == "__fields__":
-            self.detail_fields = self.fields
+            model_fields = set(self._get_all_fields())
+            self.detail_fields = [
+                field for field in self.fields if field in model_fields
+            ]
         elif isinstance(self.detail_fields, list):
             all_fields = self._get_all_fields()
             for field in self.detail_fields:
@@ -540,13 +550,14 @@ class ConfigMixin:
         if not isinstance(self.column_alignments, dict):
             raise ValueError("column_alignments must be a dictionary when provided")
 
-        valid_names = set(self._get_all_fields()) | set(self._get_all_properties())
+        valid_names = self._get_configurable_list_column_names()
         invalid_names = [
             name for name in self.column_alignments.keys() if name not in valid_names
         ]
         if invalid_names:
             raise ValueError(
-                "The following column_alignments keys are not model fields or properties "
+                "The following column_alignments keys are not model fields, "
+                "queryset annotations, configured list fields, or properties "
                 f"in {self.model.__name__}: {', '.join(invalid_names)}"
             )
 
@@ -565,13 +576,14 @@ class ConfigMixin:
         if not isinstance(self.link_fields, dict):
             raise ValueError("link_fields must be a dictionary when provided")
 
-        valid_names = set(self._get_all_fields()) | set(self._get_all_properties())
+        valid_names = self._get_configurable_list_column_names()
         invalid_names = [
             name for name in self.link_fields.keys() if name not in valid_names
         ]
         if invalid_names:
             raise ValueError(
-                "The following link_fields keys are not model fields or properties "
+                "The following link_fields keys are not model fields, queryset "
+                "annotations, configured list fields, or properties "
                 f"in {self.model.__name__}: {', '.join(invalid_names)}"
             )
 
@@ -687,6 +699,123 @@ class ConfigMixin:
                 "PowerCRUD will skip linking for inline-editable cells",
                 ", ".join(sorted(overlapping_model_fields)),
                 self.model.__name__,
+            )
+
+    def _get_queryset_annotations(self, queryset: Any | None = None) -> dict[str, Any]:
+        """
+        Return annotation expressions declared on a queryset without evaluation.
+
+        Django stores public annotation names on ``query.annotations``. This is
+        the stable point PowerCRUD can inspect to decide whether a configured
+        read-only column is backed by the effective queryset.
+        """
+        if queryset is None:
+            queryset = getattr(self, "queryset", None)
+
+        query = getattr(queryset, "query", None)
+        annotations = getattr(query, "annotations", None)
+        if isinstance(annotations, dict):
+            return annotations
+        return {}
+
+    def _get_queryset_annotation_names(self, queryset: Any | None = None) -> list[str]:
+        """Return public annotation names declared on the queryset."""
+        return list(self._get_queryset_annotations(queryset).keys())
+
+    def _get_queryset_annotation_output_field(
+        self,
+        field_name: str,
+        queryset: Any | None = None,
+    ) -> Any | None:
+        """Return the Django output field for a queryset annotation when known."""
+        annotation = self._get_queryset_annotations(queryset).get(field_name)
+        if annotation is None:
+            return None
+        try:
+            return annotation.output_field
+        except Exception:
+            return None
+
+    def _is_queryset_annotation_field(
+        self,
+        field_name: str,
+        queryset: Any | None = None,
+    ) -> bool:
+        """Return whether a name is a public queryset annotation."""
+        return field_name in self._get_queryset_annotations(queryset)
+
+    def _is_model_field_name(self, field_name: str) -> bool:
+        """Return whether a name is a model field known to Django metadata."""
+        try:
+            self.model._meta.get_field(field_name)
+        except FieldDoesNotExist:
+            return False
+        return True
+
+    def _is_known_list_field_name(
+        self,
+        field_name: str,
+        queryset: Any | None = None,
+    ) -> bool:
+        """Return whether a name can be rendered as a first-class list field."""
+        return self._is_model_field_name(field_name) or self._is_queryset_annotation_field(
+            field_name,
+            queryset=queryset,
+        )
+
+    def _can_defer_queryset_field_validation(self) -> bool:
+        """
+        Return whether unresolved list fields may be request-time annotations.
+
+        Views with custom ``get_queryset()`` can add annotations after instance
+        initialization, so PowerCRUD validates those names once the effective
+        queryset is available.
+        """
+        get_queryset = getattr(type(self), "get_queryset", None)
+        if get_queryset is None:
+            return False
+        return getattr(get_queryset, "__module__", "") != "powercrud.mixins.core_mixin"
+
+    def _get_configurable_list_column_names(self) -> set[str]:
+        """
+        Return names allowed in list-display configuration at setup time.
+
+        This deliberately includes configured list fields so request-time
+        annotations can be referenced by column help, alignment, and link config
+        before the queryset exists.
+        """
+        configured_fields = getattr(self, "fields", []) or []
+        configured_properties = getattr(self, "properties", []) or []
+        return (
+            set(self._get_all_fields())
+            | set(self._get_queryset_annotation_names())
+            | set(configured_fields)
+            | set(self._get_all_properties())
+            | set(configured_properties)
+        )
+
+    def validate_list_fields_against_queryset(
+        self,
+        field_names: list[str],
+        queryset: Any | None = None,
+        *,
+        config_name: str = "fields",
+    ) -> None:
+        """
+        Validate list-field names against model fields and queryset annotations.
+        """
+        invalid_fields = [
+            field
+            for field in field_names
+            if not self._is_known_list_field_name(field, queryset=queryset)
+        ]
+        if invalid_fields:
+            raise ValueError(
+                f"The following {config_name} are not model fields or queryset "
+                f"annotations in {self.model.__name__}: "
+                f"{', '.join(invalid_fields)}. If a field is a queryset "
+                "annotation, declare it with annotate(public_name=...) before "
+                "PowerCRUD resolves the list."
             )
 
     def _configure_extra_buttons(self) -> None:

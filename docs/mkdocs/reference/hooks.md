@@ -6,8 +6,8 @@ This is a curated reference for the public hooks most downstream projects are ex
 
 If you want step-by-step walkthroughs rather than contracts, start with the advanced guides:
 
-- [Persistence Hooks for Real Write Logic](../guides/advanced/persistence_hooks_sync.md)
-- [Async Bulk Persistence Without Surprises](../guides/advanced/persistence_hooks_async_bulk.md)
+- [Persistence Hooks](../guides/advanced/persistence_hooks_sync.md)
+- [Async Bulk Persistence](../guides/advanced/persistence_hooks_async_bulk.md)
 
 ---
 

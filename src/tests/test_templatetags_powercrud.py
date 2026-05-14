@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import date
 
 import pytest
+from django.db.models import BooleanField
 from django.test import RequestFactory
 
 from powercrud.templatetags import powercrud
@@ -209,6 +210,42 @@ class TemplateViewStub:
         return None
 
 
+class AnnotationTemplateViewStub(TemplateViewStub):
+    """Template view stub exposing one queryset annotation list field."""
+
+    fields = ["title", "long_book"]
+    properties = []
+    column_help_text = {"long_book": "Book has at least 400 pages."}
+    list_cell_tooltip_fields = ["long_book"]
+
+    def _get_queryset_annotation_output_field(self, field_name, queryset=None):
+        """Return output metadata for the stubbed annotation field."""
+        if field_name == "long_book":
+            return BooleanField()
+        return None
+
+    def validate_list_fields_against_queryset(
+        self,
+        field_names,
+        queryset=None,
+        *,
+        config_name="fields",
+    ):
+        """Accept the stubbed annotation during isolated template tests."""
+        return None
+
+    def get_list_cell_tooltip(self, obj, field_name, *, is_property, request=None):
+        """Return tooltip text for the annotation cell."""
+        if field_name == "long_book":
+            return "Long book" if obj.long_book else "Short book"
+        return super().get_list_cell_tooltip(
+            obj,
+            field_name,
+            is_property=is_property,
+            request=request,
+        )
+
+
 @pytest.mark.django_db
 def test_action_links_include_extra_actions():
     author = Author.objects.create(name="Ada")
@@ -368,6 +405,45 @@ def test_object_list_renders_booleans_dates_and_selection():
     assert result["selected_ids"] == ["1"]
     assert result["selected_count"] == 1
     assert result["filter_params"] == "filter=1"
+
+
+@pytest.mark.django_db
+def test_object_list_renders_queryset_annotation_field_cells():
+    author = Author.objects.create(name="Annotated Author")
+    book = Book.objects.create(
+        title="Operational Long Book",
+        author=author,
+        published_date=date(2024, 2, 1),
+        bestseller=False,
+        isbn="1234567890001",
+        pages=500,
+    )
+    book.long_book = True
+    request = apply_session(RequestFactory().get("/"))
+    view = AnnotationTemplateViewStub(request)
+
+    result = powercrud.object_list({"request": request}, [book], view)
+    row = result["object_list"][0]
+    cell_map = {cell["name"]: cell for cell in row["cells"]}
+
+    assert result["headers"][1]["label"] == "Long Book", (
+        "Annotation headers should use a humanized public annotation name."
+    )
+    assert result["headers"][1]["help_text"] == "Book has at least 400 pages.", (
+        "Annotation headers should accept configured column help text."
+    )
+    assert "<svg" in str(cell_map["long_book"]["value"]), (
+        "Boolean annotation cells should render with the same tick/cross display as boolean model fields."
+    )
+    assert cell_map["long_book"]["is_property"] is False, (
+        "Annotation fields should remain field cells rather than being appended as properties."
+    )
+    assert cell_map["long_book"]["align"] == "center", (
+        "Boolean annotation cells should use the boolean alignment heuristic."
+    )
+    assert cell_map["long_book"]["tooltip_text"] == "Long book", (
+        "Annotation fields should be eligible for the semantic tooltip hook."
+    )
 
 
 @pytest.mark.django_db

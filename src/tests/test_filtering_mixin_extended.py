@@ -5,6 +5,7 @@ from datetime import date
 import pytest
 from django import forms
 from django.core.exceptions import ImproperlyConfigured
+from django.db.models import BooleanField, Case, Value, When
 from django_filters import BooleanFilter, CharFilter, FilterSet
 from django.test import RequestFactory
 
@@ -161,6 +162,14 @@ class DefaultVisibleBookFilterHarness(BaseFilterHarness):
     default_filterset_fields = ["author"]
 
 
+class AnnotationBookFilterHarness(BaseFilterHarness):
+    """Harness for queryset annotation filter generation tests."""
+
+    model = Book
+    filterset_fields = ["author", "long_book"]
+    default_filterset_fields = ["long_book"]
+
+
 class CustomVisibleBookFilterHarness(BaseFilterHarness):
     """Harness for testing optional filter visibility on custom filtersets."""
 
@@ -206,6 +215,70 @@ def test_filterset_builds_choices():
     assert (
         filterset.form.fields["author"].label == "Author"
     ), "Non-text auto-generated filter labels should continue to use the plain field label."
+
+
+@pytest.mark.django_db
+def test_filterset_builds_queryset_annotation_boolean_filter():
+    """Generate and apply a BooleanFilter for a queryset annotation field."""
+    author = Author.objects.create(name="Alan")
+    short_book = Book.objects.create(
+        title="Short",
+        author=author,
+        published_date=date(2024, 1, 1),
+        bestseller=False,
+        isbn="9781000000051",
+        pages=120,
+    )
+    long_book = Book.objects.create(
+        title="Long",
+        author=author,
+        published_date=date(2024, 1, 2),
+        bestseller=False,
+        isbn="9781000000052",
+        pages=600,
+    )
+    queryset = Book.objects.annotate(
+        long_book=Case(
+            When(pages__gte=400, then=Value(True)),
+            default=Value(False),
+            output_field=BooleanField(),
+        )
+    )
+
+    request = RequestFactory().get("/", {"long_book": "true"})
+    view = AnnotationBookFilterHarness(request)
+    filterset = view.get_filterset(queryset)
+
+    assert isinstance(filterset.filters["long_book"], BooleanFilter), (
+        "Annotation fields with BooleanField output should generate BooleanFilter instances."
+    )
+    assert list(filterset.qs) == [long_book], (
+        "Filtering by a queryset annotation should apply the filter to the annotated queryset."
+    )
+    assert short_book not in list(filterset.qs), (
+        "The false annotation row should not remain in a true annotation filter result."
+    )
+
+
+@pytest.mark.django_db
+def test_filterset_unknown_queryset_annotation_field_errors_clearly():
+    """Unknown generated filter names should mention queryset annotations."""
+    request = RequestFactory().get("/")
+    view = AnnotationBookFilterHarness(request)
+
+    with pytest.raises(ValueError, match="queryset annotation"):
+        view.get_filterset(Book.objects.all())
+
+
+@pytest.mark.django_db
+def test_filterset_queryset_annotation_without_output_field_errors_clearly():
+    """Annotation filters need usable output_field metadata for generation."""
+    request = RequestFactory().get("/")
+    view = AnnotationBookFilterHarness(request)
+    queryset = Book.objects.annotate(long_book=Value(None))
+
+    with pytest.raises(ValueError, match="output_field"):
+        view.get_filterset(queryset)
 
 
 @pytest.mark.django_db

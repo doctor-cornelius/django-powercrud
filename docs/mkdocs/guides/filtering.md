@@ -5,6 +5,7 @@ PowerCRUD's filtering support now has enough moving parts that it deserves its o
 Use this page when you want to understand:
 
 - the normal `filterset_fields` path
+- queryset annotation fields in generated filters
 - the default vs optional filter split
 - null helpers and filter visibility
 - how custom `filterset_class` interacts with the rest of the filtering UX
@@ -25,6 +26,7 @@ What happens by default:
 
 - With no `filterset_fields`, the view renders the list immediately and ignores any query parameters except `page`, `page_size`, and `sort`.
 - Setting `filterset_fields` automatically builds a `django-filter` `FilterSet` for those fields, including sensible widgets based on field type and optional HTMX attributes if `use_htmx` is True.
+- `filterset_fields` may contain model field names and supported queryset annotation names.
 - Leave `default_filterset_fields` unset to keep the current behavior and show every allowed filter immediately.
 - Set `default_filterset_fields` to a smaller subset when some filters should be visible by default and the rest should stay behind the built-in `Add filter` control.
 - Once an optional filter is shown, it stays visible until the user explicitly removes it, even if its current value is empty.
@@ -60,6 +62,40 @@ In that example:
 - users can reveal those optional filters as needed through `Add filter`
 
 PowerCRUD validates `default_filterset_fields` against the effective bound filter names, not only against raw model field names.
+
+## Queryset annotation fields
+
+Use queryset annotation fields when a database expression should behave like a first-class list/filter/sort column without becoming an editable model field.
+
+```python
+from django.db.models import BooleanField, Case, Value, When
+
+
+class BookQueueView(PowerCRUDMixin, CRUDView):
+    model = Book
+
+    def get_queryset(self):
+        """Attach the public annotation used by PowerCRUD config."""
+        return super().get_queryset().annotate(
+            long_book=Case(
+                When(pages__gte=400, then=Value(True)),
+                default=Value(False),
+                output_field=BooleanField(),
+            )
+        )
+
+    fields = ["title", "author", "pages", "long_book"]
+    filterset_fields = ["author", "long_book"]
+    default_filterset_fields = ["author", "long_book"]
+```
+
+Rules:
+
+- The configured name must match the public `annotate(...)` keyword exactly.
+- PowerCRUD inspects the effective queryset and the annotation `output_field`; it does not support alias/source-name mapping.
+- Annotation fields can appear in `fields`, `filterset_fields`, `default_filterset_fields`, header help, cell tooltips, links, alignment overrides, and sorting.
+- Annotation fields are read-only. Do not put them in `form_fields`, `inline_edit_fields`, or `bulk_fields`.
+- Use `properties` for Python-only display values that do not need queryset-backed filtering or first-class list ordering.
 
 ## Null helpers
 

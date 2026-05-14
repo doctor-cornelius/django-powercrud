@@ -56,6 +56,78 @@ def _should_center_field(model_field: models.Field) -> bool:
     return True
 
 
+def _get_model_field_or_none(view, field_name: str):
+    """Return a model field for a rendered name, or None when absent."""
+    try:
+        return view.model._meta.get_field(field_name)
+    except Exception:
+        return None
+
+
+def _get_effective_list_field(view, field_name: str, queryset=None):
+    """
+    Return model or annotation field metadata for a rendered list column.
+    """
+    model_field = _get_model_field_or_none(view, field_name)
+    if model_field is not None:
+        return model_field
+
+    output_field_getter = getattr(view, "_get_queryset_annotation_output_field", None)
+    if callable(output_field_getter):
+        return output_field_getter(field_name, queryset=queryset)
+    return None
+
+
+def _get_display_name_for_field(field_name: str, field) -> str:
+    """Return a human label for a model or annotation field."""
+    if field is not None and hasattr(field, "remote_field"):
+        remote_field = getattr(field, "remote_field", None)
+        if remote_field and isinstance(remote_field, models.ManyToManyRel):
+            return remote_field.model._meta.verbose_name_plural.title()
+
+    verbose_name = getattr(field, "verbose_name", None)
+    if verbose_name:
+        return str(verbose_name).title()
+    return field_name.replace("_", " ").title()
+
+
+def _format_list_field_value(
+    obj,
+    field_name: str,
+    field,
+    tick_svg: str,
+    cross_svg: str,
+    *,
+    is_model_field: bool,
+):
+    """
+    Format a model-field or annotation value for list-cell display.
+    """
+    value = getattr(obj, field_name, None)
+
+    if field is not None and getattr(field, "many_to_many", False):
+        return ", ".join(str(item) for item in getattr(obj, field_name).all())
+
+    internal_type = field.get_internal_type() if field is not None else ""
+    if internal_type == "BooleanField" or isinstance(value, bool):
+        if value is True:
+            return mark_safe(tick_svg)
+        if value is False:
+            return mark_safe(cross_svg)
+        return ""
+
+    if isinstance(value, (date, datetime)) and value is not None:
+        return value.strftime("%d/%m/%Y")
+
+    if field is not None and getattr(field, "is_relation", False):
+        return str(value)
+
+    if field is not None and is_model_field:
+        return field.value_to_string(obj)
+
+    return "" if value is None else str(value)
+
+
 def _resolve_cell_alignment(
     *,
     column_alignments: dict[str, str],
@@ -831,6 +903,12 @@ def object_list(context, objects, view):
     """
     fields = view.fields
     properties = getattr(view, "properties", []) or []
+    queryset = context.get("filtered_queryset")
+    if queryset is None and hasattr(objects, "query"):
+        queryset = objects
+    validate_list_fields = getattr(view, "validate_list_fields_against_queryset", None)
+    if callable(validate_list_fields) and hasattr(queryset, "query"):
+        validate_list_fields(fields, queryset)
 
     inline_config = context.get("inline_edit") or {}
     inline_enabled = bool(inline_config.get("enabled"))
@@ -892,42 +970,15 @@ def object_list(context, objects, view):
     # Create header metadata for each field
     headers = []
     for f in fields:
-        try:
-            field = view.model._meta.get_field(f)
-            # Handle M2M fields differently
-            if (
-                hasattr(field, "remote_field")
-                and field.remote_field
-                and isinstance(field.remote_field, models.ManyToManyRel)
-            ):
-                display_name = (
-                    field.remote_field.model._meta.verbose_name_plural.title()
-                )
-            else:
-                display_name = (
-                    field.verbose_name.title()
-                    if hasattr(field, "verbose_name") and field.verbose_name
-                    else f.replace("_", " ").title()
-                )
-            headers.append(
-                {
-                    "label": display_name,
-                    "field_name": f,
-                    "is_sortable": True,
-                    "help_text": column_help_text.get(f, ""),
-                }
-            )
-        except Exception as e:
-            log.warning(f"Error processing field {f}: {str(e)}")
-            # Fallback to basic field name formatting
-            headers.append(
-                {
-                    "label": f.replace("_", " ").title(),
-                    "field_name": f,
-                    "is_sortable": True,
-                    "help_text": column_help_text.get(f, ""),
-                }
-            )
+        field = _get_effective_list_field(view, f, queryset=queryset)
+        headers.append(
+            {
+                "label": _get_display_name_for_field(f, field),
+                "field_name": f,
+                "is_sortable": True,
+                "help_text": column_help_text.get(f, ""),
+            }
+        )
 
     # Add properties with proper display names (not sortable)
     for prop in properties:
@@ -1107,28 +1158,28 @@ def object_list(context, objects, view):
         }
 
         for f in fields:
-            model_field = obj._meta.get_field(f)
-            if model_field.many_to_many:
-                display_value = ", ".join(str(item) for item in getattr(obj, f).all())
-            elif model_field.get_internal_type() == "BooleanField":
-                value = getattr(obj, f)
-                if value is True:
-                    display_value = mark_safe(TICK_SVG)
-                elif value is False:
-                    display_value = mark_safe(CROSS_SVG)
-                else:
-                    display_value = ""
-            elif (
-                model_field.get_internal_type() == "DateField"
-                and getattr(obj, f) is not None
-            ):
-                display_value = getattr(obj, f).strftime("%d/%m/%Y")
-            elif model_field.is_relation:
-                display_value = str(getattr(obj, f))
-            else:
-                display_value = model_field.value_to_string(obj)
+            model_field = _get_model_field_or_none(view, f)
+            effective_field = model_field or _get_effective_list_field(
+                view,
+                f,
+                queryset=queryset,
+            )
+            display_value = _format_list_field_value(
+                obj,
+                f,
+                effective_field,
+                TICK_SVG,
+                CROSS_SVG,
+                is_model_field=model_field is not None,
+            )
 
-            default_align = "center" if _should_center_field(model_field) else "left"
+            if effective_field is not None:
+                default_align = (
+                    "center" if _should_center_field(effective_field) else "left"
+                )
+            else:
+                raw_value = getattr(obj, f, None)
+                default_align = "center" if isinstance(raw_value, bool) else "left"
             cell_align = _resolve_cell_alignment(
                 column_alignments=column_alignments,
                 name=f,

@@ -108,7 +108,7 @@ class ProjectCRUDView(PowerCRUDAsyncMixin, CRUDView):
 
 If your project needs async bulk updates to use the same domain write logic as sync bulk updates, configure a bulk update persistence backend.
 
-If you want the plain-English walkthrough for why this backend exists and how it relates to the sync hook, see [Async Bulk Persistence Without Surprises](advanced/persistence_hooks_async_bulk.md).
+If you want the plain-English walkthrough for why this backend exists and how it relates to the sync hook, see [Async Bulk Persistence](advanced/persistence_hooks_async_bulk.md).
 
 ```python
 from powercrud.bulk_persistence import BulkUpdatePersistenceBackend

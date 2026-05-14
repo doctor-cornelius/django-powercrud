@@ -8,6 +8,7 @@ app_name = "sample"
 urlpatterns = []
 
 urlpatterns += views.BookCRUDView.get_urls()
+urlpatterns += views.AnnotatedBookCRUDView.get_urls(roles={Role.LIST})
 urlpatterns += views.AuthorCRUDView.get_urls()
 urlpatterns += views.GenreCRUDView.get_urls()
 urlpatterns += views.ProfileCRUDView.get_urls()

@@ -12,8 +12,10 @@ Use this section when:
 
 Current advanced guides:
 
+- [PowerCRUD Recipes](recipes.md) shows current-API patterns for common surfaces, queryset annotation columns, actions, selection flows, bulk persistence, and linked cells.
+- [Queryset Annotation Fields](queryset_annotation_fields.md) explains how to expose queryset-backed calculated values as first-class list, sort, and generated-filter columns.
 - [Saved Filter Favourites](filter_favourites.md) explains the optional contrib app for per-user saved filter states, including installation, enablement, and guard behavior when the app is absent.
-- [Persistence Hooks for Real Write Logic](persistence_hooks_sync.md) explains how to keep PowerCRUD in charge of validation and UI flow while moving the actual write into app services.
-- [Async Bulk Persistence Without Surprises](persistence_hooks_async_bulk.md) explains how to keep sync and async bulk update behavior aligned without relying on a live view instance in the worker.
+- [Persistence Hooks](persistence_hooks_sync.md) explains how to keep PowerCRUD in charge of validation and UI flow while moving the actual write into app services.
+- [Async Bulk Persistence](persistence_hooks_async_bulk.md) explains how to keep sync and async bulk update behavior aligned without relying on a live view instance in the worker.
 
 For the exact contracts and signatures, use the [Hooks reference](../../reference/hooks.md).

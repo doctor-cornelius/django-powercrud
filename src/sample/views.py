@@ -1,4 +1,5 @@
 from django.shortcuts import render, get_object_or_404
+from django.db.models import BooleanField, Case, Value, When
 from django.urls import reverse
 
 from neapolitan.views import CRUDView
@@ -8,6 +9,8 @@ from powercrud.conf import get_powercrud_setting
 from . import models
 from . import forms
 from .services import BookBulkUpdateService
+
+
 class SampleCRUDMixin(PowerCRUDAsyncMixin, CRUDView):
     """Base mixin to ensure sample views use the dashboard-aware manager."""
 
@@ -304,7 +307,52 @@ class BookCRUDView(SampleCRUDMixin):
     #         return field.related_model.objects.filter(
     #             id=19
     #         )
-    #     return super().get_bulk_choices_for_field(field_name, field)
+#     return super().get_bulk_choices_for_field(field_name, field)
+
+
+class AnnotatedBookCRUDView(SampleCRUDMixin):
+    """Focused sample view for queryset annotation list and filter fields."""
+
+    model = models.Book
+    namespace = "sample"
+    base_template_path = "sample/base.html"
+    use_htmx = True
+    use_modal = True
+    url_base = "annotated-book"
+    view_title = "Annotated Books"
+    view_instructions = "Book rows with queryset-backed operational columns."
+    paginate_by = 25
+
+    queryset = models.Book.objects.select_related("author").annotate(
+        long_book=Case(
+            When(pages__gte=400, then=Value(True)),
+            default=Value(False),
+            output_field=BooleanField(),
+        )
+    )
+    fields = ["title", "author", "pages", "long_book", "published_date"]
+    detail_fields = "__fields__"
+    properties = []
+    column_help_text = {
+        "long_book": "Queryset annotation: true when pages is at least 400."
+    }
+    column_alignments = {"long_book": "center"}
+    list_cell_tooltip_fields = ["long_book"]
+    filterset_fields = ["author", "long_book", "pages"]
+    default_filterset_fields = ["author", "long_book"]
+    inline_edit_fields = ["pages"]
+    bulk_fields = []
+    bulk_delete = False
+    extra_buttons = []
+    extra_actions = []
+
+    def get_list_cell_tooltip(self, obj, field_name, *, is_property, request=None):
+        """Return semantic tooltip text for the annotation sample column."""
+        if field_name == "long_book":
+            if obj.long_book:
+                return "This row was annotated as a long book."
+            return "This row was annotated as a shorter book."
+        return None
 
 
 class GenreCRUDView(SampleCRUDMixin):

@@ -274,7 +274,7 @@
                                     selected
                                 {% endif %}>{{ size }}</option>
                         {% endfor %}
-                        <option value="all" {% if request.GET.page_size == 'all' or default_page_size is None %}selected{% endif %}>
+                        <option value="all" {% if request.GET.page_size == 'all' or not request.GET.page_size and default_page_size is None %}selected{% endif %}>
                             All</option>
                     </select>
                 </label>

@@ -1,6 +1,6 @@
 from django import forms
 from collections import OrderedDict
-from django.core.exceptions import ImproperlyConfigured
+from django.core.exceptions import FieldDoesNotExist, ImproperlyConfigured
 from django_filters import (
     FilterSet,
     CharFilter,
@@ -570,7 +570,56 @@ class FilteringMixin:
 
     def _get_filter_label(self, model_field) -> str:
         """Return the base label for an auto-generated filter field."""
-        return capfirst(model_field.verbose_name)
+        verbose_name = getattr(model_field, "verbose_name", None)
+        if verbose_name:
+            return capfirst(verbose_name)
+        return capfirst(str(model_field).replace("_", " "))
+
+    def _resolve_generated_filter_field(self, field_name: str, queryset):
+        """
+        Return model-field and effective-field metadata for generated filters.
+
+        Queryset annotations are intentionally read-only list/filter fields, so
+        they supply only an output field. Relation filters still require a real
+        model field because PowerCRUD needs the related-model queryset.
+        """
+        try:
+            model_field = self.model._meta.get_field(field_name)
+            if hasattr(models, "GeneratedField") and isinstance(
+                model_field, models.GeneratedField
+            ):
+                return model_field, model_field.output_field, False
+            return model_field, model_field, False
+        except FieldDoesNotExist as exc:
+            annotation_field_getter = getattr(
+                self,
+                "_get_queryset_annotation_output_field",
+                None,
+            )
+            if callable(annotation_field_getter):
+                annotation_field = annotation_field_getter(
+                    field_name,
+                    queryset=queryset,
+                )
+            else:
+                annotation = getattr(
+                    getattr(queryset, "query", None),
+                    "annotations",
+                    {},
+                ).get(field_name)
+                try:
+                    annotation_field = annotation.output_field
+                except Exception:
+                    annotation_field = None
+            if annotation_field is None:
+                raise ValueError(
+                    f"filterset_fields entry {field_name} is not a model field "
+                    f"or queryset annotation in {self.model.__name__}. If this is "
+                    "a queryset annotation, declare it with "
+                    "annotate(public_name=...) and ensure the expression exposes "
+                    "an output_field."
+                ) from exc
+            return None, annotation_field, True
 
     def _field_uses_merged_null_relation_filter(self, field_to_check) -> bool:
         """Return whether a field should merge null filtering into its select."""
@@ -652,18 +701,26 @@ class FilteringMixin:
             filter_form_order = []
 
             for field_name in filterset_fields:
-                model_field = self.model._meta.get_field(field_name)
-
-                if hasattr(models, "GeneratedField") and isinstance(
-                    model_field, models.GeneratedField
-                ):
-                    field_to_check = model_field.output_field
-                else:
-                    field_to_check = model_field
+                model_field, field_to_check, is_annotation = (
+                    self._resolve_generated_filter_field(field_name, queryset)
+                )
 
                 field_attrs = self._get_filter_widget_attrs(base_attrs, field_to_check)
 
-                if isinstance(field_to_check, models.ManyToManyField):
+                if is_annotation and isinstance(
+                    field_to_check,
+                    (
+                        models.ManyToManyField,
+                        models.ForeignKey,
+                        models.OneToOneField,
+                    ),
+                ):
+                    raise ValueError(
+                        f"filterset_fields entry {field_name} is a queryset "
+                        "annotation with a relation output_field, which PowerCRUD "
+                        "cannot generate as an automatic filter."
+                    )
+                elif isinstance(field_to_check, models.ManyToManyField):
                     filter_class = (
                         AllValuesModelMultipleChoiceFilter
                         if resolve_config(self).m2m_filter_and_logic
@@ -678,13 +735,14 @@ class FilteringMixin:
                 elif isinstance(field_to_check, (models.CharField, models.TextField)):
                     declared_filters[field_name] = CharFilter(
                         lookup_expr="icontains",
-                        label=self._get_filter_label(model_field),
+                        label=self._get_filter_label(model_field or field_name),
                         widget=forms.TextInput(attrs=field_attrs),
                     )
                 elif isinstance(field_to_check, models.DateField):
                     if "type" not in field_attrs:
                         field_attrs["type"] = "date"
                     declared_filters[field_name] = DateFilter(
+                        label=self._get_filter_label(model_field or field_name),
                         widget=forms.DateInput(attrs=field_attrs)
                     )
                 elif isinstance(
@@ -694,10 +752,12 @@ class FilteringMixin:
                     if "step" not in field_attrs:
                         field_attrs["step"] = "any"
                     declared_filters[field_name] = NumberFilter(
+                        label=self._get_filter_label(model_field or field_name),
                         widget=forms.NumberInput(attrs=field_attrs)
                     )
                 elif isinstance(field_to_check, models.BooleanField):
                     declared_filters[field_name] = BooleanFilter(
+                        label=self._get_filter_label(model_field or field_name),
                         widget=forms.Select(
                             attrs=field_attrs,
                             choices=(
@@ -720,23 +780,25 @@ class FilteringMixin:
                         queryset=self.get_filter_queryset_for_field(
                             field_name, model_field
                         ),
+                        label=self._get_filter_label(model_field),
                         widget=forms.Select(attrs=field_attrs),
                     )
                 elif isinstance(field_to_check, models.TimeField):
                     if "type" not in field_attrs:
                         field_attrs["type"] = "time"
                     declared_filters[field_name] = TimeFilter(
+                        label=self._get_filter_label(model_field or field_name),
                         widget=forms.TimeInput(attrs=field_attrs)
                     )
                 else:
                     declared_filters[field_name] = CharFilter(
                         lookup_expr="icontains",
-                        label=self._get_filter_label(model_field),
+                        label=self._get_filter_label(model_field or field_name),
                         widget=forms.TextInput(attrs=field_attrs),
                     )
                 filter_form_order.append(field_name)
 
-                if self._field_supports_auto_null_filter(
+                if not is_annotation and self._field_supports_auto_null_filter(
                     field_name, field_to_check
                 ) and self._field_uses_companion_null_filter(field_to_check):
                     null_field_name = self.get_null_filter_field_name(field_name)
@@ -758,7 +820,7 @@ class FilteringMixin:
                 """FilterSet metadata for the dynamically generated class."""
 
                 model = self.model
-                fields = filterset_fields
+                fields = []
 
             def __init__(filterset_self, *args, **kwargs):
                 """Initialize the FilterSet and set up HTMX attributes if needed."""

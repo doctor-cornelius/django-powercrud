@@ -1,4 +1,4 @@
-# Async Bulk Persistence Without Surprises
+# Async Bulk Persistence
 
 This guide is about one practical goal:
 

@@ -12,6 +12,7 @@ PowerCRUD extends [`Neapolitan`](https://github.com/carltongibson/neapolitan)’
 1. **First view online**
 
     - [Getting Started](guides/getting_started.md) for installation and base template requirements.  
+    - [PowerCRUD Concepts](guides/concepts.md) for the mental model behind surfaces, fields, actions, presentation, selection, bulk work, and async work.
     - [Setup & Core CRUD basics](guides/setup_core_crud.md) for the first full view configuration.
     - [Filtering](guides/filtering.md) for default vs optional filters, sorting, null helpers, and custom filterset behavior.
 
@@ -20,13 +21,13 @@ PowerCRUD extends [`Neapolitan`](https://github.com/carltongibson/neapolitan)’
     - [Inline editing](guides/inline_editing.md) to adjust rows in place.  
     - [Forms](guides/forms.md) for generated vs custom forms, contextual display fields, disabled inputs, and parent/child dropdown queryset scoping.
     - [Bulk editing (synchronous)](guides/bulk_edit_sync.md) for multi-record updates with validation controls.
-    - [Persistence Hooks for Real Write Logic](guides/advanced/persistence_hooks_sync.md) for moving validated writes into app services without scattering save logic.
+    - [Persistence Hooks](guides/advanced/persistence_hooks_sync.md) for moving validated writes into app services without scattering save logic.
 
 3. **Handle long-running work**  
 
     - [Async Manager](guides/async_manager.md) explains locks, progress storage, and reusable helpers.  
     - [Bulk editing (async)](guides/bulk_edit_async.md) queues jobs through django-q2.  
-    - [Async Bulk Persistence Without Surprises](guides/advanced/persistence_hooks_async_bulk.md) shows how to keep sync and async bulk update behavior aligned.
+    - [Async Bulk Persistence](guides/advanced/persistence_hooks_async_bulk.md) shows how to keep sync and async bulk update behavior aligned.
     - [Async dashboard add-on](guides/async_dashboard.md) persists lifecycle data.
 
 4. **Tune styling and behaviour**  
@@ -34,6 +35,7 @@ PowerCRUD extends [`Neapolitan`](https://github.com/carltongibson/neapolitan)’
     - [Styling & Tailwind](guides/styling_tailwind.md) covers framework options and safelists.  
     - [Customisation tips](guides/customisation_tips.md) shows template overrides, extra actions, and mixin hooks.
     - [Advanced Guides](guides/advanced/index.md) collects deeper implementation walkthroughs for trickier extension patterns, including the optional saved filter favourites add-on.
+    - [PowerCRUD Recipes](guides/advanced/recipes.md) shows current-API patterns you can adapt.
 
 ## What ships in the box
 
@@ -61,6 +63,7 @@ See [Async architecture](reference/async.md) for details.
 ## Reference map
 
 - Configuration reference: [config_options.md](reference/config_options.md)  
+- Concepts guide: [concepts.md](guides/concepts.md)
 - Hooks reference: [hooks.md](reference/hooks.md)  
 - Complete class example: [complete_example.md](reference/complete_example.md)  
 - Tooling: [dockerised_dev.md](reference/dockerised_dev.md), [mgmt_commands.md](reference/mgmt_commands.md), [testing.md](reference/testing.md)  

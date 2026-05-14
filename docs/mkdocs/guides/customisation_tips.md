@@ -53,7 +53,7 @@ If your sync bulk service needs to reject the batch with a user-facing validatio
 
 Use the [Hooks reference](../reference/hooks.md) for the canonical hook contracts and signatures.
 
-If you want a more guided explanation of when persistence hooks are worth using, start with the [Advanced Guides](advanced/index.md), especially [Persistence Hooks for Real Write Logic](advanced/persistence_hooks_sync.md) and [Async Bulk Persistence Without Surprises](advanced/persistence_hooks_async_bulk.md).
+If you want a more guided explanation of when persistence hooks are worth using, start with the [Advanced Guides](advanced/index.md), especially [Persistence Hooks](advanced/persistence_hooks_sync.md) and [Async Bulk Persistence](advanced/persistence_hooks_async_bulk.md).
 
 ### Persistence hooks
 

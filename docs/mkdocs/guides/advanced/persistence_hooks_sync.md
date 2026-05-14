@@ -1,4 +1,4 @@
-# Persistence Hooks for Real Write Logic
+# Persistence Hooks
 
 This guide is for the moment when normal CRUD behavior stops being enough.
 
@@ -229,4 +229,4 @@ For the canonical contract and a concrete validation-error example, see [Bulk ed
 
 ## 11. Next step
 
-If sync bulk update might also run in the background in your project, continue with [Async Bulk Persistence Without Surprises](persistence_hooks_async_bulk.md).
+If sync bulk update might also run in the background in your project, continue with [Async Bulk Persistence](persistence_hooks_async_bulk.md).

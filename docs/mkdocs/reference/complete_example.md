@@ -3,6 +3,7 @@
 This page shows a deliberately feature-rich `PowerCRUDMixin` view so you can see current configuration syntax in one place. It is not intended as a recommended starting point; most projects should begin much smaller and add options only when needed.
 
 ```python
+from django.db.models import BooleanField, Case, Value, When
 from neapolitan.views import CRUDView
 
 from powercrud.mixins import PowerCRUDMixin
@@ -18,6 +19,16 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
     namespace = "projects"
     url_base = "active-project"
 
+    def get_queryset(self):
+        """Expose a public queryset annotation for list/filter/sort use."""
+        return super().get_queryset().annotate(
+            needs_attention=Case(
+                When(status="blocked", then=Value(True)),
+                default=Value(False),
+                output_field=BooleanField(),
+            )
+        )
+
     # ------------------------------------------------------------------
     # Templates / base rendering
     # ------------------------------------------------------------------
@@ -28,11 +39,13 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
     column_help_text = {
         "owner": "Business owner responsible for the project.",
         "display_status": "Calculated status shown for quick triage.",
+        "needs_attention": "Queryset annotation used for triage filtering.",
     }
     column_alignments = {
         "status": "center",
+        "needs_attention": "center",
     }
-    list_cell_tooltip_fields = ["owner", "is_overdue"]
+    list_cell_tooltip_fields = ["owner", "is_overdue", "needs_attention"]
     list_cell_link_default_open_in = "modal"
     link_fields = {
         "owner": "crm:owner-detail",
@@ -64,7 +77,14 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
     # ------------------------------------------------------------------
     # List, detail, and form scopes
     # ------------------------------------------------------------------
-    fields = "__all__"
+    fields = [
+        "reference_code",
+        "owner",
+        "project_manager",
+        "status",
+        "needs_attention",
+        "due_date",
+    ]
     exclude = ["internal_notes"]
     properties = ["is_overdue", "display_status"]
     properties_exclude = ["display_status"]
@@ -81,8 +101,15 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
     # ------------------------------------------------------------------
     # Filtering / dropdown behaviour
     # ------------------------------------------------------------------
-    filterset_fields = ["owner", "project_manager", "status", "due_date", "tags"]
-    default_filterset_fields = ["owner", "status"]
+    filterset_fields = [
+        "owner",
+        "project_manager",
+        "status",
+        "needs_attention",
+        "due_date",
+        "tags",
+    ]
+    default_filterset_fields = ["owner", "status", "needs_attention"]
     filter_favourites_enabled = True
     filter_null_fields_exclude = ["due_date"]
     dropdown_sort_options = {
@@ -205,6 +232,8 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
             return f"{obj.owner.email} - {obj.owner.team.name}"
         if field_name == "is_overdue":
             return "Past due and needs follow-up" if obj.is_overdue else "On schedule"
+        if field_name == "needs_attention":
+            return "Blocked project" if obj.needs_attention else "Not blocked"
         return None
 
     def get_list_cell_link(self, obj, field_name, value, *, is_property, request=None):
@@ -235,6 +264,8 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
 - `list_cell_link_default_open_in` is optional and sets the default opening mode for list-cell links on this view. If omitted, PowerCRUD assumes `"new"`. Use `"modal"` when internal drill-in links should preserve the current list context.
 - `link_fields` is intentionally narrow. Use it for the common cases where a visible column should reverse to a named detail page or use a static external URL. Dict values accept exactly one of `view_name` or `url`, plus optional `pk_attr`, `open_in`, and `modal_box_classes` for modal links.
 - `get_list_cell_link(...)` is the escape hatch for conditional or row-specific link behavior. Returning `None` falls back to `link_fields`; returning `False` suppresses declarative linking for that cell. Hook metadata can also set `open_in = "new"` or `open_in = "modal"`, and modal hook links can set `modal_box_classes`.
+- `needs_attention` is a queryset annotation field. Its public `annotate(...)` name is used directly in `fields` and `filterset_fields`, so it appears in list order and can filter/sort without becoming an editable model form field.
+- Queryset annotation fields are read-only. Keep them out of `form_fields`, `inline_edit_fields`, and `bulk_fields`.
 - Semantic list-cell tooltips take precedence over the fallback overflow tooltip for the same cell. Unconfigured cells keep the existing overflow behavior.
 - Tooltip appearance is styled through CSS variables such as `--pc-tooltip-bg` and `--pc-tooltip-fg`, not Python view parameters. PowerCRUD defaults those to neutral daisyUI tokens, and you can override them in your app CSS when you want project-level theming.
 - Inline-editable cells are never linked, so if a field appears in both `inline_edit_fields` and `link_fields`, PowerCRUD logs a warning and silently keeps inline editing authoritative.

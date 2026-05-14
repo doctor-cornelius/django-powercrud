@@ -77,8 +77,10 @@ PowerCRUD layers a few convenient defaults so you can start with zero configurat
 **List fields**
 
 - If `fields` is unset or set to `"__all__"`, every concrete model field is included.
+- If `fields` is an explicit list, entries may be model field names or supported queryset annotation names.
 - Use `exclude` to remove a handful of items while keeping the rest of the list intact.
 - `properties` is optional; adding a property name exposes it as a column. Use `"__all__"` to include every `@property` on the model and `properties_exclude` to hide specific ones.
+- Queryset annotation fields are rendered in `fields` order and can filter/sort when the effective queryset exposes the same public annotation name. They are read-only and are not valid in form, inline-edit, or bulk-edit field lists.
 
 **Detail view**
 
@@ -232,6 +234,7 @@ What happens at a high level:
 
 - With no `filterset_fields`, the list renders immediately and ignores filter-style query parameters apart from `page`, `page_size`, and `sort`.
 - Setting `filterset_fields` builds an automatic `django-filter` filterset for those fields.
+- `filterset_fields` can include queryset annotation names when the queryset uses the same public `annotate(...)` name and the expression exposes an `output_field`.
 - Leaving `default_filterset_fields` unset shows every allowed filter immediately.
 - Setting `default_filterset_fields` to a subset keeps the rest available through the built-in `Add filter` control.
 - Sorting stays wired into the table headers, so users can still share URLs such as `/projects/?sort=status`.
@@ -256,6 +259,7 @@ For the full filtering feature set, including:
 - `filterset_class` precedence
 - M2M AND logic
 - filter-side `dropdown_sort_options` and `filter_queryset_options`
+- queryset annotation fields
 - HTMX visibility persistence
 
 see [Filtering](filtering.md).
@@ -585,7 +589,7 @@ If something renders incorrectly, double-check:
 
 - `base_template_path` is pointing at an actual template.
 - `django_htmx` middleware is installed (for reactive behaviour).
-- The view’s `fields` match real model fields.
+- The view’s `fields` match real model fields or queryset annotations on the effective queryset.
 
 ---
 

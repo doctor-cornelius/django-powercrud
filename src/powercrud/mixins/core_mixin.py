@@ -20,20 +20,30 @@ class CoreMixin(ConfigMixin):
             return configured
         return {}
 
-    def _get_sortable_field_map(self) -> dict[str, str]:
+    def _get_sortable_field_map(self, queryset: Any | None = None) -> dict[str, str]:
         """
         Return the visible sortable column names mapped to canonical field/property names.
         """
         valid_fields = {f.name: f.name for f in self.model._meta.fields}
+        valid_fields.update(
+            {
+                annotation_name: annotation_name
+                for annotation_name in self._get_queryset_annotation_names(queryset)
+            }
+        )
         properties = getattr(self.config(), "properties", []) or []
         valid_fields.update({p: p for p in properties})
         return valid_fields
 
-    def _resolve_sort_column_name(self, field_name: str) -> str | None:
+    def _resolve_sort_column_name(
+        self,
+        field_name: str,
+        queryset: Any | None = None,
+    ) -> str | None:
         """
         Resolve a requested sort column name to the configured visible column key.
         """
-        valid_fields = self._get_sortable_field_map()
+        valid_fields = self._get_sortable_field_map(queryset=queryset)
         if field_name in valid_fields:
             return valid_fields[field_name]
 
@@ -70,11 +80,15 @@ class CoreMixin(ConfigMixin):
 
         return f"{column_name}__name"
 
-    def resolve_sort_expression(self, field_name: str) -> str | None:
+    def resolve_sort_expression(
+        self,
+        field_name: str,
+        queryset: Any | None = None,
+    ) -> str | None:
         """
         Return the queryset ordering expression for a requested sort field.
         """
-        column_name = self._resolve_sort_column_name(field_name)
+        column_name = self._resolve_sort_column_name(field_name, queryset=queryset)
         if column_name is None:
             return None
 
@@ -93,19 +107,21 @@ class CoreMixin(ConfigMixin):
         """
         return bool(self.get_use_htmx() and self.get_inline_edit_fields())
 
-    def get_queryset(self):
+    def _apply_queryset_sorting(self, queryset):
         """
-        Get the queryset for the view, applying sorting if specified.
-        Always includes a secondary sort by primary key for stable pagination.
+        Apply request sorting to an already resolved queryset.
+
+        Dynamic views can add annotations after calling ``super().get_queryset()``.
+        Running this helper after filtering/list setup lets annotation columns be
+        sorted once their public names exist on the effective queryset.
         """
-        queryset = super().get_queryset()
         sort_param = self.request.GET.get("sort")
 
         if sort_param:
             # Handle descending sort (prefixed with '-')
             descending = sort_param.startswith("-")
             field_name = sort_param[1:] if descending else sort_param
-            sort_field = self.resolve_sort_expression(field_name)
+            sort_field = self.resolve_sort_expression(field_name, queryset=queryset)
 
             if sort_field:
                 # Re-add the minus sign if it was descending
@@ -121,6 +137,14 @@ class CoreMixin(ConfigMixin):
             queryset = queryset.order_by("pk")
 
         return queryset
+
+    def get_queryset(self):
+        """
+        Get the queryset for the view, applying sorting if specified.
+        Always includes a secondary sort by primary key for stable pagination.
+        """
+        queryset = super().get_queryset()
+        return self._apply_queryset_sorting(queryset)
 
     def get_show_record_count(self) -> bool:
         """
@@ -203,9 +227,11 @@ class CoreMixin(ConfigMixin):
         Handle GET requests for list view, including filtering and pagination.
         """
         queryset = self.get_queryset()
+        self.validate_list_fields_against_queryset(self.fields, queryset)
         filterset = self.get_filterset(queryset)
         if filterset is not None:
             queryset = filterset.qs
+        queryset = self._apply_queryset_sorting(queryset)
 
         if not self.allow_empty and not queryset.exists():
             raise Http404

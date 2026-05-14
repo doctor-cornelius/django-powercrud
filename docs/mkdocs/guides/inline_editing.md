@@ -229,7 +229,7 @@ After an inline row form validates, PowerCRUD routes the write through the same 
 
 For the canonical contract, see the [Hooks reference](../reference/hooks.md#persist_single_object).
 
-If you want a more practical walkthrough of keeping normal form saves and inline saves on one shared service hook, see [Persistence Hooks for Real Write Logic](advanced/persistence_hooks_sync.md).
+If you want a more practical walkthrough of keeping normal form saves and inline saves on one shared service hook, see [Persistence Hooks](advanced/persistence_hooks_sync.md).
 
 For inline saves:
 

@@ -4,6 +4,8 @@ Complete alphabetical reference of all available configuration options with defa
 
 Types are shown next to each setting name. `Accepted values` is the contract for each setting. `None` means the setting is left unset unless the row says otherwise.
 
+For the mental model behind the option groups, see [PowerCRUD Concepts](../guides/concepts.md).
+
 ## Core Configuration
 
 | Setting | Accepted values | Default | When unset | Description | Reference |
@@ -18,17 +20,17 @@ Types are shown next to each setting name. `Accepted values` is the contract for
 | `bulk_update_persistence_backend_config` (`dict`) | `None` or `dict[str, Any]` | `None` | No backend-specific config is passed | Optional config payload passed into the configured bulk update persistence backend constructor. | [Bulk editing (async)](../guides/bulk_edit_async.md) |
 | `bulk_update_persistence_backend_path` (`str`) | `None` or import path `str` | `None` | PowerCRUD uses the built-in bulk update implementation | Optional import path for a worker-safe bulk update persistence backend. When configured, the default sync bulk path and async bulk worker both delegate through it. | [Bulk editing (async)](../guides/bulk_edit_async.md) |
 | `bulk_delete` (`bool`) | `True`, `False` | `False` | Bulk delete buttons are hidden | Enable bulk delete functionality. | [Bulk editing (synchronous)](../guides/bulk_edit_sync.md) |
-| `bulk_fields` (`list[str]`) | `list[str]` | `[]` | Bulk edit form is disabled | Editable model fields exposed in the bulk edit form. Non-editable fields raise a configuration error. | [Bulk editing (synchronous)](../guides/bulk_edit_sync.md) |
+| `bulk_fields` (`list[str]`) | `list[str]` | `[]` | Bulk edit form is disabled | Editable model fields exposed in the bulk edit form. Non-editable fields and queryset annotation names raise a configuration error. | [Bulk editing (synchronous)](../guides/bulk_edit_sync.md) |
 | `bulk_full_clean` (`bool`) | `True`, `False` | `True` | Each object runs `full_clean()` during bulk edits | Skip expensive validation by setting to `False`. | [Bulk editing (synchronous)](../guides/bulk_edit_sync.md) |
 | `bulk_min_async_records` (`int`) | `int` | `20` | Async path activates when at least 20 rows are selected | Threshold for switching from sync to async bulk operations. | [Bulk editing (async)](../guides/bulk_edit_async.md) |
 | `bulk_modal_box_classes` (`str`) | `None` or `str` | `None` | Uses `modal_box_classes` | CSS classes that replace the shared modal box classes when the built-in Bulk Edit action opens the modal. Include the default viewport-height classes if Bulk Edit should stay internally scrollable. | [Setup & Core CRUD basics](../guides/setup_core_crud.md#modals) |
 | `column_alignments` (`dict[str, str]`) | `None` or `dict[str, 'left' \| 'center' \| 'right']` | `None` | Rendered list body cells use the built-in type-based alignment heuristic | Override list body-cell alignment for specific rendered fields or properties by name. Unconfigured columns keep the default heuristic. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
 | `column_help_text` (`dict[str, str]`) | `None` or `dict[str, str]` | `None` | Column headers render without help icons | Add plain-text help tooltips to specific list headers by field/property name. Only configured columns show the adjacent info trigger. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
-| `column_sort_fields_override` (`dict[str, str]`) | `None` or `dict[str, str]` | `None` | Sortable list columns use their own field names, except direct relations with a concrete `name` field which default to `field__name` | Override the queryset `order_by()` expression used when a visible list column header is clicked. Keys are visible column names; values are Django ordering expressions such as `"author__name"` or `"customer__code"`. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
+| `column_sort_fields_override` (`dict[str, str]`) | `None` or `dict[str, str]` | `None` | Sortable list columns use their own field names, except direct relations with a concrete `name` field which default to `field__name` | Override the queryset `order_by()` expression used when a visible list column header is clicked. Keys are visible column names, including queryset annotation fields; values are Django ordering expressions such as `"author__name"` or `"customer__code"`. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
 | `default_htmx_target` (`str`) | `str` | `'#content'` | Responses target the main content container | Default HTMX target selector (ignored when HTMX is off). | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
 | `default_filterset_fields` (`list[str]`) | `None` or `list[str]` | `None` | All allowed filters render immediately | Limit the initially visible filter subset while keeping the remaining allowed filters available through the built-in Add filter control. Validated against effective filter names from the bound filter form. | [Filter controls](#filter-controls) |
 | `detail_exclude` (`list[str]`) | `list[str]` | `[]` | Detail view mirrors the resolved `detail_fields` | Remove specific fields from the detail layout. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
-| `detail_fields` (`list/str`) | `None`, `'__all__'`, `'__fields__'`, `list[str]` | `'__fields__'` | Inherits the list view fields | Fields rendered on the detail page. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
+| `detail_fields` (`list/str`) | `None`, `'__all__'`, `'__fields__'`, `list[str]` | `'__fields__'` | Inherits model fields from the list view | Model fields rendered on the detail page. Queryset annotation names are list/filter columns and are not accepted as explicit detail fields. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
 | `detail_properties` (`list/str`) | `None`, `'__all__'`, `'__properties__'`, `list[str]` | `[]` | No properties appear on the detail page | Add computed properties to the detail view. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
 | `detail_properties_exclude` (`list[str]`) | `list[str]` | `[]` | All listed detail properties render | Remove specific properties from the detail page. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
 | `dropdown_sort_options` (`dict`) | `dict[str, str]` | `{}` | PowerCRUD orders dropdowns by `name/title/...` heuristics | Explicit ordering for dropdowns in filters, forms, and bulk edit widgets. | [Bulk editing (synchronous)](../guides/bulk_edit_sync.md) |
@@ -39,13 +41,13 @@ Types are shown next to each setting name. `Accepted values` is the contract for
 | `extra_button_classes` (`str`) | `str` | `""` | Extra buttons use the default button styling | Additional CSS classes shared by every entry in `extra_buttons`. | [Styling & Tailwind](../guides/styling_tailwind.md) |
 | `extra_buttons` (`list[dict]`) | `list[button spec]` | `[]` | No extra header buttons are shown | Add top-of-page buttons (e.g., custom actions, links). Modal buttons may set per-trigger `modal_box_classes` for custom width/height. | [Complete Example](complete_example.md) |
 | `filter_favourites_enabled` (`bool`) | `True`, `False` | `False` | No saved-favourites toolbar is rendered | Enable the optional saved filter favourites UI for this list view when the `powercrud.contrib.favourites` app is installed and `powercrud.urls` is mounted under the `powercrud` namespace. | [Saved Filter Favourites](../guides/advanced/filter_favourites.md) |
-| `fields` (`list/str`) | `None`, `'__all__'`, `list[str]` | `'__all__'` | All concrete model fields show in the list view | Columns displayed in the list view. Combine with `exclude`. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
+| `fields` (`list/str`) | `None`, `'__all__'`, `list[str]` | `'__all__'` | All concrete model fields show in the list view | Columns displayed in the list view. Explicit lists may contain model field names and queryset annotation names. Combine with `exclude`. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
 | `filter_null_fields_exclude` (`list[str]`) | `list[str]` | `[]` | Nullable auto-generated filters gain built-in null filtering | Opt out specific `filterset_fields` from automatic null-filter controls. | [Filter controls](#filter-controls) |
 | `filter_queryset_options` (`dict`) | `dict[str, filter spec]` | `{}` | Filter dropdowns query the entire related table | Restrict or pre-filter related dropdown options per field. | [Filter controls](#filter-controls) |
 | `filterset_class` (`FilterSet`) | `None` or `FilterSet` subclass | `None` | A dynamic `FilterSet` is generated from `filterset_fields` | Provide a custom `FilterSet` subclass for complex filtering. | [Filter controls](#filter-controls) |
-| `filterset_fields` (`list[str]`) | `list[str]` | `[]` | No filter sidebar is rendered | Fields to include in the auto-generated filterset. | [Filter controls](#filter-controls) |
+| `filterset_fields` (`list[str]`) | `list[str]` | `[]` | No filter sidebar is rendered | Model fields or queryset annotation names to include in the auto-generated filterset. Annotation filters require an inferable `output_field`. | [Filter controls](#filter-controls) |
 | `form_class` (`ModelForm`) | `None` or `ModelForm` subclass | `None` | PowerCRUD builds a `ModelForm` from `form_fields` | Override the form entirely with a custom class. | [Form controls](#form-controls) |
-| `form_fields` (`list/str`) | `None`, `'__all__'`, `'__fields__'`, `list[str]` | `None` | All editable `detail_fields` appear in the auto-generated form | Fields included when PowerCRUD generates the form class for you. Ignored when `form_class` is set. | [Form controls](#form-controls) |
+| `form_fields` (`list/str`) | `None`, `'__all__'`, `'__fields__'`, `list[str]` | `None` | All editable `detail_fields` appear in the auto-generated form | Editable model fields included when PowerCRUD generates the form class for you. Queryset annotation names are invalid because they are read-only. Ignored when `form_class` is set. | [Form controls](#form-controls) |
 | `form_fields_exclude` (`list[str]`) | `list[str]` | `[]` | The auto-selected form fields render untouched | Remove individual fields from the auto-generated form. Ignored when `form_class` is set. | [Form controls](#form-controls) |
 | `form_display_fields` (`list[str]`) | `list[str]` | `[]` | No display-only context block is shown above forms | Model fields to render as read-only context above update forms. Can include `editable=False` model fields. | [Form controls](#form-controls) |
 | `form_disabled_fields` (`list[str]`) | `list[str]` | `[]` | Every update-form field stays editable | Disable specific update-form inputs while keeping them visible on the form. Must reference fields present on the built form. | [Form controls](#form-controls) |
@@ -53,7 +55,7 @@ Types are shown next to each setting name. `Accepted values` is the contract for
 | `hx_trigger` (`str/int/float/dict`) | `None`, scalar trigger name, or trigger map | `None` | No HX-Trigger header is sent | Custom HTMX triggers to fire after responses. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
 | `inline_edit_allowed` (`callable`) | `None` or predicate callable | `None` | Every row follows the standard permission checks | Optional predicate to allow/block inline editing per row. | [Inline editing](../guides/inline_editing.md) |
 | `inline_edit_always_visible` (`bool`) | `True`, `False` | `True` | Editable cells keep a subtle always-on hint | Toggle whether inline-editable cells show a resting highlight before hover/focus. Setting this to `False` removes only the resting highlight; hover/focus highlighting still remains active. | [Inline editing](../guides/inline_editing.md) |
-| `inline_edit_fields` (`list/str`) | `None`, `'__all__'`, `'__fields__'`, `list[str]` | `None` | Inline editing is disabled | Editable model fields editable inline. Explicit non-editable fields raise a configuration error; after that validation, PowerCRUD still filters the list to fields present on the actual form, only rendered list columns become clickable inline cells, and the inline row reposts the rest of the full form as hidden inputs on save. | [Inline editing](../guides/inline_editing.md) |
+| `inline_edit_fields` (`list/str`) | `None`, `'__all__'`, `'__fields__'`, `list[str]` | `None` | Inline editing is disabled | Editable model fields editable inline. Queryset annotation names and explicit non-editable fields raise a configuration error; after that validation, PowerCRUD still filters the list to fields present on the actual form, only rendered list columns become clickable inline cells, and the inline row reposts the rest of the full form as hidden inputs on save. | [Inline editing](../guides/inline_editing.md) |
 | `inline_edit_highlight_accent` (`str`) | hex color `#rgb` or `#rrggbb` | `'#14b8a6'` | Inline editing uses the built-in teal accent | Accent color used to derive the inline-edit resting, hover/focus, and active-row highlight shades. Hex input only. | [Inline editing](../guides/inline_editing.md) |
 | `inline_save_refresh_policy` (`str`) | `'reset_if_filtered_out'`, `'keep_page'`, `'reset_page'` | `'reset_if_filtered_out'` | Successful inline saves refresh the current list page unless the saved row falls out of the active filters | Control whether inline-save list refreshes preserve the current `page` query parameter or drop back to page 1. Filtering, sorting, and `page_size` are always preserved. | [Inline editing](../guides/inline_editing.md) |
 | `inline_preserve_required_fields` (`bool`) | `True`, `False` | `True` | Stock inline rows already repost non-rendered fields; this remains a fallback for custom omissions | Reuse the object’s existing values for required form fields when a custom inline POST still omits them. | [Inline editing](../guides/inline_editing.md) |
@@ -146,7 +148,39 @@ Nullable auto-generated filters behave differently by field type:
 
 Auto-generated text filters use `icontains` by default. There is no separate declarative setting to change that lookup expression field by field; use `filterset_class` when you need custom lookup expressions.
 
-`filter_null_fields_exclude` always matches the original model field names listed in `filterset_fields`.
+### Queryset annotation filters
+
+Generated filters may also target queryset annotation names:
+
+```python
+from django.db.models import BooleanField, Case, Value, When
+
+
+class BookQueueView(PowerCRUDMixin, CRUDView):
+    model = Book
+
+    def get_queryset(self):
+        """Attach the public annotation name used by PowerCRUD config."""
+        return super().get_queryset().annotate(
+            long_book=Case(
+                When(pages__gte=400, then=Value(True)),
+                default=Value(False),
+                output_field=BooleanField(),
+            )
+        )
+
+    fields = ["title", "author", "pages", "long_book"]
+    filterset_fields = ["author", "long_book"]
+```
+
+Rules:
+
+- The name in `fields` and `filterset_fields` must match the public `annotate(...)` keyword.
+- Use `output_field` on `Case`, `Value`, and complex expressions so PowerCRUD can infer the generated filter type.
+- Annotation fields are read-only list/filter/sort columns. Do not put them in `form_fields`, `inline_edit_fields`, or `bulk_fields`.
+- If you set `filterset_class`, it takes precedence and PowerCRUD does not auto-generate annotation filters.
+
+`filter_null_fields_exclude` always matches the original field names listed in `filterset_fields`.
 
 - Use `["birth_date"]`, not `["birth_date__isnull"]`.
 - Excluding a nullable scalar field suppresses the generated companion `... is empty` control.

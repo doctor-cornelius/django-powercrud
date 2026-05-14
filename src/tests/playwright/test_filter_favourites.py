@@ -531,7 +531,7 @@ def test_returning_to_page_via_sample_shell_htmx_clears_selected_filter_favourit
     page.wait_for_load_state("networkidle")
     expect(page.locator("body")).to_contain_text("The Author Persons")
 
-    get_sample_navigation(page).locator("a", has_text="Books").click()
+    get_sample_navigation(page).get_by_label("Load books with HTMX").click()
     page.wait_for_load_state("networkidle")
     expect(page.locator("#content")).to_contain_text("My List of Books")
     expect(page.locator("#filterToggleBtn")).to_be_visible()

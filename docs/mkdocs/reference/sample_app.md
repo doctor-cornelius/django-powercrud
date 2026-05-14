@@ -140,6 +140,34 @@ The sample `BookCRUDView` also demonstrates the optional saved-favourites contri
 
 See [Filtering](../guides/filtering.md) for the core filter behavior and [Saved Filter Favourites](../guides/advanced/filter_favourites.md) for the optional contrib add-on.
 
+### AnnotatedBookCRUDView - Queryset Annotation Columns
+
+The sample app includes a focused list-only view at `/sample/annotated-book/` for queryset-backed list/filter fields.
+
+```python
+from django.db.models import BooleanField, Case, Value, When
+
+
+class AnnotatedBookCRUDView(PowerCRUDAsyncMixin, CRUDView):
+    model = Book
+    url_base = "annotated-book"
+
+    queryset = Book.objects.select_related("author").annotate(
+        long_book=Case(
+            When(pages__gte=400, then=Value(True)),
+            default=Value(False),
+            output_field=BooleanField(),
+        )
+    )
+    fields = ["title", "author", "pages", "long_book", "published_date"]
+    filterset_fields = ["author", "long_book", "pages"]
+    default_filterset_fields = ["author", "long_book"]
+    inline_edit_fields = ["pages"]
+    bulk_fields = []
+```
+
+The `long_book` column is not a model field. It is the public queryset annotation name, and PowerCRUD uses that same name in `fields`, generated filters, sorting, header help, and cell tooltips. The sample makes the real `pages` model field inline-editable while keeping `long_book` out of inline edit and bulk edit config because annotation fields are read-only. See [Queryset Annotation Fields](../guides/advanced/queryset_annotation_fields.md) for the declaration details behind this sample.
+
 The sample frontend now also shows the downstream tooltip-styling path. In [`src/config/static/css/app.custom.css`](../../../src/config/static/css/app.custom.css), the sample app actively overrides `--pc-tooltip-bg` and `--pc-tooltip-fg` to use daisyUI's primary semantic tokens, while PowerCRUD itself keeps neutral tooltip defaults. The sample Vite entry imports that file after `powercrud/css/powercrud.css`, so readers can inspect the real app-level override pattern rather than only reading about it in the styling guide.
 
 The sample form configuration now also demonstrates two contextual form-surface features:

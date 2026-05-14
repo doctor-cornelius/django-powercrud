@@ -55,7 +55,7 @@ Once PowerCRUD has built the normalized sync bulk payload, it routes the write t
 
 For the canonical contract, see the [Hooks reference](../reference/hooks.md#persist_bulk_update).
 
-If you want a more practical walkthrough of routing sync bulk writes through an app service, see [Persistence Hooks for Real Write Logic](advanced/persistence_hooks_sync.md).
+If you want a more practical walkthrough of routing sync bulk writes through an app service, see [Persistence Hooks](advanced/persistence_hooks_sync.md).
 
 ```python
 def persist_bulk_update(

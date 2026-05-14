@@ -44,6 +44,21 @@
                     <span aria-hidden="true">&#8635;</span>
                 </a>
             </div>
+            <div class="join" role="group" aria-label="Annotated Book List buttons">
+                <a class="btn btn-sm btn-secondary join-item" hx-get="{% url 'sample:annotated-book-list' %}" hx-target="#content"
+                    hx-swap="innerHTML" hx-replace-url="true" hx-push-url="true"
+                    aria-label="Load annotated books with HTMX"
+                    data-powercrud-tooltip="semantic"
+                    data-tippy-content="Load with HTMX">
+                    Annotated Books
+                </a>
+                <a class="btn btn-sm btn-info btn-square join-item" href="{% url 'sample:annotated-book-list' %}"
+                    aria-label="Full page reload for annotated books"
+                    data-powercrud-tooltip="semantic"
+                    data-tippy-content="Full page reload">
+                    <span aria-hidden="true">&#8635;</span>
+                </a>
+            </div>
             <div class="join" role="group" aria-label="Author List buttons">
                 <a class="btn btn-sm btn-secondary join-item" hx-get="{% url 'sample:author-list' %}" hx-target="#content"
                     hx-swap="innerHTML" hx-replace-url="true" hx-push-url="true"

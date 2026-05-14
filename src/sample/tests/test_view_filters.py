@@ -7,6 +7,7 @@ import pytest
 from django.test import Client
 from django.test import RequestFactory
 from django.urls import reverse
+from django_filters import BooleanFilter
 
 from powercrud.mixins.filtering_mixin import NULL_FILTER_SENTINEL
 from powercrud.templatetags import powercrud as powercrud_tags
@@ -218,6 +219,131 @@ def test_book_sample_view_exposes_default_and_optional_filter_visibility():
         "description",
         "genres",
     ], "BookCRUDView should leave only the remaining hidden filters available in the Add filter menu."
+
+
+@pytest.mark.django_db
+def test_annotated_book_sample_view_exposes_query_annotation_filter():
+    """AnnotatedBookCRUDView should demonstrate first-class queryset annotation fields."""
+    author = Author.objects.create(name="Annotation Demo Author")
+    short_book = Book.objects.create(
+        title="Short Annotation Demo",
+        author=author,
+        published_date=date(2024, 4, 1),
+        bestseller=False,
+        isbn="9781234500201",
+        pages=120,
+    )
+    long_book = Book.objects.create(
+        title="Long Annotation Demo",
+        author=author,
+        published_date=date(2024, 4, 2),
+        bestseller=False,
+        isbn="9781234500202",
+        pages=640,
+    )
+
+    request = RequestFactory().get("/", {"long_book": "true"})
+    view = sample_views.AnnotatedBookCRUDView()
+    view.request = request
+    queryset = view.get_queryset()
+    filterset = view.get_filterset(queryset)
+
+    assert view.fields == [
+        "title",
+        "author",
+        "pages",
+        "long_book",
+        "published_date",
+    ], "AnnotatedBookCRUDView should keep the annotation in the explicit list-field order."
+    assert isinstance(filterset.filters["long_book"], BooleanFilter), (
+        "AnnotatedBookCRUDView should generate a BooleanFilter for the annotation output_field."
+    )
+    assert filterset.form.fields["long_book"].label == "Long book", (
+        "AnnotatedBookCRUDView should label the annotation filter from its public name, not django-filter's invalid-name fallback."
+    )
+    assert list(filterset.qs) == [long_book], (
+        "AnnotatedBookCRUDView should filter by the queryset-backed long_book column."
+    )
+    assert short_book not in list(filterset.qs), (
+        "AnnotatedBookCRUDView should exclude rows whose annotation does not match the filter."
+    )
+
+
+@pytest.mark.django_db
+def test_annotated_book_sample_list_renders(client: Client):
+    """The annotation sample list route should render the queryset-backed column."""
+    author = Author.objects.create(name="Annotation Render Author")
+    Book.objects.create(
+        title="Rendered Annotation Demo",
+        author=author,
+        published_date=date(2024, 4, 3),
+        bestseller=False,
+        isbn="9781234500203",
+        pages=650,
+    )
+
+    response = client.get(reverse("sample:annotated-book-list"))
+
+    assert response.status_code == 200, (
+        "AnnotatedBookCRUDView list should render successfully in the sample app."
+    )
+    response_text = response.content.decode()
+    assert "Long Book" in response_text, (
+        "AnnotatedBookCRUDView should render the humanized annotation column header."
+    )
+    assert "Rendered Annotation Demo" in response_text, (
+        "AnnotatedBookCRUDView should render rows from the annotated queryset."
+    )
+    assert "[invalid name]" not in response_text, (
+        "AnnotatedBookCRUDView should not render django-filter's invalid-name fallback label for annotation filters."
+    )
+    assert 'data-inline-field="pages"' in response_text, (
+        "AnnotatedBookCRUDView should make the real pages model field inline-editable."
+    )
+    assert 'data-inline-field="long_book"' not in response_text, (
+        "AnnotatedBookCRUDView should keep the queryset annotation read-only."
+    )
+
+
+@pytest.mark.django_db
+def test_sample_menu_links_to_annotated_book_view(client: Client):
+    """Sample navigation should expose the annotated book demo view."""
+    response = client.get(reverse("sample:bigbook-list"))
+
+    assert response.status_code == 200, (
+        "Book sample list should render before inspecting sample navigation."
+    )
+    response_text = response.content.decode()
+    annotated_url = reverse("sample:annotated-book-list")
+    assert "Annotated Books" in response_text, (
+        "Sample navigation should include a visible annotated-books menu label."
+    )
+    assert f'hx-get="{annotated_url}"' in response_text, (
+        "Sample navigation should expose the annotated-books route for HTMX loading."
+    )
+    assert f'href="{annotated_url}"' in response_text, (
+        "Sample navigation should expose the annotated-books route for full-page reload."
+    )
+
+
+@pytest.mark.django_db
+def test_page_size_query_label_prefers_url_value_when_default_is_all(client: Client):
+    """The page-size selector should not display All when the URL requests a finite size."""
+    for index in range(30):
+        Genre.objects.create(name=f"Selector Genre {index:02d}")
+
+    response = client.get(reverse("sample:genre-list"), {"page_size": "25"})
+
+    assert response.status_code == 200, (
+        "Genre sample list should render before inspecting page-size selection."
+    )
+    response_text = " ".join(response.content.decode().split())
+    assert '<option value="25" selected >25</option>' in response_text, (
+        "Page-size selector should mark the requested finite page size as selected."
+    )
+    assert '<option value="all" selected' not in response_text, (
+        "Page-size selector should not also select All when page_size=25 is active."
+    )
 
 
 @pytest.mark.django_db
