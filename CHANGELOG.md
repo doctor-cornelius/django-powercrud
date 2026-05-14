@@ -4,6 +4,12 @@ PowerCRUD is still evolving quickly, and the early release history was cut at a 
 
 Version numbers below correspond to published git tags. The more important releases include a little extra narrative and upgrade context; smaller patch releases remain deliberately brief. For full detail between any two versions, use the GitHub compare view for the matching tags.
 
+## 0.6.5 (2026-05-14)
+- **Feature (queryset)**: support queryset annotation fields as first-class PowerCRUD fields.
+
+  Views may now include public queryset annotation names in `fields`, `filterset_fields`, sorting configuration, labels, tooltips, and list display configuration. Annotation names must match the queryset declaration exactly, and annotation fields are treated as read-only list/filter columns: they are intentionally rejected from editable configuration such as `form_fields`, `inline_edit_fields`, and `bulk_fields`.
+
+
 ## 0.6.4 (2026-05-12)
 
 **Fix (inline)**: show popover error message inline so always visible. 
