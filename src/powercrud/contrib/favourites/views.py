@@ -15,6 +15,7 @@ from .services import (
     build_query_string_from_state,
     build_toolbar_context,
     create_saved_favourite,
+    sync_visible_columns_state_to_session,
 )
 
 
@@ -286,6 +287,11 @@ def favourite_apply(request: HttpRequest) -> HttpResponse:
         pk=form.cleaned_data["favourite_id"],
         user=request.user,
         view_key=form.cleaned_data["view_key"],
+    )
+    sync_visible_columns_state_to_session(
+        session=request.session,
+        view_key=form.cleaned_data["view_key"],
+        state=favourite.state,
     )
     query_string = build_query_string_from_state(favourite.state)
     target_url = form.cleaned_data["list_view_url"]

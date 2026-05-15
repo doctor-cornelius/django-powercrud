@@ -3,6 +3,7 @@ from .delete_mixin import DeleteMixin
 from .bulk_mixin import BulkEditRole, BulkMixin
 from .core_mixin import CoreMixin
 from .favourites_mixin import FavouritesMixin
+from .list_options_mixin import ListOptionsMixin
 from .filtering_mixin import (
     FilteringMixin,
     AllValuesModelMultipleChoiceFilter,
@@ -23,6 +24,7 @@ class PowerCRUDMixin(
     InlineEditingMixin,
     TableMixin,
     BulkMixin,
+    ListOptionsMixin,
     FavouritesMixin,
     FilteringMixin,
     CoreMixin,
@@ -60,6 +62,7 @@ __all__ = [
     "InlineEditingMixin",
     "DeleteMixin",
     "FavouritesMixin",
+    "ListOptionsMixin",
     "AsyncMixin",
     "PowerCRUDAsyncMixin",
 ]

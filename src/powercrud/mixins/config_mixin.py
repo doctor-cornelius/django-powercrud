@@ -53,6 +53,7 @@ class ConfigMixin:
     exclude: list[str] = []
     properties: list[str] = []
     properties_exclude: list[str] = []
+    default_list_fields: list[str] | None = None
 
     # for the detail view
     detail_fields: list[str] = []
@@ -189,6 +190,7 @@ class ConfigMixin:
         "list_cell_tooltip_fields",
         "filter_null_fields_exclude",
         "default_filterset_fields",
+        "default_list_fields",
         "filterset_fields",
     }
 
@@ -262,6 +264,7 @@ class ConfigMixin:
         self._normalize_declared_string_lists()
         self._configure_fields()
         self._configure_properties()
+        self._configure_default_list_fields()
         self._configure_detail_fields()
         self._configure_detail_properties()
         self._configure_column_alignments()
@@ -365,6 +368,51 @@ class ConfigMixin:
             ]
         else:
             raise TypeError("properties_exclude must be a list")
+
+    def _configure_default_list_fields(self):
+        """
+        Validate the opt-in default visible list-column subset.
+
+        Queryset annotation names may need request-time validation when a view
+        adds annotations in ``get_queryset()``. In that case this method allows
+        configured list-field names that are not yet known model fields.
+        """
+        if self.default_list_fields is None:
+            return
+
+        if not isinstance(self.default_list_fields, list):
+            raise TypeError("default_list_fields must be a list")
+
+        if not self.default_list_fields:
+            raise ValueError("default_list_fields cannot be empty")
+
+        allowed_columns = self._get_configurable_list_column_names()
+        invalid_columns = [
+            field_name
+            for field_name in self.default_list_fields
+            if field_name not in allowed_columns
+        ]
+        deferred_invalid_columns = [
+            field_name
+            for field_name in invalid_columns
+            if field_name not in (self.properties or [])
+        ]
+        property_invalid_columns = [
+            field_name
+            for field_name in invalid_columns
+            if field_name in (self.properties or [])
+        ]
+        if property_invalid_columns:
+            raise ValueError(
+                "The following default_list_fields are not valid list columns in "
+                f"{self.model.__name__}: {', '.join(property_invalid_columns)}"
+            )
+        if deferred_invalid_columns and not self._can_defer_queryset_field_validation():
+            raise ValueError(
+                "The following default_list_fields are not model fields, queryset "
+                f"annotations, or properties in {self.model.__name__}: "
+                f"{', '.join(deferred_invalid_columns)}"
+            )
 
     def _configure_detail_fields(self):
         if self.detail_fields == "__all__":
@@ -1275,6 +1323,7 @@ class _ConfigShim:
             "form_fields_exclude",
             "filter_null_fields_exclude",
             "default_filterset_fields",
+            "default_list_fields",
         }:
             return ConfigMixin._dedupe_preserving_first(self._raw(name, []) or [])
         if name in {

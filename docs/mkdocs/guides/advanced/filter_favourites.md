@@ -1,6 +1,6 @@
-# Saved Filter Favourites
+# Saved Favourites
 
-Saved filter favourites are an optional add-on for teams that want named, reusable filter states per user.
+Saved favourites are an optional add-on for teams that want named, reusable list states per user.
 
 This feature is intentionally shipped as a contrib app so projects that do not need it do not have to carry its model, migration, or UI surface.
 
@@ -19,6 +19,7 @@ PowerCRUD can persist named list states per authenticated user, including:
 - optional filter visibility
 - current sort
 - current page size
+- visible columns when the list view opts into list options
 
 The saved payload intentionally does not persist the current page number.
 
@@ -79,7 +80,8 @@ The view identity is derived automatically from `"<module>.<ClassName>"`.
 ## Behavior notes
 
 - Anonymous users still see the toolbar when the view enables favourites, but the save, update, and delete controls remain unavailable and the UI prompts them to sign in.
-- Applying a saved favourite restores optional filter visibility as well as the saved filter values.
+- Applying a saved favourite restores the saved filters, optional filter visibility, sort, page size, and visible columns.
+- Applying an older saved favourite without visible-column state resets visible columns to the view's `default_list_fields`.
 - The current UI is intentionally compact:
     - selecting a saved favourite auto-applies it
     - the toolbar stays hidden until the filter panel is open
@@ -110,4 +112,4 @@ PowerCRUD detects this from both:
 
 The sample `BookCRUDView` demonstrates the feature end-to-end and is the best reference implementation in the demo project.
 
-For the broader filtering story that favourites build on top of, see [Filtering](../filtering.md).
+For the broader filtering story that favourites build on top of, see [Filtering](../filtering.md). For column visibility behavior, see [List Options](list_options.md).

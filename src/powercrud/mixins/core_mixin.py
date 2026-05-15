@@ -121,6 +121,13 @@ class CoreMixin(ConfigMixin):
             # Handle descending sort (prefixed with '-')
             descending = sort_param.startswith("-")
             field_name = sort_param[1:] if descending else sort_param
+            active_columns_getter = getattr(self, "get_active_list_columns", None)
+            list_options_enabled = getattr(self, "get_list_options_enabled", None)
+            if callable(active_columns_getter) and callable(list_options_enabled):
+                if list_options_enabled():
+                    active_columns = active_columns_getter(queryset=queryset)
+                    if field_name not in active_columns:
+                        return queryset.order_by("pk")
             sort_field = self.resolve_sort_expression(field_name, queryset=queryset)
 
             if sort_field:
@@ -236,6 +243,20 @@ class CoreMixin(ConfigMixin):
         if not self.allow_empty and not queryset.exists():
             raise Http404
 
+        list_column_state = None
+        list_options_url = None
+        list_column_state_builder = getattr(self, "build_list_column_state", None)
+        if callable(list_column_state_builder):
+            list_column_state = list_column_state_builder(queryset=queryset)
+            if getattr(list_column_state, "enabled", False):
+                endpoint_name_getter = getattr(
+                    self,
+                    "get_list_options_endpoint_name",
+                    None,
+                )
+                if callable(endpoint_name_getter):
+                    list_options_url = self.safe_reverse(endpoint_name_getter())
+
         paginate_by = self.get_paginate_by()
         if paginate_by is None:
             # Unpaginated response
@@ -253,6 +274,8 @@ class CoreMixin(ConfigMixin):
                 sort=request.GET.get("sort", ""),  # Add sort to context
                 use_htmx=self.get_use_htmx(),
                 request=request,
+                list_column_state=list_column_state,
+                list_options_url=list_options_url,
                 **record_count_context,
             )
         else:
@@ -274,6 +297,8 @@ class CoreMixin(ConfigMixin):
                 sort=request.GET.get("sort", ""),  # Add sort to context
                 use_htmx=self.get_use_htmx(),
                 request=request,
+                list_column_state=list_column_state,
+                list_options_url=list_options_url,
                 **record_count_context,
             )
 

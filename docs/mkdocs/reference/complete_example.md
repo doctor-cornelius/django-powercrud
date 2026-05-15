@@ -88,6 +88,13 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
     exclude = ["internal_notes"]
     properties = ["is_overdue", "display_status"]
     properties_exclude = ["display_status"]
+    default_list_fields = [
+        "reference_code",
+        "owner",
+        "status",
+        "needs_attention",
+        "is_overdue",
+    ]
 
     detail_fields = "__fields__"
     detail_exclude = ["internal_notes"]
@@ -265,6 +272,7 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
 - `link_fields` is intentionally narrow. Use it for the common cases where a visible column should reverse to a named detail page or use a static external URL. Dict values accept exactly one of `view_name` or `url`, plus optional `pk_attr`, `open_in`, and `modal_box_classes` for modal links.
 - `get_list_cell_link(...)` is the escape hatch for conditional or row-specific link behavior. Returning `None` falls back to `link_fields`; returning `False` suppresses declarative linking for that cell. Hook metadata can also set `open_in = "new"` or `open_in = "modal"`, and modal hook links can set `modal_box_classes`.
 - `needs_attention` is a queryset annotation field. Its public `annotate(...)` name is used directly in `fields` and `filterset_fields`, so it appears in list order and can filter/sort without becoming an editable model form field.
+- `default_list_fields` makes the default list narrower while keeping every allowed `fields` / `properties` entry available through **Cols** for the current session. Leave it unset when every allowed list column should render and no column chooser is needed.
 - Queryset annotation fields are read-only. Keep them out of `form_fields`, `inline_edit_fields`, and `bulk_fields`.
 - Semantic list-cell tooltips take precedence over the fallback overflow tooltip for the same cell. Unconfigured cells keep the existing overflow behavior.
 - Tooltip appearance is styled through CSS variables such as `--pc-tooltip-bg` and `--pc-tooltip-fg`, not Python view parameters. PowerCRUD defaults those to neutral daisyUI tokens, and you can override them in your app CSS when you want project-level theming.
@@ -289,10 +297,10 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
 - `bulk_fields` and `bulk_delete` enable the synchronous bulk-edit UI. The queryset-wide bulk-selection metadata action also depends on the global `POWERCRUD_SETTINGS["BULK_MAX_SELECTED_RECORDS"]` cap.
 - `searchable_selects = True` enables Tom Select enhancement for eligible select widgets in forms, inline editing, bulk edit forms, and filter forms.
 - `default_filterset_fields = ["owner", "status"]` keeps the rest of the allowed filters available but hidden behind the built-in `Add filter` control on first render.
-- `filter_favourites_enabled = True` turns on the optional saved filter favourites toolbar when the `powercrud.contrib.favourites` app is installed and the shared `powercrud` URLs are mounted. Otherwise, PowerCRUD silently leaves the favourites UI disabled.
-- Saved filter favourites are optional. They require adding `powercrud.contrib.favourites` to `INSTALLED_APPS`, running its migrations, mounting `include("powercrud.urls", namespace="powercrud")`, and following the setup described in the advanced guide.
+- `filter_favourites_enabled = True` turns on the optional saved favourites toolbar when the `powercrud.contrib.favourites` app is installed and the shared `powercrud` URLs are mounted. Otherwise, PowerCRUD silently leaves the favourites UI disabled.
+- Saved favourites are optional. They require adding `powercrud.contrib.favourites` to `INSTALLED_APPS`, running its migrations, mounting `include("powercrud.urls", namespace="powercrud")`, and following the setup described in the advanced guide.
 
 For focused explanations of individual options, use the dedicated guides and the main [Configuration Options](config_options.md) reference:
 
 - [Filtering](../guides/filtering.md)
-- [Saved Filter Favourites](../guides/advanced/filter_favourites.md)
+- [Saved Favourites](../guides/advanced/filter_favourites.md)

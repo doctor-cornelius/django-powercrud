@@ -149,7 +149,7 @@ def test_overflow_tooltips_reinitialize_after_htmx_refresh(
         "Expected the truncated author value to have a Tippy instance on initial page load."
     )
 
-    page.get_by_role("button", name=re.compile("show filters", re.I)).click()
+    page.get_by_role("button", name=re.compile("filters", re.I)).click()
     select_single_value(
         page=page,
         container=page.locator("#filter-form"),
@@ -210,7 +210,7 @@ def test_semantic_list_cell_tooltips_reinitialize_after_htmx_refresh(
         "Expected the configured semantic title tooltip to have a Tippy instance on initial page load."
     )
 
-    page.get_by_role("button", name=re.compile("show filters", re.I)).click()
+    page.get_by_role("button", name=re.compile("filters", re.I)).click()
     select_single_value(
         page=page,
         container=page.locator("#filter-form"),

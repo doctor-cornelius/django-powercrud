@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import date
+from types import SimpleNamespace
 
 import pytest
 from django.db.models import BooleanField
@@ -265,6 +266,40 @@ def test_action_links_include_extra_actions():
     assert "Preview" in html, "Default row action rendering should keep extra actions visible as buttons."
     assert "hx-get" in html, "Default row action rendering should preserve HTMX attributes on action links."
     assert "btn-info" in html, "Standard row actions should keep their framework button classes."
+    assert all(
+        label in html
+        for label in (
+            "aria-label='View'",
+            "aria-label='Edit'",
+            "aria-label='Delete'",
+        )
+    ), (
+        "Standard row actions should keep accessible labels when rendered as icon buttons."
+    )
+    assert all(
+        tooltip in html
+        for tooltip in (
+            "data-tippy-content='View'",
+            "data-tippy-content='Edit'",
+            "data-tippy-content='Delete'",
+        )
+    ), (
+        "Standard row action icon buttons should use the top-placed PowerCRUD tooltip path."
+    )
+    assert "title='View'" not in html and "title='Edit'" not in html, (
+        "Standard row action icon buttons should not use native browser title tooltips."
+    )
+    assert "style='min-width: 2.5rem;'" in html, (
+        "Standard row action icon buttons should keep a wider pointer target than a tight icon square."
+    )
+    assert html.count("<svg xmlns='http://www.w3.org/2000/svg'") >= 3, (
+        "Standard View, Edit, and Delete row actions should render inline SVG icons."
+    )
+    assert all(
+        label not in html for label in (">View</a>", ">Edit</a>", ">Delete</a>")
+    ), (
+        "Standard row action labels should not remain as visible button text."
+    )
     # Modal actions should include query string parameters from the request
     assert "?page=1" in html, "Modal row actions should preserve the current query string."
     assert "data-powercrud-row-actions-trigger" not in html, (
@@ -405,6 +440,44 @@ def test_object_list_renders_booleans_dates_and_selection():
     assert result["selected_ids"] == ["1"]
     assert result["selected_count"] == 1
     assert result["filter_params"] == "filter=1"
+
+
+@pytest.mark.django_db
+def test_object_list_filters_headers_and_cells_through_list_column_state():
+    """Opted-in list options should hide non-active data columns only."""
+
+    author = Author.objects.create(name="Column Author")
+    book = Book.objects.create(
+        title="Column Demo",
+        author=author,
+        published_date=date(2024, 5, 1),
+        bestseller=True,
+        isbn="1234567890444",
+        pages=88,
+    )
+    request = apply_session(RequestFactory().get("/"))
+    view = TemplateViewStub(request)
+    context = {
+        "request": request,
+        "list_column_state": SimpleNamespace(
+            enabled=True,
+            active_columns=("title", "isbn_empty"),
+        ),
+    }
+
+    result = powercrud.object_list(context, [book], view)
+    row = result["object_list"][0]
+
+    assert [header["field_name"] for header in result["headers"]] == [
+        "title",
+        "isbn_empty",
+    ], "List options should hide inactive headers while preserving active column order."
+    assert [cell["name"] for cell in row["cells"]] == ["title", "isbn_empty"], (
+        "List options should hide inactive row cells and keep only active data columns."
+    )
+    assert row["has_actions"] is True, (
+        "List options should not remove row action/system columns."
+    )
 
 
 @pytest.mark.django_db

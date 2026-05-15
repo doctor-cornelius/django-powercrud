@@ -8,6 +8,8 @@ import json
 from django.http import QueryDict
 from django.urls import NoReverseMatch, reverse
 
+from powercrud.mixins.list_options_mixin import LIST_OPTIONS_SESSION_KEY
+
 from .models import SavedFilterFavourite
 
 
@@ -82,12 +84,20 @@ def normalise_saved_state(raw_state: object) -> dict[str, object]:
     else:
         visible_filters = []
 
-    return {
+    normalized_state = {
         "filters": normalized_filters,
         "visible_filters": visible_filters,
         "sort": str(raw_state.get("sort", "") or "").strip(),
         "page_size": str(raw_state.get("page_size", "") or "").strip(),
     }
+    if "visible_columns" in raw_state:
+        raw_visible_columns = raw_state.get("visible_columns", [])
+        if isinstance(raw_visible_columns, (list, tuple)):
+            visible_columns = _dedupe_preserving_order(list(raw_visible_columns))
+        else:
+            visible_columns = []
+        normalized_state["visible_columns"] = visible_columns
+    return normalized_state
 
 
 def get_saved_favourites_for_user(*, user, view_key: str) -> list[SavedFilterFavourite]:
@@ -101,11 +111,44 @@ def get_saved_favourites_for_user(*, user, view_key: str) -> list[SavedFilterFav
     for favourite in saved_favourites:
         normalized_state = normalise_saved_state(favourite.state)
         favourite.powercrud_normalized_state = normalized_state
+        favourite.powercrud_state_json = json.dumps(normalized_state, sort_keys=True)
         favourite.powercrud_query_string = build_query_string_from_state(normalized_state)
         favourite.powercrud_visible_filters_json = json.dumps(
             normalized_state.get("visible_filters", [])
         )
     return saved_favourites
+
+
+def find_matching_saved_favourite(
+    saved_favourites: list[SavedFilterFavourite],
+    state: object,
+) -> SavedFilterFavourite | None:
+    """Return the first saved favourite whose normalized state matches ``state``."""
+
+    normalized_state = normalise_saved_state(state)
+    for favourite in saved_favourites:
+        favourite_state = getattr(
+            favourite,
+            "powercrud_normalized_state",
+            normalise_saved_state(favourite.state),
+        )
+        comparable_state = dict(normalized_state)
+        if "visible_columns" in favourite_state:
+            comparable_state["visible_columns"] = sorted(
+                comparable_state.get("visible_columns", [])
+            )
+        else:
+            comparable_state.pop("visible_columns", None)
+        comparable_favourite_state = {
+            **favourite_state,
+        }
+        if "visible_columns" in favourite_state:
+            comparable_favourite_state["visible_columns"] = sorted(
+                favourite_state.get("visible_columns", [])
+            )
+        if comparable_favourite_state == comparable_state:
+            return favourite
+    return None
 
 
 def create_saved_favourite(*, user, view_key: str, name: str, state: dict[str, object]) -> SavedFilterFavourite:
@@ -145,6 +188,31 @@ def build_query_string_from_state(state: dict[str, object]) -> str:
     return query_dict.urlencode()
 
 
+def sync_visible_columns_state_to_session(
+    *,
+    session,
+    view_key: str,
+    state: dict[str, object],
+) -> None:
+    """Apply saved visible-column state to the session-backed list-options store."""
+
+    normalized_state = normalise_saved_state(state)
+    visible_columns = normalized_state.get("visible_columns")
+
+    raw_state_store = session.get(LIST_OPTIONS_SESSION_KEY, {})
+    state_store = dict(raw_state_store) if isinstance(raw_state_store, dict) else {}
+    state_store.pop(view_key, None)
+
+    if isinstance(visible_columns, list) and visible_columns:
+        state_store[view_key] = {"visible_columns": visible_columns}
+
+    if state_store:
+        session[LIST_OPTIONS_SESSION_KEY] = state_store
+    else:
+        session.pop(LIST_OPTIONS_SESSION_KEY, None)
+    session.modified = True
+
+
 def build_toolbar_context(
     *,
     user,
@@ -173,6 +241,17 @@ def build_toolbar_context(
         if can_manage
         else []
     )
+    if selected_favourite_id is None:
+        try:
+            current_state = json.loads(current_state_json) if current_state_json else {}
+        except json.JSONDecodeError:
+            current_state = {}
+        matched_favourite = find_matching_saved_favourite(
+            saved_filter_favourites,
+            current_state,
+        )
+        selected_favourite_id = matched_favourite.pk if matched_favourite else None
+
     selected_filter_favourite_name = ""
     if selected_favourite_id:
         selected_filter_favourite_name = next(

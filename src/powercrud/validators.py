@@ -31,6 +31,7 @@ class PowerCRUDMixinValidator(BaseModel):
     properties: Optional[Union[List[str], Literal["__all__"]]] = None
     exclude: Optional[List[str]] = None
     properties_exclude: Optional[List[str]] = None
+    default_list_fields: Optional[List[str]] = None
 
     # Detail view settings
     detail_fields: Optional[Union[List[str], Literal["__all__", "__fields__"]]] = None
@@ -119,6 +120,21 @@ class PowerCRUDMixinValidator(BaseModel):
         if isinstance(v, list) and not all(isinstance(x, str) for x in v):
             raise ValueError("List must contain only strings")
         return v
+
+    @field_validator("default_list_fields")
+    @classmethod
+    def validate_default_list_fields(cls, v):
+        """Validate the opt-in default visible list-column declaration."""
+        if v is None:
+            return v
+        if not isinstance(v, list):
+            raise ValueError("default_list_fields must be a list of strings")
+        if not v:
+            raise ValueError("default_list_fields cannot be empty")
+        for value in v:
+            if not isinstance(value, str) or not value.strip():
+                raise ValueError("default_list_fields must contain non-empty strings")
+        return [value.strip() for value in v]
 
     @field_validator("hx_trigger")
     @classmethod

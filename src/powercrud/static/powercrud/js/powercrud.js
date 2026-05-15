@@ -12,6 +12,9 @@
     const NATIVE_STYLE_ATTR = 'data-powercrud-native-style';
     const OBJECT_LIST_ROOT_SELECTOR = '[data-powercrud-object-list="true"]';
     const TOOLTIP_TRIGGER_SELECTOR = '[data-powercrud-tooltip][data-tippy-content]';
+    const LIST_COLUMNS_SELECTOR = '[data-powercrud-list-columns="true"]';
+    const LIST_COLUMN_CHECKBOX_SELECTOR = '[data-powercrud-list-column-checkbox="true"]';
+    const LIST_TOOLBAR_SELECTOR = '[data-powercrud-list-toolbar="true"]';
     const INLINE_ROW_SELECTOR = 'tr[data-inline-row="true"]';
     const INLINE_TABLE_SELECTOR = 'table[data-inline-enabled="true"]';
     const INLINE_FIELD_ERROR_SELECTOR = '[data-inline-field-error="true"]';
@@ -564,12 +567,10 @@
         if (!filterCollapse || !filterBtn) {
             return;
         }
-        const label = filterBtn.querySelector('span');
-        if (!label) {
-            return;
-        }
         const isHidden = filterCollapse.classList.contains('hidden');
-        label.textContent = isHidden ? 'Show Filters' : 'Hide Filters';
+        filterBtn.setAttribute('aria-expanded', isHidden ? 'false' : 'true');
+        filterBtn.setAttribute('aria-label', isHidden ? 'Show filters' : 'Hide filters');
+        filterBtn.setAttribute('title', isHidden ? 'Show filters' : 'Hide filters');
     }
 
     function getFilterPanelStorageKey(root) {
@@ -598,6 +599,109 @@
 
     function getAddFilterContainer(root) {
         return root.querySelector('[data-powercrud-add-filter-container]');
+    }
+
+    function getListColumnCheckboxes(container) {
+        if (!(container instanceof Element)) {
+            return [];
+        }
+        return Array.from(container.querySelectorAll(LIST_COLUMN_CHECKBOX_SELECTOR))
+            .filter(checkbox => checkbox instanceof HTMLInputElement);
+    }
+
+    function syncListColumnChooser(container) {
+        if (!(container instanceof Element)) {
+            return;
+        }
+
+        const checkboxes = getListColumnCheckboxes(container);
+        const checkedBoxes = checkboxes.filter(checkbox => checkbox.checked);
+        checkboxes.forEach(checkbox => {
+            const isLastChecked = checkedBoxes.length === 1 && checkbox.checked;
+            checkbox.setAttribute('aria-disabled', isLastChecked ? 'true' : 'false');
+            checkbox.dataset.powercrudLastVisibleColumn = isLastChecked ? 'true' : 'false';
+            const option = checkbox.closest('[data-powercrud-list-column-option="true"]');
+            if (option instanceof HTMLElement) {
+                option.classList.toggle('cursor-not-allowed', isLastChecked);
+                option.classList.toggle('opacity-70', isLastChecked);
+            }
+        });
+    }
+
+    function syncListColumnChoosers(root = document) {
+        queryAllWithSelf(root, LIST_COLUMNS_SELECTOR).forEach(syncListColumnChooser);
+    }
+
+    function focusFirstListColumnCheckbox(container) {
+        const firstCheckbox = getListColumnCheckboxes(container)[0];
+        if (firstCheckbox instanceof HTMLInputElement) {
+            global.setTimeout(() => firstCheckbox.focus(), 0);
+        }
+    }
+
+    function closeListColumnChoosers(scope = document, focusTrigger = false) {
+        queryAllWithSelf(scope, LIST_COLUMNS_SELECTOR).forEach(container => {
+            if (!(container instanceof HTMLDetailsElement) || !container.open) {
+                return;
+            }
+            container.open = false;
+            if (focusTrigger) {
+                const trigger = container.querySelector('[data-powercrud-list-columns-trigger="true"]');
+                if (trigger instanceof HTMLElement) {
+                    trigger.focus();
+                }
+            }
+        });
+    }
+
+    function syncListToolbarWidth(root) {
+        if (!(root instanceof Element)) {
+            return;
+        }
+        const toolbar = root.querySelector(LIST_TOOLBAR_SELECTOR);
+        const filterCollapse = root.querySelector('#filterCollapse');
+        const table = root.querySelector('#filtered_results table');
+        if (!(toolbar instanceof HTMLElement) || !(table instanceof HTMLElement)) {
+            return;
+        }
+
+        const tableWidth = Math.ceil(table.getBoundingClientRect().width || table.offsetWidth);
+        if (!tableWidth) {
+            toolbar.style.width = '';
+            toolbar.style.maxWidth = '';
+            if (filterCollapse instanceof HTMLElement) {
+                filterCollapse.style.width = '';
+                filterCollapse.style.maxWidth = '';
+            }
+            return;
+        }
+        toolbar.style.width = `${tableWidth}px`;
+        toolbar.style.maxWidth = '100%';
+        if (filterCollapse instanceof HTMLElement) {
+            filterCollapse.style.width = `${tableWidth}px`;
+            filterCollapse.style.maxWidth = '100%';
+        }
+
+        global.requestAnimationFrame(() => {
+            const actionControls = toolbar.querySelector('[data-powercrud-action-controls]');
+            const viewControls = toolbar.querySelector('[data-powercrud-view-controls]');
+            if (!(actionControls instanceof HTMLElement) || !(viewControls instanceof HTMLElement)) {
+                toolbar.removeAttribute('data-powercrud-toolbar-wrapped');
+                return;
+            }
+
+            const actionTop = actionControls.getBoundingClientRect().top;
+            const viewTop = viewControls.getBoundingClientRect().top;
+            if (viewTop > actionTop + 2) {
+                toolbar.setAttribute('data-powercrud-toolbar-wrapped', 'true');
+                return;
+            }
+            toolbar.removeAttribute('data-powercrud-toolbar-wrapped');
+        });
+    }
+
+    function syncListToolbarWidths(scope = document) {
+        getAffectedObjectListRoots(scope).forEach(syncListToolbarWidth);
     }
 
     function getFilterFavouritesContainer(root) {
@@ -768,25 +872,29 @@
         return select instanceof HTMLSelectElement ? select : null;
     }
 
-    function syncFilterFavouritesTriggerTooltip(triggerLabel, selectedLabel) {
-        if (!(triggerLabel instanceof HTMLElement)) {
+    function syncFilterFavouritesTriggerTooltip(trigger, selectedLabel, defaultLabel) {
+        if (!(trigger instanceof HTMLElement)) {
             return;
         }
 
-        const shouldShowTooltip = selectedLabel.length > 15;
-
-        if (triggerLabel._tippy) {
-            triggerLabel._tippy.destroy();
+        if (trigger._tippy) {
+            trigger._tippy.destroy();
         }
 
-        if (shouldShowTooltip) {
-            triggerLabel.setAttribute('data-powercrud-tooltip', 'overflow');
-            triggerLabel.setAttribute('data-tippy-content', selectedLabel);
+        if (selectedLabel) {
+            trigger.dataset.powercrudFilterFavouritesSelected = 'true';
+            trigger.setAttribute('aria-label', `Saved favourite: ${selectedLabel}`);
+            trigger.setAttribute('title', selectedLabel);
+            trigger.setAttribute('data-powercrud-tooltip', 'semantic');
+            trigger.setAttribute('data-tippy-content', selectedLabel);
             return;
         }
 
-        triggerLabel.removeAttribute('data-powercrud-tooltip');
-        triggerLabel.removeAttribute('data-tippy-content');
+        trigger.dataset.powercrudFilterFavouritesSelected = 'false';
+        trigger.setAttribute('aria-label', defaultLabel);
+        trigger.setAttribute('title', defaultLabel);
+        trigger.removeAttribute('data-powercrud-tooltip');
+        trigger.removeAttribute('data-tippy-content');
     }
 
     function syncFilterFavouritesTriggerLabel(toolbar) {
@@ -799,15 +907,24 @@
             return;
         }
 
-        const defaultLabel = toolbar
-            .querySelector('[data-powercrud-filter-favourites-trigger="true"]')
+        const trigger = toolbar.querySelector('[data-powercrud-filter-favourites-trigger="true"]');
+        const defaultLabel = trigger
             ?.getAttribute('data-powercrud-filter-favourites-default-label')
             || 'Favourites';
         const favouriteSelect = getFilterFavouritesSelect(toolbar);
         const selectedOption = getSelectedFavouriteOption(favouriteSelect);
         const selectedLabel = selectedOption?.textContent?.trim() || '';
         triggerLabel.textContent = selectedLabel || defaultLabel;
-        syncFilterFavouritesTriggerTooltip(triggerLabel, selectedLabel);
+        syncFilterFavouritesTriggerTooltip(trigger, selectedLabel, defaultLabel);
+
+        const outlineIcon = trigger?.querySelector('[data-powercrud-filter-favourites-icon-outline="true"]');
+        const filledIcon = trigger?.querySelector('[data-powercrud-filter-favourites-icon-filled="true"]');
+        if (outlineIcon instanceof HTMLElement) {
+            outlineIcon.classList.toggle('hidden', Boolean(selectedLabel));
+        }
+        if (filledIcon instanceof HTMLElement) {
+            filledIcon.classList.toggle('hidden', !selectedLabel);
+        }
 
         if (selectedLabel) {
             schedulePowercrudTooltipRefresh(toolbar);
@@ -821,6 +938,90 @@
 
         const selectedOption = selectElement.options[selectElement.selectedIndex];
         return selectedOption instanceof HTMLOptionElement ? selectedOption : null;
+    }
+
+    function getFavouriteOptionByValue(selectElement, favouriteId) {
+        if (!(selectElement instanceof HTMLSelectElement) || !favouriteId) {
+            return null;
+        }
+        return Array
+            .from(selectElement.options)
+            .find(option => String(option.value) === String(favouriteId)) || null;
+    }
+
+    function parseFavouriteOptionState(optionElement) {
+        if (!(optionElement instanceof HTMLOptionElement)) {
+            return null;
+        }
+        try {
+            const rawValue = optionElement.dataset.powercrudFavouriteStateJson || '';
+            const parsedValue = rawValue ? JSON.parse(rawValue) : null;
+            return parsedValue && typeof parsedValue === 'object' ? parsedValue : null;
+        } catch (_error) {
+            return null;
+        }
+    }
+
+    function normalizeFavouriteStateForComparison(state) {
+        const normalizedState = {
+            filters: {},
+            visible_filters: [],
+            sort: '',
+            page_size: '',
+        };
+
+        if (!state || typeof state !== 'object') {
+            return normalizedState;
+        }
+
+        const filters = state.filters && typeof state.filters === 'object'
+            ? state.filters
+            : {};
+        Object.entries(filters).sort(([leftName], [rightName]) => (
+            String(leftName).localeCompare(String(rightName))
+        )).forEach(([fieldName, values]) => {
+            if (!fieldName) {
+                return;
+            }
+            const rawValues = Array.isArray(values) ? values : [values];
+            const normalizedValues = rawValues
+                .map(value => String(value || '').trim())
+                .filter(Boolean);
+            if (normalizedValues.length) {
+                normalizedState.filters[fieldName] = normalizedValues;
+            }
+        });
+
+        if (Array.isArray(state.visible_filters)) {
+            normalizedState.visible_filters = dedupeFilterNames(state.visible_filters).sort();
+        }
+
+        normalizedState.sort = String(state.sort || '').trim();
+        normalizedState.page_size = String(state.page_size || '').trim();
+
+        if (Array.isArray(state.visible_columns)) {
+            normalizedState.visible_columns = dedupeFilterNames(state.visible_columns).sort();
+        }
+
+        return normalizedState;
+    }
+
+    function favouriteStateMatchesRoot(optionElement, root) {
+        if (!(root instanceof Element)) {
+            return false;
+        }
+        const favouriteState = parseFavouriteOptionState(optionElement);
+        if (!favouriteState) {
+            return false;
+        }
+        const comparableFavouriteState = normalizeFavouriteStateForComparison(favouriteState);
+        const comparableCurrentState = normalizeFavouriteStateForComparison(
+            collectFavouriteStateFromRoot(root),
+        );
+        if (!Object.prototype.hasOwnProperty.call(favouriteState, 'visible_columns')) {
+            delete comparableCurrentState.visible_columns;
+        }
+        return JSON.stringify(comparableFavouriteState) === JSON.stringify(comparableCurrentState);
     }
 
     function getFavouriteVisibleFilterNames(optionElement) {
@@ -956,7 +1157,7 @@
             return;
         }
 
-        favouritesContainer.classList.toggle('hidden', !isOpen);
+        favouritesContainer.classList.remove('hidden');
     }
 
     function syncFilterFavouritesSelection(root) {
@@ -967,10 +1168,15 @@
             return;
         }
 
-        const effectiveSelectedId = (
-            getPendingSelectedFilterFavouriteId(root, favouritesContainer)
-            || getServerSelectedFilterFavouriteId(favouritesContainer)
-        );
+        const selectedCandidates = [
+            getPendingSelectedFilterFavouriteId(root, favouritesContainer),
+            getServerSelectedFilterFavouriteId(favouritesContainer),
+            favouriteSelect.value,
+        ].filter(Boolean);
+        const effectiveSelectedId = selectedCandidates.find(candidate => {
+            const candidateOption = getFavouriteOptionByValue(favouriteSelect, candidate);
+            return favouriteStateMatchesRoot(candidateOption, root);
+        }) || '';
         const hasSelectableOption = Array.from(favouriteSelect.options).some(option => option.value);
         const hasSelectedOption = Array.from(favouriteSelect.options).some(
             option => option.value === effectiveSelectedId
@@ -1059,7 +1265,9 @@
         const favouriteSelect = getFilterFavouritesSelect(toolbar);
         const selectedFavouriteField = toolbar.querySelector('input[name="selected_favourite_id"]');
         if (favouriteSelect) {
-            setPendingSelectedFilterFavouriteId(root, toolbar, favouriteSelect.value);
+            if (favouriteSelect.value) {
+                setPendingSelectedFilterFavouriteId(root, toolbar, favouriteSelect.value);
+            }
             if (selectedFavouriteField instanceof HTMLInputElement) {
                 selectedFavouriteField.value = favouriteSelect.value || '';
             }
@@ -1531,6 +1739,20 @@
         stateFilters[field].push(String(value));
     }
 
+    function collectVisibleColumnsFromRoot(root) {
+        const chooser = root.querySelector(LIST_COLUMNS_SELECTOR);
+        if (!(chooser instanceof Element)) {
+            return null;
+        }
+
+        return Array.from(new Set(
+            getListColumnCheckboxes(chooser)
+                .filter(checkbox => checkbox.checked)
+                .map(checkbox => String(checkbox.value || '').trim())
+                .filter(Boolean)
+        ));
+    }
+
     function collectFavouriteStateFromRoot(root) {
         const state = {
             filters: {},
@@ -1538,6 +1760,11 @@
             sort: getCurrentSortValue(),
             page_size: getCurrentPageSizeValue(root),
         };
+        const visibleColumns = collectVisibleColumnsFromRoot(root);
+        if (Array.isArray(visibleColumns)) {
+            state.visible_columns = visibleColumns;
+        }
+
         const filterForm = root.querySelector('#filter-form');
         if (!filterForm) {
             return state;
@@ -2043,6 +2270,7 @@
             return;
         }
         ensureObjectListState(root);
+        syncListToolbarWidth(root);
         getRowSelectionCheckboxes(root).forEach(checkbox => {
             checkbox.checked = checkbox.dataset.powercrudInitialChecked === 'true';
         });
@@ -2055,6 +2283,7 @@
         }
         applyFilterPanelState(root);
         maybeRestoreStoredOptionalFilterVisibility(root);
+        syncListColumnChoosers(root);
         syncFilterFavouritesSelection(root);
         syncBulkSelectionState(root);
         syncSelectionAwareExtraButtons(root);
@@ -2833,6 +3062,15 @@
         bootstrapInlineRow();
     });
 
+    global.addEventListener('pageshow', () => {
+        const resyncRestoredState = () => {
+            bootstrapObjectLists(document);
+            initPowercrudTooltips(document);
+        };
+        resyncRestoredState();
+        global.setTimeout(resyncRestoredState, 50);
+    });
+
     document.addEventListener('pointerdown', () => {
         hidePowercrudTooltips(document);
     }, true);
@@ -2864,10 +3102,8 @@
     global.addEventListener('pagehide', () => {
         hidePowercrudTooltips(document);
         closeRowActionsMenu();
+        closeListColumnChoosers(document);
         closeFilterFavouritesDropdowns();
-        getAffectedObjectListRoots(document).forEach(root => {
-            clearPendingFilterFavouriteSelection(root);
-        });
     });
 
     document.addEventListener('click', event => {
@@ -2961,7 +3197,7 @@
             const listUrl = listUrlField instanceof HTMLInputElement ? listUrlField.value : '';
             const root = getObjectListRoot(favouriteApplyTrigger) || findObjectListRootByListUrl(listUrl);
             if (root) {
-                setPersistedFilterPanelState(root, true);
+                syncFilterToggleLabel(root);
             }
         }
 
@@ -2971,8 +3207,22 @@
         ) {
             closeFilterFavouritesDropdowns();
         }
+        if (!trigger.closest(LIST_COLUMNS_SELECTOR)) {
+            closeListColumnChoosers(document);
+        }
         closeRowActionsMenu();
     });
+
+    document.addEventListener('toggle', event => {
+        const chooser = asElement(event.target);
+        if (!(chooser instanceof HTMLDetailsElement) || !chooser.matches(LIST_COLUMNS_SELECTOR)) {
+            return;
+        }
+        syncListColumnChooser(chooser);
+        if (chooser.open) {
+            focusFirstListColumnCheckbox(chooser);
+        }
+    }, true);
 
     document.addEventListener('keydown', event => {
         const target = asElement(event.target);
@@ -2980,6 +3230,7 @@
             destroyInlineFieldErrorPopovers(document);
         }
         if (event.key === 'Escape') {
+            closeListColumnChoosers(document, true);
             closeFilterFavouritesDropdowns();
             closeRowActionsMenu();
         }
@@ -3029,6 +3280,18 @@
             handleRowSelectionChange(target, event);
         }
 
+        if (target.matches(LIST_COLUMN_CHECKBOX_SELECTOR)) {
+            const chooser = target.closest(LIST_COLUMNS_SELECTOR);
+            if (chooser instanceof Element) {
+                const checkedBoxes = getListColumnCheckboxes(chooser).filter(checkbox => checkbox.checked);
+                if (!target.checked && !checkedBoxes.length) {
+                    target.checked = true;
+                }
+                syncListColumnChooser(chooser);
+            }
+            return;
+        }
+
         if (target.matches('[data-powercrud-add-filter-select]')) {
             const root = getObjectListRoot(target);
             if (!root || !target.value) {
@@ -3072,7 +3335,6 @@
             setStoredOptionalFilterNames(root, visibleFilterNames);
             setPersistedOptionalFilterNames(root, visibleFilterNames);
             setPendingSelectedFilterFavouriteId(root, toolbar, target.value);
-            setPersistedFilterPanelState(root, true);
             closeFilterFavouritesDropdowns();
         }
     });
@@ -3538,6 +3800,7 @@
 
     global.addEventListener('resize', () => {
         closeRowActionsMenu();
+        syncListToolbarWidths(document);
         repositionInlineFieldErrorPopovers(document);
         if (tooltipResizeTimer) {
             clearTimeout(tooltipResizeTimer);

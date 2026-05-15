@@ -40,6 +40,13 @@ class UrlMixin:
             return bool(inline_edit_fields)
         return bool(inline_edit_fields)
 
+    @classmethod
+    def has_list_options_urls(cls) -> bool:
+        """
+        Return True when the class declares list-column preference endpoints.
+        """
+        return getattr(cls, "default_list_fields", None) is not None
+
     def get_prefix(self):
         """
         Generate a prefix for URL names.
@@ -278,6 +285,15 @@ class UrlMixin:
                     f"{cls.url_base}/<{lookup_kwarg}>/inline-dependency/",
                     cls.as_view(role=Role.LIST, inline_action="inline_dependency"),
                     name=f"{cls.url_base}-inline-dependency",
+                )
+            )
+
+        if cls.has_list_options_urls():
+            urls.append(
+                path(
+                    f"{cls.url_base}/columns/",
+                    cls.as_view(role=Role.LIST, list_options_action="columns"),
+                    name=f"{cls.url_base}-columns",
                 )
             )
 

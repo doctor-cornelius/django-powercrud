@@ -47,6 +47,27 @@ def get_open_favourites_panel(page):
     return page.locator("[data-powercrud-filter-favourites-floating-panel='true']").last
 
 
+def open_column_chooser(page):
+    """Open the list-column chooser."""
+
+    trigger = page.locator("[data-powercrud-list-columns='true'] summary")
+    expect(trigger).to_be_visible()
+    trigger.click()
+    panel = page.locator("[data-powercrud-list-columns='true'] .dropdown-content")
+    expect(panel).to_be_visible()
+    return panel
+
+
+def open_filters_panel(page):
+    """Open the list filter panel if it is currently collapsed."""
+
+    toggle = page.locator("#filterToggleBtn")
+    expect(toggle).to_be_visible()
+    if toggle.get_attribute("aria-expanded") != "true":
+        toggle.click()
+    expect(page.locator("#filterCollapse")).not_to_have_class(re.compile(r"\bhidden\b"))
+
+
 def get_sample_navigation(page):
     """Return the sample shell navigation."""
 
@@ -178,6 +199,7 @@ def test_filter_favourite_apply_preserves_sample_shell(
             "visible_filters": [],
             "sort": "",
             "page_size": "5",
+            "visible_columns": list(BookCRUDView.default_list_fields),
         },
     )
 
@@ -187,15 +209,39 @@ def test_filter_favourite_apply_preserves_sample_shell(
     ensure_htmx_available(page)
 
     expect(get_sample_navigation(page).get_by_role("link", name="Home")).to_be_visible()
-    page.get_by_role("button", name=re.compile("show filters", re.I)).click()
+    open_filters_panel(page)
     open_favourites_dropdown(page)
     select_saved_favourite(page, "Only target")
     page.wait_for_load_state("networkidle")
 
+    trigger = page.locator("[data-powercrud-filter-favourites-trigger='true']:visible").first
+    expect(trigger).to_have_attribute("data-powercrud-filter-favourites-selected", "true")
+    expect(trigger).to_have_attribute("aria-label", "Saved favourite: Only target")
+    expect(trigger).to_have_attribute("data-tippy-content", "Only target")
+    expect(
+        trigger.locator("[data-powercrud-filter-favourites-icon-filled='true']")
+    ).not_to_have_class(re.compile(r"\bhidden\b"))
+    expect(
+        trigger.locator("[data-powercrud-filter-favourites-icon-outline='true']")
+    ).to_have_class(re.compile(r"\bhidden\b"))
     expect(get_sample_navigation(page).get_by_role("link", name="Home")).to_be_visible()
     expect(page.locator("#filter-form input[name='title']")).to_have_value(target_book.title)
     expect(page.locator("#filtered_results")).to_contain_text(target_book.title)
     expect(page.locator("#filtered_results")).not_to_contain_text(other_book.title)
+
+    page.reload()
+    page.wait_for_load_state("networkidle")
+    ensure_htmx_available(page)
+    trigger = page.locator("[data-powercrud-filter-favourites-trigger='true']:visible").first
+    expect(trigger).to_have_attribute("data-powercrud-filter-favourites-selected", "true")
+    expect(trigger).to_have_attribute("aria-label", "Saved favourite: Only target")
+    expect(trigger).to_have_attribute("data-tippy-content", "Only target")
+    expect(
+        trigger.locator("[data-powercrud-filter-favourites-icon-filled='true']")
+    ).not_to_have_class(re.compile(r"\bhidden\b"))
+    expect(
+        trigger.locator("[data-powercrud-filter-favourites-icon-outline='true']")
+    ).to_have_class(re.compile(r"\bhidden\b"))
 
 
 test_filter_favourite_apply_preserves_sample_shell = pytest.mark.playwright_smoke(
@@ -257,18 +303,16 @@ def test_filter_reset_clears_remembered_selected_favourite(
     page.wait_for_load_state("networkidle")
     ensure_htmx_available(page)
 
-    page.get_by_role("button", name=re.compile("show filters", re.I)).click()
+    open_filters_panel(page)
     open_favourites_dropdown(page)
     favourites_select = get_open_favourites_panel(page).locator("select[name='favourite_id']")
     select_saved_favourite(page, "Reset me")
     page.wait_for_load_state("networkidle")
     expect(page.locator("#filter-form input[name='title']")).to_have_value(target_book.title)
-    page.get_by_role("link", name="Reset").click()
+    page.get_by_role("link", name="Reset filters").click()
     page.wait_for_load_state("networkidle")
 
-    filter_toggle = page.locator("#filterToggleBtn")
-    if re.search(r"show filters", filter_toggle.inner_text(), re.I):
-        filter_toggle.click()
+    open_filters_panel(page)
     open_favourites_dropdown(page)
 
     expect(favourites_select).to_have_value("")
@@ -303,7 +347,7 @@ def test_filter_favourite_apply_replaces_optional_filter_visibility(
     page.wait_for_load_state("networkidle")
     ensure_htmx_available(page)
 
-    page.get_by_role("button", name=re.compile("show filters", re.I)).click()
+    open_filters_panel(page)
     expect(page.locator("#filter-form [name='genres']")).to_have_count(1)
 
     open_favourites_dropdown(page)
@@ -344,7 +388,7 @@ def test_returning_to_page_clears_selected_filter_favourite(
     page.wait_for_load_state("networkidle")
     ensure_htmx_available(page)
 
-    page.get_by_role("button", name=re.compile("show filters", re.I)).click()
+    open_filters_panel(page)
     open_favourites_dropdown(page)
     select_saved_favourite(page, "Come back to me")
     page.wait_for_load_state("networkidle")
@@ -358,9 +402,7 @@ def test_returning_to_page_clears_selected_filter_favourite(
     page.wait_for_load_state("networkidle")
     ensure_htmx_available(page)
 
-    filter_toggle = page.locator("#filterToggleBtn")
-    if re.search(r"show filters", filter_toggle.inner_text(), re.I):
-        filter_toggle.click()
+    open_filters_panel(page)
 
     open_favourites_dropdown(page)
     favourites_select = get_open_favourites_panel(page).locator("select[name='favourite_id']")
@@ -399,7 +441,7 @@ def test_filter_favourite_update_reapplies_latest_saved_state(
     page.wait_for_load_state("networkidle")
     ensure_htmx_available(page)
 
-    page.get_by_role("button", name=re.compile("show filters", re.I)).click()
+    open_filters_panel(page)
     open_favourites_dropdown(page)
     select_saved_favourite(page, "Switch me")
     page.wait_for_load_state("networkidle")
@@ -432,12 +474,11 @@ def test_filter_favourite_update_reapplies_latest_saved_state(
         "Updating the saved favourite through the contrib endpoint should succeed before the browser reapplies it."
     )
 
-    page.get_by_role("link", name="Reset").click()
+    open_filters_panel(page)
+    page.get_by_role("link", name="Reset filters").click()
     page.wait_for_load_state("networkidle")
 
-    filter_toggle = page.locator("#filterToggleBtn")
-    if re.search(r"show filters", filter_toggle.inner_text(), re.I):
-        filter_toggle.click()
+    open_filters_panel(page)
 
     open_favourites_dropdown(page)
     select_saved_favourite(page, "Switch me")
@@ -464,7 +505,7 @@ def test_filter_favourite_can_be_saved_inline_without_opening_modal(
     page.wait_for_load_state("networkidle")
     ensure_htmx_available(page)
 
-    page.get_by_role("button", name=re.compile("show filters", re.I)).click()
+    open_filters_panel(page)
     open_favourites_dropdown(page)
 
     inline_form = get_open_favourites_panel(page).locator("[data-powercrud-favourite-save-form='true']")
@@ -488,6 +529,71 @@ def test_filter_favourite_can_be_saved_inline_without_opening_modal(
         name="Inline saved favourite",
     ).exists(), (
         "Expected inline favourites save to persist a saved favourite instead of failing CSRF validation."
+    )
+
+
+def test_saved_favourite_restores_visible_columns(
+    page, client, books_url, sample_books, sample_genre
+):
+    """Saved favourites should restore visible columns as part of saved list state."""
+
+    user = login_playwright_user(
+        client=client,
+        page=page,
+        books_url=books_url,
+        username="playwright-favourite-columns-user",
+    )
+    sample_books[0].genres.add(sample_genre)
+
+    install_htmx_init_script(page)
+    page.goto(books_url)
+    page.wait_for_load_state("networkidle")
+    ensure_htmx_available(page)
+
+    expect(page.locator("td[data-field-name='genres']")).to_have_count(0)
+    column_panel = open_column_chooser(page)
+    column_panel.locator("input[name='visible_columns'][value='genres']").check()
+    with page.expect_response(re.compile(r"/sample/bigbook/")):
+        column_panel.get_by_role("button", name="Save").click()
+    expect(page.locator("td[data-field-name='genres']").first).to_be_visible()
+
+    open_filters_panel(page)
+    open_favourites_dropdown(page)
+    inline_form = get_open_favourites_panel(page).locator(
+        "[data-powercrud-favourite-save-form='true']"
+    )
+    inline_form.locator("input[name='name']").fill("Columns saved")
+    with page.expect_response(
+        lambda response: response.request.method == "POST"
+        and "/powercrud/favourites/save/" in response.url
+    ) as save_response_info:
+        inline_form.get_by_role("button", name="Save favourite").click()
+    assert save_response_info.value.status == 200, (
+        "Expected saving a favourite with visible columns to return a successful HTMX response."
+    )
+    saved_favourite = SavedFilterFavourite.objects.get(
+        user=user,
+        view_key=BOOK_VIEW_KEY,
+        name="Columns saved",
+    )
+    assert "genres" in saved_favourite.state.get("visible_columns", []), (
+        "Saved favourite state should include the currently visible genres column."
+    )
+    page.keyboard.press("Escape")
+
+    column_panel = open_column_chooser(page)
+    with page.expect_response(re.compile(r"/sample/bigbook/")):
+        column_panel.get_by_role("button", name="Reset").click()
+    expect(page.locator("td[data-field-name='genres']")).to_have_count(0)
+
+    open_filters_panel(page)
+    open_favourites_dropdown(page)
+    select_saved_favourite(page, "Columns saved")
+    page.wait_for_load_state("networkidle")
+
+    expect(page.locator("td[data-field-name='genres']").first).to_be_visible()
+    expect(page.locator("td[data-field-name='genres']").first).to_contain_text(
+        sample_genre.name
     )
 
 
@@ -521,7 +627,7 @@ def test_returning_to_page_via_sample_shell_htmx_clears_selected_filter_favourit
     page.wait_for_load_state("networkidle")
     ensure_htmx_available(page)
 
-    page.get_by_role("button", name=re.compile("show filters", re.I)).click()
+    open_filters_panel(page)
     open_favourites_dropdown(page)
     select_saved_favourite(page, "Shell trip")
     page.wait_for_load_state("networkidle")
@@ -536,9 +642,7 @@ def test_returning_to_page_via_sample_shell_htmx_clears_selected_filter_favourit
     expect(page.locator("#content")).to_contain_text("My List of Books")
     expect(page.locator("#filterToggleBtn")).to_be_visible()
 
-    filter_toggle = page.locator("#filterToggleBtn")
-    if re.search(r"show filters", filter_toggle.inner_text(), re.I):
-        filter_toggle.click()
+    open_filters_panel(page)
 
     open_favourites_dropdown(page)
     favourites_select = get_open_favourites_panel(page).locator("select[name='favourite_id']")

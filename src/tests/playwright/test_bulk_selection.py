@@ -177,7 +177,7 @@ def test_bulk_edit_refresh_reapplies_active_filters(
     page.goto(books_url)
     page.wait_for_load_state("networkidle")
 
-    page.get_by_role("button", name=re.compile("show filters", re.I)).click()
+    page.get_by_role("button", name=re.compile("filters", re.I)).click()
     select_single_value(
         page=page,
         container=page.locator("#filter-form"),
@@ -329,7 +329,7 @@ def test_filter_multiselect_searchable_select_applies_immediately(
 
     page.goto(f"{books_url}?visible_filters=genres")
     page.wait_for_load_state("networkidle")
-    page.get_by_role("button", name=re.compile("show filters", re.I)).click()
+    page.get_by_role("button", name=re.compile("filters", re.I)).click()
 
     select_multi_value(
         page=page,
@@ -365,7 +365,7 @@ def test_filter_single_select_clear_button_clears_selection(
 
     page.goto(books_url)
     page.wait_for_load_state("networkidle")
-    page.get_by_role("button", name=re.compile("show filters", re.I)).click()
+    page.get_by_role("button", name=re.compile("filters", re.I)).click()
 
     select_single_value(
         page=page,

@@ -1,4 +1,4 @@
 :root {
-    --pc-tooltip-bg: var(--color-info);
-    --pc-tooltip-fg: var(--color-info-content);
+    --pc-tooltip-bg: var(--color-base-300);
+    --pc-tooltip-fg: var(--color-base-content);
 }

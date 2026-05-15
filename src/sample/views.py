@@ -51,6 +51,16 @@ class BookCRUDView(SampleCRUDMixin):
     fields = "__all__"
     exclude = ["description"]
     properties = "__all__"
+    default_list_fields = [
+        "title",
+        "author",
+        "published_date",
+        "pages",
+        "bestseller",
+        "isbn",
+        "isbn_empty",
+        "a_really_long_property_header_for_title",
+    ]
     column_help_text = {
         "title": "The book title shown throughout the app.",
         "pages": "Demo link: opens this book detail in the current page.",
@@ -331,6 +341,7 @@ class AnnotatedBookCRUDView(SampleCRUDMixin):
         )
     )
     fields = ["title", "author", "pages", "long_book", "published_date"]
+    default_list_fields = ["title", "author", "pages", "published_date"]
     detail_fields = "__fields__"
     properties = []
     column_help_text = {

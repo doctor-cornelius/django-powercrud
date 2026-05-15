@@ -1,15 +1,38 @@
 <div id="{{ filter_favourites_toolbar_dom_id }}"
-     class="dropdown dropdown-start relative z-[60] hidden -ml-px"
+     class="dropdown dropdown-end relative z-[60]"
      data-powercrud-filter-favourites-dropdown="true"
      data-powercrud-filter-favourites-toolbar="true"
      data-powercrud-filter-favourites-view-key="{{ filter_favourites_view_key }}"
      data-powercrud-toolbar-dom-id="{{ filter_favourites_toolbar_dom_id }}"
      data-powercrud-current-state-json="{{ current_list_state_json|escape }}">
     <button type="button"
-            class="btn btn-outline btn-secondary btn-sm rounded-l-none flex items-center gap-2"
-            data-powercrud-filter-favourites-default-label="Favourites"
+            class="btn btn-outline btn-secondary {{ view.get_extra_button_classes }}"
+            aria-label="{% if selected_filter_favourite_name %}Saved favourite: {{ selected_filter_favourite_name }}{% else %}Saved favourites{% endif %}"
+            title="{% if selected_filter_favourite_name %}{{ selected_filter_favourite_name }}{% else %}Saved favourites{% endif %}"
+            data-powercrud-filter-favourites-selected="{% if selected_filter_favourite_name %}true{% else %}false{% endif %}"
+            data-powercrud-filter-favourites-default-label="Saved favourites"
+            {% if selected_filter_favourite_name %}
+            data-powercrud-tooltip="semantic"
+            data-tippy-content="{{ selected_filter_favourite_name }}"
+            {% endif %}
             data-powercrud-filter-favourites-trigger="true">
-        <span class="text-secondary" aria-hidden="true">
+        <span class="{% if selected_filter_favourite_name %}hidden {% endif %}text-secondary"
+              aria-hidden="true"
+              data-powercrud-filter-favourites-icon-outline="true">
+            <svg xmlns="http://www.w3.org/2000/svg"
+                 viewBox="0 0 24 24"
+                 fill="none"
+                 stroke="currentColor"
+                 stroke-width="1.8"
+                 stroke-linecap="round"
+                 stroke-linejoin="round"
+                 class="size-4">
+                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78Z"/>
+            </svg>
+        </span>
+        <span class="{% if not selected_filter_favourite_name %}hidden {% endif %}text-primary"
+              aria-hidden="true"
+              data-powercrud-filter-favourites-icon-filled="true">
             <svg xmlns="http://www.w3.org/2000/svg"
                  viewBox="0 0 16 16"
                  fill="currentColor"
@@ -17,13 +40,9 @@
                 <path d="m8 2.748-.717-.737C5.6.281 2.514.878 1.4 3.053c-.523 1.023-.641 2.5.314 4.385.92 1.815 2.834 3.989 6.286 6.357 3.452-2.368 5.365-4.542 6.286-6.357.955-1.886.838-3.362.314-4.385C13.486.878 10.4.28 8.717 2.01z"/>
             </svg>
         </span>
-        <span class="inline-block max-w-[15ch] overflow-hidden text-ellipsis whitespace-nowrap align-bottom"
-              data-powercrud-filter-favourites-trigger-label="true"
-              {% if selected_filter_favourite_name and selected_filter_favourite_name|length > 15 %}
-              data-powercrud-tooltip="overflow"
-              data-tippy-content="{{ selected_filter_favourite_name }}"
-              {% endif %}>
-            {{ selected_filter_favourite_name|default:"Favourites" }}
+        <span class="sr-only"
+              data-powercrud-filter-favourites-trigger-label="true">
+            {{ selected_filter_favourite_name|default:"Saved favourites" }}
         </span>
     </button>
     <div hidden

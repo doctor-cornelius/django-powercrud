@@ -15,8 +15,8 @@ pip install django-powercrud
 
 Optional add-on:
 
-- If you want saved filter favourites, also add the optional contrib app to `INSTALLED_APPS`, run migrations, and mount `powercrud.urls` with namespace `powercrud`.
-- The detailed behavior and UI guidance live in [Saved Filter Favourites](./advanced/filter_favourites.md).
+- If you want saved favourites, also add the optional contrib app to `INSTALLED_APPS`, run migrations, and mount `powercrud.urls` with namespace `powercrud`.
+- The detailed behavior and UI guidance live in [Saved Favourites](./advanced/filter_favourites.md).
 
 ## Dependencies
 
@@ -120,7 +120,7 @@ If your own templates define partials and need to support both Django 5.2 and 6.
 
 Django 6.0 includes template partials in core, so do not add `template_partials` to `INSTALLED_APPS` on Django 6 projects.
 
-If you want the optional saved filter favourites feature:
+If you want the optional saved favourites feature:
 
 ```python
 INSTALLED_APPS = [

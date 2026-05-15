@@ -14,7 +14,11 @@ from django.urls import NoReverseMatch, reverse
 from neapolitan.views import Role
 
 from powercrud.contrib.favourites.models import SavedFilterFavourite
-from powercrud.contrib.favourites.services import build_query_string_from_state
+from powercrud.contrib.favourites.services import (
+    build_query_string_from_state,
+    normalise_saved_state,
+)
+from powercrud.mixins.list_options_mixin import LIST_OPTIONS_SESSION_KEY
 from sample.views import BookCRUDView
 
 BOOK_VIEW_KEY = f"{BookCRUDView.__module__}.{BookCRUDView.__name__}"
@@ -37,9 +41,14 @@ def test_book_view_current_list_state_includes_expected_fields():
     )
     view = BookCRUDView()
     view.request = request
+    view.role = Role.LIST
 
     filterset = view.get_filterset(view.get_queryset())
-    state = view.get_current_list_state(filterset)
+    list_column_state = view.build_list_column_state(queryset=filterset.qs)
+    state = view.get_current_list_state(
+        filterset,
+        list_column_state=list_column_state,
+    )
 
     assert state == {
         "filters": {
@@ -49,6 +58,7 @@ def test_book_view_current_list_state_includes_expected_fields():
         "visible_filters": ["genres"],
         "sort": "-published_date",
         "page_size": "25",
+        "visible_columns": list(list_column_state.active_columns),
     }, "Saved list state should preserve active filter values plus visible_filters, sort, and page_size while excluding page."
 
 
@@ -65,8 +75,14 @@ def test_book_list_renders_favourites_toolbar_for_authenticated_user(client):
     assert response.status_code == 200, (
         "Book list should still render successfully when the optional favourites contrib app is enabled."
     )
-    assert "Favourites" in response_text, (
-        "Book list should render the compact filter favourites trigger when the view opts in."
+    assert 'aria-label="Saved favourites"' in response_text, (
+        "Book list should render the compact icon-only saved favourites trigger when the view opts in."
+    )
+    assert 'data-powercrud-filter-favourites-selected="false"' in response_text, (
+        "Book list should render the saved favourites trigger in its unselected icon-only state by default."
+    )
+    assert 'data-powercrud-filter-favourites-icon-outline="true"' in response_text, (
+        "Book list should render the outline heart icon for the unselected saved favourites trigger."
     )
     assert "Apply" not in response_text, (
         "The compact favourites UI should auto-apply on selection instead of rendering a separate Apply button."
@@ -80,8 +96,8 @@ def test_book_list_renders_favourites_toolbar_for_authenticated_user(client):
     assert 'data-powercrud-filter-favourites-toolbar="true"' in response_text, (
         "Book list should render the filter favourites toolbar container for the opted-in list."
     )
-    assert 'class="dropdown dropdown-start relative z-[60] hidden -ml-px"' in response_text, (
-        "The filter favourites trigger should stay hidden until the user opens the filter panel."
+    assert 'class="dropdown dropdown-end relative z-[60]"' in response_text, (
+        "The saved favourites trigger should render as a top-level view control."
     )
     assert "Sign in to save favourites." not in response_text, (
         "Authenticated users should not see the anonymous-login helper message."
@@ -90,7 +106,7 @@ def test_book_list_renders_favourites_toolbar_for_authenticated_user(client):
 
 @pytest.mark.django_db
 def test_book_list_renders_long_selected_favourite_with_truncation_tooltip(client):
-    """Long selected favourite names should truncate in the trigger and keep the full tooltip text."""
+    """Long selected favourite names should keep their full text in the icon trigger metadata."""
 
     user = get_user_model().objects.create_user(username="fav-long-label-user")
     client.force_login(user)
@@ -118,14 +134,62 @@ def test_book_list_renders_long_selected_favourite_with_truncation_tooltip(clien
     assert response.status_code == 200, (
         "Rendering the favourites toolbar with a selected favourite should succeed."
     )
-    assert 'max-w-[15ch] overflow-hidden text-ellipsis whitespace-nowrap' in response_text, (
-        "Long selected favourite names should use the constrained trigger-label wrapper so the toolbar stays compact."
+    assert 'aria-label="Saved favourite: Pages set to two hundred twent"' in response_text, (
+        "Long selected favourite names should keep the trigger icon-only while remaining accessible."
     )
-    assert 'data-powercrud-tooltip="overflow"' in response_text, (
-        "Long selected favourite names should enable the existing overflow tooltip hook on the trigger label."
+    assert 'data-powercrud-filter-favourites-selected="true"' in response_text, (
+        "Selected favourites should mark the saved favourites trigger as selected."
+    )
+    assert 'data-powercrud-filter-favourites-icon-filled="true"' in response_text, (
+        "Selected favourites should render the filled heart icon."
+    )
+    assert 'text-primary' in response_text, (
+        "Selected favourites should use the semantic primary color on the filled heart icon."
+    )
+    assert 'data-powercrud-tooltip="semantic"' in response_text, (
+        "Selected favourites should enable a semantic tooltip on the icon trigger."
     )
     assert 'data-tippy-content="Pages set to two hundred twent"' in response_text, (
         "Long selected favourite names should keep the full value in the tooltip payload even when the trigger truncates it."
+    )
+
+
+@pytest.mark.django_db
+def test_book_list_marks_matching_saved_favourite_on_full_page_render(client):
+    """Initial list rendering should mark a saved favourite selected when state matches."""
+
+    user = get_user_model().objects.create_user(username="fav-refresh-selected-user")
+    client.force_login(user)
+    SavedFilterFavourite.objects.create(
+        user=user,
+        view_key=BOOK_VIEW_KEY,
+        name="Refresh survives",
+        state={
+            "filters": {"title": ["refresh"]},
+            "visible_filters": [],
+            "sort": "",
+            "page_size": "5",
+            "visible_columns": list(BookCRUDView.default_list_fields),
+        },
+    )
+
+    response = client.get(
+        reverse("sample:bigbook-list"),
+        {
+            "title": "refresh",
+            "page_size": "5",
+        },
+    )
+    response_text = response.content.decode()
+
+    assert response.status_code == 200, (
+        "Book list should render before checking matching saved favourite selected state."
+    )
+    assert 'aria-label="Saved favourite: Refresh survives"' in response_text, (
+        "A matching saved favourite should survive full page rendering as selected trigger state."
+    )
+    assert 'data-powercrud-filter-favourites-selected="true"' in response_text, (
+        "A matching saved favourite should render the selected heart state on initial page load."
     )
 
 
@@ -284,6 +348,7 @@ def test_favourite_save_view_persists_state_and_returns_toolbar_fragment(client)
         "visible_filters": ["genres"],
         "sort": "-published_date",
         "page_size": "25",
+        "visible_columns": ["title", "author", "pages"],
     }
     response = client.post(
         reverse("powercrud:favourites-save"),
@@ -443,6 +508,7 @@ def test_favourite_apply_view_returns_hx_location_for_saved_state(client):
             "visible_filters": ["genres"],
             "sort": "-published_date",
             "page_size": "25",
+            "visible_columns": ["title", "pages"],
         },
     )
     client.force_login(user)
@@ -469,6 +535,56 @@ def test_favourite_apply_view_returns_hx_location_for_saved_state(client):
         "target": "#content",
         "swap": "innerHTML",
     }, "Applying a favourite over HTMX should instruct the browser to refresh the list shell at the original target with the saved list URL."
+    assert (
+        client.session[LIST_OPTIONS_SESSION_KEY][BOOK_VIEW_KEY]
+        == {"visible_columns": ["title", "pages"]}
+    ), (
+        "Applying a saved favourite with visible_columns should store that column state in the session."
+    )
+
+
+@pytest.mark.django_db
+def test_favourite_apply_view_clears_columns_for_legacy_filter_only_state(client):
+    """Applying a legacy filter-only favourite should return visible columns to defaults."""
+
+    user = get_user_model().objects.create_user(username="fav-legacy-apply-user")
+    favourite = SavedFilterFavourite.objects.create(
+        user=user,
+        view_key=BOOK_VIEW_KEY,
+        name="Legacy favourite",
+        state={
+            "filters": {"title": ["django"]},
+            "visible_filters": [],
+            "sort": "",
+            "page_size": "5",
+        },
+    )
+    client.force_login(user)
+    session = client.session
+    session[LIST_OPTIONS_SESSION_KEY] = {
+        BOOK_VIEW_KEY: {"visible_columns": ["title", "pages"]}
+    }
+    session.save()
+
+    response = client.get(
+        reverse("powercrud:favourites-apply"),
+        {
+            "favourite_id": favourite.pk,
+            "view_key": BOOK_VIEW_KEY,
+            "list_view_url": reverse("sample:bigbook-list"),
+            "toolbar_dom_id": "powercrud-favourites-toolbar-test",
+            "current_state_json": "{}",
+            "original_target": "#content",
+        },
+        HTTP_HX_REQUEST="true",
+    )
+
+    assert response.status_code == 200, (
+        "Applying a legacy saved favourite should still navigate successfully."
+    )
+    assert BOOK_VIEW_KEY not in client.session.get(LIST_OPTIONS_SESSION_KEY, {}), (
+        "Legacy favourites without visible_columns should clear current column session state."
+    )
 
 
 @pytest.mark.django_db
@@ -489,6 +605,7 @@ def test_favourite_update_view_overwrites_saved_state_and_refreshes_toolbar(clie
         "visible_filters": ["genres"],
         "sort": "-published_date",
         "page_size": "25",
+        "visible_columns": ["title", "genres"],
     }
     response = client.post(
         reverse("powercrud:favourites-update"),
@@ -573,9 +690,31 @@ def test_build_query_string_from_state_serializes_multi_value_filters_in_order()
             "visible_filters": ["genres", "pages"],
             "sort": "-published_date",
             "page_size": "25",
+            "visible_columns": ["title", "pages"],
         }
     )
 
     assert query_string == (
         "title=django&genres=2&genres=5&visible_filters=genres&visible_filters=pages&sort=-published_date&page_size=25"
-    ), "Serializing saved favourites should preserve multi-value filters and visible filter order."
+    ), "Serializing saved favourites should preserve query-backed state while omitting session-backed visible columns."
+
+
+def test_normalise_saved_state_preserves_optional_visible_columns():
+    """Saved favourite state should preserve optional visible columns without requiring them."""
+
+    assert normalise_saved_state(
+        {
+            "filters": {},
+            "visible_filters": [],
+            "sort": "",
+            "page_size": "",
+            "visible_columns": ["title", "pages", "title", ""],
+        }
+    )["visible_columns"] == ["title", "pages"], (
+        "Visible columns should be normalized as ordered unique string values."
+    )
+    assert "visible_columns" not in normalise_saved_state(
+        {"filters": {}, "visible_filters": [], "sort": "", "page_size": ""}
+    ), (
+        "Legacy saved favourites without visible_columns should remain valid filter-only payloads."
+    )

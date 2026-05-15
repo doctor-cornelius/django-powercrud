@@ -52,7 +52,11 @@ class FavouritesMixin:
         digest = hashlib.md5(key.encode("utf-8")).hexdigest()[:10]
         return f"powercrud-favourites-toolbar-{digest}"
 
-    def get_current_list_state(self, filterset=None) -> dict[str, object]:
+    def get_current_list_state(
+        self,
+        filterset=None,
+        list_column_state=None,
+    ) -> dict[str, object]:
         """Return normalized list state suitable for saved favourites."""
 
         filters: dict[str, list[str]] = {}
@@ -65,17 +69,30 @@ class FavouritesMixin:
             if values:
                 filters[field_name] = values
 
-        return {
+        state = {
             "filters": filters,
             "visible_filters": self.get_requested_visible_filter_names(filterset),
             "sort": self.request.GET.get("sort", "").strip(),
             "page_size": self.request.GET.get("page_size", "").strip(),
         }
+        if getattr(list_column_state, "enabled", False):
+            state["visible_columns"] = list(list_column_state.active_columns)
+        return state
 
-    def get_current_list_state_json(self, filterset=None) -> str:
+    def get_current_list_state_json(
+        self,
+        filterset=None,
+        list_column_state=None,
+    ) -> str:
         """Return the current list state serialized for HTML transport."""
 
-        return json.dumps(self.get_current_list_state(filterset), sort_keys=True)
+        return json.dumps(
+            self.get_current_list_state(
+                filterset,
+                list_column_state=list_column_state,
+            ),
+            sort_keys=True,
+        )
 
     def get_saved_filter_favourites(self) -> list[object]:
         """Return saved favourites for the current authenticated user and view."""
@@ -91,7 +108,11 @@ class FavouritesMixin:
             view_key=self.get_favourites_key(),
         )
 
-    def get_favourites_context(self, filterset=None) -> dict[str, object]:
+    def get_favourites_context(
+        self,
+        filterset=None,
+        list_column_state=None,
+    ) -> dict[str, object]:
         """Build template context for the optional favourites toolbar."""
 
         enabled = self.get_favourites_enabled()
@@ -104,10 +125,27 @@ class FavouritesMixin:
                 "filter_favourites_enabled": False,
                 "saved_filter_favourites": [],
             }
-        current_state_json = self.get_current_list_state_json(filterset)
+        current_state = self.get_current_list_state(
+            filterset,
+            list_column_state=list_column_state,
+        )
+        current_state_json = json.dumps(current_state, sort_keys=True)
+        saved_filter_favourites = []
+        selected_filter_favourite_id = None
+        selected_filter_favourite_name = ""
 
         if can_manage:
             from powercrud.contrib.favourites.forms import FavouriteSaveForm
+            from powercrud.contrib.favourites.services import find_matching_saved_favourite
+
+            saved_filter_favourites = self.get_saved_filter_favourites()
+            selected_favourite = find_matching_saved_favourite(
+                saved_filter_favourites,
+                current_state,
+            )
+            if selected_favourite:
+                selected_filter_favourite_id = selected_favourite.pk
+                selected_filter_favourite_name = selected_favourite.name
 
             save_form = FavouriteSaveForm(
                 initial={
@@ -117,6 +155,7 @@ class FavouritesMixin:
                     "current_state_json": current_state_json,
                     "state_json": current_state_json,
                     "original_target": self.get_original_target(),
+                    "selected_favourite_id": selected_filter_favourite_id,
                 }
             )
 
@@ -127,11 +166,11 @@ class FavouritesMixin:
             "filter_favourites_view_key": self.get_favourites_key(),
             "filter_favourites_toolbar_dom_id": self.get_favourites_toolbar_dom_id(),
             "current_list_state_json": current_state_json,
+            "selected_filter_favourite_id": selected_filter_favourite_id,
+            "selected_filter_favourite_name": selected_filter_favourite_name,
             "show_filter_favourite_save_form": False,
             "filter_favourite_save_form": save_form,
-            "saved_filter_favourites": self.get_saved_filter_favourites()
-            if can_manage
-            else [],
+            "saved_filter_favourites": saved_filter_favourites,
             "filter_favourites_toolbar_url": self.safe_reverse(
                 "powercrud:favourites-toolbar"
             ),
@@ -152,5 +191,13 @@ class FavouritesMixin:
 
         context = super().get_context_data(**kwargs)
         filterset = kwargs.get("filterset") or context.get("filterset")
-        context.update(self.get_favourites_context(filterset))
+        list_column_state = kwargs.get("list_column_state") or context.get(
+            "list_column_state"
+        )
+        context.update(
+            self.get_favourites_context(
+                filterset,
+                list_column_state=list_column_state,
+            )
+        )
         return context

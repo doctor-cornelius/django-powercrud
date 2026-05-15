@@ -66,6 +66,16 @@ class BookCRUDView(PowerCRUDAsyncMixin, CRUDView):
     }
     list_cell_tooltip_fields = ["title", "pages", "isbn_empty"]
     list_cell_link_default_open_in = "modal"
+    default_list_fields = [
+        "title",
+        "author",
+        "published_date",
+        "pages",
+        "bestseller",
+        "isbn",
+        "isbn_empty",
+        "a_really_long_property_header_for_title",
+    ]
     link_fields = {
         "a_really_long_property_header_for_title": {
             "view_name": "sample:author-detail",
@@ -132,13 +142,20 @@ The same sample view now also demonstrates progressive filter visibility:
 - `isbn`, `pages`, `description`, and `genres` remain allowed filters but start hidden
 - the Add filter control reveals those optional filters on demand without changing the underlying filterset contract
 
+The same sample view now also demonstrates list options:
+
+- `default_list_fields` keeps the initial book table narrower than the full allowed column set
+- users can open **Cols** and add allowed hidden columns such as `genres`
+- the current column choice is scoped to the browser session and the `BookCRUDView`
+- reset returns the table to the declared `default_list_fields`
+
 The sample `BookCRUDView` also demonstrates the optional saved-favourites contrib app:
 
 - `filter_favourites_enabled = True` turns on the toolbar for this list
-- saved favourites persist the current filters, optional filter visibility, sort, and page size for the signed-in user, scoped to the list view's derived identity
+- saved favourites persist the current filters, optional filter visibility, sort, page size, and visible columns for the signed-in user, scoped to the list view's derived identity
 - the sample project mounts `include("powercrud.urls", namespace="powercrud")`, which is required for the optional favourites endpoints
 
-See [Filtering](../guides/filtering.md) for the core filter behavior and [Saved Filter Favourites](../guides/advanced/filter_favourites.md) for the optional contrib add-on.
+See [Filtering](../guides/filtering.md) for the core filter behavior and [Saved Favourites](../guides/advanced/filter_favourites.md) for the optional contrib add-on.
 
 ### AnnotatedBookCRUDView - Queryset Annotation Columns
 
@@ -160,13 +177,14 @@ class AnnotatedBookCRUDView(PowerCRUDAsyncMixin, CRUDView):
         )
     )
     fields = ["title", "author", "pages", "long_book", "published_date"]
+    default_list_fields = ["title", "author", "pages", "published_date"]
     filterset_fields = ["author", "long_book", "pages"]
     default_filterset_fields = ["author", "long_book"]
     inline_edit_fields = ["pages"]
     bulk_fields = []
 ```
 
-The `long_book` column is not a model field. It is the public queryset annotation name, and PowerCRUD uses that same name in `fields`, generated filters, sorting, header help, and cell tooltips. The sample makes the real `pages` model field inline-editable while keeping `long_book` out of inline edit and bulk edit config because annotation fields are read-only. See [Queryset Annotation Fields](../guides/advanced/queryset_annotation_fields.md) for the declaration details behind this sample.
+The `long_book` column is not a model field. It is the public queryset annotation name, and PowerCRUD uses that same name in `fields`, generated filters, sorting, header help, cell tooltips, and list-column selection. The sample keeps `long_book` out of `default_list_fields` so it appears as an optional selectable column in the **Cols** control. The sample makes the real `pages` model field inline-editable while keeping `long_book` out of inline edit and bulk edit config because annotation fields are read-only. See [Queryset Annotation Fields](../guides/advanced/queryset_annotation_fields.md) for the declaration details behind this sample.
 
 The sample frontend now also shows the downstream tooltip-styling path. In [`src/config/static/css/app.custom.css`](../../../src/config/static/css/app.custom.css), the sample app actively overrides `--pc-tooltip-bg` and `--pc-tooltip-fg` to use daisyUI's primary semantic tokens, while PowerCRUD itself keeps neutral tooltip defaults. The sample Vite entry imports that file after `powercrud/css/powercrud.css`, so readers can inspect the real app-level override pattern rather than only reading about it in the styling guide.
 
@@ -183,6 +201,7 @@ The sample `BookCRUDView` now also demonstrates both custom action enhancements 
 - a row-level `extra_action` that disables itself with a tooltip when the book has no description
 - per-trigger modal sizing on a modal list-cell link, a modal `extra_button`, and modal `extra_actions` through `modal_box_classes`
 - semantic field-level list-cell tooltips on the inline `title`, non-inline `pages`, and `isbn_empty` property columns
+- session-backed list-column choices through **Cols**
 - declarative list-cell linking on `pages` (`current`), visible `isbn` (`new`), and the non-inline `Really Long Title` property column (`modal`)
 - an active sample app-level tooltip theme override through `--pc-tooltip-bg` / `--pc-tooltip-fg`
 - a guarded row (`Guarded Sample Book`) that disables the built-in Edit action and inline editing before the user can start an update
@@ -253,7 +272,7 @@ When the user changes `author` inline, PowerCRUD posts the current row data to t
 - **GenreCRUDView**: Minimal configuration example plus two focused delete demos: a guarded row (`Guarded Sample Genre`) that disables the built-in Delete action before click, and a protected row (`Protected Sample Genre`) that demonstrates handled single-delete `ValidationError` responses after submit
 - **ProfileCRUDView**: OneToOneField, the sample app's column-alignment demo (`status` centered, `priority_band` right-aligned, `favorite_genre` left-aligned), inline editing, bulk operations, merged nullable relation filtering on `favorite_genre`, and a static queryset rule that limits `favorite_genre` choices to genres whose names start with `S`
 - **AuthorCRUDView**: Properties, filtering, template debugging, companion nullable scalar filtering on `birth_date`, and visible row-level `extra_actions` in the default button mode
-- **BookCRUDView**: Async bulk editing, dependent `author -> genres` queryset scoping, `view_title` / `view_instructions` heading-area overrides, `column_help_text` header tooltips, semantic field-level list-cell tooltips on inline and non-inline columns, declarative modal and external list-cell link demos, selection-aware `extra_buttons`, dropdown row actions that open upward for the last five rendered rows, and a guarded sample row for built-in Edit and inline update guards
+- **BookCRUDView**: Async bulk editing, dependent `author -> genres` queryset scoping, `view_title` / `view_instructions` heading-area overrides, `column_help_text` header tooltips, list options through **Cols**, semantic field-level list-cell tooltips on inline and non-inline columns, declarative modal and external list-cell link demos, selection-aware `extra_buttons`, dropdown row actions that open upward for the last five rendered rows, and a guarded sample row for built-in Edit and inline update guards
 
 The `Genre` sample keeps these delete demos deliberately narrow:
 

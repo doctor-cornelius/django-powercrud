@@ -13,6 +13,7 @@ from django.test import RequestFactory
 from neapolitan.views import Role
 
 from powercrud.mixins.core_mixin import CoreMixin
+from powercrud.mixins.list_options_mixin import ListOptionsMixin
 from powercrud.mixins.table_mixin import TableMixin
 from powercrud.mixins.paginate_mixin import PaginateMixin
 from powercrud.mixins.url_mixin import UrlMixin
@@ -47,7 +48,7 @@ def test_core_mixin_expands_fields_and_properties():
 
 @pytest.mark.django_db
 def test_core_mixin_respects_excludes_and_form_fields():
-    class BookView(CoreMixin):
+    class BookView(ListOptionsMixin, CoreMixin):
         model = Book
         fields = "__all__"
         exclude = ["description"]
@@ -66,7 +67,7 @@ def test_core_mixin_respects_excludes_and_form_fields():
 
 @pytest.mark.django_db
 def test_core_mixin_accepts_non_editable_model_fields_for_form_display_fields():
-    class BookView(CoreMixin):
+    class BookView(ListOptionsMixin, CoreMixin):
         model = Book
         fields = "__all__"
         form_display_fields = ["uneditable_field", "author"]
@@ -96,6 +97,7 @@ def test_core_mixin_dedupes_applicable_string_lists():
         model = Book
         fields = ["title", "author", "title", "published_date"]
         properties = ["isbn_empty", "isbn_empty"]
+        default_list_fields = ["title", "isbn_empty", "title"]
         exclude = ["published_date", "published_date"]
         detail_fields = ["author", "title", "author"]
         detail_exclude = ["author", "author"]
@@ -145,6 +147,79 @@ def test_core_mixin_dedupes_applicable_string_lists():
     )
     assert view.inline_edit_fields == ["title"], (
         "inline_edit_fields should quietly drop later duplicates before inline-edit validation runs."
+    )
+    assert view.default_list_fields == ["title", "isbn_empty"], (
+        "default_list_fields should quietly drop later duplicates while keeping first-occurrence order."
+    )
+
+
+@pytest.mark.django_db
+def test_core_mixin_resolves_default_list_fields_against_fields_and_properties():
+    """default_list_fields should opt into a subset of the rendered column allow-list."""
+
+    class BookView(ListOptionsMixin, CoreMixin):
+        model = Book
+        role = Role.LIST
+        fields = ["title", "author", "pages"]
+        properties = ["isbn_empty"]
+        default_list_fields = ["title", "isbn_empty"]
+
+    view = BookView()
+
+    assert view.get_allowed_list_columns() == ["title", "author", "pages", "isbn_empty"], (
+        "Allowed list columns should be resolved from fields followed by properties."
+    )
+    assert view.get_default_list_columns() == ["title", "isbn_empty"], (
+        "default_list_fields should preserve allowed-column order and include properties."
+    )
+    assert view.get_active_list_columns() == ["title", "isbn_empty"], (
+        "Views with no session state should render their default visible columns."
+    )
+
+
+def test_core_mixin_rejects_empty_default_list_fields():
+    """Empty default visible columns are intentionally invalid for v1."""
+
+    class BrokenView(CoreMixin):
+        model = Book
+        fields = ["title"]
+        default_list_fields = []
+
+    with pytest.raises(ImproperlyConfigured, match="default_list_fields cannot be empty"):
+        BrokenView()
+
+
+def test_core_mixin_rejects_unknown_default_list_fields():
+    """default_list_fields should fail clearly when it names an unavailable column."""
+
+    class BrokenView(CoreMixin):
+        model = Book
+        fields = ["title"]
+        default_list_fields = ["missing"]
+
+    with pytest.raises(ValueError, match="default_list_fields"):
+        BrokenView()
+
+
+@pytest.mark.django_db
+def test_core_mixin_normalises_saved_visible_columns_to_allowed_order():
+    """Saved column state should drop stale names and keep the configured column order."""
+
+    class BookView(ListOptionsMixin, CoreMixin):
+        model = Book
+        role = Role.LIST
+        fields = ["title", "author", "pages"]
+        properties = ["isbn_empty"]
+        default_list_fields = ["title"]
+
+    view = BookView()
+
+    assert view.normalise_visible_list_columns(["pages", "missing", "author"]) == [
+        "author",
+        "pages",
+    ], "Visible column state should drop stale names and render in the allow-list order."
+    assert view.normalise_visible_list_columns(["missing"]) == ["title"], (
+        "Invalid or empty visible column state should fall back to default_list_fields."
     )
 
 
@@ -1848,15 +1923,25 @@ def test_book_list_shows_add_filter_control_and_hides_optional_filters_by_defaul
         "Book list view should render the Add filter control markup when some allowed filters are optional."
     )
     assert 'data-powercrud-add-filter-container' in response_text, (
-        "Book list view should wrap the Add filter control in a dedicated top-row container beside the filter actions."
+        "Book list view should wrap the Add filter control in a dedicated container inside the filter panel."
     )
     assert 'data-powercrud-filter-toolbar' in response_text, (
         "Book list view should render a distinct filter-toolbar cluster to visually separate filter actions from other page actions."
     )
-    assert response_text.index('data-powercrud-add-filter-container') < response_text.index('id="filterCollapse"'), (
-        "The Add filter control should sit on the top action row rather than inside the collapsible filter panel."
+    assert 'data-powercrud-filter-label="true"' not in response_text, (
+        "The compact filter trigger should be icon-only so it does not widen the view-control toolbar."
     )
-    assert '<div class="hidden" data-powercrud-add-filter-container>' in response_text, (
+    assert 'aria-label="Show filters"' in response_text, (
+        "The icon-only filter trigger should keep an accessible label for screen-reader and tooltip use."
+    )
+    filter_panel_index = response_text.index('id="filterCollapse"')
+    assert filter_panel_index < response_text.index(
+        'data-powercrud-add-filter-container',
+        filter_panel_index,
+    ), (
+        "The Add filter control should sit inside the collapsible filter panel rather than widening the top toolbar."
+    )
+    assert 'class="hidden border-b border-base-200 px-3 py-2" data-powercrud-add-filter-container' in response_text, (
         "Book list view should hide the Add filter control by default until the user opens the filter panel."
     )
     assert 'id="filterCollapse"' in response_text and 'class="hidden py-2"' in response_text, (

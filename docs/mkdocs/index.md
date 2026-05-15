@@ -34,7 +34,7 @@ PowerCRUD extends [`Neapolitan`](https://github.com/carltongibson/neapolitan)’
 
     - [Styling & Tailwind](guides/styling_tailwind.md) covers framework options and safelists.  
     - [Customisation tips](guides/customisation_tips.md) shows template overrides, extra actions, and mixin hooks.
-    - [Advanced Guides](guides/advanced/index.md) collects deeper implementation walkthroughs for trickier extension patterns, including the optional saved filter favourites add-on.
+    - [Advanced Guides](guides/advanced/index.md) collects deeper implementation walkthroughs for trickier extension patterns, including the optional saved favourites add-on.
     - [PowerCRUD Recipes](guides/advanced/recipes.md) shows current-API patterns you can adapt.
 
 ## What ships in the box

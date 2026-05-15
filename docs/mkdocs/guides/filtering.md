@@ -197,6 +197,6 @@ HTMX is optional but recommended.
 
 ## Optional saved favourites
 
-Saved filter favourites build on top of the filtering system, but they live in an optional contrib app and have their own installation and persistence concerns.
+Saved favourites build on top of the filtering system, but they live in an optional contrib app and have their own installation and persistence concerns.
 
-See [Saved Filter Favourites](advanced/filter_favourites.md).
+See [Saved Favourites](advanced/filter_favourites.md).

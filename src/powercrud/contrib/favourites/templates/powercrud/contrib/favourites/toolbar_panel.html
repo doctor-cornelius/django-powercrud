@@ -32,6 +32,7 @@
                 {% for favourite in saved_filter_favourites %}
                 <option value="{{ favourite.pk }}"
                         data-powercrud-favourite-query-string="{{ favourite.powercrud_query_string|escape }}"
+                        data-powercrud-favourite-state-json="{{ favourite.powercrud_state_json|escape }}"
                         data-powercrud-favourite-visible-filters='{{ favourite.powercrud_visible_filters_json|escapejs }}'
                         {% if selected_filter_favourite_id == favourite.pk %}selected{% endif %}>
                     {{ favourite.name }}
