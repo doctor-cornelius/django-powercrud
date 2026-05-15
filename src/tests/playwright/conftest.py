@@ -6,7 +6,7 @@ import pytest
 pytest.importorskip("playwright.sync_api")
 from django.urls import reverse
 
-from sample.models import Author, Book, Genre
+from sample.models import Author, Book, Genre, Profile
 
 
 os.environ.setdefault("DJANGO_ALLOW_ASYNC_UNSAFE", "true")
@@ -24,6 +24,15 @@ def books_url(live_server):
 @pytest.fixture
 def authors_url(live_server):
     path = reverse("sample:author-list")
+    base = os.getenv("PLAYWRIGHT_BASE_URL")
+    if base:
+        return f"{base.rstrip('/')}{path}"
+    return f"{live_server.url.rstrip('/')}{path}"
+
+
+@pytest.fixture
+def profiles_url(live_server):
+    path = reverse("sample:profile-list")
     base = os.getenv("PLAYWRIGHT_BASE_URL")
     if base:
         return f"{base.rstrip('/')}{path}"
@@ -65,3 +74,14 @@ def sample_books(db, sample_author):
             )
         )
     return books
+
+
+@pytest.fixture
+def sample_profile(db, sample_author, sample_genre):
+    return Profile.objects.create(
+        author=sample_author,
+        nickname="Playwright Profile",
+        status=Profile.Status.ACTIVE,
+        priority_band=Profile.PriorityBand.MEDIUM,
+        favorite_genre=sample_genre,
+    )

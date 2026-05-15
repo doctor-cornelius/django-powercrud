@@ -335,6 +335,15 @@ def test_inline_get_renders_form_html(sample_book):
     ), "Expected inline row GET response to include editable inline field markup."
     assert b"Save" in response.content, "Expected inline row GET response to include Save action."
     assert (
+        b"pc-inline-actions-cell" in response.content
+    ), "Expected inline row GET response to reserve width for Save and Cancel controls."
+    assert (
+        b"pc-inline-actions-controls" in response.content
+    ), "Expected inline row GET response to wrap Save and Cancel in the dedicated inline actions container."
+    assert (
+        b'data-inline-actions="true"' in response.content
+    ), "Expected active inline row actions to keep the inline-actions marker used by keyboard guards."
+    assert (
         b"> -->" not in response.content
     ), "Inline row form should not render stray HTML comment artifacts near actions."
     assert (

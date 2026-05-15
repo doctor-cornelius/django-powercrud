@@ -7,7 +7,7 @@ import pytest
 from django.core.exceptions import ImproperlyConfigured
 from django.db.models import BooleanField, Case, Value, When
 from django.template import Context, Template
-from django.urls import reverse
+from django.urls import NoReverseMatch, reverse
 from django.test import RequestFactory
 
 from neapolitan.views import Role
@@ -1725,6 +1725,28 @@ def test_profile_list_renders_centered_categorical_columns(client, monkeypatch):
     assert response_text.count("pc-inline-editable w-full px-0 pc-inline-align-center flex justify-center text-center") >= 2, (
         "Profile list should render centered inline-display button markup for the configured categorical alignment demo columns."
     )
+    assert reverse("sample:profile-inline-row", args=[author.profile.pk]) in response_text, (
+        "Profile list should keep inline editing enabled while demonstrating the reduced row-action set."
+    )
+    assert '<span class="text-center block w-full h-full">Actions</span>' in response_text, (
+        "Profile list should show the actions header when the sample has one row action."
+    )
+    assert ">View<" not in response_text, (
+        "Profile list should omit the built-in View action for the one-row-action demo."
+    )
+    assert response_text.count(">Edit<") == 1, (
+        "Profile list should demonstrate the one-row-action case."
+    )
+    assert ">Delete<" not in response_text, (
+        "Profile list should omit the built-in Delete action for the one-row-action demo."
+    )
+    with pytest.raises(NoReverseMatch):
+        reverse("sample:profile-detail", args=[author.profile.pk])
+    assert reverse("sample:profile-update", args=[author.profile.pk]) in response_text, (
+        "Profile list should render the restored Edit row action."
+    )
+    with pytest.raises(NoReverseMatch):
+        reverse("sample:profile-delete", args=[author.profile.pk])
 
 
 @pytest.mark.django_db

@@ -1140,6 +1140,9 @@ def object_list(context, objects, view):
             and row_index >= first_upward_dropdown_index,
         )
 
+        actions_html = action_links(view, obj)
+        has_actions = "data-inline-action=" in str(actions_html)
+
         record = {
             "object": obj,
             "id": str(obj.pk),  # Add ID for selection tracking
@@ -1154,7 +1157,8 @@ def object_list(context, objects, view):
             "inline_blocked_meta": inline_blocked_meta,
             "cells": [],
             "fields": [],
-            "actions": action_links(view, obj),
+            "actions": actions_html,
+            "has_actions": has_actions,
         }
 
         for f in fields:
@@ -1296,6 +1300,7 @@ def object_list(context, objects, view):
     use_htmx = context.get("use_htmx", view.get_use_htmx())
     original_target = context.get("original_target", view.get_original_target())
     htmx_target = context.get("htmx_target", view.get_htmx_target())
+    has_row_actions = any(row.get("has_actions") for row in object_list)
     inline_edit_always_visible = False
     if hasattr(view, "get_inline_edit_always_visible"):
         inline_edit_always_visible = view.get_inline_edit_always_visible()
@@ -1315,6 +1320,7 @@ def object_list(context, objects, view):
         "table_max_height": view.get_table_max_height(),
         "table_classes": view.get_table_classes(),
         "htmx_target": htmx_target,
+        "has_row_actions": has_row_actions,
         "request": request,
         # add bulk selection context
         "selected_ids": selected_ids,

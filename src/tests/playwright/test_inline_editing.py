@@ -30,6 +30,12 @@ def open_books_page(page: Page, books_url: str) -> None:
     expect(page.locator("table[data-inline-enabled='true']")).to_be_visible()
 
 
+def open_profiles_page(page: Page, profiles_url: str) -> None:
+    page.goto(f"{profiles_url}?page_size=all")
+    page.wait_for_load_state("networkidle")
+    expect(page.locator("table[data-inline-enabled='true']")).to_be_visible()
+
+
 def watch_inline_event(page: Page, event_name: str) -> None:
     page.evaluate(
         """
@@ -344,6 +350,86 @@ def test_inline_searchable_select_focus_opens_dropdown(
         "el => el.tomselect.isOpen === true"
     ), "Inline searchable select should open its dropdown when the author field enters edit mode."
     expect(page.locator(".ts-dropdown .option").first).to_be_visible()
+
+
+def test_inline_actions_fit_reduced_profile_action_column(
+    page: Page, profiles_url: str, sample_profile
+):
+    """Save and Cancel should fit when the sample view has only Edit."""
+    page.set_viewport_size({"width": 1220, "height": 760})
+    open_profiles_page(page, profiles_url)
+    expect(page.locator(".pc-actions-default .btn")).to_have_count(1)
+    expect(page.locator(".pc-actions-default .btn")).to_have_text("Edit")
+    expect(page.locator("thead .pc-inline-actions-column")).to_have_count(0)
+
+    row_path = build_inline_row_path(profiles_url, sample_profile.pk)
+    active_row = open_inline_row(
+        page,
+        row=get_inline_row(page, row_path),
+        field_name="nickname",
+    )
+    actions_cell = active_row.locator("[data-inline-actions='true']")
+    save_button = actions_cell.locator("[data-inline-save]")
+    cancel_button = actions_cell.locator("[data-inline-cancel]")
+    expect(save_button).to_be_visible()
+    expect(cancel_button).to_be_visible()
+    expect(save_button).to_have_attribute("aria-label", "Save inline edit")
+    expect(cancel_button).to_have_attribute("aria-label", "Cancel inline edit")
+
+    metrics = actions_cell.evaluate(
+        """
+        (cell) => {
+            const save = cell.querySelector('[data-inline-save]');
+            const cancel = cell.querySelector('[data-inline-cancel]');
+            const controls = cell.querySelector('.pc-inline-actions-controls');
+            const previousCell = cell.previousElementSibling;
+            const previousWidget = previousCell.querySelector('.inline-field-widget, input, select, textarea') || previousCell;
+            const cellBox = cell.getBoundingClientRect();
+            const previousBox = previousCell.getBoundingClientRect();
+            const previousWidgetBox = previousWidget.getBoundingClientRect();
+            const controlsBox = controls.getBoundingClientRect();
+            const saveBox = save.getBoundingClientRect();
+            const cancelBox = cancel.getBoundingClientRect();
+            const tableBox = cell.closest('table').getBoundingClientRect();
+            const scrollBox = cell.closest('.overflow-x-auto');
+            return {
+                previousCellLeft: previousBox.left,
+                previousCellRight: previousBox.right,
+                previousCellWidth: previousBox.width,
+                previousWidgetLeft: previousWidgetBox.left,
+                previousWidgetRight: previousWidgetBox.right,
+                previousWidgetWidth: previousWidgetBox.width,
+                cellLeft: cellBox.left,
+                cellRight: cellBox.right,
+                cellWidth: cellBox.width,
+                cellClientWidth: cell.clientWidth,
+                cellScrollWidth: cell.scrollWidth,
+                scrollClientWidth: scrollBox.clientWidth,
+                scrollWidth: scrollBox.scrollWidth,
+                controlsLeft: controlsBox.left,
+                controlsRight: controlsBox.right,
+                controlsWidth: controlsBox.width,
+                saveLeft: saveBox.left,
+                saveRight: saveBox.right,
+                cancelLeft: cancelBox.left,
+                cancelRight: cancelBox.right,
+                tableLeft: tableBox.left,
+                tableRight: tableBox.right,
+                tableWidth: tableBox.width,
+            };
+        }
+        """
+    )
+    tolerance = 1
+    assert (
+        metrics["controlsLeft"] >= metrics["cellLeft"] - tolerance
+        and metrics["controlsRight"] <= metrics["cellRight"] + tolerance
+        and metrics["previousWidgetRight"] <= metrics["previousCellRight"] + tolerance
+        and metrics["scrollWidth"] <= metrics["scrollClientWidth"] + tolerance
+    ), (
+        "Inline Save and Cancel controls should fit inside the reduced "
+        f"Profile action column without creating horizontal overflow. Metrics: {metrics}"
+    )
 
 
 def test_inline_edit_display_truncates_long_values(page: Page, books_url: str, inline_ready_books):
