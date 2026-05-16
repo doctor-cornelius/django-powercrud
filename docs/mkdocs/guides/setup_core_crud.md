@@ -81,7 +81,7 @@ PowerCRUD layers a few convenient defaults so you can start with zero configurat
 - Use `exclude` to remove a handful of items while keeping the rest of the list intact.
 - `properties` is optional; adding a property name exposes it as a column. Use `"__all__"` to include every `@property` on the model and `properties_exclude` to hide specific ones.
 - Queryset annotation fields are rendered in `fields` order and can filter/sort when the effective queryset exposes the same public annotation name. They are read-only and are not valid in form, inline-edit, or bulk-edit field lists.
-- If the table is too wide for the default view, use `default_list_fields` to show a smaller default subset while allowing users to add columns through **Cols** for the current session. See [List Options](./advanced/list_options.md) for the full behavior and persistence rules.
+- Use `list_options_enabled = True` to let users choose visible columns through **Cols** for the current session. If the table is too wide for the default view, add `default_list_fields` to show a smaller default subset. See [List Options](./advanced/list_options.md) for the full behavior and persistence rules.
 
 **Detail view**
 

@@ -53,6 +53,7 @@ class ConfigMixin:
     exclude: list[str] = []
     properties: list[str] = []
     properties_exclude: list[str] = []
+    list_options_enabled: bool | None = None
     default_list_fields: list[str] | None = None
 
     # for the detail view

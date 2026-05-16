@@ -2,7 +2,7 @@
 
 ## Status
 
-Column model, rendering, chooser flow, session-backed current state, surrounding-list behavior, sample coverage, docs, Playwright coverage, the first RC UI polish pass, and top action overflow are implemented. The unreleased core `PowerCRUDListPreference` DB table/migration path was removed so opting into `default_list_fields` does not require a new core PowerCRUD migration.
+Column model, rendering, chooser flow, session-backed current state, surrounding-list behavior, sample coverage, docs, Playwright coverage, the first RC UI polish pass, and top action overflow are implemented. `list_options_enabled = True` now enables **Cols** without requiring a narrowed default subset, while `default_list_fields` remains the optional default/reset subset and backward-compatible shorthand. The unreleased core `PowerCRUDListPreference` DB table/migration path was removed so list options do not require a new core PowerCRUD migration.
 
 ## Next
 
@@ -18,10 +18,11 @@ Column model, rendering, chooser flow, session-backed current state, surrounding
     1. [x] Choose the default visible-column config name.
     2. [x] Decide whether a separate optional-column config is needed.
     3. [x] Confirm which system columns are outside user-toggleable data columns.
+    4. [x] Add `list_options_enabled` so views can enable **Cols** without declaring a narrowed `default_list_fields` subset.
 2. [x] Define default, active, invalid, and stale visible-column behaviour.
     1. [x] Define behaviour when no session state exists.
     2. [x] Drop session or submitted columns that are no longer allowed.
-    3. [x] Fall back to `default_list_fields` when the active visible set is empty or invalid.
+    3. [x] Fall back to `default_list_fields`, or all allowed columns when no default subset exists, when the active visible set is empty or invalid.
     4. [x] Treat explicitly empty `default_list_fields` and user-selected zero-column state as invalid for v1.
 3. [x] Decide the minimal hook surface needed beyond declarative config.
     1. [x] Keep the declarative API narrow.

@@ -88,6 +88,7 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
     exclude = ["internal_notes"]
     properties = ["is_overdue", "display_status"]
     properties_exclude = ["display_status"]
+    list_options_enabled = True
     default_list_fields = [
         "reference_code",
         "owner",
@@ -273,7 +274,7 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
 - `link_fields` is intentionally narrow. Use it for the common cases where a visible column should reverse to a named detail page or use a static external URL. Dict values accept exactly one of `view_name` or `url`, plus optional `pk_attr`, `open_in`, and `modal_box_classes` for modal links.
 - `get_list_cell_link(...)` is the escape hatch for conditional or row-specific link behavior. Returning `None` falls back to `link_fields`; returning `False` suppresses declarative linking for that cell. Hook metadata can also set `open_in = "new"` or `open_in = "modal"`, and modal hook links can set `modal_box_classes`.
 - `needs_attention` is a queryset annotation field. Its public `annotate(...)` name is used directly in `fields` and `filterset_fields`, so it appears in list order and can filter/sort without becoming an editable model form field.
-- `default_list_fields` makes the default list narrower while keeping every allowed `fields` / `properties` entry available through **Cols** for the current session. Leave it unset when every allowed list column should render and no column chooser is needed.
+- `list_options_enabled = True` shows **Cols** while keeping every allowed `fields` / `properties` entry available for the current session. `default_list_fields` makes the reset/default state narrower; leave it unset when every allowed list column should be visible by default.
 - Queryset annotation fields are read-only. Keep them out of `form_fields`, `inline_edit_fields`, and `bulk_fields`.
 - Semantic list-cell tooltips take precedence over the fallback overflow tooltip for the same cell. Unconfigured cells keep the existing overflow behavior.
 - Tooltip appearance is styled through CSS variables such as `--pc-tooltip-bg` and `--pc-tooltip-fg`, not Python view parameters. PowerCRUD defaults those to neutral daisyUI tokens, and you can override them in your app CSS when you want project-level theming.

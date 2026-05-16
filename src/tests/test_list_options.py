@@ -161,6 +161,60 @@ def test_list_column_state_defaults_without_session():
 
 
 @pytest.mark.django_db
+def test_list_options_enabled_uses_all_allowed_columns_by_default():
+    """list_options_enabled should opt into the chooser without narrowing defaults."""
+
+    class BookListView(PowerCRUDMixin):
+        model = Book
+        role = Role.LIST
+        fields = ["title", "author", "isbn"]
+        list_options_enabled = True
+
+    request = RequestFactory().get("/")
+    view = BookListView()
+    view.request = request
+
+    assert BookListView.has_list_options_urls() is True, (
+        "list_options_enabled=True should register the list-column endpoint even without default_list_fields."
+    )
+    assert view.get_list_options_enabled() is True, (
+        "list_options_enabled=True should opt list views into selectable columns."
+    )
+    assert view.get_default_list_columns() == ["title", "author", "isbn"], (
+        "Without default_list_fields, the reset/default state should include every allowed column."
+    )
+    assert view.get_active_list_columns() == ["title", "author", "isbn"], (
+        "Missing session state should use all allowed columns when only list_options_enabled is set."
+    )
+
+
+@pytest.mark.django_db
+def test_list_options_enabled_false_disables_default_list_fields():
+    """An explicit false opt-out should disable list options even if defaults exist."""
+
+    class BookListView(PowerCRUDMixin):
+        model = Book
+        role = Role.LIST
+        fields = ["title", "author", "isbn"]
+        list_options_enabled = False
+        default_list_fields = ["title"]
+
+    request = RequestFactory().get("/")
+    view = BookListView()
+    view.request = request
+
+    assert BookListView.has_list_options_urls() is False, (
+        "list_options_enabled=False should suppress the list-column endpoint."
+    )
+    assert view.get_list_options_enabled() is False, (
+        "list_options_enabled=False should disable the chooser even when default_list_fields is declared."
+    )
+    assert view.get_active_list_columns() == ["title", "author", "isbn"], (
+        "Disabled list options should render every allowed column."
+    )
+
+
+@pytest.mark.django_db
 def test_list_column_state_drops_stale_session_columns():
     """Session state should drop stale columns and fall back to defaults if empty."""
 

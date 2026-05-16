@@ -45,6 +45,9 @@ class UrlMixin:
         """
         Return True when the class declares list-column preference endpoints.
         """
+        list_options_enabled = getattr(cls, "list_options_enabled", None)
+        if list_options_enabled is not None:
+            return bool(list_options_enabled)
         return getattr(cls, "default_list_fields", None) is not None
 
     def get_prefix(self):

@@ -37,11 +37,20 @@ List-column visibility can follow the same conceptual model.
 
 Use the existing `fields` and `properties` configuration as the public allow-list for user-selectable list data columns. This keeps backwards compatibility and matches PowerCRUD's current public docs, where `fields` already means ordered list-view columns and may include queryset annotation fields.
 
-Use `default_list_fields` for the default visible subset:
+Use `list_options_enabled = True` to enable the **Cols** control without narrowing the default visible set:
 
 ```python
 fields = ["ref", "category", "status", "task", "created", "client", "property", "sla"]
 properties = ["sla_state"]
+list_options_enabled = True
+```
+
+Use `default_list_fields` when the default/reset state should be a visible subset:
+
+```python
+fields = ["ref", "category", "status", "task", "created", "client", "property", "sla"]
+properties = ["sla_state"]
+list_options_enabled = True
 default_list_fields = ["ref", "status", "task", "created", "client"]
 ```
 
@@ -49,8 +58,9 @@ In that shape:
 
 1. `fields` and `properties` define the full allowed rendered-column universe.
 2. `fields` entries may be model fields or queryset annotation fields.
-3. `default_list_fields` defines what appears when the user has no saved preference.
-4. Everything allowed but not default-visible is available through a column chooser.
+3. `list_options_enabled` enables user choice without requiring defaults to be restated.
+4. `default_list_fields` defines what appears when the user has no saved preference. If omitted, every allowed column is default-visible.
+5. Everything allowed but not default-visible is available through a column chooser.
 
 This mirrors the existing filter pattern:
 
@@ -60,6 +70,7 @@ default_filterset_fields = ["owner", "status"]
 
 fields = ["ref", "status", "created_date", "category", "owner", "notes"]
 properties = ["sla_state"]
+list_options_enabled = True
 default_list_fields = ["ref", "status", "created_date", "sla_state"]
 ```
 
@@ -69,13 +80,14 @@ Do not introduce `list_fields` in the first version. It would duplicate or compe
 
 The public contract should be:
 
-1. `default_list_fields = None` preserves current behaviour and renders all resolved `fields` and `properties`.
-2. `default_list_fields = [...]` opts the view into default-vs-optional column visibility.
-3. Every `default_list_fields` entry must exist in the resolved `fields` and `properties` allow-list.
-4. Duplicate names are deduped while preserving first occurrence, consistent with existing list-style config handling.
-5. Empty `default_list_fields` should be invalid unless a later deliberate decision supports tables with no data columns.
-6. Selection checkboxes, row actions, bulk controls, and other system cells are outside the user-toggleable data-column API.
-7. Queryset annotation fields are eligible list columns but remain read-only list/filter/sort columns.
+1. `list_options_enabled = None` and `default_list_fields = None` preserves current behaviour and renders all resolved `fields` and `properties` without a chooser.
+2. `list_options_enabled = True` opts the view into the chooser while using all allowed columns as the default/reset state.
+3. `default_list_fields = [...]` narrows the default/reset visible subset and remains a backward-compatible shorthand for enabling list options.
+4. Every `default_list_fields` entry must exist in the resolved `fields` and `properties` allow-list.
+5. Duplicate names are deduped while preserving first occurrence, consistent with existing list-style config handling.
+6. Empty `default_list_fields` should be invalid unless a later deliberate decision supports tables with no data columns.
+7. Selection checkboxes, row actions, bulk controls, and other system cells are outside the user-toggleable data-column API.
+8. Queryset annotation fields are eligible list columns but remain read-only list/filter/sort columns.
 
 Internally, resolver and template context code can use column-oriented names such as `allowed_columns`, `default_columns`, and `active_columns`. Public configuration should keep the `fields` naming to align with the existing PowerCRUD API.
 
@@ -230,11 +242,11 @@ The main risk is complexity. The first implementation should be disciplined: all
 
 This phase should settle the public API before implementation starts.
 
-The public API decision is to keep existing `fields` and `properties` as the full column allow-list and add `default_list_fields` as the default visible subset. `fields` includes model fields and queryset annotation fields. There should be no first-version `optional_list_fields` or `list_fields` setting.
+The public API decision is to keep existing `fields` and `properties` as the full column allow-list, add `list_options_enabled` as the explicit chooser opt-in, and keep `default_list_fields` as the optional default visible subset. `fields` includes model fields and queryset annotation fields. There should be no first-version `optional_list_fields` or `list_fields` setting.
 
-The visible-column state contract is settled for v1: when `default_list_fields` is unset, existing behaviour is preserved and all resolved list fields/properties render; when it is set, that subset is used before any user preference exists. System columns such as selection, row actions, and bulk controls sit outside user-toggleable data columns.
+The visible-column state contract is settled for v1: when both `list_options_enabled` and `default_list_fields` are unset, existing behaviour is preserved and all resolved list fields/properties render without a chooser. When `list_options_enabled = True`, all resolved list fields/properties render by default and the chooser is available. When `default_list_fields` is set, that subset is used before any user preference exists. System columns such as selection, row actions, and bulk controls sit outside user-toggleable data columns.
 
-Settled v1 state rules: stale saved or submitted column names are dropped; if the remaining active set is empty or invalid, PowerCRUD falls back to `default_list_fields`; explicit empty defaults and user-selected zero-data-column tables are invalid in v1.
+Settled v1 state rules: stale saved or submitted column names are dropped; if the remaining active set is empty or invalid, PowerCRUD falls back to `default_list_fields`, or every allowed column when no default subset is declared; explicit empty defaults and user-selected zero-data-column tables are invalid in v1.
 
 ### Phase 2: Make list rendering column-aware
 
@@ -262,7 +274,7 @@ The earlier core per-user, per-view DB-backed preference was removed as the rele
 
 Stale state must degrade cleanly: drop column names that are no longer allowed, fall back to defaults if session state becomes empty or invalid, and avoid raising errors after a view config changes.
 
-Saved favourites now carry visible columns as part of the saved list state. Existing favourites that contain filters but no visible-column state remain valid; applying them clears the current column session override so the list falls back to `default_list_fields`.
+Saved favourites now carry visible columns as part of the saved list state. Existing favourites that contain filters but no visible-column state remain valid; applying them clears the current column session override so the list falls back to `default_list_fields`, or to every allowed column when no default subset is declared.
 
 ### Phase 5: Protect filters, sorting, pagination, and URL state
 
@@ -304,7 +316,7 @@ Deferred follow-up decisions should prioritise saved views through favourites an
 4. Session-backed current column state is the v1 non-DB source for unnamed choices within a browser session.
 5. Saved favourites should include visible columns.
 6. Saved or submitted stale columns are dropped.
-7. Empty or invalid active visible-column state falls back to `default_list_fields`.
+7. Empty or invalid active visible-column state falls back to `default_list_fields`, or to every allowed column when no default subset is declared.
 8. Explicit empty defaults and user-selected zero-data-column tables are invalid in v1.
 
 ## Deferred Future Work
@@ -330,15 +342,16 @@ Deferred follow-up decisions should prioritise saved views through favourites an
 ## Decisions Confirmed
 
 1. Keep `fields` and `properties` as the public allow-list for rendered list data columns.
-2. Add `default_list_fields` as the default visible-column subset.
-3. Do not add first-version `optional_list_fields`; derive optional columns from the allow-list minus defaults.
-4. Do not add first-version `list_fields`; it would duplicate the existing public meaning of `fields`.
-5. Preserve existing behaviour when `default_list_fields` is unset.
-6. Keep selection, row actions, bulk controls, and other system cells outside the user-toggleable data-column API.
-7. Include queryset annotation fields as eligible configurable columns through the existing `fields` API.
-8. Keep annotation fields read-only and ineligible for editable field configs.
-9. Avoid localStorage for list-column persistence.
-10. Prefer no mandatory core DB migration for unnamed column preferences unless explicitly re-approved.
-11. Make favourites/saved views the durable DB-backed persistence path for columns.
-12. Defer URL-sharing and user-controlled ordering.
-13. Keep zero-data-column tables invalid.
+2. Add `list_options_enabled` as the explicit chooser opt-in.
+3. Add `default_list_fields` as the optional default visible-column subset and backward-compatible shorthand.
+4. Do not add first-version `optional_list_fields`; derive optional columns from the allow-list minus defaults.
+5. Do not add first-version `list_fields`; it would duplicate the existing public meaning of `fields`.
+6. Preserve existing behaviour when both `list_options_enabled` and `default_list_fields` are unset.
+7. Keep selection, row actions, bulk controls, and other system cells outside the user-toggleable data-column API.
+8. Include queryset annotation fields as eligible configurable columns through the existing `fields` API.
+9. Keep annotation fields read-only and ineligible for editable field configs.
+10. Avoid localStorage for list-column persistence.
+11. Prefer no mandatory core DB migration for unnamed column preferences unless explicitly re-approved.
+12. Make favourites/saved views the durable DB-backed persistence path for columns.
+13. Defer URL-sharing and user-controlled ordering.
+14. Keep zero-data-column tables invalid.

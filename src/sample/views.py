@@ -51,6 +51,7 @@ class BookCRUDView(SampleCRUDMixin):
     fields = "__all__"
     exclude = ["description"]
     properties = "__all__"
+    list_options_enabled = True
     default_list_fields = [
         "title",
         "author",
@@ -343,6 +344,7 @@ class AnnotatedBookCRUDView(SampleCRUDMixin):
         )
     )
     fields = ["title", "author", "pages", "long_book", "published_date"]
+    list_options_enabled = True
     default_list_fields = ["title", "author", "pages", "published_date"]
     detail_fields = "__fields__"
     properties = []
@@ -411,6 +413,7 @@ class ProfileCRUDView(SampleCRUDMixin):
 
     fields = "__all__"
     properties = "__all__"
+    list_options_enabled = True
     default_list_fields = ["author", "nickname", "status", "priority_band"]
     column_alignments = {
         "status": "center",

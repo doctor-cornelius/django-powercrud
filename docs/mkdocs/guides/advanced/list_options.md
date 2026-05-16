@@ -6,7 +6,7 @@ Use this when a screen has more useful columns than should be shown by default. 
 
 ## Minimal Setup
 
-Declare the normal list column allow-list with `fields` and `properties`, then add `default_list_fields` for the columns visible before a user changes the current session state:
+Declare the normal list column allow-list with `fields` and `properties`, then set `list_options_enabled = True`:
 
 ```python
 class ProjectCRUDView(PowerCRUDMixin, CRUDView):
@@ -21,6 +21,27 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
         "internal_notes",
     ]
     properties = ["is_overdue"]
+    list_options_enabled = True
+```
+
+With that configuration, every allowed column is visible by default and users can hide or show columns through **Cols**.
+
+To start from a narrower default/reset state, add `default_list_fields`:
+
+```python
+class ProjectCRUDView(PowerCRUDMixin, CRUDView):
+    model = Project
+
+    fields = [
+        "reference",
+        "owner",
+        "status",
+        "needs_attention",
+        "due_date",
+        "internal_notes",
+    ]
+    properties = ["is_overdue"]
+    list_options_enabled = True
     default_list_fields = [
         "reference",
         "owner",
@@ -33,9 +54,11 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
 With that configuration:
 
 - `fields` and `properties` define the allowed selectable data columns.
-- `default_list_fields` defines the default visible subset.
+- `list_options_enabled = True` enables the **Cols** dropdown.
+- `default_list_fields` defines the default visible subset. When it is omitted, every allowed column is default-visible.
 - Every allowed-but-not-default column remains available through the **Cols** dropdown.
-- Existing views are unchanged when `default_list_fields` is unset.
+- Existing views are unchanged when both `list_options_enabled` and `default_list_fields` are unset.
+- For backward compatibility, setting `default_list_fields` still enables list options even when `list_options_enabled` is omitted.
 
 ## Column Sources
 
@@ -67,9 +90,9 @@ For durable named list states, install the optional saved favourites contrib app
 
 - User-selected columns are validated against the current allow-list.
 - Stale session columns are dropped if a view later removes or renames a column.
-- If session state becomes empty or invalid, PowerCRUD falls back to `default_list_fields`.
+- If session state becomes empty or invalid, PowerCRUD falls back to `default_list_fields`, or to every allowed column when no default subset is declared.
 - Users cannot save an empty data-column table.
-- Reset deletes the session state and returns to `default_list_fields`.
+- Reset deletes the session state and returns to `default_list_fields`, or to every allowed column when no default subset is declared.
 - Hiding the currently sorted column clears the sort and resets to page 1.
 - Filtering stays independent from visible columns; a user can filter by a field that is hidden from the table.
 - Row selection, row actions, bulk controls, and pagination are system columns and are not user-toggleable data columns.
@@ -90,4 +113,4 @@ Deferred behavior includes:
 
 The sample `BookCRUDView` demonstrates list options on `/sample/bigbook/`.
 
-Open the book list and use **Cols**. The default table hides some allowed columns, including genres, while the chooser can add them back for the current browser session. Try changing columns while filters, page size, sorting, inline editing, linked cells, and bulk selection are active.
+Open the book list and use **Cols**. The default table hides some allowed columns, while the chooser can add them back for the current browser session. Try changing columns while filters, page size, sorting, inline editing, linked cells, and bulk selection are active.

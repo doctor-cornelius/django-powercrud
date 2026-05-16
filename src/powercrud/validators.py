@@ -31,6 +31,7 @@ class PowerCRUDMixinValidator(BaseModel):
     properties: Optional[Union[List[str], Literal["__all__"]]] = None
     exclude: Optional[List[str]] = None
     properties_exclude: Optional[List[str]] = None
+    list_options_enabled: Optional[bool] = None
     default_list_fields: Optional[List[str]] = None
 
     # Detail view settings

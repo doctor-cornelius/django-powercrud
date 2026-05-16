@@ -66,6 +66,7 @@ class BookCRUDView(PowerCRUDAsyncMixin, CRUDView):
     }
     list_cell_tooltip_fields = ["title", "pages", "isbn_empty"]
     list_cell_link_default_open_in = "modal"
+    list_options_enabled = True
     default_list_fields = [
         "title",
         "author",
@@ -73,6 +74,7 @@ class BookCRUDView(PowerCRUDAsyncMixin, CRUDView):
         "pages",
         "bestseller",
         "isbn",
+        "genres",
         "isbn_empty",
         "a_really_long_property_header_for_title",
     ]
@@ -144,8 +146,8 @@ The same sample view now also demonstrates progressive filter visibility:
 
 The same sample view now also demonstrates list options:
 
-- `default_list_fields` keeps the initial book table narrower than the full allowed column set
-- users can open **Cols** and add allowed hidden columns such as `genres`
+- `list_options_enabled = True` enables **Cols**, while `default_list_fields` keeps the initial book table narrower than the full allowed column set
+- users can open **Cols** and add allowed hidden columns such as `uneditable_field`
 - the current column choice is scoped to the browser session and the `BookCRUDView`
 - reset returns the table to the declared `default_list_fields`
 
@@ -177,6 +179,7 @@ class AnnotatedBookCRUDView(PowerCRUDAsyncMixin, CRUDView):
         )
     )
     fields = ["title", "author", "pages", "long_book", "published_date"]
+    list_options_enabled = True
     default_list_fields = ["title", "author", "pages", "published_date"]
     filterset_fields = ["author", "long_book", "pages"]
     default_filterset_fields = ["author", "long_book"]
@@ -184,7 +187,7 @@ class AnnotatedBookCRUDView(PowerCRUDAsyncMixin, CRUDView):
     bulk_fields = []
 ```
 
-The `long_book` column is not a model field. It is the public queryset annotation name, and PowerCRUD uses that same name in `fields`, generated filters, sorting, header help, cell tooltips, and list-column selection. The sample keeps `long_book` out of `default_list_fields` so it appears as an optional selectable column in the **Cols** control. The sample makes the real `pages` model field inline-editable while keeping `long_book` out of inline edit and bulk edit config because annotation fields are read-only. See [Queryset Annotation Fields](../guides/advanced/queryset_annotation_fields.md) for the declaration details behind this sample.
+The `long_book` column is not a model field. It is the public queryset annotation name, and PowerCRUD uses that same name in `fields`, generated filters, sorting, header help, cell tooltips, and list-column selection. The sample sets `list_options_enabled = True` and keeps `long_book` out of `default_list_fields` so it appears as an optional selectable column in the **Cols** control. The sample makes the real `pages` model field inline-editable while keeping `long_book` out of inline edit and bulk edit config because annotation fields are read-only. See [Queryset Annotation Fields](../guides/advanced/queryset_annotation_fields.md) for the declaration details behind this sample.
 
 The sample frontend now also shows the downstream tooltip-styling path. In [`src/config/static/css/app.custom.css`](../../../src/config/static/css/app.custom.css), the sample app actively overrides `--pc-tooltip-bg` and `--pc-tooltip-fg` to use daisyUI's primary semantic tokens, while PowerCRUD itself keeps neutral tooltip defaults. The sample Vite entry imports that file after `powercrud/css/powercrud.css`, so readers can inspect the real app-level override pattern rather than only reading about it in the styling guide.
 

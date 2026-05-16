@@ -16,7 +16,7 @@ That distinction matters because not every setting that mentions a field has the
 
 A Surface is the configured working screen for a model: queryset, list columns, filters, sorting, pagination, record counts, selection state, and available actions.
 
-Surface options include `model`, `queryset`, `url_base`, `view_title`, `filterset_fields`, `filterset_class`, `default_filterset_fields`, `default_list_fields`, `paginate_by`, `show_record_count`, and `get_queryset()`.
+Surface options include `model`, `queryset`, `url_base`, `view_title`, `filterset_fields`, `filterset_class`, `default_filterset_fields`, `list_options_enabled`, `default_list_fields`, `paginate_by`, `show_record_count`, and `get_queryset()`.
 
 Filters belong primarily to the Surface because they narrow the current working set. A field can contribute to filtering, but the Surface owns how filter state is applied and refreshed.
 
@@ -30,7 +30,7 @@ Field-intent options include `fields`, `properties`, `detail_fields`, `detail_pr
 
 Keep visibility and capability separate. A field can be filterable while hidden from the list. A field can be visible but not editable. A field can be editable in a form but not inline-editable.
 
-List-column visibility is display state, not field capability. `fields` and `properties` define the allowed rendered columns; `default_list_fields` narrows the default visible subset and lets users show or hide allowed columns for the current session without changing filtering, editability, row actions, or bulk selection.
+List-column visibility is display state, not field capability. `fields` and `properties` define the allowed rendered columns; `list_options_enabled` lets users show or hide allowed columns for the current session without changing filtering, editability, row actions, or bulk selection. `default_list_fields` optionally narrows the default visible subset.
 
 Queryset annotation fields sit between model fields and properties: they are placed in `fields` order, can participate in generated filters and sorting when the effective queryset exposes the same annotation name, and remain read-only. Properties stay Python attributes listed through `properties`; editable surfaces such as forms, inline editing, and bulk editing still require editable model fields.
 
@@ -86,7 +86,7 @@ Styling should usually stay explicit. It should not change the data or permissio
 
 Compatibility and defaults preserve existing behaviour when options are omitted.
 
-Examples include `fields = "__all__"`, `detail_fields = "__fields__"`, `detail_properties = "__properties__"`, `form_fields = "__fields__"`, legacy inline-edit compatibility, `default_filterset_fields = None`, and `default_list_fields = None`.
+Examples include `fields = "__all__"`, `detail_fields = "__fields__"`, `detail_properties = "__properties__"`, `form_fields = "__fields__"`, legacy inline-edit compatibility, `default_filterset_fields = None`, `list_options_enabled = None`, and `default_list_fields = None`.
 
 Unset values and explicit empty lists can mean different things. For example, an explicit `inline_edit_fields = []` should be understood as disabling inline editing for that view.
 

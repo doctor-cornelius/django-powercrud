@@ -49,14 +49,23 @@ class ListOptionsMixin:
     def has_list_options_urls(cls) -> bool:
         """Return True when the class declares list-options endpoints."""
 
+        list_options_enabled = getattr(cls, "list_options_enabled", None)
+        if list_options_enabled is not None:
+            return bool(list_options_enabled)
         return getattr(cls, "default_list_fields", None) is not None
 
     def get_list_options_enabled(self) -> bool:
         """Return True when this list view has opted into selectable columns."""
 
+        list_options_enabled = getattr(self.config(), "list_options_enabled", None)
+        declared_enabled = (
+            bool(list_options_enabled)
+            if list_options_enabled is not None
+            else getattr(self.config(), "default_list_fields", None) is not None
+        )
         return (
             getattr(self, "role", None) == Role.LIST
-            and getattr(self.config(), "default_list_fields", None) is not None
+            and declared_enabled
         )
 
     def get_list_options_key(self) -> str:
