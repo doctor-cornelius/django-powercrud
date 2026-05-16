@@ -34,30 +34,33 @@ def test_book_list_column_chooser_saves_and_resets_columns(
     page.wait_for_load_state("networkidle")
 
     trigger = page.locator("[data-powercrud-list-columns='true'] summary")
-    expect(trigger).to_contain_text(re.compile(r"Cols\s+8/12"))
+    expect(trigger).to_contain_text(re.compile(r"Cols\s+9/12"))
     expect(page.locator("td[data-field-name='isbn']").first).to_be_visible()
-    expect(page.locator("td[data-field-name='genres']")).to_have_count(0)
+    expect(page.locator("td[data-field-name='genres']").first).to_be_visible()
+    expect(page.locator("td[data-field-name='uneditable_field']")).to_have_count(0)
 
     panel = open_column_chooser(page)
     expect(panel.get_by_text("* = Default")).to_be_visible()
-    panel.locator("input[name='visible_columns'][value='genres']").check()
+    panel.locator("input[name='visible_columns'][value='uneditable_field']").check()
     with page.expect_response(re.compile(r"/sample/bigbook/")):
         panel.get_by_role("button", name="Save").click()
-    expect(trigger).to_contain_text(re.compile(r"Cols\s+9/12"))
+    expect(trigger).to_contain_text(re.compile(r"Cols\s+10/12"))
     expect(page.locator("td[data-field-name='genres']").first).to_be_visible()
     expect(page.locator("td[data-field-name='genres']").first).to_contain_text(
         sample_genre.name
     )
+    expect(page.locator("td[data-field-name='uneditable_field']").first).to_be_visible()
 
     page.reload()
     page.wait_for_load_state("networkidle")
-    expect(page.locator("td[data-field-name='genres']").first).to_be_visible()
+    expect(page.locator("td[data-field-name='uneditable_field']").first).to_be_visible()
 
     panel = open_column_chooser(page)
     with page.expect_response(re.compile(r"/sample/bigbook/")):
         panel.get_by_role("button", name="Reset").click()
-    expect(trigger).to_contain_text(re.compile(r"Cols\s+8/12"))
-    expect(page.locator("td[data-field-name='genres']")).to_have_count(0)
+    expect(trigger).to_contain_text(re.compile(r"Cols\s+9/12"))
+    expect(page.locator("td[data-field-name='genres']").first).to_be_visible()
+    expect(page.locator("td[data-field-name='uneditable_field']")).to_have_count(0)
     expect(page.locator("td[data-field-name='isbn']").first).to_be_visible()
 
 

@@ -609,6 +609,7 @@ def test_table_mixin_returns_expected_css_values():
         table_classes = "table-zebra"
         action_button_classes = "btn-xs"
         extra_button_classes = "btn-sm"
+        extra_buttons_mode = "dropdown"
         extra_actions_mode = "dropdown"
 
     view = TableView()
@@ -620,6 +621,7 @@ def test_table_mixin_returns_expected_css_values():
     assert view.get_table_classes() == "table-zebra"
     assert view.get_action_button_classes() == "btn-xs"
     assert view.get_extra_button_classes() == "btn-sm"
+    assert view.get_extra_buttons_mode() == "dropdown"
     assert view.get_extra_actions_mode() == "dropdown"
 
 
@@ -630,6 +632,18 @@ def test_table_header_wrap_never_exceeds_max_width():
 
     view = TableView()
     assert view.get_table_header_min_wrap_width() == "15ch"
+
+
+@pytest.mark.django_db
+def test_core_mixin_rejects_invalid_extra_buttons_mode():
+    class BrokenView(CoreMixin):
+        model = Book
+        fields = "__all__"
+        base_template_path = "sample/base.html"
+        extra_buttons_mode = "auto"
+
+    with pytest.raises(ImproperlyConfigured):
+        BrokenView()
 
 
 @pytest.mark.django_db
@@ -2170,6 +2184,9 @@ def test_book_list_renders_selection_aware_extra_button(client):
     assert response.status_code == 200, (
         "Book list view should render successfully so selection-aware extra buttons can be inspected."
     )
+    assert "data-powercrud-extra-buttons-dropdown='true'" in response_text, (
+        "Sample book list should render configured extra buttons in the top toolbar overflow menu."
+    )
     assert 'data-powercrud-selection-aware="true"' in response_text, (
         "Sample book list should mark selection-aware extra buttons with frontend metadata."
     )
@@ -2186,7 +2203,7 @@ def test_book_list_renders_selection_aware_extra_button(client):
         selected_summary_anchor_start:selected_summary_anchor_end
     ]
     assert selected_summary_anchor_start != -1 and selected_summary_anchor_end != -1, (
-        "Sample book list should render Selected Summary as a modal header button."
+        "Sample book list should render Selected Summary as a modal header action."
     )
     assert "selected-summary" in selected_summary_link, (
         "Selected Summary should point at the sample selected-summary endpoint."

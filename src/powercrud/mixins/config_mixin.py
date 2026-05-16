@@ -119,6 +119,7 @@ class ConfigMixin:
     table_classes: str = ""
     action_button_classes: str = ""
     extra_button_classes: str = ""
+    extra_buttons_mode: str = "buttons"
     extra_actions_mode: str = "buttons"
     extra_actions_dropdown_open_upward_bottom_rows: int = 3
     show_record_count: bool = False
@@ -158,6 +159,7 @@ class ConfigMixin:
         "table_classes",
         "action_button_classes",
         "extra_button_classes",
+        "extra_buttons_mode",
         "extra_actions_mode",
         "extra_actions_dropdown_open_upward_bottom_rows",
         "show_record_count",

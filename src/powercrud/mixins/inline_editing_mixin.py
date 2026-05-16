@@ -706,6 +706,13 @@ class InlineEditingMixin:
             return False
 
     def _build_inline_row_payload(self, obj) -> dict[str, Any]:
+        queryset = None
+        list_column_state = None
+        list_column_state_builder = getattr(self, "build_list_column_state", None)
+        if callable(list_column_state_builder):
+            queryset = self.get_queryset()
+            list_column_state = list_column_state_builder(queryset=queryset)
+
         object_list_context = powercrud_tags.object_list(
             {
                 "request": self.request,
@@ -714,6 +721,8 @@ class InlineEditingMixin:
                 "original_target": self.get_original_target(),
                 "htmx_target": self.get_htmx_target(),
                 "selected_ids": self._get_selected_ids(),
+                "filtered_queryset": queryset if list_column_state is not None else None,
+                "list_column_state": list_column_state,
             },
             [obj],
             self,

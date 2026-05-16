@@ -2,7 +2,7 @@
 
 ## Status
 
-Column model, rendering, chooser flow, session-backed current state, surrounding-list behavior, sample coverage, docs, Playwright coverage, and the first RC UI polish pass are implemented. The unreleased core `PowerCRUDListPreference` DB table/migration path was removed so opting into `default_list_fields` does not require a new core PowerCRUD migration.
+Column model, rendering, chooser flow, session-backed current state, surrounding-list behavior, sample coverage, docs, Playwright coverage, the first RC UI polish pass, and top action overflow are implemented. The unreleased core `PowerCRUDListPreference` DB table/migration path was removed so opting into `default_list_fields` does not require a new core PowerCRUD migration.
 
 ## Next
 
@@ -10,7 +10,7 @@ Column model, rendering, chooser flow, session-backed current state, surrounding
     1. [x] Prefer no mandatory core PowerCRUD DB migration for unnamed column preferences.
     2. [x] Use session-backed current state outside saved favourites.
     3. [x] Remove the unreleased core `PowerCRUDListPreference` model/migration path.
-2. Later slices: export/download, top action overflow, and deeper saved-view refinements.
+2. Later slices: export/download and deeper saved-view refinements.
 
 ## Phase 1: Lock the Public Column Model
 
@@ -150,7 +150,7 @@ Column model, rendering, chooser flow, session-backed current state, surrounding
     3. [x] Align wrapped view controls left instead of leaving them right-aligned on a second row.
     4. [x] Keep saved favourites icon-only, with outline heart when unselected and filled primary heart plus tooltip when selected.
     5. [x] Preserve selected saved-favourite icon state across full page refresh when the current list state still matches the saved favourite.
-    6. [x] Defer top-level `extra_buttons` overflow because current `extra_actions_mode = "dropdown"` only applies to row actions.
+    6. [x] Add top-level `extra_buttons` overflow through separate `extra_buttons_mode = "buttons" | "dropdown"` config, keeping `extra_actions_mode` row-only.
 
 ## Phase 8: Future Extensions After V1
 

@@ -87,7 +87,7 @@ def test_book_list_renders_favourites_toolbar_for_authenticated_user(client):
     assert "Apply" not in response_text, (
         "The compact favourites UI should auto-apply on selection instead of rendering a separate Apply button."
     )
-    assert "Favourite name" in response_text and "Update selected" in response_text and "Delete selected" in response_text, (
+    assert "Favourite name" in response_text and "Reset" in response_text and "Update" in response_text and "Delete" in response_text, (
         "Authenticated users should see the inline save, update, and delete favourites controls inside the favourites panel."
     )
     assert "favourites-save-form" not in response_text, (

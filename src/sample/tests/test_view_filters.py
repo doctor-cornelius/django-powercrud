@@ -9,6 +9,7 @@ from django.test import RequestFactory
 from django.urls import reverse
 from django_filters import BooleanFilter
 
+from powercrud.mixins.list_options_mixin import LIST_OPTIONS_SESSION_KEY
 from powercrud.mixins.filtering_mixin import NULL_FILTER_SENTINEL
 from powercrud.templatetags import powercrud as powercrud_tags
 from sample import views as sample_views
@@ -487,6 +488,60 @@ def test_book_sample_inline_row_endpoint_renders_edit_form(monkeypatch):
     assert (
         b'type="hidden" name="description"' in response.content
     ), "The sample inline row endpoint should repost non-rendered full-form fields like description as hidden inputs."
+
+
+@pytest.mark.django_db
+def test_book_sample_inline_row_respects_session_list_columns(monkeypatch):
+    """Inline row renders should use the same active list columns as the parent list."""
+
+    author = Author.objects.create(name="Inline Column Author")
+    genre = Genre.objects.create(name="Inline Column Genre")
+    author.genres.add(genre)
+    book = Book.objects.create(
+        title="Inline Column Book",
+        author=author,
+        published_date="2024-01-01",
+        bestseller=False,
+        isbn="9781234500006",
+        pages=89,
+    )
+    book.genres.set([genre])
+
+    monkeypatch.setattr(
+        sample_views.BookCRUDView,
+        "is_inline_row_locked",
+        lambda self, obj: False,
+    )
+    client = Client()
+    session = client.session
+    session[LIST_OPTIONS_SESSION_KEY] = {
+        f"{sample_views.BookCRUDView.__module__}.{sample_views.BookCRUDView.__name__}": {
+            "visible_columns": ["title", "author", "published_date"],
+        }
+    }
+    session.save()
+
+    response = client.get(
+        reverse("sample:bigbook-inline-row", args=[book.pk]),
+        HTTP_HX_REQUEST="true",
+    )
+
+    assert (
+        response.status_code == 200
+    ), "The sample inline row endpoint should render successfully with session-backed list columns."
+    response_text = response.content.decode()
+    assert 'data-field-name="title"' in response_text, (
+        "Inline row markup should retain active list columns when the column chooser hides other fields."
+    )
+    assert 'data-field-name="author"' in response_text, (
+        "Inline row markup should retain active relation columns when the column chooser hides other fields."
+    )
+    assert 'data-field-name="isbn"' not in response_text, (
+        "Inline row markup should not render cells for hidden model columns."
+    )
+    assert 'data-field-name="a_really_long_property_header_for_title"' not in response_text, (
+        "Inline row markup should not render cells for hidden property columns."
+    )
 
 
 @pytest.mark.django_db

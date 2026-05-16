@@ -77,6 +77,7 @@ class PowerCRUDMixinValidator(BaseModel):
     table_classes: Optional[str] = None
     action_button_classes: Optional[str] = None
     extra_button_classes: Optional[str] = None
+    extra_buttons_mode: Optional[Literal["buttons", "dropdown"]] = None
     extra_actions_mode: Optional[Literal["buttons", "dropdown"]] = None
     extra_actions_dropdown_open_upward_bottom_rows: Optional[int] = Field(
         default=None, ge=0

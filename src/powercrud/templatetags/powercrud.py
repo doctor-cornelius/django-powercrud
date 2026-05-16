@@ -1427,6 +1427,12 @@ def extra_buttons(context: Dict[str, Any], view: Any) -> str:
         attr_name="extra_button_classes",
         default="",
     )
+    extra_buttons_mode = _resolve_view_option(
+        view,
+        method_name="get_extra_buttons_mode",
+        attr_name="extra_buttons_mode",
+        default="buttons",
+    )
 
     buttons: List[str] = []
     for button in extra_buttons:
@@ -1500,17 +1506,51 @@ def extra_buttons(context: Dict[str, Any], view: Any) -> str:
                         f'data-powercrud-selection-min-reason="{button["selection_min_reason"]}"'
                     )
 
-            new_button = (
-                f'<a href="{url}" '
-                f'class="{extra_class_attrs} {styles["base"]} {extra_button_classes} {button_class}{disabled_classes}" '
-                f"{extra_attrs} {htmx_attrs_str} "
-                f"{' '.join(disabled_attrs)} {modal_attrs} {modal_box_attrs}>"
-                f"{button['text']}</a>"
+            inline_classes = (
+                f"{extra_class_attrs} {styles['base']} {extra_button_classes} "
+                f"{button_class}{disabled_classes}"
             )
+            dropdown_classes = (
+                f"{extra_class_attrs} justify-start whitespace-nowrap "
+                f"{extra_button_classes} {button_class}{disabled_classes}"
+            )
+            link_attrs = (
+                f"{extra_attrs} {htmx_attrs_str} "
+                f"{' '.join(disabled_attrs)} {modal_attrs} {modal_box_attrs}"
+            )
+
+            if extra_buttons_mode == "dropdown":
+                new_button = (
+                    "<li>"
+                    f'<a href="{url}" class="{dropdown_classes}" {link_attrs}>'
+                    f"{button['text']}</a></li>"
+                )
+            else:
+                new_button = (
+                    f'<a href="{url}" class="{inline_classes}" {link_attrs}>'
+                    f"{button['text']}</a>"
+                )
 
             buttons.append(new_button)
 
     if buttons:
+        if extra_buttons_mode == "dropdown":
+            return mark_safe(
+                "<details class='dropdown' data-powercrud-extra-buttons-dropdown='true'>"
+                f"<summary class='{styles['base']} {extra_button_classes} "
+                "btn-outline btn-secondary gap-1' aria-label='More actions'>"
+                "More"
+                "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' "
+                "fill='currentColor' class='h-4 w-4' aria-hidden='true'>"
+                "<path fill-rule='evenodd' "
+                "d='M5.23 7.21a.75.75 0 0 1 1.06.02L10 11.168l3.71-3.938a.75.75 0 1 1 1.08 1.04l-4.25 4.5a.75.75 0 0 1-1.08 0l-4.25-4.5a.75.75 0 0 1 .02-1.06Z' "
+                "clip-rule='evenodd' /></svg>"
+                "</summary>"
+                "<ul tabindex='0' class='dropdown-content menu bg-base-100 "
+                "rounded-box z-20 mt-2 min-w-44 p-2 shadow border border-base-300'>"
+                + "".join(buttons)
+                + "</ul></details>"
+            )
         return mark_safe(" ".join(buttons))
     return ""
 

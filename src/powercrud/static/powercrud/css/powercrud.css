@@ -275,6 +275,34 @@ select.ts-hidden-accessible {
     );
 }
 
+.ts-wrapper.single.powercrud-filter-favourite-select .ts-control {
+    min-height: 2.5rem;
+    padding-block: 0.375rem;
+    padding-inline: 0.75rem;
+}
+
+.ts-wrapper.single.powercrud-filter-favourite-select .ts-control > .item {
+    line-height: 1.25rem;
+}
+
+.ts-wrapper.single.powercrud-filter-favourite-select .ts-control > input {
+    line-height: 1.25rem;
+}
+
+.ts-dropdown.powercrud-filter-favourite-select-dropdown .ts-dropdown-content {
+    padding: 0.25rem;
+}
+
+.ts-dropdown.powercrud-filter-favourite-select-dropdown .option,
+.ts-dropdown.powercrud-filter-favourite-select-dropdown .no-results {
+    align-items: center;
+    display: flex;
+    line-height: 1.25rem;
+    min-height: 2rem;
+    padding-block: 0.375rem;
+    padding-inline: 0.75rem;
+}
+
 .ts-dropdown .spinner::after {
     border-color: var(--pc-ts-border-color) transparent var(--pc-ts-border-color) transparent;
 }

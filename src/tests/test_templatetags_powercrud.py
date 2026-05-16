@@ -34,6 +34,7 @@ class TemplateViewStub:
     namespace = "sample"
     url_base = "book"
     dropdown_sort_options = {"author": "name"}
+    extra_buttons_mode = "buttons"
     extra_actions_mode = "buttons"
     extra_actions_dropdown_open_upward_bottom_rows = 3
 
@@ -100,6 +101,9 @@ class TemplateViewStub:
 
     def get_extra_button_classes(self):
         return "btn-sm"
+
+    def get_extra_buttons_mode(self):
+        return self.extra_buttons_mode
 
     def get_extra_actions_mode(self):
         return self.extra_actions_mode
@@ -1736,6 +1740,53 @@ def test_extra_buttons_handles_modal_htmx_and_selection_thresholds():
     assert "Select at least two rows first." in html
     assert "btn-disabled opacity-50 pointer-events-none" in html, (
         "Selection-aware extra buttons should render disabled styling when the persisted selection is below the minimum."
+    )
+    assert "data-powercrud-extra-buttons-dropdown" not in html, (
+        "Extra buttons should keep the legacy inline rendering mode by default."
+    )
+
+
+def test_extra_buttons_dropdown_mode_preserves_button_attributes():
+    """Render configured extra buttons inside a top toolbar overflow menu."""
+    request = apply_session(RequestFactory().get("/"))
+    request.session["selected"] = ["1"]
+    view = TemplateViewStub(request)
+    view.extra_buttons_mode = "dropdown"
+    view.extra_buttons[0]["extra_attrs"] = 'data-custom-action="reload"'
+    view.extra_buttons[0]["extra_class_attrs"] = "tracking-wide"
+    view.extra_buttons[1]["modal_box_classes"] = "modal-box w-11/12 max-w-5xl"
+
+    html = powercrud.extra_buttons({"request": request}, view)
+
+    assert "data-powercrud-extra-buttons-dropdown='true'" in html, (
+        "Dropdown mode should render a top toolbar overflow wrapper for configured extra buttons."
+    )
+    assert ">More" in html, (
+        "Dropdown mode should expose a More trigger for top-level extra buttons."
+    )
+    assert "<li><a" in html, (
+        "Dropdown mode should render configured extra buttons as menu items."
+    )
+    assert "Reload" in html and "New" in html and "Selected Summary" in html, (
+        "Dropdown mode should keep every configured extra button in the overflow menu."
+    )
+    assert 'hx-target="#filters"' in html, (
+        "Dropdown extra buttons should preserve non-modal HTMX targets."
+    )
+    assert 'onclick="modal.showModal()"' in html, (
+        "Dropdown extra buttons should preserve modal trigger attributes."
+    )
+    assert 'data-powercrud-modal-box-classes="modal-box w-11/12 max-w-5xl"' in html, (
+        "Dropdown extra buttons should preserve per-button modal box classes."
+    )
+    assert 'data-custom-action="reload"' in html and "tracking-wide" in html, (
+        "Dropdown extra buttons should preserve custom attrs and custom classes."
+    )
+    assert 'data-powercrud-selection-aware="true"' in html, (
+        "Dropdown extra buttons should preserve selection-aware metadata."
+    )
+    assert "btn-disabled opacity-50 pointer-events-none" in html, (
+        "Dropdown extra buttons should keep disabled styling when selection requirements are unmet."
     )
 
 

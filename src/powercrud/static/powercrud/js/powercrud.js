@@ -23,6 +23,8 @@
     const VISIBLE_FILTERS_PARAM = 'visible_filters';
     const VISIBLE_FILTERS_STORAGE_PREFIX = 'powercrud:visible-filters:';
     const FILTER_FAVOURITE_STORAGE_PREFIX = 'powercrud:selected-filter-favourite:';
+    const FILTER_FAVOURITE_DIRTY_STORAGE_PREFIX = 'powercrud:selected-filter-favourite-dirty:';
+    const VIEW_STATE_STORAGE_PREFIX = 'powercrud:view-state:';
     const DEFAULT_MODAL_BOX_CLASSES = 'modal-box flex max-h-[calc(100dvh-2rem)] flex-col';
 
     const warnedDeps = {
@@ -34,6 +36,7 @@
     const objectListState = new WeakMap();
     const FORM_SPINNER_STATE = new WeakMap();
     const BUTTON_SPINNER_STATE = new WeakMap();
+    const suppressFavouriteAutoApplyKeys = new Set();
     let tooltipResizeTimer = null;
     let activeRowActionsMenu = null;
     let activeRowActionsTrigger = null;
@@ -97,6 +100,35 @@
         return node.closest(OBJECT_LIST_ROOT_SELECTOR);
     }
 
+    function cleanupDuplicatePowercrudModals() {
+        const modalsById = new Map();
+        document.querySelectorAll('[data-powercrud-modal]').forEach(modal => {
+            if (!(modal instanceof HTMLDialogElement) || !modal.id) {
+                return;
+            }
+
+            const existingModal = modalsById.get(modal.id);
+            if (!(existingModal instanceof HTMLDialogElement)) {
+                modalsById.set(modal.id, modal);
+                return;
+            }
+
+            if (existingModal.open && !modal.open) {
+                modal.remove();
+                return;
+            }
+
+            if (!existingModal.open && modal.open) {
+                existingModal.remove();
+                modalsById.set(modal.id, modal);
+                return;
+            }
+
+            existingModal.remove();
+            modalsById.set(modal.id, modal);
+        });
+    }
+
     function applyPowercrudModalClasses(trigger) {
         if (!(trigger instanceof Element)) {
             return;
@@ -105,6 +137,7 @@
         if (!(modalTrigger instanceof Element)) {
             return;
         }
+        cleanupDuplicatePowercrudModals();
         const root = getObjectListRoot(modalTrigger) || document;
         const modal = root.querySelector('[data-powercrud-modal]') || document.querySelector('[data-powercrud-modal]');
         const modalBox = modal?.querySelector('[data-powercrud-modal-box]');
@@ -119,6 +152,7 @@
     function ensureObjectListState(root) {
         if (!objectListState.has(root)) {
             objectListState.set(root, {
+                filterRefreshTimer: null,
                 lastRowSelectionAnchorId: null,
                 optionalFilterVisibilityRestored: false,
                 selectionRequestVersion: 0,
@@ -298,11 +332,29 @@
         instance.control.classList.add('w-full');
     }
 
+    function isFilterFavouritesSelect(selectElement) {
+        return (
+            selectElement instanceof HTMLSelectElement
+            && selectElement.getAttribute('data-powercrud-favourite-select') === 'true'
+        );
+    }
+
+    function normaliseFilterFavouritesTomSelect(selectElement) {
+        if (!isFilterFavouritesSelect(selectElement) || !selectElement.tomselect) {
+            return;
+        }
+
+        selectElement.tomselect.wrapper.classList.add('powercrud-filter-favourite-select');
+        selectElement.tomselect.control.classList.add('powercrud-filter-favourite-select-control');
+        selectElement.tomselect.dropdown.classList.add('powercrud-filter-favourite-select-dropdown');
+    }
+
     function enhanceSearchableSelect(selectElement) {
         if (!isSearchableSelectCandidate(selectElement)) {
             return;
         }
         if (selectElement.tomselect) {
+            normaliseFilterFavouritesTomSelect(selectElement);
             syncTomSelectDisabledState(selectElement);
             hideNativeSelect(selectElement);
             return;
@@ -314,6 +366,7 @@
         const placeholder = selectElement.getAttribute('data-powercrud-searchable-placeholder') || '';
         const dialogElement = selectElement.closest('dialog');
         const isInlineSelect = Boolean(selectElement.closest(INLINE_ROW_SELECTOR));
+        const isFavouritesSelect = isFilterFavouritesSelect(selectElement);
         const settings = {
             create: false,
             maxItems: 1,
@@ -341,6 +394,7 @@
         }
 
         normaliseTomSelectControl(instance);
+        normaliseFilterFavouritesTomSelect(selectElement);
 
         if (isInlineSelect) {
             instance.dropdown.classList.add('powercrud-inline-single-dropdown');
@@ -352,11 +406,11 @@
             });
         }
 
-        if (!isInlineSelect) {
+        if (!isInlineSelect && !isFavouritesSelect) {
             instance.wrapper.classList.add('powercrud-clearable-single');
         }
 
-        if (!isInlineSelect && !instance.control.querySelector('.clear-button')) {
+        if (!isInlineSelect && !isFavouritesSelect && !instance.control.querySelector('.clear-button')) {
             const clearButton = document.createElement('button');
             clearButton.type = 'button';
             clearButton.className = 'clear-button';
@@ -454,6 +508,28 @@
             enhanceSearchableSelect(root);
             enhanceSearchableMultiselect(root);
         }
+    }
+
+    function normalizeFilterFieldHtmxUrls(root) {
+        if (!(root instanceof Element)) {
+            return;
+        }
+
+        const listUrl = root.dataset.powercrudListUrl || '';
+        const filterForm = root.querySelector('#filter-form');
+        if (!listUrl || !(filterForm instanceof HTMLFormElement)) {
+            return;
+        }
+
+        filterForm.querySelectorAll('[hx-get]').forEach(field => {
+            if (!(field instanceof HTMLElement)) {
+                return;
+            }
+            if (field.getAttribute('hx-get') !== '') {
+                return;
+            }
+            field.setAttribute('hx-get', listUrl);
+        });
     }
 
     function destroyPowercrudSearchableSelects(root = document) {
@@ -589,12 +665,32 @@
         }
     }
 
+    function getViewStateStorageKey(root) {
+        const toolbar = root instanceof Element ? getFilterFavouritesContainer(root) : null;
+        const explicitKey = toolbar?.dataset?.powercrudFilterFavouritesViewKey || '';
+        if (explicitKey) {
+            return `${VIEW_STATE_STORAGE_PREFIX}${explicitKey}`;
+        }
+
+        const listUrl = root?.dataset?.powercrudListUrl || global.location.pathname || 'default';
+        try {
+            const url = new URL(listUrl, global.location.origin);
+            return `${VIEW_STATE_STORAGE_PREFIX}${url.pathname}`;
+        } catch (_error) {
+            return `${VIEW_STATE_STORAGE_PREFIX}${listUrl}`;
+        }
+    }
+
     function setPersistedFilterPanelState(root, isOpen) {
         global.sessionStorage?.setItem(getFilterPanelStorageKey(root), isOpen ? 'open' : 'closed');
     }
 
     function getPersistedFilterPanelState(root) {
         return global.sessionStorage?.getItem(getFilterPanelStorageKey(root)) || '';
+    }
+
+    function clearPersistedFilterPanelState(root) {
+        global.sessionStorage?.removeItem(getFilterPanelStorageKey(root));
     }
 
     function getAddFilterContainer(root) {
@@ -632,6 +728,17 @@
         queryAllWithSelf(root, LIST_COLUMNS_SELECTOR).forEach(syncListColumnChooser);
     }
 
+    function resetListColumnChooserDraft(container) {
+        if (!(container instanceof Element)) {
+            return;
+        }
+
+        getListColumnCheckboxes(container).forEach(checkbox => {
+            checkbox.checked = checkbox.dataset.powercrudInitialChecked === 'true';
+        });
+        syncListColumnChooser(container);
+    }
+
     function focusFirstListColumnCheckbox(container) {
         const firstCheckbox = getListColumnCheckboxes(container)[0];
         if (firstCheckbox instanceof HTMLInputElement) {
@@ -645,6 +752,7 @@
                 return;
             }
             container.open = false;
+            resetListColumnChooserDraft(container);
             if (focusTrigger) {
                 const trigger = container.querySelector('[data-powercrud-list-columns-trigger="true"]');
                 if (trigger instanceof HTMLElement) {
@@ -872,7 +980,7 @@
         return select instanceof HTMLSelectElement ? select : null;
     }
 
-    function syncFilterFavouritesTriggerTooltip(trigger, selectedLabel, defaultLabel) {
+    function syncFilterFavouritesTriggerTooltip(trigger, selectedLabel, defaultLabel, isDirty = false) {
         if (!(trigger instanceof HTMLElement)) {
             return;
         }
@@ -882,15 +990,18 @@
         }
 
         if (selectedLabel) {
+            const displayLabel = isDirty ? `${selectedLabel} (edited)` : selectedLabel;
             trigger.dataset.powercrudFilterFavouritesSelected = 'true';
-            trigger.setAttribute('aria-label', `Saved favourite: ${selectedLabel}`);
-            trigger.setAttribute('title', selectedLabel);
+            trigger.dataset.powercrudFilterFavouritesDirty = isDirty ? 'true' : 'false';
+            trigger.setAttribute('aria-label', `Saved favourite: ${displayLabel}`);
+            trigger.setAttribute('title', displayLabel);
             trigger.setAttribute('data-powercrud-tooltip', 'semantic');
-            trigger.setAttribute('data-tippy-content', selectedLabel);
+            trigger.setAttribute('data-tippy-content', displayLabel);
             return;
         }
 
         trigger.dataset.powercrudFilterFavouritesSelected = 'false';
+        trigger.dataset.powercrudFilterFavouritesDirty = 'false';
         trigger.setAttribute('aria-label', defaultLabel);
         trigger.setAttribute('title', defaultLabel);
         trigger.removeAttribute('data-powercrud-tooltip');
@@ -914,8 +1025,18 @@
         const favouriteSelect = getFilterFavouritesSelect(toolbar);
         const selectedOption = getSelectedFavouriteOption(favouriteSelect);
         const selectedLabel = selectedOption?.textContent?.trim() || '';
-        triggerLabel.textContent = selectedLabel || defaultLabel;
-        syncFilterFavouritesTriggerTooltip(trigger, selectedLabel, defaultLabel);
+        const root = getObjectListRoot(toolbar);
+        const selectedFavouriteId = getFavouriteSelectValue(favouriteSelect);
+        const isDirty = Boolean(
+            root
+            && selectedFavouriteId
+            && isSelectedFilterFavouriteDirty(root, toolbar, selectedFavouriteId)
+        );
+        const displayLabel = selectedLabel && isDirty
+            ? `${selectedLabel} (edited)`
+            : selectedLabel;
+        triggerLabel.textContent = displayLabel || defaultLabel;
+        syncFilterFavouritesTriggerTooltip(trigger, selectedLabel, defaultLabel, isDirty);
 
         const outlineIcon = trigger?.querySelector('[data-powercrud-filter-favourites-icon-outline="true"]');
         const filledIcon = trigger?.querySelector('[data-powercrud-filter-favourites-icon-filled="true"]');
@@ -924,6 +1045,8 @@
         }
         if (filledIcon instanceof HTMLElement) {
             filledIcon.classList.toggle('hidden', !selectedLabel);
+            filledIcon.classList.toggle('text-primary', Boolean(selectedLabel) && !isDirty);
+            filledIcon.classList.toggle('text-warning', Boolean(selectedLabel) && isDirty);
         }
 
         if (selectedLabel) {
@@ -938,6 +1061,13 @@
 
         const selectedOption = selectElement.options[selectElement.selectedIndex];
         return selectedOption instanceof HTMLOptionElement ? selectedOption : null;
+    }
+
+    function getFavouriteSelectValue(selectElement) {
+        if (!(selectElement instanceof HTMLSelectElement)) {
+            return '';
+        }
+        return String(selectElement.value || '').trim();
     }
 
     function getFavouriteOptionByValue(selectElement, favouriteId) {
@@ -1087,6 +1217,14 @@
         }
     }
 
+    function getSelectedFilterFavouriteDirtyStorageKey(root, toolbar = null) {
+        const selectedKey = getSelectedFilterFavouriteStorageKey(root, toolbar);
+        return selectedKey.replace(
+            FILTER_FAVOURITE_STORAGE_PREFIX,
+            FILTER_FAVOURITE_DIRTY_STORAGE_PREFIX,
+        );
+    }
+
     function getServerSelectedFilterFavouriteId(toolbar) {
         if (!(toolbar instanceof Element)) {
             return '';
@@ -1112,31 +1250,65 @@
         global.sessionStorage?.setItem(storageKey, normalizedId);
     }
 
-    function clearAllPendingFilterFavouriteSelections() {
-        if (!global.sessionStorage) {
+    function getDirtySelectedFilterFavouriteId(root, toolbar = null) {
+        return global.sessionStorage?.getItem(getSelectedFilterFavouriteDirtyStorageKey(root, toolbar)) || '';
+    }
+
+    function isSelectedFilterFavouriteDirty(root, toolbar = null, favouriteId = '') {
+        const dirtyFavouriteId = getDirtySelectedFilterFavouriteId(root, toolbar);
+        return Boolean(dirtyFavouriteId && String(dirtyFavouriteId) === String(favouriteId || ''));
+    }
+
+    function setSelectedFilterFavouriteDirty(root, toolbar = null, favouriteId = '') {
+        const storageKey = getSelectedFilterFavouriteDirtyStorageKey(root, toolbar);
+        const normalizedId = String(favouriteId || '').trim();
+        if (!normalizedId) {
+            global.sessionStorage?.removeItem(storageKey);
+            return;
+        }
+        global.sessionStorage?.setItem(storageKey, normalizedId);
+    }
+
+    function clearSelectedFilterFavouriteDirty(root, toolbar = null) {
+        global.sessionStorage?.removeItem(getSelectedFilterFavouriteDirtyStorageKey(root, toolbar));
+    }
+
+    function markSelectedFilterFavouriteDirty(root, toolbar = null) {
+        if (!(root instanceof Element)) {
             return;
         }
 
-        const keysToRemove = [];
-        for (let index = 0; index < global.sessionStorage.length; index += 1) {
-            const key = global.sessionStorage.key(index);
-            if (key && key.startsWith(FILTER_FAVOURITE_STORAGE_PREFIX)) {
-                keysToRemove.push(key);
-            }
+        const effectiveToolbar = toolbar instanceof Element
+            ? toolbar
+            : getFilterFavouritesContainer(root);
+        const favouriteSelect = getFilterFavouritesSelect(effectiveToolbar);
+        if (!(effectiveToolbar instanceof Element) || !(favouriteSelect instanceof HTMLSelectElement)) {
+            return;
         }
-
-        keysToRemove.forEach(key => {
-            global.sessionStorage?.removeItem(key);
-        });
+        const selectedFavouriteId = getFavouriteSelectValue(favouriteSelect);
+        if (!selectedFavouriteId) {
+            return;
+        }
+        setSelectedFilterFavouriteDirty(root, effectiveToolbar, selectedFavouriteId);
     }
 
-    function isShellContentNavigationTrigger(element) {
-        if (!(element instanceof Element) || !element.matches('[hx-target][hx-get], [hx-target][hx-post]')) {
+    function suppressFavouriteAutoApplyOnce(root, toolbar = null) {
+        if (!(root instanceof Element)) {
+            return;
+        }
+        suppressFavouriteAutoApplyKeys.add(getSelectedFilterFavouriteStorageKey(root, toolbar));
+    }
+
+    function shouldConsumeFavouriteAutoApplySuppression(root, toolbar = null) {
+        if (!(root instanceof Element)) {
             return false;
         }
-
-        const targetSelector = String(element.getAttribute('hx-target') || '').trim();
-        return targetSelector === '#content' && !element.closest(OBJECT_LIST_ROOT_SELECTOR);
+        const storageKey = getSelectedFilterFavouriteStorageKey(root, toolbar);
+        if (!suppressFavouriteAutoApplyKeys.has(storageKey)) {
+            return false;
+        }
+        suppressFavouriteAutoApplyKeys.delete(storageKey);
+        return true;
     }
 
     function syncAddFilterVisibility(root, isOpen) {
@@ -1168,15 +1340,16 @@
             return;
         }
 
-        const selectedCandidates = [
-            getPendingSelectedFilterFavouriteId(root, favouritesContainer),
+        const activeSelectedId = getPendingSelectedFilterFavouriteId(root, favouritesContainer);
+        const matchingCandidates = [
             getServerSelectedFilterFavouriteId(favouritesContainer),
-            favouriteSelect.value,
+            getFavouriteSelectValue(favouriteSelect),
         ].filter(Boolean);
-        const effectiveSelectedId = selectedCandidates.find(candidate => {
+        const matchingSelectedId = matchingCandidates.find(candidate => {
             const candidateOption = getFavouriteOptionByValue(favouriteSelect, candidate);
             return favouriteStateMatchesRoot(candidateOption, root);
         }) || '';
+        const effectiveSelectedId = activeSelectedId || matchingSelectedId;
         const hasSelectableOption = Array.from(favouriteSelect.options).some(option => option.value);
         const hasSelectedOption = Array.from(favouriteSelect.options).some(
             option => option.value === effectiveSelectedId
@@ -1191,7 +1364,7 @@
             setPendingSelectedFilterFavouriteId(root, favouritesContainer, '');
         }
 
-        const hasSelectedFavourite = Boolean(favouriteSelect.value);
+        const hasSelectedFavourite = Boolean(getFavouriteSelectValue(favouriteSelect));
         favouritesContainer
             .querySelectorAll('[data-powercrud-favourite-manage-action="true"]')
             .forEach(button => {
@@ -1220,8 +1393,169 @@
         activeFilterFavouritesPanel
             .querySelectorAll('[data-powercrud-favourite-manage-action="true"]')
             .forEach(button => {
-                button.disabled = floatingSelect.disabled || !hasSelectableOption || !Boolean(floatingSelect.value);
+                button.disabled = floatingSelect.disabled || !hasSelectableOption || !Boolean(getFavouriteSelectValue(floatingSelect));
             });
+    }
+
+    function requestFavouriteApply(root, toolbar, favouriteSelect) {
+        const selectedFavouriteId = getFavouriteSelectValue(favouriteSelect);
+        if (
+            !(root instanceof Element)
+            || !(toolbar instanceof Element)
+            || !(favouriteSelect instanceof HTMLSelectElement)
+            || !selectedFavouriteId
+        ) {
+            return;
+        }
+
+        const htmx = getHtmxInstance();
+        if (!htmx) {
+            return;
+        }
+
+        const actionForm = favouriteSelect.closest('form');
+        const actionUrl = favouriteSelect.getAttribute('hx-get') || actionForm?.getAttribute('action') || '';
+        if (!actionUrl) {
+            return;
+        }
+
+        const toolbarSelect = getFilterFavouritesSelect(toolbar);
+        if (
+            toolbarSelect instanceof HTMLSelectElement
+            && getFavouriteOptionByValue(toolbarSelect, selectedFavouriteId)
+        ) {
+            toolbarSelect.value = selectedFavouriteId;
+        }
+        setPendingSelectedFilterFavouriteId(root, toolbar, selectedFavouriteId);
+        clearSelectedFilterFavouriteDirty(root, toolbar);
+        syncFavouriteToolbarState(toolbar);
+
+        const values = {};
+        if (actionForm instanceof HTMLFormElement) {
+            const formData = new FormData(actionForm);
+            formData.forEach((value, key) => {
+                values[key] = value;
+            });
+        }
+        values.favourite_id = selectedFavouriteId;
+
+        const originalTargetField = actionForm?.querySelector('input[name="original_target"]');
+        const originalTarget = originalTargetField instanceof HTMLInputElement
+            ? originalTargetField.value
+            : '';
+        const target = originalTarget || favouriteSelect.getAttribute('hx-target') || root;
+
+        htmx.ajax('GET', actionUrl, {
+            target,
+            swap: 'innerHTML',
+            values,
+        });
+    }
+
+    function getListOptionsForm(root) {
+        if (!(root instanceof Element)) {
+            return null;
+        }
+        const form = root.querySelector(`${LIST_COLUMNS_SELECTOR} form`);
+        return form instanceof HTMLFormElement ? form : null;
+    }
+
+    function getRootSwapTarget(root) {
+        if (!(root instanceof Element)) {
+            return root;
+        }
+        const originalTarget = root.dataset.powercrudOriginalTarget || '';
+        return originalTarget || root;
+    }
+
+    function resetViewState(root) {
+        if (!(root instanceof Element)) {
+            return;
+        }
+
+        const htmx = getHtmxInstance();
+        const listUrl = root.dataset.powercrudListUrl;
+        if (!htmx || !listUrl) {
+            global.location.href = listUrl || global.location.pathname;
+            return;
+        }
+
+        clearStoredViewState(root);
+        clearPersistedFilterPanelState(root);
+        setStoredOptionalFilterNames(root, []);
+        setPersistedOptionalFilterNames(root, []);
+        clearPendingFilterFavouriteSelection(root);
+        closeFilterFavouritesDropdowns();
+
+        const listOptionsForm = getListOptionsForm(root);
+        const listOptionsUrl = listOptionsForm?.getAttribute('hx-post')
+            || listOptionsForm?.getAttribute('action')
+            || '';
+        if (listOptionsForm instanceof HTMLFormElement && listOptionsUrl) {
+            const csrfField = listOptionsForm.querySelector('input[name="csrfmiddlewaretoken"]');
+            const csrfToken = csrfField instanceof HTMLInputElement ? csrfField.value : '';
+            const values = {
+                list_columns_action: 'reset',
+                list_view_url: listUrl,
+            };
+            if (csrfToken) {
+                values.csrfmiddlewaretoken = csrfToken;
+            }
+            htmx.ajax('POST', listOptionsUrl, {
+                target: getRootSwapTarget(root),
+                swap: root.dataset.powercrudOriginalTarget ? 'innerHTML' : 'outerHTML',
+                values,
+            });
+            return;
+        }
+
+        htmx.ajax('GET', listUrl, {
+            target: getRootSwapTarget(root),
+            swap: root.dataset.powercrudOriginalTarget ? 'innerHTML' : 'outerHTML',
+            pushURL: true,
+        });
+    }
+
+    function maybeApplyRememberedFavourite(root) {
+        if (!(root instanceof Element)) {
+            return;
+        }
+
+        const toolbar = getFilterFavouritesContainer(root);
+        const favouriteSelect = getFilterFavouritesSelect(toolbar);
+        if (!(toolbar instanceof Element) || !(favouriteSelect instanceof HTMLSelectElement)) {
+            return;
+        }
+
+        const selectedFavouriteId = getPendingSelectedFilterFavouriteId(root, toolbar);
+        if (!selectedFavouriteId) {
+            return;
+        }
+
+        const selectedOption = getFavouriteOptionByValue(favouriteSelect, selectedFavouriteId);
+        if (!(selectedOption instanceof HTMLOptionElement)) {
+            setPendingSelectedFilterFavouriteId(root, toolbar, '');
+            return;
+        }
+
+        if (favouriteStateMatchesRoot(selectedOption, root)) {
+            return;
+        }
+
+        if (isSelectedFilterFavouriteDirty(root, toolbar, selectedFavouriteId)) {
+            return;
+        }
+
+        if (shouldConsumeFavouriteAutoApplySuppression(root, toolbar)) {
+            return;
+        }
+
+        if (!global.htmx) {
+            return;
+        }
+
+        favouriteSelect.value = selectedFavouriteId;
+        requestFavouriteApply(root, toolbar, favouriteSelect);
     }
 
     function clearPendingFilterFavouriteSelection(root) {
@@ -1240,6 +1574,7 @@
         }
 
         setPendingSelectedFilterFavouriteId(root, favouritesContainer, '');
+        clearSelectedFilterFavouriteDirty(root, favouritesContainer);
         syncFilterFavouritesSelection(root);
     }
 
@@ -1265,11 +1600,12 @@
         const favouriteSelect = getFilterFavouritesSelect(toolbar);
         const selectedFavouriteField = toolbar.querySelector('input[name="selected_favourite_id"]');
         if (favouriteSelect) {
-            if (favouriteSelect.value) {
-                setPendingSelectedFilterFavouriteId(root, toolbar, favouriteSelect.value);
+            const selectedFavouriteId = getFavouriteSelectValue(favouriteSelect);
+            if (selectedFavouriteId) {
+                setPendingSelectedFilterFavouriteId(root, toolbar, selectedFavouriteId);
             }
             if (selectedFavouriteField instanceof HTMLInputElement) {
-                selectedFavouriteField.value = favouriteSelect.value || '';
+                selectedFavouriteField.value = selectedFavouriteId;
             }
         }
     }
@@ -1295,7 +1631,10 @@
 
         const toolbarSelect = getFilterFavouritesSelect(toolbar);
         const panelSelect = getFilterFavouritesSelect(panel);
-        const selectedFavouriteId = panelSelect?.value || toolbarSelect?.value || '';
+        const selectedFavouriteId = getFavouriteSelectValue(panelSelect)
+            || getFavouriteSelectValue(toolbarSelect)
+            || getPendingSelectedFilterFavouriteId(root, toolbar)
+            || '';
         if (panelSelect instanceof HTMLSelectElement) {
             panelSelect.value = selectedFavouriteId;
         }
@@ -1314,7 +1653,7 @@
                 button.disabled = !(panelSelect instanceof HTMLSelectElement)
                     || panelSelect.disabled
                     || !hasSelectableOption
-                    || !Boolean(panelSelect.value);
+                    || !Boolean(getFavouriteSelectValue(panelSelect));
             });
     }
 
@@ -1648,6 +1987,20 @@
         const preservePage = options.preservePage === true;
         const values = {};
 
+        const ignoredStateFieldNames = new Set([
+            'csrfmiddlewaretoken',
+            'current_state_json',
+            'favourite_id',
+            'list_columns_action',
+            'list_view_url',
+            'original_target',
+            'selected_favourite_id',
+            'state_json',
+            'toolbar_dom_id',
+            'view_key',
+            'visible_columns',
+        ]);
+
         root.querySelectorAll('[name]').forEach(field => {
             if (!(field instanceof HTMLInputElement || field instanceof HTMLSelectElement || field instanceof HTMLTextAreaElement)) {
                 return;
@@ -1659,7 +2012,21 @@
             if (!name) {
                 return;
             }
+            if (ignoredStateFieldNames.has(name)) {
+                return;
+            }
             if (field.closest('[data-powercrud-filter-favourites-toolbar="true"]')) {
+                return;
+            }
+            if (field.closest(LIST_COLUMNS_SELECTOR)) {
+                return;
+            }
+            const fieldForm = field.closest('form');
+            if (
+                fieldForm instanceof HTMLFormElement
+                && fieldForm.id !== 'filter-form'
+                && fieldForm.id !== 'page-size-form'
+            ) {
                 return;
             }
             if (!preservePage && name === 'page') {
@@ -1706,6 +2073,114 @@
         } catch (_error) {
             return String(listUrl);
         }
+    }
+
+    function currentLocationMatchesRoot(root) {
+        if (!(root instanceof Element)) {
+            return false;
+        }
+        return normaliseListUrl(root.dataset.powercrudListUrl) === global.location.pathname;
+    }
+
+    function getStoredViewQueryString(root) {
+        const rawQueryString = global.sessionStorage?.getItem(getViewStateStorageKey(root)) || '';
+        const sanitizedQueryString = sanitizeViewQueryString(rawQueryString);
+        if (rawQueryString && sanitizedQueryString !== rawQueryString) {
+            setStoredViewQueryString(root, sanitizedQueryString);
+        }
+        return sanitizedQueryString;
+    }
+
+    function sanitizeViewQueryString(queryString) {
+        const rawQueryString = String(queryString || '').replace(/^\?/, '');
+        if (!rawQueryString) {
+            return '';
+        }
+
+        const ignoredParamNames = new Set([
+            'csrfmiddlewaretoken',
+            'current_state_json',
+            'favourite_id',
+            'list_columns_action',
+            'list_view_url',
+            'original_target',
+            'selected_favourite_id',
+            'state_json',
+            'toolbar_dom_id',
+            'view_key',
+            'visible_columns',
+        ]);
+        const params = new URLSearchParams(rawQueryString);
+        ignoredParamNames.forEach(name => params.delete(name));
+        return params.toString();
+    }
+
+    function setStoredViewQueryString(root, queryString) {
+        const normalizedQueryString = sanitizeViewQueryString(queryString);
+        if (!normalizedQueryString) {
+            global.sessionStorage?.removeItem(getViewStateStorageKey(root));
+            return;
+        }
+        global.sessionStorage?.setItem(getViewStateStorageKey(root), normalizedQueryString);
+    }
+
+    function clearStoredViewState(root) {
+        global.sessionStorage?.removeItem(getViewStateStorageKey(root));
+    }
+
+    function rememberCurrentViewState(root) {
+        if (!(root instanceof Element) || !currentLocationMatchesRoot(root)) {
+            return;
+        }
+
+        const toolbar = getFilterFavouritesContainer(root);
+        const favouriteSelect = getFilterFavouritesSelect(toolbar);
+        const selectedFavouriteId = getFavouriteSelectValue(favouriteSelect);
+        if (selectedFavouriteId) {
+            if (isSelectedFilterFavouriteDirty(root, toolbar, selectedFavouriteId)) {
+                setStoredViewQueryString(root, global.location.search);
+            }
+            return;
+        }
+
+        setStoredViewQueryString(root, global.location.search);
+    }
+
+    function maybeRestoreStoredViewState(root) {
+        if (!(root instanceof Element) || !currentLocationMatchesRoot(root)) {
+            return false;
+        }
+
+        if (global.location.search) {
+            rememberCurrentViewState(root);
+            return false;
+        }
+
+        const toolbar = getFilterFavouritesContainer(root);
+        const favouriteSelect = getFilterFavouritesSelect(toolbar);
+        const selectedFavouriteId = getFavouriteSelectValue(favouriteSelect);
+        if (selectedFavouriteId) {
+            if (!isSelectedFilterFavouriteDirty(root, toolbar, selectedFavouriteId)) {
+                return false;
+            }
+        }
+
+        const queryString = getStoredViewQueryString(root);
+        const htmx = getHtmxInstance();
+        const listUrl = root.dataset.powercrudListUrl;
+        if (!queryString || !htmx || !listUrl) {
+            return false;
+        }
+
+        htmx.ajax('GET', `${listUrl}?${queryString}`, {
+            target: root,
+            swap: 'outerHTML',
+            headers: {
+                'X-Filter-Setting-Request': 'true',
+            },
+            pushURL: true,
+        });
+        return true;
     }
 
     function getCurrentSortValue() {
@@ -1892,15 +2367,65 @@
         const values = buildCurrentRootValues(root, {
             preservePage: options.preservePage === true,
         });
+        markSelectedFilterFavouriteDirty(root);
         htmx.ajax('GET', listUrl, {
-            target: root,
-            swap: 'outerHTML',
+            target: getRootSwapTarget(root),
+            swap: root.dataset.powercrudOriginalTarget ? 'innerHTML' : 'outerHTML',
             values,
             headers: {
                 'X-Filter-Setting-Request': 'true',
             },
             pushURL: options.pushURL !== false,
         });
+    }
+
+    function isFilterValueField(target) {
+        if (!(target instanceof HTMLInputElement || target instanceof HTMLSelectElement || target instanceof HTMLTextAreaElement)) {
+            return false;
+        }
+        if (target.disabled || !target.name || target.type === 'hidden') {
+            return false;
+        }
+        if (target.name === VISIBLE_FILTERS_PARAM) {
+            return false;
+        }
+        return target.closest('#filter-form') instanceof HTMLFormElement;
+    }
+
+    function scheduleFilterValueRefresh(field, options = {}) {
+        if (!isFilterValueField(field)) {
+            return;
+        }
+
+        const root = getObjectListRoot(field);
+        if (!(root instanceof Element)) {
+            return;
+        }
+
+        const state = ensureObjectListState(root);
+        if (state.filterRefreshTimer) {
+            global.clearTimeout(state.filterRefreshTimer);
+        }
+
+        const delay = options.immediate === true ? 0 : 300;
+        state.filterRefreshTimer = global.setTimeout(() => {
+            state.filterRefreshTimer = null;
+            if (!root.isConnected) {
+                return;
+            }
+            requestObjectListRefresh(root, { preservePage: false });
+        }, delay);
+    }
+
+    function isInlineEditRequest(target) {
+        return (
+            target instanceof Element
+            && (
+                target.matches('[data-inline-save], [data-inline-cancel], .inline-edit-trigger')
+                || Boolean(target.closest('[data-inline-row="true"]'))
+                || Boolean(target.closest('.inline-field-widget'))
+            )
+        );
     }
 
     function addOptionalFilter(root, fieldName) {
@@ -2269,7 +2794,9 @@
         if (!(root instanceof Element)) {
             return;
         }
+        cleanupDuplicatePowercrudModals();
         ensureObjectListState(root);
+        normalizeFilterFieldHtmxUrls(root);
         syncListToolbarWidth(root);
         getRowSelectionCheckboxes(root).forEach(checkbox => {
             checkbox.checked = checkbox.dataset.powercrudInitialChecked === 'true';
@@ -2285,6 +2812,10 @@
         maybeRestoreStoredOptionalFilterVisibility(root);
         syncListColumnChoosers(root);
         syncFilterFavouritesSelection(root);
+        maybeApplyRememberedFavourite(root);
+        if (!maybeRestoreStoredViewState(root)) {
+            rememberCurrentViewState(root);
+        }
         syncBulkSelectionState(root);
         syncSelectionAwareExtraButtons(root);
     }
@@ -3150,10 +3681,22 @@
             return;
         }
 
+        const resetViewTrigger = trigger.closest('[data-powercrud-reset-view="true"]');
+        if (resetViewTrigger) {
+            event.preventDefault();
+            const toolbar = getFilterFavouritesToolbarFromElement(resetViewTrigger);
+            const root = toolbar ? getObjectListRoot(toolbar) : getAffectedObjectListRoots(document)[0];
+            if (root) {
+                resetViewState(root);
+            }
+            return;
+        }
+
         const resetTrigger = trigger.closest('[data-powercrud-filter-reset]');
         if (resetTrigger) {
             const root = getObjectListRoot(resetTrigger);
             if (root) {
+                clearStoredViewState(root);
                 setStoredOptionalFilterNames(root, []);
                 setPersistedOptionalFilterNames(root, []);
                 resetFilterForm(root);
@@ -3187,7 +3730,7 @@
         if (favouriteApplyTrigger) {
             const actionForm = favouriteApplyTrigger.closest('form');
             const favouriteSelect = actionForm?.querySelector('select[name="favourite_id"]');
-            if (favouriteSelect instanceof HTMLSelectElement && !favouriteSelect.value) {
+            if (favouriteSelect instanceof HTMLSelectElement && !getFavouriteSelectValue(favouriteSelect)) {
                 event.preventDefault();
                 favouriteSelect.reportValidity?.();
                 return;
@@ -3221,7 +3764,9 @@
         syncListColumnChooser(chooser);
         if (chooser.open) {
             focusFirstListColumnCheckbox(chooser);
+            return;
         }
+        resetListColumnChooserDraft(chooser);
     }, true);
 
     document.addEventListener('keydown', event => {
@@ -3322,7 +3867,10 @@
                 syncFavouritePanelState(activePanel, toolbar);
             }
             if (!target.value) {
+                setPendingSelectedFilterFavouriteId(root, toolbar, '');
+                clearSelectedFilterFavouriteDirty(root, toolbar);
                 syncFilterFavouritesSelection(root);
+                rememberCurrentViewState(root);
                 return;
             }
 
@@ -3335,7 +3883,23 @@
             setStoredOptionalFilterNames(root, visibleFilterNames);
             setPersistedOptionalFilterNames(root, visibleFilterNames);
             setPendingSelectedFilterFavouriteId(root, toolbar, target.value);
+            clearSelectedFilterFavouriteDirty(root, toolbar);
+            requestFavouriteApply(root, toolbar, target);
             closeFilterFavouritesDropdowns();
+        }
+    });
+
+    document.addEventListener('input', event => {
+        const target = asElement(event.target);
+        if (isFilterValueField(target)) {
+            scheduleFilterValueRefresh(target);
+        }
+    });
+
+    document.addEventListener('change', event => {
+        const target = asElement(event.target);
+        if (isFilterValueField(target)) {
+            scheduleFilterValueRefresh(target, { immediate: true });
         }
     });
 
@@ -3359,8 +3923,9 @@
         hidePowercrudTooltips(document);
 
         const target = event.detail && event.detail.elt;
-        if (isShellContentNavigationTrigger(target)) {
-            clearAllPendingFilterFavouriteSelections();
+        if (isFilterValueField(target)) {
+            event.preventDefault();
+            return;
         }
         if (target && target.matches && target.matches('[data-powercrud-row-select="true"]')) {
             if (target.dataset.powercrudSkipSelectionRequest === 'true') {
@@ -3388,9 +3953,28 @@
             const effectiveRoot = root || (favouritesToolbar instanceof Element
                 ? getObjectListRoot(favouritesToolbar)
                 : null);
+            const isFavouriteSelectRequest = (
+                target.matches('[data-powercrud-favourite-select="true"]')
+                || Boolean(target.closest('[data-powercrud-favourite-select="true"]'))
+            );
+            const isFavouriteManageRequest = (
+                target.matches('[data-powercrud-favourite-manage-action="true"]')
+                || Boolean(target.closest('[data-powercrud-favourite-manage-action="true"]'))
+            );
+            const isInlineRequest = isInlineEditRequest(target);
+            if (
+                effectiveRoot instanceof Element
+                && (target === effectiveRoot || effectiveRoot.contains(target))
+                && !isFavouriteSelectRequest
+                && !isFavouriteManageRequest
+                && !isInlineRequest
+            ) {
+                suppressFavouriteAutoApplyOnce(effectiveRoot, favouritesToolbar);
+                markSelectedFilterFavouriteDirty(effectiveRoot, favouritesToolbar);
+            }
             if (effectiveRoot && favouritesToolbar instanceof Element) {
                 const favouriteSelect = getFilterFavouritesSelect(favouritesToolbar);
-                const selectedFavouriteId = favouriteSelect?.value
+                const selectedFavouriteId = getFavouriteSelectValue(favouriteSelect)
                     || getServerSelectedFilterFavouriteId(favouritesToolbar);
                 setPendingSelectedFilterFavouriteId(
                     effectiveRoot,
@@ -3406,30 +3990,24 @@
                     syncFavouritePanelState(activePanel, favouritesToolbar);
                 }
 
-                const requiresSelectedFavourite = (
-                    target.matches('[data-powercrud-favourite-manage-action="true"]')
-                    || Boolean(target.closest('[data-powercrud-favourite-manage-action="true"]'))
-                );
-                if (requiresSelectedFavourite) {
+                if (isFavouriteManageRequest) {
                     const favouriteSelect = getFilterFavouritesSelect(favouritesToolbar);
-                    if (!favouriteSelect || !favouriteSelect.value) {
+                    if (!getFavouriteSelectValue(favouriteSelect)) {
                         event.preventDefault();
                         return;
                     }
                 }
 
-                const isFavouriteSelectRequest = (
-                    target.matches('[data-powercrud-favourite-select="true"]')
-                    || Boolean(target.closest('[data-powercrud-favourite-select="true"]'))
-                );
                 if (isFavouriteSelectRequest) {
                     const favouriteSelect = target.matches('[data-powercrud-favourite-select="true"]')
                         ? target
                         : target.closest('[data-powercrud-favourite-select="true"]');
-                    if (!favouriteSelect || !favouriteSelect.value) {
+                    if (!getFavouriteSelectValue(favouriteSelect)) {
                         event.preventDefault();
                         return;
                     }
+                    event.preventDefault();
+                    return;
                 }
             }
         }
@@ -3439,6 +4017,16 @@
         const target = event.detail && event.detail.elt;
         if (!(target instanceof Element) || !target.closest) {
             return;
+        }
+
+        const filterForm = target.matches('#filter-form')
+            ? target
+            : target.closest('#filter-form');
+        const filterRoot = filterForm instanceof Element
+            ? getObjectListRoot(filterForm)
+            : null;
+        if (filterRoot instanceof Element && filterRoot.dataset.powercrudListUrl) {
+            event.detail.path = filterRoot.dataset.powercrudListUrl;
         }
 
         const favouritesToolbar = getFilterFavouritesToolbarFromElement(target);
@@ -3464,10 +4052,12 @@
     });
 
     document.body.addEventListener('bulkEditSuccess', () => {
-        const modal = document.querySelector('[data-powercrud-modal]');
-        if (modal && typeof modal.close === 'function') {
-            modal.close();
-        }
+        document.querySelectorAll('[data-powercrud-modal]').forEach(modal => {
+            if (modal instanceof HTMLDialogElement && typeof modal.close === 'function') {
+                modal.close();
+            }
+        });
+        cleanupDuplicatePowercrudModals();
         getAffectedObjectListRoots(document).forEach(clearSelectionOptimistic);
     });
 
@@ -3487,6 +4077,7 @@
                 return;
             }
             setPendingSelectedFilterFavouriteId(root, toolbar, favouriteId);
+            clearSelectedFilterFavouriteDirty(root, toolbar);
         });
         global.setTimeout(() => {
             closeFilterFavouritesDropdowns();
@@ -3505,6 +4096,7 @@
                 return;
             }
             setPendingSelectedFilterFavouriteId(root, toolbar, favouriteId);
+            clearSelectedFilterFavouriteDirty(root, toolbar);
         });
         global.setTimeout(() => {
             closeFilterFavouritesDropdowns();
@@ -3518,6 +4110,7 @@
                 return;
             }
             setPendingSelectedFilterFavouriteId(root, toolbar, '');
+            clearSelectedFilterFavouriteDirty(root, toolbar);
         });
         global.setTimeout(() => {
             closeFilterFavouritesDropdowns();
@@ -3687,6 +4280,8 @@
             showInlineFieldErrorPopovers(root);
         });
         bootstrapObjectLists(document);
+        const target = asElement(event.target);
+        getAffectedObjectListRoots(target || document).forEach(rememberCurrentViewState);
         schedulePowercrudTooltipRefresh(document, 50);
         removeOrphanedInlineFieldErrorPopovers();
     });

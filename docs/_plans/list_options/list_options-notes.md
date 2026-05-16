@@ -173,6 +173,8 @@ Dirty-state behaviour, where Save stays disabled until the chooser changes, is a
 
 The RC polish pass is complete for the column chooser and toolbar cluster: the trigger shows an active/allowed count, the final visible column is guarded in the frontend, the chooser handles Escape/focus, the view-control cluster is constrained to the narrower of the table edge or viewport edge, wrapped view controls align left instead of hanging from the right edge, and the expanded filter panel follows the table/viewport width constraint.
 
+Top action overflow is implemented as `extra_buttons_mode = "buttons" | "dropdown"`. This is deliberately separate from row-level `extra_actions_mode`. The default remains `"buttons"` for compatibility. `"dropdown"` moves configured top-level `extra_buttons` into a toolbar `More` menu while leaving built-in actions such as Create outside the overflow.
+
 ## Inline Editing Considerations
 
 Inline editing needs explicit handling.
@@ -311,7 +313,7 @@ Deferred follow-up decisions should prioritise saved views through favourites an
 2. URL-shareable visible-column state may later support one-off or shared table layouts, but it is low priority.
 3. User-controlled column ordering may later become a richer saved-view feature, but it is low priority.
 4. Zero-data-column tables should remain invalid.
-5. Top action overflow for `extra_buttons` may later become a reusable feature, but current `extra_actions_mode = "dropdown"` is row-action only and should not be reused implicitly for toolbar buttons.
+5. Top action overflow for `extra_buttons` is implemented through `extra_buttons_mode`; `extra_actions_mode` remains row-action only and should not be reused implicitly for toolbar buttons.
 
 ## Likely Code Areas
 

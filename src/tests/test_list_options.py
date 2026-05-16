@@ -24,16 +24,16 @@ def test_book_list_renders_column_chooser_for_anonymous_user(client):
     response_text = response.content.decode()
 
     assert response.status_code == 200, "Book list should render successfully."
-    assert "Cols 8/12" in response_text, (
+    assert "Cols 9/12" in response_text, (
         "Users should see the list-column chooser with active/allowed counts."
     )
     assert 'name="visible_columns"' in response_text, (
         "The chooser should render checkbox inputs for selectable columns."
     )
-    assert 'data-field-name="genres"' not in response_text, (
+    assert 'data-field-name="uneditable_field"' not in response_text, (
         "BookCRUDView should hide at least one allowed data column by default for the sample demo."
     )
-    assert 'value="genres"' in response_text, (
+    assert 'value="uneditable_field"' in response_text, (
         "Hidden-by-default columns should still be available in the chooser."
     )
 

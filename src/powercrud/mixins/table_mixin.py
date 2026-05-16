@@ -53,6 +53,12 @@ class TableMixin:
         """
         return resolve_config(self).extra_button_classes
 
+    def get_extra_buttons_mode(self):
+        """
+        Get the rendering mode for list-level extra buttons.
+        """
+        return resolve_config(self).extra_buttons_mode
+
     def get_extra_actions_mode(self):
         """
         Get the rendering mode for row-level extra actions.

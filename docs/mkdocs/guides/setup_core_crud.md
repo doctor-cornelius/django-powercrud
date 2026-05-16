@@ -94,6 +94,8 @@ PowerCRUD layers a few convenient defaults so you can start with zero configurat
 
 Use `extra_buttons` for additional buttons above the table, alongside controls such as filter toggles and create buttons. These are page-level actions, not per-record actions.
 
+Use `extra_buttons_mode = "dropdown"` when those page-level actions should move into a compact top toolbar overflow menu. The built-in Create button stays visible because it is not part of `extra_buttons`.
+
 Typical uses:
 
 - link to dashboards or reports
@@ -103,6 +105,8 @@ Typical uses:
 Example:
 
 ```python
+extra_buttons_mode = "dropdown"
+
 extra_buttons = [
     {
         "url_name": "home",

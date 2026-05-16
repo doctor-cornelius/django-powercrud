@@ -12,7 +12,7 @@ from django.urls import reverse
 from playwright.sync_api import expect
 
 from powercrud.contrib.favourites.models import SavedFilterFavourite
-from sample.models import Book
+from sample.models import Author, Book
 from sample.views import BookCRUDView
 
 pytestmark = [pytest.mark.playwright, pytest.mark.django_db]
@@ -147,7 +147,7 @@ def select_saved_favourite(page, favourite_label: str):
         """
         (el, nextValue) => {
             if (el.tomselect) {
-                el.tomselect.setValue(String(nextValue), true);
+                el.tomselect.setValue(String(nextValue));
                 return;
             }
             el.value = String(nextValue);
@@ -157,6 +157,39 @@ def select_saved_favourite(page, favourite_label: str):
         option_value,
     )
     return option_value
+
+
+def select_single_filter_value(page, field_name: str, option_value: str):
+    """Select one filter option, preferring Tom Select when the filter is enhanced."""
+
+    select = page.locator(f"#filter-form select[name='{field_name}']")
+    expect(select).to_have_count(1)
+    is_searchable = select.evaluate(
+        "el => el.getAttribute('data-powercrud-searchable-select') === 'true'"
+    )
+    if is_searchable:
+        page.wait_for_function(
+            """
+            (name) => {
+                const element = document.querySelector(`#filter-form select[name="${name}"]`);
+                return Boolean(element && element.tomselect);
+            }
+            """,
+            arg=field_name,
+        )
+
+    if select.evaluate("el => Boolean(el.tomselect)"):
+        select.evaluate(
+            """
+            (el, value) => {
+                el.tomselect.setValue(String(value));
+            }
+            """,
+            option_value,
+        )
+    else:
+        select.select_option(option_value)
+    expect(select).to_have_value(option_value)
 
 
 def login_playwright_user(*, client, page, books_url: str, username: str):
@@ -274,6 +307,105 @@ def test_book_page_size_query_still_renders_correctly_when_filter_favourites_ena
     expect(page.locator("#filtered_results tbody tr[data-inline-row='true']")).to_have_count(10)
 
 
+def test_changing_favourite_populated_filter_applies_immediately(
+    page, client, books_url, sample_books
+):
+    """Editing a filter populated by a favourite should refresh without touching another filter first."""
+
+    user = login_playwright_user(
+        client=client,
+        page=page,
+        books_url=books_url,
+        username="playwright-favourite-populated-filter-user",
+    )
+    target_book = sample_books[0]
+    replacement_book = sample_books[1]
+    SavedFilterFavourite.objects.create(
+        user=user,
+        view_key=BOOK_VIEW_KEY,
+        name="Title favourite",
+        state={
+            "filters": {"title": [target_book.title]},
+            "visible_filters": [],
+            "sort": "",
+            "page_size": "5",
+        },
+    )
+
+    install_htmx_init_script(page)
+    page.goto(books_url)
+    page.wait_for_load_state("networkidle")
+    ensure_htmx_available(page)
+
+    open_filters_panel(page)
+    open_favourites_dropdown(page)
+    select_saved_favourite(page, "Title favourite")
+    page.wait_for_load_state("networkidle")
+    expect(page.locator("#filter-form input[name='title']")).to_have_value(target_book.title)
+    expect(page.locator("#filtered_results")).to_contain_text(target_book.title)
+    expect(page.locator("#filtered_results")).not_to_contain_text(replacement_book.title)
+
+    title_filter = page.locator("#filter-form input[name='title']")
+    title_filter.click()
+    page.keyboard.press("Control+A")
+    page.keyboard.type(replacement_book.title)
+
+    expect(page.locator("#filtered_results")).to_contain_text(replacement_book.title)
+    expect(page.locator("#filtered_results")).not_to_contain_text(target_book.title)
+
+
+def test_changing_favourite_populated_choice_filter_applies_immediately(
+    page, client, books_url, sample_author, sample_books
+):
+    """Changing a favourite-populated select filter should refresh without touching another filter first."""
+
+    replacement_author = Author.objects.create(
+        name="Replacement Favourite Filter Author",
+        bio="",
+        birth_date=None,
+    )
+    target_book = sample_books[0]
+    replacement_book = sample_books[1]
+    replacement_book.author = replacement_author
+    replacement_book.save(update_fields=["author"])
+
+    user = login_playwright_user(
+        client=client,
+        page=page,
+        books_url=books_url,
+        username="playwright-favourite-populated-choice-filter-user",
+    )
+    SavedFilterFavourite.objects.create(
+        user=user,
+        view_key=BOOK_VIEW_KEY,
+        name="Author favourite",
+        state={
+            "filters": {"author": [str(sample_author.pk)]},
+            "visible_filters": [],
+            "sort": "",
+            "page_size": "5",
+        },
+    )
+
+    install_htmx_init_script(page)
+    page.goto(books_url)
+    page.wait_for_load_state("networkidle")
+    ensure_htmx_available(page)
+
+    open_filters_panel(page)
+    open_favourites_dropdown(page)
+    select_saved_favourite(page, "Author favourite")
+    page.wait_for_load_state("networkidle")
+    expect(page.locator("#filter-form select[name='author']")).to_have_value(str(sample_author.pk))
+    expect(page.locator("#filtered_results")).to_contain_text(target_book.title)
+    expect(page.locator("#filtered_results")).not_to_contain_text(replacement_book.title)
+
+    select_single_filter_value(page, "author", str(replacement_author.pk))
+
+    expect(page.locator("#filtered_results")).to_contain_text(replacement_book.title)
+    expect(page.locator("#filtered_results")).not_to_contain_text(target_book.title)
+
+
 def test_filter_reset_clears_remembered_selected_favourite(
     page, client, books_url, sample_books
 ):
@@ -358,10 +490,10 @@ def test_filter_favourite_apply_replaces_optional_filter_visibility(
     expect(page.locator("#filter-form input[name='title']")).to_have_value(target_book.title)
 
 
-def test_returning_to_page_clears_selected_filter_favourite(
+def test_returning_to_page_keeps_selected_filter_favourite(
     page, client, books_url, authors_url, sample_books
 ):
-    """Returning to a list after leaving it should clear the selected favourite instead of auto-reapplying it."""
+    """Returning to a list should keep and apply the selected favourite."""
 
     user = login_playwright_user(
         client=client,
@@ -390,7 +522,7 @@ def test_returning_to_page_clears_selected_filter_favourite(
 
     open_filters_panel(page)
     open_favourites_dropdown(page)
-    select_saved_favourite(page, "Come back to me")
+    favourite_id = select_saved_favourite(page, "Come back to me")
     page.wait_for_load_state("networkidle")
     expect(page.locator("#filter-form input[name='title']")).to_have_value(target_book.title)
 
@@ -406,10 +538,13 @@ def test_returning_to_page_clears_selected_filter_favourite(
 
     open_favourites_dropdown(page)
     favourites_select = get_open_favourites_panel(page).locator("select[name='favourite_id']")
-    expect(favourites_select).to_have_value("")
-    expect(page.locator("#filter-form input[name='title']")).to_have_value("")
+    expect(favourites_select).to_have_value(favourite_id)
+    trigger = page.locator("[data-powercrud-filter-favourites-trigger='true']:visible").first
+    expect(trigger).to_have_attribute("data-powercrud-filter-favourites-selected", "true")
+    expect(trigger).to_have_attribute("data-tippy-content", "Come back to me")
+    expect(page.locator("#filter-form input[name='title']")).to_have_value(target_book.title)
     expect(page.locator("#filtered_results")).to_contain_text(target_book.title)
-    expect(page.locator("#filtered_results")).to_contain_text(other_book.title)
+    expect(page.locator("#filtered_results")).not_to_contain_text(other_book.title)
 
 
 def test_filter_favourite_update_reapplies_latest_saved_state(
@@ -550,12 +685,14 @@ def test_saved_favourite_restores_visible_columns(
     page.wait_for_load_state("networkidle")
     ensure_htmx_available(page)
 
-    expect(page.locator("td[data-field-name='genres']")).to_have_count(0)
+    expect(page.locator("td[data-field-name='genres']").first).to_be_visible()
+    expect(page.locator("td[data-field-name='uneditable_field']")).to_have_count(0)
     column_panel = open_column_chooser(page)
-    column_panel.locator("input[name='visible_columns'][value='genres']").check()
+    column_panel.locator("input[name='visible_columns'][value='uneditable_field']").check()
     with page.expect_response(re.compile(r"/sample/bigbook/")):
         column_panel.get_by_role("button", name="Save").click()
     expect(page.locator("td[data-field-name='genres']").first).to_be_visible()
+    expect(page.locator("td[data-field-name='uneditable_field']").first).to_be_visible()
 
     open_filters_panel(page)
     open_favourites_dropdown(page)
@@ -576,15 +713,16 @@ def test_saved_favourite_restores_visible_columns(
         view_key=BOOK_VIEW_KEY,
         name="Columns saved",
     )
-    assert "genres" in saved_favourite.state.get("visible_columns", []), (
-        "Saved favourite state should include the currently visible genres column."
+    assert "uneditable_field" in saved_favourite.state.get("visible_columns", []), (
+        "Saved favourite state should include the currently visible optional column."
     )
     page.keyboard.press("Escape")
 
     column_panel = open_column_chooser(page)
     with page.expect_response(re.compile(r"/sample/bigbook/")):
         column_panel.get_by_role("button", name="Reset").click()
-    expect(page.locator("td[data-field-name='genres']")).to_have_count(0)
+    expect(page.locator("td[data-field-name='genres']").first).to_be_visible()
+    expect(page.locator("td[data-field-name='uneditable_field']")).to_have_count(0)
 
     open_filters_panel(page)
     open_favourites_dropdown(page)
@@ -595,12 +733,13 @@ def test_saved_favourite_restores_visible_columns(
     expect(page.locator("td[data-field-name='genres']").first).to_contain_text(
         sample_genre.name
     )
+    expect(page.locator("td[data-field-name='uneditable_field']").first).to_be_visible()
 
 
-def test_returning_to_page_via_sample_shell_htmx_clears_selected_filter_favourite(
+def test_returning_to_page_via_sample_shell_htmx_keeps_selected_filter_favourite(
     page, client, books_url, sample_books
 ):
-    """Returning via the sample shell HTMX nav should clear the previously selected favourite."""
+    """Returning via the sample shell should keep and apply the selected favourite."""
 
     user = login_playwright_user(
         client=client,
@@ -629,7 +768,7 @@ def test_returning_to_page_via_sample_shell_htmx_clears_selected_filter_favourit
 
     open_filters_panel(page)
     open_favourites_dropdown(page)
-    select_saved_favourite(page, "Shell trip")
+    favourite_id = select_saved_favourite(page, "Shell trip")
     page.wait_for_load_state("networkidle")
     expect(page.locator("#filter-form input[name='title']")).to_have_value(target_book.title)
 
@@ -646,7 +785,10 @@ def test_returning_to_page_via_sample_shell_htmx_clears_selected_filter_favourit
 
     open_favourites_dropdown(page)
     favourites_select = get_open_favourites_panel(page).locator("select[name='favourite_id']")
-    expect(favourites_select).to_have_value("")
-    expect(page.locator("#filter-form input[name='title']")).to_have_value("")
+    expect(favourites_select).to_have_value(favourite_id)
+    trigger = page.locator("[data-powercrud-filter-favourites-trigger='true']:visible").first
+    expect(trigger).to_have_attribute("data-powercrud-filter-favourites-selected", "true")
+    expect(trigger).to_have_attribute("data-tippy-content", "Shell trip")
+    expect(page.locator("#filter-form input[name='title']")).to_have_value(target_book.title)
     expect(page.locator("#filtered_results")).to_contain_text(target_book.title)
-    expect(page.locator("#filtered_results")).to_contain_text(other_book.title)
+    expect(page.locator("#filtered_results")).not_to_contain_text(other_book.title)

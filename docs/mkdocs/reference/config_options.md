@@ -40,6 +40,7 @@ For the mental model behind the option groups, see [PowerCRUD Concepts](../guide
 | `extra_actions_mode` (`str`) | `'buttons'`, `'dropdown'` | `'buttons'` | Extra row actions render as visible buttons after the standard actions | Control how row-level `extra_actions` are rendered. Use `'dropdown'` to keep `View/Edit/Delete` visible and move only the extra row actions into a `More` overflow menu. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
 | `extra_actions_dropdown_open_upward_bottom_rows` (`int`) | `int >= 0` | `3` | All `More` menus open downward | In dropdown mode, open the `More` menu upward for the last N rendered rows on the current page. Set `0` to disable this behavior. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
 | `extra_button_classes` (`str`) | `str` | `""` | Extra buttons use the default button styling | Additional CSS classes shared by every entry in `extra_buttons`. | [Styling & Tailwind](../guides/styling_tailwind.md) |
+| `extra_buttons_mode` (`str`) | `'buttons'`, `'dropdown'` | `'buttons'` | Extra header buttons render as visible toolbar buttons | Control how list-level `extra_buttons` are rendered. Use `'dropdown'` to move configured extra buttons into a top toolbar `More` menu. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
 | `extra_buttons` (`list[dict]`) | `list[button spec]` | `[]` | No extra header buttons are shown | Add top-of-page buttons (e.g., custom actions, links). Modal buttons may set per-trigger `modal_box_classes` for custom width/height. | [Complete Example](complete_example.md) |
 | `filter_favourites_enabled` (`bool`) | `True`, `False` | `False` | No saved-favourites toolbar is rendered | Enable the optional saved favourites UI for this list view when the `powercrud.contrib.favourites` app is installed and `powercrud.urls` is mounted under the `powercrud` namespace. | [Saved Favourites](../guides/advanced/filter_favourites.md) |
 | `fields` (`list/str`) | `None`, `'__all__'`, `list[str]` | `'__all__'` | All concrete model fields show in the list view | Columns displayed in the list view. Explicit lists may contain model field names and queryset annotation names. Combine with `exclude`. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
@@ -300,9 +301,17 @@ For a full explanation of `filter_by`, migration from old inline-only configs, a
 
 Use `extra_buttons` for list-level actions above the table.
 
+`extra_buttons_mode` controls whether configured list-level buttons render
+directly in the toolbar or move into a compact overflow menu:
+
+- `'buttons'` keeps the default behavior and renders every configured extra button visibly.
+- `'dropdown'` keeps built-in actions such as Create outside the overflow and moves only configured `extra_buttons` into a top toolbar `More` menu.
+
 Selection-aware buttons can opt into the current persisted bulk selection:
 
 ```python
+extra_buttons_mode = "dropdown"
+
 extra_buttons = [
     {
         "url_name": "projects:summary-help",

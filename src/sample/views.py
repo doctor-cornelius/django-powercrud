@@ -58,6 +58,7 @@ class BookCRUDView(SampleCRUDMixin):
         "pages",
         "bestseller",
         "isbn",
+        "genres",
         "isbn_empty",
         "a_really_long_property_header_for_title",
     ]
@@ -160,6 +161,7 @@ class BookCRUDView(SampleCRUDMixin):
     # action_button_classes = 'btn-sm min-h-0 h-6 leading-6'
     action_button_classes = "btn-xs"
     extra_button_classes = "btn-sm"
+    extra_buttons_mode = "dropdown"
     extra_actions_mode = "dropdown"
     extra_actions_dropdown_open_upward_bottom_rows = 5
 
@@ -409,6 +411,7 @@ class ProfileCRUDView(SampleCRUDMixin):
 
     fields = "__all__"
     properties = "__all__"
+    default_list_fields = ["author", "nickname", "status", "priority_band"]
     column_alignments = {
         "status": "center",
         "priority_band": "right",

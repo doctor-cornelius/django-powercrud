@@ -15,6 +15,8 @@
         <select name="favourite_id"
                 class="select select-bordered select-sm h-10 min-h-10 w-full px-3 [line-height:2.25rem]"
                 data-powercrud-favourite-select="true"
+                data-powercrud-searchable-select="true"
+                data-powercrud-searchable-placeholder="Saved favourite..."
                 hx-get="{{ filter_favourites_apply_url }}"
                 hx-include="closest form"
                 hx-target="{{ original_target|default:'#content' }}"
@@ -44,13 +46,18 @@
     <div class="flex flex-wrap gap-2 border-t border-base-300 pt-3">
         <button type="button"
                 class="btn btn-outline btn-secondary btn-sm"
+                data-powercrud-reset-view="true">
+            Reset
+        </button>
+        <button type="button"
+                class="btn btn-outline btn-secondary btn-sm"
                 hx-post="{{ filter_favourites_update_url }}"
                 hx-include="closest form"
                 hx-target="closest [data-powercrud-filter-favourites-panel='true']"
                 hx-swap="innerHTML"
                 data-powercrud-favourite-manage-action="true"
                 {% if not filter_favourites_can_manage or not saved_filter_favourites %}disabled{% endif %}>
-            Update selected
+            Update
         </button>
         <button type="button"
                 class="btn btn-outline btn-error btn-sm"
@@ -60,7 +67,7 @@
                 hx-swap="innerHTML"
                 data-powercrud-favourite-manage-action="true"
                 {% if not filter_favourites_can_manage or not saved_filter_favourites %}disabled{% endif %}>
-            Delete selected
+            Delete
         </button>
     </div>
 
