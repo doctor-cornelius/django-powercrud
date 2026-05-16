@@ -406,10 +406,10 @@ def test_changing_favourite_populated_choice_filter_applies_immediately(
     expect(page.locator("#filtered_results")).not_to_contain_text(target_book.title)
 
 
-def test_filter_reset_clears_remembered_selected_favourite(
+def test_filter_reset_marks_selected_favourite_dirty(
     page, client, books_url, sample_books
 ):
-    """Resetting filters should also clear the remembered selected favourite in the toolbar."""
+    """Resetting filters should keep the selected favourite and mark it edited."""
 
     user = login_playwright_user(
         client=client,
@@ -438,7 +438,7 @@ def test_filter_reset_clears_remembered_selected_favourite(
     open_filters_panel(page)
     open_favourites_dropdown(page)
     favourites_select = get_open_favourites_panel(page).locator("select[name='favourite_id']")
-    select_saved_favourite(page, "Reset me")
+    favourite_id = select_saved_favourite(page, "Reset me")
     page.wait_for_load_state("networkidle")
     expect(page.locator("#filter-form input[name='title']")).to_have_value(target_book.title)
     page.get_by_role("link", name="Reset filters").click()
@@ -447,7 +447,11 @@ def test_filter_reset_clears_remembered_selected_favourite(
     open_filters_panel(page)
     open_favourites_dropdown(page)
 
-    expect(favourites_select).to_have_value("")
+    expect(favourites_select).to_have_value(favourite_id)
+    trigger = page.locator("[data-powercrud-filter-favourites-trigger='true']:visible").first
+    expect(trigger).to_have_attribute("data-powercrud-filter-favourites-selected", "true")
+    expect(trigger).to_have_attribute("data-powercrud-filter-favourites-dirty", "true")
+    expect(trigger).to_have_attribute("data-tippy-content", "Reset me (edited)")
 
 
 def test_filter_favourite_apply_replaces_optional_filter_visibility(

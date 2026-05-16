@@ -78,6 +78,38 @@ def wait_for_overflow_truncation(page, selector: str):
     )
 
 
+def test_toolbar_controls_use_powercrud_tooltips(page, books_url):
+    """Toolbar controls should use top-placed PowerCRUD tooltips, not native titles."""
+    page.goto(books_url)
+    page.wait_for_load_state("networkidle")
+
+    tooltip_selectors = [
+        "[data-powercrud-filter-favourites-trigger='true'][data-tippy-content='Saved favourites']",
+        "[data-powercrud-filter-toggle][data-tippy-content='Show filters']",
+        "[data-powercrud-list-columns-trigger='true'][data-tippy-content='Choose visible columns']",
+        "#page-size-form label[data-tippy-content='Rows per page']",
+    ]
+
+    for selector in tooltip_selectors:
+        trigger = page.locator(selector).first
+        expect(trigger).to_be_visible()
+        expect(trigger).not_to_have_attribute("title", re.compile(".+"))
+        wait_for_tippy_instance(page, selector)
+        assert trigger.evaluate("el => Boolean(el._tippy)"), (
+            f"Expected toolbar control {selector} to have a PowerCRUD Tippy instance."
+        )
+
+    filter_trigger = page.locator("[data-powercrud-filter-toggle]").first
+    assert filter_trigger.evaluate("el => el._tippy.props.placement") == "top"
+    filter_trigger.hover()
+    expect(page.locator("[data-tippy-root] .tippy-box[data-placement^='top']")).to_be_visible()
+
+    page_size_select = page.locator("#page-size-select")
+    assert page_size_select.evaluate("el => window.getComputedStyle(el).cursor") == "pointer", (
+        "Expected the page-size select to show pointer cursor on hoverable devices."
+    )
+
+
 def test_overflow_tooltips_reinitialize_after_htmx_refresh(
     page, books_url, sample_author, sample_books
 ):

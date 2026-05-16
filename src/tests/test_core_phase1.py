@@ -1886,8 +1886,14 @@ def test_book_list_filter_form_uses_compact_grid_layout(client):
     assert 'id="filter-form"' in response_text, (
         "Book list view should render the filter form when filterset_fields are configured."
     )
-    assert 'class="grid gap-x-2 gap-y-0 sm:grid-cols-2 xl:grid-cols-3"' in response_text, (
-        "Book list filter form should cap itself at three columns and remove extra row gap so the panel feels compact rather than sprawling."
+    assert 'class="grid gap-x-2 gap-y-0"' in response_text, (
+        "Book list filter form should keep compact grid spacing without fixed breakpoint column classes."
+    )
+    assert "grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));" in response_text, (
+        "Book list filter form should auto-fit readable filter columns instead of hard-capping at three columns."
+    )
+    assert "max-width: calc((20rem * 4) + (0.5rem * 3));" in response_text, (
+        "Book list filter form should cap the filter grid at four readable columns even when the table is very wide."
     )
     assert "filter-field form-control w-full min-w-0" in response_text, (
         "Book list filter fields should use the compact wrapper class within the grid layout."
@@ -1907,8 +1913,8 @@ def test_book_list_filter_form_uses_compact_grid_layout(client):
     assert "--pc-filter-control-height: 2rem;" in response_text, (
         "Book list filters should use shorter controls so the compact panel does not feel like a full data-entry form."
     )
-    assert "max-width: 78rem;" in response_text, (
-        "The filter panel should cap its width so it feels like a deliberate query workspace rather than spanning indefinitely."
+    assert "max-width: 78rem;" not in response_text, (
+        "The filter panel shell should no longer cap below the synced table width."
     )
     assert "column-gap: 0.375rem;" in response_text, (
         "Book list filter rows should tighten label-to-control spacing to reduce the sense of bloat."
@@ -1948,6 +1954,9 @@ def test_book_list_shows_add_filter_control_and_hides_optional_filters_by_defaul
     assert 'aria-label="Show filters"' in response_text, (
         "The icon-only filter trigger should keep an accessible label for screen-reader and tooltip use."
     )
+    assert 'data-powercrud-filter-toggle id="filterToggleBtn" aria-controls="filterCollapse" aria-expanded="false" aria-label="Show filters" data-powercrud-tooltip="semantic" data-tippy-content="Show filters"' in response_text, (
+        "The filter trigger should use PowerCRUD Tippy metadata instead of a native title tooltip."
+    )
     filter_panel_index = response_text.index('id="filterCollapse"')
     assert filter_panel_index < response_text.index(
         'data-powercrud-add-filter-container',
@@ -1957,6 +1966,18 @@ def test_book_list_shows_add_filter_control_and_hides_optional_filters_by_defaul
     )
     assert 'class="hidden border-b border-base-200 px-3 py-2" data-powercrud-add-filter-container' in response_text, (
         "Book list view should hide the Add filter control by default until the user opens the filter panel."
+    )
+    assert "bg-base-200" in response_text and "border-base-content/20" in response_text, (
+        "Add filter should use a neutral panel-control surface instead of matching active filter inputs."
+    )
+    assert "[data-powercrud-add-filter-container]:not(.hidden)" in response_text and "justify-content: flex-end;" in response_text, (
+        "Visible Add filter controls should align to the top-right of the filter panel on desktop."
+    )
+    assert 'data-powercrud-filter-panel-action data-powercrud-filter-reset' in response_text, (
+        "Reset filters should live in the top filter control row rather than a separate footer."
+    )
+    assert 'class="btn btn-outline btn-sm' in response_text and "Reset filters" in response_text, (
+        "Reset filters should render as a visible button beside Add filter."
     )
     assert 'id="filterCollapse"' in response_text and 'class="hidden py-2"' in response_text, (
         "Book list view should render the filter panel collapsed by default on the initial response."
@@ -1979,8 +2000,14 @@ def test_book_list_page_size_form_includes_only_page_size_and_filter_form(client
     assert 'id="page-size-form"' in response_text, (
         "Book list should render the dedicated page-size form markup."
     )
-    assert 'id="page-size-select" name="page_size" data-powercrud-page-size-select="true"' in response_text, (
+    assert 'id="page-size-select"' in response_text and 'name="page_size"' in response_text and 'data-powercrud-page-size-select="true"' in response_text, (
         "Page-size changes should use the dedicated PowerCRUD page-size selector hook rather than a broad form-level include."
+    )
+    assert 'data-tippy-content="Rows per page"' in response_text, (
+        "Page-size control should expose a PowerCRUD tooltip."
+    )
+    assert 'class="cursor-pointer" name="page_size"' in response_text, (
+        "The page-size select should use a pointer cursor to match clickable toolbar controls."
     )
 
 

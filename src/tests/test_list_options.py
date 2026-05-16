@@ -27,8 +27,17 @@ def test_book_list_renders_column_chooser_for_anonymous_user(client):
     assert "Cols 9/12" in response_text, (
         "Users should see the list-column chooser with active/allowed counts."
     )
+    assert 'data-powercrud-list-columns-trigger="true"' in response_text and 'data-tippy-content="Choose visible columns"' in response_text, (
+        "The list-column chooser trigger should expose a PowerCRUD tooltip."
+    )
     assert 'name="visible_columns"' in response_text, (
         "The chooser should render checkbox inputs for selectable columns."
+    )
+    assert 'name="list_columns_action"' in response_text and 'value="reset"' in response_text, (
+        "The chooser should render a reset action for returning to default columns."
+    )
+    assert 'class="btn btn-outline btn-sm"' in response_text, (
+        "The list-column reset action should render as a proper outlined button."
     )
     assert 'data-field-name="uneditable_field"' not in response_text, (
         "BookCRUDView should hide at least one allowed data column by default for the sample demo."

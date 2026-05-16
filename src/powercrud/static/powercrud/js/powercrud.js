@@ -646,7 +646,8 @@
         const isHidden = filterCollapse.classList.contains('hidden');
         filterBtn.setAttribute('aria-expanded', isHidden ? 'false' : 'true');
         filterBtn.setAttribute('aria-label', isHidden ? 'Show filters' : 'Hide filters');
-        filterBtn.setAttribute('title', isHidden ? 'Show filters' : 'Hide filters');
+        filterBtn.setAttribute('data-tippy-content', isHidden ? 'Show filters' : 'Hide filters');
+        schedulePowercrudTooltipRefresh(root);
     }
 
     function getFilterPanelStorageKey(root) {
@@ -724,8 +725,39 @@
         });
     }
 
+    function syncListColumnChooserPlacement(container) {
+        if (!(container instanceof HTMLDetailsElement) || !container.open) {
+            return;
+        }
+
+        const panel = container.querySelector('[data-powercrud-list-columns-panel="true"]');
+        const trigger = container.querySelector('[data-powercrud-list-columns-trigger="true"]');
+        if (!(panel instanceof HTMLElement) || !(trigger instanceof HTMLElement)) {
+            return;
+        }
+
+        container.dataset.powercrudListColumnsPlacement = 'end';
+        global.requestAnimationFrame(() => {
+            if (!container.open) {
+                return;
+            }
+            const triggerRect = trigger.getBoundingClientRect();
+            const panelWidth = Math.min(
+                panel.offsetWidth,
+                document.documentElement.clientWidth - 16,
+            );
+            const margin = 8;
+            const endLeft = triggerRect.right - panelWidth;
+            const shouldOpenStart = endLeft < margin;
+            container.dataset.powercrudListColumnsPlacement = shouldOpenStart ? 'start' : 'end';
+        });
+    }
+
     function syncListColumnChoosers(root = document) {
-        queryAllWithSelf(root, LIST_COLUMNS_SELECTOR).forEach(syncListColumnChooser);
+        queryAllWithSelf(root, LIST_COLUMNS_SELECTOR).forEach(container => {
+            syncListColumnChooser(container);
+            syncListColumnChooserPlacement(container);
+        });
     }
 
     function resetListColumnChooserDraft(container) {
@@ -994,7 +1026,6 @@
             trigger.dataset.powercrudFilterFavouritesSelected = 'true';
             trigger.dataset.powercrudFilterFavouritesDirty = isDirty ? 'true' : 'false';
             trigger.setAttribute('aria-label', `Saved favourite: ${displayLabel}`);
-            trigger.setAttribute('title', displayLabel);
             trigger.setAttribute('data-powercrud-tooltip', 'semantic');
             trigger.setAttribute('data-tippy-content', displayLabel);
             return;
@@ -1003,9 +1034,8 @@
         trigger.dataset.powercrudFilterFavouritesSelected = 'false';
         trigger.dataset.powercrudFilterFavouritesDirty = 'false';
         trigger.setAttribute('aria-label', defaultLabel);
-        trigger.setAttribute('title', defaultLabel);
-        trigger.removeAttribute('data-powercrud-tooltip');
-        trigger.removeAttribute('data-tippy-content');
+        trigger.setAttribute('data-powercrud-tooltip', 'semantic');
+        trigger.setAttribute('data-tippy-content', defaultLabel);
     }
 
     function syncFilterFavouritesTriggerLabel(toolbar) {
@@ -3696,11 +3726,13 @@
         if (resetTrigger) {
             const root = getObjectListRoot(resetTrigger);
             if (root) {
+                const toolbar = getFilterFavouritesContainer(root);
                 clearStoredViewState(root);
                 setStoredOptionalFilterNames(root, []);
                 setPersistedOptionalFilterNames(root, []);
                 resetFilterForm(root);
-                clearPendingFilterFavouriteSelection(root);
+                markSelectedFilterFavouriteDirty(root, toolbar);
+                syncFilterFavouritesSelection(root);
             }
             return;
         }
@@ -3763,9 +3795,11 @@
         }
         syncListColumnChooser(chooser);
         if (chooser.open) {
+            syncListColumnChooserPlacement(chooser);
             focusFirstListColumnCheckbox(chooser);
             return;
         }
+        delete chooser.dataset.powercrudListColumnsPlacement;
         resetListColumnChooserDraft(chooser);
     }, true);
 

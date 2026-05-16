@@ -207,3 +207,18 @@ def test_book_list_wrapped_view_controls_align_left(
     assert abs(metrics["controlsLeft"] - metrics["toolbarLeft"]) <= 2, (
         "Wrapped view controls should align with the left edge of the list toolbar."
     )
+
+    panel = open_column_chooser(page)
+    page.wait_for_function(
+        """
+        () => document
+            .querySelector('[data-powercrud-list-columns="true"]')
+            ?.getAttribute('data-powercrud-list-columns-placement') === 'start'
+        """
+    )
+    panel_box = panel.bounding_box()
+    assert panel_box is not None, "Wrapped column chooser panel should have a rendered box."
+    assert panel_box["x"] >= -2, (
+        "Wrapped column chooser panel should flip open to the right instead of spilling off the left viewport edge."
+    )
+    expect(panel.get_by_text("Title*", exact=True)).to_be_visible()

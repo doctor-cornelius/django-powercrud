@@ -8,13 +8,10 @@
     <button type="button"
             class="btn btn-outline btn-secondary {{ view.get_extra_button_classes }}"
             aria-label="{% if selected_filter_favourite_name %}Saved favourite: {{ selected_filter_favourite_name }}{% else %}Saved favourites{% endif %}"
-            title="{% if selected_filter_favourite_name %}{{ selected_filter_favourite_name }}{% else %}Saved favourites{% endif %}"
             data-powercrud-filter-favourites-selected="{% if selected_filter_favourite_name %}true{% else %}false{% endif %}"
             data-powercrud-filter-favourites-default-label="Saved favourites"
-            {% if selected_filter_favourite_name %}
             data-powercrud-tooltip="semantic"
-            data-tippy-content="{{ selected_filter_favourite_name }}"
-            {% endif %}
+            data-tippy-content="{% if selected_filter_favourite_name %}{{ selected_filter_favourite_name }}{% else %}Saved favourites{% endif %}"
             data-powercrud-filter-favourites-trigger="true">
         <span class="{% if selected_filter_favourite_name %}hidden {% endif %}text-secondary"
               aria-hidden="true"

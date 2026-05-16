@@ -78,6 +78,12 @@ def test_book_list_renders_favourites_toolbar_for_authenticated_user(client):
     assert 'aria-label="Saved favourites"' in response_text, (
         "Book list should render the compact icon-only saved favourites trigger when the view opts in."
     )
+    assert 'data-powercrud-tooltip="semantic"' in response_text and 'data-tippy-content="Saved favourites"' in response_text, (
+        "The unselected favourites trigger should use PowerCRUD Tippy metadata instead of a native title tooltip."
+    )
+    assert 'title="Saved favourites"' not in response_text, (
+        "The unselected favourites trigger should not use browser-native title tooltips."
+    )
     assert 'data-powercrud-filter-favourites-selected="false"' in response_text, (
         "Book list should render the saved favourites trigger in its unselected icon-only state by default."
     )
@@ -151,6 +157,9 @@ def test_book_list_renders_long_selected_favourite_with_truncation_tooltip(clien
     )
     assert 'data-tippy-content="Pages set to two hundred twent"' in response_text, (
         "Long selected favourite names should keep the full value in the tooltip payload even when the trigger truncates it."
+    )
+    assert 'title="Pages set to two hundred twent"' not in response_text, (
+        "Selected favourites should avoid browser-native title tooltips so placement is controlled by Tippy."
     )
 
 
