@@ -4,6 +4,10 @@ PowerCRUD is still evolving quickly, and the early release history was cut at a 
 
 Version numbers below correspond to published git tags. The more important releases include a little extra narrative and upgrade context; smaller patch releases remain deliberately brief. For full detail between any two versions, use the GitHub compare view for the matching tags.
 
+## 0.6.8 (2026-05-16)
+- **Feature (list-options)**: add explicit chooser opt-in
+- **Style**: auto-fit filter controls
+
 ## 0.6.7 (2026-05-16)
 - **Feature (list-columns)**: allow user-selected list columns
   
