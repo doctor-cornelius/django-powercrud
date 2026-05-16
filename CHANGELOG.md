@@ -4,6 +4,15 @@ PowerCRUD is still evolving quickly, and the early release history was cut at a 
 
 Version numbers below correspond to published git tags. The more important releases include a little extra narrative and upgrade context; smaller patch releases remain deliberately brief. For full detail between any two versions, use the GitHub compare view for the matching tags.
 
+## 0.6.7 (2026-05-16)
+- **Feature (list-columns)**: allow user-selected list columns
+  
+  Developers can now specify for list columns defined in `fields` the subset `default_list_fields` which will be shown on default. Users can then edit which columns are to be displayed or hidden on each view. The selections will persist across refreshes and navigation changes. 
+  
+  If the optional `powercrud.contrib.favourites` is installed, then for each view, selected list columns, filter settings, filter field open/closed state and page sizing can be persisted in named favourites.
+
+- **Feature (extra-buttons)**: add extra buttons "More" dropdown facility analagous to extra-actions
+
 ## 0.6.6 (2026-05-15)
 - **Fix (inline)**: reserve width for inline save & cancel buttons
 
