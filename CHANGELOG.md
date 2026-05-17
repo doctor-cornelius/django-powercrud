@@ -1,8 +1,13 @@
 # Changelog
 
-PowerCRUD is still evolving quickly, and the early release history was cut at a high patch cadence while the package moved from `nominopolitan` to `powercrud`.
+PowerCRUD adopts a loose semantic versioning approach at this stage. Essentially while on major version `0`, almost every release is a patch release. Minor releases occur periodically if we feel the cumulative functionality is major, or if the patch suffix number is getting to a ridiculous number. 
+
+As per the pinned note in the `README`, breaking changes can occur at this stage (although we try to minimise these). Once we move to major release `1` the intention is to be more disciplined.
 
 Version numbers below correspond to published git tags. The more important releases include a little extra narrative and upgrade context; smaller patch releases remain deliberately brief. For full detail between any two versions, use the GitHub compare view for the matching tags.
+
+## 0.6.10 (2026-05-17)
+- **Style (object_list)**: change text style for view header to text-base-content for better contrast in dark themes
 
 ## 0.6.9 (2026-05-17)
 - **Feature (view_help)**: add param view_help providing collapsed title with detail instructions for screen
