@@ -138,7 +138,7 @@ def test_runtime_startup_centralises_once_only_listener_registration() -> None:
 
 
 def test_current_template_syncs_view_help_to_table_width() -> None:
-    """Current-template geometry should align collapsed screen help with the rendered table."""
+    """Current-template geometry should align table-adjacent controls with the table."""
     package_root = Path(powercrud.__file__).resolve().parent
     selectors_js = package_root / "static" / "powercrud" / "js" / "runtime" / "selectors.js"
     template_js = package_root / "static" / "powercrud" / "js" / "runtime" / "current-template.js"
@@ -150,8 +150,17 @@ def test_current_template_syncs_view_help_to_table_width() -> None:
         "VIEW_HELP_SELECTOR = '[data-powercrud-view-help=\"true\"]'" in selectors
     ), "Selectors should expose the collapsed screen-help selector."
     assert (
+        "PAGINATION_SELECTOR = '[data-powercrud-pagination=\"true\"]'" in selectors
+    ), "Selectors should expose the pagination selector."
+    assert (
         "const viewHelp = root.querySelector(VIEW_HELP_SELECTOR);" in template
     ), "Current-template geometry should find the collapsed screen-help element."
+    assert (
+        "const pagination = root.querySelector(PAGINATION_SELECTOR);" in template
+    ), "Current-template geometry should find the pagination element."
+    assert (
+        "pagination.style.width = `${tableWidth}px`;" in template
+    ), "Current-template geometry should align pagination width to the rendered table."
     assert (
         "viewHelp.dataset.powercrudViewHelpMinWidth || '40rem'" in template
     ), "Current-template geometry should respect the view-help minimum-width data attribute."

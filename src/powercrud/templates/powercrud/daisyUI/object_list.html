@@ -643,7 +643,7 @@
 
 {% partialdef pagination %}
 {% if is_paginated %}
-<nav aria-label="Page navigation" class="mt-4">
+<nav aria-label="Page navigation" class="mt-4" data-powercrud-pagination="true">
     <ul class="join flex justify-center">
         {% if page_obj.has_previous %}
         <li>

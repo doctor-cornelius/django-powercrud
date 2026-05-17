@@ -1,6 +1,7 @@
 import {
     DEFAULT_MODAL_BOX_CLASSES,
     LIST_TOOLBAR_SELECTOR,
+    PAGINATION_SELECTOR,
     TOOLTIP_TRIGGER_SELECTOR,
     VIEW_HELP_SELECTOR,
 } from './selectors.js';
@@ -195,6 +196,7 @@ export function createCurrentTemplateRuntime(context) {
         }
         const toolbar = root.querySelector(LIST_TOOLBAR_SELECTOR);
         const filterCollapse = root.querySelector('#filterCollapse');
+        const pagination = root.querySelector(PAGINATION_SELECTOR);
         const viewHelp = root.querySelector(VIEW_HELP_SELECTOR);
         const table = root.querySelector('#filtered_results table');
         if (!(toolbar instanceof HTMLElement) || !(table instanceof HTMLElement)) {
@@ -211,6 +213,10 @@ export function createCurrentTemplateRuntime(context) {
                 filterCollapse.style.width = '';
                 filterCollapse.style.maxWidth = '';
             }
+            if (pagination instanceof HTMLElement) {
+                pagination.style.width = '';
+                pagination.style.maxWidth = '';
+            }
             if (viewHelp instanceof HTMLElement) {
                 viewHelp.style.width = '';
                 viewHelp.style.maxWidth = '';
@@ -222,6 +228,10 @@ export function createCurrentTemplateRuntime(context) {
         if (filterCollapse instanceof HTMLElement) {
             filterCollapse.style.width = `${tableWidth}px`;
             filterCollapse.style.maxWidth = '100%';
+        }
+        if (pagination instanceof HTMLElement) {
+            pagination.style.width = `${tableWidth}px`;
+            pagination.style.maxWidth = '100%';
         }
         if (viewHelp instanceof HTMLElement) {
             const minWidth = viewHelp.dataset.powercrudViewHelpMinWidth || '40rem';

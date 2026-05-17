@@ -3,11 +3,14 @@
 from __future__ import annotations
 
 import re
+from datetime import date
 
 import pytest
 
 pytest.importorskip("playwright.sync_api")
 from playwright.sync_api import expect
+
+from sample.models import Book
 
 pytestmark = [pytest.mark.playwright, pytest.mark.django_db]
 
@@ -189,6 +192,81 @@ def test_book_list_column_controls_fit_table_or_viewport(
     )
     assert panel_metrics["panelRight"] <= panel_metrics["expectedRight"] + 2, (
         "Expanded filter panel should align within the narrower of the table edge or viewport edge."
+    )
+
+
+def test_book_list_pagination_centres_on_table_width(
+    page, books_url, sample_author, sample_books
+):
+    """Pagination controls should stay centered within the rendered table footprint."""
+
+    for idx in range(2, 12):
+        Book.objects.create(
+            title=f"Pagination Center Book {idx}",
+            author=sample_author,
+            published_date=date(2024, 5, (idx % 28) + 1),
+            bestseller=False,
+            isbn=f"97877779{idx:02d}00",
+            pages=200 + idx,
+            description="Created to exercise pagination positioning",
+        )
+
+    page.set_viewport_size({"width": 1280, "height": 900})
+    page.goto(f"{books_url}?page_size=5")
+    page.wait_for_load_state("networkidle")
+
+    expect(page.locator("[data-powercrud-pagination='true']")).to_be_visible()
+    wide_metrics = page.evaluate(
+        """
+        () => {
+            const table = document.querySelector('#filtered_results table');
+            const pagination = document.querySelector('[data-powercrud-pagination="true"]');
+            const tableRect = table.getBoundingClientRect();
+            const paginationRect = pagination.getBoundingClientRect();
+            return {
+                tableCenter: tableRect.left + (tableRect.width / 2),
+                paginationCenter: paginationRect.left + (paginationRect.width / 2),
+            };
+        }
+        """
+    )
+    assert abs(wide_metrics["paginationCenter"] - wide_metrics["tableCenter"]) <= 4, (
+        "Pagination should initially be centered on the rendered table."
+    )
+
+    panel = open_column_chooser(page)
+    checked_values = panel.locator(
+        "input[name='visible_columns'][type='checkbox']:checked"
+    ).evaluate_all("(elements) => elements.map((element) => element.value)")
+    assert "title" in checked_values, (
+        "The sample column set should include title for the narrow-table pagination check."
+    )
+    for value in checked_values:
+        if value != "title":
+            panel.locator(f"input[name='visible_columns'][value='{value}']").uncheck()
+
+    with page.expect_response(re.compile(r"/sample/bigbook/")):
+        panel.get_by_role("button", name="Save").click()
+    expect(page.locator("[data-powercrud-list-columns='true'] summary")).to_contain_text(
+        re.compile(r"Cols\s+1/12")
+    )
+
+    narrow_metrics = page.evaluate(
+        """
+        () => {
+            const table = document.querySelector('#filtered_results table');
+            const pagination = document.querySelector('[data-powercrud-pagination="true"]');
+            const tableRect = table.getBoundingClientRect();
+            const paginationRect = pagination.getBoundingClientRect();
+            return {
+                tableCenter: tableRect.left + (tableRect.width / 2),
+                paginationCenter: paginationRect.left + (paginationRect.width / 2),
+            };
+        }
+        """
+    )
+    assert abs(narrow_metrics["paginationCenter"] - narrow_metrics["tableCenter"]) <= 4, (
+        "Pagination should remain centered on the table after the table narrows."
     )
 
 

@@ -7,6 +7,7 @@ export const TOOLTIP_TRIGGER_SELECTOR = '[data-powercrud-tooltip][data-tippy-con
 export const LIST_COLUMNS_SELECTOR = '[data-powercrud-list-columns="true"]';
 export const LIST_COLUMN_CHECKBOX_SELECTOR = '[data-powercrud-list-column-checkbox="true"]';
 export const LIST_TOOLBAR_SELECTOR = '[data-powercrud-list-toolbar="true"]';
+export const PAGINATION_SELECTOR = '[data-powercrud-pagination="true"]';
 export const VIEW_HELP_SELECTOR = '[data-powercrud-view-help="true"]';
 export const INLINE_ROW_SELECTOR = 'tr[data-inline-row="true"]';
 export const INLINE_TABLE_SELECTOR = 'table[data-inline-enabled="true"]';
