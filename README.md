@@ -1,12 +1,18 @@
 # Django PowerCRUD
 
 [![Run Test Matrix](https://github.com/doctor-cornelius/django-powercrud/actions/workflows/pr_tests.yml/badge.svg)](https://github.com/doctor-cornelius/django-powercrud/actions/workflows/pr_tests.yml)
+
 [![codecov](https://codecov.io/github/doctor-cornelius/django-powercrud/branch/main/graph/badge.svg)](https://codecov.io/github/doctor-cornelius/django-powercrud)
+
 [![Python](https://img.shields.io/badge/python-3.12%20%7C%203.13%20%7C%203.14-blue)](#supported-versions)
+
 [![Django](https://img.shields.io/badge/django-5.2%20%7C%206.0-0C4B33)](#supported-versions)
-[![PyPI](https://img.shields.io/pypi/v/django-powercrud.svg)](https://pypi.org/project/django-powercrud/)
-[![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+
 [![Renovate](https://img.shields.io/badge/renovate-enabled-brightgreen?logo=renovatebot)](https://developer.mend.io/github/doctor-cornelius/django-powercrud)
+
+[![PyPI](https://img.shields.io/pypi/v/django-powercrud.svg?cacheSeconds=300)](https://pypi.org/project/django-powercrud/)
+
+[![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 **Advanced CRUD for perfectionists with deadlines. An opinionated Django package for shipping production-grade CRUD screens with filtering, bulk operations, inline editing, and async workflows.**
 
