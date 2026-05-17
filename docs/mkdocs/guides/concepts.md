@@ -16,7 +16,7 @@ That distinction matters because not every setting that mentions a field has the
 
 A Surface is the configured working screen for a model: queryset, list columns, filters, sorting, pagination, record counts, selection state, and available actions.
 
-Surface options include `model`, `queryset`, `url_base`, `view_title`, `filterset_fields`, `filterset_class`, `default_filterset_fields`, `list_options_enabled`, `default_list_fields`, `paginate_by`, `show_record_count`, and `get_queryset()`.
+Surface options include `model`, `queryset`, `url_base`, `view_title`, `view_instructions`, `view_help`, `filterset_fields`, `filterset_class`, `default_filterset_fields`, `list_options_enabled`, `default_list_fields`, `paginate_by`, `show_record_count`, and `get_queryset()`.
 
 Filters belong primarily to the Surface because they narrow the current working set. A field can contribute to filtering, but the Surface owns how filter state is applied and refreshed.
 
@@ -76,7 +76,7 @@ Async is related to bulk operation but has its own lifecycle. Treat it as a sepa
 
 ### Styling
 
-Styling controls table sizing, classes, alignments, template packs, and inline-edit highlighting.
+Styling controls table sizing, classes, alignments, template packs, inline-edit highlighting, and collapsed screen-help colour/width defaults.
 
 Styling options include `table_classes`, `action_button_classes`, `extra_button_classes`, `table_max_height`, `table_max_col_width`, `table_header_min_wrap_width`, `column_alignments`, `inline_edit_always_visible`, `inline_edit_highlight_accent`, and `templates_path`.
 

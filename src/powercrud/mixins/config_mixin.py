@@ -38,6 +38,9 @@ class ConfigMixin:
     base_template_path: str | None = None
     view_title: str | None = None
     view_instructions: str | None = None
+    view_help: dict[str, Any] | None = None
+    view_help_default_color: str = "base"
+    view_help_min_width: str = "40rem"
     column_help_text: dict[str, str] | None = None
     column_alignments: dict[str, str] | None = None
     list_cell_tooltip_fields: list[str] | None = None
@@ -1291,6 +1294,10 @@ class _ConfigShim:
             return self._raw("inline_edit_highlight_accent") or "#14b8a6"
         if name == "inline_save_refresh_policy":
             return self._raw("inline_save_refresh_policy") or "reset_if_filtered_out"
+        if name == "view_help_default_color":
+            return self._raw("view_help_default_color") or "base"
+        if name == "view_help_min_width":
+            return self._raw("view_help_min_width") or "40rem"
         if name == "column_sort_fields_override":
             return self._raw("column_sort_fields_override", {}) or {}
         if name == "column_alignments":

@@ -137,6 +137,29 @@ def test_runtime_startup_centralises_once_only_listener_registration() -> None:
     ), "Runtime JS should install once-only listeners through the startup helper."
 
 
+def test_current_template_syncs_view_help_to_table_width() -> None:
+    """Current-template geometry should align collapsed screen help with the rendered table."""
+    package_root = Path(powercrud.__file__).resolve().parent
+    selectors_js = package_root / "static" / "powercrud" / "js" / "runtime" / "selectors.js"
+    template_js = package_root / "static" / "powercrud" / "js" / "runtime" / "current-template.js"
+
+    selectors = selectors_js.read_text(encoding="utf-8")
+    template = template_js.read_text(encoding="utf-8")
+
+    assert (
+        "VIEW_HELP_SELECTOR = '[data-powercrud-view-help=\"true\"]'" in selectors
+    ), "Selectors should expose the collapsed screen-help selector."
+    assert (
+        "const viewHelp = root.querySelector(VIEW_HELP_SELECTOR);" in template
+    ), "Current-template geometry should find the collapsed screen-help element."
+    assert (
+        "viewHelp.dataset.powercrudViewHelpMinWidth || '40rem'" in template
+    ), "Current-template geometry should respect the view-help minimum-width data attribute."
+    assert (
+        "viewHelp.style.width = `min(100%, max(${minWidth}, ${tableWidth}px))`;" in template
+    ), "Current-template geometry should clamp view-help width to the container while honoring table width."
+
+
 def test_sample_templates_cover_vite_and_manual_static_loading_modes() -> None:
     """Sample templates should keep separate Vite and manual-static asset paths."""
     project_root = Path(__file__).resolve().parents[1]

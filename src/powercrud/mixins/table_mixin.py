@@ -1,3 +1,4 @@
+import re
 from typing import Any
 
 from django.utils.text import capfirst
@@ -9,6 +10,63 @@ class TableMixin:
     """
     Provides methods for table styling and layout.
     """
+
+    VIEW_HELP_SEMANTIC_COLORS = {
+        "base",
+        "primary",
+        "secondary",
+        "accent",
+        "neutral",
+        "info",
+        "success",
+        "warning",
+        "error",
+    }
+    VIEW_HELP_HEX_COLOR_RE = re.compile(r"^#[0-9a-f]{3}([0-9a-f]{3})?$")
+
+    @staticmethod
+    def _normalize_hex_color(value: str) -> str:
+        """
+        Expand short hex colors to six-digit lowercase form.
+        """
+        normalized = value.strip().lower()
+        if len(normalized) == 4:
+            return "#" + "".join(character * 2 for character in normalized[1:])
+        return normalized
+
+    @classmethod
+    def _view_help_style_vars(cls, color: str) -> str:
+        """
+        Return CSS variables for the collapsed screen-help color theme.
+        """
+        normalized = color.strip().lower()
+        if normalized == "base":
+            return (
+                "--pc-view-help-border: var(--color-base-300); "
+                "--pc-view-help-summary-bg: var(--color-base-100); "
+                "--pc-view-help-summary-fg: var(--color-base-content); "
+                "--pc-view-help-content-bg: var(--color-base-100); "
+                "--pc-view-help-content-fg: var(--color-base-content);"
+            )
+        if normalized in cls.VIEW_HELP_SEMANTIC_COLORS:
+            return (
+                f"--pc-view-help-border: color-mix(in srgb, var(--color-{normalized}) 35%, var(--color-base-300)); "
+                f"--pc-view-help-summary-bg: color-mix(in srgb, var(--color-{normalized}) 18%, var(--color-base-100)); "
+                "--pc-view-help-summary-fg: var(--color-base-content); "
+                f"--pc-view-help-content-bg: color-mix(in srgb, var(--color-{normalized}) 8%, var(--color-base-100)); "
+                "--pc-view-help-content-fg: var(--color-base-content);"
+            )
+        if not cls.VIEW_HELP_HEX_COLOR_RE.match(normalized):
+            return cls._view_help_style_vars("base")
+
+        hex_color = cls._normalize_hex_color(normalized)
+        return (
+            f"--pc-view-help-border: color-mix(in srgb, {hex_color} 35%, var(--color-base-300)); "
+            f"--pc-view-help-summary-bg: color-mix(in srgb, {hex_color} 18%, var(--color-base-100)); "
+            "--pc-view-help-summary-fg: var(--color-base-content); "
+            f"--pc-view-help-content-bg: color-mix(in srgb, {hex_color} 8%, var(--color-base-100)); "
+            "--pc-view-help-content-fg: var(--color-base-content);"
+        )
 
     def get_table_pixel_height_other_page_elements(self) -> str:
         """Returns the height of other elements on the page that the table is
@@ -145,6 +203,45 @@ class TableMixin:
         if configured_instructions:
             return configured_instructions
         return ""
+
+    def get_view_help(self) -> dict[str, Any]:
+        """
+        Return optional collapsed screen-help configuration.
+        """
+        config = resolve_config(self)
+        configured_help = config.view_help
+        if not isinstance(configured_help, dict):
+            return {}
+        summary = configured_help.get("summary")
+        details = configured_help.get("details")
+        if not isinstance(summary, str) or not isinstance(details, str):
+            return {}
+        if not summary.strip() or not details.strip():
+            return {}
+        color = configured_help.get("color") or config.view_help_default_color or "base"
+        min_width = configured_help.get("min_width") or config.view_help_min_width or "40rem"
+        return {
+            "summary": summary.strip(),
+            "details": details.strip(),
+            "default_open": configured_help.get("default_open") is True,
+            "color": color,
+            "min_width": min_width,
+            "style": self._view_help_style_vars(str(color)),
+        }
+
+    def get_view_help_detail_paragraphs(self) -> list[str]:
+        """
+        Return screen-help detail text split into paragraph blocks.
+        """
+        help_config = self.get_view_help()
+        details = help_config.get("details", "")
+        if not isinstance(details, str) or not details.strip():
+            return []
+        return [
+            paragraph.strip()
+            for paragraph in re.split(r"\n\s*\n", details.strip())
+            if paragraph.strip()
+        ]
 
     def get_column_help_text(self) -> dict[str, str]:
         """

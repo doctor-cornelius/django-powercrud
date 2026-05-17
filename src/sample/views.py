@@ -34,6 +34,17 @@ class BookCRUDView(SampleCRUDMixin):
     model = models.Book
     view_title = "My List of Books"
     view_instructions = "Here you can edit books"
+    view_help = {
+        "summary": "About this feature demo",
+        "details": (
+            "This Books screen demonstrates many PowerCRUD features in one place."
+            "\n\n"
+            "Use it to inspect list options, inline editing, saved filter favourites, "
+            "bulk actions, async workflows, modal links, external links, selection-aware "
+            "toolbar actions, and guarded update behaviour."
+        ),
+        "color": "info",
+    }
     namespace = "sample"
     base_template_path = "sample/base.html"
     use_htmx = True
@@ -166,8 +177,7 @@ class BookCRUDView(SampleCRUDMixin):
     extra_actions_mode = "dropdown"
     extra_actions_dropdown_open_upward_bottom_rows = 5
 
-    inline_edit_always_visible = True # default is True
-    inline_edit_highlight_accent = "#f40b0b"  # default is "#14b8a6"
+    inline_edit_always_visible = True  # default is True
 
     inline_preserve_required_fields = True  # toggle for testing
     inline_edit_fields = [
@@ -475,6 +485,7 @@ class AuthorCRUDView(SampleCRUDMixin):
     detail_properties = "__properties__"
 
     # inline_edit_enabled = True # deprecated
+    inline_edit_highlight_accent = "#f40b0b"
     inline_edit_fields = "__fields__"
 
     bulk_fields = [

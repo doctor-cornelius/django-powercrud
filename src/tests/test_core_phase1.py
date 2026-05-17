@@ -783,6 +783,87 @@ def test_table_mixin_get_view_instructions_prefers_configured_override():
     )
 
 
+def test_table_mixin_get_view_help_defaults_to_empty_mapping():
+    class TableView(TableMixin):
+        model = Author
+
+    view = TableView()
+
+    assert view.get_view_help() == {}, (
+        "Collapsed view help should default to an empty mapping when no help is configured."
+    )
+    assert view.get_view_help_detail_paragraphs() == [], (
+        "Collapsed view help should not produce paragraphs when no help is configured."
+    )
+
+
+def test_table_mixin_get_view_help_prefers_configured_mapping():
+    class TableView(TableMixin):
+        model = Author
+        view_help_default_color = "info"
+        view_help_min_width = "42rem"
+        view_help = {
+            "summary": "About this screen",
+            "details": "First paragraph.\n\nSecond paragraph.",
+            "default_open": True,
+        }
+
+    view = TableView()
+    help_config = view.get_view_help()
+
+    assert help_config["summary"] == "About this screen", (
+        "Collapsed view help should expose the configured summary."
+    )
+    assert help_config["details"] == "First paragraph.\n\nSecond paragraph.", (
+        "Collapsed view help should expose the configured details."
+    )
+    assert help_config["default_open"] is True, (
+        "Collapsed view help should expose the configured default-open state."
+    )
+    assert help_config["color"] == "info", (
+        "Collapsed view help should use the view-level default color when no local color is set."
+    )
+    assert help_config["min_width"] == "42rem", (
+        "Collapsed view help should use the view-level minimum width when no local override is set."
+    )
+    assert "var(--color-info)" in help_config["style"], (
+        "Collapsed view help should map semantic colors to daisyUI CSS variables."
+    )
+    assert view.get_view_help_detail_paragraphs() == [
+        "First paragraph.",
+        "Second paragraph.",
+    ], "Collapsed view help should split blank-line-separated details into paragraphs."
+
+
+def test_table_mixin_get_view_help_prefers_local_color_and_width_overrides():
+    class TableView(TableMixin):
+        model = Author
+        view_help_default_color = "base"
+        view_help_min_width = "40rem"
+        view_help = {
+            "summary": "About this screen",
+            "details": "Helpful guidance.",
+            "color": "#abc",
+            "min_width": "30rem",
+        }
+
+    view = TableView()
+    help_config = view.get_view_help()
+
+    assert help_config["color"] == "#abc", (
+        "Collapsed view help should use the local color override when provided."
+    )
+    assert help_config["min_width"] == "30rem", (
+        "Collapsed view help should use the local minimum-width override when provided."
+    )
+    assert "#aabbcc" in help_config["style"], (
+        "Collapsed view help should expand short hex colors before rendering style variables."
+    )
+    assert "--pc-view-help-summary-fg" in help_config["style"], (
+        "Collapsed view help should provide a readable summary foreground variable for hex themes."
+    )
+
+
 def test_table_mixin_get_column_help_text_defaults_to_empty_mapping():
     class TableView(TableMixin):
         model = Author
@@ -1471,6 +1552,187 @@ def test_author_list_escapes_view_instructions_html(client, monkeypatch):
     assert "<strong>Unsafe</strong>" not in response_text, (
         "List view should not render raw HTML from view_instructions."
     )
+
+
+@pytest.mark.django_db
+def test_author_list_omits_view_help_when_unset(client):
+    """Keep the list heading compact when collapsed view help is not configured."""
+    Author.objects.create(name="Alice Jones")
+
+    response = client.get(reverse("sample:author-list"))
+    response_text = response.content.decode()
+
+    assert response.status_code == 200, (
+        "Author list view should render successfully without view_help configured."
+    )
+    assert '<details class="collapse collapse-arrow mt-3 border"' not in response_text, (
+        "List view should not render the collapsed help container when view_help is unset."
+    )
+
+
+@pytest.mark.django_db
+def test_author_list_renders_collapsed_view_help_before_toolbar(client, monkeypatch):
+    """Render collapsed screen help below instructions and above the list toolbar."""
+    monkeypatch.setattr(
+        "sample.views.AuthorCRUDView.view_instructions",
+        "Helpful author guidance",
+        raising=False,
+    )
+    monkeypatch.setattr(
+        "sample.views.AuthorCRUDView.view_help",
+        {
+            "summary": "About authors",
+            "details": "First paragraph.\n\nSecond paragraph.",
+            "color": "info",
+            "min_width": "34rem",
+        },
+        raising=False,
+    )
+
+    Author.objects.create(name="Alice Jones")
+
+    response = client.get(reverse("sample:author-list"))
+    response_text = response.content.decode()
+
+    assert response.status_code == 200, (
+        "Author list view should render successfully when view_help is configured."
+    )
+    view_help_index = response_text.index(
+        '<details class="collapse collapse-arrow mt-3 border"'
+    )
+
+    assert 'data-powercrud-view-help="true"' in response_text[view_help_index:], (
+        "List view should render the collapsed help container when view_help is configured."
+    )
+    assert response_text.index("Helpful author guidance") < view_help_index, (
+        "Collapsed view help should render below view_instructions."
+    )
+    assert view_help_index < response_text.index(
+        'data-powercrud-list-toolbar="true"'
+    ), "Collapsed view help should render above the list toolbar."
+    assert "<summary" in response_text and "About authors" in response_text, (
+        "Collapsed view help should render the configured one-line summary."
+    )
+    assert 'data-powercrud-view-help-min-width="34rem"' in response_text, (
+        "Collapsed view help should expose its minimum width for table-width syncing."
+    )
+    assert (
+        "--pc-view-help-summary-bg: color-mix(in srgb, var(--color-info) 18%"
+        in response_text
+    ), (
+        "Collapsed view help should render semantic color variables as a tinted summary bar."
+    )
+    assert "padding-block: 0.75rem;" in response_text, (
+        "Collapsed view help should use compact summary-bar vertical padding."
+    )
+    assert "padding-top: 0.75rem;" in response_text, (
+        "Collapsed view help should add top padding to expanded content."
+    )
+    assert 'data-powercrud-view-help-content="true"' in response_text, (
+        "Collapsed view help should mark the content area separately for content coloring."
+    )
+    assert "<p>First paragraph.</p>" in response_text, (
+        "Collapsed view help should render the first details paragraph."
+    )
+    assert "<p>Second paragraph.</p>" in response_text, (
+        "Collapsed view help should render blank-line-separated paragraphs separately."
+    )
+    assert not re.search(
+        r'<details[^>]*data-powercrud-view-help="true"[^>]*open',
+        response_text,
+    ), "Collapsed view help should start closed when default_open is omitted."
+
+
+@pytest.mark.django_db
+def test_author_list_escapes_view_help_html(client, monkeypatch):
+    """Escape HTML-like summary and detail text so view_help remains plain text only."""
+    monkeypatch.setattr(
+        "sample.views.AuthorCRUDView.view_help",
+        {
+            "summary": "<strong>Unsafe summary</strong>",
+            "details": "<em>Unsafe details</em>",
+        },
+        raising=False,
+    )
+
+    Author.objects.create(name="Alice Jones")
+
+    response = client.get(reverse("sample:author-list"))
+    response_text = response.content.decode()
+
+    assert response.status_code == 200, (
+        "Author list view should render successfully when HTML-like view_help text is configured."
+    )
+    assert "&lt;strong&gt;Unsafe summary&lt;/strong&gt;" in response_text, (
+        "List view should escape HTML-like view_help summary text."
+    )
+    assert "&lt;em&gt;Unsafe details&lt;/em&gt;" in response_text, (
+        "List view should escape HTML-like view_help details text."
+    )
+    assert "<strong>Unsafe summary</strong>" not in response_text, (
+        "List view should not render raw HTML from view_help summary."
+    )
+    assert "<em>Unsafe details</em>" not in response_text, (
+        "List view should not render raw HTML from view_help details."
+    )
+
+
+@pytest.mark.django_db
+def test_author_list_renders_hex_view_help_color(client, monkeypatch):
+    """Render a safe inline style variable set for hex-coloured view help."""
+    monkeypatch.setattr(
+        "sample.views.AuthorCRUDView.view_help",
+        {
+            "summary": "About authors",
+            "details": "Use this screen to review authors.",
+            "color": "#abc",
+        },
+        raising=False,
+    )
+
+    Author.objects.create(name="Alice Jones")
+
+    response = client.get(reverse("sample:author-list"))
+    response_text = response.content.decode()
+
+    assert response.status_code == 200, (
+        "Author list view should render successfully when hex view_help color is configured."
+    )
+    assert (
+        "--pc-view-help-summary-bg: color-mix(in srgb, #aabbcc 18%"
+        in response_text
+    ), "Collapsed view help should render an expanded hex summary tint variable."
+    assert (
+        "--pc-view-help-content-bg: color-mix(in srgb, #aabbcc 8%"
+        in response_text
+    ), "Collapsed view help should render a quieter content tint for hex themes."
+
+
+@pytest.mark.django_db
+def test_author_list_renders_open_view_help_when_configured(client, monkeypatch):
+    """Respect the view_help default_open flag through the native details attribute."""
+    monkeypatch.setattr(
+        "sample.views.AuthorCRUDView.view_help",
+        {
+            "summary": "About authors",
+            "details": "Use this screen to review authors.",
+            "default_open": True,
+        },
+        raising=False,
+    )
+
+    Author.objects.create(name="Alice Jones")
+
+    response = client.get(reverse("sample:author-list"))
+    response_text = response.content.decode()
+
+    assert response.status_code == 200, (
+        "Author list view should render successfully when open view_help is configured."
+    )
+    assert re.search(
+        r'<details[^>]*data-powercrud-view-help="true"[^>]*open',
+        response_text,
+    ), "Collapsed view help should render open when default_open is True."
 
 
 @pytest.mark.django_db

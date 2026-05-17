@@ -43,6 +43,27 @@
             width: 100%;
         }
 
+        [data-powercrud-view-help="true"] {
+            border-color: var(--pc-view-help-border);
+            max-width: 100%;
+        }
+
+        [data-powercrud-view-help="true"] > summary {
+            background-color: var(--pc-view-help-summary-bg);
+            color: var(--pc-view-help-summary-fg);
+            min-height: 0;
+            padding-block: 0.75rem;
+        }
+
+        [data-powercrud-view-help-content="true"] {
+            background-color: var(--pc-view-help-content-bg);
+            color: var(--pc-view-help-content-fg);
+        }
+
+        [data-powercrud-view-help="true"][open] > [data-powercrud-view-help-content="true"] {
+            padding-top: 0.75rem;
+        }
+
         @media (max-width: 767px) {
             [data-powercrud-list-columns="true"] .dropdown-content {
                 inset-inline-end: auto;
@@ -238,6 +259,25 @@
         {% if view.get_view_instructions %}
             <p class="mt-1 text-sm text-base-content/80">{{ view.get_view_instructions }}</p>
         {% endif %}
+        {% with view_help=view.get_view_help view_help_paragraphs=view.get_view_help_detail_paragraphs %}
+            {% if view_help %}
+                <details class="collapse collapse-arrow mt-3 border"
+                         data-powercrud-view-help="true"
+                         data-powercrud-view-help-min-width="{{ view_help.min_width }}"
+                         style="{{ view_help.style }}"
+                         {% if view_help.default_open %}open{% endif %}>
+                    <summary class="collapse-title cursor-pointer text-sm font-semibold">
+                        {{ view_help.summary }}
+                    </summary>
+                    <div class="collapse-content space-y-2 text-sm"
+                         data-powercrud-view-help-content="true">
+                        {% for paragraph in view_help_paragraphs %}
+                            <p>{{ paragraph }}</p>
+                        {% endfor %}
+                    </div>
+                </details>
+            {% endif %}
+        {% endwith %}
 
         <div class="my-3 flex flex-wrap items-center gap-3"
              data-powercrud-list-toolbar="true">

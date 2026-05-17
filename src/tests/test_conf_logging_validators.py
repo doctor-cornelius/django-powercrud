@@ -52,6 +52,14 @@ def test_validator_accepts_valid_payload():
         namespace="sample",
         templates_path="powercrud/daisyUI",
         base_template_path="powercrud/base.html",
+        view_help={
+            "summary": "About this screen",
+            "details": "Use this screen to review active records.",
+            "color": "info",
+            "min_width": "36rem",
+        },
+        view_help_default_color="neutral",
+        view_help_min_width="42rem",
         use_crispy=False,
         fields=["title"],
         properties=["isbn"],
@@ -81,6 +89,87 @@ def test_validator_accepts_valid_payload():
     assert validator.modal_box_classes == "modal-box w-11/12 max-w-4xl", (
         "Modal class settings should be valid PowerCRUD configuration options."
     )
+    assert validator.view_help == {
+        "summary": "About this screen",
+        "details": "Use this screen to review active records.",
+        "default_open": False,
+        "color": "info",
+        "min_width": "36rem",
+    }, "View help should normalize an omitted default_open value to False."
+    assert validator.view_help_default_color == "neutral", (
+        "View help should accept daisyUI semantic default colors."
+    )
+    assert validator.view_help_min_width == "42rem", (
+        "View help should accept a safe default minimum width."
+    )
+
+
+def test_validator_accepts_open_view_help():
+    validator = PowerCRUDMixinValidator(
+        view_help={
+            "summary": "About this screen",
+            "details": "Review active records.\n\nUse bulk actions carefully.",
+            "default_open": True,
+            "color": "#0ea5e9",
+        }
+    )
+
+    assert validator.view_help["default_open"] is True, (
+        "The validator should preserve an explicit view_help default_open=True."
+    )
+    assert validator.view_help["color"] == "#0ea5e9", (
+        "The validator should preserve a valid hex view_help color override."
+    )
+
+
+@pytest.mark.parametrize(
+    "view_help",
+    [
+        {},
+        {"details": "Useful help."},
+        {"summary": "About"},
+        {"summary": "   ", "details": "Useful help."},
+        {"summary": "About", "details": "   "},
+        {"summary": "About", "details": "Useful help.", "tone": "info"},
+        {"summary": "About", "details": "Useful help.", "default_open": "yes"},
+        {"summary": "About", "details": "Useful help.", "color": "magenta"},
+        {"summary": "About", "details": "Useful help.", "color": "rgb(1, 2, 3)"},
+        {"summary": "About", "details": "Useful help.", "min_width": "calc(100%)"},
+    ],
+)
+def test_validator_rejects_invalid_view_help(view_help):
+    with pytest.raises(ValueError):
+        PowerCRUDMixinValidator(view_help=view_help)
+
+
+@pytest.mark.parametrize("color", ["base", "primary", "info", "#abc", "#aabbcc"])
+def test_validator_accepts_view_help_default_colors(color):
+    validator = PowerCRUDMixinValidator(view_help_default_color=color)
+
+    assert validator.view_help_default_color == color.lower(), (
+        "View help should accept base, daisyUI semantic, and hex default colors."
+    )
+
+
+@pytest.mark.parametrize("color", ["magenta", "rgb(1, 2, 3)", ""])
+def test_validator_rejects_invalid_view_help_default_color(color):
+    with pytest.raises(ValueError):
+        PowerCRUDMixinValidator(view_help_default_color=color)
+
+
+@pytest.mark.parametrize("min_width", ["32rem", "640px", "48ch", "80%"])
+def test_validator_accepts_view_help_min_width(min_width):
+    validator = PowerCRUDMixinValidator(view_help_min_width=min_width)
+
+    assert validator.view_help_min_width == min_width, (
+        "View help should accept safe CSS size values for the minimum width."
+    )
+
+
+@pytest.mark.parametrize("min_width", ["calc(100% - 1rem)", "wide", ""])
+def test_validator_rejects_invalid_view_help_min_width(min_width):
+    with pytest.raises(ValueError):
+        PowerCRUDMixinValidator(view_help_min_width=min_width)
 
 
 def test_validator_accepts_list_cell_link_default_open_in():

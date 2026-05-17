@@ -388,6 +388,29 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
 
 `view_instructions` adds a small escaped text block directly underneath the heading.
 
+### Collapsed screen help
+
+If you want longer screen-level guidance without making the page header heavy, set `view_help`:
+
+```python
+class ProjectCRUDView(PowerCRUDMixin, CRUDView):
+    # …
+    view_help = {
+        "summary": "About this screen",
+        "details": (
+            "Use this screen to review active projects.\n\n"
+            "Inline fields can be edited directly from the table."
+        ),
+        "color": "info",
+    }
+```
+
+`view_help` renders a collapsed daisyUI disclosure below `view_instructions` and above the list toolbar. The `summary` is the one-line clickable bar, and `details` is escaped plain text. Separate paragraphs with blank lines. Add `"default_open": True` only when the guidance should start expanded.
+
+By default, the help block uses the quiet `base` colour, aligns to the rendered table width, and will not shrink below `view_help_min_width = "40rem"` unless the surrounding container is narrower. Set `view_help_default_color` or `view_help_min_width` on the view to change those defaults. A specific `view_help` can override the colour with `"color": "info"` or a hex value such as `"#0ea5e9"`, and can override the width floor with `"min_width": "34rem"`. Semantic and hex colours are applied as subtle tints, with the summary bar slightly stronger than the content area.
+
+Most views should use either `view_instructions` for a short always-visible sentence or `view_help` for longer optional guidance. Use both only when the short description and expandable detail carry distinct information.
+
 ### Header tooltips
 
 If you want plain-text help tooltips on selected column headers, use `column_help_text`:
@@ -430,7 +453,7 @@ Tooltip behavior stays layered:
 - `list_cell_tooltip_fields` plus `get_list_cell_tooltip(...)` provides semantic per-cell tooltip text for selected rendered columns.
 - Unconfigured cells keep the built-in overflow tooltip behavior when their rendered content is truncated.
 
-When a semantic list-cell tooltip is configured for a cell, it takes precedence over the overflow tooltip for that same cell. PowerCRUD continues to use the model verbose names for other copy such as `Create project` and empty-state text, and `view_instructions`, `column_help_text`, and semantic list-cell tooltip text are all escaped plain text rather than HTML.
+When a semantic list-cell tooltip is configured for a cell, it takes precedence over the overflow tooltip for that same cell. PowerCRUD continues to use the model verbose names for other copy such as `Create project` and empty-state text, and `view_instructions`, `view_help`, `column_help_text`, and semantic list-cell tooltip text are all escaped plain text rather than HTML.
 
 ### List-cell links
 

@@ -2,6 +2,7 @@ import {
     DEFAULT_MODAL_BOX_CLASSES,
     LIST_TOOLBAR_SELECTOR,
     TOOLTIP_TRIGGER_SELECTOR,
+    VIEW_HELP_SELECTOR,
 } from './selectors.js';
 import {
     getAffectedObjectListRoots,
@@ -194,6 +195,7 @@ export function createCurrentTemplateRuntime(context) {
         }
         const toolbar = root.querySelector(LIST_TOOLBAR_SELECTOR);
         const filterCollapse = root.querySelector('#filterCollapse');
+        const viewHelp = root.querySelector(VIEW_HELP_SELECTOR);
         const table = root.querySelector('#filtered_results table');
         if (!(toolbar instanceof HTMLElement) || !(table instanceof HTMLElement)) {
             return;
@@ -209,6 +211,10 @@ export function createCurrentTemplateRuntime(context) {
                 filterCollapse.style.width = '';
                 filterCollapse.style.maxWidth = '';
             }
+            if (viewHelp instanceof HTMLElement) {
+                viewHelp.style.width = '';
+                viewHelp.style.maxWidth = '';
+            }
             return;
         }
         toolbar.style.width = `${tableWidth}px`;
@@ -216,6 +222,11 @@ export function createCurrentTemplateRuntime(context) {
         if (filterCollapse instanceof HTMLElement) {
             filterCollapse.style.width = `${tableWidth}px`;
             filterCollapse.style.maxWidth = '100%';
+        }
+        if (viewHelp instanceof HTMLElement) {
+            const minWidth = viewHelp.dataset.powercrudViewHelpMinWidth || '40rem';
+            viewHelp.style.width = `min(100%, max(${minWidth}, ${tableWidth}px))`;
+            viewHelp.style.maxWidth = '100%';
         }
 
         global.requestAnimationFrame(() => {

@@ -3,6 +3,48 @@ from typing import Union, Optional, List, Literal, Dict, Any, Callable
 import re
 
 
+VIEW_HELP_COLOR_NAMES = {
+    "base",
+    "primary",
+    "secondary",
+    "accent",
+    "neutral",
+    "info",
+    "success",
+    "warning",
+    "error",
+}
+HEX_COLOR_RE = re.compile(r"^#[0-9a-fA-F]{3}([0-9a-fA-F]{3})?$")
+CSS_SIZE_RE = re.compile(r"^\d+(\.\d+)?(px|rem|em|ch|%)$")
+
+
+def validate_view_help_color(value: str, field_name: str) -> str:
+    """Return a normalized view-help color token or raise ValueError."""
+    normalized = value.strip()
+    if not normalized:
+        raise ValueError(f"{field_name} must be a non-empty string")
+    lowered = normalized.lower()
+    if lowered in VIEW_HELP_COLOR_NAMES:
+        return lowered
+    if HEX_COLOR_RE.match(normalized):
+        return lowered
+    raise ValueError(
+        f"{field_name} must be a daisyUI semantic color or hex color"
+    )
+
+
+def validate_view_help_min_width(value: str, field_name: str) -> str:
+    """Return a normalized safe CSS size token or raise ValueError."""
+    normalized = value.strip()
+    if not normalized:
+        raise ValueError(f"{field_name} must be a non-empty string")
+    if not CSS_SIZE_RE.match(normalized):
+        raise ValueError(
+            f"{field_name} must be a CSS size using px, rem, em, ch, or %"
+        )
+    return normalized
+
+
 class PowerCRUDMixinValidator(BaseModel):
     """Validation model for PowerCRUDMixin settings"""
 
@@ -15,6 +57,9 @@ class PowerCRUDMixinValidator(BaseModel):
     base_template_path: Optional[str] = None
     view_title: Optional[str] = None
     view_instructions: Optional[str] = None
+    view_help: Optional[Dict[str, Any]] = None
+    view_help_default_color: Optional[str] = "base"
+    view_help_min_width: Optional[str] = "40rem"
     column_help_text: Optional[Dict[str, str]] = None
     column_alignments: Optional[Dict[str, Literal["left", "center", "right"]]] = None
     list_cell_tooltip_fields: Optional[List[str]] = None
@@ -191,6 +236,74 @@ class PowerCRUDMixinValidator(BaseModel):
                 "view_instructions must be a non-empty string when provided"
             )
         return v
+
+    @field_validator("view_help")
+    @classmethod
+    def validate_view_help(cls, v):
+        """Validate optional collapsed screen-help configuration."""
+        if v is None:
+            return v
+        if not isinstance(v, dict):
+            raise ValueError("view_help must be a dict when provided")
+
+        allowed_keys = {"summary", "details", "default_open", "color", "min_width"}
+        unknown_keys = set(v.keys()) - allowed_keys
+        if unknown_keys:
+            raise ValueError(
+                "view_help only supports summary, details, default_open, color, and min_width"
+            )
+
+        summary = v.get("summary")
+        if not isinstance(summary, str) or not summary.strip():
+            raise ValueError("view_help summary must be a non-empty string")
+
+        details = v.get("details")
+        if not isinstance(details, str) or not details.strip():
+            raise ValueError("view_help details must be a non-empty string")
+
+        default_open = v.get("default_open", False)
+        if not isinstance(default_open, bool):
+            raise ValueError("view_help default_open must be a boolean")
+
+        normalized = {
+            "summary": summary.strip(),
+            "details": details.strip(),
+            "default_open": default_open,
+        }
+        if "color" in v:
+            color = v.get("color")
+            if not isinstance(color, str):
+                raise ValueError("view_help color must be a string")
+            normalized["color"] = validate_view_help_color(color, "view_help color")
+        if "min_width" in v:
+            min_width = v.get("min_width")
+            if not isinstance(min_width, str):
+                raise ValueError("view_help min_width must be a string")
+            normalized["min_width"] = validate_view_help_min_width(
+                min_width,
+                "view_help min_width",
+            )
+        return normalized
+
+    @field_validator("view_help_default_color")
+    @classmethod
+    def validate_view_help_default_color(cls, v):
+        """Validate the default collapsed screen-help color."""
+        if v is None:
+            return "base"
+        if not isinstance(v, str):
+            raise ValueError("view_help_default_color must be a string")
+        return validate_view_help_color(v, "view_help_default_color")
+
+    @field_validator("view_help_min_width")
+    @classmethod
+    def validate_view_help_min_width(cls, v):
+        """Validate the default collapsed screen-help minimum width."""
+        if v is None:
+            return "40rem"
+        if not isinstance(v, str):
+            raise ValueError("view_help_min_width must be a string")
+        return validate_view_help_min_width(v, "view_help_min_width")
 
     @field_validator(
         "column_help_text",

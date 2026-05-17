@@ -36,6 +36,16 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
     templates_path = "projects/powercrud"
     view_title = "Active Client Projects"  # visible list heading only
     view_instructions = "Use the list below to review and update active projects."
+    view_help = {
+        "summary": "About this screen",
+        "details": (
+            "Use this screen to review active projects and update ownership, "
+            "status, and priority.\n\n"
+            "Bulk actions apply to the selected rows, while filters and list "
+            "columns change the current working view."
+        ),
+        "color": "info",
+    }
     column_help_text = {
         "owner": "Business owner responsible for the project.",
         "display_status": "Calculated status shown for quick triage.",
@@ -267,6 +277,7 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
 - `show_record_count` and `show_bulk_selection_meta` are separate toggles. You can show record counts without bulk-selection prompts, or vice versa.
 - `view_title` overrides only the visible list heading. It does not change create-button text, empty-state copy, or the model’s own verbose names.
 - `view_instructions` adds plain-text helper copy directly below the visible list heading. The content is escaped and does not accept HTML.
+- `view_help` adds collapsed plain-text screen help below `view_instructions` and above the list toolbar. The `summary` is always visible; blank lines in `details` create paragraphs; set `default_open = True` only when the help should start expanded. Help aligns to the table width, respects `view_help_min_width`, and can use `color` to apply a subtle daisyUI semantic or hex colour tint.
 - `column_help_text` adds optional plain-text tooltips to specific header labels. The help trigger is a separate info icon, so sortable headers keep sorting behavior.
 - `column_alignments` lets you override list body-cell alignment for specific rendered fields or properties without changing the default heuristic for the rest of the table.
 - `list_cell_tooltip_fields` opts selected rendered columns into semantic list-cell tooltips. The shared `get_list_cell_tooltip(...)` hook is only called for configured names that are actually visible in the current list, and returned plain text may include newline characters when the semantic cell tooltip should render on multiple lines.
