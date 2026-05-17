@@ -2,17 +2,43 @@
 
 ## Status
 
-The archived template-pack proposal has been promoted into an active planning folder. Phase 1 is treated as conceptually complete from the source proposal, but it should be refreshed against current code before implementation starts.
+The archived template-pack proposal has been promoted into an active planning folder. Phase 1 remains the conceptual source, and the plan has now been refreshed against JavaScript cleanup Phases 3 through 7.
+
+Current runtime truth:
+
+1. `powercrud/js/powercrud.js` is the stable public runtime entry.
+2. `window.initPowercrud(fragment)` already exists.
+3. Manual users load the entry with:
+
+    ```html
+    <script type="module" src="{% static 'powercrud/js/powercrud.js' %}"></script>
+    ```
+
+4. Bundled/Vite users continue through `config/static/js/main.js`.
+5. `initPowercrudPack(fragment)` remains future.
+6. No `powercrud_daisyui`, separate pack JavaScript, loader helper, or new public static asset path exists yet.
 
 ## Next
 
-1. Refresh the Phase 1 contract against the current templates, runtime JS, CSS assets, and packaging layout.
-2. Decide the first implementation slice for the core-vs-pack JavaScript split.
-3. Confirm whether DaisyUI moves into a separate Django app immediately or whether a compatibility bridge is needed first.
+1. Use the internal JavaScript runtime README and Phase 6 boundary findings before starting any pack extraction.
+2. Defer hook creation until template-pack extraction or extraction-prep starts.
+3. Keep `powercrud_daisyui`, separate pack JavaScript, loader helpers, and new public static paths deferred until an extraction slice is explicitly approved.
 
 ## Source
 
 This plan is based on [`docs/archive/blog/posts/20251120_template_packs.md`](../../archive/blog/posts/20251120_template_packs.md). The archived post remains the source evidence for the original reasoning; this folder is the active engineering plan.
+
+The current JavaScript boundary decision record is [`docs/_plans/js_cleanup/phase6-boundary-findings.md`](../js_cleanup/phase6-boundary-findings.md).
+
+The current internal JavaScript architecture guide is [`src/powercrud/static/powercrud/js/README.md`](../../../src/powercrud/static/powercrud/js/README.md).
+
+## Hook Deferral Decision
+
+Adapter hooks are deferred until template-pack extraction or extraction-prep starts.
+
+This is intentional. Phase 6 identified where hooks are likely needed, but adding unused hooks now would risk creating the wrong internal API. The first extraction-prep slice should choose one mixed area, add or confirm focused characterization coverage, introduce the smallest hook needed for that movement, and then move only the adapter-owned behaviour behind that hook.
+
+The Phase 6 boundary findings and internal JavaScript README are the required inputs for that work.
 
 ## Phase 1: Define Template And JavaScript Contract
 
@@ -39,27 +65,35 @@ This plan is based on [`docs/archive/blog/posts/20251120_template_packs.md`](../
     2. [x] Define template and static asset layout.
     3. [x] Define styles module expectations.
 
-## Phase 2: Implement Core Versus Template-Pack JavaScript Split
+## Phase 2: Prepare Core Versus Template-Pack JavaScript Extraction
 
-1. [ ] Move core runtime behavior into `powercrud/static/powercrud/powercrud.js`.
-    1. [ ] Expose `window.initPowercrud(fragment)`.
-    2. [ ] Ensure the initializer is idempotent for full-page loads and HTMX swaps.
-    3. [ ] Keep global event registration guarded so listeners are not duplicated.
-2. [ ] Update the real base-template contract for loading core JS once.
-    1. [ ] Document the expected `{% static 'powercrud/powercrud.js' %}` include.
-    2. [ ] Preserve downstream ownership of the actual site base template.
+1. [x] Preserve the stable public runtime entry.
+    1. [x] Keep the entry path as `powercrud/js/powercrud.js`.
+    2. [x] Expose `window.initPowercrud(fragment)`.
+    3. [x] Ensure the initializer is idempotent for full-page loads and HTMX swaps.
+    4. [x] Keep global event registration guarded so listeners are not duplicated.
+2. [x] Preserve the current loading contracts.
+    1. [x] Keep manual loading as `<script type="module" src="{% static 'powercrud/js/powercrud.js' %}"></script>`.
+    2. [x] Keep bundled/Vite users through `config/static/js/main.js`.
+    3. [x] Preserve downstream ownership of the actual site base template.
 3. [ ] Remove inline scripts from swapped fragments.
     1. [ ] Replace fragment-local script execution with HTMX lifecycle initialization.
     2. [ ] Prefer a single global `htmx:load` listener in core runtime if practical.
     3. [ ] Keep template-level `hx-on` wiring only if the global listener proves too broad.
-4. [ ] Extract DaisyUI-specific runtime behavior into pack JS.
-    1. [ ] Create `powercrud_daisyui/static/powercrud_daisyui/daisyui.js`.
-    2. [ ] Expose `window.initPowercrudPack(fragment)`.
-    3. [ ] Keep pack JS responsible for framework-specific modal, tooltip, toast, and visual embellishment behavior.
-5. [ ] Decide initializer orchestration.
-    1. [ ] Confirm whether core calls `initPowercrudPack` when present.
-    2. [ ] Confirm whether fragments explicitly call both initializers.
-    3. [ ] Preserve the contract that core initialization runs before pack initialization.
+4. [ ] Design the adapter hook that lets core run current-template or pack-owned initialization after `initPowercrud(fragment)`.
+    1. [ ] Read [`src/powercrud/static/powercrud/js/README.md`](../../../src/powercrud/static/powercrud/js/README.md) before changing runtime orchestration.
+    2. [ ] Use [`phase6-boundary-findings.md`](../js_cleanup/phase6-boundary-findings.md) to decide which behaviours require neutral events, injected hooks, or pack-owned adapters.
+    3. [ ] Preserve the stable public entry and manual module-script loading contract.
+    4. [ ] Do not introduce new public static asset paths without explicit approval.
+5. [ ] Decide future initializer orchestration.
+    1. [ ] Decide whether the future public hook is `window.initPowercrudPack(fragment)` or a narrower injected adapter API.
+    2. [ ] Confirm whether core calls a pack hook when present.
+    3. [ ] Confirm whether fragments explicitly call both initializers.
+    4. [ ] Preserve the contract that core initialization runs before pack initialization.
+6. [ ] Extract presentation-library runtime behavior only after the hook contract is approved.
+    1. [ ] Do not create `powercrud_daisyui` until extraction is approved.
+    2. [ ] Do not create separate pack JavaScript until extraction is approved.
+    3. [ ] Keep future pack JS responsible for framework-specific modal, tooltip, toast, and visual embellishment behavior.
 
 ## Phase 3: Turn DaisyUI Into The First Template Pack
 
@@ -145,4 +179,3 @@ This plan is based on [`docs/archive/blog/posts/20251120_template_packs.md`](../
     2. [ ] If no, defer production hardening to a follow-up phase.
 4. [ ] Add Bootstrap 5 tests and docs if it becomes an official pack.
 5. [ ] Update the cookbook based on Bootstrap dogfooding.
-

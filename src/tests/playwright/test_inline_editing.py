@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from uuid import uuid4
 from urllib.parse import urlparse
 
@@ -98,6 +99,15 @@ def open_inline_row(
     active_row = page.locator(INLINE_ACTIVE_SELECTOR)
     expect(active_row).to_have_count(1, timeout=15000)
     return active_row
+
+
+def open_column_chooser(page: Page):
+    trigger = page.locator("[data-powercrud-list-columns='true'] summary")
+    expect(trigger).to_be_visible()
+    trigger.click()
+    panel = page.locator("[data-powercrud-list-columns='true'] .dropdown-content")
+    expect(panel).to_be_visible()
+    return panel
 
 
 def select_single_value(
@@ -323,6 +333,39 @@ def test_inline_edit_searchable_select_updates_author(
     assert (
         book.author_id == replacement_author.pk
     ), "Inline searchable single-select should persist the selected author after save."
+
+
+def test_inline_edit_saves_after_hiding_non_trigger_column(
+    page: Page, books_url: str, inline_ready_books
+):
+    """Inline edit should preserve hidden required field state after list-column changes."""
+
+    book = inline_ready_books[0]
+    row_path = build_inline_row_path(books_url, book.pk)
+    open_books_page(page, books_url)
+
+    panel = open_column_chooser(page)
+    panel.locator("input[name='visible_columns'][value='genres']").uncheck()
+    with page.expect_response(re.compile(r"/sample/bigbook/")):
+        panel.get_by_role("button", name="Save").click()
+    page.wait_for_load_state("networkidle")
+    expect(page.locator("td[data-field-name='genres']")).to_have_count(0)
+
+    watch_inline_event(page, "inline-row-saved")
+    active_row = open_inline_row(page, row=get_inline_row(page, row_path))
+    new_title = f"Hidden Column Inline {uuid4().hex[:6]}"
+    active_row.locator("input[name='title']").fill(new_title)
+    active_row.locator("[data-inline-save]").click()
+
+    payload = wait_for_inline_event(page, "inline-row-saved")
+    assert payload.get("pk") == book.pk
+    expect(page.locator(INLINE_ACTIVE_SELECTOR)).to_have_count(0)
+    expect(get_inline_row(page, row_path).locator("td[data-field-name='title']")).to_contain_text(
+        new_title
+    )
+
+    book.refresh_from_db()
+    assert book.title == new_title
 
 
 def test_inline_searchable_select_focus_opens_dropdown(

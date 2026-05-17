@@ -1,0 +1,43 @@
+{% load static %}
+
+<!DOCTYPE html>
+
+<html lang="en" data-theme="corporate">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link rel="stylesheet" href="{% static 'node_modules/tom-select/dist/css/tom-select.default.min.css' %}">
+    <link rel="stylesheet" href="{% static 'node_modules/tippy.js/dist/tippy.css' %}">
+    <link rel="stylesheet" href="{% static 'powercrud/css/powercrud.css' %}">
+
+    <script src="{% static 'node_modules/htmx.org/dist/htmx.min.js' %}"></script>
+    <script src="{% static 'node_modules/tom-select/dist/js/tom-select.complete.min.js' %}"></script>
+    <script src="{% static 'node_modules/@popperjs/core/dist/umd/popper.min.js' %}"></script>
+    <script src="{% static 'node_modules/tippy.js/dist/tippy-bundle.umd.min.js' %}"></script>
+    <script type="module" src="{% static 'powercrud/js/powercrud.js' %}"></script>
+
+    {% block header_title %}
+    <title id="header_title">{{header_title}}</title>
+    {% endblock header_title %}
+
+    {% block extra_head %}{% endblock extra_head %}
+
+</head>
+
+<body hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+
+    {% block app_content %}{% endblock app_content %}
+
+    <div class="container mx-5 my-5 p-5">
+        <div id="content">
+            {% block content %}{% endblock content %}
+            <div id="powercrud"></div>
+        </div>
+    </div>
+
+</body>
+
+</html>

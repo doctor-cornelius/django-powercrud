@@ -35,6 +35,31 @@ def test_bulk_selection_toggle(page, books_url, sample_books):
 test_bulk_selection_toggle = pytest.mark.playwright_smoke(test_bulk_selection_toggle)
 
 
+def test_bulk_selection_survives_repeated_fragment_initialisation(
+    page, books_url, sample_books
+):
+    """Repeated runtime init should not reset live same-DOM row selection."""
+    page.goto(books_url)
+    page.wait_for_load_state("networkidle")
+
+    checkbox = page.locator("input.row-select-checkbox").first
+    expect(checkbox).to_be_visible()
+    checkbox.click()
+
+    expect(page.locator("#selected-items-counter")).to_have_text("1")
+    for _ in range(3):
+        page.evaluate("() => window.initPowercrud(document)")
+
+    expect(checkbox).to_be_checked()
+    expect(page.locator("#selected-items-counter")).to_have_text("1")
+    expect(page.locator("#bulk-actions-container").first).to_be_visible()
+    select_all = page.locator('[data-powercrud-select-all="true"]').first
+    expect(select_all).not_to_be_checked()
+    assert select_all.evaluate("el => el.indeterminate === true"), (
+        "Expected select-all to remain indeterminate after repeated init preserves one selected row."
+    )
+
+
 def test_bulk_selection_shift_click_selects_visible_range(
     page, books_url, sample_author, sample_books
 ):
@@ -208,6 +233,12 @@ def test_bulk_edit_refresh_reapplies_active_filters(
 
     expect(modal).not_to_be_visible()
     page.wait_for_load_state("networkidle")
+
+    expect(page.locator("#selected-items-counter")).to_have_text("0")
+    expect(page.locator("#bulk-actions-container").first).to_have_class(
+        re.compile(r"\bhidden\b")
+    )
+    expect(page.locator("input.row-select-checkbox").first).not_to_be_checked()
 
     filtered_results = page.locator("#filtered_results")
     expect(filtered_results).to_contain_text(target_book.title)

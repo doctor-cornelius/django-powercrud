@@ -52,6 +52,7 @@ STATIC_ROOT = os.path.join(os.path.dirname(__file__), "staticfiles")
 os.makedirs(STATIC_ROOT, exist_ok=True)
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, "powercrud", "assets"),
+    ("node_modules", os.path.join(os.path.dirname(BASE_DIR), "node_modules")),
 ]
 
 TEMPLATE_PARTIALS_APPS = ["template_partials"] if django.VERSION < (6, 0) else []

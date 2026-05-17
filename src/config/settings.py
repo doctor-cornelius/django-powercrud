@@ -151,9 +151,10 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
-STATIC_URL = "static/"
+STATIC_URL = "/static/"
 STATICFILES_DIRS = [
     BASE_DIR / "powercrud" / "assets",  # for vite setup
+    ("node_modules", BASE_DIR.parent / "node_modules"),  # for manual-static sample tests
 ]
 
 STATIC_ROOT = BASE_DIR / "powercrud" / "staticfiles"

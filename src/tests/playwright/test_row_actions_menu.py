@@ -1,3 +1,5 @@
+import re
+
 import pytest
 
 pytest.importorskip("playwright.sync_api")
@@ -51,3 +53,30 @@ def test_row_actions_menu_stays_visible_for_top_and_bottom_rows(
 test_row_actions_menu_stays_visible_for_top_and_bottom_rows = pytest.mark.playwright_smoke(
     test_row_actions_menu_stays_visible_for_top_and_bottom_rows
 )
+
+
+def test_row_actions_floating_panel_modal_action_uses_cloned_trigger_classes(
+    page, books_url, sample_books
+):
+    """A modal action clicked from the cloned floating panel should keep its trigger metadata."""
+
+    target_book = sample_books[0]
+    target_book.description = "Description Preview Playwright Body"
+    target_book.save(update_fields=["description"])
+
+    page.goto(f"{books_url}?page_size=2")
+    page.wait_for_load_state("networkidle")
+
+    page.locator("[data-powercrud-row-actions-trigger='true']").first.dispatch_event("click")
+    floating_panel = page.locator("[data-powercrud-row-actions-floating-panel='true']")
+    expect(floating_panel).to_be_visible()
+    floating_panel.get_by_role("link", name="Description Preview").click()
+
+    modal = page.locator("#powercrudBaseModal")
+    expect(modal).to_be_visible()
+    expect(modal.locator("#powercrudModalContent")).to_contain_text("Description Preview")
+    expect(modal.locator("#powercrudModalContent")).to_contain_text(target_book.description)
+    expect(modal.locator("[data-powercrud-modal-box]")).to_have_class(
+        re.compile(r"\bmax-w-5xl\b")
+    )
+    expect(floating_panel).not_to_be_visible()

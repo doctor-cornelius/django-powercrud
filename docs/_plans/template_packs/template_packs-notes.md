@@ -22,6 +22,23 @@ contract -> extract JS -> extract CSS -> refactor DaisyUI -> add tests -> only t
 
 The important planning implication is that a second template pack should not be built first. First, PowerCRUD needs a contract and an extraction path that make pack boundaries real and testable.
 
+## JavaScript Boundary Findings
+
+The current JavaScript boundary decision record is [`docs/_plans/js_cleanup/phase6-boundary-findings.md`](../js_cleanup/phase6-boundary-findings.md).
+
+The current internal JavaScript runtime architecture guide is [`src/powercrud/static/powercrud/js/README.md`](../../../src/powercrud/static/powercrud/js/README.md). Template-pack planning should reference that guide rather than duplicating the module map.
+
+Hook creation is intentionally deferred until template-pack extraction or extraction-prep starts. Phase 6 identified likely hook points, but it did not create them because unused hooks would harden an internal API before real extraction pressure proves the shape.
+
+When template-pack JavaScript work starts, the first slice should:
+
+1. Read the internal JavaScript runtime README.
+2. Pick one mixed boundary from the Phase 6 findings.
+3. Add or confirm focused characterization coverage for that behaviour.
+4. Introduce the smallest internal hook, neutral event, or pack initializer needed.
+5. Move only adapter-owned behaviour behind that boundary.
+6. Preserve the stable public entry and `window.initPowercrud(fragment)` contract.
+
 ## Reason For Template Packs
 
 The current implementation embeds DaisyUI-specific HTML, CSS, and JavaScript directly inside core templates and runtime behavior. That coupling limits:
@@ -234,11 +251,38 @@ Forms, detail, delete, and bulk-edit context:
 12. `task_name`
 13. `message`
 
+## Post-Phase-6 Runtime Truth
+
+JavaScript cleanup Phases 3 through 6 changed the starting point for template-pack work. The future template-pack split should start from the current module runtime, not from the older archived proposal.
+
+Current truth:
+
+1. `powercrud/js/powercrud.js` is the stable public runtime entry.
+2. The entry is an ES module and imports internal runtime modules.
+3. Manual users load only the stable entry with:
+
+    ```html
+    <script type="module" src="{% static 'powercrud/js/powercrud.js' %}"></script>
+    ```
+
+4. Bundled/Vite users continue through `config/static/js/main.js`, which imports the stable package entry.
+5. `window.initPowercrud(fragment)` already exists.
+6. `initPowercrudPack(fragment)` does not exist yet.
+7. No `powercrud_daisyui`, separate pack JavaScript, loader helper, or new public static asset path exists yet.
+
+Before pack JavaScript extraction starts:
+
+1. Design the adapter hook or initializer orchestration for work that runs after `initPowercrud(fragment)`.
+2. Add a neutral event or hook for row-action cloned-menu HTMX execution if that behaviour moves out of the current bundle.
+3. Add modal, Tippy, and Tom Select safeguards before moving those presentation adapters.
+4. Preserve the stable public entry and manual module-script loading contract.
+5. Do not add public paths, pack loaders, or `powercrud_daisyui` without explicit extraction approval.
+
 ## JavaScript Contract
 
 Core initializer:
 
-1. `initPowercrud(fragment)` is exposed on `window` by core JS.
+1. `initPowercrud(fragment)` is exposed on `window` by core JS today.
 2. `fragment` is either `document` or the root element of an HTMX swap.
 3. It may be called multiple times.
 4. It must be idempotent.
@@ -257,11 +301,15 @@ Core responsibilities:
 
 Pack initializer:
 
-1. `initPowercrudPack(fragment)` is exposed on `window` by each pack JS file.
-2. It is optional.
-3. It is called with the same fragment as core initialization.
-4. It runs after `initPowercrud`.
-5. It is responsible only for framework-specific behavior.
+A future pack initializer may be named `initPowercrudPack(fragment)`, but that API does not exist today. The hook shape should be decided from the Phase 6 boundary map before pack extraction starts.
+
+If `initPowercrudPack(fragment)` is approved later:
+
+1. It should be exposed on `window` by each pack JS file.
+2. It should be optional.
+3. It should be called with the same fragment as core initialization.
+4. It should run after `initPowercrud`.
+5. It should be responsible only for framework-specific behavior.
 6. It must be safe to call multiple times.
 7. It must avoid duplicate global listener registration.
 
@@ -274,17 +322,18 @@ Pack responsibilities may include:
 
 Preferred wiring:
 
-1. The real project base template loads core JS and active pack JS.
-2. Full-page loads call `initPowercrud(document)`.
-3. If pack JS exists, full-page loads call `initPowercrudPack(document)` after core init.
-4. Core JS registers a single global `htmx:load` listener.
-5. The listener calls `initPowercrud(event.detail.elt)`.
-6. The listener calls `initPowercrudPack(event.detail.elt)` when present.
+1. The project base loads the stable runtime entry once.
+2. Bundled/Vite users load through `config/static/js/main.js`.
+3. Manual users load the stable entry with the module script snippet above.
+4. Full-page loads call `initPowercrud(document)`.
+5. Core JS registers a single global `htmx:load` listener.
+6. The listener calls `initPowercrud(event.detail.elt)`.
+7. Future pack JS loading and hook orchestration remain deferred until extraction is approved.
 
 Alternative wiring:
 
-1. Fragments explicitly call both initializers through `hx-on`.
-2. This is acceptable only if the global listener proves too broad or too implicit.
+1. A future adapter hook may call pack/current-template initialization from core after `initPowercrud(fragment)`.
+2. Fragments may explicitly call both initializers through `hx-on` only if the global listener proves too broad or too implicit.
 
 ## Events And Hooks
 
@@ -411,4 +460,3 @@ The validator should:
 An optional management command can wrap the helper for project and CI use.
 
 The full validator should be used in development and tests, not as a heavy runtime check. Runtime loading should still perform lightweight checks and raise clear configuration errors.
-

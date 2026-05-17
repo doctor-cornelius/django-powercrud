@@ -110,6 +110,75 @@ def test_toolbar_controls_use_powercrud_tooltips(page, books_url):
     )
 
 
+def test_searchable_select_and_tooltip_initializers_are_idempotent_after_htmx_refresh(
+    page, books_url, sample_author, sample_books
+):
+    """Repeated fragment initialisation should not duplicate widgets after HTMX swaps."""
+
+    page.goto(books_url)
+    page.wait_for_load_state("networkidle")
+    page.get_by_role("button", name=re.compile("filters", re.I)).click()
+
+    author_select = page.locator("#filter-form select[name='author']")
+    expect(author_select).to_have_count(1)
+    page.wait_for_function(
+        """
+        () => {
+            const element = document.querySelector("#filter-form select[name='author']");
+            return Boolean(element && element.tomselect);
+        }
+        """
+    )
+    wait_for_tippy_instance(page, "[data-powercrud-filter-toggle]")
+
+    for _ in range(2):
+        page.evaluate(
+            """
+            () => {
+                window.initPowercrudSearchableSelects(document);
+                window.initPowercrudTooltips(document);
+            }
+            """
+        )
+
+    assert author_select.evaluate("el => Boolean(el.tomselect)")
+    assert page.locator("#filter-form select[name='author'] + .ts-wrapper").count() == 1
+    assert page.locator("[data-powercrud-filter-toggle]").first.evaluate("el => Boolean(el._tippy)")
+
+    select_single_value(
+        page=page,
+        container=page.locator("#filter-form"),
+        field_name="author",
+        option_value=str(sample_author.pk),
+    )
+    page.wait_for_load_state("networkidle")
+    expect(page.locator("#filtered_results")).to_contain_text(sample_books[0].title)
+
+    author_select = page.locator("#filter-form select[name='author']")
+    page.wait_for_function(
+        """
+        () => {
+            const element = document.querySelector("#filter-form select[name='author']");
+            return Boolean(element && element.tomselect);
+        }
+        """
+    )
+    wait_for_tippy_instance(page, "[data-powercrud-filter-toggle]")
+    for _ in range(2):
+        page.evaluate(
+            """
+            () => {
+                window.initPowercrudSearchableSelects(document);
+                window.initPowercrudTooltips(document);
+            }
+            """
+        )
+
+    assert author_select.evaluate("el => Boolean(el.tomselect)")
+    assert page.locator("#filter-form select[name='author'] + .ts-wrapper").count() == 1
+    assert page.locator("[data-powercrud-filter-toggle]").first.evaluate("el => Boolean(el._tippy)")
+
+
 def test_overflow_tooltips_reinitialize_after_htmx_refresh(
     page, books_url, sample_author, sample_books
 ):

@@ -307,6 +307,64 @@ def test_book_page_size_query_still_renders_correctly_when_filter_favourites_ena
     expect(page.locator("#filtered_results tbody tr[data-inline-row='true']")).to_have_count(10)
 
 
+def test_page_size_change_marks_selected_favourite_dirty(
+    page, client, books_url, sample_author, sample_books
+):
+    """Page-size changes should dirty the selected favourite without losing selection state."""
+
+    for idx in range(2, 12):
+        Book.objects.create(
+            title=f"Favourite Page Size Book {idx}",
+            author=sample_author,
+            published_date=date(2024, 5, idx),
+            bestseller=False,
+            isbn=f"97877888{idx:04d}",
+            pages=140 + idx,
+            description="Created for favourite dirty-state page-size coverage",
+        )
+
+    user = login_playwright_user(
+        client=client,
+        page=page,
+        books_url=books_url,
+        username="playwright-favourite-page-size-dirty-user",
+    )
+    SavedFilterFavourite.objects.create(
+        user=user,
+        view_key=BOOK_VIEW_KEY,
+        name="Five rows",
+        state={
+            "filters": {},
+            "visible_filters": [],
+            "sort": "",
+            "page_size": "5",
+            "visible_columns": list(BookCRUDView.default_list_fields),
+        },
+    )
+
+    install_htmx_init_script(page)
+    page.goto(f"{books_url}?page_size=10")
+    page.wait_for_load_state("networkidle")
+    ensure_htmx_available(page)
+
+    open_filters_panel(page)
+    open_favourites_dropdown(page)
+    select_saved_favourite(page, "Five rows")
+    page.wait_for_load_state("networkidle")
+    expect(page.locator("#page-size-select")).to_have_value("5")
+
+    with page.expect_response(re.compile(r"/sample/bigbook/")):
+        page.locator("#page-size-select").select_option("10")
+    page.wait_for_load_state("networkidle")
+
+    trigger = page.locator("[data-powercrud-filter-favourites-trigger='true']:visible").first
+    expect(trigger).to_have_attribute("data-powercrud-filter-favourites-selected", "true")
+    expect(trigger).to_have_attribute("data-powercrud-filter-favourites-dirty", "true")
+    expect(trigger).to_have_attribute("aria-label", "Saved favourite: Five rows (edited)")
+    expect(trigger).to_have_attribute("data-tippy-content", "Five rows (edited)")
+    expect(page.locator("#page-size-select")).to_have_value("10")
+
+
 def test_changing_favourite_populated_filter_applies_immediately(
     page, client, books_url, sample_books
 ):
@@ -494,6 +552,71 @@ def test_filter_favourite_apply_replaces_optional_filter_visibility(
     expect(page.locator("#filter-form input[name='title']")).to_have_value(target_book.title)
 
 
+def test_reset_view_clears_favourite_filter_page_size_and_visible_columns(
+    page, client, books_url, sample_books, sample_genre
+):
+    """Reset view should clear saved list state instead of leaving favourite fragments behind."""
+
+    user = login_playwright_user(
+        client=client,
+        page=page,
+        books_url=books_url,
+        username="playwright-favourite-reset-view-user",
+    )
+    target_book = sample_books[0]
+    other_book = sample_books[1]
+    target_book.genres.add(sample_genre)
+    SavedFilterFavourite.objects.create(
+        user=user,
+        view_key=BOOK_VIEW_KEY,
+        name="Reset whole view",
+        state={
+            "filters": {"title": [target_book.title]},
+            "visible_filters": [],
+            "sort": "",
+            "page_size": "10",
+            "visible_columns": [
+                *BookCRUDView.default_list_fields,
+                "uneditable_field",
+            ],
+        },
+    )
+
+    install_htmx_init_script(page)
+    page.goto(books_url)
+    page.wait_for_load_state("networkidle")
+    ensure_htmx_available(page)
+
+    open_filters_panel(page)
+    open_favourites_dropdown(page)
+    select_saved_favourite(page, "Reset whole view")
+    page.wait_for_load_state("networkidle")
+    expect(page.locator("#filter-form input[name='title']")).to_have_value(target_book.title)
+    expect(page.locator("#page-size-select")).to_have_value("10")
+    expect(page.locator("td[data-field-name='uneditable_field']").first).to_be_visible()
+    expect(page.locator("#filtered_results")).to_contain_text(target_book.title)
+    expect(page.locator("#filtered_results")).not_to_contain_text(other_book.title)
+
+    open_favourites_dropdown(page)
+    panel = get_open_favourites_panel(page)
+    with page.expect_response(re.compile(r"/sample/bigbook/")):
+        panel.get_by_role("button", name="Reset").click()
+    page.wait_for_load_state("networkidle")
+    ensure_htmx_available(page)
+
+    open_filters_panel(page)
+    expect(page.locator("#filter-form input[name='title']")).to_have_value("")
+    expect(page.locator("#page-size-select")).to_have_value("5")
+    expect(page.locator("td[data-field-name='uneditable_field']")).to_have_count(0)
+    expect(page.locator("#filtered_results")).to_contain_text(other_book.title)
+
+    trigger = page.locator("[data-powercrud-filter-favourites-trigger='true']:visible").first
+    expect(trigger).to_have_attribute("data-powercrud-filter-favourites-selected", "false")
+    expect(trigger).not_to_have_attribute("data-powercrud-filter-favourites-dirty", "true")
+    expect(trigger).to_have_attribute("aria-label", "Saved favourites")
+    expect(trigger).to_have_attribute("data-tippy-content", "Saved favourites")
+
+
 def test_returning_to_page_keeps_selected_filter_favourite(
     page, client, books_url, authors_url, sample_books
 ):
@@ -668,6 +791,73 @@ def test_filter_favourite_can_be_saved_inline_without_opening_modal(
         name="Inline saved favourite",
     ).exists(), (
         "Expected inline favourites save to persist a saved favourite instead of failing CSRF validation."
+    )
+
+
+def test_deleting_selected_dirty_favourite_clears_browser_state(
+    page, client, books_url, sample_books
+):
+    """Deleting a selected dirty favourite should leave the toolbar in the neutral state."""
+
+    user = login_playwright_user(
+        client=client,
+        page=page,
+        books_url=books_url,
+        username="playwright-favourite-delete-dirty-user",
+    )
+    target_book = sample_books[0]
+    favourite = SavedFilterFavourite.objects.create(
+        user=user,
+        view_key=BOOK_VIEW_KEY,
+        name="Delete dirty",
+        state={
+            "filters": {"title": [target_book.title]},
+            "visible_filters": [],
+            "sort": "",
+            "page_size": "5",
+        },
+    )
+
+    install_htmx_init_script(page)
+    page.goto(books_url)
+    page.wait_for_load_state("networkidle")
+    ensure_htmx_available(page)
+
+    open_filters_panel(page)
+    open_favourites_dropdown(page)
+    select_saved_favourite(page, "Delete dirty")
+    page.wait_for_load_state("networkidle")
+
+    with page.expect_response(re.compile(r"/sample/bigbook/")):
+        page.locator("#page-size-select").select_option("10")
+    page.wait_for_load_state("networkidle")
+    trigger = page.locator("[data-powercrud-filter-favourites-trigger='true']:visible").first
+    expect(trigger).to_have_attribute("data-powercrud-filter-favourites-dirty", "true")
+
+    open_favourites_dropdown(page)
+    panel = get_open_favourites_panel(page)
+    expect(panel.locator("select[name='favourite_id']")).to_have_value(str(favourite.pk))
+    with page.expect_response(
+        lambda response: response.request.method == "POST"
+        and "/powercrud/favourites/delete/" in response.url
+    ) as delete_response_info:
+        panel.get_by_role("button", name="Delete").click()
+    assert delete_response_info.value.status == 200
+    assert not SavedFilterFavourite.objects.filter(pk=favourite.pk).exists()
+
+    page.wait_for_timeout(100)
+    trigger = page.locator("[data-powercrud-filter-favourites-trigger='true']:visible").first
+    expect(trigger).to_have_attribute("data-powercrud-filter-favourites-selected", "false")
+    expect(trigger).not_to_have_attribute("data-powercrud-filter-favourites-dirty", "true")
+    expect(trigger).to_have_attribute("aria-label", "Saved favourites")
+    expect(trigger).to_have_attribute("data-tippy-content", "Saved favourites")
+
+    open_favourites_dropdown(page)
+    select = get_open_favourites_panel(page).locator("select[name='favourite_id']")
+    expect(select).to_have_value("")
+    assert not select.evaluate(
+        "(el, deletedValue) => Array.from(el.options).some(option => option.value === deletedValue)",
+        str(favourite.pk),
     )
 
 

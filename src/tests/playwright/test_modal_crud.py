@@ -126,3 +126,33 @@ def test_create_book_via_modal(page, books_url, sample_author, sample_genre):
 
 
 test_create_book_via_modal = pytest.mark.playwright_smoke(test_create_book_via_modal)
+
+
+def test_per_trigger_modal_box_classes_are_restored(page, books_url):
+    """Per-trigger DaisyUI modal classes should apply only to the clicked trigger."""
+
+    page.goto(books_url)
+    page.wait_for_load_state("networkidle")
+
+    modal = page.locator("#powercrudBaseModal")
+    modal_box = modal.locator("[data-powercrud-modal-box]")
+    default_classes = modal_box.get_attribute("data-powercrud-default-modal-box-classes")
+    assert default_classes
+
+    page.locator("[data-powercrud-extra-buttons-dropdown='true'] summary").click()
+    page.get_by_role("link", name="Home in Modal!").click()
+
+    expect(modal).to_be_visible()
+    expect(modal.locator("#powercrudModalContent")).to_contain_text("Home")
+    expect(modal_box).to_have_class(re.compile(r"\bmax-w-3xl\b"))
+
+    page.keyboard.press("Escape")
+    expect(modal).not_to_be_visible()
+
+    page.get_by_role("link", name=re.compile("create", re.I)).click()
+    expect(modal).to_be_visible()
+    expect(modal.locator("#powercrudModalContent form")).to_be_visible()
+    expect(modal_box).to_have_attribute(
+        "class",
+        default_classes,
+    )

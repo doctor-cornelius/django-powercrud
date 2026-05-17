@@ -12,9 +12,163 @@ def test_package_runtime_assets_exist() -> None:
 
     runtime_js = package_root / "static" / "powercrud" / "js" / "powercrud.js"
     runtime_css = package_root / "static" / "powercrud" / "css" / "powercrud.css"
+    runtime_modules = [
+        "startup.js",
+        "selectors.js",
+        "dom.js",
+        "storage.js",
+        "url.js",
+        "htmx.js",
+        "state.js",
+        "list-view-state.js",
+        "filter-favourites.js",
+        "list-columns.js",
+        "bulk-actions.js",
+        "inline-edit.js",
+        "searchable-selects.js",
+        "current-template.js",
+    ]
 
     assert runtime_js.is_file(), "Expected packaged runtime JS at powercrud/static/powercrud/js/powercrud.js"
+    for module_name in runtime_modules:
+        module_path = package_root / "static" / "powercrud" / "js" / "runtime" / module_name
+        assert module_path.is_file(), f"Expected packaged runtime module at {module_path}"
     assert runtime_css.is_file(), "Expected packaged runtime CSS at powercrud/static/powercrud/css/powercrud.css"
+
+
+def test_runtime_js_uses_stable_entry_with_internal_module_import() -> None:
+    """The stable runtime entry should import internal modules without changing the public path."""
+    package_root = Path(powercrud.__file__).resolve().parent
+    runtime_js = package_root / "static" / "powercrud" / "js" / "powercrud.js"
+    startup_js = package_root / "static" / "powercrud" / "js" / "runtime" / "startup.js"
+    sample_entry_js = (
+        Path(__file__).resolve().parents[1]
+        / "config"
+        / "static"
+        / "js"
+        / "main.js"
+    )
+
+    assert (
+        "import { installPowercrudGlobalListeners } from './runtime/startup.js';"
+        in runtime_js.read_text(encoding="utf-8")
+    ), "Stable runtime entry should import the internal startup listener installer."
+    for module_import in (
+        "./runtime/selectors.js",
+        "./runtime/dom.js",
+        "./runtime/htmx.js",
+        "./runtime/state.js",
+        "./runtime/list-view-state.js",
+        "./runtime/filter-favourites.js",
+        "./runtime/list-columns.js",
+        "./runtime/bulk-actions.js",
+        "./runtime/inline-edit.js",
+        "./runtime/searchable-selects.js",
+        "./runtime/current-template.js",
+    ):
+        assert module_import in runtime_js.read_text(encoding="utf-8"), (
+            f"Stable runtime entry should import {module_import}."
+        )
+    assert (
+        "export function installPowercrudGlobalListeners" in startup_js.read_text(encoding="utf-8")
+    ), "Startup module should export the global listener installer."
+    assert (
+        "import '../../../powercrud/static/powercrud/js/powercrud.js'"
+        in sample_entry_js.read_text(encoding="utf-8")
+    ), "Sample bundle should keep importing the stable PowerCRUD runtime entry."
+
+
+def test_runtime_js_exposes_shared_fragment_initializer() -> None:
+    """The stable runtime should expose a single per-fragment initialisation helper."""
+    package_root = Path(powercrud.__file__).resolve().parent
+    runtime_js = package_root / "static" / "powercrud" / "js" / "powercrud.js"
+
+    js = runtime_js.read_text(encoding="utf-8")
+
+    assert (
+        "function initPowercrud(fragment = document)" in js
+    ), "Runtime JS should define a shared per-fragment initializer."
+    assert (
+        "initPowercrudSearchableSelects(fragment);" in js
+    ), "Shared initializer should initialise searchable selects for the fragment."
+    assert (
+        "bootstrapObjectLists(fragment);" in js
+    ), "Shared initializer should bootstrap object-list state for the fragment."
+    assert (
+        "initPowercrudTooltips(fragment);" in js
+    ), "Shared initializer should initialise tooltips for the fragment."
+    assert (
+        "global.initPowercrud = initPowercrud;" in js
+    ), "Runtime JS should expose initPowercrud for manual fragment reinitialisation."
+    assert (
+        "function destroyPowercrudFragment(fragment)" in js
+    ), "Runtime JS should define a shared per-fragment teardown helper."
+
+
+def test_runtime_startup_centralises_once_only_listener_registration() -> None:
+    """Startup runtime should own once-only listener registration without moving handlers."""
+    package_root = Path(powercrud.__file__).resolve().parent
+    runtime_js = package_root / "static" / "powercrud" / "js" / "powercrud.js"
+    startup_js = package_root / "static" / "powercrud" / "js" / "runtime" / "startup.js"
+
+    js = runtime_js.read_text(encoding="utf-8")
+    startup = startup_js.read_text(encoding="utf-8")
+
+    assert (
+        "const startupInstallState = new WeakMap();" in startup
+    ), "Startup runtime should keep an idempotent install state per document."
+    assert (
+        "documentObject.addEventListener('DOMContentLoaded', handlers.handleDOMContentLoaded);" in startup
+    ), "Startup runtime should register DOMContentLoaded through the shared installer."
+    assert (
+        "documentObject.addEventListener('htmx:beforeRequest', handlers.handleHtmxBeforeRequest);" in startup
+    ), "Startup runtime should preserve the first HTMX beforeRequest listener."
+    assert (
+        "documentObject.addEventListener('htmx:beforeRequest', handlers.handleInlineHtmxBeforeRequest);" in startup
+    ), "Startup runtime should preserve the second inline HTMX beforeRequest listener."
+    assert (
+        "globalObject.addEventListener('scroll', handlers.handleWindowScrollCapture, true);" in startup
+    ), "Startup runtime should preserve the capturing window scroll listener."
+    assert (
+        "function createPowercrudGlobalListenerHandlers()" in js
+    ), "Runtime JS should keep feature handler bodies beside the feature runtime dependencies."
+    assert (
+        "installPowercrudGlobalListeners({" in js
+    ), "Runtime JS should install once-only listeners through the startup helper."
+
+
+def test_sample_templates_cover_vite_and_manual_static_loading_modes() -> None:
+    """Sample templates should keep separate Vite and manual-static asset paths."""
+    project_root = Path(__file__).resolve().parents[1]
+    vite_base = project_root / "sample" / "templates" / "sample" / "daisyUI" / "base.html"
+    manual_base = (
+        project_root
+        / "sample"
+        / "templates"
+        / "sample"
+        / "manual_static"
+        / "base.html"
+    )
+
+    vite_template = vite_base.read_text(encoding="utf-8")
+    manual_template = manual_base.read_text(encoding="utf-8")
+
+    assert "{% vite_asset 'config/static/js/main.js' %}" in vite_template, (
+        "The normal sample base should continue to exercise the Vite manifest entry."
+    )
+    assert "django_vite" not in manual_template, (
+        "The manual-static sample base should not load django-vite tags."
+    )
+    assert "{% static 'powercrud/css/powercrud.css' %}" in manual_template, (
+        "The manual-static sample base should load PowerCRUD CSS through Django static tags."
+    )
+    assert (
+        'script type="module" src="{% static \'powercrud/js/powercrud.js\' %}"'
+        in manual_template
+    ), "The manual-static sample base should load the stable PowerCRUD JS entry as a module."
+    assert "django_assets/" not in manual_template, (
+        "The manual-static sample base should not hard-code Vite hashed asset filenames."
+    )
 
 
 def test_bundle_manifest_keeps_existing_entry_key() -> None:
@@ -98,29 +252,33 @@ def test_runtime_js_hides_tooltips_before_interactive_transitions() -> None:
     """Runtime JS should hide active Tippy instances before modal and HTMX transitions."""
     package_root = Path(powercrud.__file__).resolve().parent
     runtime_js = package_root / "static" / "powercrud" / "js" / "powercrud.js"
+    startup_js = package_root / "static" / "powercrud" / "js" / "runtime" / "startup.js"
+    template_js = package_root / "static" / "powercrud" / "js" / "runtime" / "current-template.js"
 
     js = runtime_js.read_text(encoding="utf-8")
+    startup = startup_js.read_text(encoding="utf-8")
+    template = template_js.read_text(encoding="utf-8")
 
     assert (
-        "function hidePowercrudTooltips(root = document)" in js
+        "function hidePowercrudTooltips(root = documentObject)" in template
     ), "Runtime JS should expose a helper that hides active PowerCRUD Tippy instances."
     assert (
-        "trigger._tippy.hide();" in js
+        "trigger._tippy.hide();" in template
     ), "Tooltip hide helper should hide, rather than destroy, active Tippy instances during interactions."
     assert (
         "global.hidePowercrudTooltips = hidePowercrudTooltips;" in js
     ), "Runtime JS should expose the tooltip hide helper for modal-opening integrations."
     assert (
-        "document.addEventListener('pointerdown', () => {" in js
+        "documentObject.addEventListener('pointerdown', handlers.handlePointerDownCapture, true);" in startup
     ), "Runtime JS should hide visible tooltips as soon as pointer interactions begin."
     assert (
-        "document.addEventListener('click', () => {" in js
+        "documentObject.addEventListener('click', handlers.handleTooltipClickCapture, true);" in startup
     ), "Runtime JS should hide visible tooltips after click handlers that can open modals have run."
     assert (
-        "document.addEventListener('focusin', event => {" in js
+        "documentObject.addEventListener('focusin', handlers.handleFocusInCapture, true);" in startup
     ), "Runtime JS should hide visible tooltips when focus leaves tooltip triggers."
     assert (
-        "document.addEventListener('htmx:beforeRequest', event => {\n        hidePowercrudTooltips(document);"
+        "handleHtmxBeforeRequest(event) {\n                hidePowercrudTooltips(document);"
         in js
     ), "Runtime JS should hide visible tooltips before HTMX requests can open modal content."
 
@@ -129,35 +287,39 @@ def test_runtime_js_opens_inline_tomselect_on_focus() -> None:
     """Inline searchable selects should keep the original focus-and-open behavior."""
     package_root = Path(powercrud.__file__).resolve().parent
     runtime_js = package_root / "static" / "powercrud" / "js" / "powercrud.js"
+    inline_js = package_root / "static" / "powercrud" / "js" / "runtime" / "inline-edit.js"
+    searchable_js = package_root / "static" / "powercrud" / "js" / "runtime" / "searchable-selects.js"
 
     js = runtime_js.read_text(encoding="utf-8")
+    inline = inline_js.read_text(encoding="utf-8")
+    searchable = searchable_js.read_text(encoding="utf-8")
 
     assert (
-        "function maybeOpenSelectDropdown(focusTarget, triggerField)" in js
+        "function maybeOpenSelectDropdown(focusTarget, triggerField)" in inline
     ), "Runtime JS should use the inline-select dropdown opener."
     assert (
-        "candidate.tomselect.open()" in js
+        "candidate.tomselect.open()" in inline
     ), "Inline TomSelect focus should open the dropdown for direct field edits."
     assert (
         "instance.control.addEventListener('pointerdown'" not in js
     ), "Inline TomSelect should not use a custom pointerdown opener."
     assert (
-        "openOnFocus: true" in js
+        "openOnFocus: true" in searchable
     ), "Inline TomSelect should preserve normal open-on-focus behavior."
 
 
 def test_runtime_js_shows_inline_field_error_popovers() -> None:
     """Inline validation errors should get forced-visible field popovers."""
     package_root = Path(powercrud.__file__).resolve().parent
-    runtime_js = package_root / "static" / "powercrud" / "js" / "powercrud.js"
+    inline_js = package_root / "static" / "powercrud" / "js" / "runtime" / "inline-edit.js"
 
-    js = runtime_js.read_text(encoding="utf-8")
+    js = inline_js.read_text(encoding="utf-8")
 
     assert (
-        "function showInlineFieldErrorPopovers(root = document)" in js
+        "function showInlineFieldErrorPopovers(root = documentObject)" in js
     ), "Runtime JS should expose a helper for inline field error popovers."
     assert (
-        "document.body.appendChild(popover)" in js
+        "documentObject.body.appendChild(popover)" in js
     ), "Inline field error popovers should escape clipping containers."
     assert (
         "popover.dataset.powercrudInlineErrorPopover = 'true'" in js

@@ -96,6 +96,38 @@ def test_book_list_column_chooser_guards_last_visible_column(
     expect(title_checkbox).to_be_checked()
 
 
+def test_book_list_column_chooser_discards_unsaved_draft_on_close(
+    page, books_url, sample_books
+):
+    """Closing the chooser should restore checkbox state to the rendered/saved columns."""
+
+    page.goto(books_url)
+    page.wait_for_load_state("networkidle")
+
+    panel = open_column_chooser(page)
+    uneditable_checkbox = panel.locator(
+        "input[name='visible_columns'][value='uneditable_field']"
+    )
+    expect(uneditable_checkbox).not_to_be_checked()
+    uneditable_checkbox.check()
+    expect(uneditable_checkbox).to_be_checked()
+
+    page.locator("[data-powercrud-list-columns='true'] summary").click()
+    panel = open_column_chooser(page)
+    expect(
+        panel.locator("input[name='visible_columns'][value='uneditable_field']")
+    ).not_to_be_checked()
+
+    isbn_checkbox = panel.locator("input[name='visible_columns'][value='isbn']")
+    expect(isbn_checkbox).to_be_checked()
+    isbn_checkbox.uncheck()
+    expect(isbn_checkbox).not_to_be_checked()
+
+    page.locator("body").click(position={"x": 5, "y": 5})
+    panel = open_column_chooser(page)
+    expect(panel.locator("input[name='visible_columns'][value='isbn']")).to_be_checked()
+
+
 def test_book_list_column_controls_fit_table_or_viewport(
     page, books_url, sample_books
 ):

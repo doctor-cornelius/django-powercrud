@@ -323,6 +323,13 @@ class BookCRUDView(SampleCRUDMixin):
 #     return super().get_bulk_choices_for_field(field_name, field)
 
 
+class ManualStaticBookCRUDView(BookCRUDView):
+    """Book sample view that exercises direct static asset loading."""
+
+    base_template_path = "sample/manual_static/base.html"
+    url_base = "manual-static-bigbook"
+
+
 class AnnotatedBookCRUDView(SampleCRUDMixin):
     """Focused sample view for queryset annotation list and filter fields."""
 
