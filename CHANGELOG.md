@@ -4,6 +4,14 @@ PowerCRUD is still evolving quickly, and the early release history was cut at a 
 
 Version numbers below correspond to published git tags. The more important releases include a little extra narrative and upgrade context; smaller patch releases remain deliberately brief. For full detail between any two versions, use the GitHub compare view for the matching tags.
 
+## 0.6.9 (2026-05-17)
+- **Feature (view_help)**: add param view_help providing collapsed title with detail instructions for screen
+- **Fix (list)**: center pagination on table width
+- **Fix (favourites)**: sync state of favourite selector after creating new favourite
+- **Refactor (js)**: modularize PowerCRUD runtime js and harden lifecycle
+  
+  This was an internal refactor that did not affect the public API or functionality. Split the browser runtime into focused ES modules, centralize idempotent fragment initialization, preserve the stable public entry path, and document the core/runtime adapter boundaries for future template-pack work.
+
 ## 0.6.8 (2026-05-16)
 - **Feature (list-options)**: add explicit chooser opt-in
 - **Style**: auto-fit filter controls
