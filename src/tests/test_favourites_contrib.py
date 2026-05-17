@@ -393,6 +393,11 @@ def test_favourite_save_view_persists_state_and_returns_toolbar_fragment(client)
     assert 'selected' in response.content.decode(), (
         "Successful favourite saves should mark the new favourite as selected in the refreshed panel."
     )
+    assert json.loads(response.headers["HX-Trigger-After-Swap"]) == {
+        "powercrud:favourite-saved": {"favouriteId": saved.pk}
+    }, (
+        "Successful favourite saves should trigger browser state sync after the panel fragment has swapped."
+    )
 
 
 @pytest.mark.django_db
@@ -644,6 +649,11 @@ def test_favourite_update_view_overwrites_saved_state_and_refreshes_toolbar(clie
     assert 'data-powercrud-favourite-query-string="title=django&amp;genres=9&amp;visible_filters=genres&amp;sort=-published_date&amp;page_size=25"' in response.content.decode(), (
         "Updating a favourite should refresh the selected option metadata so later applies use the newly saved query-string state."
     )
+    assert json.loads(response.headers["HX-Trigger-After-Swap"]) == {
+        "powercrud:favourite-updated": {"favouriteId": favourite.pk}
+    }, (
+        "Successful favourite updates should trigger browser state sync after the panel fragment has swapped."
+    )
 
 
 @pytest.mark.django_db
@@ -664,6 +674,7 @@ def test_favourite_delete_view_removes_only_the_current_users_favourite(client):
         name="Theirs",
         state={"filters": {}, "visible_filters": [], "sort": "", "page_size": ""},
     )
+    favourite_id = favourite.pk
     client.force_login(user)
 
     response = client.post(
@@ -687,6 +698,11 @@ def test_favourite_delete_view_removes_only_the_current_users_favourite(client):
     )
     assert SavedFilterFavourite.objects.filter(user=other_user, name="Theirs").exists(), (
         "Deleting one user's favourite should not affect another user's saved favourites."
+    )
+    assert json.loads(response.headers["HX-Trigger-After-Swap"]) == {
+        "powercrud:favourite-deleted": {"favouriteId": favourite_id}
+    }, (
+        "Successful favourite deletes should trigger browser state sync after the panel fragment has swapped."
     )
 
 

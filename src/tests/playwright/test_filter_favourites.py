@@ -159,6 +159,35 @@ def select_saved_favourite(page, favourite_label: str):
     return option_value
 
 
+def click_saved_favourite(page, favourite_label: str):
+    """Select one saved favourite through the visible Tom Select UI."""
+
+    panel = get_open_favourites_panel(page)
+    select = panel.locator("select[name='favourite_id']")
+    option_value = select.evaluate(
+        """
+        (el, label) => {
+            const option = Array.from(el.options).find(
+                (candidate) => candidate.textContent.trim() === label
+            );
+            return option ? String(option.value) : '';
+        }
+        """,
+        favourite_label,
+    )
+    assert option_value, (
+        f"Expected saved favourite option '{favourite_label}' to exist in the favourites picker."
+    )
+
+    panel.locator(".powercrud-filter-favourite-select-control").click()
+    option = page.locator(".powercrud-filter-favourite-select-dropdown .option").filter(
+        has_text=favourite_label
+    ).last
+    expect(option).to_be_visible()
+    option.click()
+    return option_value
+
+
 def select_single_filter_value(page, field_name: str, option_value: str):
     """Select one filter option, preferring Tom Select when the filter is enhanced."""
 
@@ -751,15 +780,28 @@ def test_filter_favourite_update_reapplies_latest_saved_state(
 
 
 def test_filter_favourite_can_be_saved_inline_without_opening_modal(
-    page, client, books_url
+    page, client, books_url, sample_books
 ):
     """The favourites UI should expose inline save controls without opening the shared modal."""
 
-    login_playwright_user(
+    user = login_playwright_user(
         client=client,
         page=page,
         books_url=books_url,
         username="playwright-inline-favourite-user",
+    )
+    target_book = sample_books[0]
+    other_book = sample_books[1]
+    SavedFilterFavourite.objects.create(
+        user=user,
+        view_key=BOOK_VIEW_KEY,
+        name="Existing favourite",
+        state={
+            "filters": {"title": [target_book.title]},
+            "visible_filters": [],
+            "sort": "",
+            "page_size": "5",
+        },
     )
 
     install_htmx_init_script(page)
@@ -792,6 +834,14 @@ def test_filter_favourite_can_be_saved_inline_without_opening_modal(
     ).exists(), (
         "Expected inline favourites save to persist a saved favourite instead of failing CSRF validation."
     )
+
+    open_favourites_dropdown(page)
+    click_saved_favourite(page, "Existing favourite")
+    page.wait_for_load_state("networkidle")
+
+    expect(page.locator("#filter-form input[name='title']")).to_have_value(target_book.title)
+    expect(page.locator("#filtered_results")).to_contain_text(target_book.title)
+    expect(page.locator("#filtered_results")).not_to_contain_text(other_book.title)
 
 
 def test_deleting_selected_dirty_favourite_clears_browser_state(

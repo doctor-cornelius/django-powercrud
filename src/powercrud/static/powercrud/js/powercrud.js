@@ -542,18 +542,20 @@ import { createCurrentTemplateRuntime } from './runtime/current-template.js';
                 inlineEdit.handleHtmxBeforeSwap(event);
             },
             handleHtmxAfterSwap(event) {
-                // Initialize swapped fragments first; the document bootstrap
-                // below catches shell-level state shared across list roots.
+                const target = asElement(event.target);
+                if (target instanceof HTMLElement) {
+                    // Favourites panels are cloned from a hidden template. Copy
+                    // the clean server response before generic init adds
+                    // Tom Select wrapper markup to the swapped fragment.
+                    filterFavourites.handleHtmxAfterSwapTarget(target);
+                }
+
+                // Initialize swapped fragments after feature-specific raw
+                // markup handling; the document bootstrap below catches
+                // shell-level state shared across list roots.
                 getHtmxEventRoots(event).forEach(initPowercrud);
                 bootstrapObjectLists(document);
                 schedulePowercrudTooltipRefresh(document, 50);
-
-                const target = asElement(event.target);
-                if (!(target instanceof HTMLElement)) {
-                    return;
-                }
-
-                filterFavourites.handleHtmxAfterSwapTarget(target);
 
                 if (inlineEdit.handleHtmxAfterSwapTarget(target)) {
                     return;

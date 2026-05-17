@@ -265,7 +265,7 @@ def favourite_save(request: HttpRequest) -> HttpResponse:
         original_target=form.cleaned_data["original_target"],
         selected_favourite_id=saved_favourite.pk,
     )
-    response["HX-Trigger"] = json.dumps(
+    response["HX-Trigger-After-Swap"] = json.dumps(
         {"powercrud:favourite-saved": {"favouriteId": saved_favourite.pk}}
     )
     return response
@@ -343,7 +343,7 @@ def favourite_update(request: HttpRequest) -> HttpResponse:
         original_target=form.cleaned_data["original_target"],
         selected_favourite_id=favourite.pk,
     )
-    response["HX-Trigger"] = json.dumps(
+    response["HX-Trigger-After-Swap"] = json.dumps(
         {"powercrud:favourite-updated": {"favouriteId": favourite.pk}}
     )
     return response
@@ -377,7 +377,7 @@ def favourite_delete(request: HttpRequest) -> HttpResponse:
         current_state_json=form.cleaned_data["current_state_json"],
         original_target=form.cleaned_data["original_target"],
     )
-    response["HX-Trigger"] = json.dumps(
+    response["HX-Trigger-After-Swap"] = json.dumps(
         {"powercrud:favourite-deleted": {"favouriteId": favourite_id}}
     )
     return response
