@@ -115,6 +115,15 @@ def test_searchable_select_and_tooltip_initializers_are_idempotent_after_htmx_re
 ):
     """Repeated fragment initialisation should not duplicate widgets after HTMX swaps."""
 
+    filtered_out_author = Author.objects.create(
+        name="Playwright Filtered Out Author",
+        bio="",
+        birth_date=None,
+    )
+    filtered_out_book = sample_books[1]
+    filtered_out_book.author = filtered_out_author
+    filtered_out_book.save(update_fields=["author"])
+
     page.goto(books_url)
     page.wait_for_load_state("networkidle")
     page.get_by_role("button", name=re.compile("filters", re.I)).click()
@@ -153,15 +162,25 @@ def test_searchable_select_and_tooltip_initializers_are_idempotent_after_htmx_re
     )
     page.wait_for_load_state("networkidle")
     expect(page.locator("#filtered_results")).to_contain_text(sample_books[0].title)
+    expect(page.locator("#filtered_results")).not_to_contain_text(filtered_out_book.title)
 
     author_select = page.locator("#filter-form select[name='author']")
     page.wait_for_function(
         """
-        () => {
+        (selectedAuthor) => {
             const element = document.querySelector("#filter-form select[name='author']");
-            return Boolean(element && element.tomselect);
+            const wrapperCount = document.querySelectorAll(
+                "#filter-form select[name='author'] + .ts-wrapper"
+            ).length;
+            return Boolean(
+                element
+                && element.value === selectedAuthor
+                && element.tomselect
+                && wrapperCount === 1
+            );
         }
-        """
+        """,
+        arg=str(sample_author.pk),
     )
     wait_for_tippy_instance(page, "[data-powercrud-filter-toggle]")
     for _ in range(2):
