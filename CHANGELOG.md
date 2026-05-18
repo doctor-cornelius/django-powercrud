@@ -6,6 +6,9 @@ As per the pinned note in the `README`, breaking changes can occur at this stage
 
 Version numbers below correspond to published git tags. The more important releases include a little extra narrative and upgrade context; smaller patch releases remain deliberately brief. For full detail between any two versions, use the GitHub compare view for the matching tags.
 
+## 0.6.11 (2026-05-18)
+- **Style (link)**: change default from link-primary to link-info
+
 ## 0.6.10 (2026-05-17)
 - **Style (object_list)**: change text style for view header to text-base-content for better contrast in dark themes
 
