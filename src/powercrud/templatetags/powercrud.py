@@ -548,7 +548,7 @@ def _normalize_list_cell_link_result(result: Any, *, view: Any) -> dict[str, Any
 
     normalized: dict[str, Any] = {
         "url": url,
-        "classes": str(result.get("classes") or "link link-primary").strip(),
+        "classes": str(result.get("classes") or "link link-info").strip(),
         "open_in": open_in,
     }
     for key in ("title", "rel"):
