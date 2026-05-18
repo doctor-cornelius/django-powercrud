@@ -6,6 +6,11 @@ As per the pinned note in the `README`, breaking changes can occur at this stage
 
 Version numbers below correspond to published git tags. The more important releases include a little extra narrative and upgrade context; smaller patch releases remain deliberately brief. For full detail between any two versions, use the GitHub compare view for the matching tags.
 
+## 0.6.12 (2026-05-18)
+- **Fix (list-links)**: use info style for declarative cell links
+  
+  This was necessary because the previous releases (`0.6.10` and `0.6.11`) only set the default for hooks for cell links. 
+
 ## 0.6.11 (2026-05-18)
 - **Style (link)**: change default from link-primary to link-info
 
