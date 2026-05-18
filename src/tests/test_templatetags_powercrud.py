@@ -1068,7 +1068,7 @@ def test_object_list_hook_link_uses_view_default_open_in_when_omitted():
 
     assert cell_map["title"]["link"] == {
         "url": f"/hook-default/{book.pk}",
-        "classes": "link link-primary",
+        "classes": "link link-info",
         "open_in": "modal",
         "hx_method": "get",
         "hx_target": "#modal",
@@ -1114,7 +1114,7 @@ def test_object_list_hook_link_supports_new_context_links():
     assert cell_map["title"]["link"] == {
         "url": f"https://reports.example.test/books/{book.pk}",
         "title": "Open report",
-        "classes": "link link-primary",
+        "classes": "link link-info",
         "open_in": "new",
         "target": "_blank",
         "rel": "noopener noreferrer",
@@ -1160,7 +1160,7 @@ def test_object_list_hook_link_supports_modal_links():
 
     assert cell_map["title"]["link"] == {
         "url": f"/hook-modal/{book.pk}",
-        "classes": "link link-primary",
+        "classes": "link link-info",
         "open_in": "modal",
         "hx_method": "get",
         "hx_target": "#modal",
