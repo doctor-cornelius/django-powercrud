@@ -386,7 +386,7 @@ def test_book_sample_view_demonstrates_property_link_fields():
     )
     assert cell_map["pages"]["link"] == {
         "url": reverse("sample:bigbook-detail", kwargs={"pk": book.pk}),
-        "classes": "link link-primary",
+        "classes": "link link-info",
         "open_in": "current",
     }, "BookCRUDView should demonstrate current-page list-cell links on a visible non-inline sample field."
     assert cell_map["isbn"]["is_inline_editable"] is False, (
@@ -394,7 +394,7 @@ def test_book_sample_view_demonstrates_property_link_fields():
     )
     assert cell_map["isbn"]["link"] == {
         "url": "https://www.isbn-international.org/content/what-isbn",
-        "classes": "link link-primary",
+        "classes": "link link-info",
         "open_in": "new",
         "target": "_blank",
         "rel": "noopener noreferrer",

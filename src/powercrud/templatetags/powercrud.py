@@ -637,7 +637,7 @@ def _resolve_declarative_list_cell_link(
 
     normalized: dict[str, Any] = {
         "url": url,
-        "classes": "link link-primary",
+        "classes": "link link-info",
         "open_in": open_in,
     }
     if open_in == "new":

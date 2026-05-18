@@ -342,7 +342,7 @@ def test_list_partial_renders_anchor_for_linked_non_inline_cell():
     assert (
         'href="/resolved/sample:author-detail/%s"' % author.pk in rendered
     ), "Rendered list rows should output a real anchor for linked non-inline cells."
-    assert "link link-primary" in rendered, (
+    assert "link link-info" in rendered, (
         "Rendered linked list cells should use the default list-link styling when no hook classes override it."
     )
 

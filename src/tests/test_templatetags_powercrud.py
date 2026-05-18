@@ -820,7 +820,7 @@ def test_object_list_resolves_relation_link_fields_via_related_id_by_default():
 
     assert cell_map["author"]["link"] == {
         "url": f"/sample:author-detail/{author.pk}",
-        "classes": "link link-primary",
+        "classes": "link link-info",
         "open_in": "new",
         "target": "_blank",
         "rel": "noopener noreferrer",
@@ -855,7 +855,7 @@ def test_object_list_resolves_non_relation_link_fields_via_row_pk_by_default():
 
     assert cell_map["title"]["link"] == {
         "url": f"/sample:book-detail/{book.pk}",
-        "classes": "link link-primary",
+        "classes": "link link-info",
         "open_in": "new",
         "target": "_blank",
         "rel": "noopener noreferrer",
@@ -933,7 +933,7 @@ def test_object_list_uses_view_default_open_in_for_declarative_links():
 
     assert cell_map["author"]["link"] == {
         "url": f"/sample:author-detail/{author.pk}",
-        "classes": "link link-primary",
+        "classes": "link link-info",
         "open_in": "modal",
         "hx_method": "get",
         "hx_target": "#modal",
@@ -943,7 +943,7 @@ def test_object_list_uses_view_default_open_in_for_declarative_links():
     )
     assert cell_map["title"]["link"] == {
         "url": f"/sample:book-detail/{book.pk}",
-        "classes": "link link-primary",
+        "classes": "link link-info",
         "open_in": "current",
     }, "Explicit declarative open_in should override the view-wide default opening mode."
 
@@ -981,7 +981,7 @@ def test_object_list_resolves_static_url_link_fields():
 
     assert cell_map["isbn_empty"]["link"] == {
         "url": "https://example.test/books/help",
-        "classes": "link link-primary",
+        "classes": "link link-info",
         "open_in": "new",
         "target": "_blank",
         "rel": "noopener noreferrer",
@@ -1280,7 +1280,7 @@ def test_object_list_resolves_modal_link_metadata_when_requested():
 
     assert cell_map["title"]["link"] == {
         "url": f"/sample:book-detail/{book.pk}",
-        "classes": "link link-primary",
+        "classes": "link link-info",
         "open_in": "modal",
         "hx_method": "get",
         "hx_target": "#modal",
@@ -1323,7 +1323,7 @@ def test_object_list_modal_links_degrade_to_plain_links_when_modal_stack_disable
 
     assert cell_map["title"]["link"] == {
         "url": f"/sample:book-detail/{book.pk}",
-        "classes": "link link-primary",
+        "classes": "link link-info",
         "open_in": "modal",
     }, "open_in='modal' should fall back to a normal anchor when the view's HTMX/modal stack is disabled."
 
