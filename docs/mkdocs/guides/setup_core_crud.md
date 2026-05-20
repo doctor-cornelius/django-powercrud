@@ -143,6 +143,7 @@ Selection-aware header buttons read the current persisted PowerCRUD bulk selecti
     | `needs_pk` | `bool` | Usually `False` for header buttons because they are page-level actions rather than row-level actions. |
     | `display_modal` | `bool` | If `True`, PowerCRUD opens the response in the standard modal target instead of treating it as a normal page/content navigation. |
     | `modal_box_classes` | `str` | Optional replacement classes for the shared modal box while this modal button is open. Use it for one-off width/height changes, and keep the default `flex max-h-[calc(100dvh-2rem)] flex-col` classes if you still want viewport-bounded scrolling. |
+    | `refresh_list_on_modal_close` | `bool` | Optional. When `True` on a modal button, closing that modal refreshes the current list partial. Defaults to `False`. |
     | `htmx_target` | `str` | HTMX target element to swap into when the button is clicked and it is not using the default modal target. |
     | `extra_attrs` | `str` | Raw HTML attributes appended to the button element when you need custom HTMX or data attributes. |
     | `extra_class_attrs` | `str` | Extra CSS classes appended to the button in addition to `button_class`. |
@@ -150,6 +151,12 @@ Selection-aware header buttons read the current persisted PowerCRUD bulk selecti
     | `selection_min_count` | `int` | Minimum number of selected rows required before the button is considered ready. |
     | `selection_min_behavior` | `str` | `'allow'` leaves the button clickable below the minimum and lets the endpoint handle the error; `'disable'` greys it out in the UI. |
     | `selection_min_reason` | `str` | Tooltip/help text shown when a selection-aware button is disabled because too few rows are selected. |
+
+??? note "Refreshing the list after custom modal close"
+
+    Prefer having a custom endpoint emit `HX-Trigger: {"refreshTable": true}` when that endpoint knows it changed data. That keeps refresh behavior tied to the mutation.
+
+    Use `refresh_list_on_modal_close = True` only when the modal itself is the practical boundary for refreshing, for example a custom modal workflow that cannot easily emit response headers from the final action. The option is ignored unless `display_modal=True`.
 
 ### Extra Actions
 
@@ -201,11 +208,18 @@ class AuthorCRUDView(PowerCRUDMixin, CRUDView):
     | `button_class` | `str` | CSS class used when the action is rendered as a visible button. |
     | `display_modal` | `bool` | If `True`, the response opens in the standard modal instead of replacing page content. |
     | `modal_box_classes` | `str` | Optional replacement classes for the shared modal box while this modal action is open. Use it for one-off width/height changes, and keep the default `flex max-h-[calc(100dvh-2rem)] flex-col` classes if you still want viewport-bounded scrolling. |
+    | `refresh_list_on_modal_close` | `bool` | Optional. When `True` on a modal action, closing that modal refreshes the current list partial. Defaults to `False`. |
     | `htmx_target` | `str` | HTMX target element used for non-modal actions when you need a custom swap target. |
     | `hx_post` | `bool` | If `True`, renders the action as an HTMX POST instead of the default GET. |
     | `lock_sensitive` | `bool` | Reuses PowerCRUD's existing blocked-row/lock logic so the action disables automatically when the row is not currently actionable. |
     | `disabled_if` | `str` | Name of a view method with signature `(obj, request) -> bool` that decides whether this row action should be disabled. |
     | `disabled_reason` | `str` | Name of a view method with signature `(obj, request) -> str | None` that returns the tooltip/help text when the action is disabled. |
+
+??? note "Refreshing the list after custom modal close"
+
+    Prefer having a custom endpoint emit `HX-Trigger: {"refreshTable": true}` when that endpoint knows it changed data. That keeps refresh behavior tied to the mutation.
+
+    Use `refresh_list_on_modal_close = True` only when closing the modal is the practical refresh boundary. This is mainly for custom modal workflows outside the normal PowerCRUD form success path. The option is ignored unless `display_modal=True`.
 
 !!! note
 

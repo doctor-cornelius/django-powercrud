@@ -80,3 +80,34 @@ def test_row_actions_floating_panel_modal_action_uses_cloned_trigger_classes(
         re.compile(r"\bmax-w-5xl\b")
     )
     expect(floating_panel).not_to_be_visible()
+
+
+def test_row_actions_flagged_modal_close_refreshes_current_list(
+    page, books_url, sample_books
+):
+    """A flagged modal action from the cloned row menu should refresh the list on close."""
+
+    del sample_books
+
+    page.goto(f"{books_url}?page_size=2")
+    page.wait_for_load_state("networkidle")
+
+    page.locator("[data-powercrud-row-actions-trigger='true']").first.dispatch_event("click")
+    floating_panel = page.locator("[data-powercrud-row-actions-floating-panel='true']")
+    expect(floating_panel).to_be_visible()
+    floating_panel.get_by_role("link", name="Normal Edit").click()
+
+    modal = page.locator("#powercrudBaseModal")
+    expect(modal).to_be_visible()
+    expect(modal.locator("#powercrudModalContent form")).to_be_visible()
+
+    with page.expect_request(
+        lambda request: (
+            request.method == "GET"
+            and "/sample/bigbook/" in request.url
+            and request.headers.get("x-filter-sort-request") == "true"
+        )
+    ):
+        modal.get_by_label("Close modal").click()
+
+    expect(modal).not_to_be_visible()

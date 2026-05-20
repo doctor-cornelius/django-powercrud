@@ -340,6 +340,34 @@ def test_action_links_render_modal_box_classes_for_modal_extra_actions():
 
 
 @pytest.mark.django_db
+def test_action_links_render_modal_close_refresh_only_for_modal_extra_actions():
+    """Render modal-close refresh metadata only for flagged modal row actions."""
+    author = Author.objects.create(name="Modal Refresh")
+    book = Book.objects.create(
+        title="Modal close refresh",
+        author=author,
+        published_date=date(2024, 1, 3),
+        bestseller=False,
+        isbn="9876543210002",
+        pages=42,
+    )
+    request = apply_session(RequestFactory().get("/"))
+    view = TemplateViewStub(request)
+    view.extra_actions[0]["refresh_list_on_modal_close"] = True
+    view.extra_actions[1]["display_modal"] = False
+    view.extra_actions[1]["refresh_list_on_modal_close"] = True
+
+    html = powercrud.action_links(view, book)
+
+    assert html.count("data-powercrud-refresh-list-on-modal-close='true'") == 1, (
+        "Only flagged modal extra actions should render modal-close list refresh metadata."
+    )
+    assert "Preview" in html, (
+        "The flagged modal extra action should still render with its visible action label."
+    )
+
+
+@pytest.mark.django_db
 def test_action_links_can_render_extra_actions_in_dropdown():
     author = Author.objects.create(name="Dana")
     book = Book.objects.create(
@@ -354,6 +382,7 @@ def test_action_links_can_render_extra_actions_in_dropdown():
     request = apply_session(RequestFactory().get("/?page=2"))
     view = TemplateViewStub(request)
     view.extra_actions_mode = "dropdown"
+    view.extra_actions[0]["refresh_list_on_modal_close"] = True
 
     html = powercrud.action_links(view, book)
 
@@ -366,6 +395,9 @@ def test_action_links_can_render_extra_actions_in_dropdown():
     ), "Dropdown row action mode should render a hidden template for the floating overflow menu content."
     assert "Preview" in html and "Refresh" in html, (
         "Dropdown row action mode should still include each extra action inside the overflow menu."
+    )
+    assert "data-powercrud-refresh-list-on-modal-close='true'" in html, (
+        "Dropdown row action mode should preserve modal-close refresh metadata in the floating menu template."
     )
     assert (
         html.count("join-item") >= 4
@@ -1755,6 +1787,7 @@ def test_extra_buttons_dropdown_mode_preserves_button_attributes():
     view.extra_buttons[0]["extra_attrs"] = 'data-custom-action="reload"'
     view.extra_buttons[0]["extra_class_attrs"] = "tracking-wide"
     view.extra_buttons[1]["modal_box_classes"] = "modal-box w-11/12 max-w-5xl"
+    view.extra_buttons[1]["refresh_list_on_modal_close"] = True
 
     html = powercrud.extra_buttons({"request": request}, view)
 
@@ -1778,6 +1811,9 @@ def test_extra_buttons_dropdown_mode_preserves_button_attributes():
     )
     assert 'data-powercrud-modal-box-classes="modal-box w-11/12 max-w-5xl"' in html, (
         "Dropdown extra buttons should preserve per-button modal box classes."
+    )
+    assert 'data-powercrud-refresh-list-on-modal-close="true"' in html, (
+        "Dropdown extra buttons should preserve modal-close refresh metadata."
     )
     assert 'data-custom-action="reload"' in html and "tracking-wide" in html, (
         "Dropdown extra buttons should preserve custom attrs and custom classes."
@@ -1803,6 +1839,22 @@ def test_extra_buttons_render_modal_box_classes_only_for_modal_buttons():
     )
     assert "max-w-7xl" not in html, (
         "Non-modal extra buttons should ignore modal_box_classes metadata."
+    )
+
+
+def test_extra_buttons_render_modal_close_refresh_only_for_modal_buttons():
+    request = apply_session(RequestFactory().get("/"))
+    view = TemplateViewStub(request)
+    view.extra_buttons[0]["refresh_list_on_modal_close"] = True
+    view.extra_buttons[1]["refresh_list_on_modal_close"] = True
+
+    html = powercrud.extra_buttons({"request": request}, view)
+
+    assert html.count('data-powercrud-refresh-list-on-modal-close="true"') == 1, (
+        "Only flagged modal extra buttons should render modal-close list refresh metadata."
+    )
+    assert "New" in html, (
+        "The flagged modal extra button should still render with its visible button label."
     )
 
 

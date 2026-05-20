@@ -36,12 +36,12 @@ For the mental model behind the option groups, see [PowerCRUD Concepts](../guide
 | `detail_properties_exclude` (`list[str]`) | `list[str]` | `[]` | All listed detail properties render | Remove specific properties from the detail page. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
 | `dropdown_sort_options` (`dict`) | `dict[str, str]` | `{}` | PowerCRUD orders dropdowns by `name/title/...` heuristics | Explicit ordering for dropdowns in filters, forms, and bulk edit widgets. | [Bulk editing (synchronous)](../guides/bulk_edit_sync.md) |
 | `exclude` (`list[str]`) | `list[str]` | `[]` | Every concrete model field is shown | Remove individual fields from the list view while keeping the rest. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
-| `extra_actions` (`list[dict]`) | `list[action spec]` | `[]` | Only the default action buttons render | Define extra per-row actions (URL, label, attributes). Modal actions may set per-trigger `modal_box_classes` for custom width/height. | [Complete Example](complete_example.md) |
+| `extra_actions` (`list[dict]`) | `list[action spec]` | `[]` | Only the default action buttons render | Define extra per-row actions (URL, label, attributes). Modal actions may set per-trigger `modal_box_classes` for custom width/height and `refresh_list_on_modal_close` for close-driven list refreshes. | [Complete Example](complete_example.md) |
 | `extra_actions_mode` (`str`) | `'buttons'`, `'dropdown'` | `'buttons'` | Extra row actions render as visible buttons after the standard actions | Control how row-level `extra_actions` are rendered. Use `'dropdown'` to keep `View/Edit/Delete` visible and move only the extra row actions into a `More` overflow menu. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
 | `extra_actions_dropdown_open_upward_bottom_rows` (`int`) | `int >= 0` | `3` | All `More` menus open downward | In dropdown mode, open the `More` menu upward for the last N rendered rows on the current page. Set `0` to disable this behavior. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
 | `extra_button_classes` (`str`) | `str` | `""` | Extra buttons use the default button styling | Additional CSS classes shared by every entry in `extra_buttons`. | [Styling & Tailwind](../guides/styling_tailwind.md) |
 | `extra_buttons_mode` (`str`) | `'buttons'`, `'dropdown'` | `'buttons'` | Extra header buttons render as visible toolbar buttons | Control how list-level `extra_buttons` are rendered. Use `'dropdown'` to move configured extra buttons into a top toolbar `More` menu. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
-| `extra_buttons` (`list[dict]`) | `list[button spec]` | `[]` | No extra header buttons are shown | Add top-of-page buttons (e.g., custom actions, links). Modal buttons may set per-trigger `modal_box_classes` for custom width/height. | [Complete Example](complete_example.md) |
+| `extra_buttons` (`list[dict]`) | `list[button spec]` | `[]` | No extra header buttons are shown | Add top-of-page buttons (e.g., custom actions, links). Modal buttons may set per-trigger `modal_box_classes` for custom width/height and `refresh_list_on_modal_close` for close-driven list refreshes. | [Complete Example](complete_example.md) |
 | `filter_favourites_enabled` (`bool`) | `True`, `False` | `False` | No saved-favourites toolbar is rendered | Enable the optional saved favourites UI for this list view when the `powercrud.contrib.favourites` app is installed and `powercrud.urls` is mounted under the `powercrud` namespace. | [Saved Favourites](../guides/advanced/filter_favourites.md) |
 | `fields` (`list/str`) | `None`, `'__all__'`, `list[str]` | `'__all__'` | All concrete model fields show in the list view | Columns displayed in the list view. Explicit lists may contain model field names and queryset annotation names. Combine with `exclude`. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
 | `filter_null_fields_exclude` (`list[str]`) | `list[str]` | `[]` | Nullable auto-generated filters gain built-in null filtering | Opt out specific `filterset_fields` from automatic null-filter controls. | [Filter controls](#filter-controls) |
@@ -321,6 +321,7 @@ extra_buttons = [
         "url_name": "projects:summary-help",
         "text": "Summary Help",
         "display_modal": True,
+        "refresh_list_on_modal_close": True,
         "modal_box_classes": "modal-box flex max-h-[calc(100dvh-2rem)] w-11/12 max-w-3xl flex-col",
     },
     {
@@ -341,6 +342,7 @@ Notes:
 - `selection_min_count` defaults to `0`.
 - `selection_min_behavior` accepts `'allow'` or `'disable'` and defaults to `'allow'`.
 - `modal_box_classes` is only used when `display_modal=True`; it replaces the view-level `modal_box_classes` while that button's modal is open. Omit it when the button should use the default modal width.
+- `refresh_list_on_modal_close` is only used when `display_modal=True`; prefer `HX-Trigger: {"refreshTable": true}` when the endpoint knows it changed data.
 - When `uses_selection=True`, the endpoint contract is “operate on current persisted PowerCRUD selection”.
 - The endpoint should still validate selection size, permissions, and lock rules server-side.
 
@@ -354,6 +356,7 @@ Notes:
     | `needs_pk` | `bool` | Should usually stay `False` for header buttons because they are not tied to a single row. |
     | `display_modal` | `bool` | Opens the response in the standard modal target when `True`. |
     | `modal_box_classes` | `str` | Replacement classes for the shared modal box while this modal button is open. Use it for per-button width/height changes, and keep the default viewport-height classes if the modal should stay internally scrollable. |
+    | `refresh_list_on_modal_close` | `bool` | Refreshes the current list partial when this modal button's dialog closes. Defaults to `False`; ignored unless `display_modal=True`. |
     | `htmx_target` | `str` | HTMX target element to update for non-modal or custom-target flows. |
     | `extra_attrs` | `str` | Raw HTML attributes appended to the button element. |
     | `extra_class_attrs` | `str` | Additional CSS classes appended after the standard button classes. |
@@ -385,6 +388,7 @@ extra_actions = [
         "display_modal": True,
         "disabled_if": "is_view_again_disabled",
         "disabled_reason": "get_view_again_disabled_reason",
+        "refresh_list_on_modal_close": True,
         "modal_box_classes": "modal-box flex max-h-[calc(100dvh-2rem)] w-11/12 max-w-5xl flex-col",
     },
 ]
@@ -398,6 +402,7 @@ Notes:
 - `extra_actions_dropdown_open_upward_bottom_rows` counts from the bottom of the currently rendered rows after filtering and pagination.
 - Set `extra_actions_dropdown_open_upward_bottom_rows = 0` to keep every dropdown opening downward.
 - `modal_box_classes` is only used when `display_modal=True`; it replaces the view-level `modal_box_classes` while this row action's modal is open.
+- `refresh_list_on_modal_close` is only used when `display_modal=True`; prefer `HX-Trigger: {"refreshTable": true}` when the endpoint knows it changed data.
 - `disabled_if` and `disabled_reason` are optional view method names used to disable a row action based on the current object and request.
 - `lock_sensitive` remains available when an action should also disable under PowerCRUD's existing lock/blocked-row state.
 
@@ -411,6 +416,7 @@ Notes:
     | `button_class` | `str` | Styling class used when the action renders as a visible button. |
     | `display_modal` | `bool` | Opens the response in the standard modal target when `True`. |
     | `modal_box_classes` | `str` | Replacement classes for the shared modal box while this modal action is open. Use it for per-action width/height changes, and keep the default viewport-height classes if the modal should stay internally scrollable. |
+    | `refresh_list_on_modal_close` | `bool` | Refreshes the current list partial when this modal action's dialog closes. Defaults to `False`; ignored unless `display_modal=True`. |
     | `htmx_target` | `str` | HTMX target element to update for non-modal or custom-target flows. |
     | `hx_post` | `bool` | Sends the action as an HTMX POST instead of the default GET when `True`. |
     | `lock_sensitive` | `bool` | Disables the action automatically when PowerCRUD marks the row as blocked by its existing lock logic. |

@@ -96,12 +96,18 @@ import { createCurrentTemplateRuntime } from './runtime/current-template.js';
         documentObject: document,
         warnMissingDependency,
         getHtmxInstance,
+        requestModalCloseListRefresh(root) {
+            if (root instanceof Element) {
+                bulkActions.refreshTable(root);
+            }
+        },
     });
     const {
         applyPowercrudModalClasses,
         cleanupDuplicatePowercrudModals,
         closeRowActionsMenu,
         destroyPowercrudTooltips,
+        handleModalTriggerBeforeRequest,
         hidePowercrudTooltips,
         initPowercrudTooltips,
         schedulePowercrudTooltipRefresh,
@@ -476,6 +482,7 @@ import { createCurrentTemplateRuntime } from './runtime/current-template.js';
                 hidePowercrudTooltips(document);
 
                 const target = event.detail && event.detail.elt;
+                handleModalTriggerBeforeRequest(target);
                 if (isFilterValueField(target)) {
                     event.preventDefault();
                     return;

@@ -246,6 +246,7 @@ class BookCRUDView(SampleCRUDMixin):
             "htmx_target": "powercrudModalContent",
             "display_modal": True,
             "lock_sensitive": True,  # this will be greyed out if async locks in force
+            "refresh_list_on_modal_close": True,
             "modal_box_classes": "modal-box flex max-h-[calc(100dvh-2rem)] w-11/12 max-w-4xl flex-col",
         },
         {

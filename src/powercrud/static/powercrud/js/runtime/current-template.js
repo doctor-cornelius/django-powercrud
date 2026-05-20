@@ -21,10 +21,13 @@ export function createCurrentTemplateRuntime(context) {
         documentObject,
         warnMissingDependency,
         getHtmxInstance,
+        requestModalCloseListRefresh,
     } = context;
 
     const FORM_SPINNER_STATE = new WeakMap();
     const BUTTON_SPINNER_STATE = new WeakMap();
+    const MODAL_CLOSE_REFRESH_ROOTS = new WeakMap();
+    const MODAL_CLOSE_REFRESH_LISTENERS = new WeakSet();
     let tooltipResizeTimer = null;
     let activeRowActionsMenu = null;
     let activeRowActionsTrigger = null;
@@ -78,15 +81,57 @@ export function createCurrentTemplateRuntime(context) {
         const defaultClasses = modalBox.dataset.powercrudDefaultModalBoxClasses || DEFAULT_MODAL_BOX_CLASSES;
         const requestedClasses = modalTrigger.getAttribute('data-powercrud-modal-box-classes');
         modalBox.className = requestedClasses || defaultClasses;
+        armModalCloseListRefresh(modalTrigger, modal, root);
+    }
+
+    function getModalCloseRefreshRoot(root) {
+        if (root instanceof Element && root !== documentObject) {
+            return root;
+        }
+        return getObjectListRoot(activeRowActionsTrigger) || null;
+    }
+
+    function armModalCloseListRefresh(modalTrigger, modal, root) {
+        if (
+            !(modal instanceof HTMLDialogElement)
+            || modalTrigger.getAttribute('data-powercrud-refresh-list-on-modal-close') !== 'true'
+        ) {
+            return;
+        }
+
+        const refreshRoot = getModalCloseRefreshRoot(root);
+        if (!(refreshRoot instanceof Element)) {
+            return;
+        }
+
+        MODAL_CLOSE_REFRESH_ROOTS.set(modal, refreshRoot);
+        if (MODAL_CLOSE_REFRESH_LISTENERS.has(modal)) {
+            return;
+        }
+
+        MODAL_CLOSE_REFRESH_LISTENERS.add(modal);
+        modal.addEventListener('close', () => {
+            const pendingRoot = MODAL_CLOSE_REFRESH_ROOTS.get(modal);
+            MODAL_CLOSE_REFRESH_ROOTS.delete(modal);
+            if (!(pendingRoot instanceof Element) || !pendingRoot.isConnected) {
+                return;
+            }
+            requestModalCloseListRefresh?.(pendingRoot);
+        });
     }
 
     function closePowercrudModals() {
         documentObject.querySelectorAll('[data-powercrud-modal]').forEach(modal => {
             if (modal instanceof HTMLDialogElement && typeof modal.close === 'function') {
+                MODAL_CLOSE_REFRESH_ROOTS.delete(modal);
                 modal.close();
             }
         });
         cleanupDuplicatePowercrudModals();
+    }
+
+    function handleModalTriggerBeforeRequest(trigger) {
+        applyPowercrudModalClasses(trigger);
     }
 
     function getTippyCtor() {
@@ -646,6 +691,7 @@ export function createCurrentTemplateRuntime(context) {
         closePowercrudModals,
         closeRowActionsMenu,
         destroyPowercrudTooltips,
+        handleModalTriggerBeforeRequest,
         hidePowercrudTooltips,
         initPowercrudTooltips,
         positionFilterFavouritesPanel,

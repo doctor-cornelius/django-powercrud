@@ -213,6 +213,7 @@ The sample `BookCRUDView` now also demonstrates both custom action enhancements 
 
 - a selection-aware `extra_button` that opens a modal summary for the current persisted bulk selection
 - a row-level `extra_action` that disables itself with a tooltip when the book has no description
+- an opt-in modal `extra_action` using `refresh_list_on_modal_close=True` to refresh the current list when its modal is closed
 - per-trigger modal sizing on a modal list-cell link, a modal `extra_button`, and modal `extra_actions` through `modal_box_classes`
 - semantic field-level list-cell tooltips on the inline `title`, non-inline `pages`, and `isbn_empty` property columns
 - session-backed list-column choices through **Cols**

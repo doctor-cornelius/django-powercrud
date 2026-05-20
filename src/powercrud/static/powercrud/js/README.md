@@ -45,6 +45,11 @@ The runtime keeps these public contracts stable unless a later public API change
 6. Stable `data-powercrud-*` and `data-inline-*` contracts.
 7. Storage keys and custom events documented in `docs/_plans/js_cleanup/js_cleanup-notes.md`.
 
+Custom modal `extra_buttons` and `extra_actions` may render
+`data-powercrud-refresh-list-on-modal-close="true"`. When that flagged modal is
+closed, the current-template adapter reports the close to `powercrud.js`, and
+the composed list-refresh runtime refreshes the originating object-list root.
+
 The duplicate-load guard `window.__powercrudRuntimeLoaded` prevents the same public entry from installing listeners twice.
 
 ## Lifecycle

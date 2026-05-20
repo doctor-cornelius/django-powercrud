@@ -212,6 +212,7 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
             "selection_min_count": 1,
             "selection_min_behavior": "disable",
             "selection_min_reason": "Select at least one project first.",
+            "refresh_list_on_modal_close": True,
             "modal_box_classes": "modal-box flex max-h-[calc(100dvh-2rem)] w-11/12 max-w-5xl flex-col",
         },
     ]
@@ -234,6 +235,7 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
             "display_modal": True,
             "disabled_if": "is_history_action_disabled",
             "disabled_reason": "get_history_action_disabled_reason",
+            "refresh_list_on_modal_close": True,
             "modal_box_classes": "modal-box flex max-h-[calc(100dvh-2rem)] w-11/12 max-w-5xl flex-col",
         },
     ]

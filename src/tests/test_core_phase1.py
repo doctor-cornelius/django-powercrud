@@ -691,6 +691,56 @@ def test_core_mixin_warns_when_selection_thresholds_without_uses_selection(caplo
 
 
 @pytest.mark.django_db
+def test_core_mixin_normalizes_extra_button_modal_close_refresh_flag():
+    class ButtonRefreshView(CoreMixin):
+        model = Book
+        fields = "__all__"
+        base_template_path = "sample/base.html"
+        extra_buttons = [
+            {
+                "url_name": "sample:bigbook-list",
+                "text": "Reload",
+            },
+            {
+                "url_name": "sample:bigbook-selected-summary",
+                "text": "Selected Summary",
+                "display_modal": True,
+                "refresh_list_on_modal_close": True,
+            },
+        ]
+
+    view = ButtonRefreshView()
+
+    assert view.extra_buttons[0]["refresh_list_on_modal_close"] is False, (
+        "Extra buttons should default refresh_list_on_modal_close to False when omitted."
+    )
+    assert view.extra_buttons[1]["refresh_list_on_modal_close"] is True, (
+        "Extra buttons should preserve an explicit True modal-close refresh flag."
+    )
+
+
+@pytest.mark.django_db
+def test_core_mixin_rejects_non_bool_extra_button_modal_close_refresh_flag():
+    class BrokenView(CoreMixin):
+        model = Book
+        fields = "__all__"
+        base_template_path = "sample/base.html"
+        extra_buttons = [
+            {
+                "url_name": "sample:bigbook-selected-summary",
+                "text": "Selected Summary",
+                "refresh_list_on_modal_close": "yes",
+            }
+        ]
+
+    with pytest.raises(
+        ImproperlyConfigured,
+        match="extra_buttons\\[0\\]\\.refresh_list_on_modal_close",
+    ):
+        BrokenView()
+
+
+@pytest.mark.django_db
 def test_core_mixin_rejects_unknown_extra_action_disabled_hook():
     class BrokenView(CoreMixin):
         model = Book
@@ -735,6 +785,56 @@ def test_core_mixin_warns_when_disabled_reason_without_disabled_if(caplog):
     assert "disabled_reason without disabled_if" in caplog.text, (
         "PowerCRUD should warn when disabled_reason is configured without the corresponding disabled_if hook."
     )
+
+
+@pytest.mark.django_db
+def test_core_mixin_normalizes_extra_action_modal_close_refresh_flag():
+    class ActionRefreshView(CoreMixin):
+        model = Book
+        fields = "__all__"
+        base_template_path = "sample/base.html"
+        extra_actions = [
+            {
+                "url_name": "sample:bigbook-description-preview",
+                "text": "Description Preview",
+            },
+            {
+                "url_name": "sample:bigbook-update",
+                "text": "Normal Edit",
+                "display_modal": True,
+                "refresh_list_on_modal_close": True,
+            },
+        ]
+
+    view = ActionRefreshView()
+
+    assert view.extra_actions[0]["refresh_list_on_modal_close"] is False, (
+        "Extra actions should default refresh_list_on_modal_close to False when omitted."
+    )
+    assert view.extra_actions[1]["refresh_list_on_modal_close"] is True, (
+        "Extra actions should preserve an explicit True modal-close refresh flag."
+    )
+
+
+@pytest.mark.django_db
+def test_core_mixin_rejects_non_bool_extra_action_modal_close_refresh_flag():
+    class BrokenView(CoreMixin):
+        model = Book
+        fields = "__all__"
+        base_template_path = "sample/base.html"
+        extra_actions = [
+            {
+                "url_name": "sample:bigbook-description-preview",
+                "text": "Description Preview",
+                "refresh_list_on_modal_close": "yes",
+            }
+        ]
+
+    with pytest.raises(
+        ImproperlyConfigured,
+        match="extra_actions\\[0\\]\\.refresh_list_on_modal_close",
+    ):
+        BrokenView()
 
 
 def test_table_mixin_get_view_title_falls_back_to_model_verbose_name_plural():

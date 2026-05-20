@@ -351,6 +351,7 @@ def _render_action_anchor(
     use_htmx: bool,
     query_string: str,
     modal_box_classes: str | None = None,
+    refresh_list_on_modal_close: bool = False,
     label_html: str | None = None,
 ) -> str:
     """
@@ -389,6 +390,8 @@ def _render_action_anchor(
                 "data-powercrud-modal-box-classes="
                 f"'{conditional_escape(str(modal_box_classes))}'"
             )
+        if refresh_list_on_modal_close:
+            attrs.append("data-powercrud-refresh-list-on-modal-close='true'")
 
     if disable:
         attrs.append("aria-disabled='true'")
@@ -764,6 +767,7 @@ def action_links(view: Any, object: Any) -> str:
                 "show_modal": use_modal,
                 "modal_attrs": styles["modal_attrs"],
                 "modal_box_classes": "",
+                "refresh_list_on_modal_close": False,
                 "disable": disable,
                 "disabled_reason": disabled_reason,
             }
@@ -810,6 +814,9 @@ def action_links(view: Any, object: Any) -> str:
                     "show_modal": show_modal,
                     "modal_attrs": modal_attrs,
                     "modal_box_classes": modal_box_classes,
+                    "refresh_list_on_modal_close": bool(
+                        action.get("refresh_list_on_modal_close", False)
+                    ),
                     "disable": disable_extra,
                     "disabled_reason": disabled_reason,
                 }
@@ -832,6 +839,7 @@ def action_links(view: Any, object: Any) -> str:
             use_htmx=use_htmx,
             query_string=query_string,
             modal_box_classes=action["modal_box_classes"],
+            refresh_list_on_modal_close=action["refresh_list_on_modal_close"],
         )
         for action in standard_action_items
     ]
@@ -852,6 +860,7 @@ def action_links(view: Any, object: Any) -> str:
                 use_htmx=use_htmx,
                 query_string=query_string,
                 modal_box_classes=action["modal_box_classes"],
+                refresh_list_on_modal_close=action["refresh_list_on_modal_close"],
             )
             + "</li>"
             for action in extra_action_items
@@ -884,6 +893,7 @@ def action_links(view: Any, object: Any) -> str:
                 use_htmx=use_htmx,
                 query_string=query_string,
                 modal_box_classes=action["modal_box_classes"],
+                refresh_list_on_modal_close=action["refresh_list_on_modal_close"],
             )
             for action in extra_action_items
         ]
@@ -1467,6 +1477,11 @@ def extra_buttons(context: Dict[str, Any], view: Any) -> str:
                             'data-powercrud-modal-box-classes="'
                             f'{escaped_modal_box_classes}"'
                         )
+                    if button.get("refresh_list_on_modal_close", False):
+                        modal_box_attrs = (
+                            f'{modal_box_attrs} '
+                            'data-powercrud-refresh-list-on-modal-close="true"'
+                        ).strip()
                 else:
                     htmx_target = button.get("htmx_target", "")
                     if htmx_target and not htmx_target.startswith("#"):

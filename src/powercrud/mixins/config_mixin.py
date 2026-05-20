@@ -936,9 +936,32 @@ class ConfigMixin:
             normalized["uses_selection"] = uses_selection
             normalized["selection_min_count"] = selection_min_count
             normalized["selection_min_behavior"] = selection_min_behavior
+            normalized["refresh_list_on_modal_close"] = (
+                self._normalize_extra_modal_close_refresh_flag(
+                    normalized,
+                    index,
+                    "extra_buttons",
+                )
+            )
             normalized_buttons.append(normalized)
 
         self.extra_buttons = normalized_buttons
+
+    @staticmethod
+    def _normalize_extra_modal_close_refresh_flag(
+        item: dict[str, Any],
+        index: int,
+        config_name: str,
+    ) -> bool:
+        """
+        Return the explicit modal-close refresh flag for a custom action/button.
+        """
+        value = item.get("refresh_list_on_modal_close", False)
+        if not isinstance(value, bool):
+            raise ValueError(
+                f"{config_name}[{index}].refresh_list_on_modal_close must be True or False"
+            )
+        return value
 
     def _resolve_extra_action_method(
         self, method_name: Any, index: int, setting_name: str
@@ -1000,6 +1023,13 @@ class ConfigMixin:
 
             normalized["disabled_if"] = disabled_if
             normalized["disabled_reason"] = disabled_reason
+            normalized["refresh_list_on_modal_close"] = (
+                self._normalize_extra_modal_close_refresh_flag(
+                    normalized,
+                    index,
+                    "extra_actions",
+                )
+            )
             normalized_actions.append(normalized)
 
         self.extra_actions = normalized_actions
