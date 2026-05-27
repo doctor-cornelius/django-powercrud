@@ -6,6 +6,13 @@ As per the pinned note in the `README`, breaking changes can occur at this stage
 
 Version numbers below correspond to published git tags. The more important releases include a little extra narrative and upgrade context; smaller patch releases remain deliberately brief. For full detail between any two versions, use the GitHub compare view for the matching tags.
 
+## 0.7.0 (2026-05-27)
+- **Feature (actions)**: refresh list on modal close
+- **Feature (PowerField)**: implement PowerField helper abstraction API for field intent.
+    
+    PowerField provides a core, optional helper for declaring repeated Field Intent in one place. Views can now use `power_fields` with `PowerField` and `PowerOverride` declarations to generate the existing primitive config for list/detail/form/inline/bulk fields, default list columns, tooltips, links, column help/alignment, properties, and queryset dependencies. Primitive class attributes remain the underlying API; each view inheritance chain must use either primitive Field Intent config or `power_fields`, not both.
+
+
 ## 0.6.12 (2026-05-18)
 - **Fix (list-links)**: use info style for declarative cell links
   
