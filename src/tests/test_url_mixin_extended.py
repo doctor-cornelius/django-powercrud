@@ -8,6 +8,7 @@ from django.views import View
 
 from neapolitan.views import Role
 
+from powercrud.mixins.config_mixin import resolve_class_config
 from powercrud.mixins import url_mixin as url_module
 from powercrud.mixins.url_mixin import UrlMixin
 from sample.models import Author, Book
@@ -96,6 +97,17 @@ class LegacyInlineUrlViewHarness(UrlMixin, ContextBase, View):
     path_converter = "int"
     model = Book
     inline_edit_enabled = True
+
+
+def test_resolve_class_config_copies_mutable_values():
+    cfg = resolve_class_config(UrlViewHarness)
+
+    assert cfg.bulk_fields == ["author"], (
+        "Class-level config snapshots should expose primitive list values."
+    )
+    assert cfg.bulk_fields is not UrlViewHarness.bulk_fields, (
+        "Class-level config snapshots should copy mutable list values so callers cannot mutate class config accidentally."
+    )
 
 
 @pytest.mark.django_db

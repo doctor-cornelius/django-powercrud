@@ -224,6 +224,48 @@ The sample `BookCRUDView` now also demonstrates both custom action enhancements 
 
 These examples are intentionally simple so package users can inspect both the view config and the matching sample endpoints/templates.
 
+### PowerFieldBookCRUDView - Field Intent Helper Variant
+
+The sample app includes a sibling Book view at `/sample/powerfield-book/` labelled **PowerField Books**.
+
+This view uses `power_fields` instead of primitive Field Intent attributes. It is not a subclass of `BookCRUDView`, because PowerCRUD rejects mixing primitive Field Intent and PowerField declarations in one inheritance chain.
+
+```python
+from powercrud.powerfields import PowerField, PowerOverride
+
+
+class PowerFieldBookCRUDView(PowerCRUDAsyncMixin, CRUDView):
+    model = Book
+    namespace = "sample"
+    url_base = "powerfield-book"
+    list_options_enabled = True
+    form_class = BookForm
+
+    power_fields = [
+        PowerOverride(list="__all__", detail="__all__"),
+        PowerField("description", exclude={"list": True}),
+        PowerField("title", default_list=True, tooltip=True),
+        PowerField("author", default_list=True),
+        PowerField("published_date", default_list=True),
+        PowerField(
+            "pages",
+            default_list=True,
+            tooltip=True,
+            link={
+                "view_name": "sample:powerfield-book-detail",
+                "open_in": "current",
+            },
+        ),
+        PowerField("isbn_empty", property=True, detail_property=True),
+        PowerField("title", inline=True, bulk=True),
+        PowerField("published_date", inline=True, bulk=True),
+    ]
+```
+
+The real sample view is more complete than this excerpt. It mirrors the primitive `BookCRUDView` Field Intent contract closely enough that backend tests compare the resolved primitive config from both views. The only intentional difference is route naming: the PowerField variant links to its own `sample:powerfield-book-detail` route so the sample remains self-contained.
+
+See [PowerField](../guides/powerfields.md) for the practical guide and [PowerField Reference](powerfields.md) for the constructor and validation contract.
+
 The sample `BookCRUDView` also includes illustrative persistence-hook wiring:
 
 - `persist_single_object(...)`

@@ -2,7 +2,7 @@
 
 <!DOCTYPE html>
 
-<html lang="en" data-theme="corporate">
+<html lang="en" data-theme="business">
 
 <head>
     <meta charset="UTF-8">
@@ -54,6 +54,21 @@
                 </a>
                 <a class="btn btn-sm btn-info btn-square join-item" href="{% url 'sample:annotated-book-list' %}"
                     aria-label="Full page reload for annotated books"
+                    data-powercrud-tooltip="semantic"
+                    data-tippy-content="Full page reload">
+                    <span aria-hidden="true">&#8635;</span>
+                </a>
+            </div>
+            <div class="join" role="group" aria-label="PowerField Book List buttons">
+                <a class="btn btn-sm btn-secondary join-item" hx-get="{% url 'sample:powerfield-book-list' %}" hx-target="#content"
+                    hx-swap="innerHTML" hx-replace-url="true" hx-push-url="true"
+                    aria-label="Load PowerField books with HTMX"
+                    data-powercrud-tooltip="semantic"
+                    data-tippy-content="Load with HTMX">
+                    PowerField Books
+                </a>
+                <a class="btn btn-sm btn-info btn-square join-item" href="{% url 'sample:powerfield-book-list' %}"
+                    aria-label="Full page reload for PowerField books"
                     data-powercrud-tooltip="semantic"
                     data-tippy-content="Full page reload">
                     <span aria-hidden="true">&#8635;</span>

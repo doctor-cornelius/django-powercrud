@@ -5,6 +5,7 @@ from django.urls import reverse
 from neapolitan.views import CRUDView
 from powercrud.mixins.async_crud_mixin import PowerCRUDAsyncMixin
 from powercrud.conf import get_powercrud_setting
+from powercrud.powerfields import PowerField, PowerOverride
 
 from . import models
 from . import forms
@@ -386,6 +387,224 @@ class AnnotatedBookCRUDView(SampleCRUDMixin):
                 return "This row was annotated as a long book."
             return "This row was annotated as a shorter book."
         return None
+
+
+class PowerFieldBookCRUDView(SampleCRUDMixin):
+    """Book sample view demonstrating Field Intent through power_fields."""
+
+    model = models.Book
+    namespace = "sample"
+    base_template_path = "sample/base.html"
+    use_htmx = True
+    use_modal = True
+    url_base = "powerfield-book"
+    view_title = "PowerField Books"
+    view_instructions = "Book rows configured through PowerField declarations."
+    view_help = {
+        "summary": "About the PowerField demo",
+        "details": (
+            "This Books variant demonstrates the PowerField helper API without "
+            "replacing the existing primitive Books sample."
+        ),
+        "color": "info",
+    }
+    paginate_by = 5
+
+    list_options_enabled = True
+    list_cell_link_default_open_in = "modal"
+    form_class = forms.BookForm
+    power_fields = [
+        PowerOverride(list="__all__", detail="__all__"),
+        # Property declarations follow BookCRUDView's "__all__" property order.
+        PowerField(
+            "a_really_long_property_header_for_title",
+            property=True,
+            detail_property=True,
+        ),
+        PowerField("isbn_empty", property=True, detail_property=True),
+        PowerField(
+            "there_are_so_many_pages_this_header_surely_will_wrap",
+            property=True,
+            detail_property=True,
+        ),
+        # Default-list declarations follow BookCRUDView's visible column order.
+        PowerField(
+            "title",
+            default_list=True,
+            tooltip=True,
+            column={"help_text": "The book title shown throughout the app."},
+        ),
+        PowerField(
+            "author",
+            default_list=True,
+        ),
+        PowerField("published_date", default_list=True),
+        PowerField(
+            "pages",
+            default_list=True,
+            tooltip=True,
+            column={
+                "help_text": "Demo link: opens this book detail in the current page."
+            },
+            link={"view_name": "sample:powerfield-book-detail", "open_in": "current"},
+        ),
+        PowerField("bestseller", default_list=True),
+        PowerField(
+            "isbn",
+            default_list=True,
+            column={
+                "help_text": (
+                    "Demo link: opens an external ISBN reference in a new tab or window."
+                )
+            },
+            link={
+                "url": "https://www.isbn-international.org/content/what-isbn",
+                "open_in": "new",
+            },
+        ),
+        PowerField(
+            "genres",
+            default_list=True,
+            queryset_dependencies={
+                "depends_on": ["author"],
+                "filter_by": {"authors": "author"},
+                "order_by": "name",
+                "empty_behavior": "all",
+            },
+        ),
+        PowerField(
+            "isbn_empty",
+            default_list=True,
+            tooltip=True,
+            column={"help_text": "Shows whether this row currently has an ISBN value."},
+        ),
+        PowerField(
+            "a_really_long_property_header_for_title",
+            default_list=True,
+            column={
+                "help_text": (
+                    "Demo link: opens the related author detail in a larger PowerCRUD modal."
+                )
+            },
+            link={
+                "view_name": "sample:author-detail",
+                "pk_attr": "author_id",
+                "modal_box_classes": (
+                    "modal-box flex max-h-[calc(100dvh-2rem)] w-11/12 "
+                    "max-w-6xl flex-col"
+                ),
+            },
+        ),
+        # Form declarations mirror BookForm.Meta before form_class takes over at runtime.
+        PowerField("title", form=True),
+        PowerField("author", form=True),
+        PowerField("genres", form=True),
+        PowerField("published_date", form=True),
+        PowerField("bestseller", form=True),
+        PowerField("isbn", form=True),
+        PowerField("pages", form=True),
+        PowerField("description", form=True),
+        PowerField("uneditable_field", form_display=True),
+        PowerField("isbn", form_disabled=True),
+        # Inline declarations follow BookCRUDView's inline edit order.
+        PowerField("title", inline=True),
+        PowerField("author", inline=True),
+        PowerField("genres", inline=True),
+        PowerField("published_date", inline=True),
+        PowerField("bestseller", inline=True),
+        PowerField("description", inline=True),
+        # Bulk declarations follow BookCRUDView's bulk edit order.
+        PowerField("title", bulk=True),
+        PowerField("published_date", bulk=True),
+        PowerField("bestseller", bulk=True),
+        PowerField("pages", bulk=True),
+        PowerField("author", bulk=True),
+        PowerField("genres", bulk=True),
+        PowerField("description", exclude={"list": True}),
+    ]
+    bulk_delete = True
+    bulk_async = True
+    bulk_min_async_records = 2
+    bulk_update_persistence_backend_path = "sample.backends.BookBulkUpdateBackend"
+    filterset_fields = [
+        "author",
+        "title",
+        "published_date",
+        "isbn",
+        "pages",
+        "description",
+        "genres",
+        "bestseller",
+    ]
+    default_filterset_fields = [
+        "author",
+        "title",
+        "published_date",
+        "bestseller",
+    ]
+    filter_favourites_enabled = True
+    dropdown_sort_options = {
+        "author": "name",
+        "unknown_model": "zebra_face",
+    }
+    m2m_filter_and_logic = False
+    table_pixel_height_other_page_elements = 100
+    table_max_height = 80
+    table_header_min_wrap_width = "15"
+    table_max_col_width = "25"
+    table_classes = "table-zebra table-sm"
+    action_button_classes = "btn-xs"
+    extra_button_classes = "btn-sm"
+    extra_buttons_mode = "dropdown"
+    extra_actions_mode = "dropdown"
+    extra_actions_dropdown_open_upward_bottom_rows = 5
+    inline_edit_always_visible = True
+    inline_preserve_required_fields = True
+    extra_buttons = []
+    extra_actions = []
+
+    def get_list_cell_tooltip(self, obj, field_name, *, is_property, request=None):
+        """Return semantic tooltip text for selected PowerField sample cells."""
+        if field_name == "title":
+            return f"{obj.author}\n{obj.pages} pages"
+        if field_name == "pages":
+            return f"Page count: {obj.pages}"
+        if field_name == "isbn_empty":
+            if obj.isbn_empty:
+                return "This book does not currently have an ISBN."
+            return f"ISBN: {obj.isbn}"
+        return None
+
+    def can_update_object(self, obj, request):
+        """Disable update affordances for the guarded sample row."""
+        return obj.title != models.Book.GUARDED_SAMPLE_TITLE
+
+    def get_update_disabled_reason(self, obj, request):
+        """Explain why the guarded sample row cannot be edited."""
+        if not self.can_update_object(obj, request):
+            return "Guarded Sample Book demonstrates built-in Edit and inline update guards."
+        return None
+
+    def persist_bulk_update(
+        self,
+        *,
+        queryset,
+        fields_to_update,
+        field_data,
+        progress_callback=None,
+    ):
+        """Route sync bulk writes through the sample bulk service."""
+        return BookBulkUpdateService().apply(
+            queryset=queryset,
+            bulk_fields=list(self.bulk_fields),
+            fields_to_update=fields_to_update,
+            field_data=field_data,
+            context=self._build_bulk_update_execution_context(
+                queryset=queryset,
+                mode="sync",
+            ),
+            progress_callback=progress_callback,
+        )
 
 
 class GenreCRUDView(SampleCRUDMixin):

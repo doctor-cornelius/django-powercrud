@@ -9,6 +9,7 @@ from django.test import RequestFactory
 from django.urls import reverse
 from django_filters import BooleanFilter
 
+from powercrud.mixins.config_mixin import resolve_class_config
 from powercrud.mixins.list_options_mixin import LIST_OPTIONS_SESSION_KEY
 from powercrud.mixins.filtering_mixin import NULL_FILTER_SENTINEL
 from powercrud.templatetags import powercrud as powercrud_tags
@@ -324,6 +325,149 @@ def test_sample_menu_links_to_annotated_book_view(client: Client):
     )
     assert f'href="{annotated_url}"' in response_text, (
         "Sample navigation should expose the annotated-books route for full-page reload."
+    )
+
+
+@pytest.mark.django_db
+def test_powerfield_book_sample_view_matches_book_field_intent_config():
+    """PowerField Book sample should resolve to the primitive Book config shape."""
+    primitive_view = sample_views.BookCRUDView()
+    powerfield_view = sample_views.PowerFieldBookCRUDView()
+
+    exact_config_names = [
+        "fields",
+        "exclude",
+        "properties",
+        "detail_fields",
+        "detail_properties",
+        "form_fields",
+        "form_display_fields",
+        "form_disabled_fields",
+        "inline_edit_fields",
+        "bulk_fields",
+        "default_list_fields",
+        "list_cell_tooltip_fields",
+        "field_queryset_dependencies",
+        "column_help_text",
+        "column_alignments",
+    ]
+    for config_name in exact_config_names:
+        assert getattr(powerfield_view, config_name) == getattr(
+            primitive_view, config_name
+        ), (
+            "PowerFieldBookCRUDView should compile the same resolved "
+            f"{config_name} as BookCRUDView."
+        )
+
+    primitive_links = primitive_view.link_fields
+    powerfield_links = {
+        field_name: dict(link_config)
+        for field_name, link_config in powerfield_view.link_fields.items()
+    }
+    powerfield_links["pages"]["view_name"] = "sample:bigbook-detail"
+    assert powerfield_links == primitive_links, (
+        "PowerFieldBookCRUDView should match BookCRUDView link_fields after "
+        "normalising the intentional pages detail route difference."
+    )
+
+    assert powerfield_view.form_class is primitive_view.form_class, (
+        "PowerFieldBookCRUDView should use the same custom BookForm as BookCRUDView "
+        "for clone-equivalence testing."
+    )
+
+
+@pytest.mark.django_db
+def test_powerfield_book_sample_class_config_exposes_generated_form_intent():
+    """Class-time config should expose form intent before BookForm takes over."""
+    cfg = resolve_class_config(sample_views.PowerFieldBookCRUDView)
+
+    assert cfg.form_fields == [
+        "title",
+        "author",
+        "genres",
+        "published_date",
+        "bestseller",
+        "isbn",
+        "pages",
+        "description",
+    ], (
+        "PowerFieldBookCRUDView should still compile form=True declarations before "
+        "runtime form_class handling clears generated form_fields."
+    )
+
+
+@pytest.mark.django_db
+def test_powerfield_book_sample_routes_are_generated():
+    """PowerField Book sample should expose normal CRUD and feature routes."""
+    expected_route_names = [
+        "powerfield-book-list",
+        "powerfield-book-detail",
+        "powerfield-book-create",
+        "powerfield-book-update",
+        "powerfield-book-delete",
+        "powerfield-book-bulk-edit",
+        "powerfield-book-inline-row",
+        "powerfield-book-inline-dependency",
+        "powerfield-book-columns",
+    ]
+
+    for route_name in expected_route_names:
+        needs_pk = any(
+            token in route_name
+            for token in ["detail", "update", "delete", "inline-row", "inline-dependency"]
+        )
+        url = reverse(f"sample:{route_name}", args=[1] if needs_pk else None)
+        assert url, f"Expected sample:{route_name} to reverse for the PowerField Book sample."
+
+
+@pytest.mark.django_db
+def test_powerfield_book_sample_list_renders(client: Client):
+    """PowerField Book sample list route should render through the sample app."""
+    author = Author.objects.create(name="PowerField Author")
+    book = Book.objects.create(
+        title="PowerField Sample Book",
+        author=author,
+        published_date=date(2024, 2, 1),
+        bestseller=False,
+        isbn="9781234500204",
+        pages=144,
+    )
+
+    response = client.get(reverse("sample:powerfield-book-list"))
+
+    assert response.status_code == 200, (
+        "PowerFieldBookCRUDView list route should render successfully."
+    )
+    response_text = response.content.decode()
+    assert "PowerField Sample Book" in response_text, (
+        "PowerFieldBookCRUDView should render Book rows through the compiled list config."
+    )
+    assert 'href="https://www.isbn-international.org/content/what-isbn"' in response_text, (
+        "PowerFieldBookCRUDView should render the PowerField external link."
+    )
+    assert reverse("sample:powerfield-book-inline-row", args=[book.pk]) in response_text, (
+        "PowerFieldBookCRUDView should render inline-row endpoint URLs into list markup."
+    )
+
+
+@pytest.mark.django_db
+def test_sample_menu_links_to_powerfield_book_view(client: Client):
+    """Sample navigation should expose the PowerField Book demo view."""
+    response = client.get(reverse("sample:bigbook-list"))
+
+    assert response.status_code == 200, (
+        "Book sample list should render before inspecting sample navigation."
+    )
+    response_text = response.content.decode()
+    powerfield_url = reverse("sample:powerfield-book-list")
+    assert "PowerField Books" in response_text, (
+        "Sample navigation should include a visible PowerField Books menu label."
+    )
+    assert f'hx-get="{powerfield_url}"' in response_text, (
+        "Sample navigation should expose the PowerField Books route for HTMX loading."
+    )
+    assert f'href="{powerfield_url}"' in response_text, (
+        "Sample navigation should expose the PowerField Books route for full-page reload."
     )
 
 

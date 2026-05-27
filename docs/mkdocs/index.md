@@ -14,6 +14,7 @@ PowerCRUD extends [`Neapolitan`](https://github.com/carltongibson/neapolitan)’
     - [Getting Started](guides/getting_started.md) for installation and base template requirements.  
     - [PowerCRUD Concepts](guides/concepts.md) for the mental model behind surfaces, fields, actions, presentation, selection, bulk work, and async work.
     - [Setup & Core CRUD basics](guides/setup_core_crud.md) for the first full view configuration.
+    - [PowerField](guides/powerfields.md) for a core helper that simplifies repeated Field Intent config without replacing the primitive API.
     - [Filtering](guides/filtering.md) for default vs optional filters, sorting, null helpers, and custom filterset behavior.
 
 2. **Improve day-to-day editing**  
@@ -36,6 +37,9 @@ PowerCRUD extends [`Neapolitan`](https://github.com/carltongibson/neapolitan)’
     - [Customisation tips](guides/customisation_tips.md) shows template overrides, extra actions, and mixin hooks.
     - [Advanced Guides](guides/advanced/index.md) collects deeper implementation walkthroughs for trickier extension patterns, including the optional saved favourites add-on.
     - [PowerCRUD Recipes](guides/advanced/recipes.md) shows current-API patterns you can adapt.
+
+!!! tip "PowerField helper"
+    PowerField is a core helper for repeated Field Intent config. Use it when the same field appears across list, detail, form, inline, bulk, tooltip, or link settings. Primitive class attributes remain the underlying API.
 
 ## What ships in the box
 
@@ -64,6 +68,8 @@ See [Async architecture](reference/async.md) for details.
 
 - Configuration reference: [config_options.md](reference/config_options.md)  
 - Concepts guide: [concepts.md](guides/concepts.md)
+- PowerField guide: [powerfields.md](guides/powerfields.md)
+- PowerField reference: [powerfields.md](reference/powerfields.md)
 - Hooks reference: [hooks.md](reference/hooks.md)  
 - Complete class example: [complete_example.md](reference/complete_example.md)  
 - Tooling: [dockerised_dev.md](reference/dockerised_dev.md), [mgmt_commands.md](reference/mgmt_commands.md), [testing.md](reference/testing.md)  

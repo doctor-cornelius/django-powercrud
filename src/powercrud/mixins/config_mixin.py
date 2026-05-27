@@ -6,6 +6,7 @@ from django.core.exceptions import FieldDoesNotExist, ImproperlyConfigured
 from django.db.models.fields.reverse_related import ManyToOneRel
 from typing import Any, Callable
 
+from ..powerfields import compile_powerfields
 from ..validators import PowerCRUDMixinValidator
 
 from powercrud.conf import get_powercrud_setting
@@ -15,6 +16,30 @@ log = get_logger(__name__)
 
 DEFAULT_MODAL_BOX_CLASSES = "modal-box flex max-h-[calc(100dvh-2rem)] flex-col"
 DEFAULT_MODAL_BODY_CLASSES = "min-h-0 flex-1 overflow-y-auto py-4"
+
+FIELD_INTENT_CONFIG_FIELDS = {
+    "fields",
+    "properties",
+    "exclude",
+    "properties_exclude",
+    "default_list_fields",
+    "detail_fields",
+    "detail_exclude",
+    "detail_properties",
+    "detail_properties_exclude",
+    "form_fields",
+    "form_fields_exclude",
+    "form_display_fields",
+    "form_disabled_fields",
+    "bulk_fields",
+    "inline_edit_fields",
+    "inline_edit_enabled",
+    "list_cell_tooltip_fields",
+    "column_help_text",
+    "column_alignments",
+    "field_queryset_dependencies",
+    "link_fields",
+}
 
 
 class ConfigMixin:
@@ -53,6 +78,7 @@ class ConfigMixin:
     searchable_selects: bool | None = True
 
     # field and property inclusion scope
+    power_fields: list[Any] | None = None
     exclude: list[str] = []
     properties: list[str] = []
     properties_exclude: list[str] = []
@@ -241,20 +267,36 @@ class ConfigMixin:
     def __init__(self, *args, **kwargs):  # pragma: no cover
         super().__init__(*args, **kwargs)
         self._validated_config = None
-        self._legacy_inline_edit_enabled_present = hasattr(self, "inline_edit_enabled")
+        class_config = resolve_class_config(type(self))
+        self._powerfield_config_active = bool(
+            getattr(class_config, "_powerfield_config_active", False)
+        )
+        self._powerfield_declared_primitive_names = set(
+            getattr(class_config, "_powerfield_declared_primitive_names", set())
+        )
+        initial_config = {}
+        for attr in _get_config_field_names():
+            if hasattr(class_config, attr):
+                initial_config[attr] = getattr(class_config, attr)
+            if attr in self.__dict__:
+                initial_config[attr] = getattr(self, attr)
+
+        self._legacy_inline_edit_enabled_present = (
+            "inline_edit_enabled" in initial_config
+        )
         self._legacy_inline_edit_enabled_value = bool(
-            getattr(self, "inline_edit_enabled", False)
+            initial_config.get("inline_edit_enabled", False)
         )
 
         if self._legacy_inline_edit_enabled_present:
             self._warn_inline_edit_enabled_legacy(
-                getattr(self, "inline_edit_fields", None)
+                initial_config.get("inline_edit_fields")
             )
 
         config_dict = {}
         for attr in PowerCRUDMixinValidator.model_fields.keys():
-            if hasattr(self, attr):
-                config_dict[attr] = getattr(self, attr)
+            if attr in initial_config:
+                config_dict[attr] = initial_config[attr]
 
         try:
             validated_settings = PowerCRUDMixinValidator(**config_dict)
@@ -326,6 +368,16 @@ class ConfigMixin:
                 setattr(self, attr_name, self._dedupe_preserving_first(value))
 
     def _configure_fields(self):
+        if (
+            self._powerfield_config_active
+            and "fields" not in self._powerfield_declared_primitive_names
+            and not self.fields
+        ):
+            self.fields = []
+            if not isinstance(self.exclude, list):
+                raise TypeError("exclude must be a list")
+            return
+
         if not self.fields or self.fields == "__all__":
             self.fields = self._get_all_fields()
         elif isinstance(self.fields, list):
@@ -421,6 +473,16 @@ class ConfigMixin:
             )
 
     def _configure_detail_fields(self):
+        if (
+            self._powerfield_config_active
+            and "detail_fields" not in self._powerfield_declared_primitive_names
+            and not self.detail_fields
+        ):
+            self.detail_fields = []
+            if not isinstance(self.detail_exclude, list):
+                raise TypeError("detail_fields_exclude must be a list")
+            return
+
         if self.detail_fields == "__all__":
             self.detail_fields = self._get_all_fields()
         elif not self.detail_fields or self.detail_fields == "__fields__":
@@ -450,6 +512,16 @@ class ConfigMixin:
             raise TypeError("detail_fields_exclude must be a list")
 
     def _configure_detail_properties(self):
+        if (
+            self._powerfield_config_active
+            and "detail_properties" not in self._powerfield_declared_primitive_names
+            and not self.detail_properties
+        ):
+            self.detail_properties = []
+            if not isinstance(self.detail_properties_exclude, list):
+                raise TypeError("detail_properties_exclude must be a list")
+            return
+
         if self.detail_properties:
             if self.detail_properties == "__all__":
                 self.detail_properties = self._get_all_properties()
@@ -552,6 +624,14 @@ class ConfigMixin:
         for editable inputs.
         """
         if self.form_class is not None:
+            self.form_fields = []
+            return
+
+        if (
+            self._powerfield_config_active
+            and "form_fields" not in self._powerfield_declared_primitive_names
+            and not self.form_fields
+        ):
             self.form_fields = []
             return
 
@@ -1412,4 +1492,121 @@ def resolve_config(instance):
     return _ConfigShim(instance)
 
 
-__all__ = ["ConfigMixin", "resolve_config"]
+def _copy_config_value(value: Any) -> Any:
+    """Return a shallow copy for mutable config values."""
+    if isinstance(value, list):
+        return value.copy()
+    if isinstance(value, dict):
+        return value.copy()
+    if isinstance(value, set):
+        return value.copy()
+    return value
+
+
+def _class_declares_powerfields(view_cls: type) -> bool:
+    """Return whether a class declares a non-empty PowerField config list."""
+    if "power_fields" not in view_cls.__dict__:
+        return False
+    return bool(view_cls.__dict__.get("power_fields"))
+
+
+def _declared_field_intent_names(view_cls: type) -> set[str]:
+    """Return primitive Field Intent names declared directly on a class."""
+    if view_cls is ConfigMixin:
+        return set()
+    return {
+        name
+        for name in FIELD_INTENT_CONFIG_FIELDS
+        if name in getattr(view_cls, "__dict__", {})
+    }
+
+
+def _validate_field_intent_style(view_cls: type) -> bool:
+    """
+    Enforce the v1 rule that class hierarchies use one Field Intent style.
+
+    PowerField declarations may inherit from other PowerField declarations, and
+    primitive declarations may inherit from primitive declarations. Mixing the
+    two styles in one hierarchy is intentionally rejected for v1.
+    """
+    primitive_declarations: dict[str, set[str]] = {}
+    powerfield_classes: list[str] = []
+
+    for cls in view_cls.__mro__:
+        if cls is ConfigMixin:
+            break
+        if cls is object:
+            continue
+
+        primitive_names = _declared_field_intent_names(cls)
+        if primitive_names:
+            primitive_declarations[cls.__name__] = primitive_names
+        if _class_declares_powerfields(cls):
+            powerfield_classes.append(cls.__name__)
+
+    if powerfield_classes and primitive_declarations:
+        primitive_summary = ", ".join(
+            f"{class_name}({', '.join(sorted(names))})"
+            for class_name, names in primitive_declarations.items()
+        )
+        powerfield_summary = ", ".join(powerfield_classes)
+        raise ImproperlyConfigured(
+            "PowerCRUD v1 cannot mix power_fields with primitive Field Intent "
+            "config in one class hierarchy. "
+            f"PowerField classes: {powerfield_summary}. "
+            f"Primitive Field Intent declarations: {primitive_summary}."
+        )
+
+    return bool(powerfield_classes)
+
+
+def _get_config_field_names() -> set[str]:
+    """Return all config names captured by class and instance snapshots."""
+    return (
+        set(PowerCRUDMixinValidator.model_fields.keys())
+        | ConfigMixin.EXTRA_CONFIG_FIELDS
+        | {"inline_edit_enabled", "power_fields"}
+    )
+
+
+def resolve_class_config(view_cls):
+    """
+    Return a shallow class-level configuration snapshot for URL registration.
+
+    Some PowerCRUD URLs are registered before a view instance exists. This helper
+    centralizes that class-time read path so primitive config and future compiled
+    config can be consumed through the same access point.
+    """
+    powerfield_config_active = _validate_field_intent_style(view_cls)
+    field_names = _get_config_field_names()
+    config: dict[str, Any] = {}
+    for attr in field_names:
+        if hasattr(view_cls, attr):
+            value = getattr(view_cls, attr)
+            config[attr] = _copy_config_value(value)
+
+    powerfield_declared_primitive_names: set[str] = set()
+    if powerfield_config_active:
+        try:
+            compiled_powerfields = compile_powerfields(config.get("power_fields") or [])
+        except ValueError as exc:
+            class_name = view_cls.__name__
+            raise ImproperlyConfigured(
+                f"Invalid power_fields configuration in class '{class_name}': {exc}"
+            ) from exc
+        config.update(
+            {
+                name: _copy_config_value(value)
+                for name, value in compiled_powerfields.items()
+            }
+        )
+        powerfield_declared_primitive_names = set(compiled_powerfields.keys())
+
+    config["_powerfield_config_active"] = powerfield_config_active
+    config["_powerfield_declared_primitive_names"] = (
+        powerfield_declared_primitive_names
+    )
+    return SimpleNamespace(**config)
+
+
+__all__ = ["ConfigMixin", "resolve_config", "resolve_class_config"]

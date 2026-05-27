@@ -9,6 +9,7 @@ from powercrud.logging import get_logger
 from .config_mixin import (
     DEFAULT_MODAL_BODY_CLASSES,
     DEFAULT_MODAL_BOX_CLASSES,
+    resolve_class_config,
     resolve_config,
 )
 
@@ -26,12 +27,13 @@ class UrlMixin:
         Return True when the class declares inline-edit endpoints.
 
         URL registration happens at class-definition time, so this check relies on
-        the raw class attributes rather than resolved form fields.
+        the class-level primitive config snapshot rather than resolved form fields.
         """
-        if hasattr(cls, "inline_edit_enabled"):
-            return bool(getattr(cls, "inline_edit_enabled"))
+        cfg = resolve_class_config(cls)
+        if hasattr(cfg, "inline_edit_enabled"):
+            return bool(cfg.inline_edit_enabled)
 
-        inline_edit_fields = getattr(cls, "inline_edit_fields", None)
+        inline_edit_fields = getattr(cfg, "inline_edit_fields", None)
         if inline_edit_fields is None:
             return False
         if isinstance(inline_edit_fields, str):
@@ -45,10 +47,11 @@ class UrlMixin:
         """
         Return True when the class declares list-column preference endpoints.
         """
-        list_options_enabled = getattr(cls, "list_options_enabled", None)
+        cfg = resolve_class_config(cls)
+        list_options_enabled = getattr(cfg, "list_options_enabled", None)
         if list_options_enabled is not None:
             return bool(list_options_enabled)
-        return getattr(cls, "default_list_fields", None) is not None
+        return getattr(cfg, "default_list_fields", None) is not None
 
     def get_prefix(self):
         """
@@ -259,9 +262,9 @@ class UrlMixin:
         urls = [cls.get_url(role, cls) for role in roles]
 
         # Add bulk edit URL if bulk_fields are defined OR bulk_delete is enabled
-        if (hasattr(cls, "bulk_fields") and cls.bulk_fields) or getattr(
-            cls, "bulk_delete", False
-        ):
+        cfg = resolve_class_config(cls)
+
+        if getattr(cfg, "bulk_fields", None) or getattr(cfg, "bulk_delete", False):
             bulk_edit_role = BulkEditRole()
             urls.append(bulk_edit_role.get_url(cls))
 

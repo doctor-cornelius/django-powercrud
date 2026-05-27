@@ -10,6 +10,7 @@ urlpatterns = []
 urlpatterns += views.BookCRUDView.get_urls()
 urlpatterns += views.ManualStaticBookCRUDView.get_urls()
 urlpatterns += views.AnnotatedBookCRUDView.get_urls(roles={Role.LIST})
+urlpatterns += views.PowerFieldBookCRUDView.get_urls()
 urlpatterns += views.AuthorCRUDView.get_urls()
 urlpatterns += views.GenreCRUDView.get_urls()
 urlpatterns += views.ProfileCRUDView.get_urls(

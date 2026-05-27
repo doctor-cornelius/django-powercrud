@@ -15,6 +15,8 @@ from django.http import (
 from django.shortcuts import redirect
 from neapolitan.views import Role
 
+from .config_mixin import resolve_class_config
+
 LIST_OPTIONS_SESSION_KEY = "powercrud_list_options"
 
 
@@ -49,10 +51,11 @@ class ListOptionsMixin:
     def has_list_options_urls(cls) -> bool:
         """Return True when the class declares list-options endpoints."""
 
-        list_options_enabled = getattr(cls, "list_options_enabled", None)
+        cfg = resolve_class_config(cls)
+        list_options_enabled = getattr(cfg, "list_options_enabled", None)
         if list_options_enabled is not None:
             return bool(list_options_enabled)
-        return getattr(cls, "default_list_fields", None) is not None
+        return getattr(cfg, "default_list_fields", None) is not None
 
     def get_list_options_enabled(self) -> bool:
         """Return True when this list view has opted into selectable columns."""

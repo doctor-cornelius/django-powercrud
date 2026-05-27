@@ -28,6 +28,8 @@ Field intent describes how a model field, queryset annotation, or property parti
 
 Field-intent options include `fields`, `properties`, `detail_fields`, `detail_properties`, `form_fields`, `form_display_fields`, `form_disabled_fields`, `inline_edit_fields`, `bulk_fields`, `column_help_text`, `list_cell_tooltip_fields`, `link_fields`, `get_list_cell_tooltip(...)`, and `get_list_cell_link(...)`.
 
+PowerField is the core helper abstraction for Field Intent. It lets you declare repeated field participation in `power_fields`, then PowerCRUD compiles that declaration into the same primitive config. Primitive class attributes remain the underlying contract, and a view must choose one Field Intent style: primitive attributes or `power_fields`.
+
 Keep visibility and capability separate. A field can be filterable while hidden from the list. A field can be visible but not editable. A field can be editable in a form but not inline-editable.
 
 List-column visibility is display state, not field capability. `fields` and `properties` define the allowed rendered columns; `list_options_enabled` lets users show or hide allowed columns for the current session without changing filtering, editability, row actions, or bulk selection. `default_list_fields` optionally narrows the default visible subset.
@@ -109,8 +111,10 @@ Then use the reference docs for exact accepted values.
 
 These concepts are a mental model, not a second API.
 
-PowerCRUD still uses explicit class attributes and hooks. Future helper APIs may package stable patterns, but they should generate defaults only. Explicit PowerCRUD configuration should remain the source of truth.
+PowerCRUD still uses explicit class attributes and hooks. PowerField packages the Field Intent pattern, but it still compiles to the primitive configuration that PowerCRUD already understands.
 
 See the [Configuration Options](../reference/config_options.md) reference for the full option list.
 
 See [PowerCRUD Recipes](./advanced/recipes.md) for copyable examples that compose these concepts using the current API.
+
+See [PowerField](./powerfields.md) when repeated Field Intent config starts to obscure the screen's actual intent.
