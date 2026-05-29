@@ -38,8 +38,7 @@ CASE_ROW_MODAL = PowerAction(
     display_modal=True,
     button_class="btn-accent",
     modal_box_classes=CASE_WORKFLOW_ACTION_MODAL_BOX_CLASSES,
-    disabled_if="is_manual_case_workflow_action_disabled",
-    disabled_reason="get_manual_case_workflow_action_disabled_reason",
+    disabled_state="get_manual_case_workflow_action_disabled_state",
 )
 
 extra_actions = [
@@ -57,6 +56,39 @@ Start with plain constructor parameters matching the existing primitive API.
 
 Do not start with extra constructor helpers such as `PowerAction.modal(...)` or `PowerButton.selection_modal(...)`. They may be useful later, but the first value is reuse, validation, and `with_options(...)`, not a new vocabulary.
 
+## Disabled State
+
+The existing row-action disabled API has two related keys:
+
+```python
+disabled_if="is_manual_case_workflow_action_disabled",
+disabled_reason="get_manual_case_workflow_action_disabled_reason",
+```
+
+They are close enough that the new helper should support a single hook:
+
+```python
+disabled_state="get_manual_case_workflow_action_disabled_state"
+```
+
+The proposed hook contract is:
+
+```python
+def get_manual_case_workflow_action_disabled_state(self, obj, request):
+    if not obj.can_take_workflow_action:
+        return "Workflow action is not available for this case."
+    return None
+```
+
+Return meaning:
+
+1. `None`, `False`, or an empty string means enabled.
+2. A non-empty string means disabled, and the string is the disabled reason.
+
+This should be added to the primitive `extra_actions` dictionary API as well as `PowerAction`. Otherwise the helper becomes more capable than the primitive contract.
+
+Legacy `disabled_if` and `disabled_reason` should remain valid. A single action should not mix `disabled_state` with the legacy pair.
+
 ## Design Rules
 
 1. Existing dictionary config must keep working.
@@ -72,6 +104,18 @@ Do not start with extra constructor helpers such as `PowerAction.modal(...)` or 
 The helper is not mainly about shortening one action. One action as a dictionary is fine.
 
 The helper is valuable when a project can define a small reusable action primitive and vary it across related workflow views.
+
+## Sample App
+
+Add the first sample to the existing PowerField sample view.
+
+That keeps the demonstration focused: Power helpers can compose in one view, and `PowerField` does not create a separate mode that excludes action and button helpers.
+
+Keep the sample small:
+
+1. One reusable `PowerAction` with `with_options(...)`.
+2. One reusable `PowerButton` only if it clearly shows selected-row toolbar reuse.
+3. No broad workflow demo in the sample app.
 
 ## Open Questions
 
