@@ -52,26 +52,26 @@ The plan is not fully complete. Public docs need a clearer dedicated PowerAction
 
 ## Phase 6: Tighten PowerField Semantics
 
-1. [ ] Make `default_list=True` emit the underlying list allow-list entry as well as `default_list_fields`.
-2. [ ] For `property=True`, make `default_list=True` emit `properties` plus `default_list_fields`.
-3. [ ] Require list-cell metadata (`tooltip`, `column`, `link`) to have effective list visibility through `list=True`, `property=True`, or `default_list=True`.
-4. [ ] Reject obvious declaration clashes and bad shapes early.
-5. [ ] Keep doubtful implications explicit for now.
+1. [x] Make `default_list=True` emit the underlying list allow-list entry as well as `default_list_fields`.
+2. [x] For `property=True`, make `default_list=True` emit `properties` plus `default_list_fields`.
+3. [x] Require list-cell metadata (`tooltip`, `column`, `link`) to have effective list visibility through `list=True`, `property=True`, or `default_list=True`.
+4. [x] Reject obvious declaration clashes and bad shapes early.
+5. [x] Keep doubtful implications explicit for now.
 
 ## Phase 7: Refresh The Sample App Demo
 
-1. [ ] Remove redundant `list=True` from default-list PowerField sample declarations.
-2. [ ] Keep property-backed list columns explicitly marked with `property=True`.
-3. [ ] Keep `uneditable_field` form-display only and out of the list.
-4. [ ] Preserve the PowerAction/PowerButton demo that mirrors `BookCRUDView`.
+1. [x] Remove redundant `list=True` from default-list PowerField sample declarations.
+2. [x] Keep property-backed list columns explicitly marked with `property=True`.
+3. [x] Keep `uneditable_field` form-display only and out of the list.
+4. [x] Preserve the PowerAction/PowerButton demo that mirrors `BookCRUDView`.
 
 ## Phase 8: Prove The Cleanup
 
-1. [ ] Add PowerField tests for default-list list/property emission.
-2. [ ] Add PowerField validation tests for bad boolean, dict, exclude, list-cell, and clash cases.
-3. [ ] Add sample equivalence tests for the simplified `PowerFieldBookCRUDView`.
-4. [ ] Keep list-options tests as the integration guard for default visible columns.
-5. [ ] Run the focused tests.
+1. [x] Add PowerField tests for default-list list/property emission.
+2. [x] Add PowerField validation tests for bad boolean, dict, exclude, list-cell, and clash cases.
+3. [x] Add sample equivalence tests for the simplified `PowerFieldBookCRUDView`.
+4. [x] Keep list-options tests as the integration guard for default visible columns.
+5. [x] Run the focused tests.
 6. [ ] Run the broader non-Playwright test suite.
 
 ## Phase 9: Finalise Branch

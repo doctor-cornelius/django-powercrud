@@ -4,6 +4,20 @@ from dataclasses import dataclass, field, replace
 from typing import Any
 
 
+BOOLEAN_DIMENSIONS = (
+    "inline",
+    "bulk",
+    "form",
+    "form_display",
+    "form_disabled",
+    "tooltip",
+    "detail",
+    "list",
+    "default_list",
+    "property",
+    "detail_property",
+)
+
 LIST_DIMENSIONS = {
     "bulk": "bulk_fields",
     "default_list": "default_list_fields",
@@ -32,6 +46,12 @@ EXCLUDE_DIMENSIONS = {
     "list": "exclude",
     "property": "properties_exclude",
 }
+
+LIST_CELL_METADATA_OPTIONS = ("tooltip", "column", "link")
+
+COLUMN_OPTIONS = {"help_text", "alignment"}
+
+COLUMN_ALIGNMENTS = {"left", "center", "right"}
 
 
 @dataclass(frozen=True)
@@ -79,9 +99,58 @@ class PowerField:
         if not isinstance(self.name, str) or not self.name.strip():
             raise ValueError("PowerField name must be a non-empty string")
 
+        for dimension in BOOLEAN_DIMENSIONS:
+            if not isinstance(getattr(self, dimension), bool):
+                raise ValueError(f"PowerField.{dimension} must be True or False")
+
+        if not isinstance(self.exclude, dict):
+            raise ValueError("PowerField.exclude must be a dictionary")
+
+        unknown_exclude_dimensions = [
+            dimension for dimension in self.exclude if dimension not in EXCLUDE_DIMENSIONS
+        ]
+        if unknown_exclude_dimensions:
+            raise ValueError(
+                "PowerField "
+                f"{self.name!r} has unknown exclude dimensions: "
+                f"{', '.join(sorted(unknown_exclude_dimensions))}"
+            )
+
+        non_bool_exclude_dimensions = [
+            dimension
+            for dimension, excluded in self.exclude.items()
+            if not isinstance(excluded, bool)
+        ]
+        if non_bool_exclude_dimensions:
+            raise ValueError(
+                "PowerField "
+                f"{self.name!r} exclude values must be True or False for "
+                f"{', '.join(sorted(non_bool_exclude_dimensions))}"
+            )
+
+        for option_name in ("column", "queryset_dependencies", "link"):
+            value = getattr(self, option_name)
+            if value is not None and not isinstance(value, dict):
+                raise ValueError(f"PowerField.{option_name} must be a dictionary")
+
+        if self.column:
+            unknown_column_options = [
+                option for option in self.column if option not in COLUMN_OPTIONS
+            ]
+            if unknown_column_options:
+                raise ValueError(
+                    "PowerField.column supports only help_text and alignment; "
+                    f"unknown options: {', '.join(sorted(unknown_column_options))}"
+                )
+            alignment = self.column.get("alignment")
+            if alignment is not None and alignment not in COLUMN_ALIGNMENTS:
+                raise ValueError(
+                    "PowerField.column alignment must be 'left', 'center', or 'right'"
+                )
+
         conflicting_dimensions = [
             dimension
-            for dimension in LIST_DIMENSIONS
+            for dimension in EXCLUDE_DIMENSIONS
             if getattr(self, dimension) and self.exclude.get(dimension)
         ]
         if conflicting_dimensions:
@@ -91,6 +160,35 @@ class PowerField:
                 f"{', '.join(sorted(conflicting_dimensions))}"
             )
 
+        if self.property and self.list:
+            raise ValueError("PowerField cannot combine property=True with list=True")
+
+        if self.detail_property and self.detail:
+            raise ValueError(
+                "PowerField cannot combine detail_property=True with detail=True"
+            )
+
+        if self.form and self.form_display:
+            raise ValueError("PowerField cannot combine form=True with form_display=True")
+
+        if self.default_list and (
+            self.exclude.get("list") or self.exclude.get("property")
+        ):
+            raise ValueError(
+                "PowerField cannot combine default_list=True with list or property exclusion"
+            )
+
+        uses_list_cell_metadata = any(
+            bool(getattr(self, option_name))
+            for option_name in LIST_CELL_METADATA_OPTIONS
+        )
+        has_list_visibility = self.list or self.property or self.default_list
+        if uses_list_cell_metadata and not has_list_visibility:
+            raise ValueError(
+                "PowerField list-cell metadata requires list=True, property=True, "
+                "or default_list=True"
+            )
+
     def with_options(self, **changes: Any) -> "PowerField":
         """Return a copy of this PowerField with selected options changed."""
         return replace(self, **changes)
@@ -98,9 +196,24 @@ class PowerField:
     def to_primitive_fragment(self) -> dict[str, Any]:
         """Return this field's contribution to primitive PowerCRUD config."""
         fragment: dict[str, Any] = {}
+
+        def append_unique(primitive_name: str) -> None:
+            values = fragment.setdefault(primitive_name, [])
+            if self.name not in values:
+                values.append(self.name)
+
         for dimension, primitive_name in LIST_DIMENSIONS.items():
+            if dimension == "default_list":
+                continue
             if getattr(self, dimension) and not self.exclude.get(dimension):
-                fragment.setdefault(primitive_name, []).append(self.name)
+                append_unique(primitive_name)
+
+        if self.default_list:
+            append_unique("default_list_fields")
+            if self.property:
+                append_unique("properties")
+            else:
+                append_unique("fields")
 
         if self.column:
             help_text = self.column.get("help_text")
@@ -196,9 +309,12 @@ def compile_powerfields(
         field_fragment = power_field.to_primitive_fragment()
         for primitive_name, value in field_fragment.items():
             if isinstance(value, list):
-                existing = merged.setdefault(primitive_name, [])
-                existing.extend(value)
-                merged[primitive_name] = list(dict.fromkeys(existing))
+                existing = merged.get(primitive_name)
+                if existing is None:
+                    merged[primitive_name] = list(dict.fromkeys(value))
+                elif isinstance(existing, list):
+                    existing.extend(value)
+                    merged[primitive_name] = list(dict.fromkeys(existing))
             elif isinstance(value, dict):
                 merged.setdefault(primitive_name, {}).update(value)
 

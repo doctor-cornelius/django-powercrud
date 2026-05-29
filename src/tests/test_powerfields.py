@@ -17,7 +17,6 @@ from sample.models import Book
 def test_powerfield_extracts_list_style_primitive_fragment():
     fragment = PowerField(
         "status",
-        list=True,
         default_list=True,
         form=True,
         inline=True,
@@ -35,15 +34,33 @@ def test_powerfield_extracts_list_style_primitive_fragment():
     }, "PowerField should expose list-style primitive contributions for one field."
 
 
+def test_powerfield_default_list_adds_property_to_list_allow_list():
+    fragment = PowerField(
+        "status_label",
+        property=True,
+        default_list=True,
+    ).to_primitive_fragment()
+
+    assert fragment == {
+        "properties": ["status_label"],
+        "default_list_fields": ["status_label"],
+    }, (
+        "A property-backed PowerField default list column should become both an "
+        "allowed list property and a default visible column."
+    )
+
+
 def test_powerfield_extracts_mapping_primitive_fragment():
     fragment = PowerField(
         "status",
+        list=True,
         column={"help_text": "Current status.", "alignment": "center"},
         queryset_dependencies={"static_filters": {"is_active": True}},
         link={"view_name": "workflow:status-detail", "open_in": "modal"},
     ).to_primitive_fragment()
 
     assert fragment == {
+        "fields": ["status"],
         "column_help_text": {"status": "Current status."},
         "column_alignments": {"status": "center"},
         "field_queryset_dependencies": {
@@ -60,10 +77,78 @@ def test_powerfield_rejects_include_and_exclude_for_same_dimension():
         PowerField("status", form=True, exclude={"form": True})
 
 
+@pytest.mark.parametrize("flag_name", ["form", "default_list", "property"])
+def test_powerfield_rejects_non_boolean_flags(flag_name):
+    with pytest.raises(ValueError, match=f"PowerField.{flag_name}"):
+        PowerField("status", **{flag_name: 1})
+
+
+def test_powerfield_rejects_bad_exclude_shape():
+    with pytest.raises(ValueError, match="exclude must be a dictionary"):
+        PowerField("status", exclude=["list"])
+
+    with pytest.raises(ValueError, match="unknown exclude dimensions"):
+        PowerField("status", exclude={"default_list": True})
+
+    with pytest.raises(ValueError, match="exclude values must be True or False"):
+        PowerField("status", exclude={"list": "yes"})
+
+
+def test_powerfield_rejects_bad_mapping_shapes():
+    with pytest.raises(ValueError, match="PowerField.column must be a dictionary"):
+        PowerField("status", list=True, column="Current status.")
+
+    with pytest.raises(ValueError, match="PowerField.link must be a dictionary"):
+        PowerField("status", list=True, link="workflow:status-detail")
+
+    with pytest.raises(
+        ValueError, match="PowerField.queryset_dependencies must be a dictionary"
+    ):
+        PowerField("status", queryset_dependencies="active-only")
+
+
+def test_powerfield_rejects_bad_column_options():
+    with pytest.raises(ValueError, match="unknown options"):
+        PowerField("status", list=True, column={"tooltip": "Current status."})
+
+    with pytest.raises(ValueError, match="alignment must be"):
+        PowerField("status", list=True, column={"alignment": "middle"})
+
+
+@pytest.mark.parametrize(
+    "changes",
+    [
+        {"tooltip": True},
+        {"column": {"help_text": "Current status."}},
+        {"link": {"view_name": "workflow:status-detail"}},
+    ],
+)
+def test_powerfield_rejects_list_cell_metadata_without_list_visibility(changes):
+    with pytest.raises(ValueError, match="list-cell metadata requires"):
+        PowerField("status", **changes)
+
+
+@pytest.mark.parametrize(
+    "changes",
+    [
+        {"list": True, "property": True},
+        {"detail": True, "detail_property": True},
+        {"form": True, "form_display": True},
+    ],
+)
+def test_powerfield_rejects_logical_dimension_clashes(changes):
+    with pytest.raises(ValueError, match="cannot combine"):
+        PowerField("status", **changes)
+
+
+def test_powerfield_rejects_default_list_with_list_exclusion():
+    with pytest.raises(ValueError, match="default_list=True"):
+        PowerField("status", default_list=True, exclude={"list": True})
+
+
 def test_powerfield_with_options_returns_changed_copy_without_mutating_original():
     original = PowerField(
         "status",
-        list=True,
         default_list=True,
         tooltip=True,
         bulk=True,

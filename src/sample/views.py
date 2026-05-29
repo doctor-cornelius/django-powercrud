@@ -418,7 +418,6 @@ class PowerFieldBookCRUDView(SampleCRUDMixin):
         PowerOverride(detail="__all__"),
         PowerField(
             "title",
-            list=True,
             default_list=True,
             tooltip=True,
             form=True,
@@ -428,7 +427,6 @@ class PowerFieldBookCRUDView(SampleCRUDMixin):
         ),
         PowerField(
             "author",
-            list=True,
             default_list=True,
             form=True,
             inline=True,
@@ -436,7 +434,6 @@ class PowerFieldBookCRUDView(SampleCRUDMixin):
         ),
         PowerField(
             "published_date",
-            list=True,
             default_list=True,
             form=True,
             inline=True,
@@ -444,7 +441,6 @@ class PowerFieldBookCRUDView(SampleCRUDMixin):
         ),
         PowerField(
             "pages",
-            list=True,
             default_list=True,
             tooltip=True,
             form=True,
@@ -456,7 +452,6 @@ class PowerFieldBookCRUDView(SampleCRUDMixin):
         ),
         PowerField(
             "bestseller",
-            list=True,
             default_list=True,
             form=True,
             inline=True,
@@ -464,7 +459,6 @@ class PowerFieldBookCRUDView(SampleCRUDMixin):
         ),
         PowerField(
             "isbn",
-            list=True,
             default_list=True,
             form=True,
             form_disabled=True,
@@ -480,7 +474,6 @@ class PowerFieldBookCRUDView(SampleCRUDMixin):
         ),
         PowerField(
             "genres",
-            list=True,
             default_list=True,
             form=True,
             inline=True,

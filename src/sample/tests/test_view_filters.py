@@ -335,16 +335,10 @@ def test_powerfield_book_sample_view_matches_book_field_intent_config():
     powerfield_view = sample_views.PowerFieldBookCRUDView()
 
     exact_config_names = [
-        "fields",
-        "exclude",
-        "properties",
         "detail_fields",
-        "detail_properties",
         "form_fields",
         "form_display_fields",
         "form_disabled_fields",
-        "inline_edit_fields",
-        "bulk_fields",
         "default_list_fields",
         "list_cell_tooltip_fields",
         "field_queryset_dependencies",
@@ -358,6 +352,51 @@ def test_powerfield_book_sample_view_matches_book_field_intent_config():
             "PowerFieldBookCRUDView should compile the same resolved "
             f"{config_name} as BookCRUDView."
         )
+
+    assert set(powerfield_view.properties) == set(primitive_view.properties), (
+        "PowerFieldBookCRUDView should expose the same list property names as "
+        "BookCRUDView, even when explicit declaration order differs from __all__."
+    )
+    assert set(powerfield_view.detail_properties) == set(
+        primitive_view.detail_properties
+    ), (
+        "PowerFieldBookCRUDView should expose the same detail property names as "
+        "BookCRUDView."
+    )
+    assert set(powerfield_view.inline_edit_fields) == set(
+        primitive_view.inline_edit_fields
+    ), (
+        "PowerFieldBookCRUDView should expose the same inline-editable fields as "
+        "BookCRUDView, while allowing declaration order to follow field grouping."
+    )
+    assert set(powerfield_view.bulk_fields) == set(primitive_view.bulk_fields), (
+        "PowerFieldBookCRUDView should expose the same bulk-editable fields as "
+        "BookCRUDView, while allowing declaration order to follow field grouping."
+    )
+    assert powerfield_view.fields == [
+        "title",
+        "author",
+        "published_date",
+        "pages",
+        "bestseller",
+        "isbn",
+        "genres",
+    ], (
+        "PowerFieldBookCRUDView should use default_list=True to define the "
+        "model-field list allow-list without inheriting every BookCRUDView field."
+    )
+    assert "uneditable_field" not in powerfield_view.fields, (
+        "PowerFieldBookCRUDView should keep the form-display-only sample field "
+        "out of the rendered list allow-list."
+    )
+    assert powerfield_view.exclude == [], (
+        "PowerFieldBookCRUDView should not need primitive list excludes when "
+        "non-list fields are simply absent from power_fields list intent."
+    )
+    assert "description" not in powerfield_view.fields, (
+        "PowerFieldBookCRUDView should keep the form-only description field out "
+        "of the rendered list allow-list without needing exclude=['description']."
+    )
 
     primitive_links = primitive_view.link_fields
     powerfield_links = {
