@@ -49,32 +49,34 @@ PowerField(
 )
 ```
 
-### Boolean Kwargs
+!!! info "PowerField kwargs"
 
-| Kwarg | Base configuration target | Meaning |
-|-------|------------------|---------|
-| `list=True` | `fields` | Include the name in list fields. |
-| `property=True` | `properties` | Include the name in list properties. |
-| `detail=True` | `detail_fields` | Include the name in detail fields. |
-| `detail_property=True` | `detail_properties` | Include the name in detail properties. |
-| `form=True` | `form_fields` | Include the name in generated form fields. |
-| `form_display=True` | `form_display_fields` | Show the field as display-only form context. |
-| `form_disabled=True` | `form_disabled_fields` | Disable the input on update forms. |
-| `inline=True` | `inline_edit_fields` | Include the editable model field in inline editing. |
-| `bulk=True` | `bulk_fields` | Include the editable model field in bulk editing. |
-| `default_list=True` | `fields` or `properties`, plus `default_list_fields` | Include the name in the list allow-list and in the default visible list columns. |
-| `tooltip=True` | `list_cell_tooltip_fields` | Register the visible list cell for semantic tooltip lookup. |
+    === "Boolean kwargs"
 
-### Dict Kwargs
+        | Kwarg | Base configuration target | Meaning |
+        |-------|---------------------------|---------|
+        | `list=True` | `fields` | Include the name in list fields. |
+        | `property=True` | `properties` | Include the name in list properties. |
+        | `detail=True` | `detail_fields` | Include the name in detail fields. |
+        | `detail_property=True` | `detail_properties` | Include the name in detail properties. |
+        | `form=True` | `form_fields` | Include the name in generated form fields. |
+        | `form_display=True` | `form_display_fields` | Show the field as display-only form context. |
+        | `form_disabled=True` | `form_disabled_fields` | Disable the input on update forms. |
+        | `inline=True` | `inline_edit_fields` | Include the editable model field in inline editing. |
+        | `bulk=True` | `bulk_fields` | Include the editable model field in bulk editing. |
+        | `default_list=True` | `fields` or `properties`, plus `default_list_fields` | Include the name in the list allow-list and in the default visible list columns. |
+        | `tooltip=True` | `list_cell_tooltip_fields` | Register the visible list cell for semantic tooltip lookup. |
 
-| Kwarg | Base configuration target | Meaning |
-|-------|------------------|---------|
-| `column={"help_text": "..."}` | `column_help_text` | Add header help text for the rendered field or property. |
-| `column={"alignment": "center"}` | `column_alignments` | Override rendered body-cell alignment. |
-| `queryset_dependencies={...}` | `field_queryset_dependencies` | Attach declarative queryset scoping for form, inline, and bulk choices. |
-| `link={...}` | `link_fields` | Attach a declarative list-cell link using the base `link_fields` metadata contract. |
+    === "Dict kwargs"
 
-`link` must be a metadata dict. There is no `link=True` shorthand.
+        | Kwarg | Base configuration target | Meaning |
+        |-------|---------------------------|---------|
+        | `column={"help_text": "..."}` | `column_help_text` | Add header help text for the rendered field or property. |
+        | `column={"alignment": "center"}` | `column_alignments` | Override rendered body-cell alignment. |
+        | `queryset_dependencies={...}` | `field_queryset_dependencies` | Attach declarative queryset scoping for form, inline, and bulk choices. |
+        | `link={...}` | `link_fields` | Attach a declarative list-cell link using the base `link_fields` metadata contract. |
+
+        `link` must be a metadata dict. There is no `link=True` shorthand.
 
 ### Copying With Changes
 
