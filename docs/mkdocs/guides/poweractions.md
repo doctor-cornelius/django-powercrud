@@ -14,41 +14,74 @@ Use the primitive dictionaries for one-off buttons and actions.
 
 Use `PowerAction` or `PowerButton` when you want to name and reuse a pattern:
 
-```python
-ROW_MODAL = PowerAction(
-    text="Workflow Action",
-    url_name="cases:workflow-action",
-    display_modal=True,
-    modal_box_classes="modal-box flex max-h-[calc(100dvh-2rem)] w-11/12 max-w-5xl flex-col",
-    disabled_state="get_workflow_action_disabled_state",
-)
+??? example "Primitive API vs PowerAction"
 
-extra_actions = [
-    ROW_MODAL,
-    ROW_MODAL.with_options(
-        text="Timeline",
-        url_name="cases:timeline",
-        disabled_state=None,
-    ),
-]
-```
+    === "Primitive"
+
+        ```python
+        extra_actions = [
+            {
+                "text": "Workflow Action",
+                "url_name": "cases:workflow-action",
+                "needs_pk": True,
+                "display_modal": True,
+                "modal_box_classes": "modal-box flex max-h-[calc(100dvh-2rem)] w-11/12 max-w-5xl flex-col",
+                "disabled_state": "get_workflow_action_disabled_state",
+            },
+            {
+                "text": "Timeline",
+                "url_name": "cases:timeline",
+                "needs_pk": True,
+                "display_modal": True,
+                "modal_box_classes": "modal-box flex max-h-[calc(100dvh-2rem)] w-11/12 max-w-5xl flex-col",
+            },
+        ]
+        ```
+
+    === "PowerAction"
+
+        ```python
+        ROW_MODAL = PowerAction(
+            text="Workflow Action",
+            url_name="cases:workflow-action",
+            display_modal=True,
+            modal_box_classes="modal-box flex max-h-[calc(100dvh-2rem)] w-11/12 max-w-5xl flex-col",
+            disabled_state="get_workflow_action_disabled_state",
+        )
+
+        extra_actions = [
+            ROW_MODAL,
+            ROW_MODAL.with_options(
+                text="Timeline",
+                url_name="cases:timeline",
+                disabled_state=None,
+            ),
+        ]
+        ```
 
 That keeps the repeated mechanics in one declaration and leaves each view focused on the user operation.
+
+Any constructor option can be changed in a derived helper by passing it to `with_options(...)`.
 
 ## Row Actions
 
 Use `PowerAction` for row-level `extra_actions`.
 
 ```python
-PREVIEW_ACTION = PowerAction(
+ROW_PREVIEW = PowerAction(
     text="Description Preview",
-    url_name="sample:bigbook-description-preview",
+    url_name="sample:book-description-preview",
     display_modal=True,
     disabled_state="get_description_preview_disabled_state",
 )
 
 extra_actions = [
-    PREVIEW_ACTION,
+    ROW_PREVIEW,
+    ROW_PREVIEW.with_options(
+        text="Timeline",
+        url_name="sample:book-timeline",
+        disabled_state=None,
+    ),
 ]
 
 def get_description_preview_disabled_state(self, obj, request):
@@ -63,21 +96,57 @@ def get_description_preview_disabled_state(self, obj, request):
 
 Use `PowerButton` for list-level `extra_buttons`.
 
-```python
-SELECTED_SUMMARY = PowerButton(
-    text="Selected Summary",
-    url_name="sample:bigbook-selected-summary",
-    display_modal=True,
-    uses_selection=True,
-    selection_min_count=1,
-    selection_min_behavior="disable",
-    selection_min_reason="Select at least one row first.",
-)
+??? example "Primitive API vs PowerButton"
 
-extra_buttons = [
-    SELECTED_SUMMARY,
-]
-```
+    === "Primitive"
+
+        ```python
+        extra_buttons = [
+            {
+                "text": "Selected Summary",
+                "url_name": "sample:book-selected-summary",
+                "needs_pk": False,
+                "display_modal": True,
+                "uses_selection": True,
+                "selection_min_count": 1,
+                "selection_min_behavior": "disable",
+                "selection_min_reason": "Select at least one row first.",
+            },
+            {
+                "text": "Selected Export",
+                "url_name": "sample:book-selected-export",
+                "needs_pk": False,
+                "display_modal": True,
+                "uses_selection": True,
+                "selection_min_count": 1,
+                "selection_min_behavior": "disable",
+                "selection_min_reason": "Select at least one row to export.",
+            },
+        ]
+        ```
+
+    === "PowerButton"
+
+        ```python
+        SELECTED_MODAL = PowerButton(
+            text="Selected Summary",
+            url_name="sample:book-selected-summary",
+            display_modal=True,
+            uses_selection=True,
+            selection_min_count=1,
+            selection_min_behavior="disable",
+            selection_min_reason="Select at least one row first.",
+        )
+
+        extra_buttons = [
+            SELECTED_MODAL,
+            SELECTED_MODAL.with_options(
+                text="Selected Export",
+                url_name="sample:book-selected-export",
+                selection_min_reason="Select at least one row to export.",
+            ),
+        ]
+        ```
 
 `PowerButton.needs_pk` defaults to `False`, matching the normal toolbar-button case.
 
@@ -86,14 +155,20 @@ extra_buttons = [
 Primitive dictionaries and helper declarations may be mixed in the same list.
 
 ```python
+SELECTED_MODAL = PowerButton(
+    text="Selected Summary",
+    url_name="sample:book-selected-summary",
+    display_modal=True,
+    uses_selection=True,
+    selection_min_count=1,
+    selection_min_behavior="disable",
+)
+
 extra_buttons = [
-    PowerButton(
-        text="Selected Summary",
-        url_name="sample:bigbook-selected-summary",
-        display_modal=True,
-        uses_selection=True,
-        selection_min_count=1,
-        selection_min_behavior="disable",
+    SELECTED_MODAL,
+    SELECTED_MODAL.with_options(
+        text="Selected Export",
+        url_name="sample:book-selected-export",
     ),
     {
         "url_name": "home",

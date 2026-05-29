@@ -49,6 +49,28 @@ PowerAction(
 
 `to_dict()` returns the primitive `extra_actions` dictionary. `with_options(...)` returns a new `PowerAction` with selected values changed.
 
+Any constructor parameter in the table above can be passed to `with_options(...)`.
+
+```python
+ROW_MODAL = PowerAction(
+    text="Workflow Action",
+    url_name="cases:workflow-action",
+    display_modal=True,
+    modal_box_classes="modal-box flex max-h-[calc(100dvh-2rem)] w-11/12 max-w-5xl flex-col",
+    disabled_state="get_workflow_action_disabled_state",
+)
+
+extra_actions = [
+    ROW_MODAL,
+    ROW_MODAL.with_options(
+        text="Timeline",
+        url_name="cases:timeline",
+        modal_box_classes="modal-box flex max-h-[calc(100dvh-2rem)] w-11/12 max-w-7xl flex-col",
+        disabled_state=None,
+    ),
+]
+```
+
 ## PowerButton
 
 Use `PowerButton` inside `extra_buttons` for toolbar-level buttons.
@@ -91,6 +113,30 @@ PowerButton(
 | `selection_min_reason` | `None` | Disabled tooltip/help text when the selected count is too low. |
 
 `to_dict()` returns the primitive `extra_buttons` dictionary. `with_options(...)` returns a new `PowerButton` with selected values changed.
+
+Any constructor parameter in the table above can be passed to `with_options(...)`.
+
+```python
+SELECTED_MODAL = PowerButton(
+    text="Selected Summary",
+    url_name="sample:book-selected-summary",
+    display_modal=True,
+    uses_selection=True,
+    selection_min_count=1,
+    selection_min_behavior="disable",
+    selection_min_reason="Select at least one row first.",
+)
+
+extra_buttons = [
+    SELECTED_MODAL,
+    SELECTED_MODAL.with_options(
+        text="Selected Export",
+        url_name="sample:book-selected-export",
+        modal_box_classes="modal-box flex max-h-[calc(100dvh-2rem)] w-11/12 max-w-7xl flex-col",
+        selection_min_reason="Select at least one row to export.",
+    ),
+]
+```
 
 ## Validation Rules
 
