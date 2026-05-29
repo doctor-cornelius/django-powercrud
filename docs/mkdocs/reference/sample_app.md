@@ -243,23 +243,53 @@ class PowerFieldBookCRUDView(PowerCRUDAsyncMixin, CRUDView):
     form_class = BookForm
 
     power_fields = [
-        PowerOverride(list="__all__", detail="__all__"),
-        PowerField("description", exclude={"list": True}),
-        PowerField("title", default_list=True, tooltip=True),
-        PowerField("author", default_list=True),
-        PowerField("published_date", default_list=True),
+        PowerOverride(detail="__all__"),
         PowerField(
-            "pages",
+            "title",
+            list=True,
             default_list=True,
             tooltip=True,
+            form=True,
+            inline=True,
+            bulk=True,
+        ),
+        PowerField(
+            "author",
+            list=True,
+            default_list=True,
+            form=True,
+            inline=True,
+            bulk=True,
+        ),
+        PowerField(
+            "published_date",
+            list=True,
+            default_list=True,
+            form=True,
+            inline=True,
+            bulk=True,
+        ),
+        PowerField(
+            "pages",
+            list=True,
+            default_list=True,
+            tooltip=True,
+            form=True,
+            bulk=True,
             link={
                 "view_name": "sample:powerfield-book-detail",
                 "open_in": "current",
             },
         ),
-        PowerField("isbn_empty", property=True, detail_property=True),
-        PowerField("title", inline=True, bulk=True),
-        PowerField("published_date", inline=True, bulk=True),
+        PowerField(
+            "isbn_empty",
+            property=True,
+            detail_property=True,
+            default_list=True,
+            tooltip=True,
+        ),
+        PowerField("description", form=True, inline=True),
+        PowerField("uneditable_field", form_display=True),
     ]
 
     row_modal = PowerAction(

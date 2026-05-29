@@ -92,6 +92,34 @@ Primitive config is direct and remains the baseline. PowerField is useful when o
 
 PowerField compiles to the same primitive configuration before PowerCRUD registers feature URLs, validates config, and builds runtime helpers.
 
+## Declaration Style
+
+Prefer one `PowerField` entry per field.
+
+```python
+PowerField(
+    "title",
+    list=True,
+    default_list=True,
+    tooltip=True,
+    form=True,
+    inline=True,
+    bulk=True,
+)
+```
+
+That is the main readability win: the field's participation is visible in one place.
+
+PowerCRUD also supports repeating a field across multiple declarations. The compiler merges and de-duplicates the generated primitive lists, so this works:
+
+```python
+PowerField("title", default_list=True, tooltip=True)
+PowerField("title", form=True)
+PowerField("title", inline=True, bulk=True)
+```
+
+Use that grouped-by-dimension style only when the ordering of separate primitive lists matters more than seeing each field in one place. For most views, the one-entry-per-field style is easier to reason about.
+
 ## Reusing Declarations
 
 Use `with_options(...)` when related views share most of a field declaration but need one or two local changes.

@@ -94,6 +94,12 @@ ACTION_STATUS_NO_BULK = ACTION_STATUS.with_options(bulk=False)
 
 The original declaration is unchanged. The copied declaration is validated like a direct `PowerField(...)` call, so unsupported option names raise `TypeError` and invalid include/exclude combinations raise `ValueError`.
 
+### Repeated Field Declarations
+
+Prefer one `PowerField` entry per field so the field's list, form, inline, bulk, tooltip, and link intent is visible in one place.
+
+Repeated entries for the same field are also valid. PowerCRUD merges them into the primitive config and de-duplicates list values while preserving first occurrence order. Use repeated entries only when grouping by primitive dimension is clearer for a specific view.
+
 ## PowerOverride
 
 `PowerOverride` sets broad primitive sentinel values for a whole dimension.

@@ -415,44 +415,59 @@ class PowerFieldBookCRUDView(SampleCRUDMixin):
     list_cell_link_default_open_in = "modal"
     form_class = forms.BookForm
     power_fields = [
-        PowerOverride(list="__all__", detail="__all__"),
-        # Property declarations follow BookCRUDView's "__all__" property order.
-        PowerField(
-            "a_really_long_property_header_for_title",
-            property=True,
-            detail_property=True,
-        ),
-        PowerField("isbn_empty", property=True, detail_property=True),
-        PowerField(
-            "there_are_so_many_pages_this_header_surely_will_wrap",
-            property=True,
-            detail_property=True,
-        ),
-        # Default-list declarations follow BookCRUDView's visible column order.
+        PowerOverride(detail="__all__"),
         PowerField(
             "title",
+            list=True,
             default_list=True,
             tooltip=True,
+            form=True,
+            inline=True,
+            bulk=True,
             column={"help_text": "The book title shown throughout the app."},
         ),
         PowerField(
             "author",
+            list=True,
             default_list=True,
+            form=True,
+            inline=True,
+            bulk=True,
         ),
-        PowerField("published_date", default_list=True),
+        PowerField(
+            "published_date",
+            list=True,
+            default_list=True,
+            form=True,
+            inline=True,
+            bulk=True,
+        ),
         PowerField(
             "pages",
+            list=True,
             default_list=True,
             tooltip=True,
+            form=True,
+            bulk=True,
             column={
                 "help_text": "Demo link: opens this book detail in the current page."
             },
             link={"view_name": "sample:powerfield-book-detail", "open_in": "current"},
         ),
-        PowerField("bestseller", default_list=True),
+        PowerField(
+            "bestseller",
+            list=True,
+            default_list=True,
+            form=True,
+            inline=True,
+            bulk=True,
+        ),
         PowerField(
             "isbn",
+            list=True,
             default_list=True,
+            form=True,
+            form_disabled=True,
             column={
                 "help_text": (
                     "Demo link: opens an external ISBN reference in a new tab or window."
@@ -465,7 +480,11 @@ class PowerFieldBookCRUDView(SampleCRUDMixin):
         ),
         PowerField(
             "genres",
+            list=True,
             default_list=True,
+            form=True,
+            inline=True,
+            bulk=True,
             queryset_dependencies={
                 "depends_on": ["author"],
                 "filter_by": {"authors": "author"},
@@ -475,12 +494,16 @@ class PowerFieldBookCRUDView(SampleCRUDMixin):
         ),
         PowerField(
             "isbn_empty",
+            property=True,
+            detail_property=True,
             default_list=True,
             tooltip=True,
             column={"help_text": "Shows whether this row currently has an ISBN value."},
         ),
         PowerField(
             "a_really_long_property_header_for_title",
+            property=True,
+            detail_property=True,
             default_list=True,
             column={
                 "help_text": (
@@ -496,32 +519,13 @@ class PowerFieldBookCRUDView(SampleCRUDMixin):
                 ),
             },
         ),
-        # Form declarations mirror BookForm.Meta before form_class takes over at runtime.
-        PowerField("title", form=True),
-        PowerField("author", form=True),
-        PowerField("genres", form=True),
-        PowerField("published_date", form=True),
-        PowerField("bestseller", form=True),
-        PowerField("isbn", form=True),
-        PowerField("pages", form=True),
-        PowerField("description", form=True),
         PowerField("uneditable_field", form_display=True),
-        PowerField("isbn", form_disabled=True),
-        # Inline declarations follow BookCRUDView's inline edit order.
-        PowerField("title", inline=True),
-        PowerField("author", inline=True),
-        PowerField("genres", inline=True),
-        PowerField("published_date", inline=True),
-        PowerField("bestseller", inline=True),
-        PowerField("description", inline=True),
-        # Bulk declarations follow BookCRUDView's bulk edit order.
-        PowerField("title", bulk=True),
-        PowerField("published_date", bulk=True),
-        PowerField("bestseller", bulk=True),
-        PowerField("pages", bulk=True),
-        PowerField("author", bulk=True),
-        PowerField("genres", bulk=True),
-        PowerField("description", exclude={"list": True}),
+        PowerField("description", form=True, inline=True),
+        PowerField(
+            "there_are_so_many_pages_this_header_surely_will_wrap",
+            property=True,
+            detail_property=True,
+        ),
     ]
     bulk_delete = True
     bulk_async = True
