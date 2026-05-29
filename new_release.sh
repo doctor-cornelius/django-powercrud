@@ -12,10 +12,11 @@ Usage:
   ./new_release.sh --help
 
 Workflow:
-  1. Run --prepare with an explicit bump level.
-  2. Review and manually edit CHANGELOG.md to add release narrative.
-  3. Run --publish to create one release commit, tag it, and push both refs.
-  4. If you change your mind after --prepare, run --abort.
+  1. From a clean, current main branch, run --prepare with an explicit bump level.
+  2. Review and manually edit CHANGELOG.md on the created release branch.
+  3. Run --publish from the host shell to create and merge the release PR.
+  4. --publish tags the merged main commit and pushes the tag to trigger release workflows.
+  5. If you change your mind before publishing, run --abort.
 
 Examples:
   ./new_release.sh --prepare patch
@@ -25,8 +26,9 @@ Examples:
   ./new_release.sh --abort
 
 Notes:
-  - --prepare must be run from a clean main branch.
-  - Run this script from inside the dev container, not from the host shell.
+  - --prepare must start from a clean main branch and creates release/<version>.
+  - --prepare delegates validation/build/lock work to the dev container.
+  - --publish must be run from the host shell with gh authenticated.
   - The bump level remains explicitly controlled by you; the script does not
     infer patch/minor/major from commit history.
   - Commitizen is used only to generate the changelog entry.
@@ -44,9 +46,19 @@ function current_branch {
     git rev-parse --abbrev-ref HEAD
 }
 
+function in_container {
+    [[ -f "/.dockerenv" ]]
+}
+
 function require_container_runtime {
-    if [[ ! -f "/.dockerenv" ]]; then
-        die "run this script from inside the dev container."
+    if ! in_container; then
+        die "run this step from inside the dev container."
+    fi
+}
+
+function require_host_runtime {
+    if in_container; then
+        die "run this step from the host shell, not from inside the dev container."
     fi
 }
 
@@ -89,6 +101,25 @@ value = state.get(key, "")
 if not isinstance(value, str):
     raise SystemExit(f"State key {key!r} is not a string value")
 print(value)
+PY
+}
+
+function set_state_values {
+    python3 - "$STATE_FILE" "$@" <<'PY'
+import json
+import pathlib
+import sys
+
+path = pathlib.Path(sys.argv[1])
+state = json.loads(path.read_text(encoding="utf-8"))
+pairs = sys.argv[2:]
+if len(pairs) % 2 != 0:
+    raise SystemExit("State updates must be key/value pairs")
+
+for idx in range(0, len(pairs), 2):
+    state[pairs[idx]] = pairs[idx + 1]
+
+path.write_text(json.dumps(state, indent=2) + "\n", encoding="utf-8")
 PY
 }
 
@@ -177,6 +208,16 @@ function validate_state_context {
     if [[ "$head_sha" != "$expected_head" ]]; then
         die "$action requires the same HEAD commit used during --prepare."
     fi
+}
+
+function switch_to_branch_if_needed {
+    local branch="$1"
+    if [[ "$(current_branch)" == "$branch" ]]; then
+        return
+    fi
+
+    require_clean_worktree
+    git switch "$branch"
 }
 
 function require_only_prepared_paths {
@@ -447,19 +488,31 @@ PY
 function write_release_state {
     local new_version="$1"
     local tag_name="$2"
+    local release_branch="$3"
+    local base_branch="$4"
+    local base_head="$5"
     local head_sha
-    local branch
 
     head_sha=$(git rev-parse HEAD)
-    branch=$(current_branch)
 
-    python3 - "$STATE_FILE" "$new_version" "$tag_name" "$BUMP_TYPE" "${PRERELEASE_KIND:-}" "$BREAKING_NOTES_FILE" "$branch" "$head_sha" <<'PY'
+    python3 - "$STATE_FILE" "$new_version" "$tag_name" "$BUMP_TYPE" "${PRERELEASE_KIND:-}" "$BREAKING_NOTES_FILE" "$release_branch" "$head_sha" "$base_branch" "$base_head" <<'PY'
 import json
 import pathlib
 import subprocess
 import sys
 
-state_file, version, tag_name, bump_type, prerelease, notes_file, branch, head_sha = sys.argv[1:9]
+(
+    state_file,
+    version,
+    tag_name,
+    bump_type,
+    prerelease,
+    notes_file,
+    branch,
+    head_sha,
+    base_branch,
+    base_head,
+) = sys.argv[1:11]
 
 tracked_raw = subprocess.check_output(["git", "diff", "--name-only", "-z", "HEAD", "--"])
 tracked_files = [path for path in tracked_raw.decode("utf-8").split("\0") if path]
@@ -470,6 +523,7 @@ untracked_raw = subprocess.check_output(
 untracked_files = [path for path in untracked_raw.decode("utf-8").split("\0") if path]
 
 state = {
+    "phase": "prepared",
     "version": version,
     "tag": tag_name,
     "bump_type": bump_type,
@@ -477,8 +531,13 @@ state = {
     "breaking_notes_file": notes_file,
     "branch": branch,
     "head": head_sha,
+    "base_branch": base_branch,
+    "base_head": base_head,
     "tracked_files": tracked_files,
     "untracked_files": untracked_files,
+    "release_commit": "",
+    "pr_number": "",
+    "merge_commit": "",
 }
 
 path = pathlib.Path(state_file)
@@ -501,23 +560,118 @@ function run_prepare_validation {
     uv lock
 }
 
-function prepare_release {
+function require_current_main {
+    git fetch --tags origin main
+    local local_main
+    local origin_main
+    local_main=$(git rev-parse main)
+    origin_main=$(git rev-parse origin/main)
+
+    if [[ "$local_main" != "$origin_main" ]]; then
+        die "local main is not current with origin/main. Pull main before preparing a release."
+    fi
+}
+
+function require_tag_absent {
+    local tag_name="$1"
+    if git rev-parse "refs/tags/$tag_name" >/dev/null 2>&1; then
+        die "local tag $tag_name already exists."
+    fi
+
+    if git ls-remote --exit-code --tags origin "refs/tags/$tag_name" >/dev/null 2>&1; then
+        die "remote tag $tag_name already exists."
+    fi
+}
+
+function require_release_branch_absent {
+    local release_branch="$1"
+    if git rev-parse --verify "$release_branch" >/dev/null 2>&1; then
+        die "local branch $release_branch already exists."
+    fi
+
+    if git ls-remote --exit-code --heads origin "$release_branch" >/dev/null 2>&1; then
+        die "remote branch $release_branch already exists."
+    fi
+}
+
+function prepare_release_command {
+    local command_parts=("NEW_RELEASE_CONTAINER_PREPARE=1" "./new_release.sh" "--prepare" "$BUMP_TYPE")
+
+    if [[ -n "$PRERELEASE_KIND" ]]; then
+        command_parts+=("--prerelease" "$PRERELEASE_KIND")
+    fi
+
+    if [[ -n "$BREAKING_NOTES_FILE" ]]; then
+        command_parts+=("--breaking-notes-file" "$BREAKING_NOTES_FILE")
+    fi
+
+    printf "%q " "${command_parts[@]}"
+}
+
+function prepare_release_on_host {
     local new_version
-    local last_tag
+    local release_branch
+    local base_head
     local prepare_failed="true"
 
-    require_container_runtime
+    require_host_runtime
     require_main_branch
     require_clean_worktree
     require_state_absent
     validate_prepare_args
+    require_current_main
+
+    new_version=$(compute_next_version)
+    release_branch="release/$new_version"
+    require_tag_absent "$new_version"
+    require_release_branch_absent "$release_branch"
+
+    base_head=$(git rev-parse HEAD)
+    git switch -c "$release_branch"
+
+    trap 'if [[ "$prepare_failed" == "true" ]]; then echo "Prepare failed; restoring release branch and returning to main." >&2; restore_current_worktree; cleanup_state; git switch main >/dev/null 2>&1 || true; git branch -D "$release_branch" >/dev/null 2>&1 || true; fi' ERR
+
+    ./runproj exec --command "$(prepare_release_command)"
+
+    prepare_failed="false"
+    trap - ERR
+
+    cat <<EOF
+Prepared release $new_version on $release_branch from $base_head.
+
+Next steps:
+  1. Review and edit CHANGELOG.md.
+  2. Run ./new_release.sh --publish when ready.
+  3. Run ./new_release.sh --abort if you want to discard the prepared release.
+EOF
+}
+
+function prepare_release_in_container {
+    local new_version
+    local last_tag
+    local release_branch
+    local base_head
+    local prepare_failed="true"
+
+    require_container_runtime
+    require_clean_worktree
+    require_state_absent
+    validate_prepare_args
+
+    release_branch=$(current_branch)
+    if [[ "$release_branch" != release/* ]]; then
+        die "container prepare must run on a release/<version> branch."
+    fi
 
     trap 'if [[ "$prepare_failed" == "true" ]]; then echo "Prepare failed; restoring working tree." >&2; restore_current_worktree; cleanup_state; fi' ERR
 
     new_version=$(compute_next_version)
-    if git rev-parse "refs/tags/$new_version" >/dev/null 2>&1; then
-        die "tag $new_version already exists."
+    if [[ "$release_branch" != "release/$new_version" ]]; then
+        die "release branch $release_branch does not match computed version $new_version."
     fi
+
+    require_tag_absent "$new_version"
+    base_head=$(git rev-parse HEAD)
 
     run_prepare_validation
 
@@ -527,39 +681,30 @@ function prepare_release {
     last_tag=$(git describe --tags --abbrev=0 2>/dev/null || true)
     insert_breaking_notes "$new_version" "$last_tag"
     ensure_release_section_has_content "$new_version"
-    write_release_state "$new_version" "$new_version"
+    write_release_state "$new_version" "$new_version" "$release_branch" "main" "$base_head"
 
     prepare_failed="false"
     trap - ERR
 
-    cat <<EOF
-Prepared release $new_version.
-
-Next steps:
-  1. Review and edit CHANGELOG.md.
-  2. Run ./new_release.sh --publish when ready.
-  3. Run ./new_release.sh --abort if you want to discard the prepared release.
-EOF
+    echo "Prepared release $new_version."
 }
 
-function publish_release {
-    local version
-    local tag_name
+function prepare_release {
+    if [[ "${NEW_RELEASE_CONTAINER_PREPARE:-}" == "1" ]]; then
+        prepare_release_in_container
+    else
+        prepare_release_on_host
+    fi
+}
+
+function commit_prepared_release {
+    local version="$1"
     local prepared_paths=()
     local prepared_untracked=()
+    local release_commit
 
-    require_container_runtime
-    require_state_present
-    validate_non_prepare_args
     validate_state_context "--publish"
     require_only_prepared_paths "true"
-
-    version=$(load_state_value version)
-    tag_name=$(load_state_value tag)
-
-    if git rev-parse "refs/tags/$tag_name" >/dev/null 2>&1; then
-        die "tag $tag_name already exists."
-    fi
 
     mapfile -d '' -t prepared_paths < <(load_state_paths tracked_files)
     mapfile -d '' -t prepared_untracked < <(load_state_paths untracked_files)
@@ -575,9 +720,186 @@ function publish_release {
     fi
 
     git commit -m "chore(release): publish $version"
-    git tag -a "$tag_name" -m "Release $version"
+    release_commit=$(git rev-parse HEAD)
+    set_state_values phase committed release_commit "$release_commit"
+}
+
+function current_phase {
+    local phase
+    phase=$(load_state_value phase)
+    if [[ -z "$phase" ]]; then
+        phase="prepared"
+    fi
+    echo "$phase"
+}
+
+function find_existing_pr_number {
+    local release_branch="$1"
+    gh pr view "$release_branch" --json number --jq .number 2>/dev/null || true
+}
+
+function create_release_pr {
+    local version="$1"
+    local release_branch="$2"
+    local pr_number
+    local body
+
+    git push -u origin "$release_branch" >&2
+
+    pr_number=$(find_existing_pr_number "$release_branch")
+    if [[ -z "$pr_number" ]]; then
+        body=$(cat <<EOF
+## Summary
+
+- Publish release $version through the protected-main release workflow.
+- Update version, lockfile, changelog, and built assets prepared by new_release.sh.
+
+## Verification
+
+- new_release.sh prepare validation completed.
+- Required GitHub checks will run on this PR before merge.
+EOF
+)
+        gh pr create \
+            --base main \
+            --head "$release_branch" \
+            --title "Release $version" \
+            --body "$body" >&2
+        pr_number=$(find_existing_pr_number "$release_branch")
+    fi
+
+    if [[ -z "$pr_number" ]]; then
+        die "could not determine release PR number for $release_branch."
+    fi
+
+    set_state_values pr_number "$pr_number"
+    echo "$pr_number"
+}
+
+function wait_for_required_checks {
+    local pr_number="$1"
+    gh pr checks "$pr_number" --required --watch --fail-fast
+}
+
+function merge_release_pr {
+    local pr_number="$1"
+    local version="$2"
+    local release_commit="$3"
+    local merge_commit
+
+    gh pr merge "$pr_number" \
+        --squash \
+        --delete-branch \
+        --match-head-commit "$release_commit" \
+        --subject "chore(release): publish $version" \
+        --body "Release $version"
+
+    merge_commit=$(gh pr view "$pr_number" --json mergeCommit --jq '.mergeCommit.oid')
+    set_state_values phase merged merge_commit "$merge_commit"
+}
+
+function tag_merged_release {
+    local version="$1"
+    local tag_name="$2"
+    local head_sha
+    local tag_sha
+    local remote_tag_sha
+
+    git fetch --prune --tags origin
+    git switch main
+    git pull --ff-only origin main
+
+    python3 - "$version" <<'PY'
+import pathlib
+import tomllib
+import sys
+
+expected = sys.argv[1]
+data = tomllib.loads(pathlib.Path("pyproject.toml").read_text(encoding="utf-8"))
+actual = data["project"]["version"]
+if actual != expected:
+    raise SystemExit(
+        f"pyproject.toml version {actual!r} does not match release {expected!r}"
+    )
+PY
+
+    head_sha=$(git rev-parse HEAD)
+    if git rev-parse "refs/tags/$tag_name" >/dev/null 2>&1; then
+        tag_sha=$(git rev-list -n 1 "$tag_name")
+        if [[ "$tag_sha" != "$head_sha" ]]; then
+            die "local tag $tag_name points to $tag_sha, not current main $head_sha."
+        fi
+    else
+        git tag -a "$tag_name" -m "Release $version"
+    fi
+
+    remote_tag_sha=$(git ls-remote --tags origin "refs/tags/$tag_name^{}" | awk '{print $1}' || true)
+    if [[ -n "$remote_tag_sha" ]]; then
+        if [[ "$remote_tag_sha" != "$head_sha" ]]; then
+            die "remote tag $tag_name points to $remote_tag_sha, not current main $head_sha."
+        fi
+    else
+        git push origin "$tag_name"
+    fi
+
     cleanup_state
-    git push --atomic origin main "$tag_name"
+}
+
+function publish_release {
+    local version
+    local tag_name
+    local release_branch
+    local phase
+    local release_commit
+    local pr_number
+
+    require_host_runtime
+    require_state_present
+    validate_non_prepare_args
+
+    version=$(load_state_value version)
+    tag_name=$(load_state_value tag)
+    release_branch=$(load_state_value branch)
+    phase=$(current_phase)
+
+    case "$phase" in
+        prepared)
+            commit_prepared_release "$version"
+            phase="committed"
+            ;;
+        committed)
+            switch_to_branch_if_needed "$release_branch"
+            ;;
+        merged)
+            tag_merged_release "$version" "$tag_name"
+            echo "Published release $version."
+            return
+            ;;
+        *)
+            die "unknown release phase in state: $phase"
+            ;;
+    esac
+
+    release_commit=$(load_state_value release_commit)
+    if [[ -z "$release_commit" ]]; then
+        release_commit=$(git rev-parse HEAD)
+        set_state_values release_commit "$release_commit"
+    fi
+
+    switch_to_branch_if_needed "$release_branch"
+    if [[ "$(git rev-parse HEAD)" != "$release_commit" ]]; then
+        die "$release_branch is not at recorded release commit $release_commit."
+    fi
+    require_clean_worktree
+
+    pr_number=$(load_state_value pr_number)
+    if [[ -z "$pr_number" ]]; then
+        pr_number=$(create_release_pr "$version" "$release_branch")
+    fi
+
+    wait_for_required_checks "$pr_number"
+    merge_release_pr "$pr_number" "$version" "$release_commit"
+    tag_merged_release "$version" "$tag_name"
 
     echo "Published release $version."
 }
@@ -585,12 +907,21 @@ function publish_release {
 function abort_release {
     local tracked_paths=()
     local untracked_paths=()
+    local release_branch
+    local phase
 
-    require_container_runtime
+    require_host_runtime
     require_state_present
     validate_non_prepare_args
+
+    phase=$(current_phase)
+    if [[ "$phase" != "prepared" ]]; then
+        die "release is already $phase. Close any PR manually and clean up the branch intentionally."
+    fi
+
     validate_state_context "--abort"
     require_only_prepared_paths "false"
+    release_branch=$(load_state_value branch)
 
     mapfile -d '' -t tracked_paths < <(load_state_paths tracked_files)
     mapfile -d '' -t untracked_paths < <(load_state_paths untracked_files)
@@ -604,7 +935,9 @@ function abort_release {
     fi
 
     cleanup_state
-    echo "Aborted prepared release state."
+    git switch main
+    git branch -D "$release_branch"
+    echo "Aborted prepared release state and deleted $release_branch."
 }
 
 MODE=""

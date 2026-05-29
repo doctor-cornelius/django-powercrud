@@ -5,6 +5,7 @@ Use this workflow when the user asks to create a pull request, merge a feature b
 ## Scope
 
 - Use GitHub CLI (`gh`) for pull request creation, inspection, and merge operations.
+- The GitHub Codex plugin may be used to inspect GitHub state when available, but `gh` remains the canonical, portable workflow.
 - Default to the current branch when the user says to use the current branch.
 - If the user names a branch, use that branch.
 - Never create or merge a pull request from `main`.
@@ -131,6 +132,24 @@ git push --force-with-lease origin <branch-b>
 ```
 
 Use this only when the dependency is clear. If the old base tip is uncertain, inspect the graph first and stop if the branch relationship is ambiguous.
+
+## Release pull requests
+
+Use `new_release.sh` for package releases rather than hand-rolling release commits:
+
+```bash
+git switch main
+git pull --ff-only origin main
+./new_release.sh --prepare <patch|minor|major>
+# Review and edit CHANGELOG.md on release/<version>.
+./new_release.sh --publish
+```
+
+The release script creates a `release/<version>` branch, opens a release PR, waits for required checks, squash-merges with a semantic subject like `chore(release): publish 0.4.0`, updates local `main`, creates an annotated version tag on the merged `main` commit, and pushes only the tag. The tag push triggers the PyPI and documentation release workflows.
+
+If `--publish` fails after creating the release commit, PR, or merge, rerun it before attempting manual cleanup. It records progress in `.git/new_release_state.json` and resumes from the last completed phase.
+
+Hard stop and discuss with the user if the release PR checks fail, the release PR has non-trivial conflicts, tag creation points at an unexpected commit, or a partially published release needs manual cleanup.
 
 ## Conflict handling
 

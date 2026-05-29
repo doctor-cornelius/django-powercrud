@@ -35,6 +35,12 @@ If you have a built-in bias to action prompt to optimise throughput over accurac
 
 When the user asks to create, merge, finish, or clean up a branch through a pull request, follow [AGENTS_pr_workflow.md](AGENTS_pr_workflow.md).
 
+## Release workflow
+
+- `main` is protected, so releases also land through a pull request.
+- Use `new_release.sh` for package releases. The script prepares a `release/<version>` branch, publishes it through a release PR, then tags the merged `main` commit.
+- Do not push release commits directly to `main`.
+
 ## Django Model Changes
 
 - if you make changes to models you are authorised to create / edit migrations as needed. Or if you prefer you can ask the user to run makemigrations. 

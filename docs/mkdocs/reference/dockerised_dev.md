@@ -181,6 +181,18 @@ cz commit  # Interactive conventional commit
 gh pr merge <pr-number> --squash --delete-branch --subject "feat(scope): describe the change"
 ```
 
+Releases use the same protected-main flow through `new_release.sh`:
+
+```bash
+git switch main
+git pull --ff-only origin main
+./new_release.sh --prepare patch
+# Review and edit CHANGELOG.md on release/<version>.
+./new_release.sh --publish
+```
+
+`--prepare` creates a `release/<version>` branch and delegates validation/build/lock work to the dev container. `--publish` runs from the host shell with `gh` authenticated, opens and merges the release PR with a semantic squash subject, updates local `main`, then pushes the version tag that triggers the PyPI and documentation workflows.
+
 For agent-driven branch finish work, see `AGENTS/AGENTS_pr_workflow.md` in the repository root.
 
 ### 8. **Shutdown**
