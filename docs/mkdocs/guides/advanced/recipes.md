@@ -1,8 +1,56 @@
 # PowerCRUD Recipes
 
-These recipes show how current PowerCRUD options compose. They do not introduce a new helper API.
+These recipes show how current PowerCRUD options compose. Most examples use primitive class attributes directly; the PowerField recipe shows how the Field Intent helper can reduce repeated declarations without changing the underlying primitive config.
 
 Start with [PowerCRUD Concepts](../concepts.md) if you want the mental model behind Surface, Field intent, Action, Presentation, Selection, Bulk operation, and Async operation.
+
+## Reusable PowerField Declarations
+
+Use this when related CRUD views share the same field intent but one view needs a small local variation.
+
+Concepts involved:
+
+1. Field intent
+2. Bulk operation
+
+```python
+from neapolitan.views import CRUDView
+from powercrud.mixins import PowerCRUDMixin
+from powercrud.powerfields import PowerField
+
+
+ACTION_STATUS = PowerField(
+    "status",
+    list=True,
+    default_list=True,
+    tooltip=True,
+    bulk=True,
+)
+
+
+class ActionCRUDView(PowerCRUDMixin, CRUDView):
+    model = Action
+    base_template_path = "core/base.html"
+
+    power_fields = [
+        ACTION_STATUS,
+    ]
+
+
+class ActionReviewCRUDView(PowerCRUDMixin, CRUDView):
+    model = Action
+    base_template_path = "core/base.html"
+
+    power_fields = [
+        ACTION_STATUS.with_options(bulk=False),
+    ]
+```
+
+Notes:
+
+1. `with_options(...)` returns a new `PowerField`; it does not mutate the shared declaration.
+2. Use this for small view-specific differences, not for mixing primitive Field Intent attributes with `power_fields`.
+3. Keep bulk operation flags such as `bulk_delete` and `bulk_async` as normal view attributes.
 
 ## Read-Only Review Surface
 

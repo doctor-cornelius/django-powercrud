@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Any
 
 
@@ -90,6 +90,10 @@ class PowerField:
                 f"{self.name!r} declares both include and exclude for "
                 f"{', '.join(sorted(conflicting_dimensions))}"
             )
+
+    def with_options(self, **changes: Any) -> "PowerField":
+        """Return a copy of this PowerField with selected options changed."""
+        return replace(self, **changes)
 
     def to_primitive_fragment(self) -> dict[str, Any]:
         """Return this field's contribution to primitive PowerCRUD config."""

@@ -92,6 +92,36 @@ Primitive config is direct and remains the baseline. PowerField is useful when o
 
 PowerField compiles to the same primitive configuration before PowerCRUD registers feature URLs, validates config, and builds runtime helpers.
 
+## Reusing Declarations
+
+Use `with_options(...)` when related views share most of a field declaration but need one or two local changes.
+
+```python
+ACTION_STATUS = PowerField(
+    "status",
+    list=True,
+    default_list=True,
+    tooltip=True,
+    bulk=True,
+)
+
+
+class ActionCRUDView(PowerCRUDMixin, CRUDView):
+    model = Action
+    power_fields = [
+        ACTION_STATUS,
+    ]
+
+
+class ActionReviewCRUDView(PowerCRUDMixin, CRUDView):
+    model = Action
+    power_fields = [
+        ACTION_STATUS.with_options(bulk=False),
+    ]
+```
+
+`with_options(...)` returns a new `PowerField`. The original declaration is unchanged, and the copied declaration is validated the same way as a directly constructed `PowerField`.
+
 ## Broad List And Detail Defaults
 
 Use `PowerOverride` when you want a broad primitive sentinel such as `fields = "__all__"` or `detail_fields = "__all__"`.

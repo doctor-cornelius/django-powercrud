@@ -60,6 +60,41 @@ def test_powerfield_rejects_include_and_exclude_for_same_dimension():
         PowerField("status", form=True, exclude={"form": True})
 
 
+def test_powerfield_with_options_returns_changed_copy_without_mutating_original():
+    original = PowerField(
+        "status",
+        list=True,
+        default_list=True,
+        tooltip=True,
+        bulk=True,
+    )
+
+    copied = original.with_options(bulk=False)
+
+    assert copied is not original, "with_options should return a new PowerField."
+    assert original.bulk is True, "with_options should not mutate the source field."
+    assert copied.bulk is False, "with_options should apply the requested change."
+    assert copied.to_primitive_fragment() == {
+        "fields": ["status"],
+        "default_list_fields": ["status"],
+        "list_cell_tooltip_fields": ["status"],
+    }, "The copied PowerField should compile with the changed options."
+
+
+def test_powerfield_with_options_reruns_validation():
+    field = PowerField("status", form=True)
+
+    with pytest.raises(ValueError, match="include and exclude"):
+        field.with_options(exclude={"form": True})
+
+
+def test_powerfield_with_options_rejects_unknown_options():
+    field = PowerField("status")
+
+    with pytest.raises(TypeError, match="unexpected keyword"):
+        field.with_options(filter=True)
+
+
 def test_merge_powerfield_fragments_preserves_order_and_merges_mappings():
     fragment = merge_powerfield_fragments(
         [
