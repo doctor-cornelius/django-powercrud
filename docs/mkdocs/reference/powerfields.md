@@ -76,6 +76,24 @@ PowerField(
 
 `link` must be a metadata dict. There is no `link=True` shorthand.
 
+### Copying With Changes
+
+Use `with_options(**changes)` to derive a new declaration from an existing `PowerField`:
+
+```python
+ACTION_STATUS = PowerField(
+    "status",
+    list=True,
+    default_list=True,
+    tooltip=True,
+    bulk=True,
+)
+
+ACTION_STATUS_NO_BULK = ACTION_STATUS.with_options(bulk=False)
+```
+
+The original declaration is unchanged. The copied declaration is validated like a direct `PowerField(...)` call, so unsupported option names raise `TypeError` and invalid include/exclude combinations raise `ValueError`.
+
 ## PowerOverride
 
 `PowerOverride` sets broad primitive sentinel values for a whole dimension.
