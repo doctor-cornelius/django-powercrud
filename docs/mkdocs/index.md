@@ -4,9 +4,6 @@
 
 PowerCRUD extends [`Neapolitan`](https://github.com/carltongibson/neapolitan)’s view layer with the practical infrastructure needed for real operational interfaces.
 
-!!! info "Project status"
-    PowerCRUD is still evolving, but now ships with a full pytest suite. CI blocks on a curated Playwright smoke subset, while the full browser suite remains part of the local and release-preparation workflow. Expect breaking changes while APIs settle, and pin the package if you rely on current behaviour.
-
 ## Where to start
 
 1. **First view online**
@@ -75,5 +72,3 @@ See [Async architecture](reference/async.md) for details.
 - Complete class example: [complete_example.md](reference/complete_example.md)  
 - Tooling: [dockerised_dev.md](reference/dockerised_dev.md), [mgmt_commands.md](reference/mgmt_commands.md), [testing.md](reference/testing.md)  
 - Sample app overview: [sample_app.md](reference/sample_app.md)  
-
-PowerCRUD is still moving; pin releases if you rely on specific behaviour and check these guides when upgrading.

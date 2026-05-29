@@ -32,10 +32,6 @@ PowerCRUD extends [Neapolitan](https://github.com/carltongibson/neapolitan)’s 
 - **Batteries included**  
   Sample app, Docker dev stack, management commands, Tailwind safelist tooling, and a maintained pytest/Playwright suite keep the project teachable and testable.
 
-> ℹ️ **Status**
->
-> PowerCRUD is still evolving, but now ships with a comprehensive pytest suite. CI blocks on a curated Playwright smoke subset, while the full browser regression suite remains available locally and for broader release validation. Expect rough edges while APIs settle, and pin the package if you rely on current behaviour.
-
 See the [full documentation](https://doctor-cornelius.github.io/django-powercrud/).
 
 ## Key Features
