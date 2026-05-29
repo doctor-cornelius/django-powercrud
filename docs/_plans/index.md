@@ -10,4 +10,5 @@ Keep active plans under `docs/_plans/<feature>/`, and promote anything worth kee
 
 - [Abstract Surface](abstract_surface/abstract_surface-plan.md)
 - [List Options](list_options/list_options-plan.md)
+- [Power Actions](power_actions/power_actions-plan.md)
 - [Template Packs](template_packs/template_packs-master-plan.md)
