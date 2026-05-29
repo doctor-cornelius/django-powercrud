@@ -25,6 +25,7 @@ If you have a built-in bias to action prompt to optimise throughput over accurac
 
 - in general, if you are making edits, then the user wants you to make semantic commits (see cz.yaml) on a non-main branch
 - you must never commit to the main branch
+- `main` is protected. Changes must land through pull requests with required checks and squash merge.
 - if the user tells you to use current git branch then you do not need to ask
 - if they have not specified then:
     - if the current branch is main, ask the user what branch they want you to create or they may want to create one for you
