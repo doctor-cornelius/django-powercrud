@@ -92,7 +92,7 @@ PowerCRUD layers a few convenient defaults so you can start with zero configurat
 
 ### Extra Buttons
 
-Use `extra_buttons` for additional buttons above the table, alongside controls such as filter toggles and create buttons. These are page-level actions, not per-record actions.
+Use `extra_buttons` for additional buttons above the table, alongside controls such as filter toggles and create buttons. These are page-level actions, not per-record actions. Entries may be primitive dictionaries or `PowerButton` declarations from `powercrud.actions`.
 
 Use `extra_buttons_mode = "dropdown"` when those page-level actions should move into a compact top toolbar overflow menu. The built-in Create button stays visible because it is not part of `extra_buttons`.
 
@@ -160,7 +160,7 @@ Selection-aware header buttons read the current persisted PowerCRUD bulk selecti
 
 ### Extra Actions
 
-Use `extra_actions` for additional per-row actions in the list table. These render in the row action area next to the built-in `View`, `Edit`, and `Delete` actions.
+Use `extra_actions` for additional per-row actions in the list table. These render in the row action area next to the built-in `View`, `Edit`, and `Delete` actions. Entries may be primitive dictionaries or `PowerAction` declarations from `powercrud.actions`.
 
 For row actions, `extra_actions_mode` controls whether the extra actions stay visible as buttons or move into an overflow menu:
 
@@ -181,16 +181,12 @@ class AuthorCRUDView(PowerCRUDMixin, CRUDView):
             "text": "View Again",
             "needs_pk": True,
             "display_modal": True,
-            "disabled_if": "is_view_again_disabled",
-            "disabled_reason": "get_view_again_disabled_reason",
+            "disabled_state": "get_view_again_disabled_state",
             "modal_box_classes": "modal-box flex max-h-[calc(100dvh-2rem)] w-11/12 max-w-5xl flex-col",
         },
     ]
 
-    def is_view_again_disabled(self, obj, request):
-        return obj.birth_date is None
-
-    def get_view_again_disabled_reason(self, obj, request):
+    def get_view_again_disabled_state(self, obj, request):
         if obj.birth_date is None:
             return "Birth date is required before viewing this record again."
         return None
@@ -212,8 +208,11 @@ class AuthorCRUDView(PowerCRUDMixin, CRUDView):
     | `htmx_target` | `str` | HTMX target element used for non-modal actions when you need a custom swap target. |
     | `hx_post` | `bool` | If `True`, renders the action as an HTMX POST instead of the default GET. |
     | `lock_sensitive` | `bool` | Reuses PowerCRUD's existing blocked-row/lock logic so the action disables automatically when the row is not currently actionable. |
+    | `disabled_state` | `str` | Name of a view method with signature `(obj, request) -> str | None | bool`. Return a non-empty string to disable the action and show the reason; return `None`, `False`, or an empty string to keep it enabled. |
     | `disabled_if` | `str` | Name of a view method with signature `(obj, request) -> bool` that decides whether this row action should be disabled. |
     | `disabled_reason` | `str` | Name of a view method with signature `(obj, request) -> str | None` that returns the tooltip/help text when the action is disabled. |
+
+    Do not combine `disabled_state` with `disabled_if` or `disabled_reason` on the same action.
 
 ??? note "Refreshing the list after custom modal close"
 
@@ -228,6 +227,43 @@ class AuthorCRUDView(PowerCRUDMixin, CRUDView):
     - per-action `button_class` values are no longer used for the dropdown menu entries themselves
     - the `More` trigger uses the framework’s `extra_default` styling instead
     - leaving `button_class` off an `extra_actions` item is therefore fine if that action only ever appears in dropdown mode
+
+### Reusable Action And Button Declarations
+
+Use `PowerAction` and `PowerButton` when related views repeat the same action mechanics with only small changes.
+
+```python
+from powercrud.actions import PowerAction, PowerButton
+
+
+ROW_MODAL = PowerAction(
+    text="Preview",
+    url_name="sample:book-preview",
+    display_modal=True,
+    modal_box_classes="modal-box flex max-h-[calc(100dvh-2rem)] w-11/12 max-w-5xl flex-col",
+    disabled_state="get_preview_disabled_state",
+)
+
+SELECTED_MODAL = PowerButton(
+    text="Selected Summary",
+    url_name="sample:book-selected-summary",
+    display_modal=True,
+    uses_selection=True,
+    selection_min_count=1,
+    selection_min_behavior="disable",
+)
+
+extra_actions = [
+    ROW_MODAL,
+    ROW_MODAL.with_options(text="Timeline", url_name="sample:book-timeline"),
+]
+
+extra_buttons = [
+    SELECTED_MODAL,
+]
+```
+
+These declarations compile to the same primitive dictionaries that PowerCRUD already renders. Dictionaries and declarations may be mixed in one list.
 
 _Need the full list of knobs? See the [configuration reference](../reference/config_options.md) for every attribute, default, and dependency._
 

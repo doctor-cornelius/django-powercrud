@@ -99,6 +99,15 @@ Legacy `disabled_if` and `disabled_reason` should remain valid. A single action 
 6. The declarations should be immutable if practical.
 7. The renderer should continue consuming normalized dictionaries.
 
+## Defaults Chosen
+
+1. `PowerAction.needs_pk` defaults to `True`.
+2. `PowerAction.display_modal` defaults to `None`, so omitted values preserve the existing primitive fallback to the view modal setting.
+3. `PowerButton.needs_pk` defaults to `False`.
+4. `PowerButton.display_modal` defaults to `False`.
+5. `to_dict()` is public for inspection and deliberate bridging.
+6. `PowerButton` does not support `disabled_state` in this slice because toolbar buttons do not have row object context.
+
 ## Main Benefit
 
 The helper is not mainly about shortening one action. One action as a dictionary is fine.
@@ -117,9 +126,7 @@ Keep the sample small:
 2. One reusable `PowerButton` only if it clearly shows selected-row toolbar reuse.
 3. No broad workflow demo in the sample app.
 
-## Open Questions
+## Deferred Questions
 
-1. Should `PowerAction` default `needs_pk` to `True`, or should it preserve the current primitive default explicitly?
-2. Should `PowerButton` default `needs_pk` to `False`, or should callers always set it?
-3. Should invalid row-only keys on `PowerButton`, or button-only keys on `PowerAction`, fail immediately?
-4. Should `to_dict()` be public, or should compilation stay internal?
+1. Whether future constructor helpers such as `PowerAction.modal(...)` are worth adding after downstream use proves the need.
+2. Whether toolbar buttons need a separate disabled-state hook that does not depend on row object context.
