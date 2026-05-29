@@ -1,6 +1,6 @@
 # PowerField Reference
 
-PowerField is the Structured Declaration API for Field Intent. It compiles to the existing Base Configuration API attributes before URL registration, validation, and runtime helpers consume config.
+PowerField is the Structured Declaration API for Field Intent. It compiles to the existing Base Configuration API attributes before URL registration, validation, and runtime behaviour consume config.
 
 Import it from:
 

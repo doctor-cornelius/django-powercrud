@@ -25,14 +25,11 @@ That means this is fine:
 class BookView(PowerCRUDAsyncMixin, CRUDView):
     model = Book
     namespace = "sample"
-    base_template_path = "sample/base.html"
     use_htmx = True
     use_modal = True
-    list_options_enabled = True
-    bulk_delete = True
 
     power_fields = [
-        PowerField("title", list=True, detail=True, form=True, inline=True),
+        PowerField("title", default_list=True, form=True),
     ]
 ```
 
@@ -88,7 +85,7 @@ Base configuration is direct and remains the baseline. PowerField is useful when
         ]
         ```
 
-PowerField compiles to the same base configuration before PowerCRUD registers feature URLs, validates config, and builds runtime helpers.
+PowerField compiles to the same base configuration before PowerCRUD registers feature URLs, validates config, and builds runtime behaviour.
 
 ## Declaration Style
 
@@ -108,6 +105,8 @@ PowerField(
 That is the main readability win: the field's participation is visible in one place.
 
 `default_list=True` also adds the field to the underlying list allow-list. For property-backed columns, combine it with `property=True`.
+
+Start with the boolean kwargs for field roles. Add dict kwargs such as `column={...}`, `link={...}`, or `queryset_dependencies={...}` only when that field needs richer list-column, link, or choice-scoping behaviour.
 
 PowerCRUD also supports repeating a field across multiple declarations. The compiler merges and de-duplicates the generated base lists, so this works:
 

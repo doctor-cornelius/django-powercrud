@@ -61,7 +61,7 @@ Use `PowerAction` or `PowerButton` when you want to name and reuse a pattern:
 
 That keeps the repeated mechanics in one declaration and leaves each view focused on the user operation.
 
-Any constructor option can be changed in a derived helper by passing it to `with_options(...)`.
+Any constructor option can be changed in a derived declaration by passing it to `with_options(...)`.
 
 ## Row Actions
 

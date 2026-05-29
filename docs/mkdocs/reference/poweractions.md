@@ -140,7 +140,7 @@ extra_buttons = [
 
 ## Validation Rules
 
-Helpers validate declaration shape before PowerCRUD renders them.
+`PowerAction` and `PowerButton` validate declaration shape before PowerCRUD renders them.
 
 - `text` and `url_name` must be non-empty strings.
 - Boolean parameters must be `True`, `False`, or `None` where the constructor explicitly allows `None`.
