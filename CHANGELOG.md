@@ -2,9 +2,29 @@
 
 PowerCRUD adopts a loose semantic versioning approach at this stage. Essentially while on major version `0`, almost every release is a patch release. Minor releases occur periodically if we feel the cumulative functionality is major, or if the patch suffix number is getting to a ridiculous number. 
 
-As per the pinned note in the `README`, breaking changes can occur at this stage (although we try to minimise these). Once we move to major release `1` the intention is to be more disciplined.
+During the `0.x` series, breaking changes can occur, although we try to minimise them. Once we move to major release `1` the intention is to be more disciplined.
 
 Version numbers below correspond to published git tags. The more important releases include a little extra narrative and upgrade context; smaller patch releases remain deliberately brief. For full detail between any two versions, use the GitHub compare view for the matching tags.
+
+## 0.7.1 (2026-05-29)
+
+This release completes the first Structured Declaration API pass. Together with the `PowerField` foundation introduced in `0.7.0`, PowerCRUD now has structured helpers for repeated field intent, row actions, and toolbar buttons while keeping the Base Configuration API as the underlying runtime contract.
+
+- **Feature (actions)**: add `PowerAction` and `PowerButton` declaration objects for reusable `extra_actions` and `extra_buttons`.
+
+  `PowerAction` covers row-level action declarations, including modal options and disabled-state configuration. `PowerButton` covers toolbar-level button declarations, including selection-aware behavior. Both compile to the existing dictionary configuration, may be mixed with base dictionaries in the same list, and support `with_options(...)` for DRY variants across related views.
+
+- **Feature (powerfields)**: add reusable `PowerField.with_options(...)` variants and clarify default-list intent.
+
+  Shared `PowerField` declarations can now be copied with local option changes while leaving the original declaration unchanged. Derived declarations rerun validation, so invalid local overrides fail early.
+
+- **Documentation (structured-api)**: reorganize the public docs around Base Configuration API and Structured Declaration API usage.
+
+  Adds a dedicated Structured API section with API-style guidance, PowerField and PowerAction/PowerButton guides, side-by-side recipes, updated references, and sample-app coverage. The setup guides now stay more tutorial-shaped, with broader concepts moved later in the learning path.
+
+- **Fix (list-options)**: float the column chooser panel so it is not clipped by table layout.
+
+- **Maintenance (release)**: publish releases through protected-main PRs, required checks, semantic squash commits, and post-merge version tags.
 
 ## 0.7.0 (2026-05-27)
 - **Feature (actions)**: refresh list on modal close
