@@ -317,7 +317,7 @@ class PowerFieldBookCRUDView(PowerCRUDAsyncMixin, CRUDView):
 
 The real sample view is more complete than this excerpt. It mirrors the base `BookCRUDView` Field Intent contract where that helps the demo, but it keeps the PowerField list allow-list clearer: `default_list=True` is enough for default visible model fields, and form-only fields do not need list exclusions. The PowerField variant links to its own `sample:powerfield-book-detail` route so the sample remains self-contained. It also mirrors the `BookCRUDView` toolbar buttons and row actions through `PowerButton` and `PowerAction`, including a `with_options(...)` row-action variant.
 
-See [Choosing an API Style](../guides/structured_api/index.md), [PowerField](../guides/powerfields.md), and [PowerField Reference](powerfields.md) for the constructor and validation contract.
+See [Choosing an API Style](../guides/structured_api/index.md), [PowerField](../guides/structured_api/powerfields.md), and [PowerField Reference](powerfields.md) for the constructor and validation contract.
 
 The sample `BookCRUDView` also includes illustrative persistence-hook wiring:
 

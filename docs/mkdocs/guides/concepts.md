@@ -119,4 +119,4 @@ See the [Configuration Options](../reference/config_options.md) reference for th
 
 See [PowerCRUD Recipes](./advanced/recipes.md) for copyable examples that compose these concepts using the Base Configuration API.
 
-See [Choosing an API Style](./structured_api/index.md) and [PowerField](./powerfields.md) when repeated Field Intent config starts to obscure the screen's actual intent.
+See [Choosing an API Style](./structured_api/index.md) and [PowerField](./structured_api/powerfields.md) when repeated Field Intent config starts to obscure the screen's actual intent.

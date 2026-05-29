@@ -178,6 +178,6 @@ Use the structured version when the selection contract repeats and the local dif
 
 ## What To Do Next
 
-- Use [PowerField](../powerfields.md) for the full Field Intent guide.
-- Use [PowerAction and PowerButton](../poweractions.md) for reusable action and button declarations.
+- Use [PowerField](powerfields.md) for the full Field Intent guide.
+- Use [PowerAction and PowerButton](poweractions.md) for reusable action and button declarations.
 - Use [Configuration Options](../../reference/config_options.md) when you need the exact Base Configuration API contract.

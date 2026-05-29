@@ -232,7 +232,7 @@ class AuthorCRUDView(PowerCRUDMixin, CRUDView):
 
 Use the Structured Declaration API when related views repeat the same action mechanics with only small changes. `PowerAction` and `PowerButton` compile to the same base dictionaries shown above, and they may be mixed with dictionaries in one list.
 
-For reusable action patterns, see [PowerAction and PowerButton](poweractions.md) and [Structured API Recipes](structured_api/recipes.md). For the full constructor contract, see [PowerAction and PowerButton Reference](../reference/poweractions.md).
+For reusable action patterns, see [PowerAction and PowerButton](structured_api/poweractions.md) and [Structured API Recipes](structured_api/recipes.md). For the full constructor contract, see [PowerAction and PowerButton Reference](../reference/poweractions.md).
 
 ---
 

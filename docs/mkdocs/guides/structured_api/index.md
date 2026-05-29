@@ -80,7 +80,7 @@ extra_actions = [
 
 ## What To Read Next
 
-- [PowerField](../powerfields.md) for structured field intent.
-- [PowerAction and PowerButton](../poweractions.md) for reusable row actions and toolbar buttons.
+- [PowerField](powerfields.md) for structured field intent.
+- [PowerAction and PowerButton](poweractions.md) for reusable row actions and toolbar buttons.
 - [Structured API Recipes](recipes.md) for side-by-side base and structured examples.
 - [Configuration Options](../../reference/config_options.md) for the Base Configuration API reference.
