@@ -12,7 +12,7 @@ Use this section when:
 
 Current advanced guides:
 
-- [PowerCRUD Recipes](recipes.md) shows current-API patterns for common surfaces, queryset annotation columns, actions, selection flows, bulk persistence, and linked cells.
+- [PowerCRUD Recipes](recipes.md) shows Base Configuration API patterns for common surfaces, queryset annotation columns, actions, selection flows, bulk persistence, and linked cells.
 - [Queryset Annotation Fields](queryset_annotation_fields.md) explains how to expose queryset-backed calculated values as first-class list, sort, and generated-filter columns.
 - [Saved Favourites](filter_favourites.md) explains the optional contrib app for per-user saved list states, including installation, enablement, and guard behavior when the app is absent.
 - [Persistence Hooks](persistence_hooks_sync.md) explains how to keep PowerCRUD in charge of validation and UI flow while moving the actual write into app services.

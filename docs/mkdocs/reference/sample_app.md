@@ -228,7 +228,7 @@ These examples are intentionally simple so package users can inspect both the vi
 
 The sample app includes a sibling Book view at `/sample/powerfield-book/` labelled **PowerField Books**.
 
-This view uses `power_fields` instead of primitive Field Intent attributes. It is not a subclass of `BookCRUDView`, because PowerCRUD rejects mixing primitive Field Intent and PowerField declarations in one inheritance chain.
+This view uses `power_fields` instead of Base Configuration API Field Intent attributes. It is not a subclass of `BookCRUDView`, because PowerCRUD rejects mixing base Field Intent and PowerField declarations in one inheritance chain.
 
 ```python
 from powercrud.actions import PowerAction, PowerButton
@@ -315,9 +315,9 @@ class PowerFieldBookCRUDView(PowerCRUDAsyncMixin, CRUDView):
     ]
 ```
 
-The real sample view is more complete than this excerpt. It mirrors the primitive `BookCRUDView` Field Intent contract where that helps the demo, but it keeps the PowerField list allow-list clearer: `default_list=True` is enough for default visible model fields, and form-only fields do not need list exclusions. The PowerField variant links to its own `sample:powerfield-book-detail` route so the sample remains self-contained. It also mirrors the `BookCRUDView` toolbar buttons and row actions through `PowerButton` and `PowerAction`, including a `with_options(...)` row-action variant.
+The real sample view is more complete than this excerpt. It mirrors the base `BookCRUDView` Field Intent contract where that helps the demo, but it keeps the PowerField list allow-list clearer: `default_list=True` is enough for default visible model fields, and form-only fields do not need list exclusions. The PowerField variant links to its own `sample:powerfield-book-detail` route so the sample remains self-contained. It also mirrors the `BookCRUDView` toolbar buttons and row actions through `PowerButton` and `PowerAction`, including a `with_options(...)` row-action variant.
 
-See [PowerField](../guides/powerfields.md) for the practical guide and [PowerField Reference](powerfields.md) for the constructor and validation contract.
+See [Choosing an API Style](../guides/structured_api/index.md), [PowerField](../guides/powerfields.md), and [PowerField Reference](powerfields.md) for the constructor and validation contract.
 
 The sample `BookCRUDView` also includes illustrative persistence-hook wiring:
 

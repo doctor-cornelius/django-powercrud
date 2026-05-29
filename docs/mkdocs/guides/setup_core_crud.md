@@ -16,7 +16,7 @@ If you have not yet installed PowerCRUD and its base dependencies, complete the 
 
 ## 1. Finish the basics
 
-Before enabling the richer helpers, work through the [Getting Started](./getting_started.md) guide:
+Before enabling the richer features, work through the [Getting Started](./getting_started.md) guide:
 
 - [Install the dependencies](./getting_started.md#installation) and wire up the base template assets you plan to use.
 - [Complete the required Django wiring](./getting_started.md#required-configuration), including `django_htmx.middleware.HtmxMiddleware`.
@@ -92,7 +92,7 @@ PowerCRUD layers a few convenient defaults so you can start with zero configurat
 
 ### Extra Buttons
 
-Use `extra_buttons` for additional buttons above the table, alongside controls such as filter toggles and create buttons. These are page-level actions, not per-record actions. Entries may be primitive dictionaries or `PowerButton` declarations from `powercrud.actions`.
+Use `extra_buttons` for additional buttons above the table, alongside controls such as filter toggles and create buttons. These are page-level actions, not per-record actions. The Base Configuration API uses dictionaries for these entries.
 
 Use `extra_buttons_mode = "dropdown"` when those page-level actions should move into a compact top toolbar overflow menu. The built-in Create button stays visible because it is not part of `extra_buttons`.
 
@@ -160,7 +160,7 @@ Selection-aware header buttons read the current persisted PowerCRUD bulk selecti
 
 ### Extra Actions
 
-Use `extra_actions` for additional per-row actions in the list table. These render in the row action area next to the built-in `View`, `Edit`, and `Delete` actions. Entries may be primitive dictionaries or `PowerAction` declarations from `powercrud.actions`.
+Use `extra_actions` for additional per-row actions in the list table. These render in the row action area next to the built-in `View`, `Edit`, and `Delete` actions. The Base Configuration API uses dictionaries for these entries.
 
 For row actions, `extra_actions_mode` controls whether the extra actions stay visible as buttons or move into an overflow menu:
 
@@ -230,42 +230,9 @@ class AuthorCRUDView(PowerCRUDMixin, CRUDView):
 
 ### Reusable Action And Button Declarations
 
-Use `PowerAction` and `PowerButton` when related views repeat the same action mechanics with only small changes.
+Use the Structured Declaration API when related views repeat the same action mechanics with only small changes. `PowerAction` and `PowerButton` compile to the same base dictionaries shown above, and they may be mixed with dictionaries in one list.
 
-```python
-from powercrud.actions import PowerAction, PowerButton
-
-
-ROW_MODAL = PowerAction(
-    text="Preview",
-    url_name="sample:book-preview",
-    display_modal=True,
-    modal_box_classes="modal-box flex max-h-[calc(100dvh-2rem)] w-11/12 max-w-5xl flex-col",
-    disabled_state="get_preview_disabled_state",
-)
-
-SELECTED_MODAL = PowerButton(
-    text="Selected Summary",
-    url_name="sample:book-selected-summary",
-    display_modal=True,
-    uses_selection=True,
-    selection_min_count=1,
-    selection_min_behavior="disable",
-)
-
-extra_actions = [
-    ROW_MODAL,
-    ROW_MODAL.with_options(text="Timeline", url_name="sample:book-timeline"),
-]
-
-extra_buttons = [
-    SELECTED_MODAL,
-]
-```
-
-These declarations compile to the same primitive dictionaries that PowerCRUD already renders. Dictionaries and declarations may be mixed in one list.
-
-For reusable action patterns, see [PowerAction And PowerButton](poweractions.md). For the full constructor contract, see [PowerAction And PowerButton Reference](../reference/poweractions.md).
+For reusable action patterns, see [PowerAction And PowerButton](poweractions.md) and [Structured API Recipes](structured_api/recipes.md). For the full constructor contract, see [PowerAction And PowerButton Reference](../reference/poweractions.md).
 
 ---
 

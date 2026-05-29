@@ -75,7 +75,7 @@ For the mental model behind the option groups, see [PowerCRUD Concepts](../guide
 | `model` (`Model`) | Django model class | **Required** | PowerCRUD cannot run without a model | Django model class for the CRUD view. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
 | `namespace` (`str`) | `None` or `str` | `None` | URL names are generated without a namespace | Set to match `app_name` when including the view in namespaced URLs. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
 | `paginate_by` (`int`) | `None` or `int` | `None` | All rows render on one page | Page size for list views; users can override via `?page_size=`. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
-| `power_fields` (`list`) | `None` or `list[PowerField \| PowerOverride]` | `None` | Primitive Field Intent attributes are used directly | Core helper declarations for Field Intent. A PowerField view must not mix primitive Field Intent attributes in the same inheritance chain. | [PowerField Reference](powerfields.md) |
+| `power_fields` (`list`) | `None` or `list[PowerField \| PowerOverride]` | `None` | Base Field Intent attributes are used directly | Structured declarations for Field Intent. A PowerField view must not mix base Field Intent attributes in the same inheritance chain. | [PowerField Reference](powerfields.md) |
 | `properties` (`list/str`) | `None`, `'__all__'`, `list[str]` | `[]` | No computed properties show in the list view | Computed properties to display alongside fields. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
 | `properties_exclude` (`list[str]`) | `list[str]` | `[]` | Every listed property renders | Remove individual properties from the list view. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
 | `searchable_selects` (`bool`) | `None`, `True`, `False` | `True` | Select widgets render as native `<select>` controls | Enable Tom Select enhancement for eligible select fields in regular forms, inline editing, bulk edit forms, and filter forms. | [Form controls](#form-controls) |
@@ -368,7 +368,7 @@ Notes:
 
 ## Row actions
 
-Use `extra_actions` to add per-row actions beyond the built-in `View`, `Edit`, and `Delete` links. Entries may be primitive dictionaries or `PowerAction` declarations from `powercrud.actions`.
+Use `extra_actions` to add per-row actions beyond the built-in `View`, `Edit`, and `Delete` links. Entries may be base dictionaries or `PowerAction` declarations from `powercrud.actions`.
 
 `extra_actions_mode` controls how those extra row actions are displayed:
 

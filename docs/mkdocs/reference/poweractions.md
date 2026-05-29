@@ -6,7 +6,7 @@
 from powercrud.actions import PowerAction, PowerButton
 ```
 
-They are plain Python declarations. PowerCRUD compiles them to the same primitive dictionaries used by `extra_actions` and `extra_buttons`.
+They are plain Python declarations. PowerCRUD compiles them to the same base dictionaries used by `extra_actions` and `extra_buttons`.
 
 ## PowerAction
 
@@ -38,7 +38,7 @@ PowerAction(
 | `needs_pk` | `True` | Include the current row primary key in the URL. |
 | `button_class` | `None` | Styling class used when actions render as visible buttons. |
 | `htmx_target` | `None` | Custom HTMX target for non-modal or custom-target flows. |
-| `display_modal` | `None` | `True` opens in a modal. `None` preserves the primitive row-action fallback behavior. |
+| `display_modal` | `None` | `True` opens in a modal. `None` preserves the base row-action fallback behavior. |
 | `modal_box_classes` | `None` | Replacement modal box classes for this modal action. |
 | `hx_post` | `False` | Render the action as an HTMX POST. |
 | `lock_sensitive` | `False` | Disable the action under PowerCRUD row-lock logic. |
@@ -47,7 +47,7 @@ PowerAction(
 | `disabled_if` | `None` | Legacy disabled boolean hook name. |
 | `disabled_reason` | `None` | Legacy disabled reason hook name. |
 
-`to_dict()` returns the primitive `extra_actions` dictionary. `with_options(...)` returns a new `PowerAction` with selected values changed.
+`to_dict()` returns the base `extra_actions` dictionary. `with_options(...)` returns a new `PowerAction` with selected values changed.
 
 Any constructor parameter in the table above can be passed to `with_options(...)`.
 
@@ -112,7 +112,7 @@ PowerButton(
 | `selection_min_behavior` | `"allow"` | `"allow"` keeps the button clickable; `"disable"` disables it below the minimum. |
 | `selection_min_reason` | `None` | Disabled tooltip/help text when the selected count is too low. |
 
-`to_dict()` returns the primitive `extra_buttons` dictionary. `with_options(...)` returns a new `PowerButton` with selected values changed.
+`to_dict()` returns the base `extra_buttons` dictionary. `with_options(...)` returns a new `PowerButton` with selected values changed.
 
 Any constructor parameter in the table above can be passed to `with_options(...)`.
 
@@ -149,4 +149,4 @@ Helpers validate declaration shape before PowerCRUD renders them.
 - `PowerButton.selection_min_behavior` must be `"allow"` or `"disable"`.
 - `PowerButton` cannot combine `uses_selection=True` with `needs_pk=True`.
 
-Primitive dictionaries remain valid and are still the lowest-level API. Helpers are for reuse, defaults, and early validation.
+Base dictionaries remain valid and are still the underlying Action API. `PowerAction` and `PowerButton` are for reuse, defaults, and early validation.

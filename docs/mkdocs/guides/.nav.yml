@@ -3,8 +3,6 @@ nav:
   - getting_started.md
   - concepts.md
   - setup_core_crud.md
-  - powerfields.md
-  - poweractions.md
   - filtering.md
   - forms.md
   - inline_editing.md

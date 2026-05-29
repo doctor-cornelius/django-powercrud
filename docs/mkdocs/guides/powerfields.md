@@ -1,10 +1,10 @@
 # PowerField
 
-PowerField is a core helper for declaring Field Intent.
+PowerField is the Structured Declaration API for Field Intent.
 
-It is not a contrib app, and it is not a replacement product API. It is an abstraction over the existing primitive class attributes such as `fields`, `detail_fields`, `form_fields`, `inline_edit_fields`, `bulk_fields`, `default_list_fields`, `column_help_text`, `list_cell_tooltip_fields`, and `link_fields`.
+It is not a contrib app, and it is not a replacement product API. It is a structured declaration layer over the Base Configuration API attributes such as `fields`, `detail_fields`, `form_fields`, `inline_edit_fields`, `bulk_fields`, `default_list_fields`, `column_help_text`, `list_cell_tooltip_fields`, and `link_fields`.
 
-Use it when the same field participates in several places and the primitive API starts to repeat the same names across many lists and dictionaries.
+Use it when the same field participates in several places and the Base Configuration API starts to repeat the same names across many lists and dictionaries.
 
 ```python
 from powercrud.powerfields import PowerField, PowerOverride
@@ -14,7 +14,7 @@ from powercrud.powerfields import PowerField, PowerOverride
 
 Each view inheritance chain must use one Field Intent style:
 
-- primitive Field Intent attributes, or
+- Base Configuration API Field Intent attributes, or
 - `power_fields`.
 
 Do not mix them in one view or inheritance chain. Surface, Presentation, Action, Selection, Bulk Operation, Async, and Styling settings remain normal class attributes alongside `power_fields`.
@@ -50,11 +50,11 @@ class BookView(PowerCRUDAsyncMixin, CRUDView):
 
 ## Why Use It
 
-Primitive config is direct and remains the baseline. PowerField is useful when one field has repeated intent:
+Base configuration is direct and remains the baseline. PowerField is useful when one field has repeated intent:
 
-??? example "Primitive API vs PowerField"
+??? example "Base Configuration API vs PowerField"
 
-    === "Primitive"
+    === "Base Configuration API"
 
         ```python
         fields = ["title", "author"]
@@ -88,7 +88,7 @@ Primitive config is direct and remains the baseline. PowerField is useful when o
         ]
         ```
 
-PowerField compiles to the same primitive configuration before PowerCRUD registers feature URLs, validates config, and builds runtime helpers.
+PowerField compiles to the same base configuration before PowerCRUD registers feature URLs, validates config, and builds runtime helpers.
 
 ## Declaration Style
 
@@ -109,7 +109,7 @@ That is the main readability win: the field's participation is visible in one pl
 
 `default_list=True` also adds the field to the underlying list allow-list. For property-backed columns, combine it with `property=True`.
 
-PowerCRUD also supports repeating a field across multiple declarations. The compiler merges and de-duplicates the generated primitive lists, so this works:
+PowerCRUD also supports repeating a field across multiple declarations. The compiler merges and de-duplicates the generated base lists, so this works:
 
 ```python
 PowerField("title", default_list=True, tooltip=True)
@@ -117,7 +117,7 @@ PowerField("title", form=True)
 PowerField("title", inline=True, bulk=True)
 ```
 
-Use that grouped-by-dimension style only when the ordering of separate primitive lists matters more than seeing each field in one place. For most views, the one-entry-per-field style is easier to reason about.
+Use that grouped-by-dimension style only when the ordering of separate base lists matters more than seeing each field in one place. For most views, the one-entry-per-field style is easier to reason about.
 
 ## Reusing Declarations
 
@@ -150,7 +150,7 @@ class ActionReviewCRUDView(PowerCRUDMixin, CRUDView):
 
 ## Broad List And Detail Defaults
 
-Use `PowerOverride` when you want a broad primitive sentinel such as `fields = "__all__"` or `detail_fields = "__all__"`.
+Use `PowerOverride` when you want a broad base sentinel such as `fields = "__all__"` or `detail_fields = "__all__"`.
 
 ```python
 power_fields = [
@@ -159,11 +159,11 @@ power_fields = [
 ]
 ```
 
-This is explicit. In PowerField mode, absent dimensions do not fall through to the legacy primitive defaults. If you want broad defaults, opt into them with `PowerOverride`.
+This is explicit. In PowerField mode, absent dimensions do not fall through to the legacy base defaults. If you want broad defaults, opt into them with `PowerOverride`.
 
 ??? example "Broad defaults with one list exclude"
 
-    === "Primitive"
+    === "Base Configuration API"
 
         ```python
         fields = "__all__"
@@ -186,7 +186,7 @@ Field Intent can also include list-column defaults, properties, header help, sem
 
 ??? example "Book list columns"
 
-    === "Primitive"
+    === "Base Configuration API"
 
         ```python
         fields = "__all__"
@@ -258,7 +258,7 @@ def get_list_cell_tooltip(self, obj, field_name, *, is_property, request=None):
     return None
 ```
 
-`link={...}` accepts the same metadata supported by primitive `link_fields`. There is no `link=True` shorthand because PowerCRUD needs the link target metadata.
+`link={...}` accepts the same metadata supported by base `link_fields`. There is no `link=True` shorthand because PowerCRUD needs the link target metadata.
 
 ## Forms And Custom Form Classes
 
@@ -266,7 +266,7 @@ PowerField can declare generated form intent with `form=True`, display-only cont
 
 ??? example "Generated form fields"
 
-    === "Primitive"
+    === "Base Configuration API"
 
         ```python
         form_fields = [
@@ -295,7 +295,7 @@ PowerField can declare generated form intent with `form=True`, display-only cont
         ]
         ```
 
-If the view sets `form_class`, that custom form class remains the runtime source of truth for editable inputs. PowerField form declarations still compile at class-time, but runtime `form_fields` is cleared in the same way as primitive `form_fields` when `form_class` is configured.
+If the view sets `form_class`, that custom form class remains the runtime source of truth for editable inputs. PowerField form declarations still compile at class-time, but runtime `form_fields` is cleared in the same way as base `form_fields` when `form_class` is configured.
 
 Use this pattern when you want PowerField to document the intended surface while a custom `ModelForm` controls the actual editable form fields.
 
@@ -326,7 +326,7 @@ Bulk operation flags such as `bulk_delete`, `bulk_async`, and `bulk_min_async_re
 
 ## Ordering
 
-PowerField preserves declaration order for each primitive list it generates.
+PowerField preserves declaration order for each base list it generates.
 
 If different surfaces need different field order, repeat the field in separate dimension-specific declarations.
 
@@ -340,7 +340,7 @@ power_fields = [
 ]
 ```
 
-PowerCRUD de-duplicates each generated primitive list while preserving first occurrence.
+PowerCRUD de-duplicates each generated base list while preserving first occurrence.
 
 ## What PowerField Does Not Cover
 
@@ -358,6 +358,6 @@ Keep these as normal view configuration:
 
 The sample app includes `PowerFieldBookCRUDView`, visible as **PowerField Books**.
 
-It is a sibling of the primitive `BookCRUDView`, not a subclass. The backend tests compare its resolved primitive Field Intent config against `BookCRUDView`, with intentional differences for the clearer PowerField list allow-list and self-contained route names.
+It is a sibling of the base `BookCRUDView`, not a subclass. The backend tests compare its resolved base Field Intent config against `BookCRUDView`, with intentional differences for the clearer PowerField list allow-list and self-contained route names.
 
-See [Sample app overview](../reference/sample_app.md) and the [PowerField reference](../reference/powerfields.md) for the full API contract.
+See [Choosing an API Style](structured_api/index.md), [Sample app overview](../reference/sample_app.md), and the [PowerField reference](../reference/powerfields.md) for the full API contract.

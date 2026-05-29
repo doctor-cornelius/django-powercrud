@@ -47,6 +47,7 @@ See the [full documentation](https://doctor-cornelius.github.io/django-powercrud
 - Filtering, sorting, and pagination helpers backed by tuned templates.
 - Styling controls (daisyUI/Tailwind) plus template scaffolding and Tailwind safelist extraction.
 - Extension hooks for custom actions, buttons, and templates, illustrated in the bundled sample app.
+- Two supported API styles: direct class-attribute configuration plus structured declarations for repeated field and action intent.
 - Tooling support: Dockerised dev environment, management commands, pytest + Playwright coverage.
 
 ## Quick Examples

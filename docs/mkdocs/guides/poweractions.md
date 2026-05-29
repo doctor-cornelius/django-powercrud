@@ -1,8 +1,8 @@
 # PowerAction And PowerButton
 
-`PowerAction` and `PowerButton` are small helpers for reusable `extra_actions` and `extra_buttons` declarations.
+`PowerAction` and `PowerButton` are Structured Declaration API objects for reusable `extra_actions` and `extra_buttons` declarations.
 
-They do not replace the primitive dictionary API. Use them when related views repeat the same action mechanics and only change text, URL names, modal size, selection rules, or disabled logic.
+They do not replace the Base Configuration API dictionary shape. Use them when related views repeat the same action mechanics and only change text, URL names, modal size, selection rules, or disabled logic.
 
 ```python
 from powercrud.actions import PowerAction, PowerButton
@@ -10,13 +10,13 @@ from powercrud.actions import PowerAction, PowerButton
 
 ## When To Use Them
 
-Use the primitive dictionaries for one-off buttons and actions.
+Use base dictionaries for one-off buttons and actions.
 
 Use `PowerAction` or `PowerButton` when you want to name and reuse a pattern:
 
-??? example "Primitive API vs PowerAction"
+??? example "Base Configuration API vs PowerAction"
 
-    === "Primitive"
+    === "Base Configuration API"
 
         ```python
         extra_actions = [
@@ -96,9 +96,9 @@ def get_description_preview_disabled_state(self, obj, request):
 
 Use `PowerButton` for list-level `extra_buttons`.
 
-??? example "Primitive API vs PowerButton"
+??? example "Base Configuration API vs PowerButton"
 
-    === "Primitive"
+    === "Base Configuration API"
 
         ```python
         extra_buttons = [
@@ -152,7 +152,7 @@ Use `PowerButton` for list-level `extra_buttons`.
 
 ## Mixing Styles
 
-Primitive dictionaries and helper declarations may be mixed in the same list.
+Base dictionaries and structured declarations may be mixed in the same list.
 
 ```python
 SELECTED_MODAL = PowerButton(
@@ -181,7 +181,9 @@ extra_buttons = [
 ]
 ```
 
-PowerCRUD compiles helpers to primitive dictionaries before rendering.
+PowerCRUD compiles structured declarations to base dictionaries before rendering.
+
+This is different from `PowerField`: a view inheritance chain must choose either Base Configuration API Field Intent attributes or `power_fields`. `PowerAction` and `PowerButton` are list entries, so they can safely sit beside dictionaries in `extra_actions` and `extra_buttons`.
 
 ## Disabled State
 
@@ -200,4 +202,4 @@ The older `disabled_if` and `disabled_reason` pair still works. Do not combine t
 
 ## Reference
 
-See [PowerAction And PowerButton Reference](../reference/poweractions.md) for constructor parameters, defaults, and validation rules.
+See [Choosing an API Style](structured_api/index.md), [Structured API Recipes](structured_api/recipes.md), and [PowerAction And PowerButton Reference](../reference/poweractions.md) for constructor parameters, defaults, and validation rules.
