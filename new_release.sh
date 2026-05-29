@@ -778,7 +778,38 @@ EOF
 
 function wait_for_required_checks {
     local pr_number="$1"
-    gh pr checks "$pr_number" --required --watch --fail-fast
+    local attempts=0
+    local max_attempts=18
+    local output
+    local status
+
+    while true; do
+        set +e
+        output=$(gh pr checks "$pr_number" --required --watch --fail-fast 2>&1)
+        status=$?
+        set -e
+
+        if [[ -n "$output" ]]; then
+            printf '%s\n' "$output"
+        fi
+
+        if [[ "$status" -eq 0 ]]; then
+            return 0
+        fi
+
+        if grep -qi "no checks reported" <<<"$output"; then
+            attempts=$((attempts + 1))
+            if ((attempts >= max_attempts)); then
+                die "no required checks were reported for PR #$pr_number after waiting."
+            fi
+
+            echo "No required checks reported for PR #$pr_number yet; waiting 10 seconds..."
+            sleep 10
+            continue
+        fi
+
+        return "$status"
+    done
 }
 
 function merge_release_pr {
