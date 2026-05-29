@@ -8,10 +8,55 @@ export function createListColumnsRuntime(context) {
     const {
         global,
         documentObject,
+        getHtmxInstance,
+        initPowercrudTooltips,
         applyListColumnOptionVisualState,
         clearListColumnChooserPlacement,
+        positionListColumnChooserPanel,
+        prepareListColumnChooserFloatingPanel,
+        showPreparedFloatingPanel,
         syncListColumnChooserPlacement,
     } = context;
+
+    const LIST_COLUMNS_FLOATING_SELECTOR = '[data-powercrud-list-columns-floating-panel="true"]';
+    const LIST_COLUMNS_TEMPLATE_SELECTOR = '[data-powercrud-list-columns-template="true"]';
+    const LIST_COLUMNS_TRIGGER_SELECTOR = '[data-powercrud-list-columns-trigger="true"]';
+
+    let nextChooserId = 0;
+    let activePanel = null;
+    let activeContainer = null;
+    let activeTrigger = null;
+
+    function ensureListColumnContainerId(container) {
+        if (!(container instanceof HTMLElement)) {
+            return '';
+        }
+        if (!container.id) {
+            nextChooserId += 1;
+            container.id = `powercrud-list-columns-${nextChooserId}`;
+        }
+        return container.id;
+    }
+
+    function getListColumnContainerFromElement(element) {
+        if (!(element instanceof Element)) {
+            return null;
+        }
+
+        const container = element.closest(LIST_COLUMNS_SELECTOR);
+        if (container instanceof HTMLDetailsElement) {
+            return container;
+        }
+
+        const floatingPanel = element.closest(LIST_COLUMNS_FLOATING_SELECTOR);
+        if (!(floatingPanel instanceof HTMLElement)) {
+            return null;
+        }
+
+        const containerId = floatingPanel.dataset.powercrudListColumnsDomId || '';
+        const sourceContainer = containerId ? documentObject.getElementById(containerId) : null;
+        return sourceContainer instanceof HTMLDetailsElement ? sourceContainer : null;
+    }
 
     function getListColumnCheckboxes(container) {
         if (!(container instanceof Element)) {
@@ -37,6 +82,43 @@ export function createListColumnsRuntime(context) {
             const option = checkbox.closest('[data-powercrud-list-column-option="true"]');
             applyListColumnOptionVisualState?.(option, isLastChecked);
         });
+    }
+
+    function getListColumnTrigger(container) {
+        if (!(container instanceof Element)) {
+            return null;
+        }
+        const trigger = container.querySelector(LIST_COLUMNS_TRIGGER_SELECTOR);
+        return trigger instanceof HTMLElement ? trigger : null;
+    }
+
+    function closeActiveListColumnChooser(focusTrigger = false) {
+        if (!(activePanel instanceof HTMLElement)) {
+            activePanel = null;
+            activeContainer = null;
+            activeTrigger = null;
+            return;
+        }
+
+        resetListColumnChooserDraft(activePanel);
+        if (activePanel.parentNode) {
+            activePanel.parentNode.removeChild(activePanel);
+        }
+
+        if (activeContainer instanceof HTMLDetailsElement) {
+            activeContainer.open = false;
+            clearListColumnChooserPlacement?.(activeContainer);
+        }
+        if (activeTrigger instanceof HTMLElement) {
+            activeTrigger.setAttribute('aria-expanded', 'false');
+            if (focusTrigger) {
+                activeTrigger.focus();
+            }
+        }
+
+        activePanel = null;
+        activeContainer = null;
+        activeTrigger = null;
     }
 
     function syncListColumnChoosers(root = documentObject) {
@@ -66,18 +148,57 @@ export function createListColumnsRuntime(context) {
         }
     }
 
+    function openListColumnChooser(container) {
+        if (!(container instanceof HTMLDetailsElement)) {
+            return;
+        }
+
+        const template = container.querySelector(LIST_COLUMNS_TEMPLATE_SELECTOR);
+        const trigger = getListColumnTrigger(container);
+        if (!(template instanceof HTMLElement) || !(trigger instanceof HTMLElement)) {
+            return;
+        }
+
+        closeActiveListColumnChooser();
+
+        const panel = template.firstElementChild?.cloneNode(true);
+        if (!(panel instanceof HTMLElement)) {
+            return;
+        }
+
+        ensureListColumnContainerId(container);
+        prepareListColumnChooserFloatingPanel?.(panel, container);
+
+        documentObject.body.appendChild(panel);
+
+        const htmx = getHtmxInstance?.();
+        if (htmx?.process) {
+            htmx.process(panel);
+        }
+        initPowercrudTooltips?.(panel);
+        syncListColumnChooser(panel);
+        positionListColumnChooserPanel?.(panel, trigger);
+        showPreparedFloatingPanel?.(panel);
+        trigger.setAttribute('aria-expanded', 'true');
+
+        activePanel = panel;
+        activeContainer = container;
+        activeTrigger = trigger;
+        focusFirstListColumnCheckbox(panel);
+    }
+
     function closeListColumnChoosers(scope = documentObject, focusTrigger = false) {
+        closeActiveListColumnChooser(focusTrigger);
         queryAllWithSelf(scope, LIST_COLUMNS_SELECTOR).forEach(container => {
-            if (!(container instanceof HTMLDetailsElement) || !container.open) {
+            if (!(container instanceof HTMLDetailsElement)) {
                 return;
             }
             container.open = false;
             resetListColumnChooserDraft(container);
-            if (focusTrigger) {
-                const trigger = container.querySelector('[data-powercrud-list-columns-trigger="true"]');
-                if (trigger instanceof HTMLElement) {
-                    trigger.focus();
-                }
+            clearListColumnChooserPlacement?.(container);
+            const trigger = getListColumnTrigger(container);
+            if (trigger instanceof HTMLElement) {
+                trigger.setAttribute('aria-expanded', 'false');
             }
         });
     }
@@ -129,9 +250,16 @@ export function createListColumnsRuntime(context) {
     }
 
     function closeForOutsideClick(trigger) {
-        if (!trigger.closest(LIST_COLUMNS_SELECTOR)) {
-            closeListColumnChoosers(documentObject);
+        if (!(trigger instanceof Element)) {
+            return;
         }
+        if (
+            trigger.closest(LIST_COLUMNS_SELECTOR)
+            || trigger.closest(LIST_COLUMNS_FLOATING_SELECTOR)
+        ) {
+            return;
+        }
+        closeListColumnChoosers(documentObject);
     }
 
     function handleListColumnsToggle(event) {
@@ -141,12 +269,17 @@ export function createListColumnsRuntime(context) {
         }
         syncListColumnChooser(chooser);
         if (chooser.open) {
-            syncListColumnChooserPlacement(chooser);
-            focusFirstListColumnCheckbox(chooser);
+            openListColumnChooser(chooser);
             return true;
         }
-        clearListColumnChooserPlacement?.(chooser);
-        resetListColumnChooserDraft(chooser);
+        if (activeContainer === chooser) {
+            closeActiveListColumnChooser();
+        } else {
+            clearListColumnChooserPlacement?.(chooser);
+            resetListColumnChooserDraft(chooser);
+            const trigger = getListColumnTrigger(chooser);
+            trigger?.setAttribute('aria-expanded', 'false');
+        }
         return true;
     }
 
@@ -154,14 +287,36 @@ export function createListColumnsRuntime(context) {
         if (!(target instanceof Element) || !target.matches(LIST_COLUMN_CHECKBOX_SELECTOR)) {
             return false;
         }
-        const chooser = target.closest(LIST_COLUMNS_SELECTOR);
-        if (chooser instanceof Element) {
-            const checkedBoxes = getListColumnCheckboxes(chooser).filter(checkbox => checkbox.checked);
+        const chooser = getListColumnContainerFromElement(target);
+        const chooserSurface = target.closest(LIST_COLUMNS_FLOATING_SELECTOR)
+            || target.closest(LIST_COLUMNS_SELECTOR);
+        if (chooser instanceof Element && chooserSurface instanceof Element) {
+            const checkedBoxes = getListColumnCheckboxes(chooserSurface).filter(checkbox => checkbox.checked);
             if (target instanceof HTMLInputElement && !target.checked && !checkedBoxes.length) {
                 target.checked = true;
             }
-            syncListColumnChooser(chooser);
+            syncListColumnChooser(chooserSurface);
         }
+        return true;
+    }
+
+    function handleListColumnsHtmxBeforeRequest(target) {
+        if (!(target instanceof Element)) {
+            return false;
+        }
+        const form = target.matches('form') ? target : target.closest('form');
+        if (!(form instanceof HTMLFormElement)) {
+            return false;
+        }
+        if (
+            !form.closest(LIST_COLUMNS_SELECTOR)
+            && !form.closest(LIST_COLUMNS_FLOATING_SELECTOR)
+        ) {
+            return false;
+        }
+        global.setTimeout(() => {
+            closeListColumnChoosers(documentObject);
+        }, 0);
         return true;
     }
 
@@ -170,6 +325,7 @@ export function createListColumnsRuntime(context) {
         closeForOutsideClick,
         closeListColumnChoosers,
         getVisibleListColumnNames,
+        handleListColumnsHtmxBeforeRequest,
         handleListColumnCheckboxChange,
         handleListColumnsToggle,
         syncListColumnChoosers,

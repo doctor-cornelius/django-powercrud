@@ -203,6 +203,36 @@ def test_sample_templates_cover_vite_and_manual_static_loading_modes() -> None:
     )
 
 
+def test_sample_base_exposes_corporate_business_theme_controller() -> None:
+    """Sample navigation should offer a daisyUI light/dark theme controller."""
+    project_root = Path(__file__).resolve().parents[1]
+    vite_base = project_root / "sample" / "templates" / "sample" / "daisyUI" / "base.html"
+
+    template = vite_base.read_text(encoding="utf-8")
+
+    assert 'data-theme="corporate"' in template, (
+        "The sample app should keep corporate as its default light theme."
+    )
+    assert 'class="theme-controller"' in template, (
+        "The sample app should use daisyUI's theme-controller input."
+    )
+    assert 'value="business"' in template, (
+        "The checked theme-controller state should switch to the business dark theme."
+    )
+    assert 'data-tippy-content="Select Dark Theme"' in template, (
+        "The light-theme state should explain that the next click selects the dark theme."
+    )
+    assert "Select ${nextThemeLabel} Theme" in template, (
+        "The sample runtime should update the tooltip to the next selectable theme."
+    )
+    assert "toggle._tippy.setContent(tooltip)" in template, (
+        "The sample runtime should update active Tippy instances after toggles."
+    )
+    assert template.index('class="theme-controller"') < template.index(
+        'href="{% url \'home\' %}"'
+    ), "The theme controller should sit before the Home navigation button."
+
+
 def test_bundle_manifest_keeps_existing_entry_key() -> None:
     """The packaged Vite manifest should keep the historical entry key for compatibility."""
     package_root = Path(powercrud.__file__).resolve().parent
@@ -371,6 +401,30 @@ def test_runtime_js_shows_inline_field_error_popovers() -> None:
     assert (
         "role', 'alert'" in js
     ), "Inline field error callouts should be announced as alerts."
+
+
+def test_runtime_js_floats_list_column_chooser_panel() -> None:
+    """List-column chooser panels should escape downstream overflow wrappers."""
+    package_root = Path(powercrud.__file__).resolve().parent
+    list_columns_js = (
+        package_root / "static" / "powercrud" / "js" / "runtime" / "list-columns.js"
+    )
+    current_template_js = (
+        package_root / "static" / "powercrud" / "js" / "runtime" / "current-template.js"
+    )
+
+    list_columns = list_columns_js.read_text(encoding="utf-8")
+    current_template = current_template_js.read_text(encoding="utf-8")
+
+    assert (
+        "documentObject.body.appendChild(panel)" in list_columns
+    ), "List-column chooser should render from a body-level floating panel."
+    assert (
+        "data-powercrud-list-columns-floating-panel" in list_columns
+    ), "List-column chooser should expose a deterministic floating-panel selector."
+    assert (
+        "function positionListColumnChooserPanel(panelElement, triggerElement)" in current_template
+    ), "Current-template geometry should explicitly position floating column chooser panels."
 
 
 def test_runtime_js_does_not_render_inline_toasts() -> None:

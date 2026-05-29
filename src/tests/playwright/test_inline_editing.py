@@ -105,7 +105,7 @@ def open_column_chooser(page: Page):
     trigger = page.locator("[data-powercrud-list-columns='true'] summary")
     expect(trigger).to_be_visible()
     trigger.click()
-    panel = page.locator("[data-powercrud-list-columns='true'] .dropdown-content")
+    panel = page.locator("[data-powercrud-list-columns-floating-panel='true']")
     expect(panel).to_be_visible()
     return panel
 

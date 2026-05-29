@@ -124,8 +124,13 @@ import { createCurrentTemplateRuntime } from './runtime/current-template.js';
     const listColumns = createListColumnsRuntime({
         global,
         documentObject: document,
+        getHtmxInstance,
+        initPowercrudTooltips,
         applyListColumnOptionVisualState: currentTemplate.applyListColumnOptionVisualState,
         clearListColumnChooserPlacement: currentTemplate.clearListColumnChooserPlacement,
+        positionListColumnChooserPanel: currentTemplate.positionListColumnChooserPanel,
+        prepareListColumnChooserFloatingPanel: currentTemplate.prepareListColumnChooserFloatingPanel,
+        showPreparedFloatingPanel: currentTemplate.showPreparedFloatingPanel,
         syncListColumnChooserPlacement: currentTemplate.syncListColumnChooserPlacement,
     });
 
@@ -494,6 +499,10 @@ import { createCurrentTemplateRuntime } from './runtime/current-template.js';
                     return;
                 }
 
+                if (listColumns.handleListColumnsHtmxBeforeRequest(target)) {
+                    return;
+                }
+
                 if (filterFavourites.handleHtmxBeforeRequest(event, target)) {
                     return;
                 }
@@ -546,6 +555,7 @@ import { createCurrentTemplateRuntime } from './runtime/current-template.js';
 
                 getHtmxEventRoots(event).forEach(destroyPowercrudFragment);
                 closeRowActionsMenu();
+                listColumns.closeListColumnChoosers(document);
                 inlineEdit.handleHtmxBeforeSwap(event);
             },
             handleHtmxAfterSwap(event) {
@@ -618,6 +628,7 @@ import { createCurrentTemplateRuntime } from './runtime/current-template.js';
             },
             handleWindowResize() {
                 closeRowActionsMenu();
+                listColumns.closeListColumnChoosers(document);
                 syncListToolbarWidths(document);
                 inlineEdit.repositionInlineFieldErrorPopovers(document);
                 schedulePowercrudTooltipResizeRefresh(document, 100);
