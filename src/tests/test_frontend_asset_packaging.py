@@ -203,6 +203,27 @@ def test_sample_templates_cover_vite_and_manual_static_loading_modes() -> None:
     )
 
 
+def test_sample_base_exposes_corporate_business_theme_controller() -> None:
+    """Sample navigation should offer a daisyUI light/dark theme controller."""
+    project_root = Path(__file__).resolve().parents[1]
+    vite_base = project_root / "sample" / "templates" / "sample" / "daisyUI" / "base.html"
+
+    template = vite_base.read_text(encoding="utf-8")
+
+    assert 'data-theme="corporate"' in template, (
+        "The sample app should keep corporate as its default light theme."
+    )
+    assert 'class="theme-controller"' in template, (
+        "The sample app should use daisyUI's theme-controller input."
+    )
+    assert 'value="business"' in template, (
+        "The checked theme-controller state should switch to the business dark theme."
+    )
+    assert template.index('class="theme-controller"') < template.index(
+        'href="{% url \'home\' %}"'
+    ), "The theme controller should sit before the Home navigation button."
+
+
 def test_bundle_manifest_keeps_existing_entry_key() -> None:
     """The packaged Vite manifest should keep the historical entry key for compatibility."""
     package_root = Path(powercrud.__file__).resolve().parent
