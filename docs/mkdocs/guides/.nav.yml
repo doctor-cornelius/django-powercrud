@@ -1,7 +1,6 @@
 title: Setup Guides
 nav:
   - Getting Started: getting_started.md
-  - PowerCRUD Concepts: concepts.md
   - Setup & Core CRUD basics: setup_core_crud.md
   - Filtering: filtering.md
   - Forms: forms.md
@@ -11,3 +10,4 @@ nav:
   - Bulk Editing (Async): bulk_edit_async.md
   - Async dashboard add-on: async_dashboard.md
   - Styling & Tailwind: styling_tailwind.md
+  - PowerCRUD Concepts: concepts.md

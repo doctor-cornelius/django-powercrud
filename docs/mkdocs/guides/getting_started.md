@@ -2,7 +2,7 @@
 
 !!! tip "Ready after setup?"
 
-    Once you have the basics installed, read [PowerCRUD Concepts](./concepts.md) for the mental model, then continue with [Setup & Core CRUD basics](./setup_core_crud.md) for the full walkthrough.
+    Once you have the basics installed, continue with [Setup & Core CRUD basics](./setup_core_crud.md) for the full walkthrough. After you have seen the main features, read [PowerCRUD Concepts](./concepts.md) to put the configuration model in perspective.
 
 ## Installation
 

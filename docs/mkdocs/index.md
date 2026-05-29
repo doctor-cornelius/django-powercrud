@@ -12,7 +12,6 @@ PowerCRUD extends [`Neapolitan`](https://github.com/carltongibson/neapolitan)’
 1. **First view online**
 
     - [Getting Started](guides/getting_started.md) for installation and base template requirements.  
-    - [PowerCRUD Concepts](guides/concepts.md) for the mental model behind surfaces, fields, actions, presentation, selection, bulk work, and async work.
     - [Setup & Core CRUD basics](guides/setup_core_crud.md) for the first full view configuration.
     - [Filtering](guides/filtering.md) for default vs optional filters, sorting, null helpers, and custom filterset behavior.
 
@@ -34,6 +33,7 @@ PowerCRUD extends [`Neapolitan`](https://github.com/carltongibson/neapolitan)’
 
     - [Styling & Tailwind](guides/styling_tailwind.md) covers framework options and safelists.  
     - [Customisation tips](guides/customisation_tips.md) shows template overrides, extra actions, and mixin hooks.
+    - [PowerCRUD Concepts](guides/concepts.md) puts the setup guides in perspective and explains the mental model behind surfaces, field intent, actions, presentation, selection, bulk work, and async work.
     - [Structured API](guides/structured_api/index.md) explains when to use `PowerField`, `PowerAction`, and `PowerButton` for repeated field and action config.
     - [Advanced Guides](guides/advanced/index.md) collects deeper implementation walkthroughs for trickier extension patterns, including the optional saved favourites add-on.
     - [PowerCRUD Recipes](guides/advanced/recipes.md) shows Base Configuration API patterns you can adapt.
