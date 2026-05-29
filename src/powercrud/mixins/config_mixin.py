@@ -6,6 +6,7 @@ from django.core.exceptions import FieldDoesNotExist, ImproperlyConfigured
 from django.db.models.fields.reverse_related import ManyToOneRel
 from typing import Any, Callable
 
+from ..actions import PowerAction, PowerButton
 from ..powerfields import compile_powerfields
 from ..validators import PowerCRUDMixinValidator
 
@@ -965,9 +966,11 @@ class ConfigMixin:
 
         normalized_buttons: list[dict[str, Any]] = []
         for index, button in enumerate(extra_buttons):
+            if isinstance(button, PowerButton):
+                button = button.to_dict()
             if not isinstance(button, dict):
                 raise ValueError(
-                    f"extra_buttons[{index}] must be a dictionary of button settings"
+                    f"extra_buttons[{index}] must be a dictionary or PowerButton"
                 )
 
             normalized = button.copy()
@@ -1076,12 +1079,19 @@ class ConfigMixin:
 
         normalized_actions: list[dict[str, Any]] = []
         for index, action in enumerate(extra_actions):
+            if isinstance(action, PowerAction):
+                action = action.to_dict()
             if not isinstance(action, dict):
                 raise ValueError(
-                    f"extra_actions[{index}] must be a dictionary of action settings"
+                    f"extra_actions[{index}] must be a dictionary or PowerAction"
                 )
 
             normalized = action.copy()
+            disabled_state = self._resolve_extra_action_method(
+                normalized.get("disabled_state"),
+                index,
+                "disabled_state",
+            )
             disabled_if = self._resolve_extra_action_method(
                 normalized.get("disabled_if"),
                 index,
@@ -1093,6 +1103,12 @@ class ConfigMixin:
                 "disabled_reason",
             )
 
+            if disabled_state and (disabled_if or disabled_reason):
+                raise ValueError(
+                    "extra_actions[%s] cannot combine disabled_state with "
+                    "disabled_if or disabled_reason" % index
+                )
+
             if disabled_reason and not disabled_if:
                 log.warning(
                     "extra_actions[%s] defines disabled_reason without disabled_if; "
@@ -1101,6 +1117,7 @@ class ConfigMixin:
                 )
                 disabled_reason = None
 
+            normalized["disabled_state"] = disabled_state
             normalized["disabled_if"] = disabled_if
             normalized["disabled_reason"] = disabled_reason
             normalized["refresh_list_on_modal_close"] = (

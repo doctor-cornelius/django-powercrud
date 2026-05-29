@@ -9,6 +9,32 @@ If you want step-by-step walkthroughs rather than contracts, start with the adva
 - [Persistence Hooks](../guides/advanced/persistence_hooks_sync.md)
 - [Async Bulk Persistence](../guides/advanced/persistence_hooks_async_bulk.md)
 
+??? info "Hook quick reference"
+
+    | Hook | Purpose |
+    |------|---------|
+    | `get_queryset()` | Use this when you want to change which records the view works with in the first place, such as scoping rows to the current user, tenant, or workflow state. |
+    | `get_context_data()` | Use this only when the template needs extra data that does not already come from PowerCRUD, such as a help panel, extra summary values, or feature flags for custom UI. |
+    | `get_list_cell_tooltip()` | Use this when selected rendered list fields or properties should show semantic tooltip text that comes from the current row, for example expanded status context, related metadata, or a friendlier explanation behind an icon/badge cell. |
+    | `get_list_cell_link()` | Use this when a rendered list cell should navigate somewhere conditionally, or when the narrow declarative `link_fields` config is not expressive enough. |
+    | `get_filter_queryset_for_field()` | Use this when a filter-form dropdown should not show every possible related record, for example when you only want active owners, visible categories, or tenant-scoped choices. |
+    | `get_field_queryset_dependencies()` | Use this when you want to refine, filter, or inspect the declarative `field_queryset_dependencies` metadata before PowerCRUD applies it to forms or derives inline dependency wiring. |
+    | `persist_single_object()` | Use this when you want PowerCRUD to keep form validation and response handling, but you want the actual save to go through your own application service or domain write logic. |
+    | `persist_bulk_update()` | Use this when you want PowerCRUD to keep the bulk UI and normalized payload handling, but you want the actual multi-row update to go through your own bulk service or orchestration code. |
+    | `get_bulk_choices_for_field()` | Use this when a bulk-edit form dropdown should offer a narrower or more carefully ordered set of choices than the default related queryset. |
+    | `get_bulk_selection_key_suffix()` | Use this when PowerCRUD's default bulk selection storage is too broad and you want selections kept separate by user, tenant, tab, or another context value. |
+    | `can_update_object()` | Use this when some rows should keep the built-in Edit action visible but disabled, for example workflow-owned rows, canonical records, or objects that should stay read-only on a per-row basis. |
+    | `get_update_disabled_reason()` | Use this with `can_update_object()` when you want disabled Edit and inline affordances to explain why the row cannot be edited. |
+    | `can_delete_object()` | Use this when some rows should keep the built-in Delete action visible but disabled, for example canonical records, workflow-owned rows, or rows that should remain undeletable except to privileged users. |
+    | `get_delete_disabled_reason()` | Use this with `can_delete_object()` when you want the disabled built-in Delete action to explain why the row cannot be deleted. |
+    | `inline_edit_allowed` | Use this when some rows should stay read-only inline even though inline editing is enabled for the view overall, for example archived or workflow-locked records. |
+    | `is_inline_row_locked()` | Use this when your project has custom lock rules and the default async-conflict check is not the whole story. |
+    | `get_inline_lock_details()` | Use this when the UI needs richer information about why a row is locked, such as the task, user, or message associated with the lock. |
+    | `async_task_lifecycle()` | Use this when you want async tasks to trigger project-specific side effects such as dashboard rows, audit entries, notifications, or cleanup logic. |
+    | `BulkUpdatePersistenceBackend.persist_bulk_update()` | Use this when async bulk update needs to go through app-level write orchestration without depending on a live CRUD view instance. |
+    | `resolve_bulk_update_persistence_backend()` | Resolve the configured import path into a concrete bulk update persistence backend instance. |
+    | `AsyncManager.resolve_manager()` | This lets workers and completion hooks find the same manager class your launch site configured, so custom lifecycle behavior stays consistent outside the request. |
+
 ---
 
 ## Adopting persistence hooks

@@ -1,10 +1,10 @@
 title: Advanced Guides
 nav:
   - index.md
-  - recipes.md
-  - queryset_annotation_fields.md
-  - list_options.md
-  - filter_favourites.md
-  - persistence_hooks_sync.md
-  - persistence_hooks_async_bulk.md
-  - ../customisation_tips.md
+  - PowerCRUD Recipes: recipes.md
+  - Queryset Annotation Fields: queryset_annotation_fields.md
+  - List Options: list_options.md
+  - Saved Favourites: filter_favourites.md
+  - Persistence Hooks: persistence_hooks_sync.md
+  - Async Bulk Persistence: persistence_hooks_async_bulk.md
+  - Customisation tips: ../customisation_tips.md

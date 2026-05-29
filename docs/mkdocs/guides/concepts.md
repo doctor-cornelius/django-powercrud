@@ -1,6 +1,6 @@
 # PowerCRUD Concepts
 
-PowerCRUD can be used directly through explicit view configuration. That remains the primary API.
+PowerCRUD can be used directly through the Base Configuration API: class attributes, hooks, lists, and dictionaries. That remains the underlying contract.
 
 As CRUD screens grow, the same ideas appear repeatedly across the settings: a working list surface, field intent, actions, modals, selection, bulk work, async work, and styling. This page names those ideas so the individual options are easier to reason about.
 
@@ -26,9 +26,9 @@ Because the queryset defines the working row set, a Surface can expose supported
 
 Field intent describes how a model field, queryset annotation, or property participates in the screen.
 
-Field-intent options include `fields`, `properties`, `detail_fields`, `detail_properties`, `form_fields`, `form_display_fields`, `form_disabled_fields`, `inline_edit_fields`, `bulk_fields`, `column_help_text`, `list_cell_tooltip_fields`, `link_fields`, `get_list_cell_tooltip(...)`, and `get_list_cell_link(...)`.
+Base Field Intent options include `fields`, `properties`, `detail_fields`, `detail_properties`, `form_fields`, `form_display_fields`, `form_disabled_fields`, `inline_edit_fields`, `bulk_fields`, `column_help_text`, `list_cell_tooltip_fields`, `link_fields`, `get_list_cell_tooltip(...)`, and `get_list_cell_link(...)`.
 
-PowerField is the core helper abstraction for Field Intent. It lets you declare repeated field participation in `power_fields`, then PowerCRUD compiles that declaration into the same primitive config. Primitive class attributes remain the underlying contract, and a view must choose one Field Intent style: primitive attributes or `power_fields`.
+`PowerField` is the Structured Declaration API for repeated Field Intent. It lets you declare repeated field participation in `power_fields`, then PowerCRUD compiles that declaration into the same base configuration. A view must choose one Field Intent style: base Field Intent attributes or `power_fields`.
 
 Keep visibility and capability separate. A field can be filterable while hidden from the list. A field can be visible but not editable. A field can be editable in a form but not inline-editable.
 
@@ -41,6 +41,8 @@ Queryset annotation fields sit between model fields and properties: they are pla
 An Action is a user-visible operation: a header button, row action, standard View/Edit/Delete action, selection-aware action, or bulk operation.
 
 Action options and hooks include `extra_buttons`, `extra_actions`, `extra_actions_mode`, `can_update_object(...)`, `get_update_disabled_reason(...)`, `can_delete_object(...)`, `get_delete_disabled_reason(...)`, `persist_single_object(...)`, and `persist_bulk_update(...)`.
+
+`PowerAction` and `PowerButton` are Structured Declaration API objects for reusable `extra_actions` and `extra_buttons` declarations. Base dictionaries remain the underlying Action API, and may be mixed with `PowerAction` or `PowerButton` entries.
 
 Actions should keep their business rules server-side. Disabled-state hooks and persistence hooks are the right place for rules that should not depend only on frontend affordances.
 
@@ -109,12 +111,12 @@ Then use the reference docs for exact accepted values.
 
 ## What This Is Not
 
-These concepts are a mental model, not a second API.
+These concepts are a mental model, not a replacement API.
 
-PowerCRUD still uses explicit class attributes and hooks. PowerField packages the Field Intent pattern, but it still compiles to the primitive configuration that PowerCRUD already understands.
+PowerCRUD's Base Configuration API is already declarative: you configure class attributes, hooks, lists, and dictionaries, and PowerCRUD builds the runtime behavior. The Structured Declaration API groups repeated intent into reusable objects, then compiles back to that same base configuration.
 
 See the [Configuration Options](../reference/config_options.md) reference for the full option list.
 
-See [PowerCRUD Recipes](./advanced/recipes.md) for copyable examples that compose these concepts using the current API.
+See [PowerCRUD Recipes](./advanced/recipes.md) for copyable examples that compose these concepts using the Base Configuration API.
 
-See [PowerField](./powerfields.md) when repeated Field Intent config starts to obscure the screen's actual intent.
+See [Choosing an API Style](./structured_api/index.md) and [PowerField](./structured_api/powerfields.md) when repeated Field Intent config starts to obscure the screen's actual intent.

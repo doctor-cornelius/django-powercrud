@@ -177,6 +177,11 @@ class TemplateViewStub:
             return "Preview requires a description."
         return None
 
+    def get_preview_disabled_state(self, obj, request):
+        if self.is_preview_disabled(obj, request):
+            return "Preview requires a description."
+        return None
+
     def get_bulk_selection_key_suffix(self):
         return "user"
 
@@ -364,6 +369,62 @@ def test_action_links_render_modal_close_refresh_only_for_modal_extra_actions():
     )
     assert "Preview" in html, (
         "The flagged modal extra action should still render with its visible action label."
+    )
+
+
+@pytest.mark.django_db
+def test_action_links_disable_extra_action_from_disabled_state_reason():
+    author = Author.objects.create(name="Disabled State")
+    book = Book.objects.create(
+        title="No Preview",
+        author=author,
+        published_date=date(2024, 1, 4),
+        bestseller=False,
+        isbn="9876543210003",
+        pages=42,
+        description="",
+    )
+    request = apply_session(RequestFactory().get("/"))
+    view = TemplateViewStub(request)
+    view.extra_actions[0].pop("disabled_if")
+    view.extra_actions[0].pop("disabled_reason")
+    view.extra_actions[0]["disabled_state"] = "get_preview_disabled_state"
+
+    html = powercrud.action_links(view, book)
+
+    assert "btn-disabled opacity-50 pointer-events-none" in html, (
+        "A non-empty disabled_state string should disable the extra action."
+    )
+    assert "data-tippy-content='Preview requires a description.'" in html, (
+        "The disabled_state string should render as the disabled tooltip reason."
+    )
+
+
+@pytest.mark.django_db
+def test_action_links_leave_extra_action_enabled_when_disabled_state_is_empty():
+    author = Author.objects.create(name="Enabled State")
+    book = Book.objects.create(
+        title="Preview Ready",
+        author=author,
+        published_date=date(2024, 1, 5),
+        bestseller=False,
+        isbn="9876543210004",
+        pages=42,
+        description="Preview is ready",
+    )
+    request = apply_session(RequestFactory().get("/"))
+    view = TemplateViewStub(request)
+    view.extra_actions[0].pop("disabled_if")
+    view.extra_actions[0].pop("disabled_reason")
+    view.extra_actions[0]["disabled_state"] = "get_preview_disabled_state"
+
+    html = powercrud.action_links(view, book)
+
+    assert "Preview requires a description." not in html, (
+        "An empty disabled_state result should not render a disabled reason."
+    )
+    assert html.count("btn-disabled opacity-50 pointer-events-none") < 3, (
+        "An empty disabled_state result should leave the extra action enabled."
     )
 
 

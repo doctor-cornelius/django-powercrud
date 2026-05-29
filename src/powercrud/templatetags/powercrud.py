@@ -219,6 +219,17 @@ def _resolve_extra_action_disabled_state(
     disable = bool(lock_reason and action.get("lock_sensitive", False))
     disabled_reason = lock_label if disable else None
 
+    disabled_state_name = action.get("disabled_state")
+    if disabled_state_name:
+        disabled_state = _resolve_named_view_method(view, disabled_state_name)
+        if disabled_state is not None:
+            try:
+                state_reason = disabled_state(object, request)
+            except Exception:
+                state_reason = None
+            if isinstance(state_reason, str) and state_reason.strip():
+                return True, state_reason
+
     disabled_if_name = action.get("disabled_if")
     if disabled_if_name:
         disabled_if = _resolve_named_view_method(view, disabled_if_name)

@@ -1,14 +1,13 @@
 title: Setup Guides
 nav:
-  - getting_started.md
-  - concepts.md
-  - setup_core_crud.md
-  - powerfields.md
-  - filtering.md
-  - forms.md
-  - inline_editing.md
-  - bulk_edit_sync.md
-  - async_manager.md
-  - bulk_edit_async.md
-  - async_dashboard.md
-  - styling_tailwind.md
+  - Getting Started: getting_started.md
+  - Setup & Core CRUD basics: setup_core_crud.md
+  - Filtering: filtering.md
+  - Forms: forms.md
+  - Inline Editing: inline_editing.md
+  - Bulk Editing (Synchronous): bulk_edit_sync.md
+  - Async Manager: async_manager.md
+  - Bulk Editing (Async): bulk_edit_async.md
+  - Async dashboard add-on: async_dashboard.md
+  - Styling & Tailwind: styling_tailwind.md
+  - PowerCRUD Concepts: concepts.md

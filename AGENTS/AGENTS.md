@@ -30,6 +30,10 @@ If you have a built-in bias to action prompt to optimise throughput over accurac
     - if the current branch is main, ask the user what branch they want you to create or they may want to create one for you
     - if the current branch is NOT main then ask if they want you to use the current branch or not
 
+## Pull request workflow
+
+When the user asks to create, merge, finish, or clean up a branch through a pull request, follow [AGENTS_pr_workflow.md](AGENTS_pr_workflow.md).
+
 ## Django Model Changes
 
 - if you make changes to models you are authorised to create / edit migrations as needed. Or if you prefer you can ask the user to run makemigrations. 

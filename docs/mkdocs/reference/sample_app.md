@@ -228,9 +228,10 @@ These examples are intentionally simple so package users can inspect both the vi
 
 The sample app includes a sibling Book view at `/sample/powerfield-book/` labelled **PowerField Books**.
 
-This view uses `power_fields` instead of primitive Field Intent attributes. It is not a subclass of `BookCRUDView`, because PowerCRUD rejects mixing primitive Field Intent and PowerField declarations in one inheritance chain.
+This view uses `power_fields` instead of Base Configuration API Field Intent attributes. It is not a subclass of `BookCRUDView`, because PowerCRUD rejects mixing base Field Intent and PowerField declarations in one inheritance chain.
 
 ```python
+from powercrud.actions import PowerAction, PowerButton
 from powercrud.powerfields import PowerField, PowerOverride
 
 
@@ -242,29 +243,81 @@ class PowerFieldBookCRUDView(PowerCRUDAsyncMixin, CRUDView):
     form_class = BookForm
 
     power_fields = [
-        PowerOverride(list="__all__", detail="__all__"),
-        PowerField("description", exclude={"list": True}),
-        PowerField("title", default_list=True, tooltip=True),
-        PowerField("author", default_list=True),
-        PowerField("published_date", default_list=True),
+        PowerOverride(detail="__all__"),
+        PowerField(
+            "title",
+            default_list=True,
+            tooltip=True,
+            form=True,
+            inline=True,
+            bulk=True,
+        ),
+        PowerField(
+            "author",
+            default_list=True,
+            form=True,
+            inline=True,
+            bulk=True,
+        ),
+        PowerField(
+            "published_date",
+            default_list=True,
+            form=True,
+            inline=True,
+            bulk=True,
+        ),
         PowerField(
             "pages",
             default_list=True,
             tooltip=True,
+            form=True,
+            bulk=True,
             link={
                 "view_name": "sample:powerfield-book-detail",
                 "open_in": "current",
             },
         ),
-        PowerField("isbn_empty", property=True, detail_property=True),
-        PowerField("title", inline=True, bulk=True),
-        PowerField("published_date", inline=True, bulk=True),
+        PowerField(
+            "isbn_empty",
+            property=True,
+            detail_property=True,
+            default_list=True,
+            tooltip=True,
+        ),
+        PowerField("description", form=True, inline=True),
+        PowerField("uneditable_field", form_display=True),
+    ]
+
+    row_modal = PowerAction(
+        text="Normal Edit",
+        url_name="sample:bigbook-update",
+        display_modal=True,
+    )
+
+    extra_actions = [
+        row_modal,
+        row_modal.with_options(
+            text="Description Preview",
+            url_name="sample:bigbook-description-preview",
+            disabled_state="get_description_preview_disabled_state",
+        ),
+    ]
+
+    extra_buttons = [
+        PowerButton(
+            text="Selected Summary",
+            url_name="sample:bigbook-selected-summary",
+            display_modal=True,
+            uses_selection=True,
+            selection_min_count=1,
+            selection_min_behavior="disable",
+        ),
     ]
 ```
 
-The real sample view is more complete than this excerpt. It mirrors the primitive `BookCRUDView` Field Intent contract closely enough that backend tests compare the resolved primitive config from both views. The only intentional difference is route naming: the PowerField variant links to its own `sample:powerfield-book-detail` route so the sample remains self-contained.
+The real sample view is more complete than this excerpt. It mirrors the base `BookCRUDView` Field Intent contract where that helps the demo, but it keeps the PowerField list allow-list clearer: `default_list=True` is enough for default visible model fields, and form-only fields do not need list exclusions. The PowerField variant links to its own `sample:powerfield-book-detail` route so the sample remains self-contained. It also mirrors the `BookCRUDView` toolbar buttons and row actions through `PowerButton` and `PowerAction`, including a `with_options(...)` row-action variant.
 
-See [PowerField](../guides/powerfields.md) for the practical guide and [PowerField Reference](powerfields.md) for the constructor and validation contract.
+See [Choosing an API Style](../guides/structured_api/index.md), [PowerField](../guides/structured_api/powerfields.md), and [PowerField Reference](powerfields.md) for the constructor and validation contract.
 
 The sample `BookCRUDView` also includes illustrative persistence-hook wiring:
 
@@ -434,14 +487,13 @@ extra_actions = [
         "text": "Description Preview",
         "needs_pk": True,
         "display_modal": True,
-        "disabled_if": "is_description_preview_disabled",
-        "disabled_reason": "get_description_preview_disabled_reason",
+        "disabled_state": "get_description_preview_disabled_state",
         "modal_box_classes": "modal-box flex max-h-[calc(100dvh-2rem)] w-11/12 max-w-5xl flex-col",
     },
 ]
 ```
 
-That lets the sample app demonstrate selection-aware header actions, conditionally disabled row actions, and per-trigger modal sizing in the same CRUD surface. `Selected Summary` intentionally uses the view default modal width, while `Home in Modal!` shows a header-button override. The `modal_box_classes` entries are full replacement strings: they keep the default viewport-height classes and add per-trigger width classes for those specific modal calls.
+That lets the sample app demonstrate selection-aware header actions, conditionally disabled row actions, and per-trigger modal sizing in the same CRUD surface. `disabled_state` is the single-hook disabled contract: return a non-empty string to disable the action and show that string as the reason. `Selected Summary` intentionally uses the view default modal width, while `Home in Modal!` shows a header-button override. The `modal_box_classes` entries are full replacement strings: they keep the default viewport-height classes and add per-trigger width classes for those specific modal calls.
 
 ## Management Commands
 

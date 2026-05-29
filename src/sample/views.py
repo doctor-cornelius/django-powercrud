@@ -5,6 +5,7 @@ from django.urls import reverse
 from neapolitan.views import CRUDView
 from powercrud.mixins.async_crud_mixin import PowerCRUDAsyncMixin
 from powercrud.conf import get_powercrud_setting
+from powercrud.actions import PowerAction, PowerButton
 from powercrud.powerfields import PowerField, PowerOverride
 
 from . import models
@@ -414,44 +415,53 @@ class PowerFieldBookCRUDView(SampleCRUDMixin):
     list_cell_link_default_open_in = "modal"
     form_class = forms.BookForm
     power_fields = [
-        PowerOverride(list="__all__", detail="__all__"),
-        # Property declarations follow BookCRUDView's "__all__" property order.
-        PowerField(
-            "a_really_long_property_header_for_title",
-            property=True,
-            detail_property=True,
-        ),
-        PowerField("isbn_empty", property=True, detail_property=True),
-        PowerField(
-            "there_are_so_many_pages_this_header_surely_will_wrap",
-            property=True,
-            detail_property=True,
-        ),
-        # Default-list declarations follow BookCRUDView's visible column order.
+        PowerOverride(detail="__all__"),
         PowerField(
             "title",
             default_list=True,
             tooltip=True,
+            form=True,
+            inline=True,
+            bulk=True,
             column={"help_text": "The book title shown throughout the app."},
         ),
         PowerField(
             "author",
             default_list=True,
+            form=True,
+            inline=True,
+            bulk=True,
         ),
-        PowerField("published_date", default_list=True),
+        PowerField(
+            "published_date",
+            default_list=True,
+            form=True,
+            inline=True,
+            bulk=True,
+        ),
         PowerField(
             "pages",
             default_list=True,
             tooltip=True,
+            form=True,
+            bulk=True,
             column={
                 "help_text": "Demo link: opens this book detail in the current page."
             },
             link={"view_name": "sample:powerfield-book-detail", "open_in": "current"},
         ),
-        PowerField("bestseller", default_list=True),
+        PowerField(
+            "bestseller",
+            default_list=True,
+            form=True,
+            inline=True,
+            bulk=True,
+        ),
         PowerField(
             "isbn",
             default_list=True,
+            form=True,
+            form_disabled=True,
             column={
                 "help_text": (
                     "Demo link: opens an external ISBN reference in a new tab or window."
@@ -465,6 +475,9 @@ class PowerFieldBookCRUDView(SampleCRUDMixin):
         PowerField(
             "genres",
             default_list=True,
+            form=True,
+            inline=True,
+            bulk=True,
             queryset_dependencies={
                 "depends_on": ["author"],
                 "filter_by": {"authors": "author"},
@@ -474,12 +487,16 @@ class PowerFieldBookCRUDView(SampleCRUDMixin):
         ),
         PowerField(
             "isbn_empty",
+            property=True,
+            detail_property=True,
             default_list=True,
             tooltip=True,
             column={"help_text": "Shows whether this row currently has an ISBN value."},
         ),
         PowerField(
             "a_really_long_property_header_for_title",
+            property=True,
+            detail_property=True,
             default_list=True,
             column={
                 "help_text": (
@@ -495,32 +512,13 @@ class PowerFieldBookCRUDView(SampleCRUDMixin):
                 ),
             },
         ),
-        # Form declarations mirror BookForm.Meta before form_class takes over at runtime.
-        PowerField("title", form=True),
-        PowerField("author", form=True),
-        PowerField("genres", form=True),
-        PowerField("published_date", form=True),
-        PowerField("bestseller", form=True),
-        PowerField("isbn", form=True),
-        PowerField("pages", form=True),
-        PowerField("description", form=True),
         PowerField("uneditable_field", form_display=True),
-        PowerField("isbn", form_disabled=True),
-        # Inline declarations follow BookCRUDView's inline edit order.
-        PowerField("title", inline=True),
-        PowerField("author", inline=True),
-        PowerField("genres", inline=True),
-        PowerField("published_date", inline=True),
-        PowerField("bestseller", inline=True),
-        PowerField("description", inline=True),
-        # Bulk declarations follow BookCRUDView's bulk edit order.
-        PowerField("title", bulk=True),
-        PowerField("published_date", bulk=True),
-        PowerField("bestseller", bulk=True),
-        PowerField("pages", bulk=True),
-        PowerField("author", bulk=True),
-        PowerField("genres", bulk=True),
-        PowerField("description", exclude={"list": True}),
+        PowerField("description", form=True, inline=True),
+        PowerField(
+            "there_are_so_many_pages_this_header_surely_will_wrap",
+            property=True,
+            detail_property=True,
+        ),
     ]
     bulk_delete = True
     bulk_async = True
@@ -560,8 +558,66 @@ class PowerFieldBookCRUDView(SampleCRUDMixin):
     extra_actions_dropdown_open_upward_bottom_rows = 5
     inline_edit_always_visible = True
     inline_preserve_required_fields = True
-    extra_buttons = []
-    extra_actions = []
+    _home_button = PowerButton(
+        text="Home",
+        url_name="home",
+        button_class="btn-success",
+        htmx_target="content",
+        display_modal=False,
+        extra_class_attrs="",
+        extra_attrs='hx-push-url="false" hx-replace-url="false"',
+    )
+    extra_buttons = [
+        _home_button,
+        _home_button.with_options(
+            text="Home in Modal!",
+            button_class="btn-warning",
+            display_modal=True,
+            extra_class_attrs="bg-warning",
+            modal_box_classes=(
+                "modal-box flex max-h-[calc(100dvh-2rem)] w-11/12 "
+                "max-w-3xl flex-col"
+            ),
+        ),
+        PowerButton(
+            text="Selected Summary",
+            url_name="sample:bigbook-selected-summary",
+            button_class="btn-primary",
+            display_modal=True,
+            uses_selection=True,
+            selection_min_count=1,
+            selection_min_behavior="disable",
+            selection_min_reason="Select at least one book first.",
+        ),
+    ]
+    _book_modal_action = PowerAction(
+        text="Normal Edit",
+        url_name="sample:bigbook-update",
+        button_class="btn-info",
+        htmx_target="powercrudModalContent",
+        display_modal=True,
+        lock_sensitive=True,
+        refresh_list_on_modal_close=True,
+        modal_box_classes=(
+            "modal-box flex max-h-[calc(100dvh-2rem)] w-11/12 "
+            "max-w-4xl flex-col"
+        ),
+    )
+    extra_actions = [
+        _book_modal_action,
+        _book_modal_action.with_options(
+            text="Description Preview",
+            url_name="sample:bigbook-description-preview",
+            button_class="btn-secondary",
+            lock_sensitive=False,
+            refresh_list_on_modal_close=False,
+            disabled_state="get_description_preview_disabled_state",
+            modal_box_classes=(
+                "modal-box flex max-h-[calc(100dvh-2rem)] w-11/12 "
+                "max-w-5xl flex-col"
+            ),
+        ),
+    ]
 
     def get_list_cell_tooltip(self, obj, field_name, *, is_property, request=None):
         """Return semantic tooltip text for selected PowerField sample cells."""
@@ -573,6 +629,12 @@ class PowerFieldBookCRUDView(SampleCRUDMixin):
             if obj.isbn_empty:
                 return "This book does not currently have an ISBN."
             return f"ISBN: {obj.isbn}"
+        return None
+
+    def get_description_preview_disabled_state(self, obj, request):
+        """Return the disabled reason for the helper-backed preview action."""
+        if not bool((obj.description or "").strip()):
+            return "This book does not have a description yet."
         return None
 
     def can_update_object(self, obj, request):
