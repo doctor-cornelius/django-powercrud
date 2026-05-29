@@ -219,6 +219,15 @@ def test_sample_base_exposes_corporate_business_theme_controller() -> None:
     assert 'value="business"' in template, (
         "The checked theme-controller state should switch to the business dark theme."
     )
+    assert 'data-tippy-content="Select Dark Theme"' in template, (
+        "The light-theme state should explain that the next click selects the dark theme."
+    )
+    assert "Select ${nextThemeLabel} Theme" in template, (
+        "The sample runtime should update the tooltip to the next selectable theme."
+    )
+    assert "toggle._tippy.setContent(tooltip)" in template, (
+        "The sample runtime should update active Tippy instances after toggles."
+    )
     assert template.index('class="theme-controller"') < template.index(
         'href="{% url \'home\' %}"'
     ), "The theme controller should sit before the Home navigation button."

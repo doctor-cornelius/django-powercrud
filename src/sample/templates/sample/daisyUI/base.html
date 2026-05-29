@@ -27,13 +27,15 @@
     <div class="container mx-5 my-5 p-5">
         <nav class="mb-5 flex flex-wrap items-center gap-2" aria-label="Sample navigation">
             <label class="swap swap-rotate btn btn-sm btn-outline btn-secondary btn-square"
-                   aria-label="Toggle sample theme"
+                   aria-label="Select Dark Theme"
+                   data-sample-theme-toggle
                    data-powercrud-tooltip="semantic"
-                   data-tippy-content="Toggle sample theme">
+                   data-tippy-content="Select Dark Theme">
                 <input type="checkbox"
                        class="theme-controller"
                        value="business"
-                       aria-label="Use business dark theme">
+                       aria-label="Select Dark Theme"
+                       data-sample-theme-controller>
                 <svg class="swap-off h-4 w-4 fill-current"
                      xmlns="http://www.w3.org/2000/svg"
                      viewBox="0 0 24 24"
@@ -161,6 +163,42 @@
             <div id="powercrud"></div>
         </div>
     </div>
+
+    <script>
+        (function () {
+            function syncSampleThemeToggleTooltip(toggle) {
+                const input = toggle.querySelector('[data-sample-theme-controller]');
+                if (!input) {
+                    return;
+                }
+
+                const nextThemeLabel = input.checked ? 'Light' : 'Dark';
+                const tooltip = `Select ${nextThemeLabel} Theme`;
+
+                toggle.setAttribute('aria-label', tooltip);
+                toggle.setAttribute('data-tippy-content', tooltip);
+                input.setAttribute('aria-label', tooltip);
+
+                if (toggle._tippy) {
+                    toggle._tippy.setContent(tooltip);
+                }
+            }
+
+            document.querySelectorAll('[data-sample-theme-toggle]').forEach(syncSampleThemeToggleTooltip);
+
+            document.addEventListener('change', function (event) {
+                const input = event.target.closest?.('[data-sample-theme-controller]');
+                if (!input) {
+                    return;
+                }
+
+                const toggle = input.closest('[data-sample-theme-toggle]');
+                if (toggle) {
+                    syncSampleThemeToggleTooltip(toggle);
+                }
+            });
+        }());
+    </script>
 
 </body>
 
