@@ -2,12 +2,11 @@
 
 ## Status
 
-Implementation is underway on `power-actions/plan`. The core helper declarations, primitive `disabled_state`, sample-app wiring, focused tests, and first public docs pass are complete.
+Implementation is complete on `power-actions/plan`. The core helper declarations, primitive `disabled_state`, sample-app wiring, focused tests, broader non-Playwright tests, and first public docs pass are complete.
 
 ## Next
 
-1. Run the broader non-Playwright test suite.
-2. Review whether any additional public docs wording is needed before merge.
+1. Review whether any additional public docs wording is needed before merge.
 
 ## Phase 1: Lock The Contract
 
