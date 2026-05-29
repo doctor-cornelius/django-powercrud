@@ -75,6 +75,5 @@ See [Async architecture](reference/async.md) for details.
 - Complete class example: [complete_example.md](reference/complete_example.md)  
 - Tooling: [dockerised_dev.md](reference/dockerised_dev.md), [mgmt_commands.md](reference/mgmt_commands.md), [testing.md](reference/testing.md)  
 - Sample app overview: [sample_app.md](reference/sample_app.md)  
-- Planned enhancements: [enhancements.md](reference/enhancements.md)
 
 PowerCRUD is still moving; pin releases if you rely on specific behaviour and check these guides when upgrading.
