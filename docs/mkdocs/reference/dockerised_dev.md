@@ -175,6 +175,14 @@ git add -A
 cz commit  # Interactive conventional commit
 ```
 
+`main` is protected. Land changes through a pull request, wait for the required pytest matrix and Playwright smoke checks, then squash merge. The squash commit subject should follow the same Commitizen pattern, for example:
+
+```bash
+gh pr merge <pr-number> --squash --delete-branch --subject "feat(scope): describe the change"
+```
+
+For agent-driven branch finish work, see `AGENTS/AGENTS_pr_workflow.md` in the repository root.
+
 ### 8. **Shutdown**
 
 ```bash

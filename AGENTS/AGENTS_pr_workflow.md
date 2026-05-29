@@ -8,6 +8,7 @@ Use this workflow when the user asks to create a pull request, merge a feature b
 - Default to the current branch when the user says to use the current branch.
 - If the user names a branch, use that branch.
 - Never create or merge a pull request from `main`.
+- `main` is protected by the `protect_main` repository ruleset. It requires a pull request, squash-only merge, strict required status checks, and deletion/non-fast-forward protection.
 - Never force-push, rewrite shared history, bypass branch protection, or use admin merge flags unless the user explicitly asks for that.
 - `git push --force-with-lease` is allowed only when an intentional rebase of the feature branch was required to keep the PR clean, such as after an earlier dependent branch was squash-merged.
 
@@ -51,22 +52,22 @@ Stop and discuss with the user before continuing if any of these occur:
 4. Create the pull request against `main`:
 
     ```bash
-    gh pr create --base main --head <feature-branch> --fill
+    gh pr create --base main --head <feature-branch> --title "<clear PR title>" --body-file -
     ```
 
-    If `--fill` produces an unsuitable title or body, use a concise semantic title and a short body that summarizes the user-visible change and verification.
+    Use a concise PR title and a short body that summarizes the user-visible change and verification. Avoid relying on `--fill` for broad or multi-commit branches unless the generated title and body are already clear.
 
 5. Inspect the PR:
 
     ```bash
     gh pr view
-    gh pr checks
+    gh pr checks --required
     ```
 
     To wait for checks, prefer:
 
     ```bash
-    gh pr checks <pr-number> --watch --fail-fast
+    gh pr checks <pr-number> --required --watch --fail-fast
     ```
 
     Older GitHub CLI versions may not support `gh pr checks --watch`. If that fails with an unknown flag, use the Actions run id from the check URLs and watch the run directly:
@@ -80,8 +81,10 @@ Stop and discuss with the user before continuing if any of these occur:
 6. Squash merge the PR into `main` and delete the remote feature branch:
 
     ```bash
-    gh pr merge --squash --delete-branch
+    gh pr merge <pr-number> --squash --delete-branch --subject "<type>(<scope>): <subject>"
     ```
+
+    The PR title can be human-readable, but the squash commit subject must follow this repo's Commitizen schema from `cz.yaml`, for example `feat(actions): add structured action declarations` or `docs(agents): refine pr workflow`. Do not rely on GitHub's default squash subject if the PR title is not already a valid semantic commit subject.
 
 7. Return local checkout to a clean, current `main`:
 
