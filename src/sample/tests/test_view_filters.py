@@ -423,11 +423,11 @@ def test_powerfield_book_sample_class_config_exposes_generated_form_intent():
     assert cfg.form_fields == [
         "title",
         "author",
-        "genres",
         "published_date",
+        "pages",
         "bestseller",
         "isbn",
-        "pages",
+        "genres",
         "description",
     ], (
         "PowerFieldBookCRUDView should still compile form=True declarations before "
