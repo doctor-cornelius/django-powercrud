@@ -12,6 +12,7 @@ from django.test import RequestFactory
 
 from neapolitan.views import Role
 
+from powercrud.actions import PowerAction, PowerButton
 from powercrud.mixins.core_mixin import CoreMixin
 from powercrud.mixins.list_options_mixin import ListOptionsMixin
 from powercrud.mixins.table_mixin import TableMixin
@@ -741,6 +742,37 @@ def test_core_mixin_rejects_non_bool_extra_button_modal_close_refresh_flag():
 
 
 @pytest.mark.django_db
+def test_core_mixin_accepts_powerbutton_in_extra_buttons():
+    class ButtonView(CoreMixin):
+        model = Book
+        fields = "__all__"
+        base_template_path = "sample/base.html"
+        extra_buttons = [
+            PowerButton(
+                text="Selected Summary",
+                url_name="sample:bigbook-selected-summary",
+                display_modal=True,
+                uses_selection=True,
+                selection_min_count=1,
+                selection_min_behavior="disable",
+            ),
+            {
+                "url_name": "sample:bigbook-list",
+                "text": "Reload",
+            },
+        ]
+
+    view = ButtonView()
+
+    assert view.extra_buttons[0]["uses_selection"] is True, (
+        "PowerButton declarations should normalize into primitive extra_buttons dictionaries."
+    )
+    assert view.extra_buttons[1]["text"] == "Reload", (
+        "Primitive extra_buttons dictionaries should still work beside PowerButton declarations."
+    )
+
+
+@pytest.mark.django_db
 def test_core_mixin_rejects_unknown_extra_action_disabled_hook():
     class BrokenView(CoreMixin):
         model = Book
@@ -756,6 +788,112 @@ def test_core_mixin_rejects_unknown_extra_action_disabled_hook():
 
     with pytest.raises(ImproperlyConfigured):
         BrokenView()
+
+
+@pytest.mark.django_db
+def test_core_mixin_rejects_unknown_extra_action_disabled_state_hook():
+    class BrokenView(CoreMixin):
+        model = Book
+        fields = "__all__"
+        base_template_path = "sample/base.html"
+        extra_actions = [
+            {
+                "url_name": "sample:bigbook-description-preview",
+                "text": "Description Preview",
+                "disabled_state": "missing_disabled_state",
+            }
+        ]
+
+    with pytest.raises(ImproperlyConfigured):
+        BrokenView()
+
+
+@pytest.mark.django_db
+def test_core_mixin_rejects_mixed_extra_action_disabled_styles():
+    class BrokenView(CoreMixin):
+        model = Book
+        fields = "__all__"
+        base_template_path = "sample/base.html"
+        extra_actions = [
+            {
+                "url_name": "sample:bigbook-description-preview",
+                "text": "Description Preview",
+                "disabled_state": "get_description_disabled_state",
+                "disabled_if": "is_description_disabled",
+            }
+        ]
+
+        def get_description_disabled_state(self, obj, request):
+            """Unused test helper."""
+            return None
+
+        def is_description_disabled(self, obj, request):
+            """Unused test helper."""
+            return False
+
+    with pytest.raises(ImproperlyConfigured, match="disabled_state"):
+        BrokenView()
+
+
+@pytest.mark.django_db
+def test_core_mixin_accepts_extra_action_disabled_state_hook():
+    class ActionView(CoreMixin):
+        model = Book
+        fields = "__all__"
+        base_template_path = "sample/base.html"
+        extra_actions = [
+            {
+                "url_name": "sample:bigbook-description-preview",
+                "text": "Description Preview",
+                "disabled_state": "get_description_disabled_state",
+            }
+        ]
+
+        def get_description_disabled_state(self, obj, request):
+            """Return no disabled state for config validation."""
+            return None
+
+    view = ActionView()
+
+    assert view.extra_actions[0]["disabled_state"] == "get_description_disabled_state", (
+        "Primitive extra_actions should accept the single disabled_state hook."
+    )
+    assert view.extra_actions[0]["disabled_if"] is None, (
+        "disabled_state should not require the legacy disabled_if hook."
+    )
+
+
+@pytest.mark.django_db
+def test_core_mixin_accepts_poweraction_in_extra_actions():
+    class ActionView(CoreMixin):
+        model = Book
+        fields = "__all__"
+        base_template_path = "sample/base.html"
+        extra_actions = [
+            PowerAction(
+                text="Description Preview",
+                url_name="sample:bigbook-description-preview",
+                display_modal=True,
+                disabled_state="get_description_disabled_state",
+            ),
+            {
+                "url_name": "sample:bigbook-update",
+                "text": "Normal Edit",
+            },
+        ]
+
+        def get_description_disabled_state(self, obj, request):
+            """Return no disabled state for config validation."""
+            return None
+
+    view = ActionView()
+
+    assert view.extra_actions[0]["disabled_state"] == "get_description_disabled_state", (
+        "PowerAction declarations should normalize into primitive extra_actions dictionaries."
+    )
+    assert view.extra_actions[1]["text"] == "Normal Edit", (
+        "Primitive extra_actions dictionaries should still work beside PowerAction declarations."
+    )
 
 
 @pytest.mark.django_db
