@@ -21,7 +21,7 @@ def open_column_chooser(page):
     trigger = page.locator("[data-powercrud-list-columns='true'] summary")
     expect(trigger).to_be_visible()
     trigger.click()
-    panel = page.locator("[data-powercrud-list-columns='true'] .dropdown-content")
+    panel = page.locator("[data-powercrud-list-columns-floating-panel='true']")
     expect(panel).to_be_visible()
     return panel
 
@@ -193,6 +193,56 @@ def test_book_list_column_controls_fit_table_or_viewport(
     assert panel_metrics["panelRight"] <= panel_metrics["expectedRight"] + 2, (
         "Expanded filter panel should align within the narrower of the table edge or viewport edge."
     )
+
+
+def test_book_list_column_chooser_escapes_overflow_wrapper(
+    page, books_url, sample_books
+):
+    """The floating column chooser should not be clipped by an overflow shell."""
+
+    page.set_viewport_size({"width": 900, "height": 640})
+    page.goto(books_url)
+    page.wait_for_load_state("networkidle")
+
+    page.evaluate(
+        """
+        () => {
+            const content = document.querySelector('#content');
+            content.style.width = '620px';
+            content.style.height = '220px';
+            content.style.overflow = 'auto';
+            content.style.position = 'relative';
+        }
+        """
+    )
+
+    panel = open_column_chooser(page)
+    metrics = page.evaluate(
+        """
+        () => {
+            const content = document.querySelector('#content');
+            const panel = document.querySelector('[data-powercrud-list-columns-floating-panel="true"]');
+            const contentRect = content.getBoundingClientRect();
+            const panelRect = panel.getBoundingClientRect();
+            const probeX = panelRect.left + (panelRect.width / 2);
+            const probeY = Math.min(panelRect.bottom - 8, window.innerHeight - 8);
+            const probedElement = document.elementFromPoint(probeX, probeY);
+            return {
+                contentBottom: contentRect.bottom,
+                panelBottom: panelRect.bottom,
+                panelContainsProbe: panel.contains(probedElement),
+            };
+        }
+        """
+    )
+
+    assert metrics["panelBottom"] > metrics["contentBottom"] + 16, (
+        "Column chooser should extend beyond the constrained content wrapper."
+    )
+    assert metrics["panelContainsProbe"], (
+        "Column chooser should remain hit-testable where an overflow wrapper would otherwise clip it."
+    )
+    expect(panel.get_by_text("Title*", exact=True)).to_be_visible()
 
 
 def test_book_list_pagination_centres_on_table_width(

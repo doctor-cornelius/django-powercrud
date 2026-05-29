@@ -373,6 +373,30 @@ def test_runtime_js_shows_inline_field_error_popovers() -> None:
     ), "Inline field error callouts should be announced as alerts."
 
 
+def test_runtime_js_floats_list_column_chooser_panel() -> None:
+    """List-column chooser panels should escape downstream overflow wrappers."""
+    package_root = Path(powercrud.__file__).resolve().parent
+    list_columns_js = (
+        package_root / "static" / "powercrud" / "js" / "runtime" / "list-columns.js"
+    )
+    current_template_js = (
+        package_root / "static" / "powercrud" / "js" / "runtime" / "current-template.js"
+    )
+
+    list_columns = list_columns_js.read_text(encoding="utf-8")
+    current_template = current_template_js.read_text(encoding="utf-8")
+
+    assert (
+        "documentObject.body.appendChild(panel)" in list_columns
+    ), "List-column chooser should render from a body-level floating panel."
+    assert (
+        "data-powercrud-list-columns-floating-panel" in list_columns
+    ), "List-column chooser should expose a deterministic floating-panel selector."
+    assert (
+        "function positionListColumnChooserPanel(panelElement, triggerElement)" in current_template
+    ), "Current-template geometry should explicitly position floating column chooser panels."
+
+
 def test_runtime_js_does_not_render_inline_toasts() -> None:
     """Inline runtime should not render package-owned top toast notices."""
     package_root = Path(powercrud.__file__).resolve().parent

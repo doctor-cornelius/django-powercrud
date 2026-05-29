@@ -486,9 +486,8 @@ export function createCurrentTemplateRuntime(context) {
             return;
         }
 
-        const panel = container.querySelector('[data-powercrud-list-columns-panel="true"]');
         const trigger = container.querySelector('[data-powercrud-list-columns-trigger="true"]');
-        if (!(panel instanceof HTMLElement) || !(trigger instanceof HTMLElement)) {
+        if (!(trigger instanceof HTMLElement)) {
             return;
         }
 
@@ -500,10 +499,7 @@ export function createCurrentTemplateRuntime(context) {
                 return;
             }
             const triggerRect = trigger.getBoundingClientRect();
-            const panelWidth = Math.min(
-                panel.offsetWidth,
-                documentObject.documentElement.clientWidth - 16,
-            );
+            const panelWidth = Math.min(288, documentObject.documentElement.clientWidth - 16);
             const margin = 8;
             const endLeft = triggerRect.right - panelWidth;
             const shouldOpenStart = endLeft < margin;
@@ -514,6 +510,55 @@ export function createCurrentTemplateRuntime(context) {
     function clearListColumnChooserPlacement(container) {
         if (container instanceof HTMLElement) {
             delete container.dataset.powercrudListColumnsPlacement;
+        }
+    }
+
+    function prepareListColumnChooserFloatingPanel(panelElement, container) {
+        if (!(panelElement instanceof HTMLElement)) {
+            return false;
+        }
+        panelElement.dataset.powercrudListColumnsFloatingPanel = 'true';
+        panelElement.dataset.powercrudListColumnsDomId = container?.id || '';
+        panelElement.style.position = 'fixed';
+        panelElement.style.visibility = 'hidden';
+        panelElement.style.pointerEvents = 'none';
+        return true;
+    }
+
+    function positionListColumnChooserPanel(panelElement, triggerElement) {
+        if (!(panelElement instanceof HTMLElement) || !(triggerElement instanceof HTMLElement)) {
+            return;
+        }
+
+        const viewportPadding = 8;
+        const panelGap = 8;
+        const triggerRect = triggerElement.getBoundingClientRect();
+        const panelRect = panelElement.getBoundingClientRect();
+        const spaceBelow = global.innerHeight - triggerRect.bottom - viewportPadding;
+        const spaceAbove = triggerRect.top - viewportPadding;
+        const shouldOpenUpward = panelRect.height > spaceBelow && spaceAbove > spaceBelow;
+        const container = triggerElement.closest('[data-powercrud-list-columns="true"]');
+
+        const endLeft = triggerRect.right - panelRect.width;
+        const shouldOpenStart = endLeft < viewportPadding;
+        let left = shouldOpenStart ? triggerRect.left : endLeft;
+        let top = shouldOpenUpward
+            ? triggerRect.top - panelRect.height - panelGap
+            : triggerRect.bottom + panelGap;
+
+        top = Math.max(
+            viewportPadding,
+            Math.min(top, global.innerHeight - panelRect.height - viewportPadding),
+        );
+        left = Math.max(
+            viewportPadding,
+            Math.min(left, global.innerWidth - panelRect.width - viewportPadding),
+        );
+
+        panelElement.style.top = `${top}px`;
+        panelElement.style.left = `${left}px`;
+        if (container instanceof HTMLElement) {
+            container.dataset.powercrudListColumnsPlacement = shouldOpenStart ? 'start' : 'end';
         }
     }
 
@@ -694,7 +739,9 @@ export function createCurrentTemplateRuntime(context) {
         handleModalTriggerBeforeRequest,
         hidePowercrudTooltips,
         initPowercrudTooltips,
+        positionListColumnChooserPanel,
         positionFilterFavouritesPanel,
+        prepareListColumnChooserFloatingPanel,
         prepareFilterFavouritesFloatingPanel,
         schedulePowercrudTooltipRefresh,
         schedulePowercrudTooltipResizeRefresh,
