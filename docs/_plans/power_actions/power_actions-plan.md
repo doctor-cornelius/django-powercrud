@@ -2,17 +2,13 @@
 
 ## Status
 
-Core `PowerAction`, `PowerButton`, and primitive `disabled_state` implementation is complete on `power-actions/plan`.
+Implementation and docs are complete on `power-actions/plan`.
 
-The plan is not fully complete. Public docs need a clearer dedicated PowerAction/PowerButton guide and reference, and the agreed PowerField cleanup still needs implementation.
+The branch includes `PowerAction`, `PowerButton`, primitive `disabled_state`, the PowerField `default_list=True` cleanup, sample app updates, dedicated public docs, focused tests, and the broader non-Playwright suite.
 
 ## Next
 
-1. Tighten PowerField `default_list=True` semantics and validation.
-2. Simplify the PowerField sample app declarations.
-3. Add dedicated PowerAction/PowerButton docs.
-4. Run focused and full test suites.
-5. Commit and push each completed slice on `power-actions/plan`.
+1. Review the branch before merge.
 
 ## Phase 1: Lock The Contract
 
@@ -44,11 +40,11 @@ The plan is not fully complete. Public docs need a clearer dedicated PowerAction
 
 ## Phase 5: Document The Helper
 
-1. [ ] Add a dedicated PowerAction/PowerButton guide page under `docs/mkdocs/guides/`.
-2. [ ] Add a dedicated PowerAction/PowerButton reference page under `docs/mkdocs/reference/`.
+1. [x] Add a dedicated PowerAction/PowerButton guide page under `docs/mkdocs/guides/`.
+2. [x] Add a dedicated PowerAction/PowerButton reference page under `docs/mkdocs/reference/`.
 3. [x] Document that dictionaries remain the primitive API.
-4. [ ] Link the new pages from MkDocs navigation.
-5. [ ] Keep setup/core CRUD docs concise and link out to the dedicated guide/reference pages.
+4. [x] Link the new pages from MkDocs navigation.
+5. [x] Keep setup/core CRUD docs concise and link out to the dedicated guide/reference pages.
 
 ## Phase 6: Tighten PowerField Semantics
 
@@ -72,10 +68,10 @@ The plan is not fully complete. Public docs need a clearer dedicated PowerAction
 3. [x] Add sample equivalence tests for the simplified `PowerFieldBookCRUDView`.
 4. [x] Keep list-options tests as the integration guard for default visible columns.
 5. [x] Run the focused tests.
-6. [ ] Run the broader non-Playwright test suite.
+6. [x] Run the broader non-Playwright test suite.
 
 ## Phase 9: Finalise Branch
 
-1. [ ] Update `power_actions-notes.md` with the final settled behavior.
-2. [ ] Commit completed slices on `power-actions/plan`.
-3. [ ] Push the branch to `origin`.
+1. [x] Update `power_actions-notes.md` with the final settled behavior.
+2. [x] Commit completed slices on `power-actions/plan`.
+3. [x] Push the branch to `origin`.

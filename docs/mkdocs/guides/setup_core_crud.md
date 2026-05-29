@@ -265,7 +265,7 @@ extra_buttons = [
 
 These declarations compile to the same primitive dictionaries that PowerCRUD already renders. Dictionaries and declarations may be mixed in one list.
 
-_Need the full list of knobs? See the [configuration reference](../reference/config_options.md) for every attribute, default, and dependency._
+For reusable action patterns, see [PowerAction And PowerButton](poweractions.md). For the full constructor contract, see [PowerAction And PowerButton Reference](../reference/poweractions.md).
 
 ---
 

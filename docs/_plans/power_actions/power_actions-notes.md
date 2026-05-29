@@ -126,6 +126,36 @@ Keep the sample small:
 2. One reusable `PowerButton` only if it clearly shows selected-row toolbar reuse.
 3. No broad workflow demo in the sample app.
 
+Settled implementation:
+
+1. `PowerFieldBookCRUDView` demonstrates `PowerField`, `PowerAction`, and `PowerButton` together.
+2. `default_list=True` is self-sufficient for default visible model-field columns and no longer needs redundant `list=True`.
+3. Property-backed default columns still use `property=True, default_list=True`.
+4. Form-only and form-display-only fields stay out of the list by omission rather than by broad-list exclusion.
+5. The sample mirrors `BookCRUDView` row actions and toolbar buttons through helpers, including `with_options(...)`.
+
+## PowerField Follow-Up
+
+The PowerAction work exposed a PowerField ergonomics issue: `default_list=True` was not self-sufficient.
+
+Settled behavior:
+
+1. `PowerField("title", default_list=True)` emits both `fields=["title"]` and `default_list_fields=["title"]`.
+2. `PowerField("isbn_empty", property=True, default_list=True)` emits both `properties=["isbn_empty"]` and `default_list_fields=["isbn_empty"]`.
+3. `tooltip`, `column`, and `link` are list-cell concerns and require effective list visibility through `list=True`, `property=True`, or `default_list=True`.
+4. Doubtful implications stay explicit for now.
+
+## Public Docs
+
+Dedicated docs are required because embedded mentions in setup/reference pages were not discoverable enough.
+
+Stable docs should include:
+
+1. A guide page for when and why to use `PowerAction` and `PowerButton`.
+2. A reference page for constructor parameters, defaults, and validation rules.
+3. Updated PowerField guide/reference wording for `default_list=True`.
+4. Updated sample app docs showing the simplified PowerField style.
+
 ## Deferred Questions
 
 1. Whether future constructor helpers such as `PowerAction.modal(...)` are worth adding after downstream use proves the need.

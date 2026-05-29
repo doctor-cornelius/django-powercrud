@@ -42,6 +42,8 @@ An Action is a user-visible operation: a header button, row action, standard Vie
 
 Action options and hooks include `extra_buttons`, `extra_actions`, `extra_actions_mode`, `can_update_object(...)`, `get_update_disabled_reason(...)`, `can_delete_object(...)`, `get_delete_disabled_reason(...)`, `persist_single_object(...)`, and `persist_bulk_update(...)`.
 
+`PowerAction` and `PowerButton` are optional helpers for reusable `extra_actions` and `extra_buttons` declarations. The primitive dictionaries remain the underlying Action API.
+
 Actions should keep their business rules server-side. Disabled-state hooks and persistence hooks are the right place for rules that should not depend only on frontend affordances.
 
 ### Presentation

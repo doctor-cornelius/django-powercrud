@@ -72,7 +72,6 @@ Primitive config is direct and remains the baseline. PowerField is useful when o
         power_fields = [
             PowerField(
                 "title",
-                list=True,
                 detail=True,
                 form=True,
                 inline=True,
@@ -82,7 +81,6 @@ Primitive config is direct and remains the baseline. PowerField is useful when o
             ),
             PowerField(
                 "author",
-                list=True,
                 detail=True,
                 form=True,
                 default_list=True,
@@ -99,7 +97,6 @@ Prefer one `PowerField` entry per field.
 ```python
 PowerField(
     "title",
-    list=True,
     default_list=True,
     tooltip=True,
     form=True,
@@ -109,6 +106,8 @@ PowerField(
 ```
 
 That is the main readability win: the field's participation is visible in one place.
+
+`default_list=True` also adds the field to the underlying list allow-list. For property-backed columns, combine it with `property=True`.
 
 PowerCRUD also supports repeating a field across multiple declarations. The compiler merges and de-duplicates the generated primitive lists, so this works:
 
@@ -127,7 +126,6 @@ Use `with_options(...)` when related views share most of a field declaration but
 ```python
 ACTION_STATUS = PowerField(
     "status",
-    list=True,
     default_list=True,
     tooltip=True,
     bulk=True,
@@ -330,7 +328,7 @@ Bulk operation flags such as `bulk_delete`, `bulk_async`, and `bulk_min_async_re
 
 PowerField preserves declaration order for each primitive list it generates.
 
-If different surfaces need different field order, repeat the field in separate dimension-specific declarations. The `PowerFieldBookCRUDView` sample uses this pattern so its default list, inline edit fields, and bulk fields can mirror the primitive `BookCRUDView`.
+If different surfaces need different field order, repeat the field in separate dimension-specific declarations.
 
 ```python
 power_fields = [
@@ -360,6 +358,6 @@ Keep these as normal view configuration:
 
 The sample app includes `PowerFieldBookCRUDView`, visible as **PowerField Books**.
 
-It is a sibling of the primitive `BookCRUDView`, not a subclass. The backend tests compare its resolved primitive Field Intent config against `BookCRUDView`, with only its self-contained route names intentionally different.
+It is a sibling of the primitive `BookCRUDView`, not a subclass. The backend tests compare its resolved primitive Field Intent config against `BookCRUDView`, with intentional differences for the clearer PowerField list allow-list and self-contained route names.
 
 See [Sample app overview](../reference/sample_app.md) and the [PowerField reference](../reference/powerfields.md) for the full API contract.

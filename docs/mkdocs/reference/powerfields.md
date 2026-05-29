@@ -62,7 +62,7 @@ PowerField(
 | `form_disabled=True` | `form_disabled_fields` | Disable the input on update forms. |
 | `inline=True` | `inline_edit_fields` | Include the editable model field in inline editing. |
 | `bulk=True` | `bulk_fields` | Include the editable model field in bulk editing. |
-| `default_list=True` | `default_list_fields` | Include the name in the default visible list columns. |
+| `default_list=True` | `fields` or `properties`, plus `default_list_fields` | Include the name in the list allow-list and in the default visible list columns. |
 | `tooltip=True` | `list_cell_tooltip_fields` | Register the visible list cell for semantic tooltip lookup. |
 
 ### Dict Kwargs
@@ -83,7 +83,6 @@ Use `with_options(**changes)` to derive a new declaration from an existing `Powe
 ```python
 ACTION_STATUS = PowerField(
     "status",
-    list=True,
     default_list=True,
     tooltip=True,
     bulk=True,
@@ -163,6 +162,15 @@ PowerCRUD validates PowerField declarations early.
 - `PowerOverride` must be the first entry if present.
 - A `PowerField` name must be a non-empty string.
 - A field cannot be explicitly included and excluded from the same dimension.
+- Boolean options must be `True` or `False`.
+- `exclude` must be a dict using supported exclude dimensions.
+- `column`, `queryset_dependencies`, and `link` must be dicts when supplied.
+- `column` supports `help_text` and `alignment`; alignment must be `left`, `center`, or `right`.
+- `property=True` cannot be combined with `list=True`.
+- `detail_property=True` cannot be combined with `detail=True`.
+- `form=True` cannot be combined with `form_display=True`.
+- `default_list=True` cannot be combined with list or property exclusion.
+- `tooltip`, `column`, and `link` require effective list visibility through `list=True`, `property=True`, or `default_list=True`.
 
 Invalid `power_fields` config raises `ImproperlyConfigured` when PowerCRUD resolves class config.
 
@@ -189,7 +197,7 @@ Use `form_display=True` and `form_disabled=True` when you want PowerCRUD to laye
 PowerField declarations expose primitive fragments for testing and inspection:
 
 ```python
-PowerField("title", list=True, form=True, inline=True).to_primitive_fragment()
+PowerField("title", default_list=True, form=True, inline=True).to_primitive_fragment()
 ```
 
 returns:
@@ -197,6 +205,7 @@ returns:
 ```python
 {
     "fields": ["title"],
+    "default_list_fields": ["title"],
     "form_fields": ["title"],
     "inline_edit_fields": ["title"],
 }

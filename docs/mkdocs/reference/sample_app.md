@@ -246,7 +246,6 @@ class PowerFieldBookCRUDView(PowerCRUDAsyncMixin, CRUDView):
         PowerOverride(detail="__all__"),
         PowerField(
             "title",
-            list=True,
             default_list=True,
             tooltip=True,
             form=True,
@@ -255,7 +254,6 @@ class PowerFieldBookCRUDView(PowerCRUDAsyncMixin, CRUDView):
         ),
         PowerField(
             "author",
-            list=True,
             default_list=True,
             form=True,
             inline=True,
@@ -263,7 +261,6 @@ class PowerFieldBookCRUDView(PowerCRUDAsyncMixin, CRUDView):
         ),
         PowerField(
             "published_date",
-            list=True,
             default_list=True,
             form=True,
             inline=True,
@@ -271,7 +268,6 @@ class PowerFieldBookCRUDView(PowerCRUDAsyncMixin, CRUDView):
         ),
         PowerField(
             "pages",
-            list=True,
             default_list=True,
             tooltip=True,
             form=True,
@@ -319,7 +315,7 @@ class PowerFieldBookCRUDView(PowerCRUDAsyncMixin, CRUDView):
     ]
 ```
 
-The real sample view is more complete than this excerpt. It mirrors the primitive `BookCRUDView` Field Intent contract closely enough that backend tests compare the resolved primitive config from both views. The only intentional difference is route naming: the PowerField variant links to its own `sample:powerfield-book-detail` route so the sample remains self-contained. It also mirrors the `BookCRUDView` toolbar buttons and row actions through `PowerButton` and `PowerAction`, including a `with_options(...)` row-action variant.
+The real sample view is more complete than this excerpt. It mirrors the primitive `BookCRUDView` Field Intent contract where that helps the demo, but it keeps the PowerField list allow-list clearer: `default_list=True` is enough for default visible model fields, and form-only fields do not need list exclusions. The PowerField variant links to its own `sample:powerfield-book-detail` route so the sample remains self-contained. It also mirrors the `BookCRUDView` toolbar buttons and row actions through `PowerButton` and `PowerAction`, including a `with_options(...)` row-action variant.
 
 See [PowerField](../guides/powerfields.md) for the practical guide and [PowerField Reference](powerfields.md) for the constructor and validation contract.
 
