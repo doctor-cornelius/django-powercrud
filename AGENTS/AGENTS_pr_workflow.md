@@ -9,6 +9,7 @@ Use this workflow when the user asks to create a pull request, merge a feature b
 - If the user names a branch, use that branch.
 - Never create or merge a pull request from `main`.
 - Never force-push, rewrite shared history, bypass branch protection, or use admin merge flags unless the user explicitly asks for that.
+- `git push --force-with-lease` is allowed only when an intentional rebase of the feature branch was required to keep the PR clean, such as after an earlier dependent branch was squash-merged.
 
 ## Hard stops
 
@@ -22,6 +23,7 @@ Stop and discuss with the user before continuing if any of these occur:
 - branch protection blocks the squash merge
 - `gh` authentication or permissions are missing
 - the merge would require deleting a branch the user did not intend to retire
+- a force-with-lease push would overwrite remote work that was not just produced by the current workflow
 
 ## Standard flow
 
@@ -61,6 +63,18 @@ Stop and discuss with the user before continuing if any of these occur:
     gh pr checks
     ```
 
+    To wait for checks, prefer:
+
+    ```bash
+    gh pr checks <pr-number> --watch --fail-fast
+    ```
+
+    Older GitHub CLI versions may not support `gh pr checks --watch`. If that fails with an unknown flag, use the Actions run id from the check URLs and watch the run directly:
+
+    ```bash
+    gh run watch <run-id> --exit-status
+    ```
+
     If checks fail and the fix is obvious and within the current task scope, fix it on the feature branch, commit, push, and re-check. If the failure is ambiguous or broad, stop and discuss with the user.
 
 6. Squash merge the PR into `main` and delete the remote feature branch:
@@ -94,6 +108,26 @@ Stop and discuss with the user before continuing if any of these occur:
     ```
 
 10. Report the PR number, merge result, final local branch, and whether the worktree is clean.
+
+## Multiple dependent branches
+
+When the user asks to finish multiple branches as separate PRs, check whether later branches include earlier branch commits:
+
+```bash
+git log --oneline --decorate --graph main..<branch>
+```
+
+If branch B is stacked on branch A, finish branch A first. After branch A is squash-merged into `main`, update local `main`, then rebase branch B onto the new `main` so the second PR does not re-include branch A's commits:
+
+```bash
+git switch main
+git pull --ff-only origin main
+git switch <branch-b>
+git rebase --onto main <branch-a-tip-before-merge> <branch-b>
+git push --force-with-lease origin <branch-b>
+```
+
+Use this only when the dependency is clear. If the old base tip is uncertain, inspect the graph first and stop if the branch relationship is ambiguous.
 
 ## Conflict handling
 
