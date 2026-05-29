@@ -1,4 +1,4 @@
-# PowerAction And PowerButton Reference
+# PowerAction and PowerButton Reference
 
 `PowerAction` and `PowerButton` live in `powercrud.actions`.
 

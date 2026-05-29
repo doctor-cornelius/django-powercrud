@@ -1,4 +1,4 @@
-# PowerAction And PowerButton
+# PowerAction and PowerButton
 
 `PowerAction` and `PowerButton` are Structured Declaration API objects for reusable `extra_actions` and `extra_buttons` declarations.
 
@@ -202,4 +202,4 @@ The older `disabled_if` and `disabled_reason` pair still works. Do not combine t
 
 ## Reference
 
-See [Choosing an API Style](structured_api/index.md), [Structured API Recipes](structured_api/recipes.md), and [PowerAction And PowerButton Reference](../reference/poweractions.md) for constructor parameters, defaults, and validation rules.
+See [Choosing an API Style](structured_api/index.md), [Structured API Recipes](structured_api/recipes.md), and [PowerAction and PowerButton Reference](../reference/poweractions.md) for constructor parameters, defaults, and validation rules.

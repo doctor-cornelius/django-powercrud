@@ -1,13 +1,13 @@
 nav:
-  - config_options.md
-  - powerfields.md
-  - poweractions.md
-  - hooks.md
-  - complete_example.md
-  - mgmt_commands.md
-  - sample_app.md
-  - async.md
-  - dockerised_dev.md
-  - testing.md
-  - renovate.md
-  - enhancements.md
+  - Configuration Options: config_options.md
+  - PowerField Reference: powerfields.md
+  - PowerAction and PowerButton Reference: poweractions.md
+  - Hooks: hooks.md
+  - Complete Example: complete_example.md
+  - Management Commands: mgmt_commands.md
+  - Sample App: sample_app.md
+  - Async Architecture: async.md
+  - Dockerised Development: dockerised_dev.md
+  - Testing: testing.md
+  - Renovate: renovate.md
+  - Enhancements: enhancements.md

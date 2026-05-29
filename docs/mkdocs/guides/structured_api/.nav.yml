@@ -1,6 +1,6 @@
 title: Structured API
 nav:
-  - index.md
-  - ../powerfields.md
-  - ../poweractions.md
-  - recipes.md
+  - Choosing an API Style: index.md
+  - PowerField: ../powerfields.md
+  - PowerAction and PowerButton: ../poweractions.md
+  - Structured API Recipes: recipes.md
