@@ -36,7 +36,7 @@ PowerField(
     form=False,
     form_display=False,
     form_disabled=False,
-    tooltip=False,
+    tooltip_hook=None,
     detail=False,
     list=False,
     default_list=False,
@@ -65,7 +65,6 @@ PowerField(
         | `inline=True` | `inline_edit_fields` | Include the editable model field in inline editing. |
         | `bulk=True` | `bulk_fields` | Include the editable model field in bulk editing. |
         | `default_list=True` | `fields` or `properties`, plus `default_list_fields` | Include the name in the list allow-list and in the default visible list columns. |
-        | `tooltip=True` | `list_cell_tooltip_fields` | Register the visible list cell for semantic tooltip lookup. |
 
     === "Dict kwargs"
 
@@ -78,6 +77,14 @@ PowerField(
 
         `link` must be a metadata dict. There is no `link=True` shorthand.
 
+    === "Hook kwargs"
+
+        | Kwarg | Base configuration target | Meaning |
+        |-------|---------------------------|---------|
+        | `tooltip_hook="get_status_tooltip"` | `list_cell_tooltip_fields` | Map the visible list cell to a row-specific tooltip hook. |
+
+        The hook must exist on the view and accept `(obj, request=None)`.
+
 ### Copying With Changes
 
 Use `with_options(**changes)` to derive a new declaration from an existing `PowerField`:
@@ -86,7 +93,7 @@ Use `with_options(**changes)` to derive a new declaration from an existing `Powe
 ACTION_STATUS = PowerField(
     "status",
     default_list=True,
-    tooltip=True,
+    tooltip_hook="get_status_tooltip",
     bulk=True,
 )
 
@@ -163,6 +170,7 @@ PowerCRUD validates PowerField declarations early.
 - At most one `PowerOverride` is allowed.
 - `PowerOverride` must be the first entry if present.
 - A `PowerField` name must be a non-empty string.
+- `tooltip_hook` must be a non-empty string when supplied.
 - A field cannot be explicitly included and excluded from the same dimension.
 - Boolean options must be `True` or `False`.
 - `exclude` must be a dict using supported exclude dimensions.
@@ -172,7 +180,7 @@ PowerCRUD validates PowerField declarations early.
 - `detail_property=True` cannot be combined with `detail=True`.
 - `form=True` cannot be combined with `form_display=True`.
 - `default_list=True` cannot be combined with list or property exclusion.
-- `tooltip`, `column`, and `link` require effective list visibility through `list=True`, `property=True`, or `default_list=True`.
+- `tooltip_hook`, `column`, and `link` require effective list visibility through `list=True`, `property=True`, or `default_list=True`.
 
 Invalid `power_fields` config raises `ImproperlyConfigured` when PowerCRUD resolves class config.
 

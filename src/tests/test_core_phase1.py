@@ -1148,14 +1148,14 @@ def test_table_mixin_get_column_alignments_prefers_configured_mapping():
     )
 
 
-def test_table_mixin_get_list_cell_tooltip_fields_defaults_to_empty_list():
+def test_table_mixin_get_list_cell_tooltip_fields_defaults_to_empty_mapping():
     class TableView(TableMixin):
         model = Author
 
     view = TableView()
 
-    assert view.get_list_cell_tooltip_fields() == [], (
-        "List cell tooltip fields should default to an empty list when no semantic cell tooltips are configured."
+    assert view.get_list_cell_tooltip_fields() == {}, (
+        "List cell tooltip fields should default to an empty mapping when no semantic cell tooltips are configured."
     )
 
 
@@ -1168,6 +1168,18 @@ def test_table_mixin_get_list_cell_tooltip_fields_prefers_configured_list():
 
     assert view.get_list_cell_tooltip_fields() == ["name", "has_bio"], (
         "List cell tooltip fields should use the configured ordered list when provided."
+    )
+
+
+def test_table_mixin_get_list_cell_tooltip_fields_prefers_configured_mapping():
+    class TableView(TableMixin):
+        model = Author
+        list_cell_tooltip_fields = {"name": "get_name_tooltip"}
+
+    view = TableView()
+
+    assert view.get_list_cell_tooltip_fields() == {"name": "get_name_tooltip"}, (
+        "List cell tooltip fields should use the configured hook mapping when provided."
     )
 
 
@@ -1560,6 +1572,36 @@ def test_list_cell_tooltip_fields_blank_value_raises():
 
     with pytest.raises(ImproperlyConfigured):
         BrokenView()
+
+
+def test_list_cell_tooltip_fields_mapping_blank_value_raises():
+    class BrokenView(CoreMixin):
+        model = Author
+        fields = ["name"]
+        list_cell_tooltip_fields = {"name": "   "}
+
+    with pytest.raises(ImproperlyConfigured):
+        BrokenView()
+
+
+def test_list_cell_tooltip_fields_mixed_style_raises():
+    class BrokenView(CoreMixin):
+        model = Author
+        fields = ["name"]
+        list_cell_tooltip_fields = ["name", {"has_bio": "get_has_bio_tooltip"}]
+
+    with pytest.raises(ImproperlyConfigured):
+        BrokenView()
+
+
+def test_list_cell_tooltip_fields_legacy_list_warns():
+    class LegacyView(CoreMixin):
+        model = Author
+        fields = ["name"]
+        list_cell_tooltip_fields = ["name"]
+
+    with pytest.warns(FutureWarning, match="list_cell_tooltip_fields as a list"):
+        LegacyView()
 
 
 def test_url_mixin_get_prefix_handles_namespace():
@@ -2342,10 +2384,8 @@ def test_profile_list_renders_centered_categorical_columns(client, monkeypatch):
 def test_book_list_escapes_semantic_list_cell_tooltip_html(client, monkeypatch):
     """Escape HTML-like semantic cell tooltip text so list-cell tooltips remain plain text only."""
     monkeypatch.setattr(
-        "sample.views.BookCRUDView.get_list_cell_tooltip",
-        lambda self, obj, field_name, *, is_property, request=None: (
-            "<strong>Unsafe</strong>" if field_name == "title" else None
-        ),
+        "sample.views.BookCRUDView.get_title_tooltip",
+        lambda self, obj, request=None: "<strong>Unsafe</strong>",
         raising=False,
     )
 

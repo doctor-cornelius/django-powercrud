@@ -69,7 +69,7 @@ class ConfigMixin:
     view_help_min_width: str = "40rem"
     column_help_text: dict[str, str] | None = None
     column_alignments: dict[str, str] | None = None
-    list_cell_tooltip_fields: list[str] | None = None
+    list_cell_tooltip_fields: list[str] | dict[str, str] | None = None
     list_cell_link_default_open_in: str = "new"
     link_fields: dict[str, Any] | None = None
     column_sort_fields_override: dict[str, str] | None = None
@@ -220,7 +220,6 @@ class ConfigMixin:
         "form_disabled_fields",
         "bulk_fields",
         "inline_edit_fields",
-        "list_cell_tooltip_fields",
         "filter_null_fields_exclude",
         "default_filterset_fields",
         "default_list_fields",
@@ -311,6 +310,8 @@ class ConfigMixin:
             )
 
         self._normalize_declared_string_lists()
+        self._normalize_list_cell_tooltip_fields()
+        self._warn_list_cell_tooltip_fields_legacy()
         self._configure_fields()
         self._configure_properties()
         self._configure_default_list_fields()
@@ -367,6 +368,29 @@ class ConfigMixin:
             value = getattr(self, attr_name, None)
             if isinstance(value, list):
                 setattr(self, attr_name, self._dedupe_preserving_first(value))
+
+    def _normalize_list_cell_tooltip_fields(self) -> None:
+        """
+        Normalize list-cell tooltip config while preserving legacy list support.
+        """
+        value = getattr(self, "list_cell_tooltip_fields", None)
+        if isinstance(value, list):
+            self.list_cell_tooltip_fields = self._dedupe_preserving_first(value)
+        elif isinstance(value, dict):
+            self.list_cell_tooltip_fields = dict(value)
+
+    def _warn_list_cell_tooltip_fields_legacy(self) -> None:
+        """
+        Warn when a view still uses the legacy list-cell tooltip list shape.
+        """
+        if not isinstance(getattr(self, "list_cell_tooltip_fields", None), list):
+            return
+        warnings.warn(
+            'list_cell_tooltip_fields as a list is deprecated and targeted for '
+            'removal before v1.0; use {"field_name": "hook_name"} instead.',
+            FutureWarning,
+            stacklevel=2,
+        )
 
     def _configure_fields(self):
         if (
@@ -1436,6 +1460,13 @@ class _ConfigShim:
             if value not in {"current", "new", "modal"}:
                 return "new"
             return value
+        if name == "list_cell_tooltip_fields":
+            value = self._raw("list_cell_tooltip_fields", {}) or {}
+            if isinstance(value, dict):
+                return dict(value)
+            if isinstance(value, list):
+                return ConfigMixin._dedupe_preserving_first(value)
+            return {}
         if name == "base_template_path":
             # Do not invent a default; projects must set this explicitly.
             return self._raw("base_template_path")
@@ -1448,7 +1479,6 @@ class _ConfigShim:
             "detail_fields",
             "detail_properties",
             "filterset_fields",
-            "list_cell_tooltip_fields",
         }:
             return ConfigMixin._dedupe_preserving_first(self._raw(name, []) or [])
         if name in {

@@ -261,14 +261,16 @@ class TableMixin:
             return dict(configured_alignments)
         return {}
 
-    def get_list_cell_tooltip_fields(self) -> list[str]:
+    def get_list_cell_tooltip_fields(self) -> list[str] | dict[str, str]:
         """
-        Return the rendered list fields/properties eligible for semantic tooltips.
+        Return rendered list fields/properties configured for semantic tooltips.
         """
         configured_fields = resolve_config(self).list_cell_tooltip_fields
+        if isinstance(configured_fields, dict):
+            return dict(configured_fields)
         if isinstance(configured_fields, list):
             return list(configured_fields)
-        return []
+        return {}
 
     def get_link_fields(self) -> dict[str, dict[str, Any]]:
         """

@@ -445,29 +445,35 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
 
 ### List-cell tooltips
 
-If you want semantic tooltips for selected rendered list cells, configure `list_cell_tooltip_fields` and override `get_list_cell_tooltip(...)`:
+If you want semantic tooltips for selected rendered list cells, map each field or property to a tooltip hook:
 
 ```python
 class ProjectCRUDView(PowerCRUDMixin, CRUDView):
     # …
-    list_cell_tooltip_fields = ["owner", "display_status"]
+    list_cell_tooltip_fields = {
+        "owner": "get_owner_tooltip",
+        "display_status": "get_display_status_tooltip",
+    }
 
-    def get_list_cell_tooltip(self, obj, field_name, *, is_property, request=None):
-        if field_name == "owner":
-            return f"{obj.owner.email} ({obj.owner.team.name})"
-        if field_name == "display_status":
-            return obj.status_explanation
-        return None
+    def get_owner_tooltip(self, obj, request=None):
+        return f"{obj.owner.email} ({obj.owner.team.name})"
+
+    def get_display_status_tooltip(self, obj, request=None):
+        return obj.status_explanation
 ```
 
-`list_cell_tooltip_fields` is opt-in. PowerCRUD only calls `get_list_cell_tooltip(...)` for rendered list fields or properties named in that list, and silently ignores configured names that are not actually visible in the table. Return plain text or `None`.
+`list_cell_tooltip_fields` is opt-in. PowerCRUD only calls configured tooltip hooks for rendered list fields or properties named in the mapping, and silently ignores configured names that are not actually visible in the table. Return plain text or `None`.
 
-Hook-backed semantic list-cell tooltip text may include newline characters when a tooltip should display as multiple lines. That multiline rendering is limited to semantic list-cell tooltips returned by `get_list_cell_tooltip(...)`; header-help and other tooltip surfaces keep their existing behavior.
+Hook-backed semantic list-cell tooltip text may include newline characters when a tooltip should display as multiple lines. That multiline rendering is limited to semantic list-cell tooltips returned by the configured hook; header-help and other tooltip surfaces keep their existing behavior.
+
+!!! warning "Deprecated generic tooltip hook"
+
+    `list_cell_tooltip_fields = ["owner"]` with `get_list_cell_tooltip(...)` still works for compatibility, but it is deprecated and targeted for removal before v1.0. See [Deprecations](../reference/deprecations.md).
 
 Tooltip behavior stays layered:
 
 - `column_help_text` is header help only.
-- `list_cell_tooltip_fields` plus `get_list_cell_tooltip(...)` provides semantic per-cell tooltip text for selected rendered columns.
+- `list_cell_tooltip_fields = {"field": "hook_name"}` provides semantic per-cell tooltip text for selected rendered columns.
 - Unconfigured cells keep the built-in overflow tooltip behavior when their rendered content is truncated.
 
 When a semantic list-cell tooltip is configured for a cell, it takes precedence over the overflow tooltip for that same cell. PowerCRUD continues to use the model verbose names for other copy such as `Create project` and empty-state text, and `view_instructions`, `view_help`, `column_help_text`, and semantic list-cell tooltip text are all escaped plain text rather than HTML.

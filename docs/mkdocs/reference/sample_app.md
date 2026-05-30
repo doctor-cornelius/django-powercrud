@@ -75,7 +75,11 @@ class BookCRUDView(PowerCRUDAsyncMixin, CRUDView):
             "Demo link: opens the related author detail in a larger PowerCRUD modal."
         ),
     }
-    list_cell_tooltip_fields = ["title", "pages", "isbn_empty"]
+    list_cell_tooltip_fields = {
+        "title": "get_title_tooltip",
+        "pages": "get_pages_tooltip",
+        "isbn_empty": "get_isbn_empty_tooltip",
+    }
     list_cell_link_default_open_in = "modal"
     list_options_enabled = True
     default_list_fields = [
@@ -131,21 +135,19 @@ class BookCRUDView(PowerCRUDAsyncMixin, CRUDView):
     extra_buttons = [...]  # Includes a selection-aware "Selected Summary" demo
     extra_actions = [...]  # Includes a conditional "Description Preview" demo
 
-    def get_list_cell_tooltip(self, obj, field_name, *, is_property, request=None):
-        if field_name == "title":
-            return f"{obj.author}\n{obj.pages} pages"
-        if field_name == "pages":
-            return f"Page count: {obj.pages}"
-        if field_name == "isbn_empty":
-            return (
-                "This book does not currently have an ISBN."
-                if obj.isbn_empty
-                else f"ISBN: {obj.isbn}"
-            )
-        return None
+    def get_title_tooltip(self, obj, request=None):
+        return f"{obj.author}\n{obj.pages} pages"
+
+    def get_pages_tooltip(self, obj, request=None):
+        return f"Page count: {obj.pages}"
+
+    def get_isbn_empty_tooltip(self, obj, request=None):
+        if obj.isbn_empty:
+            return "This book does not currently have an ISBN."
+        return f"ISBN: {obj.isbn}"
 ```
 
-The sample `BookCRUDView` uses `view_title = "My List of Books"` plus `view_instructions = "Here you can edit books"` to demonstrate the narrow heading/helper-text overrides. It also sets `view_help` to demonstrate collapsed screen-level guidance with a one-line summary, escaped paragraph text, a subtle `info` colour tint, and table-aligned width. The `column_help_text` mapping covers one field and one property so the sample list shows the header-help tooltip pattern; on linked demo columns, the header help explicitly says whether the link opens in the current page, a new tab/window, or the PowerCRUD modal. `list_cell_tooltip_fields` plus `get_list_cell_tooltip(...)` demonstrates semantic field-level tooltips on the inline-editable `title`, the visible non-inline `pages` field, and the boolean-like `isbn_empty` property cell. The sample `title` tooltip intentionally uses a newline so the demo shows multiline semantic list-cell tooltip rendering, while header-help tooltips and other tooltip surfaces keep their normal single-line behavior. That changes only the list surface above and inside the table; other UI copy such as the create button still comes from the model verbose names, and the instructions text, collapsed screen help, header help text, and semantic cell tooltip text are all rendered as plain escaped text rather than HTML.
+The sample `BookCRUDView` uses `view_title = "My List of Books"` plus `view_instructions = "Here you can edit books"` to demonstrate the narrow heading/helper-text overrides. It also sets `view_help` to demonstrate collapsed screen-level guidance with a one-line summary, escaped paragraph text, a subtle `info` colour tint, and table-aligned width. The `column_help_text` mapping covers one field and one property so the sample list shows the header-help tooltip pattern; on linked demo columns, the header help explicitly says whether the link opens in the current page, a new tab/window, or the PowerCRUD modal. `list_cell_tooltip_fields` maps selected fields/properties to row-specific tooltip hooks for the inline-editable `title`, the visible non-inline `pages` field, and the boolean-like `isbn_empty` property cell. The sample `title` tooltip intentionally uses a newline so the demo shows multiline semantic list-cell tooltip rendering, while header-help tooltips and other tooltip surfaces keep their normal single-line behavior. That changes only the list surface above and inside the table; other UI copy such as the create button still comes from the model verbose names, and the instructions text, collapsed screen help, header help text, and semantic cell tooltip text are all rendered as plain escaped text rather than HTML.
 
 The same sample view now also demonstrates list-cell linking through the narrow declarative `link_fields` API. The live sample uses the non-inline property column `a_really_long_property_header_for_title` so the screen can keep its primary `title` and `author` columns reserved for inline-edit and dependency demos. That is deliberate: PowerCRUD never turns inline-editable cells into links. The sample sets `list_cell_link_default_open_in = "modal"` and uses the dict form with `pk_attr = "author_id"` plus `modal_box_classes`, so that existing non-inline link opens the related author detail through a noticeably larger PowerCRUD modal when the sample page is running with modal support. In views that omit `list_cell_link_default_open_in`, PowerCRUD assumes `"new"`. The sample links `pages` to the current book detail with explicit `open_in = "current"`, and keeps `isbn` out of `inline_edit_fields` so that visible field can link to a static external ISBN reference with explicit `open_in = "new"`.
 
@@ -247,7 +249,7 @@ class PowerFieldBookCRUDView(PowerCRUDAsyncMixin, CRUDView):
         PowerField(
             "title",
             default_list=True,
-            tooltip=True,
+            tooltip_hook="get_title_tooltip",
             form=True,
             inline=True,
             bulk=True,
@@ -269,7 +271,7 @@ class PowerFieldBookCRUDView(PowerCRUDAsyncMixin, CRUDView):
         PowerField(
             "pages",
             default_list=True,
-            tooltip=True,
+            tooltip_hook="get_pages_tooltip",
             form=True,
             bulk=True,
             link={
@@ -282,11 +284,22 @@ class PowerFieldBookCRUDView(PowerCRUDAsyncMixin, CRUDView):
             property=True,
             detail_property=True,
             default_list=True,
-            tooltip=True,
+            tooltip_hook="get_isbn_empty_tooltip",
         ),
         PowerField("description", form=True, inline=True),
         PowerField("uneditable_field", form_display=True),
     ]
+
+    def get_title_tooltip(self, obj, request=None):
+        return f"{obj.author}\n{obj.pages} pages"
+
+    def get_pages_tooltip(self, obj, request=None):
+        return f"Page count: {obj.pages}"
+
+    def get_isbn_empty_tooltip(self, obj, request=None):
+        if obj.isbn_empty:
+            return "This book does not currently have an ISBN."
+        return f"ISBN: {obj.isbn}"
 
     row_modal = PowerAction(
         text="Normal Edit",

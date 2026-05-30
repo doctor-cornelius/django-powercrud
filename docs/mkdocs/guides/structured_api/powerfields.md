@@ -60,7 +60,9 @@ Base configuration is direct and remains the baseline. PowerField is useful when
         inline_edit_fields = ["title"]
         bulk_fields = ["title"]
         default_list_fields = ["title", "author"]
-        list_cell_tooltip_fields = ["title"]
+        list_cell_tooltip_fields = {
+            "title": "get_title_tooltip",
+        }
         ```
 
     === "PowerField"
@@ -74,7 +76,7 @@ Base configuration is direct and remains the baseline. PowerField is useful when
                 inline=True,
                 bulk=True,
                 default_list=True,
-                tooltip=True,
+                tooltip_hook="get_title_tooltip",
             ),
             PowerField(
                 "author",
@@ -95,7 +97,7 @@ Prefer one `PowerField` entry per field.
 PowerField(
     "title",
     default_list=True,
-    tooltip=True,
+    tooltip_hook="get_title_tooltip",
     form=True,
     inline=True,
     bulk=True,
@@ -111,7 +113,7 @@ Start with the boolean kwargs for field roles. Add dict kwargs such as `column={
 PowerCRUD also supports repeating a field across multiple declarations. The compiler merges and de-duplicates the generated base lists, so this works:
 
 ```python
-PowerField("title", default_list=True, tooltip=True)
+PowerField("title", default_list=True, tooltip_hook="get_title_tooltip")
 PowerField("title", form=True)
 PowerField("title", inline=True, bulk=True)
 ```
@@ -126,7 +128,7 @@ Use `with_options(...)` when related views share most of a field declaration but
 ACTION_STATUS = PowerField(
     "status",
     default_list=True,
-    tooltip=True,
+    tooltip_hook="get_status_tooltip",
     bulk=True,
 )
 
@@ -181,7 +183,7 @@ This is explicit. In PowerField mode, absent dimensions do not fall through to t
 
 ## List Columns, Properties, Help, Links, And Tooltips
 
-Field Intent can also include list-column defaults, properties, header help, semantic tooltip registration, and declarative links.
+Field Intent can also include list-column defaults, properties, header help, semantic tooltip hooks, and declarative links.
 
 ??? example "Book list columns"
 
@@ -201,7 +203,10 @@ Field Intent can also include list-column defaults, properties, header help, sem
             "pages": "Demo link: opens this book detail in the current page.",
             "isbn_empty": "Shows whether this row currently has an ISBN value.",
         }
-        list_cell_tooltip_fields = ["pages", "isbn_empty"]
+        list_cell_tooltip_fields = {
+            "pages": "get_pages_tooltip",
+            "isbn_empty": "get_isbn_empty_tooltip",
+        }
         link_fields = {
             "pages": {
                 "view_name": "sample:bigbook-detail",
@@ -221,7 +226,7 @@ Field Intent can also include list-column defaults, properties, header help, sem
             PowerField(
                 "pages",
                 default_list=True,
-                tooltip=True,
+                tooltip_hook="get_pages_tooltip",
                 column={
                     "help_text": (
                         "Demo link: opens this book detail in the current page."
@@ -236,7 +241,7 @@ Field Intent can also include list-column defaults, properties, header help, sem
                 "isbn_empty",
                 property=True,
                 default_list=True,
-                tooltip=True,
+                tooltip_hook="get_isbn_empty_tooltip",
                 column={
                     "help_text": "Shows whether this row currently has an ISBN value.",
                 },
@@ -248,14 +253,14 @@ Field Intent can also include list-column defaults, properties, header help, sem
         ]
         ```
 
-`tooltip=True` only registers the field. Tooltip text still belongs in `get_list_cell_tooltip(...)`.
+`tooltip_hook="..."` maps the visible list cell to a row-specific hook. The hook must exist on the view and returns plain text or `None`.
 
 ```python
-def get_list_cell_tooltip(self, obj, field_name, *, is_property, request=None):
-    if field_name == "pages":
-        return f"Page count: {obj.pages}"
-    return None
+def get_pages_tooltip(self, obj, request=None):
+    return f"Page count: {obj.pages}"
 ```
+
+Use `column={"help_text": "..."}` for column-header help. Use `tooltip_hook="..."` only for row-specific list-cell tooltips.
 
 `link={...}` accepts the same metadata supported by base `link_fields`. There is no `link=True` shorthand because PowerCRUD needs the link target metadata.
 

@@ -15,7 +15,7 @@ If you want step-by-step walkthroughs rather than contracts, start with the adva
     |------|---------|
     | `get_queryset()` | Use this when you want to change which records the view works with in the first place, such as scoping rows to the current user, tenant, or workflow state. |
     | `get_context_data()` | Use this only when the template needs extra data that does not already come from PowerCRUD, such as a help panel, extra summary values, or feature flags for custom UI. |
-    | `get_list_cell_tooltip()` | Use this when selected rendered list fields or properties should show semantic tooltip text that comes from the current row, for example expanded status context, related metadata, or a friendlier explanation behind an icon/badge cell. |
+    | `get_list_cell_tooltip()` | Deprecated generic hook for legacy `list_cell_tooltip_fields = [...]` declarations. Prefer field-specific hooks through `list_cell_tooltip_fields = {"field": "hook"}`. |
     | `get_list_cell_link()` | Use this when a rendered list cell should navigate somewhere conditionally, or when the narrow declarative `link_fields` config is not expressive enough. |
     | `get_filter_queryset_for_field()` | Use this when a filter-form dropdown should not show every possible related record, for example when you only want active owners, visible categories, or tenant-scoped choices. |
     | `get_field_queryset_dependencies()` | Use this when you want to refine, filter, or inspect the declarative `field_queryset_dependencies` metadata before PowerCRUD applies it to forms or derives inline dependency wiring. |
@@ -98,8 +98,8 @@ Upgrade notes:
 
 ### `get_list_cell_tooltip()`
 
-- Purpose: Use this when selected rendered list fields or properties should show semantic tooltip text that comes from the current row, for example expanded status context, related metadata, or a friendlier explanation behind an icon/badge cell.
-- When it is called: During list-row rendering, but only for rendered fields/properties named in `list_cell_tooltip_fields`.
+- Purpose: Legacy generic hook for semantic tooltip text that comes from the current row.
+- When it is called: During list-row rendering, but only when `list_cell_tooltip_fields` uses the deprecated list form.
 - Signature: `def get_list_cell_tooltip(self, obj, field_name, *, is_property, request=None)`
 - Default behavior: Returns `None`, so no semantic list-cell tooltip is shown.
 - Key arguments:
@@ -108,23 +108,26 @@ Upgrade notes:
     - `is_property`: `True` when the cell comes from `properties`, otherwise `False`.
     - `request`: The current request when available.
 - Return contract: A plain string tooltip, or `None` when no semantic tooltip should be shown for that cell.
+- Important note: Prefer `list_cell_tooltip_fields = {"field": "get_field_tooltip"}` with field-specific hooks. The list form shown below is deprecated and targeted for removal before v1.0.
 - Important note: PowerCRUD only calls this hook for configured names that are actually rendered in the list. Configured names not present in the current list are ignored silently.
 - Important note: Semantic list-cell tooltips take precedence over the fallback overflow tooltip for the same cell, but existing blocked-inline tooltip states still win when the row is not editable inline.
 - Important note: Returned text may contain newline characters. PowerCRUD preserves those as multiple displayed lines for hook-backed semantic list-cell tooltips only.
-- Short example:
+- Deprecated example:
 
-    ```python
-    list_cell_tooltip_fields = ["status", "has_invoice"]
+    !!! warning "Deprecated list form"
 
-    def get_list_cell_tooltip(self, obj, field_name, *, is_property, request=None):
-        if field_name == "status":
-            return obj.status_explanation
-        if field_name == "has_invoice":
-            return "Invoice attached" if obj.has_invoice else "Invoice missing"
-        return None
-    ```
+        ```python
+        list_cell_tooltip_fields = ["status", "has_invoice"]
 
-- Related docs: [Setup & Core CRUD basics](../guides/setup_core_crud.md), [Sample app overview](sample_app.md)
+        def get_list_cell_tooltip(self, obj, field_name, *, is_property, request=None):
+            if field_name == "status":
+                return obj.status_explanation
+            if field_name == "has_invoice":
+                return "Invoice attached" if obj.has_invoice else "Invoice missing"
+            return None
+        ```
+
+- Related docs: [Setup & Core CRUD basics](../guides/setup_core_crud.md), [Deprecations](deprecations.md), [Sample app overview](sample_app.md)
 
 ### `get_list_cell_link()`
 

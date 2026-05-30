@@ -17,6 +17,7 @@ from datetime import date, datetime  # Import both date and datetime classes
 from typing import Any, Dict, List, Optional
 
 from django import template
+from django.core.exceptions import ImproperlyConfigured
 from django.utils.html import conditional_escape
 from django.utils.safestring import mark_safe
 from django.utils.translation import gettext_lazy as _
@@ -443,10 +444,25 @@ def _resolve_list_cell_tooltip(
     field_name: str,
     is_property: bool,
     request: Any,
+    hook_name: str | None = None,
 ) -> str | None:
     """
     Resolve a plain-text semantic tooltip for one rendered list cell.
     """
+    if hook_name is not None:
+        resolver = getattr(view, hook_name, None)
+        if not callable(resolver):
+            raise ImproperlyConfigured(
+                "list_cell_tooltip_fields configured "
+                f"{field_name!r} with missing or non-callable hook "
+                f"{hook_name!r}."
+            )
+        tooltip_text = resolver(obj, request=request)
+        if tooltip_text is None:
+            return None
+        tooltip_text = str(tooltip_text).strip()
+        return tooltip_text or None
+
     resolver = getattr(view, "get_list_cell_tooltip", None)
     if not callable(resolver):
         return None
@@ -1019,20 +1035,27 @@ def object_list(context, objects, view):
     if not isinstance(column_alignments, dict):
         column_alignments = {}
 
-    configured_cell_tooltip_fields = _resolve_view_option(
+    configured_cell_tooltips = _resolve_view_option(
         view,
         method_name="get_list_cell_tooltip_fields",
         attr_name="list_cell_tooltip_fields",
         default=[],
     )
-    if not isinstance(configured_cell_tooltip_fields, list):
-        configured_cell_tooltip_fields = []
     rendered_column_names = set(fields) | set(properties)
-    eligible_cell_tooltip_fields = {
-        field_name
-        for field_name in configured_cell_tooltip_fields
-        if field_name in rendered_column_names
-    }
+    if isinstance(configured_cell_tooltips, dict):
+        eligible_cell_tooltip_fields = {
+            field_name: hook_name
+            for field_name, hook_name in configured_cell_tooltips.items()
+            if field_name in rendered_column_names
+        }
+    elif isinstance(configured_cell_tooltips, list):
+        eligible_cell_tooltip_fields = {
+            field_name: None
+            for field_name in configured_cell_tooltips
+            if field_name in rendered_column_names
+        }
+    else:
+        eligible_cell_tooltip_fields = {}
 
     # Create header metadata for each field
     headers = []
@@ -1272,6 +1295,7 @@ def object_list(context, objects, view):
                             field_name=f,
                             is_property=False,
                             request=request,
+                            hook_name=eligible_cell_tooltip_fields.get(f),
                         )
                         if f in eligible_cell_tooltip_fields
                         else None
@@ -1327,6 +1351,7 @@ def object_list(context, objects, view):
                             field_name=prop,
                             is_property=True,
                             request=request,
+                            hook_name=eligible_cell_tooltip_fields.get(prop),
                         )
                         if prop in eligible_cell_tooltip_fields
                         else None

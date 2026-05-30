@@ -340,7 +340,6 @@ def test_powerfield_book_sample_view_matches_book_field_intent_config():
         "form_display_fields",
         "form_disabled_fields",
         "default_list_fields",
-        "list_cell_tooltip_fields",
         "field_queryset_dependencies",
         "column_help_text",
         "column_alignments",
@@ -396,6 +395,14 @@ def test_powerfield_book_sample_view_matches_book_field_intent_config():
     assert "description" not in powerfield_view.fields, (
         "PowerFieldBookCRUDView should keep the form-only description field out "
         "of the rendered list allow-list without needing exclude=['description']."
+    )
+    assert powerfield_view.list_cell_tooltip_fields == {
+        "title": "get_title_tooltip",
+        "pages": "get_pages_tooltip",
+        "isbn_empty": "get_isbn_empty_tooltip",
+    }, (
+        "PowerFieldBookCRUDView should compile tooltip_hook declarations to the "
+        "preferred primitive tooltip hook mapping."
     )
 
     primitive_links = primitive_view.link_fields
