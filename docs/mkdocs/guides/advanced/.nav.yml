@@ -7,4 +7,4 @@ nav:
   - Saved Favourites: filter_favourites.md
   - Persistence Hooks: persistence_hooks_sync.md
   - Async Bulk Persistence: persistence_hooks_async_bulk.md
-  - Customisation tips: ../customisation_tips.md
+  - Customisation tips: customisation_tips.md

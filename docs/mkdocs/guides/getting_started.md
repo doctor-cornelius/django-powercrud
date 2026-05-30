@@ -364,7 +364,7 @@ That's it! You now have a fully-featured CRUD interface with filtering, paginati
 
 ## Next Steps
 
-- **[Core configuration](./setup_core_crud.md#3-shape-list-detail-and-form-scopes)** - Field control and basic settings
+- **[Core configuration](./setup_core_crud.md#3-shape-list-and-detail-scopes)** - Field control and basic settings
 - **[HTMX & Modals](./setup_core_crud.md#modals)** - Interactive features
 - **[Filtering](./setup_core_crud.md#filtering-sorting)** - Advanced search and filter options
 - **[Bulk operations](./bulk_edit_sync.md)** - Edit multiple records at once

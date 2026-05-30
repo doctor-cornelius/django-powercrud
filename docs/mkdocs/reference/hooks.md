@@ -75,7 +75,7 @@ Upgrade notes:
 - Default behavior: Calls the parent `get_queryset()` first, so the usual Neapolitan behavior still applies. That means an explicit class `queryset` is still respected, otherwise PowerCRUD falls back to `model._default_manager.all()`. PowerCRUD then applies sort handling and adds a stable secondary `pk` sort.
 - Return contract: A queryset for the current view.
 - Important note: If you override this, call `super().get_queryset()` unless you intentionally want to replace PowerCRUD's default sort behavior too.
-- Related docs: [Setup & Core CRUD basics](../guides/setup_core_crud.md), [Customisation tips](../guides/customisation_tips.md)
+- Related docs: [Setup & Core CRUD basics](../guides/setup_core_crud.md), [Customisation tips](../guides/advanced/customisation_tips.md)
 
 ### `get_context_data()`
 
@@ -94,7 +94,7 @@ Upgrade notes:
         return context
     ```
 
-- Related docs: [Forms](../guides/forms.md), [Customisation tips](../guides/customisation_tips.md)
+- Related docs: [Forms](../guides/forms.md), [Customisation tips](../guides/advanced/customisation_tips.md)
 
 ### `get_list_cell_tooltip()`
 
@@ -197,7 +197,7 @@ Upgrade notes:
         return queryset
     ```
 
-- Related docs: [Forms](../guides/forms.md), [Customisation tips](../guides/customisation_tips.md)
+- Related docs: [Forms](../guides/forms.md), [Customisation tips](../guides/advanced/customisation_tips.md)
 
 ### `get_field_queryset_dependencies()`
 
@@ -236,7 +236,7 @@ Upgrade notes:
         return book
     ```
 
-- Related docs: [Forms](../guides/forms.md#persisting-validated-standard-forms), [Inline editing](../guides/inline_editing.md#persisting-validated-inline-rows), [Customisation tips](../guides/customisation_tips.md)
+- Related docs: [Forms](../guides/forms.md#persisting-validated-standard-forms), [Inline editing](../guides/inline_editing.md#persisting-validated-inline-rows), [Customisation tips](../guides/advanced/customisation_tips.md)
 
 ### `persist_bulk_update()`
 
@@ -292,7 +292,7 @@ Upgrade notes:
         }
     ```
 
-- Related docs: [Bulk editing (synchronous)](../guides/bulk_edit_sync.md#routing-sync-bulk-updates-through-one-hook), [Customisation tips](../guides/customisation_tips.md)
+- Related docs: [Bulk editing (synchronous)](../guides/bulk_edit_sync.md#routing-sync-bulk-updates-through-one-hook), [Customisation tips](../guides/advanced/customisation_tips.md)
 
 ---
 
@@ -316,7 +316,7 @@ Upgrade notes:
         return queryset
     ```
 
-- Related docs: [Bulk editing (synchronous)](../guides/bulk_edit_sync.md#dropdowns-choices), [Customisation tips](../guides/customisation_tips.md)
+- Related docs: [Bulk editing (synchronous)](../guides/bulk_edit_sync.md#dropdowns-choices), [Customisation tips](../guides/advanced/customisation_tips.md)
 
 ### `get_bulk_selection_key_suffix()`
 
@@ -332,7 +332,7 @@ Upgrade notes:
         return f"user_{self.request.user.pk}"
     ```
 
-- Related docs: [Bulk editing (synchronous)](../guides/bulk_edit_sync.md#4-selection-persistence), [Customisation tips](../guides/customisation_tips.md)
+- Related docs: [Bulk editing (synchronous)](../guides/bulk_edit_sync.md#4-selection-persistence), [Customisation tips](../guides/advanced/customisation_tips.md)
 
 ---
 
@@ -389,7 +389,7 @@ Upgrade notes:
         return not obj.is_canonical
     ```
 
-- Related docs: [Customisation tips](../guides/customisation_tips.md), [Sample app overview](sample_app.md)
+- Related docs: [Customisation tips](../guides/advanced/customisation_tips.md), [Sample app overview](sample_app.md)
 
 ### `get_delete_disabled_reason()`
 
