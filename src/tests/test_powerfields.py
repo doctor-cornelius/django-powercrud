@@ -21,7 +21,7 @@ def test_powerfield_extracts_list_style_primitive_fragment():
         form=True,
         inline=True,
         bulk=True,
-        tooltip=True,
+        tooltip_hook="get_status_tooltip",
     ).to_primitive_fragment()
 
     assert fragment == {
@@ -30,7 +30,7 @@ def test_powerfield_extracts_list_style_primitive_fragment():
         "form_fields": ["status"],
         "inline_edit_fields": ["status"],
         "bulk_fields": ["status"],
-        "list_cell_tooltip_fields": ["status"],
+        "list_cell_tooltip_fields": {"status": "get_status_tooltip"},
     }, "PowerField should expose list-style primitive contributions for one field."
 
 
@@ -118,7 +118,7 @@ def test_powerfield_rejects_bad_column_options():
 @pytest.mark.parametrize(
     "changes",
     [
-        {"tooltip": True},
+        {"tooltip_hook": "get_status_tooltip"},
         {"column": {"help_text": "Current status."}},
         {"link": {"view_name": "workflow:status-detail"}},
     ],
@@ -146,23 +146,40 @@ def test_powerfield_rejects_default_list_with_list_exclusion():
         PowerField("status", default_list=True, exclude={"list": True})
 
 
+@pytest.mark.parametrize("tooltip_hook", ["", "   ", 1])
+def test_powerfield_rejects_invalid_tooltip_hook(tooltip_hook):
+    with pytest.raises(ValueError, match="tooltip_hook"):
+        PowerField("status", default_list=True, tooltip_hook=tooltip_hook)
+
+
+def test_powerfield_rejects_removed_tooltip_kwarg():
+    with pytest.raises(TypeError, match="unexpected keyword"):
+        PowerField("status", default_list=True, tooltip=True)
+
+
 def test_powerfield_with_options_returns_changed_copy_without_mutating_original():
     original = PowerField(
         "status",
         default_list=True,
-        tooltip=True,
+        tooltip_hook="get_status_tooltip",
         bulk=True,
     )
 
-    copied = original.with_options(bulk=False)
+    copied = original.with_options(bulk=False, tooltip_hook="get_status_summary")
 
     assert copied is not original, "with_options should return a new PowerField."
     assert original.bulk is True, "with_options should not mutate the source field."
+    assert original.tooltip_hook == "get_status_tooltip", (
+        "with_options should not mutate the source tooltip hook."
+    )
     assert copied.bulk is False, "with_options should apply the requested change."
+    assert copied.tooltip_hook == "get_status_summary", (
+        "with_options should apply the requested tooltip hook change."
+    )
     assert copied.to_primitive_fragment() == {
         "fields": ["status"],
         "default_list_fields": ["status"],
-        "list_cell_tooltip_fields": ["status"],
+        "list_cell_tooltip_fields": {"status": "get_status_summary"},
     }, "The copied PowerField should compile with the changed options."
 
 
@@ -272,7 +289,7 @@ def test_powerfields_wire_into_core_mixin_primitive_config():
                 inline=True,
                 bulk=True,
                 default_list=True,
-                tooltip=True,
+                tooltip_hook="get_title_tooltip",
                 column={"help_text": "Book title.", "alignment": "center"},
                 link={"view_name": "sample:book-detail", "open_in": "modal"},
             ),
@@ -298,8 +315,8 @@ def test_powerfields_wire_into_core_mixin_primitive_config():
     assert view.default_list_fields == ["title"], (
         "PowerField(default_list=True) should become the primitive default_list_fields list."
     )
-    assert view.list_cell_tooltip_fields == ["title"], (
-        "PowerField(tooltip=True) should become the primitive tooltip field list."
+    assert view.list_cell_tooltip_fields == {"title": "get_title_tooltip"}, (
+        "PowerField(tooltip_hook=...) should become the primitive tooltip hook map."
     )
     assert view.column_help_text == {"title": "Book title."}, (
         "PowerField column help text should become primitive column_help_text."

@@ -10,4 +10,4 @@ nav:
   - Dockerised Development: dockerised_dev.md
   - Testing: testing.md
   - Renovate: renovate.md
-  - Enhancements: enhancements.md
+  - Deprecations: deprecations.md

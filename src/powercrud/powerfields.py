@@ -10,7 +10,6 @@ BOOLEAN_DIMENSIONS = (
     "form",
     "form_display",
     "form_disabled",
-    "tooltip",
     "detail",
     "list",
     "default_list",
@@ -29,7 +28,6 @@ LIST_DIMENSIONS = {
     "inline": "inline_edit_fields",
     "list": "fields",
     "property": "properties",
-    "tooltip": "list_cell_tooltip_fields",
 }
 
 OVERRIDE_DIMENSIONS = {
@@ -47,7 +45,7 @@ EXCLUDE_DIMENSIONS = {
     "property": "properties_exclude",
 }
 
-LIST_CELL_METADATA_OPTIONS = ("tooltip", "column", "link")
+LIST_CELL_METADATA_OPTIONS = ("tooltip_hook", "column", "link")
 
 COLUMN_OPTIONS = {"help_text", "alignment"}
 
@@ -83,7 +81,7 @@ class PowerField:
     form: bool = False
     form_display: bool = False
     form_disabled: bool = False
-    tooltip: bool = False
+    tooltip_hook: str | None = None
     detail: bool = False
     list: bool = False
     default_list: bool = False
@@ -127,6 +125,11 @@ class PowerField:
                 f"{self.name!r} exclude values must be True or False for "
                 f"{', '.join(sorted(non_bool_exclude_dimensions))}"
             )
+
+        if self.tooltip_hook is not None:
+            if not isinstance(self.tooltip_hook, str) or not self.tooltip_hook.strip():
+                raise ValueError("PowerField.tooltip_hook must be a non-empty string")
+            object.__setattr__(self, "tooltip_hook", self.tooltip_hook.strip())
 
         for option_name in ("column", "queryset_dependencies", "link"):
             value = getattr(self, option_name)
@@ -227,6 +230,11 @@ class PowerField:
         if self.queryset_dependencies:
             fragment.setdefault("field_queryset_dependencies", {})[self.name] = dict(
                 self.queryset_dependencies
+            )
+
+        if self.tooltip_hook:
+            fragment.setdefault("list_cell_tooltip_fields", {})[self.name] = (
+                self.tooltip_hook
             )
 
         if self.link:

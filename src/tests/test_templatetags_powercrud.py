@@ -4,6 +4,7 @@ from datetime import date
 from types import SimpleNamespace
 
 import pytest
+from django.core.exceptions import ImproperlyConfigured
 from django.db.models import BooleanField
 from django.test import RequestFactory
 
@@ -201,6 +202,8 @@ class TemplateViewStub:
         return None
 
     def get_list_cell_tooltip_fields(self):
+        if isinstance(self.list_cell_tooltip_fields, dict):
+            return dict(self.list_cell_tooltip_fields)
         return list(self.list_cell_tooltip_fields)
 
     def get_column_alignments(self):
@@ -215,6 +218,12 @@ class TemplateViewStub:
         if field_name == "isbn_empty":
             return "ISBN is missing" if obj.isbn_empty else "ISBN is present"
         return None
+
+    def get_title_tooltip(self, obj, request=None):
+        return f"Previewing {obj.title}"
+
+    def get_isbn_empty_tooltip(self, obj, request=None):
+        return "ISBN is missing" if obj.isbn_empty else "ISBN is present"
 
     def get_list_cell_link(self, obj, field_name, value, *, is_property, request=None):
         return None
@@ -883,6 +892,175 @@ def test_object_list_trims_blank_semantic_tooltip_results_to_none():
     assert result["object_list"][0]["cells"][0]["tooltip_text"] is None, (
         "Blank semantic tooltip results should collapse to None so templates can keep existing fallback behavior."
     )
+
+
+@pytest.mark.django_db
+def test_object_list_calls_named_semantic_tooltip_hooks_for_configured_cells():
+    author = Author.objects.create(name="Mapped Tooltip Author")
+    book = Book.objects.create(
+        title="Mapped Tooltip Book",
+        author=author,
+        published_date=date(2024, 3, 18),
+        bestseller=False,
+        isbn="9876543210777",
+        pages=122,
+        description="Mapped tooltip coverage",
+    )
+
+    request = apply_session(RequestFactory().get("/"))
+    view = TemplateViewStub(request)
+    view.fields = ["title", "author"]
+    view.properties = ["isbn_empty"]
+    view.list_cell_tooltip_fields = {
+        "title": "get_title_tooltip",
+        "isbn_empty": "get_isbn_empty_tooltip",
+        "missing_field": "get_missing_tooltip",
+    }
+
+    context = {
+        "request": request,
+        "use_htmx": True,
+        "original_target": "#content",
+        "htmx_target": "#content",
+    }
+    result = powercrud.object_list(context, [book], view)
+    cell_map = {cell["name"]: cell for cell in result["object_list"][0]["cells"]}
+
+    assert cell_map["title"]["tooltip_text"] == "Previewing Mapped Tooltip Book", (
+        "Configured field cells should carry tooltip text from their named hook."
+    )
+    assert cell_map["isbn_empty"]["tooltip_text"] == "ISBN is present", (
+        "Configured property cells should carry tooltip text from their named hook."
+    )
+    assert cell_map["author"]["tooltip_text"] is None, (
+        "Unconfigured rendered cells should not carry semantic tooltip text."
+    )
+
+
+@pytest.mark.django_db
+def test_object_list_named_semantic_tooltip_hook_blank_result_collapses_to_none():
+    author = Author.objects.create(name="Blank Mapped Tooltip Author")
+    book = Book.objects.create(
+        title="Blank Mapped Tooltip Book",
+        author=author,
+        published_date=date(2024, 3, 19),
+        bestseller=False,
+        isbn="9876543210666",
+        pages=123,
+        description="Blank mapped tooltip coverage",
+    )
+
+    request = apply_session(RequestFactory().get("/"))
+    view = TemplateViewStub(request)
+    view.fields = ["title"]
+    view.properties = []
+    view.list_cell_tooltip_fields = {"title": "get_blank_title_tooltip"}
+    view.get_blank_title_tooltip = lambda obj, request=None: "   "
+
+    context = {
+        "request": request,
+        "use_htmx": True,
+        "original_target": "#content",
+        "htmx_target": "#content",
+    }
+    result = powercrud.object_list(context, [book], view)
+
+    assert result["object_list"][0]["cells"][0]["tooltip_text"] is None, (
+        "Blank named tooltip hook results should collapse to None."
+    )
+
+
+@pytest.mark.django_db
+def test_object_list_named_semantic_tooltip_missing_hook_raises():
+    author = Author.objects.create(name="Missing Mapped Tooltip Author")
+    book = Book.objects.create(
+        title="Missing Mapped Tooltip Book",
+        author=author,
+        published_date=date(2024, 3, 20),
+        bestseller=False,
+        isbn="9876543210555",
+        pages=124,
+        description="Missing mapped tooltip coverage",
+    )
+
+    request = apply_session(RequestFactory().get("/"))
+    view = TemplateViewStub(request)
+    view.fields = ["title"]
+    view.properties = []
+    view.list_cell_tooltip_fields = {"title": "get_missing_title_tooltip"}
+
+    context = {
+        "request": request,
+        "use_htmx": True,
+        "original_target": "#content",
+        "htmx_target": "#content",
+    }
+    with pytest.raises(ImproperlyConfigured, match="get_missing_title_tooltip"):
+        powercrud.object_list(context, [book], view)
+
+
+@pytest.mark.django_db
+def test_object_list_named_semantic_tooltip_non_callable_hook_raises():
+    author = Author.objects.create(name="Non Callable Tooltip Author")
+    book = Book.objects.create(
+        title="Non Callable Tooltip Book",
+        author=author,
+        published_date=date(2024, 3, 21),
+        bestseller=False,
+        isbn="9876543210444",
+        pages=125,
+        description="Non callable mapped tooltip coverage",
+    )
+
+    request = apply_session(RequestFactory().get("/"))
+    view = TemplateViewStub(request)
+    view.fields = ["title"]
+    view.properties = []
+    view.list_cell_tooltip_fields = {"title": "not_a_callable"}
+    view.not_a_callable = "tooltip"
+
+    context = {
+        "request": request,
+        "use_htmx": True,
+        "original_target": "#content",
+        "htmx_target": "#content",
+    }
+    with pytest.raises(ImproperlyConfigured, match="not_a_callable"):
+        powercrud.object_list(context, [book], view)
+
+
+@pytest.mark.django_db
+def test_object_list_named_semantic_tooltip_hook_exceptions_propagate():
+    author = Author.objects.create(name="Exploding Tooltip Author")
+    book = Book.objects.create(
+        title="Exploding Tooltip Book",
+        author=author,
+        published_date=date(2024, 3, 22),
+        bestseller=False,
+        isbn="9876543210333",
+        pages=126,
+        description="Exploding mapped tooltip coverage",
+    )
+
+    request = apply_session(RequestFactory().get("/"))
+    view = TemplateViewStub(request)
+    view.fields = ["title"]
+    view.properties = []
+    view.list_cell_tooltip_fields = {"title": "get_exploding_title_tooltip"}
+
+    def explode(obj, request=None):
+        raise RuntimeError("tooltip exploded")
+
+    view.get_exploding_title_tooltip = explode
+
+    context = {
+        "request": request,
+        "use_htmx": True,
+        "original_target": "#content",
+        "htmx_target": "#content",
+    }
+    with pytest.raises(RuntimeError, match="tooltip exploded"):
+        powercrud.object_list(context, [book], view)
 
 
 @pytest.mark.django_db

@@ -55,7 +55,11 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
         "status": "center",
         "needs_attention": "center",
     }
-    list_cell_tooltip_fields = ["owner", "is_overdue", "needs_attention"]
+    list_cell_tooltip_fields = {
+        "owner": "get_owner_tooltip",
+        "is_overdue": "get_is_overdue_tooltip",
+        "needs_attention": "get_needs_attention_tooltip",
+    }
     list_cell_link_default_open_in = "modal"
     link_fields = {
         "owner": "crm:owner-detail",
@@ -248,14 +252,14 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
             return "History is only available for archived projects."
         return None
 
-    def get_list_cell_tooltip(self, obj, field_name, *, is_property, request=None):
-        if field_name == "owner":
-            return f"{obj.owner.email} - {obj.owner.team.name}"
-        if field_name == "is_overdue":
-            return "Past due and needs follow-up" if obj.is_overdue else "On schedule"
-        if field_name == "needs_attention":
-            return "Blocked project" if obj.needs_attention else "Not blocked"
-        return None
+    def get_owner_tooltip(self, obj, request=None):
+        return f"{obj.owner.email} - {obj.owner.team.name}"
+
+    def get_is_overdue_tooltip(self, obj, request=None):
+        return "Past due and needs follow-up" if obj.is_overdue else "On schedule"
+
+    def get_needs_attention_tooltip(self, obj, request=None):
+        return "Blocked project" if obj.needs_attention else "Not blocked"
 
     def get_list_cell_link(self, obj, field_name, value, *, is_property, request=None):
         if field_name == "display_status" and obj.status_report_url:
@@ -282,7 +286,7 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
 - `view_help` adds collapsed plain-text screen help below `view_instructions` and above the list toolbar. The `summary` is always visible; blank lines in `details` create paragraphs; set `default_open = True` only when the help should start expanded. Help aligns to the table width, respects `view_help_min_width`, and can use `color` to apply a subtle daisyUI semantic or hex colour tint.
 - `column_help_text` adds optional plain-text tooltips to specific header labels. The help trigger is a separate info icon, so sortable headers keep sorting behavior.
 - `column_alignments` lets you override list body-cell alignment for specific rendered fields or properties without changing the default heuristic for the rest of the table.
-- `list_cell_tooltip_fields` opts selected rendered columns into semantic list-cell tooltips. The shared `get_list_cell_tooltip(...)` hook is only called for configured names that are actually visible in the current list, and returned plain text may include newline characters when the semantic cell tooltip should render on multiple lines.
+- `list_cell_tooltip_fields` maps selected rendered columns to semantic list-cell tooltip hooks. Named hooks are only called for configured names that are actually visible in the current list, and returned plain text may include newline characters when the semantic cell tooltip should render on multiple lines.
 - `list_cell_link_default_open_in` is optional and sets the default opening mode for list-cell links on this view. If omitted, PowerCRUD assumes `"new"`. Use `"modal"` when internal drill-in links should preserve the current list context.
 - `link_fields` is intentionally narrow. Use it for the common cases where a visible column should reverse to a named detail page or use a static external URL. Dict values accept exactly one of `view_name` or `url`, plus optional `pk_attr`, `open_in`, and `modal_box_classes` for modal links.
 - `get_list_cell_link(...)` is the escape hatch for conditional or row-specific link behavior. Returning `None` falls back to `link_fields`; returning `False` suppresses declarative linking for that cell. Hook metadata can also set `open_in = "new"` or `open_in = "modal"`, and modal hook links can set `modal_box_classes`.

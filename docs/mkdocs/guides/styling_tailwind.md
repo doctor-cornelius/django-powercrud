@@ -14,7 +14,7 @@ POWERCRUD_SETTINGS = {
 ```
 
 - **daisyUI** (Tailwind v4) is the maintained path.
-- Custom frameworks are possible by copying templates (see [Customisation tips](./customisation_tips.md)) and wiring in a new pack.
+- Custom frameworks are possible by copying templates (see [Customisation tips](advanced/customisation_tips.md)) and wiring in a new pack.
 
 ---
 
@@ -226,5 +226,5 @@ _See the [configuration reference](../reference/config_options.md) for full deta
 
 ## Next steps
 
-- Need to override templates or extend components? Head to [Customisation tips](customisation_tips.md).
+- Need to override templates or extend components? Head to [Customisation tips](advanced/customisation_tips.md).
 - Looking for exhaustive settings? Check the [configuration reference](../reference/config_options.md).

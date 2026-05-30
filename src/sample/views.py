@@ -85,7 +85,11 @@ class BookCRUDView(SampleCRUDMixin):
             "Demo link: opens the related author detail in a larger PowerCRUD modal."
         ),
     }
-    list_cell_tooltip_fields = ["title", "pages", "isbn_empty"]
+    list_cell_tooltip_fields = {
+        "title": "get_title_tooltip",
+        "pages": "get_pages_tooltip",
+        "isbn_empty": "get_isbn_empty_tooltip",
+    }
     list_cell_link_default_open_in = "modal"
     link_fields = {
         "a_really_long_property_header_for_title": {
@@ -274,17 +278,19 @@ class BookCRUDView(SampleCRUDMixin):
             return "This book does not have a description yet."
         return None
 
-    def get_list_cell_tooltip(self, obj, field_name, *, is_property, request=None):
-        """Return semantic tooltip text for selected list cells in the sample app."""
-        if field_name == "title":
-            return f"{obj.author}\n{obj.pages} pages"
-        if field_name == "pages":
-            return f"Page count: {obj.pages}"
-        if field_name == "isbn_empty":
-            if obj.isbn_empty:
-                return "This book does not currently have an ISBN."
-            return f"ISBN: {obj.isbn}"
-        return None
+    def get_title_tooltip(self, obj, request=None):
+        """Return the semantic tooltip text for the title list cell."""
+        return f"{obj.author}\n{obj.pages} pages"
+
+    def get_pages_tooltip(self, obj, request=None):
+        """Return the semantic tooltip text for the pages list cell."""
+        return f"Page count: {obj.pages}"
+
+    def get_isbn_empty_tooltip(self, obj, request=None):
+        """Return the semantic tooltip text for the ISBN-empty property cell."""
+        if obj.isbn_empty:
+            return "This book does not currently have an ISBN."
+        return f"ISBN: {obj.isbn}"
 
     def can_update_object(self, obj, request):
         """Disable update affordances for the guarded sample row."""
@@ -372,7 +378,7 @@ class AnnotatedBookCRUDView(SampleCRUDMixin):
         "long_book": "Queryset annotation: true when pages is at least 400."
     }
     column_alignments = {"long_book": "center"}
-    list_cell_tooltip_fields = ["long_book"]
+    list_cell_tooltip_fields = {"long_book": "get_long_book_tooltip"}
     filterset_fields = ["author", "long_book", "pages"]
     default_filterset_fields = ["author", "long_book"]
     inline_edit_fields = ["pages"]
@@ -381,13 +387,11 @@ class AnnotatedBookCRUDView(SampleCRUDMixin):
     extra_buttons = []
     extra_actions = []
 
-    def get_list_cell_tooltip(self, obj, field_name, *, is_property, request=None):
+    def get_long_book_tooltip(self, obj, request=None):
         """Return semantic tooltip text for the annotation sample column."""
-        if field_name == "long_book":
-            if obj.long_book:
-                return "This row was annotated as a long book."
-            return "This row was annotated as a shorter book."
-        return None
+        if obj.long_book:
+            return "This row was annotated as a long book."
+        return "This row was annotated as a shorter book."
 
 
 class PowerFieldBookCRUDView(SampleCRUDMixin):
@@ -419,7 +423,7 @@ class PowerFieldBookCRUDView(SampleCRUDMixin):
         PowerField(
             "title",
             default_list=True,
-            tooltip=True,
+            tooltip_hook="get_title_tooltip",
             form=True,
             inline=True,
             bulk=True,
@@ -442,7 +446,7 @@ class PowerFieldBookCRUDView(SampleCRUDMixin):
         PowerField(
             "pages",
             default_list=True,
-            tooltip=True,
+            tooltip_hook="get_pages_tooltip",
             form=True,
             bulk=True,
             column={
@@ -490,7 +494,7 @@ class PowerFieldBookCRUDView(SampleCRUDMixin):
             property=True,
             detail_property=True,
             default_list=True,
-            tooltip=True,
+            tooltip_hook="get_isbn_empty_tooltip",
             column={"help_text": "Shows whether this row currently has an ISBN value."},
         ),
         PowerField(
@@ -619,17 +623,19 @@ class PowerFieldBookCRUDView(SampleCRUDMixin):
         ),
     ]
 
-    def get_list_cell_tooltip(self, obj, field_name, *, is_property, request=None):
-        """Return semantic tooltip text for selected PowerField sample cells."""
-        if field_name == "title":
-            return f"{obj.author}\n{obj.pages} pages"
-        if field_name == "pages":
-            return f"Page count: {obj.pages}"
-        if field_name == "isbn_empty":
-            if obj.isbn_empty:
-                return "This book does not currently have an ISBN."
-            return f"ISBN: {obj.isbn}"
-        return None
+    def get_title_tooltip(self, obj, request=None):
+        """Return the semantic tooltip text for the title list cell."""
+        return f"{obj.author}\n{obj.pages} pages"
+
+    def get_pages_tooltip(self, obj, request=None):
+        """Return the semantic tooltip text for the pages list cell."""
+        return f"Page count: {obj.pages}"
+
+    def get_isbn_empty_tooltip(self, obj, request=None):
+        """Return the semantic tooltip text for the ISBN-empty property cell."""
+        if obj.isbn_empty:
+            return "This book does not currently have an ISBN."
+        return f"ISBN: {obj.isbn}"
 
     def get_description_preview_disabled_state(self, obj, request):
         """Return the disabled reason for the helper-backed preview action."""

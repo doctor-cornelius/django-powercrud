@@ -17,7 +17,7 @@ Use this when related CRUD views share most field roles, but one view needs a sm
 
         fields = ["status"]
         default_list_fields = ["status"]
-        list_cell_tooltip_fields = ["status"]
+        list_cell_tooltip_fields = {"status": "get_status_tooltip"}
         bulk_fields = ["status"]
 
 
@@ -27,7 +27,7 @@ Use this when related CRUD views share most field roles, but one view needs a sm
 
         fields = ["status"]
         default_list_fields = ["status"]
-        list_cell_tooltip_fields = ["status"]
+        list_cell_tooltip_fields = {"status": "get_status_tooltip"}
         bulk_fields = []
     ```
 
@@ -40,7 +40,7 @@ Use this when related CRUD views share most field roles, but one view needs a sm
     ACTION_STATUS = PowerField(
         "status",
         default_list=True,
-        tooltip=True,
+        tooltip_hook="get_status_tooltip",
         bulk=True,
     )
 

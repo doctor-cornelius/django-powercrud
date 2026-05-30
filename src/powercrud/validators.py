@@ -62,7 +62,7 @@ class PowerCRUDMixinValidator(BaseModel):
     view_help_min_width: Optional[str] = "40rem"
     column_help_text: Optional[Dict[str, str]] = None
     column_alignments: Optional[Dict[str, Literal["left", "center", "right"]]] = None
-    list_cell_tooltip_fields: Optional[List[str]] = None
+    list_cell_tooltip_fields: Optional[Union[List[str], Dict[str, str]]] = None
     list_cell_link_default_open_in: Optional[Literal["current", "new", "modal"]] = "new"
     link_fields: Optional[Dict[str, Union[str, Dict[str, Any]]]] = None
     column_sort_fields_override: Optional[Dict[str, str]] = None
@@ -460,20 +460,35 @@ class PowerCRUDMixinValidator(BaseModel):
             raise ValueError("inline_edit_fields must contain only strings")
         return v
 
-    @field_validator("list_cell_tooltip_fields")
+    @field_validator("list_cell_tooltip_fields", mode="before")
     @classmethod
     def validate_list_cell_tooltip_fields(cls, v):
-        """Require tooltip field declarations to be non-empty strings."""
+        """Require tooltip declarations to use legacy list or field-hook map shape."""
         if v is None:
             return v
-        if not isinstance(v, list):
-            raise ValueError("list_cell_tooltip_fields must be a list of strings")
-        for value in v:
-            if not isinstance(value, str) or not value.strip():
-                raise ValueError(
-                    "list_cell_tooltip_fields must contain only non-empty strings"
-                )
-        return v
+        if isinstance(v, list):
+            for value in v:
+                if not isinstance(value, str) or not value.strip():
+                    raise ValueError(
+                        "list_cell_tooltip_fields legacy list form must contain "
+                        "only non-empty strings"
+                    )
+            return v
+        if isinstance(v, dict):
+            for field_name, hook_name in v.items():
+                if not isinstance(field_name, str) or not field_name.strip():
+                    raise ValueError(
+                        "list_cell_tooltip_fields dict keys must be non-empty strings"
+                    )
+                if not isinstance(hook_name, str) or not hook_name.strip():
+                    raise ValueError(
+                        "list_cell_tooltip_fields dict values must be non-empty strings"
+                    )
+            return v
+        raise ValueError(
+            "list_cell_tooltip_fields must be either a dict of field names to "
+            "hook names or a deprecated list of field names"
+        )
 
     @field_validator("inline_edit_highlight_accent")
     @classmethod

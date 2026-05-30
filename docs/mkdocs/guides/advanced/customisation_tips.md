@@ -49,11 +49,11 @@ Useful hooks:
 - `persist_bulk_update` for synchronous bulk update writes.
 - `get_context_data` for injecting extra template data.
 
-If your sync bulk service needs to reject the batch with a user-facing validation message, return the standard handled bulk result payload instead of raising an unhandled exception. See [Bulk editing (synchronous)](bulk_edit_sync.md#handling-validation-errors-in-persist_bulk_update).
+If your sync bulk service needs to reject the batch with a user-facing validation message, return the standard handled bulk result payload instead of raising an unhandled exception. See [Bulk editing (synchronous)](../bulk_edit_sync.md#handling-validation-errors-in-persist_bulk_update).
 
-Use the [Hooks reference](../reference/hooks.md) for the canonical hook contracts and signatures.
+Use the [Hooks reference](../../reference/hooks.md) for the canonical hook contracts and signatures.
 
-If you want a more guided explanation of when persistence hooks are worth using, start with the [Advanced Guides](advanced/index.md), especially [Persistence Hooks](advanced/persistence_hooks_sync.md) and [Async Bulk Persistence](advanced/persistence_hooks_async_bulk.md).
+If you want a more guided explanation of when persistence hooks are worth using, start with the [Advanced Guides](index.md), especially [Persistence Hooks](persistence_hooks_sync.md) and [Async Bulk Persistence](persistence_hooks_async_bulk.md).
 
 ### Persistence hooks
 
@@ -91,7 +91,7 @@ Notes:
 - `mode` is currently `"form"` or `"inline"`.
 - If you bypass `form.save()` in `persist_single_object(...)`, your override owns any required `form.save_m2m()` handling.
 - `persist_bulk_update(...)` is sync bulk-update only in this release. Bulk delete and async bulk persistence remain separate follow-up concerns.
-- The full hook contract now lives in the [Hooks reference](../reference/hooks.md).
+- The full hook contract now lives in the [Hooks reference](../../reference/hooks.md).
 
 ### Migrating older write overrides
 
@@ -106,47 +106,19 @@ Keep the older override only when it also changes validation, response handling,
 
 ---
 
-## 3. Custom buttons & actions
+## 3. Custom actions and buttons
 
-```python
-class ProjectCRUDView(PowerCRUDMixin, CRUDView):
-    extra_buttons = [
-        {
-            "url_name": "projects:new",
-            "text": "New project",
-            "button_class": "btn-primary",
-            "display_modal": True,
-        },
-        {
-            "url_name": "projects:selected-summary",
-            "text": "Selected summary",
-            "display_modal": True,
-            "uses_selection": True,
-            "selection_min_count": 1,
-            "selection_min_behavior": "disable",
-        },
-    ]
+For one-off toolbar buttons and row actions, use the Base Configuration API examples in [Extra Buttons](../setup_core_crud.md#extra-buttons) and [Extra Actions](../setup_core_crud.md#extra-actions).
 
-    extra_actions = [
-        {
-            "url_name": "projects:clone",
-            "text": "Clone",
-            "needs_pk": True,
-            "htmx_target": "#powercrudModalContent",
-            "display_modal": True,
-            "disabled_if": "is_clone_disabled",
-            "disabled_reason": "get_clone_disabled_reason",
-        },
-    ]
-```
+For repeated action patterns, use `PowerButton` and `PowerAction`. They compile to the same `extra_buttons` and `extra_actions` entries and can be mixed with dictionaries in the same list. See [PowerAction and PowerButton](../structured_api/poweractions.md) and [Structured API Recipes](../structured_api/recipes.md).
 
-Button dictionaries support additional keys such as selection-aware thresholds, while row actions can now use named disable hooks. See the reference for the full schema.
+Use the [Configuration options](../../reference/config_options.md) and [PowerAction and PowerButton Reference](../../reference/poweractions.md) for the full option schema.
 
 ---
 
 ## 4. Integrate with other workflows
 
-- **Signals or admin** – Import the same async helpers ([Async Manager](./async_manager.md)) to queue work or enforce locks outside PowerCRUD.
+- **Signals or admin** – Import the same async helpers ([Async Manager](../async_manager.md)) to queue work or enforce locks outside PowerCRUD.
 - **Notifications** – Override `async_task_lifecycle` in your manager to send emails/slack messages on `fail`/`complete`.
 - **Audit logging** – Hook into lifecycle events or override CRUD methods such as `persist_single_object(...)` / `persist_bulk_update(...)` to push entries to your logging system.
 
@@ -154,10 +126,10 @@ Button dictionaries support additional keys such as selection-aware thresholds, 
 
 ## 5. Useful references
 
-- [Configuration options](../reference/config_options.md) – complete list of view settings and defaults.
-- [Hooks reference](../reference/hooks.md) – canonical contracts for the main public override points.
-- [Management commands](../reference/mgmt_commands.md) – template copy, Tailwind safelist, async cleanup.
-- [Sample app](../reference/sample_app.md) – full working example you can mine for patterns.
+- [Configuration options](../../reference/config_options.md) – complete list of view settings and defaults.
+- [Hooks reference](../../reference/hooks.md) – canonical contracts for the main public override points.
+- [Management commands](../../reference/mgmt_commands.md) – template copy, Tailwind safelist, async cleanup.
+- [Sample app](../../reference/sample_app.md) – full working example you can mine for patterns.
 
 ---
 
