@@ -106,41 +106,13 @@ Keep the older override only when it also changes validation, response handling,
 
 ---
 
-## 3. Custom buttons & actions
+## 3. Custom actions and buttons
 
-```python
-class ProjectCRUDView(PowerCRUDMixin, CRUDView):
-    extra_buttons = [
-        {
-            "url_name": "projects:new",
-            "text": "New project",
-            "button_class": "btn-primary",
-            "display_modal": True,
-        },
-        {
-            "url_name": "projects:selected-summary",
-            "text": "Selected summary",
-            "display_modal": True,
-            "uses_selection": True,
-            "selection_min_count": 1,
-            "selection_min_behavior": "disable",
-        },
-    ]
+For one-off toolbar buttons and row actions, use the Base Configuration API examples in [Extra Buttons](../setup_core_crud.md#extra-buttons) and [Extra Actions](../setup_core_crud.md#extra-actions).
 
-    extra_actions = [
-        {
-            "url_name": "projects:clone",
-            "text": "Clone",
-            "needs_pk": True,
-            "htmx_target": "#powercrudModalContent",
-            "display_modal": True,
-            "disabled_if": "is_clone_disabled",
-            "disabled_reason": "get_clone_disabled_reason",
-        },
-    ]
-```
+For repeated action patterns, use `PowerButton` and `PowerAction`. They compile to the same `extra_buttons` and `extra_actions` entries and can be mixed with dictionaries in the same list. See [PowerAction and PowerButton](../structured_api/poweractions.md) and [Structured API Recipes](../structured_api/recipes.md).
 
-Button dictionaries support additional keys such as selection-aware thresholds, while row actions can now use named disable hooks. See the reference for the full schema.
+Use the [Configuration options](../../reference/config_options.md) and [PowerAction and PowerButton Reference](../../reference/poweractions.md) for the full option schema.
 
 ---
 
