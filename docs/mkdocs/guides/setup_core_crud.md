@@ -471,9 +471,11 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
 
 Hook-backed semantic list-cell tooltip text may include newline characters when a tooltip should display as multiple lines. That multiline rendering is limited to semantic list-cell tooltips returned by the configured hook; header-help and other tooltip surfaces keep their existing behavior.
 
-!!! warning "Deprecated generic tooltip hook"
+??? warning "Deprecated generic tooltip hook: legacy list form"
 
     `list_cell_tooltip_fields = ["owner"]` with `get_list_cell_tooltip(...)` still works for compatibility, but it is deprecated and targeted for removal before v1.0. See [Deprecations](../reference/deprecations.md).
+
+    The deprecations page shows the legacy hook signature, explains how the generic `field_name` branching works, and shows the migration to field-specific hook methods.
 
 Tooltip behavior stays layered:
 
