@@ -37,12 +37,12 @@ Use this when related CRUD views share most field roles, but one view needs a sm
     from powercrud.powerfields import PowerField
 
 
-ACTION_STATUS = PowerField(
-    "status",
-    default_list=True,
-    tooltip_hook="get_status_tooltip",
-    bulk=True,
-)
+    ACTION_STATUS = PowerField(
+        "status",
+        default_list=True,
+        tooltip_hook="get_status_tooltip",
+        bulk=True,
+    )
 
 
     class ActionCRUDView(PowerCRUDMixin, CRUDView):
