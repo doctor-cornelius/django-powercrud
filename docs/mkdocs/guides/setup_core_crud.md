@@ -445,7 +445,12 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
 
 ### List-cell tooltips
 
-If you want semantic tooltips for selected rendered list cells, map each field or property to a tooltip hook:
+If you want semantic tooltips for selected rendered list cells, configure `list_cell_tooltip_fields` as a field-to-hook mapping:
+
+- The key is the rendered field or property name, such as `"owner"`.
+- The value is the name of a method on the view, such as `"get_owner_tooltip"`.
+
+PowerCRUD calls that method for each visible row cell and uses the returned text as the tooltip.
 
 ```python
 class ProjectCRUDView(PowerCRUDMixin, CRUDView):
@@ -462,7 +467,7 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
         return obj.status_explanation
 ```
 
-`list_cell_tooltip_fields` is opt-in. PowerCRUD only calls configured tooltip hooks for rendered list fields or properties named in the mapping, and silently ignores configured names that are not actually visible in the table. Return plain text or `None`.
+`list_cell_tooltip_fields` is opt-in. PowerCRUD only calls the named hook methods for rendered list fields or properties named in the mapping, and silently ignores configured names that are not actually visible in the table. Each hook receives the row object and should return plain text for the tooltip, or `None` when that row should not show a semantic tooltip.
 
 Hook-backed semantic list-cell tooltip text may include newline characters when a tooltip should display as multiple lines. That multiline rendering is limited to semantic list-cell tooltips returned by the configured hook; header-help and other tooltip surfaces keep their existing behavior.
 
