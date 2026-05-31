@@ -6,6 +6,11 @@ During the `0.x` series, breaking changes can occur, although we try to minimise
 
 Version numbers below correspond to published git tags. The more important releases include a little extra narrative and upgrade context; smaller patch releases remain deliberately brief. For full detail between any two versions, use the GitHub compare view for the matching tags.
 
+## 0.7.2 (2026-05-31)
+- **Feature (powerfields)**: add tooltip hooks and polish structured docs
+  
+  Adds explicit tooltip hook support for PowerField via tooltip_hook="..." and the matching Base Configuration API mapping list_cell_tooltip_fields = {"field": "hook_name"}. The old list form remains supported but is now deprecated and documented with a migration path. Also tidies the Structured API docs, recipes, navigation, and related links.
+
 ## 0.7.1 (2026-05-29)
 
 This release completes the first Structured Declaration API pass. Together with the `PowerField` foundation introduced in `0.7.0`, PowerCRUD now has structured helpers for repeated field intent, row actions, and toolbar buttons while keeping the Base Configuration API as the underlying runtime contract.
