@@ -155,24 +155,33 @@ class PowerButton:
 
     def to_dict(self) -> dict[str, Any]:
         """Return the primitive ``extra_buttons`` dictionary for this button."""
-        return _copy_without_none(
-            {
-                "url_name": self.url_name,
-                "text": self.text,
-                "needs_pk": self.needs_pk,
-                "button_class": self.button_class,
-                "htmx_target": self.htmx_target,
-                "display_modal": self.display_modal,
-                "modal_box_classes": self.modal_box_classes,
-                "refresh_list_on_modal_close": self.refresh_list_on_modal_close,
-                "extra_attrs": self.extra_attrs,
-                "extra_class_attrs": self.extra_class_attrs,
-                "uses_selection": self.uses_selection,
-                "selection_min_count": self.selection_min_count,
-                "selection_min_behavior": self.selection_min_behavior,
-                "selection_min_reason": self.selection_min_reason,
-            }
+        values: dict[str, Any] = {
+            "url_name": self.url_name,
+            "text": self.text,
+            "needs_pk": self.needs_pk,
+            "button_class": self.button_class,
+            "htmx_target": self.htmx_target,
+            "display_modal": self.display_modal,
+            "modal_box_classes": self.modal_box_classes,
+            "refresh_list_on_modal_close": self.refresh_list_on_modal_close,
+            "extra_attrs": self.extra_attrs,
+            "extra_class_attrs": self.extra_class_attrs,
+            "uses_selection": self.uses_selection,
+        }
+        has_selection_options = (
+            self.selection_min_count != 0
+            or self.selection_min_behavior != "allow"
+            or self.selection_min_reason is not None
         )
+        if self.uses_selection or has_selection_options:
+            values.update(
+                {
+                    "selection_min_count": self.selection_min_count,
+                    "selection_min_behavior": self.selection_min_behavior,
+                    "selection_min_reason": self.selection_min_reason,
+                }
+            )
+        return _copy_without_none(values)
 
 
 __all__ = ["PowerAction", "PowerButton"]
