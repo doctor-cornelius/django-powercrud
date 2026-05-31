@@ -692,6 +692,33 @@ def test_core_mixin_warns_when_selection_thresholds_without_uses_selection(caplo
 
 
 @pytest.mark.django_db
+def test_core_mixin_does_not_warn_for_plain_powerbutton_defaults(caplog):
+    class ButtonView(CoreMixin):
+        model = Book
+        fields = "__all__"
+        base_template_path = "sample/base.html"
+        extra_buttons = [
+            PowerButton(
+                text="Approvals Queue",
+                url_name="sample:bigbook-list",
+                button_class="btn-outline",
+                display_modal=False,
+                htmx_target="content",
+            )
+        ]
+
+    with caplog.at_level("WARNING", logger="powercrud"):
+        view = ButtonView()
+
+    assert view.extra_buttons[0]["uses_selection"] is False, (
+        "Plain PowerButton toolbar buttons should remain non-selection buttons."
+    )
+    assert "selection_min_* settings without uses_selection=True" not in caplog.text, (
+        "Generated PowerButton defaults should not trigger the explicit-threshold warning."
+    )
+
+
+@pytest.mark.django_db
 def test_core_mixin_normalizes_extra_button_modal_close_refresh_flag():
     class ButtonRefreshView(CoreMixin):
         model = Book

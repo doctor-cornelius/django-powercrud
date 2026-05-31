@@ -91,6 +91,31 @@ def test_powerbutton_to_dict_exposes_primitive_extra_button_config():
     }, "PowerButton should compile to the primitive extra_buttons dictionary shape."
 
 
+def test_powerbutton_to_dict_omits_non_selection_default_thresholds():
+    button = PowerButton(
+        text="Approvals Queue",
+        url_name="sample:book-list",
+        button_class="btn-outline",
+        display_modal=False,
+        htmx_target="content",
+    )
+
+    button_dict = button.to_dict()
+
+    assert button_dict["uses_selection"] is False, (
+        "Plain PowerButton declarations should still expose the normalized selection flag."
+    )
+    assert "selection_min_count" not in button_dict, (
+        "Plain PowerButton declarations should not serialize generated selection defaults."
+    )
+    assert "selection_min_behavior" not in button_dict, (
+        "Plain PowerButton declarations should not look like threshold-configured buttons."
+    )
+    assert "selection_min_reason" not in button_dict, (
+        "Plain PowerButton declarations should omit empty threshold reason metadata."
+    )
+
+
 def test_powerbutton_with_options_returns_changed_copy_without_mutating_original():
     original = PowerButton(
         text="Home",
