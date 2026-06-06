@@ -237,17 +237,17 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
             "needs_pk": True,
             "button_class": "btn-secondary",
             "display_modal": True,
-            "disabled_if": "is_history_action_disabled",
-            "disabled_reason": "get_history_action_disabled_reason",
+            "hidden_if": "should_hide_history_action",
+            "disabled_state": "get_history_action_disabled_state",
             "refresh_list_on_modal_close": True,
             "modal_box_classes": "modal-box flex max-h-[calc(100dvh-2rem)] w-11/12 max-w-5xl flex-col",
         },
     ]
 
-    def is_history_action_disabled(self, obj, request):
-        return obj.archived_at is None
+    def should_hide_history_action(self, obj, request):
+        return obj.status == "draft"
 
-    def get_history_action_disabled_reason(self, obj, request):
+    def get_history_action_disabled_state(self, obj, request):
         if obj.archived_at is None:
             return "History is only available for archived projects."
         return None
@@ -307,7 +307,8 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
 - `selection_min_behavior = "disable"` lets the frontend grey out a selection-aware header button until enough rows are selected, but the endpoint should still validate the selection server-side.
 - `modal_box_classes` on a modal `extra_buttons` item replaces the view-level modal box classes only while that button's modal is open. Keep `flex max-h-[calc(100dvh-2rem)] flex-col` in the string if you want the supplied viewport-bounded behavior plus a custom width.
 - `modal_box_classes` also works on list-cell links and hook-returned list-cell links when `open_in = "modal"`.
-- `disabled_state` lets row `extra_actions` disable themselves through one hook that returns a disabled reason string, while `disabled_if` / `disabled_reason` remain available as the legacy paired hook style.
+- `hidden_if` lets row `extra_actions` omit themselves entirely when an action is not applicable to that row.
+- `disabled_state` lets row `extra_actions` disable themselves through one hook that returns a disabled reason string. The legacy `disabled_if` / `disabled_reason` pair remains available for compatibility but is deprecated.
 - `modal_box_classes` works the same way on modal `extra_actions`, including actions rendered inside the dropdown `More` menu.
 - `inline_edit_fields` is the current inline-editing configuration. Older `inline_edit_enabled` usage is legacy and should not be used in new code.
 - `inline_edit_always_visible = True` is the current default, so editable cells keep a subtle resting hint unless you disable it.

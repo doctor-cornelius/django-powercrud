@@ -9,6 +9,7 @@ def test_poweraction_to_dict_exposes_primitive_extra_action_config():
         url_name="sample:book-detail",
         display_modal=True,
         button_class="btn-secondary",
+        hidden_if="should_hide_preview",
         disabled_state="get_preview_disabled_state",
     )
 
@@ -21,6 +22,7 @@ def test_poweraction_to_dict_exposes_primitive_extra_action_config():
         "hx_post": False,
         "lock_sensitive": False,
         "refresh_list_on_modal_close": False,
+        "hidden_if": "should_hide_preview",
         "disabled_state": "get_preview_disabled_state",
     }, "PowerAction should compile to the primitive extra_actions dictionary shape."
 
@@ -55,6 +57,16 @@ def test_poweraction_rejects_mixed_disabled_state_styles():
             url_name="sample:book-detail",
             disabled_state="get_preview_disabled_state",
             disabled_if="is_preview_disabled",
+        )
+
+
+def test_poweraction_rejects_invalid_hidden_if_method_name():
+    """Reject non-string PowerAction hidden_if declarations."""
+    with pytest.raises(ValueError, match="hidden_if"):
+        PowerAction(
+            text="Preview",
+            url_name="sample:book-detail",
+            hidden_if=True,
         )
 
 

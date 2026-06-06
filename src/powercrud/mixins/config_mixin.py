@@ -1111,6 +1111,11 @@ class ConfigMixin:
                 )
 
             normalized = action.copy()
+            hidden_if = self._resolve_extra_action_method(
+                normalized.get("hidden_if"),
+                index,
+                "hidden_if",
+            )
             disabled_state = self._resolve_extra_action_method(
                 normalized.get("disabled_state"),
                 index,
@@ -1141,6 +1146,7 @@ class ConfigMixin:
                 )
                 disabled_reason = None
 
+            normalized["hidden_if"] = hidden_if
             normalized["disabled_state"] = disabled_state
             normalized["disabled_if"] = disabled_if
             normalized["disabled_reason"] = disabled_reason

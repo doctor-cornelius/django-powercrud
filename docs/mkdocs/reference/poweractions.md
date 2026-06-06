@@ -25,6 +25,7 @@ PowerAction(
     hx_post=False,
     lock_sensitive=False,
     refresh_list_on_modal_close=False,
+    hidden_if=None,
     disabled_state=None,
     disabled_if=None,
     disabled_reason=None,
@@ -43,9 +44,10 @@ PowerAction(
 | `hx_post` | `False` | Render the action as an HTMX POST. |
 | `lock_sensitive` | `False` | Disable the action under PowerCRUD row-lock logic. |
 | `refresh_list_on_modal_close` | `False` | Refresh the list when this modal closes. |
+| `hidden_if` | `None` | Boolean hook name that hides this row action when true. |
 | `disabled_state` | `None` | Single disabled-state hook name. |
-| `disabled_if` | `None` | Legacy disabled boolean hook name. |
-| `disabled_reason` | `None` | Legacy disabled reason hook name. |
+| `disabled_if` | `None` | Deprecated legacy disabled boolean hook name. Use `disabled_state` instead. |
+| `disabled_reason` | `None` | Deprecated legacy disabled reason hook name. Use `disabled_state` instead. |
 
 `to_dict()` returns the base `extra_actions` dictionary. `with_options(...)` returns a new `PowerAction` with selected values changed.
 
@@ -57,6 +59,7 @@ ROW_MODAL = PowerAction(
     url_name="cases:workflow-action",
     display_modal=True,
     modal_box_classes="modal-box flex max-h-[calc(100dvh-2rem)] w-11/12 max-w-5xl flex-col",
+    hidden_if="should_hide_workflow_action",
     disabled_state="get_workflow_action_disabled_state",
 )
 
@@ -144,7 +147,9 @@ extra_buttons = [
 
 - `text` and `url_name` must be non-empty strings.
 - Boolean parameters must be `True`, `False`, or `None` where the constructor explicitly allows `None`.
+- `PowerAction.hidden_if` must be a method-name string when set.
 - `PowerAction.disabled_state` cannot be combined with `disabled_if` or `disabled_reason`.
+- `PowerAction.disabled_if` and `PowerAction.disabled_reason` are deprecated and targeted for removal in v1.0.
 - `PowerAction.disabled_reason` requires `disabled_if`; use `disabled_state` for the single-hook contract.
 - `PowerButton.selection_min_behavior` must be `"allow"` or `"disable"`.
 - `PowerButton` cannot combine `uses_selection=True` with `needs_pk=True`.

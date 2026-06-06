@@ -36,7 +36,7 @@ For the mental model behind the option groups, see [PowerCRUD Concepts](../guide
 | `detail_properties_exclude` (`list[str]`) | `list[str]` | `[]` | All listed detail properties render | Remove specific properties from the detail page. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
 | `dropdown_sort_options` (`dict`) | `dict[str, str]` | `{}` | PowerCRUD orders dropdowns by `name/title/...` heuristics | Explicit ordering for dropdowns in filters, forms, and bulk edit widgets. | [Bulk editing (synchronous)](../guides/bulk_edit_sync.md) |
 | `exclude` (`list[str]`) | `list[str]` | `[]` | Every concrete model field is shown | Remove individual fields from the list view while keeping the rest. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
-| `extra_actions` (`list[dict \| PowerAction]`) | `list[action spec]` | `[]` | Only the default action buttons render | Define extra per-row actions (URL, label, attributes). Modal actions may set per-trigger `modal_box_classes` for custom width/height and `refresh_list_on_modal_close` for close-driven list refreshes. | [Complete Example](complete_example.md) |
+| `extra_actions` (`list[dict \| PowerAction]`) | `list[action spec]` | `[]` | Only the default action buttons render | Define extra per-row actions (URL, label, attributes). Modal actions may set per-trigger `modal_box_classes`, `refresh_list_on_modal_close`, `hidden_if`, and disabled-state hooks. | [Complete Example](complete_example.md) |
 | `extra_actions_mode` (`str`) | `'buttons'`, `'dropdown'` | `'buttons'` | Extra row actions render as visible buttons after the standard actions | Control how row-level `extra_actions` are rendered. Use `'dropdown'` to keep `View/Edit/Delete` visible and move only the extra row actions into a `More` overflow menu. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
 | `extra_actions_dropdown_open_upward_bottom_rows` (`int`) | `int >= 0` | `3` | All `More` menus open downward | In dropdown mode, open the `More` menu upward for the last N rendered rows on the current page. Set `0` to disable this behavior. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
 | `extra_button_classes` (`str`) | `str` | `""` | Extra buttons use the default button styling | Additional CSS classes shared by every entry in `extra_buttons`. | [Styling & Tailwind](../guides/styling_tailwind.md) |
@@ -387,8 +387,8 @@ extra_actions = [
         "text": "View Again",
         "needs_pk": True,
         "display_modal": True,
-        "disabled_if": "is_view_again_disabled",
-        "disabled_reason": "get_view_again_disabled_reason",
+        "hidden_if": "should_hide_view_again",
+        "disabled_state": "get_view_again_disabled_state",
         "refresh_list_on_modal_close": True,
         "modal_box_classes": "modal-box flex max-h-[calc(100dvh-2rem)] w-11/12 max-w-5xl flex-col",
     },
@@ -404,9 +404,11 @@ Notes:
 - Set `extra_actions_dropdown_open_upward_bottom_rows = 0` to keep every dropdown opening downward.
 - `modal_box_classes` is only used when `display_modal=True`; it replaces the view-level `modal_box_classes` while this row action's modal is open.
 - `refresh_list_on_modal_close` is only used when `display_modal=True`; prefer `HX-Trigger: {"refreshTable": true}` when the endpoint knows it changed data.
+- `hidden_if` is an optional view method name with signature `(obj, request) -> bool`. Return `True` to omit the action for that row. Hidden actions are removed before disabled hooks are evaluated.
 - `disabled_state` is a single-hook alternative to `disabled_if` / `disabled_reason`. Return a non-empty string to disable the action and show that string as the reason; return `None`, `False`, or an empty string to keep it enabled.
-- `disabled_if` and `disabled_reason` are optional view method names used to disable a row action based on the current object and request.
+- `disabled_if` and `disabled_reason` are deprecated view method names used to disable a row action based on the current object and request. Use `disabled_state` instead.
 - Do not combine `disabled_state` with `disabled_if` or `disabled_reason` on the same action.
+- Use `hidden_if` when an action is not applicable for a row. Use `disabled_state` when the action is applicable but unavailable and needs an explanatory reason.
 - `lock_sensitive` remains available when an action should also disable under PowerCRUD's existing lock/blocked-row state.
 
 ??? info "Parameter Guide"
@@ -423,9 +425,10 @@ Notes:
     | `htmx_target` | `str` | HTMX target element to update for non-modal or custom-target flows. |
     | `hx_post` | `bool` | Sends the action as an HTMX POST instead of the default GET when `True`. |
     | `lock_sensitive` | `bool` | Disables the action automatically when PowerCRUD marks the row as blocked by its existing lock logic. |
+    | `hidden_if` | `str` | Name of a view method with signature `(obj, request) -> bool` that decides whether the action should be omitted for that row. |
     | `disabled_state` | `str` | Name of a view method with signature `(obj, request) -> str | None | bool` that returns a disabled reason string, or a falsey enabled value. |
-    | `disabled_if` | `str` | Name of a view method with signature `(obj, request) -> bool` that decides whether the action is disabled for that row. |
-    | `disabled_reason` | `str` | Name of a view method with signature `(obj, request) -> str | None` that returns the disabled tooltip/help text. |
+    | `disabled_if` | `str` | Deprecated. Name of a view method with signature `(obj, request) -> bool` that decides whether the action is disabled for that row. Use `disabled_state` instead. |
+    | `disabled_reason` | `str` | Deprecated. Name of a view method with signature `(obj, request) -> str | None` that returns the disabled tooltip/help text. Use `disabled_state` instead. |
 
 ### Searchable select enhancement
 

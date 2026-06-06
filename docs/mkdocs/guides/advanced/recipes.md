@@ -199,18 +199,13 @@ class InvoiceCRUDView(PowerCRUDMixin, CRUDView):
             "button_class": "btn-accent",
             "display_modal": True,
             "needs_pk": True,
-            "disabled_if": "is_send_reminder_disabled",
-            "disabled_reason": "get_send_reminder_disabled_reason",
+            "disabled_state": "get_send_reminder_disabled_state",
         },
     ]
 
-    def is_send_reminder_disabled(self, obj, request) -> bool:
-        """Return whether reminder sending should be disabled for this invoice."""
-        return obj.status != "overdue"
-
-    def get_send_reminder_disabled_reason(self, obj, request) -> str | None:
+    def get_send_reminder_disabled_state(self, obj, request) -> str | None:
         """Return the tooltip reason when reminder sending is disabled."""
-        if self.is_send_reminder_disabled(obj, request):
+        if obj.status != "overdue":
             return "Reminders can only be sent for overdue invoices."
         return None
 ```

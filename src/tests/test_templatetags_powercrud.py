@@ -183,6 +183,10 @@ class TemplateViewStub:
             return "Preview requires a description."
         return None
 
+    def should_hide_preview(self, obj, request):
+        """Return True when the preview action should not render."""
+        return obj.title.startswith("Hidden Preview")
+
     def get_bulk_selection_key_suffix(self):
         return "user"
 
@@ -438,6 +442,36 @@ def test_action_links_leave_extra_action_enabled_when_disabled_state_is_empty():
 
 
 @pytest.mark.django_db
+def test_action_links_hide_extra_action_before_disabled_state():
+    """Hide row actions before disabled_state can render a disabled reason."""
+    author = Author.objects.create(name="Hidden Action")
+    book = Book.objects.create(
+        title="Hidden Preview Row",
+        author=author,
+        published_date=date(2024, 1, 6),
+        bestseller=False,
+        isbn="9876543210005",
+        pages=42,
+        description="",
+    )
+    request = apply_session(RequestFactory().get("/"))
+    view = TemplateViewStub(request)
+    view.extra_actions[0].pop("disabled_if")
+    view.extra_actions[0].pop("disabled_reason")
+    view.extra_actions[0]["hidden_if"] = "should_hide_preview"
+    view.extra_actions[0]["disabled_state"] = "get_preview_disabled_state"
+
+    html = powercrud.action_links(view, book)
+
+    assert "Preview" not in html, (
+        "hidden_if should remove the action instead of rendering it disabled."
+    )
+    assert "Preview requires a description." not in html, (
+        "PowerCRUD should not evaluate/render disabled_state details for hidden actions."
+    )
+
+
+@pytest.mark.django_db
 def test_action_links_can_render_extra_actions_in_dropdown():
     author = Author.objects.create(name="Dana")
     book = Book.objects.create(
@@ -475,6 +509,45 @@ def test_action_links_can_render_extra_actions_in_dropdown():
     assert (
         "?page=2" in html
     ), "Dropdown menu actions should continue to preserve modal query-string context."
+
+
+@pytest.mark.django_db
+def test_action_links_omit_dropdown_more_when_all_extra_actions_are_hidden():
+    """Omit the row More trigger when hidden_if removes every extra action."""
+    author = Author.objects.create(name="Hidden Dropdown")
+    book = Book.objects.create(
+        title="Hidden Preview Dropdown",
+        author=author,
+        published_date=date(2024, 2, 3),
+        bestseller=False,
+        isbn="9876543210124",
+        pages=77,
+        description="Dropdown preview",
+    )
+    request = apply_session(RequestFactory().get("/"))
+    view = TemplateViewStub(request)
+    view.extra_actions_mode = "dropdown"
+    view.extra_actions = [
+        {
+            "url_name": "sample:book-detail",
+            "text": "Preview",
+            "button_class": "btn-secondary",
+            "display_modal": True,
+            "hidden_if": "should_hide_preview",
+        }
+    ]
+
+    html = powercrud.action_links(view, book)
+
+    assert "Preview" not in html, (
+        "Dropdown row action mode should omit hidden extra actions from the menu template."
+    )
+    assert "data-powercrud-row-actions-trigger='true'" not in html, (
+        "Dropdown row action mode should not render More when every extra action is hidden."
+    )
+    assert "data-powercrud-row-actions-template='true'" not in html, (
+        "Dropdown row action mode should not render an empty floating menu template."
+    )
 
 
 @pytest.mark.django_db

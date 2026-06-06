@@ -312,6 +312,7 @@ class PowerFieldBookCRUDView(PowerCRUDAsyncMixin, CRUDView):
         row_modal.with_options(
             text="Description Preview",
             url_name="sample:bigbook-description-preview",
+            hidden_if="should_hide_description_preview",
             disabled_state="get_description_preview_disabled_state",
         ),
     ]
@@ -500,13 +501,14 @@ extra_actions = [
         "text": "Description Preview",
         "needs_pk": True,
         "display_modal": True,
+        "hidden_if": "should_hide_description_preview",
         "disabled_state": "get_description_preview_disabled_state",
         "modal_box_classes": "modal-box flex max-h-[calc(100dvh-2rem)] w-11/12 max-w-5xl flex-col",
     },
 ]
 ```
 
-That lets the sample app demonstrate selection-aware header actions, conditionally disabled row actions, and per-trigger modal sizing in the same CRUD surface. `disabled_state` is the single-hook disabled contract: return a non-empty string to disable the action and show that string as the reason. `Selected Summary` intentionally uses the view default modal width, while `Home in Modal!` shows a header-button override. The `modal_box_classes` entries are full replacement strings: they keep the default viewport-height classes and add per-trigger width classes for those specific modal calls.
+That lets the sample app demonstrate selection-aware header actions, hidden row actions, conditionally disabled row actions, and per-trigger modal sizing in the same CRUD surface. `hidden_if` omits a row action when it is not applicable. `disabled_state` is the single-hook disabled contract: return a non-empty string to disable the action and show that string as the reason. `Selected Summary` intentionally uses the view default modal width, while `Home in Modal!` shows a header-button override. The `modal_box_classes` entries are full replacement strings: they keep the default viewport-height classes and add per-trigger width classes for those specific modal calls.
 
 ## Management Commands
 

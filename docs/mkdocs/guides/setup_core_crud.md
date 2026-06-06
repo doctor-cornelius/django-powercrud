@@ -181,10 +181,14 @@ class AuthorCRUDView(PowerCRUDMixin, CRUDView):
             "text": "View Again",
             "needs_pk": True,
             "display_modal": True,
+            "hidden_if": "should_hide_view_again",
             "disabled_state": "get_view_again_disabled_state",
             "modal_box_classes": "modal-box flex max-h-[calc(100dvh-2rem)] w-11/12 max-w-5xl flex-col",
         },
     ]
+
+    def should_hide_view_again(self, obj, request):
+        return not obj.bio
 
     def get_view_again_disabled_state(self, obj, request):
         if obj.birth_date is None:
@@ -208,11 +212,14 @@ class AuthorCRUDView(PowerCRUDMixin, CRUDView):
     | `htmx_target` | `str` | HTMX target element used for non-modal actions when you need a custom swap target. |
     | `hx_post` | `bool` | If `True`, renders the action as an HTMX POST instead of the default GET. |
     | `lock_sensitive` | `bool` | Reuses PowerCRUD's existing blocked-row/lock logic so the action disables automatically when the row is not currently actionable. |
+    | `hidden_if` | `str` | Name of a view method with signature `(obj, request) -> bool` that decides whether this row action should be omitted. |
     | `disabled_state` | `str` | Name of a view method with signature `(obj, request) -> str | None | bool`. Return a non-empty string to disable the action and show the reason; return `None`, `False`, or an empty string to keep it enabled. |
-    | `disabled_if` | `str` | Name of a view method with signature `(obj, request) -> bool` that decides whether this row action should be disabled. |
-    | `disabled_reason` | `str` | Name of a view method with signature `(obj, request) -> str | None` that returns the tooltip/help text when the action is disabled. |
+    | `disabled_if` | `str` | Deprecated. Name of a view method with signature `(obj, request) -> bool` that decides whether this row action should be disabled. Use `disabled_state` instead. |
+    | `disabled_reason` | `str` | Deprecated. Name of a view method with signature `(obj, request) -> str | None` that returns the tooltip/help text when the action is disabled. Use `disabled_state` instead. |
 
     Do not combine `disabled_state` with `disabled_if` or `disabled_reason` on the same action.
+
+    Use `hidden_if` when an action is not applicable for a row. Use `disabled_state` when the action is applicable but unavailable and needs an explanatory reason. The legacy `disabled_if` / `disabled_reason` pair is deprecated and targeted for removal in v1.0.
 
 ??? note "Refreshing the list after custom modal close"
 
