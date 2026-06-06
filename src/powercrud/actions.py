@@ -45,6 +45,7 @@ class PowerAction:
     hx_post: bool = False
     lock_sensitive: bool = False
     refresh_list_on_modal_close: bool = False
+    hidden_if: str | None = None
     disabled_state: str | None = None
     disabled_if: str | None = None
     disabled_reason: str | None = None
@@ -62,7 +63,12 @@ class PowerAction:
             "refresh_list_on_modal_close",
         ):
             _validate_bool(getattr(self, field_name), field_name, class_name)
-        for field_name in ("disabled_state", "disabled_if", "disabled_reason"):
+        for field_name in (
+            "hidden_if",
+            "disabled_state",
+            "disabled_if",
+            "disabled_reason",
+        ):
             _validate_optional_method_name(
                 getattr(self, field_name),
                 field_name,
@@ -95,6 +101,7 @@ class PowerAction:
                 "hx_post": self.hx_post,
                 "lock_sensitive": self.lock_sensitive,
                 "refresh_list_on_modal_close": self.refresh_list_on_modal_close,
+                "hidden_if": self.hidden_if,
                 "disabled_state": self.disabled_state,
                 "disabled_if": self.disabled_if,
                 "disabled_reason": self.disabled_reason,

@@ -254,6 +254,28 @@ def _resolve_extra_action_disabled_state(
     return disable, disabled_reason
 
 
+def _resolve_extra_action_hidden_state(
+    *,
+    view: Any,
+    object: Any,
+    action: Dict[str, Any],
+    request: Any,
+) -> bool:
+    """
+    Determine whether an extra action should be hidden for a row.
+    """
+    hidden_if_name = action.get("hidden_if")
+    if not hidden_if_name:
+        return False
+    hidden_if = _resolve_named_view_method(view, hidden_if_name)
+    if hidden_if is None:
+        return False
+    try:
+        return bool(hidden_if(object, request))
+    except Exception:
+        return False
+
+
 def _resolve_standard_action_disabled_state(
     *,
     view: Any,
@@ -810,6 +832,14 @@ def action_links(view: Any, object: Any) -> str:
         )
 
         if url is not None:
+            if _resolve_extra_action_hidden_state(
+                view=view,
+                object=object,
+                action=action,
+                request=getattr(view, "request", None),
+            ):
+                continue
+
             htmx_target: str = action.get("htmx_target", default_target)
             if htmx_target and not htmx_target.startswith("#"):
                 htmx_target = f"#{htmx_target}"

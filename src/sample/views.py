@@ -262,19 +262,19 @@ class BookCRUDView(SampleCRUDMixin):
             "button_class": "btn-secondary",
             "htmx_target": "powercrudModalContent",
             "display_modal": True,
-            "disabled_if": "is_description_preview_disabled",
-            "disabled_reason": "get_description_preview_disabled_reason",
+            "hidden_if": "should_hide_description_preview",
+            "disabled_state": "get_description_preview_disabled_state",
             "modal_box_classes": "modal-box flex max-h-[calc(100dvh-2rem)] w-11/12 max-w-5xl flex-col",
         },
     ]
 
-    def is_description_preview_disabled(self, obj, request):
-        """Return True when the row lacks description content for preview."""
-        return not bool((obj.description or "").strip())
+    def should_hide_description_preview(self, obj, request):
+        """Return True when the preview action is not relevant for the row."""
+        return obj.title.startswith("Hidden Preview")
 
-    def get_description_preview_disabled_reason(self, obj, request):
-        """Return the tooltip shown when description preview is unavailable."""
-        if self.is_description_preview_disabled(obj, request):
+    def get_description_preview_disabled_state(self, obj, request):
+        """Return the disabled reason when preview should remain visible but unavailable."""
+        if not bool((obj.description or "").strip()):
             return "This book does not have a description yet."
         return None
 
@@ -615,6 +615,7 @@ class PowerFieldBookCRUDView(SampleCRUDMixin):
             button_class="btn-secondary",
             lock_sensitive=False,
             refresh_list_on_modal_close=False,
+            hidden_if="should_hide_description_preview",
             disabled_state="get_description_preview_disabled_state",
             modal_box_classes=(
                 "modal-box flex max-h-[calc(100dvh-2rem)] w-11/12 "
@@ -636,6 +637,10 @@ class PowerFieldBookCRUDView(SampleCRUDMixin):
         if obj.isbn_empty:
             return "This book does not currently have an ISBN."
         return f"ISBN: {obj.isbn}"
+
+    def should_hide_description_preview(self, obj, request):
+        """Return True when the preview action is not relevant for the row."""
+        return obj.title.startswith("Hidden Preview")
 
     def get_description_preview_disabled_state(self, obj, request):
         """Return the disabled reason for the helper-backed preview action."""

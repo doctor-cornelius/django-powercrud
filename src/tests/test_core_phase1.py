@@ -836,6 +836,25 @@ def test_core_mixin_rejects_unknown_extra_action_disabled_state_hook():
 
 
 @pytest.mark.django_db
+def test_core_mixin_rejects_unknown_extra_action_hidden_hook():
+    """Reject primitive hidden_if declarations that reference no view method."""
+    class BrokenView(CoreMixin):
+        model = Book
+        fields = "__all__"
+        base_template_path = "sample/base.html"
+        extra_actions = [
+            {
+                "url_name": "sample:bigbook-description-preview",
+                "text": "Description Preview",
+                "hidden_if": "missing_hidden_hook",
+            }
+        ]
+
+    with pytest.raises(ImproperlyConfigured, match="hidden_if"):
+        BrokenView()
+
+
+@pytest.mark.django_db
 def test_core_mixin_rejects_mixed_extra_action_disabled_styles():
     class BrokenView(CoreMixin):
         model = Book
@@ -891,6 +910,40 @@ def test_core_mixin_accepts_extra_action_disabled_state_hook():
 
 
 @pytest.mark.django_db
+def test_core_mixin_accepts_extra_action_hidden_hook_with_disabled_state():
+    """Accept primitive hidden_if declarations alongside disabled_state hooks."""
+    class ActionView(CoreMixin):
+        model = Book
+        fields = "__all__"
+        base_template_path = "sample/base.html"
+        extra_actions = [
+            {
+                "url_name": "sample:bigbook-description-preview",
+                "text": "Description Preview",
+                "hidden_if": "should_hide_description_preview",
+                "disabled_state": "get_description_disabled_state",
+            }
+        ]
+
+        def should_hide_description_preview(self, obj, request):
+            """Return no hidden state for config validation."""
+            return False
+
+        def get_description_disabled_state(self, obj, request):
+            """Return no disabled state for config validation."""
+            return None
+
+    view = ActionView()
+
+    assert view.extra_actions[0]["hidden_if"] == "should_hide_description_preview", (
+        "Primitive extra_actions should accept a hidden_if hook alongside disabled_state."
+    )
+    assert view.extra_actions[0]["disabled_state"] == "get_description_disabled_state", (
+        "Primitive extra_actions should preserve the disabled_state hook when hidden_if is configured."
+    )
+
+
+@pytest.mark.django_db
 def test_core_mixin_accepts_poweraction_in_extra_actions():
     class ActionView(CoreMixin):
         model = Book
@@ -901,6 +954,7 @@ def test_core_mixin_accepts_poweraction_in_extra_actions():
                 text="Description Preview",
                 url_name="sample:bigbook-description-preview",
                 display_modal=True,
+                hidden_if="should_hide_description_preview",
                 disabled_state="get_description_disabled_state",
             ),
             {
@@ -913,8 +967,15 @@ def test_core_mixin_accepts_poweraction_in_extra_actions():
             """Return no disabled state for config validation."""
             return None
 
+        def should_hide_description_preview(self, obj, request):
+            """Return no hidden state for config validation."""
+            return False
+
     view = ActionView()
 
+    assert view.extra_actions[0]["hidden_if"] == "should_hide_description_preview", (
+        "PowerAction declarations should normalize hidden_if into primitive extra_actions dictionaries."
+    )
     assert view.extra_actions[0]["disabled_state"] == "get_description_disabled_state", (
         "PowerAction declarations should normalize into primitive extra_actions dictionaries."
     )
@@ -2850,6 +2911,62 @@ def test_book_list_renders_disabled_extra_action_with_reason(client):
         "w-11/12 max-w-5xl flex-col'"
     ) in response_text, (
         "Sample modal extra action should demonstrate per-action modal sizing."
+    )
+
+
+@pytest.mark.django_db
+def test_book_list_hides_primitive_extra_action_when_hidden_hook_matches(client):
+    """Hide primitive row actions from the base book sample when hidden_if matches."""
+    author = Author.objects.create(name="Primitive Hidden Action Author")
+    Book.objects.create(
+        title="Hidden Preview Primitive",
+        author=author,
+        published_date=date(2024, 10, 2),
+        bestseller=False,
+        isbn="9876543210668",
+        pages=41,
+        description="This row would otherwise have a preview.",
+    )
+
+    response = client.get(reverse("sample:bigbook-list"))
+    response_text = " ".join(response.content.decode().split())
+
+    assert response.status_code == 200, (
+        "Book list view should render successfully so primitive hidden_if behavior can be inspected."
+    )
+    assert "Description Preview" not in response_text, (
+        "Base BookCRUDView should hide the primitive description-preview action when hidden_if matches."
+    )
+    assert ">More<" in response_text, (
+        "The row should keep More visible because the Normal Edit extra action still applies."
+    )
+
+
+@pytest.mark.django_db
+def test_powerfield_book_list_hides_poweraction_when_hidden_hook_matches(client):
+    """Hide PowerAction row actions from the PowerField book sample when hidden_if matches."""
+    author = Author.objects.create(name="PowerAction Hidden Action Author")
+    Book.objects.create(
+        title="Hidden Preview PowerAction",
+        author=author,
+        published_date=date(2024, 10, 3),
+        bestseller=False,
+        isbn="9876543210669",
+        pages=42,
+        description="This row would otherwise have a preview.",
+    )
+
+    response = client.get(reverse("sample:powerfield-book-list"))
+    response_text = " ".join(response.content.decode().split())
+
+    assert response.status_code == 200, (
+        "PowerField book list view should render successfully so PowerAction hidden_if behavior can be inspected."
+    )
+    assert "Description Preview" not in response_text, (
+        "PowerFieldBookCRUDView should hide the PowerAction description-preview action when hidden_if matches."
+    )
+    assert ">More<" in response_text, (
+        "The row should keep More visible because the Normal Edit PowerAction still applies."
     )
 
 
