@@ -406,7 +406,7 @@ Notes:
 - `refresh_list_on_modal_close` is only used when `display_modal=True`; prefer `HX-Trigger: {"refreshTable": true}` when the endpoint knows it changed data.
 - `hidden_if` is an optional view method name with signature `(obj, request) -> bool`. Return `True` to omit the action for that row. Hidden actions are removed before disabled hooks are evaluated.
 - `disabled_state` is a single-hook alternative to `disabled_if` / `disabled_reason`. Return a non-empty string to disable the action and show that string as the reason; return `None`, `False`, or an empty string to keep it enabled.
-- `disabled_if` and `disabled_reason` are optional view method names used to disable a row action based on the current object and request.
+- `disabled_if` and `disabled_reason` are deprecated view method names used to disable a row action based on the current object and request. Use `disabled_state` instead.
 - Do not combine `disabled_state` with `disabled_if` or `disabled_reason` on the same action.
 - Use `hidden_if` when an action is not applicable for a row. Use `disabled_state` when the action is applicable but unavailable and needs an explanatory reason.
 - `lock_sensitive` remains available when an action should also disable under PowerCRUD's existing lock/blocked-row state.
@@ -427,8 +427,8 @@ Notes:
     | `lock_sensitive` | `bool` | Disables the action automatically when PowerCRUD marks the row as blocked by its existing lock logic. |
     | `hidden_if` | `str` | Name of a view method with signature `(obj, request) -> bool` that decides whether the action should be omitted for that row. |
     | `disabled_state` | `str` | Name of a view method with signature `(obj, request) -> str | None | bool` that returns a disabled reason string, or a falsey enabled value. |
-    | `disabled_if` | `str` | Name of a view method with signature `(obj, request) -> bool` that decides whether the action is disabled for that row. |
-    | `disabled_reason` | `str` | Name of a view method with signature `(obj, request) -> str | None` that returns the disabled tooltip/help text. |
+    | `disabled_if` | `str` | Deprecated. Name of a view method with signature `(obj, request) -> bool` that decides whether the action is disabled for that row. Use `disabled_state` instead. |
+    | `disabled_reason` | `str` | Deprecated. Name of a view method with signature `(obj, request) -> str | None` that returns the disabled tooltip/help text. Use `disabled_state` instead. |
 
 ### Searchable select enhancement
 

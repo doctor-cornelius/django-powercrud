@@ -204,7 +204,7 @@ def get_preview_disabled_state(self, obj, request):
 
 Return a non-empty string to disable the action and show that string as the reason. Return `None`, `False`, or an empty string to keep the action enabled.
 
-The older `disabled_if` and `disabled_reason` pair still works. Do not combine those legacy hooks with `disabled_state` on one action.
+The older `disabled_if` and `disabled_reason` pair still works for compatibility, but it is deprecated and targeted for removal in v1.0. Do not combine those legacy hooks with `disabled_state` on one action.
 
 Use `hidden_if` when the row action is not applicable and should not render. Use `disabled_state` when the action is applicable but unavailable and the user benefits from a reason.
 

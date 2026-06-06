@@ -2,6 +2,42 @@
 
 This page tracks public APIs that still work for compatibility but are no longer the preferred path.
 
+## Legacy Extra-Action Disabled Hooks
+
+!!! warning "Deprecated: `disabled_if` and `disabled_reason` on `extra_actions`"
+
+    The paired `disabled_if` / `disabled_reason` row-action hooks are deprecated and targeted for removal in v1.0.
+
+    ```python
+    extra_actions = [
+        {
+            "url_name": "cases:case-preview",
+            "text": "Preview",
+            "disabled_if": "is_preview_disabled",
+            "disabled_reason": "get_preview_disabled_reason",
+        },
+    ]
+    ```
+
+Use `disabled_state` instead. It keeps the enabled/disabled decision and reason text in one hook:
+
+```python
+extra_actions = [
+    {
+        "url_name": "cases:case-preview",
+        "text": "Preview",
+        "disabled_state": "get_preview_disabled_state",
+    },
+]
+
+def get_preview_disabled_state(self, obj, request):
+    if not obj.ready_for_preview:
+        return "Preview is available after the case is ready."
+    return None
+```
+
+Use `hidden_if` separately when the action is not applicable and should not render for a row.
+
 ## Legacy List-Cell Tooltip Hook
 
 !!! warning "Deprecated: `list_cell_tooltip_fields` as a list"

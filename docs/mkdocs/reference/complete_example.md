@@ -308,7 +308,7 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
 - `modal_box_classes` on a modal `extra_buttons` item replaces the view-level modal box classes only while that button's modal is open. Keep `flex max-h-[calc(100dvh-2rem)] flex-col` in the string if you want the supplied viewport-bounded behavior plus a custom width.
 - `modal_box_classes` also works on list-cell links and hook-returned list-cell links when `open_in = "modal"`.
 - `hidden_if` lets row `extra_actions` omit themselves entirely when an action is not applicable to that row.
-- `disabled_state` lets row `extra_actions` disable themselves through one hook that returns a disabled reason string, while `disabled_if` / `disabled_reason` remain available as the legacy paired hook style.
+- `disabled_state` lets row `extra_actions` disable themselves through one hook that returns a disabled reason string. The legacy `disabled_if` / `disabled_reason` pair remains available for compatibility but is deprecated.
 - `modal_box_classes` works the same way on modal `extra_actions`, including actions rendered inside the dropdown `More` menu.
 - `inline_edit_fields` is the current inline-editing configuration. Older `inline_edit_enabled` usage is legacy and should not be used in new code.
 - `inline_edit_always_visible = True` is the current default, so editable cells keep a subtle resting hint unless you disable it.

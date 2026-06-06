@@ -46,8 +46,8 @@ PowerAction(
 | `refresh_list_on_modal_close` | `False` | Refresh the list when this modal closes. |
 | `hidden_if` | `None` | Boolean hook name that hides this row action when true. |
 | `disabled_state` | `None` | Single disabled-state hook name. |
-| `disabled_if` | `None` | Legacy disabled boolean hook name. |
-| `disabled_reason` | `None` | Legacy disabled reason hook name. |
+| `disabled_if` | `None` | Deprecated legacy disabled boolean hook name. Use `disabled_state` instead. |
+| `disabled_reason` | `None` | Deprecated legacy disabled reason hook name. Use `disabled_state` instead. |
 
 `to_dict()` returns the base `extra_actions` dictionary. `with_options(...)` returns a new `PowerAction` with selected values changed.
 
@@ -149,6 +149,7 @@ extra_buttons = [
 - Boolean parameters must be `True`, `False`, or `None` where the constructor explicitly allows `None`.
 - `PowerAction.hidden_if` must be a method-name string when set.
 - `PowerAction.disabled_state` cannot be combined with `disabled_if` or `disabled_reason`.
+- `PowerAction.disabled_if` and `PowerAction.disabled_reason` are deprecated and targeted for removal in v1.0.
 - `PowerAction.disabled_reason` requires `disabled_if`; use `disabled_state` for the single-hook contract.
 - `PowerButton.selection_min_behavior` must be `"allow"` or `"disable"`.
 - `PowerButton` cannot combine `uses_selection=True` with `needs_pk=True`.
