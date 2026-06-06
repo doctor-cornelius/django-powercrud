@@ -6,6 +6,11 @@ During the `0.x` series, breaking changes can occur, although we try to minimise
 
 Version numbers below correspond to published git tags. The more important releases include a little extra narrative and upgrade context; smaller patch releases remain deliberately brief. For full detail between any two versions, use the GitHub compare view for the matching tags.
 
+## 0.7.4 (2026-06-06)
+- **Feature (extra-actions)**: add hidden_if row action hook
+  
+  Adds explicit conditional hiding support for row-level extra actions via hidden_if="...". Hidden actions are omitted from both inline row buttons and the More menu, while disabled_state="..." remains the preferred API for actions that should stay visible but unavailable with tooltip text. Also documents disabled_if and disabled_reason as deprecated ahead of v1.0 removal.
+
 ## 0.7.3 (2026-05-31)
 - **Fix (poweractions)**: avoid selection warnings for plain buttons
 
