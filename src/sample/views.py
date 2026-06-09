@@ -384,8 +384,24 @@ class AnnotatedBookCRUDView(SampleCRUDMixin):
     inline_edit_fields = ["pages"]
     bulk_fields = []
     bulk_delete = False
-    extra_buttons = []
+    extra_button_classes = "btn-sm"
+    extra_buttons = [
+        PowerButton(
+            text="Annotated Selection Summary",
+            url_name="sample:annotated-book-selected-summary",
+            button_class="btn-primary",
+            display_modal=True,
+            uses_selection=True,
+            selection_min_count=1,
+            selection_min_behavior="disable",
+            selection_min_reason="Select at least one annotated book first.",
+        )
+    ]
     extra_actions = []
+
+    def get_bulk_selection_key_suffix(self):
+        """Keep the annotated-book demo selection separate from the main Book view."""
+        return "annotated"
 
     def get_long_book_tooltip(self, obj, request=None):
         """Return semantic tooltip text for the annotation sample column."""
@@ -873,6 +889,38 @@ def book_selected_summary(request):
         "selected_books": selected_books,
         "selected_count": len(selected_books),
         "selection_required_message": "Select at least one book first.",
+    }
+    return render(request, template, context)
+
+
+def annotated_book_selected_summary(request):
+    """Render a sample modal summarizing the annotated-book selection."""
+    framework = get_powercrud_setting("POWERCRUD_CSS_FRAMEWORK")
+    template = f"sample/{framework}/annotated_book_selected_summary.html"
+    if request.htmx:
+        template += "#pcrud_content"
+
+    view = AnnotatedBookCRUDView()
+    selected_ids = view.get_selected_ids_for_extra_button(
+        request,
+        {"uses_selection": True},
+    )
+    selected_books = list(
+        models.Book.objects.filter(pk__in=selected_ids)
+        .select_related("author")
+        .annotate(
+            long_book=Case(
+                When(pages__gte=400, then=Value(True)),
+                default=Value(False),
+                output_field=BooleanField(),
+            )
+        )
+        .order_by("title")
+    )
+    context = {
+        "selected_books": selected_books,
+        "selected_count": len(selected_books),
+        "selection_required_message": "Select at least one annotated book first.",
     }
     return render(request, template, context)
 

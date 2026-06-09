@@ -389,6 +389,12 @@ class InlineEditingMixin:
         summary = error_summary
         if summary is None:
             summary = self._get_inline_form_error_summary(inline_form)
+        selection_controls_getter = getattr(self, "get_selection_controls_enabled", None)
+        enable_selection_controls = (
+            selection_controls_getter()
+            if callable(selection_controls_getter)
+            else self.get_bulk_edit_enabled()
+        )
         context = {
             "row": row_payload,
             "form": inline_form,
@@ -397,6 +403,7 @@ class InlineEditingMixin:
             "inline_save_url": self._get_inline_row_url(obj),
             "inline_cancel_url": self._get_inline_row_url(obj),
             "enable_bulk_edit": self.get_bulk_edit_enabled(),
+            "enable_selection_controls": enable_selection_controls,
             "selected_ids": self._get_selected_ids(),
             "list_view_url": self._get_list_url(),
             "action_button_classes": self.get_action_button_classes(),
@@ -451,10 +458,17 @@ class InlineEditingMixin:
     def _render_inline_row_display(self, obj) -> str:
         cfg = resolve_config(self)
         row_payload = self._build_inline_row_payload(obj)
+        selection_controls_getter = getattr(self, "get_selection_controls_enabled", None)
+        enable_selection_controls = (
+            selection_controls_getter()
+            if callable(selection_controls_getter)
+            else self.get_bulk_edit_enabled()
+        )
         context = {
             "row": row_payload,
             "inline_config": self.get_inline_context(),
             "enable_bulk_edit": self.get_bulk_edit_enabled(),
+            "enable_selection_controls": enable_selection_controls,
             "selected_ids": self._get_selected_ids(),
             "list_view_url": self._get_list_url(),
         }

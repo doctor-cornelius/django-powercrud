@@ -130,6 +130,7 @@ class PowerCRUDMixinValidator(BaseModel):
     )
     show_record_count: Optional[bool] = None
     show_bulk_selection_meta: Optional[bool] = None
+    extra_button_selection_controls_disabled: Optional[bool] = False
 
     # form fields
     form_fields: Optional[Union[List[str], Literal["__all__", "__fields__"]]] = None

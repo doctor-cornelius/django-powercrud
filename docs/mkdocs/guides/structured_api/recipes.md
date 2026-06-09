@@ -176,6 +176,12 @@ Use this when toolbar buttons share the same selection rules.
 
 Use the structured version when the selection contract repeats and the local difference should be limited to the label, URL, or reason text.
 
+`uses_selection=True` can render row selection controls without enabling the built-in bulk edit/delete UI.
+
+Set `extra_button_selection_controls_disabled = True` on the view if the button uses selected rows, but this list should not show checkboxes just because of that button.
+
+This is mainly useful when the selected rows come from somewhere else, or when the page has its own custom way to choose rows. Bulk edit and bulk delete still show checkboxes because they need them.
+
 ## What To Do Next
 
 - Use [PowerField](powerfields.md) for the full Field Intent guide.

@@ -35,6 +35,8 @@ Every entry in `bulk_fields` must be an editable model field. If you include a f
 
 Selections persist across pagination because PowerCRUD stores them in the session for the current view.
 
+The selector controls are shared PowerCRUD selection controls. Built-in `bulk_fields` and `bulk_delete` always render them when the bulk UI is usable, and selection-aware `extra_buttons` can also render them without enabling the built-in bulk edit/delete modal. This guide focuses on the built-in bulk-edit consumer of that selection state.
+
 ---
 
 ## 2. Validation & save behaviour

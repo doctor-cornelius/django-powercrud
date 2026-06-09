@@ -24,6 +24,11 @@ urlpatterns += [
         name="bigbook-selected-summary",
     ),
     path(
+        "annotated-book/selected-summary/",
+        views.annotated_book_selected_summary,
+        name="annotated-book-selected-summary",
+    ),
+    path(
         "bigbook/<str:pk>/description-preview/",
         views.book_description_preview,
         name="bigbook-description-preview",

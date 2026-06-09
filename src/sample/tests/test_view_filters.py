@@ -305,6 +305,49 @@ def test_annotated_book_sample_list_renders(client: Client):
     assert 'data-inline-field="long_book"' not in response_text, (
         "AnnotatedBookCRUDView should keep the queryset annotation read-only."
     )
+    assert "Annotated Selection Summary" in response_text, (
+        "AnnotatedBookCRUDView should render a selection-aware extra button without bulk edit enabled."
+    )
+    assert 'data-powercrud-row-select="true"' in response_text, (
+        "AnnotatedBookCRUDView should render row selection controls for its selection-aware extra button."
+    )
+    assert "annotated-book/bulk-edit/" not in response_text, (
+        "AnnotatedBookCRUDView should not render the built-in bulk edit route when no bulk fields or bulk delete are configured."
+    )
+    assert ">Bulk Edit" not in response_text, (
+        "AnnotatedBookCRUDView should not render the built-in Bulk Edit button for a selection-only extra button."
+    )
+
+
+@pytest.mark.django_db
+def test_annotated_book_selected_summary_uses_annotated_selection(client: Client):
+    """The annotated selection summary should read the annotated view selection key."""
+    author = Author.objects.create(name="Annotation Summary Author")
+    book = Book.objects.create(
+        title="Selected Annotation Demo",
+        author=author,
+        published_date=date(2024, 4, 4),
+        bestseller=False,
+        isbn="9781234500204",
+        pages=650,
+    )
+    view = sample_views.AnnotatedBookCRUDView()
+    session = client.session
+    session["powercrud_selections"] = {view.get_storage_key(): [str(book.pk)]}
+    session.save()
+
+    response = client.get(reverse("sample:annotated-book-selected-summary"))
+
+    assert response.status_code == 200, (
+        "Annotated selection summary should render successfully from persisted selection state."
+    )
+    response_text = response.content.decode()
+    assert "Selected Annotation Demo" in response_text, (
+        "Annotated selection summary should include selected books from the annotated view storage key."
+    )
+    assert "Long book:" in response_text, (
+        "Annotated selection summary should include annotation-derived row metadata."
+    )
 
 
 @pytest.mark.django_db

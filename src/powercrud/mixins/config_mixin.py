@@ -18,6 +18,22 @@ log = get_logger(__name__)
 DEFAULT_MODAL_BOX_CLASSES = "modal-box flex max-h-[calc(100dvh-2rem)] flex-col"
 DEFAULT_MODAL_BODY_CLASSES = "min-h-0 flex-1 overflow-y-auto py-4"
 
+
+def has_selection_aware_extra_buttons(extra_buttons: Any) -> bool:
+    """Return True when any extra button declares ``uses_selection=True``."""
+    if not extra_buttons:
+        return False
+    if not isinstance(extra_buttons, (list, tuple)):
+        return False
+
+    for button in extra_buttons:
+        if isinstance(button, PowerButton) and button.uses_selection:
+            return True
+        if isinstance(button, dict) and bool(button.get("uses_selection", False)):
+            return True
+    return False
+
+
 FIELD_INTENT_CONFIG_FIELDS = {
     "fields",
     "properties",
@@ -155,6 +171,7 @@ class ConfigMixin:
     extra_actions_dropdown_open_upward_bottom_rows: int = 3
     show_record_count: bool = False
     show_bulk_selection_meta: bool = True
+    extra_button_selection_controls_disabled: bool = False
 
     # filtering options
     default_filterset_fields: list[str] | None = None
@@ -195,6 +212,7 @@ class ConfigMixin:
         "extra_actions_dropdown_open_upward_bottom_rows",
         "show_record_count",
         "show_bulk_selection_meta",
+        "extra_button_selection_controls_disabled",
         "m2m_filter_and_logic",
         "inline_preserve_required_fields",
         "async_manager_class",
@@ -1224,6 +1242,14 @@ class ConfigMixin:
         config["bulk_delete_enabled"] = bool(
             config.get("bulk_delete") and config["bulk_edit_enabled"]
         )
+        config["selection_controls_enabled"] = bool(
+            config["bulk_edit_enabled"]
+            or (
+                use_htmx_enabled
+                and not config.get("extra_button_selection_controls_disabled", False)
+                and has_selection_aware_extra_buttons(config.get("extra_buttons") or [])
+            )
+        )
         config["use_crispy_enabled"] = self._resolve_use_crispy_setting(
             config.get("use_crispy")
         )
@@ -1390,6 +1416,21 @@ class _ConfigShim:
         if name == "bulk_delete_enabled":
             return bool(
                 self._raw("bulk_delete") and self.__getattr__("bulk_edit_enabled")
+            )
+        if name == "extra_button_selection_controls_disabled":
+            return bool(self._raw("extra_button_selection_controls_disabled", False))
+        if name == "selection_controls_enabled":
+            return bool(
+                self.__getattr__("bulk_edit_enabled")
+                or (
+                    self.__getattr__("use_htmx_enabled")
+                    and not self.__getattr__(
+                        "extra_button_selection_controls_disabled"
+                    )
+                    and has_selection_aware_extra_buttons(
+                        self._raw("extra_buttons", []) or []
+                    )
+                )
             )
         if name == "use_crispy_enabled":
             desired = self._raw("use_crispy")
@@ -1662,4 +1703,9 @@ def resolve_class_config(view_cls):
     return SimpleNamespace(**config)
 
 
-__all__ = ["ConfigMixin", "resolve_config", "resolve_class_config"]
+__all__ = [
+    "ConfigMixin",
+    "has_selection_aware_extra_buttons",
+    "resolve_config",
+    "resolve_class_config",
+]

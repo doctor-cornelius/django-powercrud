@@ -99,6 +99,35 @@ class LegacyInlineUrlViewHarness(UrlMixin, ContextBase, View):
     inline_edit_enabled = True
 
 
+class SelectionButtonUrlHarness(UrlMixin, ContextBase, View):
+    namespace = "sample"
+    url_base = "selection-book"
+    lookup_field = "pk"
+    lookup_url_kwarg = "pk"
+    template_name = None
+    template_name_suffix = "_detail"
+    templates_path = "powercrud/daisyUI"
+    base_template_path = "powercrud/base.html"
+    path_converter = "int"
+    model = Book
+    use_htmx = True
+    use_modal = True
+    bulk_fields = []
+    bulk_delete = False
+    extra_buttons = [
+        {
+            "url_name": "sample:bigbook-selected-summary",
+            "text": "Selected Summary",
+            "uses_selection": True,
+        }
+    ]
+
+
+class SelectionButtonOptOutUrlHarness(SelectionButtonUrlHarness):
+    url_base = "selection-opt-out-book"
+    extra_button_selection_controls_disabled = True
+
+
 def test_resolve_class_config_copies_mutable_values():
     cfg = resolve_class_config(UrlViewHarness)
 
@@ -191,6 +220,58 @@ def test_get_urls_generates_patterns(monkeypatch):
     assert "book-bulk-edit" in names
     assert "book-inline-row" in names
     assert "book-inline-dependency" in names
+
+
+def test_get_urls_generates_selection_endpoints_for_selection_extra_buttons(monkeypatch):
+    def fake_as_view(cls, **kwargs):
+        return lambda request, *args, **kw: None
+
+    monkeypatch.setattr(
+        SelectionButtonUrlHarness,
+        "as_view",
+        classmethod(fake_as_view),
+    )
+
+    patterns = SelectionButtonUrlHarness.get_urls()
+    names = {pattern.name for pattern in patterns}
+    assert "selection-book-bulk-edit" not in names, (
+        "Selection-aware extra buttons should not register the built-in bulk edit modal route."
+    )
+    assert "selection-book-toggle-selection" in names, (
+        "Selection-aware extra buttons should register row-selection toggle URLs."
+    )
+    assert "selection-book-clear-selection" in names, (
+        "Selection-aware extra buttons should register clear-selection URLs."
+    )
+    assert "selection-book-toggle-all-selection" in names, (
+        "Selection-aware extra buttons should register page-level selection URLs."
+    )
+    assert "selection-book-select-all-matching" in names, (
+        "Selection-aware extra buttons should register filtered-selection metadata URLs."
+    )
+
+
+def test_get_urls_respects_extra_button_selection_controls_opt_out(monkeypatch):
+    def fake_as_view(cls, **kwargs):
+        return lambda request, *args, **kw: None
+
+    monkeypatch.setattr(
+        SelectionButtonOptOutUrlHarness,
+        "as_view",
+        classmethod(fake_as_view),
+    )
+
+    patterns = SelectionButtonOptOutUrlHarness.get_urls()
+    names = {pattern.name for pattern in patterns}
+    assert "selection-opt-out-book-bulk-edit" not in names, (
+        "Opt-out selection-only views should not register the built-in bulk edit modal route."
+    )
+    assert "selection-opt-out-book-toggle-selection" not in names, (
+        "Opt-out selection-only views should not register row-selection endpoints."
+    )
+    assert "selection-opt-out-book-clear-selection" not in names, (
+        "Opt-out selection-only views should not register clear-selection endpoints."
+    )
 
 
 def test_legacy_inline_edit_enabled_still_generates_inline_urls(monkeypatch):

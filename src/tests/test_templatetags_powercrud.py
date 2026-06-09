@@ -143,6 +143,9 @@ class TemplateViewStub:
     def get_bulk_edit_enabled(self):
         return True
 
+    def get_selection_controls_enabled(self):
+        return self.get_bulk_edit_enabled()
+
     def get_bulk_delete_enabled(self):
         return True
 
@@ -619,6 +622,39 @@ def test_object_list_renders_booleans_dates_and_selection():
     assert result["selected_ids"] == ["1"]
     assert result["selected_count"] == 1
     assert result["filter_params"] == "filter=1"
+
+
+@pytest.mark.django_db
+def test_object_list_uses_selection_controls_without_bulk_edit():
+    author = Author.objects.create(name="Selection Only Author")
+    book = Book.objects.create(
+        title="Selection Only",
+        author=author,
+        published_date=date(2024, 5, 1),
+        bestseller=False,
+        isbn="1234567890555",
+        pages=88,
+    )
+    request = apply_session(RequestFactory().get("/"))
+    request.session["selected"] = [str(book.pk)]
+    view = TemplateViewStub(request)
+    view.get_bulk_edit_enabled = lambda: False
+    view.get_selection_controls_enabled = lambda: True
+
+    result = powercrud.object_list({"request": request}, [book], view)
+
+    assert result["enable_bulk_edit"] is False, (
+        "Selection-only toolbar actions should not report the built-in bulk edit modal as enabled."
+    )
+    assert result["enable_selection_controls"] is True, (
+        "Selection-only toolbar actions should still report row selection controls as enabled."
+    )
+    assert result["selected_count"] == 1, (
+        "Selection-only toolbar actions should keep selected counts available to the list template."
+    )
+    assert result["object_list"][0]["is_selected"] is True, (
+        "Selection-only toolbar actions should still mark selected rows for rendering."
+    )
 
 
 @pytest.mark.django_db

@@ -58,9 +58,11 @@ Presentation overlaps with field links and actions because both need a target. T
 
 Selection is persisted row state used by bulk operations and selection-aware controls.
 
-Selection-related options include `show_bulk_selection_meta`, `extra_buttons` with `uses_selection`, `selection_min_count`, `selection_min_behavior`, and selection session helpers.
+Selection-related options include `show_bulk_selection_meta`, `extra_buttons` with `uses_selection`, `selection_min_count`, `selection_min_behavior`, `extra_button_selection_controls_disabled`, and selection session helpers.
 
 Selection is separate from visible columns. Hiding or showing columns should not change which rows are selected.
+
+Built-in bulk edit/delete and selection-aware toolbar buttons can both render selector controls. Set `extra_button_selection_controls_disabled = True` if a button uses selected rows, but the list should not show checkboxes just because of that button. This is mainly useful when the selected rows come from somewhere else, or when the page has its own custom way to choose rows. Bulk edit and bulk delete still show checkboxes because they need them.
 
 ### Bulk Operation
 
