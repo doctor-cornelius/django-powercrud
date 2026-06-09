@@ -44,7 +44,15 @@ class ViewMixin:
         """
         filtered_queryset = kwargs.pop("filtered_queryset", None)
         context = super().get_context_data(**kwargs)
-        enable_selection_controls = self.get_selection_controls_enabled()
+        selection_controls_getter = getattr(self, "get_selection_controls_enabled", None)
+        bulk_edit_getter = getattr(self, "get_bulk_edit_enabled", None)
+        enable_selection_controls = (
+            selection_controls_getter()
+            if callable(selection_controls_getter)
+            else bulk_edit_getter()
+            if callable(bulk_edit_getter)
+            else False
+        )
         selected_ids = (
             self.get_selected_ids_from_session(self.request)
             if enable_selection_controls
