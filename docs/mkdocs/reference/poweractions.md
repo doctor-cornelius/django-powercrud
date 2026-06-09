@@ -119,6 +119,8 @@ PowerButton(
 
 Any constructor parameter in the table above can be passed to `with_options(...)`.
 
+`uses_selection=True` can render row selection controls even when the view has no built-in bulk edit/delete configuration. Set the view-level `extra_button_selection_controls_disabled = True` only when selection-aware toolbar buttons should not cause selector controls to appear. Built-in `bulk_fields` and `bulk_delete` still render selector controls because they require them.
+
 ```python
 SELECTED_MODAL = PowerButton(
     text="Selected Summary",

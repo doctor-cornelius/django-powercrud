@@ -176,6 +176,8 @@ Use this when toolbar buttons share the same selection rules.
 
 Use the structured version when the selection contract repeats and the local difference should be limited to the label, URL, or reason text.
 
+`uses_selection=True` can render row selection controls without enabling the built-in bulk edit/delete UI. Use `extra_button_selection_controls_disabled = True` on the view only when a selection-aware toolbar button should read existing selection state without causing selector controls to appear.
+
 ## What To Do Next
 
 - Use [PowerField](powerfields.md) for the full Field Intent guide.

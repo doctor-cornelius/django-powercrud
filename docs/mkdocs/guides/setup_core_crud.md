@@ -131,7 +131,11 @@ extra_buttons = [
 ]
 ```
 
-Selection-aware header buttons read the current persisted PowerCRUD bulk selection at the endpoint rather than expecting row IDs in the URL. Keep server-side validation in the endpoint even when you also disable the button in the UI.
+Selection-aware header buttons read the current persisted PowerCRUD selection at the endpoint rather than expecting row IDs in the URL. They can render row selection controls even when `bulk_fields = []` and `bulk_delete = False`.
+
+If a view needs a selection-aware endpoint but should not expose selector controls from extra buttons, set `extra_button_selection_controls_disabled = True`. This only suppresses selector controls caused by selection-aware `extra_buttons`; built-in bulk edit/delete still render selector controls because they require them.
+
+Keep server-side validation in the endpoint even when you also disable the button in the UI.
 
 ??? info "Parameter Guide"
 
@@ -147,7 +151,7 @@ Selection-aware header buttons read the current persisted PowerCRUD bulk selecti
     | `htmx_target` | `str` | HTMX target element to swap into when the button is clicked and it is not using the default modal target. |
     | `extra_attrs` | `str` | Raw HTML attributes appended to the button element when you need custom HTMX or data attributes. |
     | `extra_class_attrs` | `str` | Extra CSS classes appended to the button in addition to `button_class`. |
-    | `uses_selection` | `bool` | When `True`, the endpoint should operate on the current persisted PowerCRUD bulk selection. |
+    | `uses_selection` | `bool` | When `True`, the endpoint should operate on the current persisted PowerCRUD selection. |
     | `selection_min_count` | `int` | Minimum number of selected rows required before the button is considered ready. |
     | `selection_min_behavior` | `str` | `'allow'` leaves the button clickable below the minimum and lets the endpoint handle the error; `'disable'` greys it out in the UI. |
     | `selection_min_reason` | `str` | Tooltip/help text shown when a selection-aware button is disabled because too few rows are selected. |
@@ -382,7 +386,7 @@ Examples:
 
 This is useful when users need quick confirmation that a filter narrowed the queryset as expected, without adding extra noise to the main button toolbar.
 
-When synchronous bulk editing is enabled, the same metadata line can also host contextual selection actions such as `Select all N matching records` or `Add 998 more from 1030 matching records`. Leave `show_bulk_selection_meta = True` (the default) to keep that action available even when `show_record_count` is off, or disable it separately if you do not want selection prompts in that row.
+When row selection controls are enabled, the same metadata line can also host contextual selection actions such as `Select all N matching records` or `Add 998 more from 1030 matching records`. Leave `show_bulk_selection_meta = True` (the default) to keep that action available even when `show_record_count` is off, or disable it separately if you do not want selection prompts in that row.
 
 ## 5. List presentation adjustments
 

@@ -252,7 +252,9 @@ Notes:
 
 1. `uses_selection` means the endpoint operates on the persisted PowerCRUD selection.
 2. `selection_min_behavior = "disable"` keeps the button visible but unavailable until enough rows are selected.
-3. The endpoint should still validate the selection server-side.
+3. A selection-aware `extra_buttons` entry can render selector controls without enabling built-in bulk edit/delete.
+4. Set `extra_button_selection_controls_disabled = True` only if the selection-aware button should not cause selector controls to appear.
+5. The endpoint should still validate the selection server-side.
 
 ## Bulk Edit With Service-Backed Persistence
 

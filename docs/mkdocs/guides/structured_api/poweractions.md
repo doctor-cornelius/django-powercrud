@@ -156,6 +156,8 @@ Use `PowerButton` for list-level `extra_buttons`.
 
 `PowerButton.needs_pk` defaults to `False`, matching the normal toolbar-button case.
 
+`uses_selection=True` can render row selection controls even when the view has no built-in bulk edit/delete configuration. Set the view-level `extra_button_selection_controls_disabled = True` only when selection-aware toolbar buttons should not cause selector controls to appear. Built-in `bulk_fields` and `bulk_delete` still render selector controls because they require them.
+
 ## Mixing Styles
 
 Base dictionaries and structured declarations may be mixed in the same list.
