@@ -1030,22 +1030,30 @@ def object_list(context, objects, view):
     inline_row_endpoint = inline_config.get("row_endpoint_name")
     inline_dependencies = inline_config.get("dependencies") or {}
 
-    # Check if bulk edit is enabled
+    # Check if bulk edit and row selection controls are enabled.
     enable_bulk_edit = (
         hasattr(view, "get_bulk_edit_enabled") and view.get_bulk_edit_enabled()
     )
+    if hasattr(view, "get_selection_controls_enabled"):
+        enable_selection_controls = view.get_selection_controls_enabled()
+    else:
+        enable_selection_controls = enable_bulk_edit
 
-    # Get currently selected IDs from session if bulk edit is enabled
+    # Get currently selected IDs from session if selection controls are enabled.
     request = context.get("request") or getattr(view, "request", None)
     selected_ids = []
-    if request and enable_bulk_edit and hasattr(view, "get_selected_ids_from_session"):
+    if (
+        request
+        and enable_selection_controls
+        and hasattr(view, "get_selected_ids_from_session")
+    ):
         selected_ids = view.get_selected_ids_from_session(request)
         # Convert to strings for comparison
         selected_ids = [str(id) for id in selected_ids]
 
     # Get selection key suffix if available
     selection_key_suffix = ""
-    if enable_bulk_edit and hasattr(view, "get_bulk_selection_key_suffix"):
+    if enable_selection_controls and hasattr(view, "get_bulk_selection_key_suffix"):
         selection_key_suffix = view.get_bulk_selection_key_suffix()
 
     column_help_text = _resolve_view_option(
@@ -1267,7 +1275,7 @@ def object_list(context, objects, view):
             "object": obj,
             "id": str(obj.pk),  # Add ID for selection tracking
             "is_selected": str(obj.pk) in selected_ids
-            if enable_bulk_edit
+            if enable_selection_controls
             else False,  # Check if this object is selected
             "row_id": row_id,
             "inline_url": inline_row_url,
@@ -1448,7 +1456,8 @@ def object_list(context, objects, view):
         "selected_ids": selected_ids,
         # Add bulk edit related context
         "enable_bulk_edit": enable_bulk_edit,
-        "selected_count": len(selected_ids) if enable_bulk_edit else 0,
+        "enable_selection_controls": enable_selection_controls,
+        "selected_count": len(selected_ids) if enable_selection_controls else 0,
         "model_name": view.model.__name__.lower() if hasattr(view, "model") else "",
         "selection_key_suffix": selection_key_suffix,
         "inline_edit": inline_config,

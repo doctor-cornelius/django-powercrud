@@ -44,7 +44,13 @@ class ViewMixin:
         """
         filtered_queryset = kwargs.pop("filtered_queryset", None)
         context = super().get_context_data(**kwargs)
-        selected_ids = self.get_selected_ids_from_session(self.request)
+        enable_selection_controls = self.get_selection_controls_enabled()
+        selected_ids = (
+            self.get_selected_ids_from_session(self.request)
+            if enable_selection_controls
+            else []
+        )
+        context["enable_selection_controls"] = enable_selection_controls
         context["selected_ids"] = selected_ids
         context["selected_count"] = len(selected_ids)
         # Determine if all items on the current page are selected
@@ -63,7 +69,10 @@ class ViewMixin:
             context["all_selected"] = False
             context["some_selected"] = False
 
-        bulk_meta_enabled = resolve_config(self).show_bulk_selection_meta is not False
+        bulk_meta_enabled = (
+            enable_selection_controls
+            and resolve_config(self).show_bulk_selection_meta is not False
+        )
         context["show_bulk_selection_meta"] = False
         context["show_select_all_matching"] = False
         context["show_select_all_matching_limit"] = False
@@ -264,6 +273,7 @@ class ViewMixin:
             "bulk_fields": bulk_fields,
             "enable_bulk_delete": self.get_bulk_delete_enabled(),
             "enable_bulk_edit": self.get_bulk_edit_enabled(),
+            "enable_selection_controls": self.get_selection_controls_enabled(),
             "model": self.model,
             "model_name": self.model.__name__.lower()
             if hasattr(self.model, "__name__")

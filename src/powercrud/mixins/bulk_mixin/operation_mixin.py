@@ -177,6 +177,15 @@ class OperationMixin:
         """
         return bool(resolve_config(self).bulk_delete_enabled)
 
+    def get_selection_controls_enabled(self) -> bool:
+        """
+        Determine if row selection controls should render for this list view.
+
+        Bulk edit/delete require selection controls. Selection-aware extra
+        buttons may also enable them unless the view opts out.
+        """
+        return bool(resolve_config(self).selection_controls_enabled)
+
     def _perform_bulk_delete(
         self,
         queryset: models.QuerySet,
