@@ -337,12 +337,47 @@ def test_bulk_edit_flags_require_modal_and_htmx():
     view = DummyBulkView(request)
     assert view.get_bulk_edit_enabled() is True
     assert view.get_bulk_delete_enabled() is True
+    assert view.get_selection_controls_enabled() is True
 
     view.use_modal = False
     assert view.get_bulk_edit_enabled() is False
     view.use_modal = True
     view.use_htmx = False
     assert view.get_bulk_edit_enabled() is False
+
+
+@pytest.mark.django_db
+def test_selection_controls_can_be_driven_by_extra_button_selection():
+    request = make_request(RequestFactory())
+
+    class SelectionOnlyBulkView(DummyBulkView):
+        bulk_fields = []
+        bulk_delete = False
+        extra_buttons = [
+            {
+                "url_name": "sample:bigbook-selected-summary",
+                "text": "Selected Summary",
+                "uses_selection": True,
+            }
+        ]
+
+    view = SelectionOnlyBulkView(request)
+    assert view.get_bulk_edit_enabled() is False, (
+        "Selection-aware extra buttons should not enable the built-in bulk edit modal."
+    )
+    assert view.get_selection_controls_enabled() is True, (
+        "Selection-aware extra buttons should enable row selection controls when HTMX is available."
+    )
+
+    view.extra_button_selection_controls_disabled = True
+    assert view.get_selection_controls_enabled() is False, (
+        "The extra-button opt-out should disable selection controls when no bulk operation needs them."
+    )
+
+    view.bulk_delete = True
+    assert view.get_selection_controls_enabled() is True, (
+        "Bulk delete should still enable selection controls even when extra-button selection controls are disabled."
+    )
 
 
 @pytest.mark.django_db

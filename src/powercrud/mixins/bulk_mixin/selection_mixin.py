@@ -75,6 +75,42 @@ class SelectionMixin:
         request.session["powercrud_selections"][session_key] = list(map(str, ids))
         request.session.modified = True
 
+    def get_selection_status_context(
+        self,
+        request: HttpRequest,
+        selected_ids: List[Any],
+    ) -> dict[str, Any]:
+        """Return context for the selection status toolbar partial."""
+        enable_bulk_edit_getter = getattr(self, "get_bulk_edit_enabled", None)
+        enable_bulk_edit = (
+            enable_bulk_edit_getter() if callable(enable_bulk_edit_getter) else False
+        )
+        selection_controls_getter = getattr(self, "get_selection_controls_enabled", None)
+        enable_selection_controls = (
+            selection_controls_getter()
+            if callable(selection_controls_getter)
+            else enable_bulk_edit
+        )
+
+        list_view_url = ""
+        safe_reverse = getattr(self, "safe_reverse", None)
+        get_prefix = getattr(self, "get_prefix", None)
+        if callable(safe_reverse) and callable(get_prefix):
+            list_view_url = safe_reverse(f"{get_prefix()}-list") or ""
+
+        context = {
+            "selected_ids": selected_ids,
+            "selected_count": len(selected_ids),
+            "enable_bulk_edit": enable_bulk_edit,
+            "enable_selection_controls": enable_selection_controls,
+            "list_view_url": list_view_url,
+            "view": self,
+        }
+        modal_context_getter = getattr(self, "get_modal_context", None)
+        if callable(modal_context_getter):
+            context.update(modal_context_getter())
+        return context
+
     def toggle_selection_in_session(
         self, request: HttpRequest, obj_id: Any
     ) -> List[str]:
@@ -121,9 +157,7 @@ class SelectionMixin:
             return HttpResponseBadRequest("Object ID not provided.")
 
         selected_ids = self.toggle_selection_in_session(request, object_id)
-        current_count = len(selected_ids)
-
-        context = {"selected_ids": selected_ids, "selected_count": current_count}
+        context = self.get_selection_status_context(request, selected_ids)
         response = render(
             request,
             f"{self.templates_path}/object_list.html#bulk_selection_status",
@@ -167,7 +201,7 @@ class SelectionMixin:
         self.clear_selection_from_session(request)
 
         # Return ONLY bulk actions container with empty state
-        context = {"selected_ids": [], "selected_count": 0}
+        context = self.get_selection_status_context(request, [])
         response = render(
             request,
             f"{self.templates_path}/object_list.html#bulk_selection_status",
@@ -250,9 +284,7 @@ class SelectionMixin:
         selected_ids = self.toggle_all_selection_in_session(
             request, object_ids, action=action
         )
-        context = self.get_context_data()
-        context["selected_ids"] = selected_ids
-        context["selected_count"] = len(selected_ids)
+        context = self.get_selection_status_context(request, selected_ids)
 
         response = render(
             request,
@@ -332,10 +364,7 @@ class SelectionMixin:
         else:
             selected_ids = self.get_selected_ids_from_session(request)
 
-        context = {
-            "selected_ids": selected_ids,
-            "selected_count": len(selected_ids),
-        }
+        context = self.get_selection_status_context(request, selected_ids)
         response = render(
             request,
             f"{self.templates_path}/object_list.html#bulk_selection_status",

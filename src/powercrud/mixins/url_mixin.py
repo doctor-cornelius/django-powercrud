@@ -9,6 +9,7 @@ from powercrud.logging import get_logger
 from .config_mixin import (
     DEFAULT_MODAL_BODY_CLASSES,
     DEFAULT_MODAL_BOX_CLASSES,
+    has_selection_aware_extra_buttons,
     resolve_class_config,
     resolve_config,
 )
@@ -261,14 +262,24 @@ class UrlMixin:
         # Standard CRUD URLs
         urls = [cls.get_url(role, cls) for role in roles]
 
-        # Add bulk edit URL if bulk_fields are defined OR bulk_delete is enabled
+        # Add bulk edit URL if bulk_fields are defined OR bulk_delete is enabled.
+        # Selection-aware extra buttons only need the selection endpoints.
         cfg = resolve_class_config(cls)
+        bulk_config_declared = bool(
+            getattr(cfg, "bulk_fields", None) or getattr(cfg, "bulk_delete", False)
+        )
+        extra_button_selection_controls_declared = bool(
+            getattr(cfg, "use_htmx", None) is True
+            and not getattr(cfg, "extra_button_selection_controls_disabled", False)
+            and has_selection_aware_extra_buttons(getattr(cfg, "extra_buttons", []))
+        )
 
-        if getattr(cfg, "bulk_fields", None) or getattr(cfg, "bulk_delete", False):
+        if bulk_config_declared:
             bulk_edit_role = BulkEditRole()
             urls.append(bulk_edit_role.get_url(cls))
 
-            # Add URLs for bulk actions using the new BulkActions enum
+        if bulk_config_declared or extra_button_selection_controls_declared:
+            # Add URLs for bulk actions using the new BulkActions enum.
             urls.append(BulkActions.TOGGLE_SELECTION.get_url(cls))
             urls.append(BulkActions.CLEAR_SELECTION.get_url(cls))
             urls.append(BulkActions.TOGGLE_ALL_SELECTION.get_url(cls))
@@ -390,7 +401,15 @@ class UrlMixin:
             )
 
         # bulk edit context vars
-        kwargs["enable_bulk_edit"] = self.get_bulk_edit_enabled()
+        enable_bulk_edit = self.get_bulk_edit_enabled()
+        selection_controls_getter = getattr(self, "get_selection_controls_enabled", None)
+        enable_selection_controls = (
+            selection_controls_getter()
+            if callable(selection_controls_getter)
+            else enable_bulk_edit
+        )
+        kwargs["enable_bulk_edit"] = enable_bulk_edit
+        kwargs["enable_selection_controls"] = enable_selection_controls
         kwargs["enable_bulk_delete"] = self.get_bulk_delete_enabled()
         kwargs["storage_key"] = self.get_storage_key()
 
@@ -448,9 +467,9 @@ class UrlMixin:
         ):
             kwargs["htmx_target"] = self.get_modal_target()
 
-        # if bulk ops enabled then pass selected_ids
+        # if selection controls are enabled then pass selected_ids
         request = kwargs.get("request")
-        if request and self.get_bulk_edit_enabled():
+        if request and enable_selection_controls:
             selected_ids = self.get_selected_ids_from_session(request)
             kwargs["selected_ids"] = selected_ids
             kwargs["selected_count"] = len(selected_ids)

@@ -178,6 +178,7 @@ The sample app includes a focused list-only view at `/sample/annotated-book/` fo
 
 ```python
 from django.db.models import BooleanField, Case, Value, When
+from powercrud.actions import PowerButton
 
 
 class AnnotatedBookCRUDView(PowerCRUDAsyncMixin, CRUDView):
@@ -198,9 +199,22 @@ class AnnotatedBookCRUDView(PowerCRUDAsyncMixin, CRUDView):
     default_filterset_fields = ["author", "long_book"]
     inline_edit_fields = ["pages"]
     bulk_fields = []
+    bulk_delete = False
+    extra_buttons = [
+        PowerButton(
+            text="Annotated Selection Summary",
+            url_name="sample:annotated-book-selected-summary",
+            display_modal=True,
+            uses_selection=True,
+            selection_min_count=1,
+            selection_min_behavior="disable",
+        )
+    ]
 ```
 
-The `long_book` column is not a model field. It is the public queryset annotation name, and PowerCRUD uses that same name in `fields`, generated filters, sorting, header help, cell tooltips, and list-column selection. The sample sets `list_options_enabled = True` and keeps `long_book` out of `default_list_fields` so it appears as an optional selectable column in the **Cols** control. The sample makes the real `pages` model field inline-editable while keeping `long_book` out of inline edit and bulk edit config because annotation fields are read-only. See [Queryset Annotation Fields](../guides/advanced/queryset_annotation_fields.md) for the declaration details behind this sample.
+The `long_book` column is not a model field. It is the public queryset annotation name, and PowerCRUD uses that same name in `fields`, generated filters, sorting, header help, cell tooltips, and list-column selection. The sample sets `list_options_enabled = True` and keeps `long_book` out of `default_list_fields` so it appears as an optional selectable column in the **Cols** control. The sample makes the real `pages` model field inline-editable while keeping `long_book` out of inline edit and bulk edit config because annotation fields are read-only.
+
+The same annotated list also demonstrates selection controls for a selection-aware toolbar button without enabling built-in bulk edit/delete. `Annotated Selection Summary` uses `uses_selection=True`, while `bulk_fields = []` and `bulk_delete = False`, so row selection exists solely for the custom modal endpoint. See [Queryset Annotation Fields](../guides/advanced/queryset_annotation_fields.md) for the declaration details behind this sample.
 
 The sample frontend now also shows the downstream tooltip-styling path. In [`src/config/static/css/app.custom.css`](https://github.com/doctor-cornelius/django-powercrud/blob/main/src/config/static/css/app.custom.css), the sample app actively overrides `--pc-tooltip-bg` and `--pc-tooltip-fg` to use daisyUI's primary semantic tokens, while PowerCRUD itself keeps neutral tooltip defaults. The sample Vite entry imports that file after `powercrud/css/powercrud.css`, so readers can inspect the real app-level override pattern rather than only reading about it in the styling guide.
 
@@ -213,7 +227,7 @@ The sample form configuration now also demonstrates two contextual form-surface 
 
 The sample `BookCRUDView` now also demonstrates both custom action enhancements discussed in the docs:
 
-- a selection-aware `extra_button` that opens a modal summary for the current persisted bulk selection
+- a selection-aware `extra_button` that opens a modal summary for the current persisted PowerCRUD selection
 - a row-level `extra_action` that disables itself with a tooltip when the book has no description
 - an opt-in modal `extra_action` using `refresh_list_on_modal_close=True` to refresh the current list when its modal is closed
 - per-trigger modal sizing on a modal list-cell link, a modal `extra_button`, and modal `extra_actions` through `modal_box_classes`
@@ -397,6 +411,7 @@ When the user changes `author` inline, PowerCRUD posts the current row data to t
 - **ProfileCRUDView**: OneToOneField, the sample app's column-alignment demo (`status` centered, `priority_band` right-aligned, `favorite_genre` left-aligned), inline editing, bulk operations, merged nullable relation filtering on `favorite_genre`, and a static queryset rule that limits `favorite_genre` choices to genres whose names start with `S`
 - **AuthorCRUDView**: Properties, filtering, template debugging, companion nullable scalar filtering on `birth_date`, the sample app's red inline-edit highlight accent demo, and visible row-level `extra_actions` in the default button mode
 - **BookCRUDView**: Async bulk editing, dependent `author -> genres` queryset scoping, `view_title` / `view_instructions` / `view_help` heading-area overrides, `column_help_text` header tooltips, list options through **Cols**, semantic field-level list-cell tooltips on inline and non-inline columns, declarative modal and external list-cell link demos, selection-aware `extra_buttons` in the top toolbar overflow menu, dropdown row actions that open upward for the last five rendered rows, and a guarded sample row for built-in Edit and inline update guards
+- **AnnotatedBookCRUDView**: Queryset annotation fields, annotation filters, list options, inline editing of the real `pages` model field, and a selection-aware toolbar button that renders selector controls without built-in bulk edit/delete
 
 The `Genre` sample keeps these delete demos deliberately narrow:
 

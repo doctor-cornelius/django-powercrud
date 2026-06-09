@@ -171,13 +171,13 @@
 
 <div class="overflow-x-auto table-max-height"
     style="overflow-y: auto; width: fit-content; padding-right: 20px;"
-    {% if enable_bulk_edit %}data-selection-key="{{ keyBase }}_{{ selection_key_suffix }}_selected"{% endif %}
+    {% if enable_selection_controls %}data-selection-key="{{ keyBase }}_{{ selection_key_suffix }}_selected"{% endif %}
     >
     <table class="table {{ table_classes }} w-auto" 
         {% if inline_enabled %}data-inline-enabled="true"{% endif %}>
         <thead>
             <tr>
-                {% if enable_bulk_edit %}
+                {% if enable_selection_controls %}
                 <!-- Bulk selection checkbox column -->
                 <th class="bg-neutral text-neutral-content text-center align-middle sticky-header w-10">
                     <input type="checkbox" id="select-all-checkbox"
@@ -261,7 +261,7 @@
                     {% if row.inline_blocked_reason %}data-inline-status="{{ row.inline_blocked_reason }}"{% endif %}
                     {% if row.inline_url %}data-inline-row-url="{{ row.inline_url }}"{% endif %}
                 >
-                    {% if enable_bulk_edit %}
+                    {% if enable_selection_controls %}
                     <!-- Row selection checkbox -->
         <td class="py-0 align-middle">
             <input type="checkbox"
@@ -359,7 +359,7 @@
         </table>
 </div>
 
-{% if enable_bulk_edit %}
+{% if enable_selection_controls %}
 <!-- No selection restore JS here; handled globally in object_list.html -->
 {% endif %}
 {% endwith %}
@@ -373,7 +373,7 @@
     {% if row.inline_blocked_reason %}data-inline-status="{{ row.inline_blocked_reason }}"{% endif %}
     {% if row.inline_url %}data-inline-row-url="{{ row.inline_url }}"{% endif %}
 >
-    {% if enable_bulk_edit %}
+    {% if enable_selection_controls %}
     <td class="py-0 align-middle">
         <input type="checkbox"
                class="checkbox checkbox-sm row-select-checkbox"
@@ -468,7 +468,7 @@
         data-inline-row-url="{{ inline_cancel_url|default:row.inline_url }}"
     {% endif %}
 >
-    {% if enable_bulk_edit %}
+    {% if enable_selection_controls %}
     <td class="py-0 align-middle">
         <input type="checkbox"
                class="checkbox checkbox-sm row-select-checkbox"
