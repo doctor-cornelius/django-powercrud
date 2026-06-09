@@ -8,7 +8,7 @@ They do not replace the Base Configuration API dictionary shape. Use them when r
 from powercrud.actions import PowerAction, PowerButton
 ```
 
-## When To Use Them
+## When To Use PowerActions And PowerButtons
 
 Use base dictionaries for one-off buttons and actions.
 
@@ -65,9 +65,11 @@ That keeps the repeated mechanics in one declaration and leaves each view focuse
 
 Any constructor option can be changed in a derived declaration by passing it to `with_options(...)`.
 
-## Row Actions
+## PowerActions
 
 Use `PowerAction` for row-level `extra_actions`.
+
+`PowerAction` also supports `disabled_state` for row actions that should stay visible but unavailable with a reason.
 
 ```python
 ROW_PREVIEW = PowerAction(
@@ -98,7 +100,7 @@ def get_description_preview_disabled_state(self, obj, request):
 
 `PowerAction.needs_pk` defaults to `True`, matching the normal row-action case.
 
-## Toolbar Buttons
+## PowerButtons
 
 Use `PowerButton` for list-level `extra_buttons`.
 
@@ -197,7 +199,7 @@ PowerCRUD compiles structured declarations to base dictionaries before rendering
 
 This is different from `PowerField`: a view inheritance chain must choose either Base Configuration API Field Intent attributes or `power_fields`. `PowerAction` and `PowerButton` are list entries, so they can safely sit beside dictionaries in `extra_actions` and `extra_buttons`.
 
-## Disabled State
+## PowerAction Disabled State
 
 For row actions, prefer `disabled_state` when one hook can decide both disabled state and reason.
 
