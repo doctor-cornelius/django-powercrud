@@ -133,7 +133,9 @@ extra_buttons = [
 
 Selection-aware header buttons read the current persisted PowerCRUD selection at the endpoint rather than expecting row IDs in the URL. They can render row selection controls even when `bulk_fields = []` and `bulk_delete = False`.
 
-If a view needs a selection-aware endpoint but should not expose selector controls from extra buttons, set `extra_button_selection_controls_disabled = True`. This only suppresses selector controls caused by selection-aware `extra_buttons`; built-in bulk edit/delete still render selector controls because they require them.
+Set `extra_button_selection_controls_disabled = True` if the button uses selected rows, but this list should not show checkboxes just because of that button.
+
+This is mainly useful when the selected rows come from somewhere else, or when the page has its own custom way to choose rows. Bulk edit and bulk delete still show checkboxes because they need them.
 
 Keep server-side validation in the endpoint even when you also disable the button in the UI.
 

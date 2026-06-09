@@ -156,7 +156,11 @@ Use `PowerButton` for list-level `extra_buttons`.
 
 `PowerButton.needs_pk` defaults to `False`, matching the normal toolbar-button case.
 
-`uses_selection=True` can render row selection controls even when the view has no built-in bulk edit/delete configuration. Set the view-level `extra_button_selection_controls_disabled = True` only when selection-aware toolbar buttons should not cause selector controls to appear. Built-in `bulk_fields` and `bulk_delete` still render selector controls because they require them.
+`uses_selection=True` can render row selection controls even when the view has no built-in bulk edit/delete configuration.
+
+Set `extra_button_selection_controls_disabled = True` on the view if the button uses selected rows, but this list should not show checkboxes just because of that button.
+
+This is mainly useful when the selected rows come from somewhere else, or when the page has its own custom way to choose rows. Bulk edit and bulk delete still show checkboxes because they need them.
 
 ## Mixing Styles
 
