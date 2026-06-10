@@ -2,6 +2,7 @@ import json
 import re
 from datetime import date
 from pathlib import Path
+from urllib.parse import urlencode
 
 import pytest
 
@@ -1031,6 +1032,67 @@ def test_column_chooser_change_marks_selected_favourite_dirty(
     expect(trigger).to_have_attribute("data-powercrud-filter-favourites-selected", "true")
     expect(trigger).to_have_attribute("data-powercrud-filter-favourites-dirty", "true")
     expect(trigger).to_have_attribute("aria-label", "Saved favourite: Default columns (edited)")
+
+
+def test_remembered_favourite_uses_server_state_before_auto_apply(
+    page, client, books_url, sample_books
+):
+    """Remembered favourites should not auto-apply when server state already matches."""
+
+    user = login_playwright_user(
+        client=client,
+        page=page,
+        books_url=books_url,
+        username="playwright-favourite-server-state-user",
+    )
+    target_book = sample_books[0]
+    favourite = SavedFilterFavourite.objects.create(
+        user=user,
+        view_key=BOOK_VIEW_KEY,
+        name="Server state wins",
+        state={
+            "filters": {"title": [target_book.title]},
+            "visible_filters": [],
+            "sort": "",
+            "page_size": "5",
+            "visible_columns": list(BookCRUDView.default_list_fields),
+        },
+    )
+
+    install_htmx_init_script(page)
+    page.goto(f"{books_url}?{urlencode({'title': target_book.title, 'page_size': '5'})}")
+    page.wait_for_load_state("networkidle")
+    ensure_htmx_available(page)
+    expect(page.locator("#filter-form input[name='title']")).to_have_value(target_book.title)
+
+    selected_storage_key = f"powercrud:selected-filter-favourite:{BOOK_VIEW_KEY}"
+    page.evaluate(
+        "(payload) => window.sessionStorage.setItem(payload.key, payload.value)",
+        {"key": selected_storage_key, "value": str(favourite.pk)},
+    )
+    apply_request_urls = []
+    page.on(
+        "request",
+        lambda request: apply_request_urls.append(request.url)
+        if "/powercrud/favourites/apply/" in request.url
+        else None,
+    )
+
+    page.evaluate(
+        """
+        () => {
+            const root = document.querySelector('[data-powercrud-object-list="true"]');
+            root?.querySelector('#filter-form input[name="title"]')?.remove();
+            window.initPowercrud(root);
+        }
+        """
+    )
+    page.wait_for_timeout(500)
+
+    assert apply_request_urls == [], (
+        "Remembered favourite auto-apply should trust matching server-rendered toolbar state "
+        "instead of dispatching from incomplete client-collected filter state."
+    )
 
 
 def test_returning_to_page_via_sample_shell_htmx_keeps_selected_filter_favourite(

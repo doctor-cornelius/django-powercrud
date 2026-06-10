@@ -33,6 +33,7 @@ export function createFilterFavouritesRuntime(context) {
     } = context;
 
     const suppressFavouriteAutoApplyKeys = new Set();
+    const favouriteAutoApplyInFlightKeys = new Set();
     let activeFilterFavouritesPanel = null;
     let activeFilterFavouritesTrigger = null;
 
@@ -176,13 +177,27 @@ export function createFilterFavouritesRuntime(context) {
         if (!(optionElement instanceof HTMLOptionElement)) {
             return null;
         }
+        return parseJsonObject(optionElement.dataset.powercrudFavouriteStateJson || '');
+    }
+
+    function parseJsonObject(rawValue) {
         try {
-            const rawValue = optionElement.dataset.powercrudFavouriteStateJson || '';
             const parsedValue = rawValue ? JSON.parse(rawValue) : null;
             return parsedValue && typeof parsedValue === 'object' ? parsedValue : null;
         } catch (_error) {
             return null;
         }
+    }
+
+    function getServerRenderedToolbarState(toolbar) {
+        if (!(toolbar instanceof HTMLElement)) {
+            return null;
+        }
+        return parseJsonObject(toolbar.dataset.powercrudCurrentStateJson || '');
+    }
+
+    function getCurrentFavouriteState(root, toolbar = null) {
+        return getServerRenderedToolbarState(toolbar) || collectFavouriteStateFromRoot(root);
     }
 
     function normalizeFavouriteStateForComparison(state) {
@@ -231,22 +246,27 @@ export function createFilterFavouritesRuntime(context) {
         return normalizedState;
     }
 
-    function favouriteStateMatchesRoot(optionElement, root) {
-        if (!(root instanceof Element)) {
-            return false;
-        }
+    function favouriteStateMatchesCurrentState(optionElement, currentState) {
         const favouriteState = parseFavouriteOptionState(optionElement);
         if (!favouriteState) {
             return false;
         }
         const comparableFavouriteState = normalizeFavouriteStateForComparison(favouriteState);
-        const comparableCurrentState = normalizeFavouriteStateForComparison(
-            collectFavouriteStateFromRoot(root),
-        );
+        const comparableCurrentState = normalizeFavouriteStateForComparison(currentState);
         if (!Object.prototype.hasOwnProperty.call(favouriteState, 'visible_columns')) {
             delete comparableCurrentState.visible_columns;
         }
         return JSON.stringify(comparableFavouriteState) === JSON.stringify(comparableCurrentState);
+    }
+
+    function favouriteStateMatchesRoot(optionElement, root, toolbar = null) {
+        if (!(root instanceof Element)) {
+            return false;
+        }
+        return favouriteStateMatchesCurrentState(
+            optionElement,
+            getCurrentFavouriteState(root, toolbar),
+        );
     }
 
     function getFavouriteVisibleFilterNames(optionElement) {
@@ -411,6 +431,20 @@ export function createFilterFavouritesRuntime(context) {
         return true;
     }
 
+    function getFavouriteAutoApplyKey(root, toolbar, favouriteId) {
+        if (!(root instanceof Element) || !favouriteId) {
+            return '';
+        }
+        return `${getSelectedFilterFavouriteStorageKey(root, toolbar)}:${favouriteId}`;
+    }
+
+    function releaseFavouriteAutoApplyKey(autoApplyKey) {
+        if (!autoApplyKey) {
+            return;
+        }
+        favouriteAutoApplyInFlightKeys.delete(autoApplyKey);
+    }
+
     function syncFilterFavouritesSelection(root) {
         const favouritesContainer = getFilterFavouritesContainer(root);
         const favouriteSelect = getFilterFavouritesSelect(favouritesContainer);
@@ -426,7 +460,7 @@ export function createFilterFavouritesRuntime(context) {
         ].filter(Boolean);
         const matchingSelectedId = matchingCandidates.find(candidate => {
             const candidateOption = getFavouriteOptionByValue(favouriteSelect, candidate);
-            return favouriteStateMatchesRoot(candidateOption, root);
+            return favouriteStateMatchesRoot(candidateOption, root, favouritesContainer);
         }) || '';
         const effectiveSelectedId = activeSelectedId || matchingSelectedId;
         const hasSelectableOption = Array.from(favouriteSelect.options).some(option => option.value);
@@ -476,7 +510,7 @@ export function createFilterFavouritesRuntime(context) {
             });
     }
 
-    function requestFavouriteApply(root, toolbar, favouriteSelect) {
+    function requestFavouriteApply(root, toolbar, favouriteSelect, options = {}) {
         const selectedFavouriteId = getFavouriteSelectValue(favouriteSelect);
         if (
             !(root instanceof Element)
@@ -498,6 +532,17 @@ export function createFilterFavouritesRuntime(context) {
             return;
         }
 
+        const isAutoApply = options.autoApply === true;
+        const autoApplyKey = isAutoApply
+            ? getFavouriteAutoApplyKey(root, toolbar, selectedFavouriteId)
+            : '';
+        if (autoApplyKey && favouriteAutoApplyInFlightKeys.has(autoApplyKey)) {
+            return;
+        }
+        if (autoApplyKey) {
+            favouriteAutoApplyInFlightKeys.add(autoApplyKey);
+        }
+
         const toolbarSelect = getFilterFavouritesSelect(toolbar);
         if (
             toolbarSelect instanceof HTMLSelectElement
@@ -507,7 +552,10 @@ export function createFilterFavouritesRuntime(context) {
         }
         setPendingSelectedFilterFavouriteId(root, toolbar, selectedFavouriteId);
         clearSelectedFilterFavouriteDirty(root, toolbar);
-        syncFavouriteToolbarState(toolbar);
+        suppressFavouriteAutoApplyOnce(root, toolbar);
+        if (options.syncState !== false) {
+            syncFavouriteToolbarState(toolbar);
+        }
 
         const values = {};
         if (actionForm instanceof HTMLFormElement) {
@@ -517,6 +565,7 @@ export function createFilterFavouritesRuntime(context) {
             });
         }
         values.favourite_id = selectedFavouriteId;
+        values.selected_favourite_id = selectedFavouriteId;
 
         const originalTargetField = actionForm?.querySelector('input[name="original_target"]');
         const originalTarget = originalTargetField instanceof HTMLInputElement
@@ -524,11 +573,18 @@ export function createFilterFavouritesRuntime(context) {
             : '';
         const target = originalTarget || favouriteSelect.getAttribute('hx-target') || root;
 
-        htmx.ajax('GET', actionUrl, {
+        const applyRequest = htmx.ajax('GET', actionUrl, {
             target,
             swap: 'innerHTML',
             values,
         });
+        if (autoApplyKey) {
+            if (applyRequest && typeof applyRequest.finally === 'function') {
+                applyRequest.finally(() => releaseFavouriteAutoApplyKey(autoApplyKey));
+            } else {
+                global.setTimeout(() => releaseFavouriteAutoApplyKey(autoApplyKey), 2000);
+            }
+        }
     }
 
     function maybeApplyRememberedFavourite(root) {
@@ -553,7 +609,7 @@ export function createFilterFavouritesRuntime(context) {
             return;
         }
 
-        if (favouriteStateMatchesRoot(selectedOption, root)) {
+        if (favouriteStateMatchesRoot(selectedOption, root, toolbar)) {
             return;
         }
 
@@ -570,7 +626,10 @@ export function createFilterFavouritesRuntime(context) {
         }
 
         favouriteSelect.value = selectedFavouriteId;
-        requestFavouriteApply(root, toolbar, favouriteSelect);
+        requestFavouriteApply(root, toolbar, favouriteSelect, {
+            autoApply: true,
+            syncState: false,
+        });
     }
 
     function syncSelectedFilterFavouritePresentation(root) {
