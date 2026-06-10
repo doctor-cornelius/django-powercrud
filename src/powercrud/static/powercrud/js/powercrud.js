@@ -256,6 +256,38 @@ import { createCurrentTemplateRuntime } from './runtime/current-template.js';
         inlineEdit.destroyInlineFieldErrorPopovers(fragment);
     }
 
+    function isPageSizeControl(target) {
+        return Boolean(
+            target instanceof Element
+            && (
+                target.matches('[data-powercrud-page-size-select="true"]')
+                || target.closest('#page-size-form')
+            )
+        );
+    }
+
+    function blurPageSizeSelect() {
+        const activeElement = document.activeElement;
+        if (
+            activeElement instanceof HTMLSelectElement
+            && activeElement.matches('[data-powercrud-page-size-select="true"]')
+        ) {
+            activeElement.blur();
+        }
+    }
+
+    function closeToolbarTransientControls(exceptControl = '') {
+        if (exceptControl !== 'favourites') {
+            filterFavourites.closeFilterFavouritesDropdowns();
+        }
+        if (exceptControl !== 'listColumns') {
+            listColumns.closeListColumnChoosers(document);
+        }
+        if (exceptControl !== 'pageSize') {
+            blurPageSizeSelect();
+        }
+    }
+
     function installPowercrudPublicGlobals(global) {
         global.getCurrentFilters = getCurrentFilters;
         global.initPowercrud = initPowercrud;
@@ -287,7 +319,11 @@ import { createCurrentTemplateRuntime } from './runtime/current-template.js';
                 resyncRestoredState();
                 global.setTimeout(resyncRestoredState, 50);
             },
-            handlePointerDownCapture() {
+            handlePointerDownCapture(event) {
+                const target = asElement(event.target);
+                if (isPageSizeControl(target)) {
+                    closeToolbarTransientControls('pageSize');
+                }
                 hidePowercrudTooltips(document);
             },
             handleTooltipClickCapture() {
@@ -304,6 +340,9 @@ import { createCurrentTemplateRuntime } from './runtime/current-template.js';
             },
             handleFocusInCapture(event) {
                 const focusedElement = asElement(event.target);
+                if (isPageSizeControl(focusedElement)) {
+                    closeToolbarTransientControls('pageSize');
+                }
                 if (!focusedElement?.closest(TOOLTIP_TRIGGER_SELECTOR)) {
                     hidePowercrudTooltips(document);
                 }
@@ -322,6 +361,7 @@ import { createCurrentTemplateRuntime } from './runtime/current-template.js';
 
                 const filterToggle = trigger.closest('[data-powercrud-filter-toggle]');
                 if (filterToggle) {
+                    closeToolbarTransientControls();
                     const root = getObjectListRoot(filterToggle);
                     if (root) {
                         toggleFilterVisibility(root);
@@ -351,6 +391,9 @@ import { createCurrentTemplateRuntime } from './runtime/current-template.js';
                     return;
                 }
 
+                if (trigger.closest('[data-powercrud-filter-favourites-trigger="true"]')) {
+                    closeToolbarTransientControls('favourites');
+                }
                 if (filterFavourites.handleFavouritesTriggerClick(event, trigger)) {
                     return;
                 }
@@ -393,6 +436,14 @@ import { createCurrentTemplateRuntime } from './runtime/current-template.js';
                 closeRowActionsMenu();
             },
             handleDocumentToggleCapture(event) {
+                const chooser = event.target instanceof Element ? event.target : null;
+                if (
+                    chooser instanceof HTMLDetailsElement
+                    && chooser.matches('[data-powercrud-list-columns="true"]')
+                    && chooser.open
+                ) {
+                    closeToolbarTransientControls('listColumns');
+                }
                 listColumns.handleListColumnsToggle(event);
             },
             handleDocumentKeydown(event) {

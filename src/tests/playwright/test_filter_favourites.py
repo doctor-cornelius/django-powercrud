@@ -337,6 +337,62 @@ def test_book_page_size_query_still_renders_correctly_when_filter_favourites_ena
     expect(page.locator("#filtered_results tbody tr[data-inline-row='true']")).to_have_count(10)
 
 
+def test_toolbar_transient_dropdowns_are_mutually_exclusive(
+    page, client, books_url, sample_books
+):
+    """Toolbar popovers should hand off without overlapping each other."""
+
+    user = login_playwright_user(
+        client=client,
+        page=page,
+        books_url=books_url,
+        username="playwright-toolbar-dropdown-user",
+    )
+    SavedFilterFavourite.objects.create(
+        user=user,
+        view_key=BOOK_VIEW_KEY,
+        name="Toolbar favourite",
+        state={
+            "filters": {},
+            "visible_filters": [],
+            "sort": "",
+            "page_size": "10",
+            "visible_columns": list(BookCRUDView.default_list_fields),
+        },
+    )
+
+    install_htmx_init_script(page)
+    page.goto(books_url)
+    page.wait_for_load_state("networkidle")
+    ensure_htmx_available(page)
+
+    open_filters_panel(page)
+    filter_panel = page.locator("#filterCollapse")
+    expect(filter_panel).not_to_have_class(re.compile(r"\bhidden\b"))
+
+    open_favourites_dropdown(page)
+    expect(page.locator("[data-powercrud-filter-favourites-floating-panel='true']")).to_have_count(1)
+
+    column_panel = open_column_chooser(page)
+    expect(page.locator("[data-powercrud-filter-favourites-floating-panel='true']")).to_have_count(0)
+    expect(column_panel).to_be_visible()
+    expect(filter_panel).not_to_have_class(re.compile(r"\bhidden\b"))
+
+    open_favourites_dropdown(page)
+    expect(page.locator("[data-powercrud-list-columns-floating-panel='true']")).to_have_count(0)
+    expect(page.locator("[data-powercrud-filter-favourites-floating-panel='true']")).to_have_count(1)
+
+    page.locator("#page-size-select").click(force=True)
+    expect(page.locator("[data-powercrud-filter-favourites-floating-panel='true']")).to_have_count(0)
+    expect(filter_panel).not_to_have_class(re.compile(r"\bhidden\b"))
+
+    column_panel = open_column_chooser(page)
+    expect(column_panel).to_be_visible()
+    page.locator("#page-size-select").focus()
+    expect(page.locator("[data-powercrud-list-columns-floating-panel='true']")).to_have_count(0)
+    expect(filter_panel).not_to_have_class(re.compile(r"\bhidden\b"))
+
+
 def test_page_size_change_marks_selected_favourite_dirty(
     page, client, books_url, sample_author, sample_books
 ):
