@@ -8,6 +8,7 @@ export function createListColumnsRuntime(context) {
     const {
         global,
         documentObject,
+        getObjectListRoot,
         getHtmxInstance,
         initPowercrudTooltips,
         applyListColumnOptionVisualState,
@@ -56,6 +57,18 @@ export function createListColumnsRuntime(context) {
         const containerId = floatingPanel.dataset.powercrudListColumnsDomId || '';
         const sourceContainer = containerId ? documentObject.getElementById(containerId) : null;
         return sourceContainer instanceof HTMLDetailsElement ? sourceContainer : null;
+    }
+
+    function getListColumnRootFromElement(element) {
+        const sourceContainer = getListColumnContainerFromElement(element);
+        if (sourceContainer instanceof Element) {
+            const sourceRoot = getObjectListRoot?.(sourceContainer);
+            if (sourceRoot instanceof Element) {
+                return sourceRoot;
+            }
+        }
+
+        return getObjectListRoot?.(element) || null;
     }
 
     function getListColumnCheckboxes(container) {
@@ -320,14 +333,26 @@ export function createListColumnsRuntime(context) {
         return true;
     }
 
+    function isListColumnsForm(element) {
+        if (!(element instanceof HTMLFormElement)) {
+            return false;
+        }
+        return Boolean(
+            element.closest(LIST_COLUMNS_SELECTOR)
+            || element.closest(LIST_COLUMNS_FLOATING_SELECTOR)
+        );
+    }
+
     return {
         buildListColumnResetRequest,
         closeForOutsideClick,
         closeListColumnChoosers,
+        getListColumnRootFromElement,
         getVisibleListColumnNames,
         handleListColumnsHtmxBeforeRequest,
         handleListColumnCheckboxChange,
         handleListColumnsToggle,
+        isListColumnsForm,
         syncListColumnChoosers,
     };
 }

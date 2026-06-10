@@ -1048,7 +1048,7 @@ def test_column_chooser_change_marks_selected_favourite_dirty(
         books_url=books_url,
         username="playwright-favourite-column-dirty-user",
     )
-    SavedFilterFavourite.objects.create(
+    favourite = SavedFilterFavourite.objects.create(
         user=user,
         view_key=BOOK_VIEW_KEY,
         name="Default columns",
@@ -1079,11 +1079,30 @@ def test_column_chooser_change_marks_selected_favourite_dirty(
 
     column_panel = open_column_chooser(page)
     column_panel.locator("input[name='visible_columns'][value='isbn']").uncheck()
+    dirty_storage_key = f"powercrud:selected-filter-favourite-dirty:{BOOK_VIEW_KEY}"
+    apply_request_urls = []
+    page.on(
+        "request",
+        lambda request: apply_request_urls.append(request.url)
+        if "/powercrud/favourites/apply/" in request.url
+        else None,
+    )
     with page.expect_response(re.compile(r"/sample/bigbook/")):
         column_panel.get_by_role("button", name="Save").click()
     page.wait_for_load_state("networkidle")
 
     expect(page.locator("td[data-field-name='isbn']")).to_have_count(0)
+    dirty_after_save = page.evaluate(
+        "(dirtyKey) => window.sessionStorage.getItem(dirtyKey)",
+        dirty_storage_key,
+    )
+    assert dirty_after_save == str(favourite.pk), (
+        "Saving the floating column chooser should mark the selected favourite dirty "
+        "using the real selected-favourite dirty storage key."
+    )
+    assert apply_request_urls == [], (
+        "Saving columns for a dirty selected favourite should not auto-apply the saved favourite."
+    )
     trigger = page.locator("[data-powercrud-filter-favourites-trigger='true']:visible").first
     expect(trigger).to_have_attribute("data-powercrud-filter-favourites-selected", "true")
     expect(trigger).to_have_attribute("data-powercrud-filter-favourites-dirty", "true")
