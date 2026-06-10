@@ -499,11 +499,12 @@ import { createCurrentTemplateRuntime } from './runtime/current-template.js';
                     return;
                 }
 
-                if (listColumns.handleListColumnsHtmxBeforeRequest(target)) {
-                    return;
-                }
+                const handledListColumnsRequest = listColumns.handleListColumnsHtmxBeforeRequest(target);
 
                 if (filterFavourites.handleHtmxBeforeRequest(event, target)) {
+                    return;
+                }
+                if (handledListColumnsRequest) {
                     return;
                 }
             },

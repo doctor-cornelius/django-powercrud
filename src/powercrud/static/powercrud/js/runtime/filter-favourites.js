@@ -761,6 +761,30 @@ export function createFilterFavouritesRuntime(context) {
         }) || null;
     }
 
+    function getDetachedListColumnsRoot(target) {
+        if (!(target instanceof Element)) {
+            return null;
+        }
+
+        const floatingPanel = target.closest('[data-powercrud-list-columns-floating-panel="true"]');
+        if (!(floatingPanel instanceof HTMLElement)) {
+            return null;
+        }
+
+        const containerId = floatingPanel.dataset.powercrudListColumnsDomId || '';
+        const sourceContainer = containerId ? documentObject.getElementById(containerId) : null;
+        const sourceRoot = sourceContainer instanceof Element
+            ? getObjectListRoot(sourceContainer)
+            : null;
+        if (sourceRoot instanceof Element) {
+            return sourceRoot;
+        }
+
+        const listUrlField = floatingPanel.querySelector('input[name="list_view_url"]');
+        const listUrl = listUrlField instanceof HTMLInputElement ? listUrlField.value : '';
+        return findObjectListRootByListUrl(listUrl);
+    }
+
     function populateFavouriteSaveForm(form) {
         if (!(form instanceof HTMLFormElement)) {
             return;
@@ -915,9 +939,12 @@ export function createFilterFavouritesRuntime(context) {
         }
 
         const root = getObjectListRoot(target);
+        const detachedListColumnsRoot = getDetachedListColumnsRoot(target);
+        const isDetachedListColumnsRequest = detachedListColumnsRoot instanceof Element;
         const favouritesToolbar = getFilterFavouritesToolbarFromElement(target)
-            || (root ? getFilterFavouritesContainer(root) : null);
-        const effectiveRoot = root || (favouritesToolbar instanceof Element
+            || (root ? getFilterFavouritesContainer(root) : null)
+            || (detachedListColumnsRoot ? getFilterFavouritesContainer(detachedListColumnsRoot) : null);
+        const effectiveRoot = root || detachedListColumnsRoot || (favouritesToolbar instanceof Element
             ? getObjectListRoot(favouritesToolbar)
             : null);
         const isFavouriteSelectRequest = (
@@ -931,7 +958,11 @@ export function createFilterFavouritesRuntime(context) {
         const isInlineRequest = isInlineEditRequest(target);
         if (
             effectiveRoot instanceof Element
-            && (target === effectiveRoot || effectiveRoot.contains(target))
+            && (
+                target === effectiveRoot
+                || effectiveRoot.contains(target)
+                || isDetachedListColumnsRequest
+            )
             && !isFavouriteSelectRequest
             && !isFavouriteManageRequest
             && !isInlineRequest
