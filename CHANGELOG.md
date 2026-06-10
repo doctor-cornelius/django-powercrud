@@ -6,6 +6,11 @@ During the `0.x` series, breaking changes can occur, although we try to minimise
 
 Version numbers below correspond to published git tags. The more important releases include a little extra narrative and upgrade context; smaller patch releases remain deliberately brief. For full detail between any two versions, use the GitHub compare view for the matching tags.
 
+## 0.7.6 (2026-06-10)
+- **Fix (favourites)**: preserve column chooser and auto apply state
+  
+  This fix prevents errors observable in certain saved-favourite scenarios, especially where favourites are combined with selectable columns or richer HTMX list refreshes. Column chooser changes now correctly mark the active favourite as edited instead of being ignored, and remembered favourites now compare against the server-rendered current state before auto-applying. This avoids repeated `/favourites/apply/` refresh loops when the client-side DOM is temporarily incomplete during a refresh.
+
 ## 0.7.5 (2026-06-09)
 - **Feature (selection)**: support extra button selection controls
 
