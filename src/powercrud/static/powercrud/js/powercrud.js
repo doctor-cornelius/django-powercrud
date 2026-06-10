@@ -124,6 +124,7 @@ import { createCurrentTemplateRuntime } from './runtime/current-template.js';
     const listColumns = createListColumnsRuntime({
         global,
         documentObject: document,
+        getObjectListRoot,
         getHtmxInstance,
         initPowercrudTooltips,
         applyListColumnOptionVisualState: currentTemplate.applyListColumnOptionVisualState,
@@ -286,6 +287,16 @@ import { createCurrentTemplateRuntime } from './runtime/current-template.js';
         if (exceptControl !== 'pageSize') {
             blurPageSizeSelect();
         }
+    }
+
+    function markSelectedFavouriteDirtyForListColumns(target) {
+        const root = listColumns.getListColumnRootFromElement(target);
+        if (!(root instanceof Element)) {
+            return;
+        }
+        const toolbar = filterFavourites.getFilterFavouritesContainer(root);
+        filterFavourites.markSelectedFilterFavouriteDirty(root, toolbar);
+        filterFavourites.syncSelectedFilterFavouritePresentation(root);
     }
 
     function installPowercrudPublicGlobals(global) {
@@ -533,6 +544,9 @@ import { createCurrentTemplateRuntime } from './runtime/current-template.js';
                         bulkActions.setBulkActionButtonsDisabled(form, true);
                     }
                 }
+                if (listColumns.isListColumnsForm(form)) {
+                    markSelectedFavouriteDirtyForListColumns(form);
+                }
             },
             handleHtmxBeforeRequest(event) {
                 hidePowercrudTooltips(document);
@@ -551,6 +565,9 @@ import { createCurrentTemplateRuntime } from './runtime/current-template.js';
                 }
 
                 const handledListColumnsRequest = listColumns.handleListColumnsHtmxBeforeRequest(target);
+                if (handledListColumnsRequest) {
+                    markSelectedFavouriteDirtyForListColumns(target);
+                }
 
                 if (filterFavourites.handleHtmxBeforeRequest(event, target)) {
                     return;
