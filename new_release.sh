@@ -673,9 +673,9 @@ function prepare_release_in_container {
     require_tag_absent "$new_version"
     base_head=$(git rev-parse HEAD)
 
+    update_project_version "$new_version"
     run_prepare_validation
 
-    update_project_version "$new_version"
     cz changelog --incremental --unreleased-version="$new_version"
 
     last_tag=$(git describe --tags --abbrev=0 2>/dev/null || true)
