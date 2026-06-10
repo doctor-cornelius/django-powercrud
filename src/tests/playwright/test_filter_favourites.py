@@ -2,6 +2,7 @@ import json
 import re
 from datetime import date
 from pathlib import Path
+from urllib.parse import urlencode
 
 import pytest
 
@@ -52,8 +53,8 @@ def open_column_chooser(page):
 
     trigger = page.locator("[data-powercrud-list-columns='true'] summary")
     expect(trigger).to_be_visible()
-    trigger.click()
-    panel = page.locator("[data-powercrud-list-columns-floating-panel='true']")
+    trigger.click(force=True)
+    panel = page.locator("[data-powercrud-list-columns-floating-panel='true']").last
     expect(panel).to_be_visible()
     return panel
 
@@ -978,6 +979,120 @@ def test_saved_favourite_restores_visible_columns(
         sample_genre.name
     )
     expect(page.locator("td[data-field-name='uneditable_field']").first).to_be_visible()
+
+
+def test_column_chooser_change_marks_selected_favourite_dirty(
+    page, client, books_url, sample_books
+):
+    """Changing columns with a selected favourite should not reapply the favourite."""
+
+    user = login_playwright_user(
+        client=client,
+        page=page,
+        books_url=books_url,
+        username="playwright-favourite-column-dirty-user",
+    )
+    SavedFilterFavourite.objects.create(
+        user=user,
+        view_key=BOOK_VIEW_KEY,
+        name="Default columns",
+        state={
+            "filters": {},
+            "visible_filters": [],
+            "sort": "",
+            "page_size": "10",
+            "visible_columns": list(BookCRUDView.default_list_fields),
+        },
+    )
+
+    install_htmx_init_script(page)
+    page.goto(books_url)
+    page.wait_for_load_state("networkidle")
+    ensure_htmx_available(page)
+
+    open_filters_panel(page)
+    open_favourites_dropdown(page)
+    with page.expect_response(re.compile(r"/powercrud/favourites/apply/")):
+        select_saved_favourite(page, "Default columns")
+    page.wait_for_load_state("networkidle")
+    expect(page.locator("#page-size-select")).to_have_value("10")
+    trigger = page.locator("[data-powercrud-filter-favourites-trigger='true']:visible").first
+    expect(trigger).to_have_attribute("data-powercrud-filter-favourites-selected", "true")
+    expect(trigger).to_have_attribute("data-powercrud-filter-favourites-dirty", "false")
+    expect(page.locator("td[data-field-name='isbn']").first).to_be_visible()
+
+    column_panel = open_column_chooser(page)
+    column_panel.locator("input[name='visible_columns'][value='isbn']").uncheck()
+    with page.expect_response(re.compile(r"/sample/bigbook/")):
+        column_panel.get_by_role("button", name="Save").click()
+    page.wait_for_load_state("networkidle")
+
+    expect(page.locator("td[data-field-name='isbn']")).to_have_count(0)
+    trigger = page.locator("[data-powercrud-filter-favourites-trigger='true']:visible").first
+    expect(trigger).to_have_attribute("data-powercrud-filter-favourites-selected", "true")
+    expect(trigger).to_have_attribute("data-powercrud-filter-favourites-dirty", "true")
+    expect(trigger).to_have_attribute("aria-label", "Saved favourite: Default columns (edited)")
+
+
+def test_remembered_favourite_uses_server_state_before_auto_apply(
+    page, client, books_url, sample_books
+):
+    """Remembered favourites should not auto-apply when server state already matches."""
+
+    user = login_playwright_user(
+        client=client,
+        page=page,
+        books_url=books_url,
+        username="playwright-favourite-server-state-user",
+    )
+    target_book = sample_books[0]
+    favourite = SavedFilterFavourite.objects.create(
+        user=user,
+        view_key=BOOK_VIEW_KEY,
+        name="Server state wins",
+        state={
+            "filters": {"title": [target_book.title]},
+            "visible_filters": [],
+            "sort": "",
+            "page_size": "5",
+            "visible_columns": list(BookCRUDView.default_list_fields),
+        },
+    )
+
+    install_htmx_init_script(page)
+    page.goto(f"{books_url}?{urlencode({'title': target_book.title, 'page_size': '5'})}")
+    page.wait_for_load_state("networkidle")
+    ensure_htmx_available(page)
+    expect(page.locator("#filter-form input[name='title']")).to_have_value(target_book.title)
+
+    selected_storage_key = f"powercrud:selected-filter-favourite:{BOOK_VIEW_KEY}"
+    page.evaluate(
+        "(payload) => window.sessionStorage.setItem(payload.key, payload.value)",
+        {"key": selected_storage_key, "value": str(favourite.pk)},
+    )
+    apply_request_urls = []
+    page.on(
+        "request",
+        lambda request: apply_request_urls.append(request.url)
+        if "/powercrud/favourites/apply/" in request.url
+        else None,
+    )
+
+    page.evaluate(
+        """
+        () => {
+            const root = document.querySelector('[data-powercrud-object-list="true"]');
+            root?.querySelector('#filter-form input[name="title"]')?.remove();
+            window.initPowercrud(root);
+        }
+        """
+    )
+    page.wait_for_timeout(500)
+
+    assert apply_request_urls == [], (
+        "Remembered favourite auto-apply should trust matching server-rendered toolbar state "
+        "instead of dispatching from incomplete client-collected filter state."
+    )
 
 
 def test_returning_to_page_via_sample_shell_htmx_keeps_selected_filter_favourite(
