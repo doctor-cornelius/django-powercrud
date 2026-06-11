@@ -195,6 +195,71 @@ def test_book_list_column_controls_fit_table_or_viewport(
     )
 
 
+def test_book_list_wide_table_scroll_stays_inside_table_wrapper(
+    page, books_url, sample_books
+):
+    """Wide-table horizontal scroll should not move the list toolbar or page chrome."""
+
+    page.set_viewport_size({"width": 640, "height": 720})
+
+    page.goto(books_url)
+    page.wait_for_load_state("networkidle")
+
+    metrics = page.evaluate(
+        """
+        () => {
+            const root = document.querySelector('[data-powercrud-object-list="true"]');
+            const toolbar = document.querySelector('[data-powercrud-list-toolbar="true"]');
+            const tableWrapper = document.querySelector('#filtered_results .table-max-height');
+            const table = tableWrapper?.querySelector('table');
+            const rootRectBefore = root.getBoundingClientRect();
+            const toolbarRectBefore = toolbar.getBoundingClientRect();
+            const tableRectBefore = table.getBoundingClientRect();
+            const scrollDelta = Math.min(160, tableWrapper.scrollWidth - tableWrapper.clientWidth);
+
+            tableWrapper.scrollLeft = scrollDelta;
+
+            const rootRectAfter = root.getBoundingClientRect();
+            const toolbarRectAfter = toolbar.getBoundingClientRect();
+            const tableRectAfter = table.getBoundingClientRect();
+
+            return {
+                rootClientWidth: root.clientWidth,
+                rootScrollWidth: root.scrollWidth,
+                rootLeftBefore: rootRectBefore.left,
+                rootLeftAfter: rootRectAfter.left,
+                toolbarLeftBefore: toolbarRectBefore.left,
+                toolbarLeftAfter: toolbarRectAfter.left,
+                tableWrapperClientWidth: tableWrapper.clientWidth,
+                tableWrapperScrollLeft: tableWrapper.scrollLeft,
+                tableWrapperScrollWidth: tableWrapper.scrollWidth,
+                tableLeftBefore: tableRectBefore.left,
+                tableLeftAfter: tableRectAfter.left,
+            };
+        }
+        """
+    )
+
+    assert metrics["tableWrapperScrollWidth"] > metrics["tableWrapperClientWidth"], (
+        f"The table wrapper should own horizontal overflow. Metrics: {metrics}"
+    )
+    assert metrics["tableWrapperScrollLeft"] > 0, (
+        f"The table wrapper should be horizontally scrollable. Metrics: {metrics}"
+    )
+    assert metrics["rootScrollWidth"] <= metrics["rootClientWidth"] + 2, (
+        f"The object-list root should not expose page-level horizontal overflow. Metrics: {metrics}"
+    )
+    assert abs(metrics["rootLeftAfter"] - metrics["rootLeftBefore"]) <= 1, (
+        f"Scrolling the table should not move the object-list root. Metrics: {metrics}"
+    )
+    assert abs(metrics["toolbarLeftAfter"] - metrics["toolbarLeftBefore"]) <= 1, (
+        f"Scrolling the table should not move the list toolbar. Metrics: {metrics}"
+    )
+    assert metrics["tableLeftAfter"] < metrics["tableLeftBefore"], (
+        f"Only the table contents should move when the table wrapper scrolls. Metrics: {metrics}"
+    )
+
+
 def test_book_list_column_chooser_escapes_overflow_wrapper(
     page, books_url, sample_books
 ):
@@ -270,18 +335,24 @@ def test_book_list_pagination_centres_on_table_width(
         """
         () => {
             const table = document.querySelector('#filtered_results table');
+            const tableWrapper = document.querySelector('#filtered_results .table-max-height');
             const pagination = document.querySelector('[data-powercrud-pagination="true"]');
             const tableRect = table.getBoundingClientRect();
+            const tableWrapperRect = tableWrapper.getBoundingClientRect();
             const paginationRect = pagination.getBoundingClientRect();
             return {
                 tableCenter: tableRect.left + (tableRect.width / 2),
+                tableWrapperCenter: tableWrapperRect.left + (tableWrapperRect.width / 2),
                 paginationCenter: paginationRect.left + (paginationRect.width / 2),
             };
         }
         """
     )
-    assert abs(wide_metrics["paginationCenter"] - wide_metrics["tableCenter"]) <= 4, (
-        "Pagination should initially be centered on the rendered table."
+    assert (
+        abs(wide_metrics["paginationCenter"] - wide_metrics["tableWrapperCenter"]) <= 4
+    ), (
+        "Pagination should initially be centered on the visible table wrapper when "
+        "the table overflows horizontally."
     )
 
     panel = open_column_chooser(page)

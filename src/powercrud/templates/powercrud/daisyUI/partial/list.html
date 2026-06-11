@@ -169,11 +169,11 @@
 
 {% with inline_enabled=inline_edit.enabled %}
 
-<div class="overflow-x-auto table-max-height"
-    style="overflow-y: auto; width: fit-content; padding-right: 20px;"
+<div class="box-border w-full max-w-full overflow-x-auto table-max-height"
+    style="overflow-y: auto; padding-right: 20px;"
     {% if enable_selection_controls %}data-selection-key="{{ keyBase }}_{{ selection_key_suffix }}_selected"{% endif %}
     >
-    <table class="table {{ table_classes }} w-auto" 
+    <table class="table {{ table_classes }} w-auto min-w-max"
         {% if inline_enabled %}data-inline-enabled="true"{% endif %}>
         <thead>
             <tr>
