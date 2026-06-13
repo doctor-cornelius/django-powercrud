@@ -17,6 +17,7 @@
   "prHourlyLimit": 2,
   "rebaseWhen": "conflicted",
   "dependencyDashboardAutoclose": true,
+  "platformAutomerge": false,
   "enabledManagers": [
     "poetry",
     "npm",
@@ -25,6 +26,7 @@
   ],
   "packageRules": [
     {
+      "description": "Group Python dependency updates.",
       "matchManagers": [
         "poetry"
       ],
@@ -33,6 +35,7 @@
       "additionalBranchPrefix": "python-"
     },
     {
+      "description": "Use lockfile-only updates for npm dependency ranges.",
       "matchManagers": [
         "npm"
       ],
@@ -40,6 +43,7 @@
       "additionalBranchPrefix": "js-"
     },
     {
+      "description": "Group npm patch and minor updates.",
       "matchManagers": [
         "npm"
       ],
@@ -51,6 +55,7 @@
       "groupSlug": "js-packages"
     },
     {
+      "description": "Group GitHub Actions updates.",
       "matchManagers": [
         "github-actions"
       ],
@@ -58,6 +63,7 @@
       "groupSlug": "github-actions"
     },
     {
+      "description": "Group Docker image updates.",
       "matchManagers": [
         "dockerfile"
       ],
@@ -65,46 +71,67 @@
       "groupSlug": "docker-images"
     },
     {
+      "description": "Automerge patch and minor updates after a release-age delay and passing CI.",
       "matchUpdateTypes": [
         "patch",
         "minor"
       ],
+      "minimumReleaseAge": "7 days",
+      "internalChecksFilter": "strict",
       "automerge": true,
-      "automergeType": "branch",
+      "automergeType": "pr",
       "addLabels": [
         "automerge"
       ]
     },
     {
+      "description": "Keep major updates manual.",
       "matchUpdateTypes": [
         "major"
       ],
-      "prCreation": "not-pending",
+      "dependencyDashboardApproval": true,
+      "automerge": false,
       "addLabels": [
         "major-upgrade"
       ]
     },
     {
-      "matchPackageNames": ["django", "Django"],
+      "description": "Keep Django updates manual because they define the public compatibility matrix.",
+      "matchPackageNames": [
+        "django",
+        "Django"
+      ],
       "allowedVersions": ">=5.2,<7",
-      "rangeStrategy": "update-lockfile"
+      "rangeStrategy": "update-lockfile",
+      "automerge": false
     },
     {
-      "matchManagers": ["poetry"],
-      "matchPackageNames": ["django-crispy-forms"],
+      "description": "Keep django-crispy-forms within the declared range.",
+      "matchManagers": [
+        "poetry"
+      ],
+      "matchPackageNames": [
+        "django-crispy-forms"
+      ],
       "rangeStrategy": "in-range-only"
     },
     {
-      "matchManagers": ["poetry"],
-      "matchPackageNames": ["pytest"],
-      "matchUpdateTypes": ["major"],
+      "description": "Do not raise pytest major updates automatically.",
+      "matchManagers": [
+        "poetry"
+      ],
+      "matchPackageNames": [
+        "pytest"
+      ],
+      "matchUpdateTypes": [
+        "major"
+      ],
       "enabled": false
     }
 
   ],
   "lockFileMaintenance": {
     "enabled": true,
-    "automerge": true,
-    "automergeType": "branch"
+    "automerge": false
   }
 }
