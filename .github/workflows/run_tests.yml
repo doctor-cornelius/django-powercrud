@@ -15,6 +15,12 @@ on:
         type: boolean
         required: false
         default: false
+    secrets:
+      CODECOV_TOKEN:
+        required: false
+
+permissions:
+  contents: read
 
 env:
   UV_LINK_MODE: copy

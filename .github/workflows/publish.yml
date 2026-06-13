@@ -37,7 +37,8 @@ jobs:
   test-matrix:
     needs: classify-tag
     uses: ./.github/workflows/run_tests.yml
-    secrets: inherit
+    secrets:
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
   release:
     needs:

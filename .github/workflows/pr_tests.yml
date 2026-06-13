@@ -5,8 +5,12 @@ on:
     branches: [ main ]
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   tests:
     if: ${{ !contains(github.event.head_commit.message, '[skip tests]') }}
     uses: ./.github/workflows/run_tests.yml
-    secrets: inherit
+    secrets:
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
