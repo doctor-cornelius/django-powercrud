@@ -21,7 +21,7 @@ Add simple, low-maintenance CI security checks for dependency and container risk
 | 3 | Trivy | Yes, highest priority | CI | Best fit for Dockerised projects: scans repo, lockfiles, Docker image, and OS packages. |
 | 4 | OSV-Scanner | Optional but useful | CI | Second opinion focused on open-source dependency vulnerabilities. |
 | 5 | GitHub Dependency Review | Nice-to-have | GitHub public repos | PR-native dependency diff check. Less needed if Trivy and OSV already run. |
-| 6 | Socket.dev | Selective | Mainly npm-heavy repos | Looks for suspicious npm supply-chain behaviour, not Docker/image issues. |
+| 6 | Socket.dev | Selective | Mainly npm-heavy repos | Looks for suspicious npm supply-chain behaviour and may be useful given current npm poisoning risk. |
 
 ## Trivy Rollout Decisions
 
