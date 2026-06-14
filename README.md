@@ -2,6 +2,8 @@
 
 [![Run Test Matrix](https://github.com/doctor-cornelius/django-powercrud/actions/workflows/pr_tests.yml/badge.svg)](https://github.com/doctor-cornelius/django-powercrud/actions/workflows/pr_tests.yml)
 
+[![Security](https://github.com/doctor-cornelius/django-powercrud/actions/workflows/security.yml/badge.svg)](https://github.com/doctor-cornelius/django-powercrud/actions/workflows/security.yml)
+
 [![codecov](https://codecov.io/github/doctor-cornelius/django-powercrud/branch/main/graph/badge.svg)](https://codecov.io/github/doctor-cornelius/django-powercrud)
 
 [![Python](https://img.shields.io/badge/python-3.12%20%7C%203.13%20%7C%203.14-blue)](#supported-versions)
