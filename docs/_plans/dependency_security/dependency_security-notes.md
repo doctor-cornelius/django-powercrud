@@ -14,12 +14,14 @@ Add simple, low-maintenance CI security checks for dependency and container risk
 
 ## Tool Disposition
 
-- Renovate release delay: already used. Keep it as the first supply-chain control against very fresh poisoned releases.
-- CI test/build gate: already used for Python and Playwright checks. Verify dependency PRs remain gated by required checks.
-- Trivy: implement first. It covers the widest surface for this Dockerised repo: repository filesystem, lockfiles, Docker image, OS packages, secrets, and config.
-- GitHub Dependency Review: add after Trivy is working. This is a public GitHub repo, so the action can provide PR-native dependency diff checks without relying on paid security features.
-- OSV-Scanner: optional later step. Use it only if it adds a useful open-source dependency vulnerability second opinion without duplicating Trivy noise.
-- Socket.dev: optional later step. It is relevant to npm supply-chain behaviour, but it is not a Docker/image scanner and should not replace Trivy.
+| # | Tool / control | Use? | Where | Why |
+| -: | --- | --- | --- | --- |
+| 1 | Renovate release delay | Yes | Renovate config | Reduces risk from fresh poisoned releases. |
+| 2 | CI test/build gate | Yes | GitHub Actions | Prevents automerge unless the app still works. |
+| 3 | Trivy | Yes, highest priority | CI | Best fit for Dockerised projects: scans repo, lockfiles, Docker image, and OS packages. |
+| 4 | OSV-Scanner | Optional but useful | CI | Second opinion focused on open-source dependency vulnerabilities. |
+| 5 | GitHub Dependency Review | Nice-to-have | GitHub public repos | PR-native dependency diff check. Less needed if Trivy and OSV already run. |
+| 6 | Socket.dev | Selective | Mainly npm-heavy repos | Looks for suspicious npm supply-chain behaviour, not Docker/image issues. |
 
 ## Trivy Rollout Decisions
 
