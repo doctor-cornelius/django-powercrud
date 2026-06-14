@@ -42,6 +42,13 @@ Add simple, low-maintenance CI security checks for dependency and container risk
 - Socket Firewall passed and reported 0 npm install vulnerabilities.
 - Dependency Review passed and found no high-or-higher vulnerable dependency additions in the PR diff.
 
+## High Finding Audit Approach
+
+- Split the audit into two read-only lanes: Python lockfile findings and npm/image findings.
+- For Python findings, identify whether vulnerable packages are app/runtime dependencies or dev/test/docs transitive dependencies and whether Renovate can update them safely.
+- For npm/image findings, identify whether vulnerable packages come from this repo's `package-lock.json`, built `node_modules`, or Node/npm tooling bundled into the Docker image.
+- Use the audit to choose fix, defer, or allowlist rather than blocking all `HIGH` findings immediately.
+
 ## Deferred
 
 - Decide whether OSV-Scanner should run as PR-only, scheduled-only, or not at all after Trivy, GitHub Dependency Review, and Socket.dev are in place.
