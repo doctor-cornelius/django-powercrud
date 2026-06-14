@@ -32,6 +32,18 @@ jobs:
           ignore-unfixed: true
           exit-code: 0
 
+      - name: Block high and critical filesystem vulnerabilities
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          format: table
+          scanners: vuln,secret,misconfig
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: 1
+          skip-setup-trivy: true
+
       - name: Build Django Docker image
         run: docker build -f docker/dockerfile_django -t django-powercrud:${{ github.sha }} .
 
@@ -44,6 +56,17 @@ jobs:
           severity: HIGH,CRITICAL
           ignore-unfixed: true
           exit-code: 0
+          skip-setup-trivy: true
+
+      - name: Block high and critical image vulnerabilities
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: django-powercrud:${{ github.sha }}
+          format: table
+          vuln-type: os,library
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: 1
           skip-setup-trivy: true
 
   dependency-review:
