@@ -58,7 +58,8 @@ Add simple, low-maintenance CI security checks for dependency and container risk
 - npm/image highs are bundled npm tooling inside the Docker image, not this repo's `package-lock.json`.
 - Trivy pointed those findings at `/usr/lib/node_modules/npm/node_modules/...` for `cross-spawn`, `glob`, `minimatch`, and `tar`.
 - The project-installed image `node_modules` tree had no npm vulnerabilities in the Trivy run.
-- Fix path: update the Docker image Node/npm tooling, preferably by moving the NodeSource line forward and validating with the Security workflow.
+- Docker image fix applied on `security/dependency-hardening`: move NodeSource from `node_20.x` to `node_22.x`.
+- Remaining validation: rebuild through the Security workflow and confirm the bundled npm findings clear or reduce.
 
 ## Deferred
 
