@@ -19,9 +19,9 @@ Add simple, low-maintenance CI security checks for dependency and container risk
 | 1 | Renovate release delay | Yes | Renovate config | Reduces risk from fresh poisoned releases. |
 | 2 | CI test/build gate | Yes | GitHub Actions | Prevents automerge unless the app still works. |
 | 3 | Trivy | Yes, highest priority | CI | Best fit for Dockerised projects: scans repo, lockfiles, Docker image, and OS packages. |
-| 4 | OSV-Scanner | Optional but useful | CI | Second opinion focused on open-source dependency vulnerabilities. |
-| 5 | GitHub Dependency Review | Nice-to-have | GitHub public repos | PR-native dependency diff check. Less needed if Trivy and OSV already run. |
-| 6 | Socket.dev | Selective | Mainly npm-heavy repos | Looks for suspicious npm supply-chain behaviour and may be useful given current npm poisoning risk. |
+| 4 | GitHub Dependency Review | Yes, after Trivy | GitHub public repos | PR-native dependency diff check for newly introduced dependency risk. |
+| 5 | Socket.dev | Yes, selective | npm dependency checks | Adds npm supply-chain behaviour signal given current npm poisoning risk. |
+| 6 | OSV-Scanner | Optional | CI | Second opinion focused on open-source dependency vulnerabilities. |
 
 ## Trivy Rollout Decisions
 
@@ -32,6 +32,5 @@ Add simple, low-maintenance CI security checks for dependency and container risk
 
 ## Deferred
 
-- Decide whether OSV-Scanner should run as PR-only, scheduled-only, or not at all after the Trivy baseline is known.
-- Decide whether Socket.dev adds enough npm-specific signal for this repo's frontend tooling dependency surface.
+- Decide whether OSV-Scanner should run as PR-only, scheduled-only, or not at all after Trivy, GitHub Dependency Review, and Socket.dev are in place.
 - Record any intentionally ignored Trivy findings in a small, reviewable allowlist instead of burying them in workflow logic.

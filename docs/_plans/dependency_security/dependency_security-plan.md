@@ -34,5 +34,10 @@ Create the minimal Trivy CI workflow, run it on a PR, and decide whether the fir
 
 ## Phase E: Optional Follow-Ups
 
-1. [ ] Consider OSV-Scanner only if it adds useful dependency coverage beyond Trivy.
-2. [ ] Consider Socket.dev for npm supply-chain behaviour if its output is useful and manageable.
+1. [ ] Add Socket.dev selectively for npm supply-chain behaviour checks.
+2. [ ] Keep the configuration focused on actionable npm risk for this repo.
+
+## Phase F: Optional OSV-Scanner
+
+1. [ ] Consider OSV-Scanner only after Trivy, GitHub Dependency Review, and Socket.dev are in place.
+2. [ ] Add it only if it provides useful dependency vulnerability signal without duplicating too much noise.
