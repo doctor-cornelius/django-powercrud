@@ -2,23 +2,23 @@
 
 ## Status
 
-Planning.
+Initial CI workflow implemented; awaiting first GitHub Actions baseline run.
 
 ## Next
 
-Create the minimal Trivy CI workflow, run it on a PR, and decide whether the first rollout should block merges.
+Review the first security workflow run, then decide whether Trivy should remain report-only or start blocking.
 
 ## Phase A: Baseline CI Security Scan
 
-1. [ ] Add a GitHub Actions security workflow for pull requests, `main`, and scheduled runs.
-2. [ ] Add a Trivy filesystem scan for the repository with `HIGH,CRITICAL` severity.
-3. [ ] Keep the first filesystem scan output readable and low-noise.
+1. [x] Add a GitHub Actions security workflow for pull requests, `main`, and scheduled runs.
+2. [x] Add a Trivy filesystem scan for the repository with `HIGH,CRITICAL` severity.
+3. [x] Keep the first filesystem scan output readable and low-noise.
 
 ## Phase B: Docker Image Scan
 
-1. [ ] Build the local Django Docker image in the security workflow.
-2. [ ] Scan the built image with Trivy after the build completes.
-3. [ ] Include OS and library vulnerabilities while ignoring unfixed issues where appropriate.
+1. [x] Build the local Django Docker image in the security workflow.
+2. [x] Scan the built image with Trivy after the build completes.
+3. [x] Include OS and library vulnerabilities while ignoring unfixed issues where appropriate.
 
 ## Phase C: Rollout Tightening
 
@@ -28,14 +28,14 @@ Create the minimal Trivy CI workflow, run it on a PR, and decide whether the fir
 
 ## Phase D: GitHub Dependency Review
 
-1. [ ] Add GitHub Dependency Review Action for pull requests after Trivy is working.
-2. [ ] Configure it as a PR dependency-diff check for this public GitHub repo.
-3. [ ] Keep it secondary to Trivy rather than treating it as the main scanner.
+1. [x] Add GitHub Dependency Review Action for pull requests after Trivy is working.
+2. [x] Configure it as a PR dependency-diff check for this public GitHub repo.
+3. [x] Keep it secondary to Trivy rather than treating it as the main scanner.
 
-## Phase E: Optional Follow-Ups
+## Phase E: Socket.dev
 
-1. [ ] Add Socket.dev selectively for npm supply-chain behaviour checks.
-2. [ ] Keep the configuration focused on actionable npm risk for this repo.
+1. [x] Add Socket.dev selectively for npm supply-chain behaviour checks.
+2. [x] Keep the configuration focused on actionable npm risk for this repo.
 
 ## Phase F: Optional OSV-Scanner
 
