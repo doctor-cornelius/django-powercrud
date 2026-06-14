@@ -49,8 +49,19 @@ Add simple, low-maintenance CI security checks for dependency and container risk
 - For npm/image findings, identify whether vulnerable packages come from this repo's `package-lock.json`, built `node_modules`, or Node/npm tooling bundled into the Docker image.
 - Use the audit to choose fix, defer, or allowlist rather than blocking all `HIGH` findings immediately.
 
+## High Finding Audit Outcome
+
+- Python highs are stale transitive tooling entries in `uv.lock`, not core runtime dependencies.
+- `tornado` comes through `ipykernel -> jupyter-client`; refresh to at least `6.5.5`.
+- `urllib3` comes through docs/test tooling via `requests`; refresh to `2.7.0` to clear the listed highs.
+- Fix path: refresh affected lockfile packages with `uv lock --upgrade-package tornado --upgrade-package urllib3`.
+- npm/image highs are bundled npm tooling inside the Docker image, not this repo's `package-lock.json`.
+- Trivy pointed those findings at `/usr/lib/node_modules/npm/node_modules/...` for `cross-spawn`, `glob`, `minimatch`, and `tar`.
+- The project-installed image `node_modules` tree had no npm vulnerabilities in the Trivy run.
+- Fix path: update the Docker image Node/npm tooling, preferably by moving the NodeSource line forward and validating with the Security workflow.
+
 ## Deferred
 
 - Decide whether OSV-Scanner should run as PR-only, scheduled-only, or not at all after Trivy, GitHub Dependency Review, and Socket.dev are in place.
-- Decide which high findings should be fixed by dependency/image updates and which, if any, need a documented allowlist.
+- Decide whether any remaining high findings after the lockfile and Docker image updates need a documented allowlist.
 - Record any intentionally ignored Trivy findings in a small, reviewable allowlist instead of burying them in workflow logic.

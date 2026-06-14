@@ -6,7 +6,7 @@ Initial CI workflow implemented, baseline runs passed, and Trivy is being tighte
 
 ## Next
 
-Complete the high-finding audit and decide which findings are fixable dependency updates versus acceptable dev-image/tooling baseline noise.
+Fix the audited high findings by refreshing the Python lockfile and updating the Docker image Node/npm tooling, then rerun the Security workflow.
 
 ## Phase A: Baseline CI Security Scan
 
@@ -29,27 +29,34 @@ Complete the high-finding audit and decide which findings are fixable dependency
 
 ## Phase D: High Finding Audit
 
-1. [ ] Audit Python `uv.lock` highs and identify whether they are runtime, test/dev, docs, or tool dependencies.
-2. [ ] Audit npm/image highs and identify whether they come from the repo npm tree or bundled Node/npm tooling in the Docker image.
-3. [ ] Decide per finding group: fix now, defer behind Renovate, or document as baseline/tooling noise.
-4. [ ] Update notes with the audit outcome and next fix branch, if needed.
+1. [x] Audit Python `uv.lock` highs and identify whether they are runtime, test/dev, docs, or tool dependencies.
+2. [x] Audit npm/image highs and identify whether they come from the repo npm tree or bundled Node/npm tooling in the Docker image.
+3. [x] Decide per finding group: fix now, defer behind Renovate, or document as baseline/tooling noise.
+4. [x] Update notes with the audit outcome and next fix branch, if needed.
 
-## Phase E: GitHub Dependency Review
+## Phase E: Fix Audited High Findings
+
+1. [ ] Refresh `uv.lock` for the affected transitive Python packages.
+2. [ ] Update Docker image Node/npm tooling so bundled npm package highs are removed where practical.
+3. [ ] Rerun Security workflow and confirm high findings are reduced or cleared.
+4. [ ] Decide whether any remaining highs need a small documented allowlist.
+
+## Phase F: GitHub Dependency Review
 
 1. [x] Add GitHub Dependency Review Action for pull requests after Trivy is working.
 2. [x] Configure it as a PR dependency-diff check for this public GitHub repo.
 3. [x] Keep it secondary to Trivy rather than treating it as the main scanner.
 
-## Phase F: Socket.dev
+## Phase G: Socket.dev
 
 1. [x] Add Socket.dev selectively for npm supply-chain behaviour checks.
 2. [x] Keep the configuration focused on actionable npm risk for this repo.
 
-## Phase G: README Badge
+## Phase H: README Badge
 
 1. [x] Add the Security workflow badge to the root README.
 
-## Phase H: Optional OSV-Scanner
+## Phase I: Optional OSV-Scanner
 
 1. [ ] Consider OSV-Scanner only after Trivy, GitHub Dependency Review, and Socket.dev are in place.
 2. [ ] Add it only if it provides useful dependency vulnerability signal without duplicating too much noise.
