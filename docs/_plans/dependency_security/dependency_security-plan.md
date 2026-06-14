@@ -2,11 +2,11 @@
 
 ## Status
 
-Initial CI workflow implemented, baseline runs passed, and Trivy is being tightened to block critical findings.
+Initial CI workflow implemented, baseline findings fixed, and Trivy critical gates pass.
 
 ## Next
 
-Fix the audited high findings by refreshing the Python lockfile and updating the Docker image Node/npm tooling, then rerun the Security workflow.
+Review draft PR #140 and decide whether to mark it ready for merge.
 
 ## Phase A: Baseline CI Security Scan
 
@@ -24,8 +24,8 @@ Fix the audited high findings by refreshing the Python lockfile and updating the
 
 1. [x] Review first-run Trivy findings and separate critical policy from high baseline noise.
 2. [x] Keep high findings report-only for now and fail CI on critical findings.
-3. [ ] Confirm the critical-only gate passes on the hardening branch.
-4. [ ] Record any intentionally ignored findings in a small, reviewable allowlist.
+3. [x] Confirm the critical-only gate passes on the hardening branch.
+4. [x] Confirm no allowlist is needed for the current baseline.
 
 ## Phase D: High Finding Audit
 
@@ -38,8 +38,8 @@ Fix the audited high findings by refreshing the Python lockfile and updating the
 
 1. [x] Refresh `uv.lock` for the affected transitive Python packages.
 2. [x] Update Docker image Node/npm tooling so bundled npm package highs are removed where practical.
-3. [ ] Rerun Security workflow and confirm high findings are reduced or cleared.
-4. [ ] Decide whether any remaining highs need a small documented allowlist.
+3. [x] Rerun Security workflow and confirm high findings are reduced or cleared.
+4. [x] Decide whether any remaining highs need a small documented allowlist.
 
 ## Phase F: GitHub Dependency Review
 

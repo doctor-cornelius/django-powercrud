@@ -60,10 +60,10 @@ Add simple, low-maintenance CI security checks for dependency and container risk
 - The project-installed image `node_modules` tree had no npm vulnerabilities in the Trivy run.
 - Docker image fix applied on `security/dependency-hardening`: move NodeSource from `node_20.x` to `node_22.x`.
 - Follow-up image fix applied on `security/dependency-hardening`: pin global npm to `11.17.0`, which bundles `picomatch` `4.0.4`.
-- Remaining validation: rebuild through the Security workflow and confirm the bundled npm findings clear or reduce.
+- Validation passed on PR #140: Trivy filesystem and image scans report 0 vulnerabilities for the configured `HIGH,CRITICAL` scan set.
+- No Trivy allowlist is currently needed.
 
 ## Deferred
 
 - Decide whether OSV-Scanner should run as PR-only, scheduled-only, or not at all after Trivy, GitHub Dependency Review, and Socket.dev are in place.
-- Decide whether any remaining high findings after the lockfile and Docker image updates need a documented allowlist.
-- Record any intentionally ignored Trivy findings in a small, reviewable allowlist instead of burying them in workflow logic.
+- Record any future intentionally ignored Trivy findings in a small, reviewable allowlist instead of burying them in workflow logic.
