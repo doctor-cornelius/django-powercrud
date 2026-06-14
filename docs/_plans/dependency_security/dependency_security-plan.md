@@ -36,7 +36,7 @@ Fix the audited high findings by refreshing the Python lockfile and updating the
 
 ## Phase E: Fix Audited High Findings
 
-1. [ ] Refresh `uv.lock` for the affected transitive Python packages.
+1. [x] Refresh `uv.lock` for the affected transitive Python packages.
 2. [x] Update Docker image Node/npm tooling so bundled npm package highs are removed where practical.
 3. [ ] Rerun Security workflow and confirm high findings are reduced or cleared.
 4. [ ] Decide whether any remaining highs need a small documented allowlist.

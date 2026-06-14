@@ -54,7 +54,7 @@ Add simple, low-maintenance CI security checks for dependency and container risk
 - Python highs are stale transitive tooling entries in `uv.lock`, not core runtime dependencies.
 - `tornado` comes through `ipykernel -> jupyter-client`; refresh to at least `6.5.5`.
 - `urllib3` comes through docs/test tooling via `requests`; refresh to `2.7.0` to clear the listed highs.
-- Fix path: refresh affected lockfile packages with `uv lock --upgrade-package tornado --upgrade-package urllib3`.
+- Python lockfile fix applied on `security/dependency-hardening`: `tornado` `6.5.2` to `6.5.7` and `urllib3` `2.5.0` to `2.7.0`.
 - npm/image highs are bundled npm tooling inside the Docker image, not this repo's `package-lock.json`.
 - Trivy pointed those findings at `/usr/lib/node_modules/npm/node_modules/...` for `cross-spawn`, `glob`, `minimatch`, and `tar`.
 - The project-installed image `node_modules` tree had no npm vulnerabilities in the Trivy run.
