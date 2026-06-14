@@ -2,11 +2,11 @@
 
 ## Status
 
-Initial CI workflow implemented and baseline runs passed on the PR branch and `main`.
+Initial CI workflow implemented, baseline runs passed, and Trivy is being tightened to block critical findings.
 
 ## Next
 
-Review Trivy output for actual high/critical findings, then decide whether Trivy should remain report-only or start blocking.
+Review the existing high findings and decide which are fixable dependency updates versus acceptable dev-image/tooling baseline noise.
 
 ## Phase A: Baseline CI Security Scan
 
@@ -22,9 +22,10 @@ Review Trivy output for actual high/critical findings, then decide whether Trivy
 
 ## Phase C: Rollout Tightening
 
-1. [ ] Review first-run Trivy findings and separate real fixes from baseline noise.
-2. [ ] Decide whether Trivy should remain non-blocking or fail on `HIGH,CRITICAL`.
-3. [ ] Record any intentionally ignored findings in a small, reviewable allowlist.
+1. [x] Review first-run Trivy findings and separate critical policy from high baseline noise.
+2. [x] Keep high findings report-only for now and fail CI on critical findings.
+3. [ ] Review high findings and decide fix, defer, or allowlist.
+4. [ ] Record any intentionally ignored findings in a small, reviewable allowlist.
 
 ## Phase D: GitHub Dependency Review
 

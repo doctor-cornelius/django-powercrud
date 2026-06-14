@@ -29,11 +29,21 @@ Add simple, low-maintenance CI security checks for dependency and container risk
 
 - Keep Trivy in CI only; do not add it to Python or npm project dependencies.
 - Scan both the repository/filesystem and the built Docker image.
-- Start with high-signal severities: `HIGH,CRITICAL`.
-- Use a non-blocking first pass if existing vulnerability noise is present, then tighten once the baseline is understood.
+- Keep `HIGH,CRITICAL` report scans so baseline detail remains visible.
+- Add critical-only gate scans so CI fails on `CRITICAL` findings.
+- Keep `HIGH` report-only until baseline findings are reviewed.
+
+## First Baseline Findings
+
+- Filesystem scan found 6 high findings and 0 critical findings in `uv.lock`.
+- The filesystem highs were for `tornado` and `urllib3`.
+- Image scan found 11 high findings and 0 critical findings.
+- The image highs included `cross-spawn`, `glob`, `minimatch`, and `tar` findings in npm/package metadata.
+- Socket Firewall passed and reported 0 npm install vulnerabilities.
+- Dependency Review passed and found no high-or-higher vulnerable dependency additions in the PR diff.
 
 ## Deferred
 
 - Decide whether OSV-Scanner should run as PR-only, scheduled-only, or not at all after Trivy, GitHub Dependency Review, and Socket.dev are in place.
-- Decide whether to make Trivy blocking after reviewing the baseline output.
+- Decide which high findings should be fixed by dependency/image updates and which, if any, need a documented allowlist.
 - Record any intentionally ignored Trivy findings in a small, reviewable allowlist instead of burying them in workflow logic.
