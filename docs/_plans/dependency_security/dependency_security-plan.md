@@ -2,11 +2,11 @@
 
 ## Status
 
-Initial CI workflow implemented; awaiting first GitHub Actions baseline run.
+Initial CI workflow implemented and baseline runs passed on the PR branch and `main`.
 
 ## Next
 
-Review the first security workflow run, then decide whether Trivy should remain report-only or start blocking.
+Review Trivy output for actual high/critical findings, then decide whether Trivy should remain report-only or start blocking.
 
 ## Phase A: Baseline CI Security Scan
 
@@ -22,7 +22,7 @@ Review the first security workflow run, then decide whether Trivy should remain 
 
 ## Phase C: Rollout Tightening
 
-1. [ ] Review first-run findings and separate real fixes from baseline noise.
+1. [ ] Review first-run Trivy findings and separate real fixes from baseline noise.
 2. [ ] Decide whether Trivy should remain non-blocking or fail on `HIGH,CRITICAL`.
 3. [ ] Record any intentionally ignored findings in a small, reviewable allowlist.
 
@@ -37,7 +37,11 @@ Review the first security workflow run, then decide whether Trivy should remain 
 1. [x] Add Socket.dev selectively for npm supply-chain behaviour checks.
 2. [x] Keep the configuration focused on actionable npm risk for this repo.
 
-## Phase F: Optional OSV-Scanner
+## Phase F: README Badge
+
+1. [x] Add the Security workflow badge to the root README.
+
+## Phase G: Optional OSV-Scanner
 
 1. [ ] Consider OSV-Scanner only after Trivy, GitHub Dependency Review, and Socket.dev are in place.
 2. [ ] Add it only if it provides useful dependency vulnerability signal without duplicating too much noise.

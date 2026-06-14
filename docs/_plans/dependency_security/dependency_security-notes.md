@@ -8,9 +8,11 @@ Add simple, low-maintenance CI security checks for dependency and container risk
 
 - Renovate already applies a release delay and CI-gated automerge for patch/minor updates.
 - GitHub Actions runs Python/Django matrix tests and Playwright smoke checks.
-- CI does not currently build or scan the Docker image.
+- The new Security workflow builds and scans the Docker image with Trivy.
 - The repo commits `uv.lock`, `package-lock.json`, Docker config, and Django constraint files.
 - The repo is public on GitHub, so GitHub Dependency Review Action is available without paid GitHub Advanced Security.
+- Dependency Graph is enabled, so GitHub Dependency Review now runs successfully.
+- The root README has a Security workflow badge.
 
 ## Tool Disposition
 
@@ -33,4 +35,5 @@ Add simple, low-maintenance CI security checks for dependency and container risk
 ## Deferred
 
 - Decide whether OSV-Scanner should run as PR-only, scheduled-only, or not at all after Trivy, GitHub Dependency Review, and Socket.dev are in place.
+- Decide whether to make Trivy blocking after reviewing the baseline output.
 - Record any intentionally ignored Trivy findings in a small, reviewable allowlist instead of burying them in workflow logic.
