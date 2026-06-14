@@ -26,8 +26,13 @@ Create the minimal Trivy CI workflow, run it on a PR, and decide whether the fir
 2. [ ] Decide whether Trivy should remain non-blocking or fail on `HIGH,CRITICAL`.
 3. [ ] Record any intentionally ignored findings in a small, reviewable allowlist.
 
-## Phase D: Optional Follow-Ups
+## Phase D: GitHub Dependency Review
+
+1. [ ] Add GitHub Dependency Review Action for pull requests after Trivy is working.
+2. [ ] Configure it as a PR dependency-diff check for this public GitHub repo.
+3. [ ] Keep it secondary to Trivy rather than treating it as the main scanner.
+
+## Phase E: Optional Follow-Ups
 
 1. [ ] Consider OSV-Scanner only if it adds useful dependency coverage beyond Trivy.
-2. [ ] Consider GitHub Dependency Review for PR dependency diffs.
-3. [ ] Revisit Socket.dev only if npm risk becomes meaningful.
+2. [ ] Consider Socket.dev for npm supply-chain behaviour if its output is useful and manageable.
