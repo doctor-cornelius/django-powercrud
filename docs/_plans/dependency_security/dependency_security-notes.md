@@ -59,6 +59,7 @@ Add simple, low-maintenance CI security checks for dependency and container risk
 - Trivy pointed those findings at `/usr/lib/node_modules/npm/node_modules/...` for `cross-spawn`, `glob`, `minimatch`, and `tar`.
 - The project-installed image `node_modules` tree had no npm vulnerabilities in the Trivy run.
 - Docker image fix applied on `security/dependency-hardening`: move NodeSource from `node_20.x` to `node_22.x`.
+- Follow-up image fix applied on `security/dependency-hardening`: pin global npm to `11.17.0`, which bundles `picomatch` `4.0.4`.
 - Remaining validation: rebuild through the Security workflow and confirm the bundled npm findings clear or reduce.
 
 ## Deferred
