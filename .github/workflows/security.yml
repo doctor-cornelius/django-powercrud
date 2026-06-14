@@ -32,14 +32,14 @@ jobs:
           ignore-unfixed: true
           exit-code: 0
 
-      - name: Block critical filesystem vulnerabilities
+      - name: Block high and critical filesystem vulnerabilities
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: fs
           scan-ref: .
           format: table
           scanners: vuln,secret,misconfig
-          severity: CRITICAL
+          severity: HIGH,CRITICAL
           ignore-unfixed: true
           exit-code: 1
           skip-setup-trivy: true
@@ -58,13 +58,13 @@ jobs:
           exit-code: 0
           skip-setup-trivy: true
 
-      - name: Block critical image vulnerabilities
+      - name: Block high and critical image vulnerabilities
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: django-powercrud:${{ github.sha }}
           format: table
           vuln-type: os,library
-          severity: CRITICAL
+          severity: HIGH,CRITICAL
           ignore-unfixed: true
           exit-code: 1
           skip-setup-trivy: true

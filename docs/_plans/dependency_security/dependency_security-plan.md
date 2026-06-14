@@ -2,11 +2,11 @@
 
 ## Status
 
-Initial CI workflow implemented, baseline findings fixed, and Trivy critical gates pass.
+Initial CI workflow implemented, baseline findings fixed, and Trivy gates now block high and critical findings.
 
 ## Next
 
-Review draft PR #140 and decide whether to mark it ready for merge.
+Finish PR #140 and clean up the feature branch.
 
 ## Phase A: Baseline CI Security Scan
 
@@ -23,8 +23,8 @@ Review draft PR #140 and decide whether to mark it ready for merge.
 ## Phase C: Rollout Tightening
 
 1. [x] Review first-run Trivy findings and separate critical policy from high baseline noise.
-2. [x] Keep high findings report-only for now and fail CI on critical findings.
-3. [x] Confirm the critical-only gate passes on the hardening branch.
+2. [x] Keep high findings report-only while baseline findings are reviewed.
+3. [x] Tighten Trivy gates to fail CI on high and critical findings after the baseline is clean.
 4. [x] Confirm no allowlist is needed for the current baseline.
 
 ## Phase D: High Finding Audit

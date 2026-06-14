@@ -30,8 +30,8 @@ Add simple, low-maintenance CI security checks for dependency and container risk
 - Keep Trivy in CI only; do not add it to Python or npm project dependencies.
 - Scan both the repository/filesystem and the built Docker image.
 - Keep `HIGH,CRITICAL` report scans so baseline detail remains visible.
-- Add critical-only gate scans so CI fails on `CRITICAL` findings.
-- Keep `HIGH` report-only until baseline findings are reviewed.
+- Gate scans now fail CI on `HIGH,CRITICAL` findings.
+- This was tightened only after the baseline findings were fixed and PR #140 confirmed clean scans.
 
 ## First Baseline Findings
 
