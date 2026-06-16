@@ -640,6 +640,7 @@ import { createCurrentTemplateRuntime } from './runtime/current-template.js';
                 // Initialize swapped fragments after feature-specific raw
                 // markup handling; the document bootstrap below catches
                 // shell-level state shared across list roots.
+                filterFavourites.handleHtmxAfterSwap(event);
                 getHtmxEventRoots(event).forEach(initPowercrud);
                 bootstrapObjectLists(document);
                 schedulePowercrudTooltipRefresh(document, 50);
@@ -673,6 +674,7 @@ import { createCurrentTemplateRuntime } from './runtime/current-template.js';
                     stopButtonSpinner(target);
                 }
                 bulkActions.handleBulkHtmxAfterRequest(target);
+                filterFavourites.handleHtmxAfterRequest(event);
                 inlineEdit.handleHtmxAfterRequest(target);
             },
             handleHtmxResponseError(event) {
@@ -684,6 +686,7 @@ import { createCurrentTemplateRuntime } from './runtime/current-template.js';
                     stopButtonSpinner(target);
                 }
                 bulkActions.handleBulkHtmxResponseError(target);
+                filterFavourites.handleHtmxAfterRequest(event);
                 inlineEdit.handleHtmxResponseError(target);
             },
             handleInlineRowLocked(event) {

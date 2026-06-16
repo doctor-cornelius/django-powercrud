@@ -1362,6 +1362,115 @@ def test_returning_to_page_via_sample_shell_htmx_keeps_selected_filter_favourite
     expect(page.locator("#filtered_results")).not_to_contain_text(other_book.title)
 
 
+def test_stale_remembered_favourite_auto_apply_does_not_overwrite_newer_shell_navigation(
+    page, client, books_url, sample_books
+):
+    """A remembered favourite apply must not reclaim content after a newer shell navigation."""
+
+    user = login_playwright_user(
+        client=client,
+        page=page,
+        books_url=books_url,
+        username="playwright-stale-auto-apply-navigation-user",
+    )
+    target_book = sample_books[0]
+    favourite = SavedFilterFavourite.objects.create(
+        user=user,
+        view_key=BOOK_VIEW_KEY,
+        name="Do not reclaim",
+        state={
+            "filters": {"title": [target_book.title]},
+            "visible_filters": [],
+            "sort": "",
+            "page_size": "5",
+        },
+    )
+
+    install_htmx_init_script(page)
+    page.goto(books_url)
+    page.wait_for_load_state("networkidle")
+    ensure_htmx_available(page)
+    seed_filter_favourite_browser_state(
+        page,
+        selected_favourite_id=str(favourite.pk),
+    )
+
+    get_sample_navigation(page).locator("a", has_text="Authors").click()
+    page.wait_for_load_state("networkidle")
+    expect(page.locator("body")).to_contain_text("The Author Persons")
+
+    navigation_request_urls = []
+    page.on("request", lambda request: navigation_request_urls.append(request.url))
+    page.evaluate(
+        """
+        () => {
+            const originalAjax = window.htmx.ajax.bind(window.htmx);
+            window.__powercrudDelayedFavouriteApplies = [];
+            window.htmx.ajax = (verb, path, options) => {
+                if (String(path).includes('/powercrud/favourites/apply/')) {
+                    let resolveDelayedApply;
+                    let rejectDelayedApply;
+                    const delayedPromise = new Promise((resolve, reject) => {
+                        resolveDelayedApply = resolve;
+                        rejectDelayedApply = reject;
+                    });
+                    window.__powercrudDelayedFavouriteApplies.push(() => {
+                        const applyPromise = originalAjax(verb, path, options);
+                        if (applyPromise && typeof applyPromise.then === 'function') {
+                            applyPromise.then(resolveDelayedApply, rejectDelayedApply);
+                            return;
+                        }
+                        resolveDelayedApply(applyPromise);
+                    });
+                    return delayedPromise;
+                }
+                return originalAjax(verb, path, options);
+            };
+        }
+        """
+    )
+    get_sample_navigation(page).get_by_label("Load books with HTMX").click()
+    expect(page.locator("#content")).to_contain_text("My List of Books")
+    page.wait_for_function(
+        "() => (window.__powercrudDelayedFavouriteApplies || []).length > 0"
+    )
+    get_sample_navigation(page).get_by_role("link", name="Home").click()
+    page.wait_for_load_state("networkidle")
+    expect(page.locator("#content")).to_contain_text("powercrud Test Home Page")
+    page.evaluate(
+        """
+        () => {
+            const delayedApplies = window.__powercrudDelayedFavouriteApplies || [];
+            window.__powercrudDelayedFavouriteApplies = [];
+            delayedApplies.forEach((releaseApply) => releaseApply());
+        }
+        """
+    )
+    page.wait_for_timeout(1000)
+
+    expect(page.locator("#content")).to_contain_text("powercrud Test Home Page")
+    expect(page.locator("#content")).not_to_contain_text("My List of Books")
+    home_request_index = next(
+        (
+            index for index, url in enumerate(navigation_request_urls)
+            if re.search(r"/$", url) and "/sample/" not in url and "/powercrud/" not in url
+        ),
+        None,
+    )
+    assert home_request_index is not None, (
+        "Expected the test to issue a newer sample Home HTMX request after returning to books."
+    )
+    stale_requests_after_home = [
+        url for url in navigation_request_urls[home_request_index + 1:]
+        if "/powercrud/favourites/apply/" in url
+        or re.search(r"/sample/bigbook/\\?", url)
+    ]
+    assert stale_requests_after_home == [], (
+        "Remembered favourite auto-apply should not continue after a newer shell navigation "
+        f"starts; saw stale requests after Home: {stale_requests_after_home}"
+    )
+
+
 def test_clean_remembered_favourite_wins_over_stored_optional_filter_visibility(
     page, client, books_url, sample_books
 ):
