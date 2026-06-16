@@ -610,6 +610,7 @@ export function createFilterFavouritesRuntime(context) {
         }
 
         if (favouriteStateMatchesRoot(selectedOption, root, toolbar)) {
+            shouldConsumeFavouriteAutoApplySuppression(root, toolbar);
             return;
         }
 

@@ -1210,7 +1210,11 @@ def test_returning_to_page_via_sample_shell_htmx_keeps_selected_filter_favourite
     page.wait_for_load_state("networkidle")
     expect(page.locator("body")).to_contain_text("The Author Persons")
 
-    get_sample_navigation(page).get_by_label("Load books with HTMX").click()
+    with page.expect_response(re.compile(r"/powercrud/favourites/apply/")) as apply_response:
+        get_sample_navigation(page).get_by_label("Load books with HTMX").click()
+    assert apply_response.value.ok, (
+        "Expected returning via the sample HTMX shell to dispatch the remembered favourite apply request."
+    )
     page.wait_for_load_state("networkidle")
     expect(page.locator("#content")).to_contain_text("My List of Books")
     expect(page.locator("#filterToggleBtn")).to_be_visible()
