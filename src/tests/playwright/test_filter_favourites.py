@@ -278,6 +278,25 @@ def seed_filter_favourite_browser_state(
     )
 
 
+def seed_stored_optional_filters(page, filter_names: list[str]):
+    """Seed browser-local optional filter visibility for the current list."""
+
+    page.evaluate(
+        """
+        (filterNames) => {
+            const root = document.querySelector('[data-powercrud-object-list="true"]');
+            const listUrl = root?.dataset?.powercrudListUrl || window.location.pathname;
+            const url = new URL(listUrl, window.location.origin);
+            window.localStorage.setItem(
+                `powercrud:visible-filters:${url.pathname}`,
+                JSON.stringify(filterNames),
+            );
+        }
+        """,
+        filter_names,
+    )
+
+
 def test_filter_favourite_apply_preserves_sample_shell(
     page, client, books_url, sample_books
 ):
@@ -1341,6 +1360,74 @@ def test_returning_to_page_via_sample_shell_htmx_keeps_selected_filter_favourite
     expect(page.locator("#filter-form input[name='title']")).to_have_value(target_book.title)
     expect(page.locator("#filtered_results")).to_contain_text(target_book.title)
     expect(page.locator("#filtered_results")).not_to_contain_text(other_book.title)
+
+
+def test_clean_remembered_favourite_wins_over_stored_optional_filter_visibility(
+    page, client, books_url, sample_books
+):
+    """Stored optional-filter visibility must not dirty or block a remembered favourite."""
+
+    user = login_playwright_user(
+        client=client,
+        page=page,
+        books_url=books_url,
+        username="playwright-optional-filter-favourite-return-user",
+    )
+    target_book = sample_books[0]
+    other_book = sample_books[1]
+    favourite = SavedFilterFavourite.objects.create(
+        user=user,
+        view_key=BOOK_VIEW_KEY,
+        name="Optional filter trip",
+        state={
+            "filters": {"isbn": [target_book.isbn]},
+            "visible_filters": ["isbn"],
+            "sort": "",
+            "page_size": "5",
+        },
+    )
+
+    install_htmx_init_script(page)
+    page.goto(books_url)
+    page.wait_for_load_state("networkidle")
+    ensure_htmx_available(page)
+    seed_filter_favourite_browser_state(
+        page,
+        selected_favourite_id=str(favourite.pk),
+    )
+    seed_stored_optional_filters(page, ["isbn"])
+
+    get_sample_navigation(page).locator("a", has_text="Authors").click()
+    page.wait_for_load_state("networkidle")
+    expect(page.locator("body")).to_contain_text("The Author Persons")
+
+    with page.expect_response(
+        re.compile(r"/powercrud/favourites/apply/"),
+        timeout=5000,
+    ) as apply_response:
+        get_sample_navigation(page).get_by_label("Load books with HTMX").click()
+    assert apply_response.value.ok, (
+        "Expected the clean remembered favourite to auto-apply instead of being "
+        "blocked by browser-restored optional filter visibility."
+    )
+    page.wait_for_load_state("networkidle")
+    open_filters_panel(page)
+
+    expect(page.locator("#filter-form input[name='isbn']")).to_have_value(target_book.isbn)
+    expect(page.locator("#filtered_results")).to_contain_text(target_book.title)
+    expect(page.locator("#filtered_results")).not_to_contain_text(other_book.title)
+    trigger = page.locator("[data-powercrud-filter-favourites-trigger='true']:visible").first
+    expect(trigger).to_have_attribute("data-powercrud-filter-favourites-selected", "true")
+    expect(trigger).to_have_attribute("data-powercrud-filter-favourites-dirty", "false")
+    expect(trigger).to_have_attribute("data-tippy-content", "Optional filter trip")
+    dirty_after_return = page.evaluate(
+        "(dirtyKey) => window.sessionStorage.getItem(dirtyKey)",
+        DIRTY_FAVOURITE_STORAGE_KEY,
+    )
+    assert dirty_after_return is None, (
+        "Restoring optional filter visibility during shell navigation should not "
+        "mark a clean remembered favourite as edited."
+    )
 
 
 def test_server_selected_favourite_from_full_page_url_auto_applies_after_shell_return(

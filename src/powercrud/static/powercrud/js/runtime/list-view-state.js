@@ -199,6 +199,11 @@ export function createListViewStateRuntime(context) {
         }
         state.optionalFilterVisibilityRestored = true;
 
+        const { selectedFavouriteId, isDirty } = getSelectedFilterFavouriteViewContext(root);
+        if (selectedFavouriteId && !isDirty) {
+            return;
+        }
+
         const normalizedNames = dedupeFilterNames([
             ...getPersistedOptionalFilterNames(root),
             ...getStoredOptionalFilterNames(root),
