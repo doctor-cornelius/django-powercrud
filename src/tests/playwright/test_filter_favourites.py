@@ -874,6 +874,79 @@ def test_filter_favourite_update_reapplies_latest_saved_state(
     expect(page.locator("#filtered_results")).not_to_contain_text(original_book.title)
 
 
+def test_updating_dirty_selected_favourite_refreshes_heart_state(
+    page, client, books_url, sample_books
+):
+    """Updating an edited selected favourite should immediately repaint the heart as clean."""
+
+    user = login_playwright_user(
+        client=client,
+        page=page,
+        books_url=books_url,
+        username="playwright-favourite-update-clean-heart-user",
+    )
+    original_book = sample_books[0]
+    updated_book = sample_books[1]
+    favourite = SavedFilterFavourite.objects.create(
+        user=user,
+        view_key=BOOK_VIEW_KEY,
+        name="Clean my heart",
+        state={
+            "filters": {"title": [original_book.title]},
+            "visible_filters": [],
+            "sort": "",
+            "page_size": "5",
+        },
+    )
+
+    install_htmx_init_script(page)
+    page.goto(books_url)
+    page.wait_for_load_state("networkidle")
+    ensure_htmx_available(page)
+
+    open_filters_panel(page)
+    open_favourites_dropdown(page)
+    select_saved_favourite(page, "Clean my heart")
+    page.wait_for_load_state("networkidle")
+    expect(page.locator("#filter-form input[name='title']")).to_have_value(original_book.title)
+
+    title_filter = page.locator("#filter-form input[name='title']")
+    title_filter.click()
+    page.keyboard.press("Control+A")
+    page.keyboard.type(updated_book.title)
+    page.wait_for_load_state("networkidle")
+
+    trigger = page.locator("[data-powercrud-filter-favourites-trigger='true']:visible").first
+    expect(trigger).to_have_attribute("data-powercrud-filter-favourites-selected", "true")
+    expect(trigger).to_have_attribute("data-powercrud-filter-favourites-dirty", "true")
+    expect(trigger).to_have_attribute("data-tippy-content", "Clean my heart (edited)")
+
+    open_favourites_dropdown(page)
+    panel = get_open_favourites_panel(page)
+    expect(panel.locator("select[name='favourite_id']")).to_have_value(str(favourite.pk))
+    with page.expect_response(
+        lambda response: response.request.method == "POST"
+        and "/powercrud/favourites/update/" in response.url
+    ) as update_response_info:
+        panel.get_by_role("button", name="Update").click()
+    assert update_response_info.value.status == 200, (
+        "Expected updating the selected favourite to return a successful HTMX response."
+    )
+    page.wait_for_timeout(100)
+
+    trigger = page.locator("[data-powercrud-filter-favourites-trigger='true']:visible").first
+    expect(trigger).to_have_attribute("data-powercrud-filter-favourites-selected", "true")
+    expect(trigger).to_have_attribute("data-powercrud-filter-favourites-dirty", "false")
+    expect(trigger).to_have_attribute("data-tippy-content", "Clean my heart")
+    dirty_after_update = page.evaluate(
+        "(dirtyKey) => window.sessionStorage.getItem(dirtyKey)",
+        DIRTY_FAVOURITE_STORAGE_KEY,
+    )
+    assert dirty_after_update is None, (
+        "Updating the selected favourite should clear the browser dirty marker."
+    )
+
+
 def test_filter_favourite_can_be_saved_inline_without_opening_modal(
     page, client, books_url, sample_books
 ):
