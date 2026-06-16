@@ -38,6 +38,7 @@ export function createListViewStateRuntime(context) {
         getFilterFavouritesContainer,
         getSelectedFilterFavouriteViewContext,
         markSelectedFilterFavouriteDirty,
+        suppressFavouriteAutoApplyOnce,
         clearSelectedFilterFavouriteSelection,
         closeFilterFavouritesDropdowns,
         syncSelectedFilterFavouritePresentation,
@@ -507,7 +508,9 @@ export function createListViewStateRuntime(context) {
         });
         // Any manual list refresh after favourite application means the
         // selected favourite remains selected but becomes dirty.
-        markSelectedFilterFavouriteDirty(root);
+        const { toolbar } = getSelectedFilterFavouriteViewContext(root);
+        markSelectedFilterFavouriteDirty(root, toolbar);
+        suppressFavouriteAutoApplyOnce?.(root, toolbar);
         htmx.ajax('GET', listUrl, {
             target: getRootSwapTarget(root),
             swap: root.dataset.powercrudOriginalTarget ? 'innerHTML' : 'outerHTML',
