@@ -34,6 +34,7 @@ export function createFilterFavouritesRuntime(context) {
 
     const suppressFavouriteAutoApplyKeys = new Set();
     const favouriteAutoApplyInFlightKeys = new Set();
+    const protectedSelectedFavouriteDirtyKeys = new Set();
     let activeFilterFavouritesPanel = null;
     let activeFilterFavouritesTrigger = null;
 
@@ -269,6 +270,16 @@ export function createFilterFavouritesRuntime(context) {
         );
     }
 
+    function favouriteStateMatchesCollectedRoot(optionElement, root) {
+        if (!(root instanceof Element)) {
+            return false;
+        }
+        return favouriteStateMatchesCurrentState(
+            optionElement,
+            collectFavouriteStateFromRoot(root),
+        );
+    }
+
     function getFavouriteVisibleFilterNames(optionElement) {
         if (!(optionElement instanceof HTMLOptionElement)) {
             return [];
@@ -364,13 +375,23 @@ export function createFilterFavouritesRuntime(context) {
         const normalizedId = String(favouriteId || '').trim();
         if (!normalizedId) {
             removeSessionStorageItem(global, storageKey);
+            protectedSelectedFavouriteDirtyKeys.delete(storageKey);
             return;
         }
         setSessionStorageItem(global, storageKey, normalizedId);
+        protectedSelectedFavouriteDirtyKeys.add(storageKey);
     }
 
     function clearSelectedFilterFavouriteDirty(root, toolbar = null) {
-        removeSessionStorageItem(global, getSelectedFilterFavouriteDirtyStorageKey(root, toolbar));
+        const storageKey = getSelectedFilterFavouriteDirtyStorageKey(root, toolbar);
+        removeSessionStorageItem(global, storageKey);
+        protectedSelectedFavouriteDirtyKeys.delete(storageKey);
+    }
+
+    function isSelectedFilterFavouriteDirtyProtected(root, toolbar = null) {
+        return protectedSelectedFavouriteDirtyKeys.has(
+            getSelectedFilterFavouriteDirtyStorageKey(root, toolbar)
+        );
     }
 
     function getSelectedFilterFavouriteViewContext(root, toolbar = null) {
@@ -431,6 +452,15 @@ export function createFilterFavouritesRuntime(context) {
         return true;
     }
 
+    function hasFavouriteAutoApplySuppression(root, toolbar = null) {
+        if (!(root instanceof Element)) {
+            return false;
+        }
+        return suppressFavouriteAutoApplyKeys.has(
+            getSelectedFilterFavouriteStorageKey(root, toolbar)
+        );
+    }
+
     function getFavouriteAutoApplyKey(root, toolbar, favouriteId) {
         if (!(root instanceof Element) || !favouriteId) {
             return '';
@@ -453,7 +483,30 @@ export function createFilterFavouritesRuntime(context) {
             return;
         }
 
-        const activeSelectedId = getPendingSelectedFilterFavouriteId(root, favouritesContainer);
+        let activeSelectedId = getPendingSelectedFilterFavouriteId(root, favouritesContainer);
+        let activeSelectedOption = getFavouriteOptionByValue(favouriteSelect, activeSelectedId);
+        if (activeSelectedId && !(activeSelectedOption instanceof HTMLOptionElement)) {
+            setPendingSelectedFilterFavouriteId(root, favouritesContainer, '');
+            clearSelectedFilterFavouriteDirty(root, favouritesContainer);
+            activeSelectedId = '';
+            activeSelectedOption = null;
+        }
+        const activeSelectedMatchesCurrent = Boolean(
+            activeSelectedOption instanceof HTMLOptionElement
+            && favouriteStateMatchesRoot(activeSelectedOption, root, favouritesContainer)
+        );
+        const activeSelectedMatchesCollectedState = Boolean(
+            activeSelectedOption instanceof HTMLOptionElement
+            && favouriteStateMatchesCollectedRoot(activeSelectedOption, root)
+        );
+        if (
+            activeSelectedMatchesCurrent
+            && activeSelectedMatchesCollectedState
+            && !hasFavouriteAutoApplySuppression(root, favouritesContainer)
+            && !isSelectedFilterFavouriteDirtyProtected(root, favouritesContainer)
+        ) {
+            clearSelectedFilterFavouriteDirty(root, favouritesContainer);
+        }
         const matchingCandidates = [
             getServerSelectedFilterFavouriteId(favouritesContainer),
             getFavouriteSelectValue(favouriteSelect),
@@ -617,7 +670,15 @@ export function createFilterFavouritesRuntime(context) {
         }
 
         if (favouriteStateMatchesRoot(selectedOption, root, toolbar)) {
-            shouldConsumeFavouriteAutoApplySuppression(root, toolbar);
+            if (
+                favouriteStateMatchesCollectedRoot(selectedOption, root)
+                && !isSelectedFilterFavouriteDirtyProtected(root, toolbar)
+            ) {
+                clearSelectedFilterFavouriteDirty(root, toolbar);
+            }
+            if (shouldConsumeFavouriteAutoApplySuppression(root, toolbar)) {
+                return;
+            }
             return;
         }
 
@@ -1117,6 +1178,7 @@ export function createFilterFavouritesRuntime(context) {
             }
             setPendingSelectedFilterFavouriteId(root, toolbar, favouriteId);
             clearSelectedFilterFavouriteDirty(root, toolbar);
+            syncFilterFavouritesSelection(root);
         });
         global.setTimeout(() => {
             closeFilterFavouritesDropdowns();
@@ -1136,6 +1198,7 @@ export function createFilterFavouritesRuntime(context) {
             }
             setPendingSelectedFilterFavouriteId(root, toolbar, favouriteId);
             clearSelectedFilterFavouriteDirty(root, toolbar);
+            syncFilterFavouritesSelection(root);
         });
         global.setTimeout(() => {
             closeFilterFavouritesDropdowns();
@@ -1150,6 +1213,7 @@ export function createFilterFavouritesRuntime(context) {
             }
             setPendingSelectedFilterFavouriteId(root, toolbar, '');
             clearSelectedFilterFavouriteDirty(root, toolbar);
+            syncFilterFavouritesSelection(root);
         });
         global.setTimeout(() => {
             closeFilterFavouritesDropdowns();
@@ -1205,6 +1269,7 @@ export function createFilterFavouritesRuntime(context) {
         handleResetViewClick,
         markSelectedFilterFavouriteDirty,
         maybeApplyRememberedFavourite,
+        suppressFavouriteAutoApplyOnce,
         syncSelectedFilterFavouritePresentation,
         syncFavouritePanelState,
         syncFavouriteToolbarState,

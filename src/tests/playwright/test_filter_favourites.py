@@ -21,6 +21,9 @@ HTMX_TEST_BUNDLE_PATH = (
     Path(__file__).resolve().parents[3] / "node_modules" / "htmx.org" / "dist" / "htmx.min.js"
 )
 BOOK_VIEW_KEY = f"{BookCRUDView.__module__}.{BookCRUDView.__name__}"
+SELECTED_FAVOURITE_STORAGE_KEY = f"powercrud:selected-filter-favourite:{BOOK_VIEW_KEY}"
+DIRTY_FAVOURITE_STORAGE_KEY = f"powercrud:selected-filter-favourite-dirty:{BOOK_VIEW_KEY}"
+VIEW_STATE_STORAGE_KEY = f"powercrud:view-state:{BOOK_VIEW_KEY}"
 
 
 def open_favourites_dropdown(page):
@@ -238,6 +241,41 @@ def login_playwright_user(*, client, page, books_url: str, username: str):
         ]
     )
     return user
+
+
+def seed_filter_favourite_browser_state(
+    page,
+    *,
+    selected_favourite_id: str,
+    dirty_favourite_id: str = "",
+    stored_view_query: str = "",
+):
+    """Seed the browser-side favourite and stored-view session state."""
+
+    page.evaluate(
+        """
+        (payload) => {
+            const setOrRemove = (key, value) => {
+                if (value) {
+                    window.sessionStorage.setItem(key, value);
+                    return;
+                }
+                window.sessionStorage.removeItem(key);
+            };
+            setOrRemove(payload.selectedKey, payload.selectedValue);
+            setOrRemove(payload.dirtyKey, payload.dirtyValue);
+            setOrRemove(payload.viewStateKey, payload.viewStateValue);
+        }
+        """,
+        {
+            "selectedKey": SELECTED_FAVOURITE_STORAGE_KEY,
+            "selectedValue": str(selected_favourite_id),
+            "dirtyKey": DIRTY_FAVOURITE_STORAGE_KEY,
+            "dirtyValue": str(dirty_favourite_id),
+            "viewStateKey": VIEW_STATE_STORAGE_KEY,
+            "viewStateValue": stored_view_query,
+        },
+    )
 
 
 def test_filter_favourite_apply_preserves_sample_shell(
@@ -836,6 +874,79 @@ def test_filter_favourite_update_reapplies_latest_saved_state(
     expect(page.locator("#filtered_results")).not_to_contain_text(original_book.title)
 
 
+def test_updating_dirty_selected_favourite_refreshes_heart_state(
+    page, client, books_url, sample_books
+):
+    """Updating an edited selected favourite should immediately repaint the heart as clean."""
+
+    user = login_playwright_user(
+        client=client,
+        page=page,
+        books_url=books_url,
+        username="playwright-favourite-update-clean-heart-user",
+    )
+    original_book = sample_books[0]
+    updated_book = sample_books[1]
+    favourite = SavedFilterFavourite.objects.create(
+        user=user,
+        view_key=BOOK_VIEW_KEY,
+        name="Clean my heart",
+        state={
+            "filters": {"title": [original_book.title]},
+            "visible_filters": [],
+            "sort": "",
+            "page_size": "5",
+        },
+    )
+
+    install_htmx_init_script(page)
+    page.goto(books_url)
+    page.wait_for_load_state("networkidle")
+    ensure_htmx_available(page)
+
+    open_filters_panel(page)
+    open_favourites_dropdown(page)
+    select_saved_favourite(page, "Clean my heart")
+    page.wait_for_load_state("networkidle")
+    expect(page.locator("#filter-form input[name='title']")).to_have_value(original_book.title)
+
+    title_filter = page.locator("#filter-form input[name='title']")
+    title_filter.click()
+    page.keyboard.press("Control+A")
+    page.keyboard.type(updated_book.title)
+    page.wait_for_load_state("networkidle")
+
+    trigger = page.locator("[data-powercrud-filter-favourites-trigger='true']:visible").first
+    expect(trigger).to_have_attribute("data-powercrud-filter-favourites-selected", "true")
+    expect(trigger).to_have_attribute("data-powercrud-filter-favourites-dirty", "true")
+    expect(trigger).to_have_attribute("data-tippy-content", "Clean my heart (edited)")
+
+    open_favourites_dropdown(page)
+    panel = get_open_favourites_panel(page)
+    expect(panel.locator("select[name='favourite_id']")).to_have_value(str(favourite.pk))
+    with page.expect_response(
+        lambda response: response.request.method == "POST"
+        and "/powercrud/favourites/update/" in response.url
+    ) as update_response_info:
+        panel.get_by_role("button", name="Update").click()
+    assert update_response_info.value.status == 200, (
+        "Expected updating the selected favourite to return a successful HTMX response."
+    )
+    page.wait_for_timeout(100)
+
+    trigger = page.locator("[data-powercrud-filter-favourites-trigger='true']:visible").first
+    expect(trigger).to_have_attribute("data-powercrud-filter-favourites-selected", "true")
+    expect(trigger).to_have_attribute("data-powercrud-filter-favourites-dirty", "false")
+    expect(trigger).to_have_attribute("data-tippy-content", "Clean my heart")
+    dirty_after_update = page.evaluate(
+        "(dirtyKey) => window.sessionStorage.getItem(dirtyKey)",
+        DIRTY_FAVOURITE_STORAGE_KEY,
+    )
+    assert dirty_after_update is None, (
+        "Updating the selected favourite should clear the browser dirty marker."
+    )
+
+
 def test_filter_favourite_can_be_saved_inline_without_opening_modal(
     page, client, books_url, sample_books
 ):
@@ -1291,6 +1402,139 @@ def test_server_selected_favourite_from_full_page_url_auto_applies_after_shell_r
     expect(page.locator("#content")).to_contain_text("My List of Books")
     expect(page.locator("#filterToggleBtn")).to_be_visible()
 
+    open_filters_panel(page)
+    expect(page.locator("#filter-form input[name='title']")).to_have_value(target_book.title)
+    expect(page.locator("#filtered_results")).to_contain_text(target_book.title)
+    expect(page.locator("#filtered_results")).not_to_contain_text(other_book.title)
+
+
+def test_matching_remembered_favourite_clears_stale_dirty_state(
+    page, client, books_url, sample_books
+):
+    """A remembered favourite that matches rendered state should not stay dirty."""
+
+    user = login_playwright_user(
+        client=client,
+        page=page,
+        books_url=books_url,
+        username="playwright-stale-dirty-matching-favourite-user",
+    )
+    target_book = sample_books[0]
+    favourite = SavedFilterFavourite.objects.create(
+        user=user,
+        view_key=BOOK_VIEW_KEY,
+        name="Stale dirty match",
+        state={
+            "filters": {"title": [target_book.title]},
+            "visible_filters": [],
+            "sort": "",
+            "page_size": "5",
+        },
+    )
+
+    install_htmx_init_script(page)
+    page.goto(f"{books_url}?{urlencode({'title': target_book.title, 'page_size': '5'})}")
+    page.wait_for_load_state("networkidle")
+    ensure_htmx_available(page)
+    seed_filter_favourite_browser_state(
+        page,
+        selected_favourite_id=str(favourite.pk),
+        dirty_favourite_id=str(favourite.pk),
+    )
+
+    apply_request_urls = []
+    page.on(
+        "request",
+        lambda request: apply_request_urls.append(request.url)
+        if "/powercrud/favourites/apply/" in request.url
+        else None,
+    )
+    page.evaluate(
+        """
+        () => {
+            const root = document.querySelector('[data-powercrud-object-list="true"]');
+            window.initPowercrud(root);
+        }
+        """
+    )
+    page.wait_for_timeout(500)
+
+    dirty_after_bootstrap = page.evaluate(
+        "(dirtyKey) => window.sessionStorage.getItem(dirtyKey)",
+        DIRTY_FAVOURITE_STORAGE_KEY,
+    )
+    assert dirty_after_bootstrap is None, (
+        "A remembered favourite whose saved state exactly matches the rendered list "
+        "should clear a stale dirty marker."
+    )
+    assert apply_request_urls == [], (
+        "A matching remembered favourite should not dispatch an apply request just to clear dirty state."
+    )
+    trigger = page.locator("[data-powercrud-filter-favourites-trigger='true']:visible").first
+    expect(trigger).to_have_attribute("data-powercrud-filter-favourites-selected", "true")
+    expect(trigger).to_have_attribute("data-powercrud-filter-favourites-dirty", "false")
+
+
+def test_stale_dirty_remembered_favourite_auto_applies_after_shell_return(
+    page, client, books_url, sample_books
+):
+    """Stale dirty state from a matching favourite URL must not block HTMX return apply."""
+
+    user = login_playwright_user(
+        client=client,
+        page=page,
+        books_url=books_url,
+        username="playwright-stale-dirty-shell-return-user",
+    )
+    target_book = sample_books[0]
+    other_book = sample_books[1]
+    favourite = SavedFilterFavourite.objects.create(
+        user=user,
+        view_key=BOOK_VIEW_KEY,
+        name="Stale dirty shell trip",
+        state={
+            "filters": {"title": [target_book.title]},
+            "visible_filters": [],
+            "sort": "",
+            "page_size": "5",
+        },
+    )
+
+    install_htmx_init_script(page)
+    page.goto(f"{books_url}?{urlencode({'title': target_book.title, 'page_size': '5'})}")
+    page.wait_for_load_state("networkidle")
+    ensure_htmx_available(page)
+    seed_filter_favourite_browser_state(
+        page,
+        selected_favourite_id=str(favourite.pk),
+        dirty_favourite_id=str(favourite.pk),
+        stored_view_query=urlencode({"title": other_book.title, "page_size": "5"}),
+    )
+
+    page.evaluate(
+        """
+        () => {
+            const root = document.querySelector('[data-powercrud-object-list="true"]');
+            window.initPowercrud(root);
+        }
+        """
+    )
+    page.wait_for_timeout(500)
+
+    get_sample_navigation(page).locator("a", has_text="Authors").click()
+    page.wait_for_load_state("networkidle")
+    expect(page.locator("body")).to_contain_text("The Author Persons")
+
+    with page.expect_response(
+        re.compile(r"/powercrud/favourites/apply/"),
+        timeout=5000,
+    ) as apply_response:
+        get_sample_navigation(page).get_by_label("Load books with HTMX").click()
+    assert apply_response.value.ok, (
+        "Expected stale dirty state to be cleared before returning via the sample HTMX shell, "
+        "so the remembered favourite can auto-apply."
+    )
+    page.wait_for_load_state("networkidle")
     open_filters_panel(page)
     expect(page.locator("#filter-form input[name='title']")).to_have_value(target_book.title)
     expect(page.locator("#filtered_results")).to_contain_text(target_book.title)

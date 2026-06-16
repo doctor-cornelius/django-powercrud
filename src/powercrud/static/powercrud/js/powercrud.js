@@ -178,6 +178,7 @@ import { createCurrentTemplateRuntime } from './runtime/current-template.js';
         getFilterFavouritesContainer: filterFavourites.getFilterFavouritesContainer,
         getSelectedFilterFavouriteViewContext: filterFavourites.getSelectedFilterFavouriteViewContext,
         markSelectedFilterFavouriteDirty: filterFavourites.markSelectedFilterFavouriteDirty,
+        suppressFavouriteAutoApplyOnce: filterFavourites.suppressFavouriteAutoApplyOnce,
         clearSelectedFilterFavouriteSelection: filterFavourites.clearSelectedFilterFavouriteSelection,
         closeFilterFavouritesDropdowns: filterFavourites.closeFilterFavouritesDropdowns,
         syncSelectedFilterFavouritePresentation: filterFavourites.syncSelectedFilterFavouritePresentation,
