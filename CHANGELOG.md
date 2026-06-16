@@ -6,6 +6,9 @@ During the `0.x` series, breaking changes can occur, although we try to minimise
 
 Version numbers below correspond to published git tags. The more important releases include a little extra narrative and upgrade context; smaller patch releases remain deliberately brief. For full detail between any two versions, use the GitHub compare view for the matching tags.
 
+## 0.7.9 (2026-06-16)
+- **Fix (favourites)**: restore remembered favourite apply on htmx calls
+
 ## 0.7.8 (2026-06-11)
 - **Fix (list)**: keep wide table scrolling local
 
