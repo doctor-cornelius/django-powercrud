@@ -468,6 +468,13 @@ export function createFilterFavouritesRuntime(context) {
             option => option.value === effectiveSelectedId
         );
 
+        if (!activeSelectedId && matchingSelectedId && hasSelectedOption) {
+            // Server-rendered URL state that cleanly matches a favourite should
+            // become the remembered favourite for later shell navigation.
+            setPendingSelectedFilterFavouriteId(root, favouritesContainer, matchingSelectedId);
+            clearSelectedFilterFavouriteDirty(root, favouritesContainer);
+        }
+
         if (hasSelectedOption && favouriteSelect.value !== effectiveSelectedId) {
             favouriteSelect.value = effectiveSelectedId;
         } else if (!effectiveSelectedId) {

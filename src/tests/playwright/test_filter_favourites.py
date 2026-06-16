@@ -1230,3 +1230,68 @@ def test_returning_to_page_via_sample_shell_htmx_keeps_selected_filter_favourite
     expect(page.locator("#filter-form input[name='title']")).to_have_value(target_book.title)
     expect(page.locator("#filtered_results")).to_contain_text(target_book.title)
     expect(page.locator("#filtered_results")).not_to_contain_text(other_book.title)
+
+
+def test_server_selected_favourite_from_full_page_url_auto_applies_after_shell_return(
+    page, client, books_url, sample_books
+):
+    """Server-selected favourites should seed browser state for later HTMX shell returns."""
+
+    user = login_playwright_user(
+        client=client,
+        page=page,
+        books_url=books_url,
+        username="playwright-server-selected-favourite-user",
+    )
+    target_book = sample_books[0]
+    other_book = sample_books[1]
+    favourite = SavedFilterFavourite.objects.create(
+        user=user,
+        view_key=BOOK_VIEW_KEY,
+        name="Server selected trip",
+        state={
+            "filters": {"title": [target_book.title]},
+            "visible_filters": [],
+            "sort": "",
+            "page_size": "5",
+        },
+    )
+
+    install_htmx_init_script(page)
+    page.goto(f"{books_url}?{urlencode({'title': target_book.title, 'page_size': '5'})}")
+    page.wait_for_load_state("networkidle")
+    ensure_htmx_available(page)
+
+    open_filters_panel(page)
+    favourites_select = page.locator(
+        "[data-powercrud-filter-favourites-template='true'] select[name='favourite_id']"
+    ).first
+    expect(favourites_select).to_have_value(str(favourite.pk))
+    trigger = page.locator("[data-powercrud-filter-favourites-trigger='true']:visible").first
+    expect(trigger).to_have_attribute("data-powercrud-filter-favourites-selected", "true")
+    expect(trigger).to_have_attribute("data-tippy-content", "Server selected trip")
+    expect(page.locator("#filter-form input[name='title']")).to_have_value(target_book.title)
+    expect(page.locator("#filtered_results")).to_contain_text(target_book.title)
+    expect(page.locator("#filtered_results")).not_to_contain_text(other_book.title)
+
+    get_sample_navigation(page).locator("a", has_text="Authors").click()
+    page.wait_for_load_state("networkidle")
+    expect(page.locator("body")).to_contain_text("The Author Persons")
+
+    with page.expect_response(
+        re.compile(r"/powercrud/favourites/apply/"),
+        timeout=5000,
+    ) as apply_response:
+        get_sample_navigation(page).get_by_label("Load books with HTMX").click()
+    assert apply_response.value.ok, (
+        "Expected returning via the sample HTMX shell to auto-apply the favourite "
+        "that was initially selected by the server-rendered URL state."
+    )
+    page.wait_for_load_state("networkidle")
+    expect(page.locator("#content")).to_contain_text("My List of Books")
+    expect(page.locator("#filterToggleBtn")).to_be_visible()
+
+    open_filters_panel(page)
+    expect(page.locator("#filter-form input[name='title']")).to_have_value(target_book.title)
+    expect(page.locator("#filtered_results")).to_contain_text(target_book.title)
+    expect(page.locator("#filtered_results")).not_to_contain_text(other_book.title)
