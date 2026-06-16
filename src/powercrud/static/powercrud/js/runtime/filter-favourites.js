@@ -1178,6 +1178,7 @@ export function createFilterFavouritesRuntime(context) {
             }
             setPendingSelectedFilterFavouriteId(root, toolbar, favouriteId);
             clearSelectedFilterFavouriteDirty(root, toolbar);
+            syncFilterFavouritesSelection(root);
         });
         global.setTimeout(() => {
             closeFilterFavouritesDropdowns();
@@ -1197,6 +1198,7 @@ export function createFilterFavouritesRuntime(context) {
             }
             setPendingSelectedFilterFavouriteId(root, toolbar, favouriteId);
             clearSelectedFilterFavouriteDirty(root, toolbar);
+            syncFilterFavouritesSelection(root);
         });
         global.setTimeout(() => {
             closeFilterFavouritesDropdowns();
@@ -1211,6 +1213,7 @@ export function createFilterFavouritesRuntime(context) {
             }
             setPendingSelectedFilterFavouriteId(root, toolbar, '');
             clearSelectedFilterFavouriteDirty(root, toolbar);
+            syncFilterFavouritesSelection(root);
         });
         global.setTimeout(() => {
             closeFilterFavouritesDropdowns();
