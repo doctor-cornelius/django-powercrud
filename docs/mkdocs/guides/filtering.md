@@ -194,7 +194,8 @@ HTMX is optional but recommended.
 - When enabled, filter submissions post back to the list endpoint and the results replace the list region without a full reload.
 - Pagination automatically resets to page 1 after each filter submit.
 - Optional filter visibility travels with the current request through the reserved `visible_filters` query parameter. Unsaved optional filter choices are not restored after leaving and returning to the list; save a favourite when a named list state should restore additional filter fields.
-- The filter panel does not reopen automatically after navigation. When filters are active, the filter toggle indicates that state even while the panel is closed.
+- The filter panel does not reopen automatically after navigation. When filters are active, the filter toggle shows a filled primary funnel even while the panel is closed.
+- When saved favourites are enabled, the filled primary funnel complements the favourite trigger: a filled primary heart means a clean saved favourite is selected, and a filled primary funnel means filters are currently applied.
 
 ## Optional saved favourites
 
