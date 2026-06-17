@@ -31,7 +31,7 @@ What happens by default:
 - Set `default_filterset_fields` to a smaller subset when some filters should be visible by default and the rest should stay behind the built-in `Add filter` control.
 - Once an optional filter is shown, it stays visible until the user explicitly removes it, even if its current value is empty.
 - PowerCRUD persists optional filter visibility through the reserved `visible_filters` query parameter, so shared URLs can still open the same optional filters explicitly.
-- When HTMX is enabled, PowerCRUD also remembers optional filter visibility in browser-local storage for the current list route. That browser-local state restores the same optional filters on later refreshes or revisits without preserving any filter values.
+- PowerCRUD does not restore unsaved optional filter visibility after navigation unless the current URL or a saved favourite explicitly asks for those fields.
 
 ## Default vs optional filters
 
@@ -193,7 +193,9 @@ HTMX is optional but recommended.
 
 - When enabled, filter submissions post back to the list endpoint and the results replace the list region without a full reload.
 - Pagination automatically resets to page 1 after each filter submit.
-- Optional filter visibility is also remembered in browser-local storage for the current list route, without preserving actual filter values.
+- Optional filter visibility travels with the current request through the reserved `visible_filters` query parameter. Unsaved optional filter choices are not restored after leaving and returning to the list; save a favourite when a named list state should restore additional filter fields.
+- The filter panel does not reopen automatically after navigation. When filters are active, the filter toggle shows a filled primary funnel even while the panel is closed.
+- When saved favourites are enabled, the filled primary funnel complements the favourite trigger: a filled primary heart means a clean saved favourite is selected, and a filled primary funnel means filters are currently applied.
 
 ## Optional saved favourites
 

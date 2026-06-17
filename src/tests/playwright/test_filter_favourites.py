@@ -23,7 +23,6 @@ HTMX_TEST_BUNDLE_PATH = (
 BOOK_VIEW_KEY = f"{BookCRUDView.__module__}.{BookCRUDView.__name__}"
 SELECTED_FAVOURITE_STORAGE_KEY = f"powercrud:selected-filter-favourite:{BOOK_VIEW_KEY}"
 DIRTY_FAVOURITE_STORAGE_KEY = f"powercrud:selected-filter-favourite-dirty:{BOOK_VIEW_KEY}"
-VIEW_STATE_STORAGE_KEY = f"powercrud:view-state:{BOOK_VIEW_KEY}"
 
 
 def open_favourites_dropdown(page):
@@ -66,10 +65,18 @@ def open_filters_panel(page):
     """Open the list filter panel if it is currently collapsed."""
 
     toggle = page.locator("#filterToggleBtn")
+    filter_panel = page.locator("#filterCollapse")
     expect(toggle).to_be_visible()
-    if toggle.get_attribute("aria-expanded") != "true":
-        toggle.click()
-    expect(page.locator("#filterCollapse")).not_to_have_class(re.compile(r"\bhidden\b"))
+    if re.search(r"\bhidden\b", filter_panel.get_attribute("class") or ""):
+        toggle.click(force=True)
+    expect(filter_panel).not_to_have_class(re.compile(r"\bhidden\b"))
+
+
+def expect_filters_panel_closed(page):
+    """Assert that the filter panel is collapsed."""
+
+    expect(page.locator("#filterToggleBtn")).to_have_attribute("aria-expanded", "false")
+    expect(page.locator("#filterCollapse")).to_have_class(re.compile(r"\bhidden\b"))
 
 
 def get_sample_navigation(page):
@@ -248,9 +255,8 @@ def seed_filter_favourite_browser_state(
     *,
     selected_favourite_id: str,
     dirty_favourite_id: str = "",
-    stored_view_query: str = "",
 ):
-    """Seed the browser-side favourite and stored-view session state."""
+    """Seed the browser-side favourite selection state."""
 
     page.evaluate(
         """
@@ -264,7 +270,6 @@ def seed_filter_favourite_browser_state(
             };
             setOrRemove(payload.selectedKey, payload.selectedValue);
             setOrRemove(payload.dirtyKey, payload.dirtyValue);
-            setOrRemove(payload.viewStateKey, payload.viewStateValue);
         }
         """,
         {
@@ -272,9 +277,26 @@ def seed_filter_favourite_browser_state(
             "selectedValue": str(selected_favourite_id),
             "dirtyKey": DIRTY_FAVOURITE_STORAGE_KEY,
             "dirtyValue": str(dirty_favourite_id),
-            "viewStateKey": VIEW_STATE_STORAGE_KEY,
-            "viewStateValue": stored_view_query,
         },
+    )
+
+
+def seed_stored_optional_filters(page, filter_names: list[str]):
+    """Seed browser-local optional filter visibility for the current list."""
+
+    page.evaluate(
+        """
+        (filterNames) => {
+            const root = document.querySelector('[data-powercrud-object-list="true"]');
+            const listUrl = root?.dataset?.powercrudListUrl || window.location.pathname;
+            const url = new URL(listUrl, window.location.origin);
+            window.localStorage.setItem(
+                `powercrud:visible-filters:${url.pathname}`,
+                JSON.stringify(filterNames),
+            );
+        }
+        """,
+        filter_names,
     )
 
 
@@ -373,6 +395,146 @@ def test_book_page_size_query_still_renders_correctly_when_filter_favourites_ena
 
     expect(page.locator("#page-size-select")).to_have_value("10")
     expect(page.locator("#filtered_results tbody tr[data-inline-row='true']")).to_have_count(10)
+
+
+def test_unsaved_filter_state_does_not_restore_after_shell_return(
+    page, books_url, sample_books
+):
+    """Temporary filter edits should not be replayed when returning through shell navigation."""
+
+    target_book = sample_books[0]
+    other_book = sample_books[1]
+
+    install_htmx_init_script(page)
+    page.goto(books_url)
+    page.wait_for_load_state("networkidle")
+    ensure_htmx_available(page)
+
+    open_filters_panel(page)
+    title_filter = page.locator("#filter-form input[name='title']")
+    title_filter.fill(target_book.title)
+    expect(page.locator("#filtered_results")).to_contain_text(target_book.title)
+    expect(page.locator("#filtered_results")).not_to_contain_text(other_book.title)
+    expect(page.locator("#filterToggleBtn")).to_have_attribute(
+        "data-powercrud-filters-active",
+        "true",
+    )
+
+    get_sample_navigation(page).locator("a", has_text="Authors").click()
+    page.wait_for_load_state("networkidle")
+    expect(page.locator("body")).to_contain_text("The Author Persons")
+
+    get_sample_navigation(page).get_by_label("Load books with HTMX").click()
+    page.wait_for_load_state("networkidle")
+
+    expect_filters_panel_closed(page)
+    expect(page.locator("#filter-form input[name='title']")).to_have_value("")
+    expect(page.locator("#filtered_results")).to_contain_text(target_book.title)
+    expect(page.locator("#filtered_results")).to_contain_text(other_book.title)
+    expect(page.locator("#filterToggleBtn")).to_have_attribute(
+        "data-powercrud-filters-active",
+        "false",
+    )
+
+
+def test_unsaved_optional_filter_visibility_does_not_restore_after_shell_return(
+    page, books_url
+):
+    """Temporary optional filter fields should not be replayed on return."""
+
+    install_htmx_init_script(page)
+    page.goto(books_url)
+    page.wait_for_load_state("networkidle")
+    ensure_htmx_available(page)
+
+    open_filters_panel(page)
+    add_filter_select = page.locator("[data-powercrud-add-filter-select]")
+    with page.expect_response(re.compile(r"/sample/bigbook/")):
+        add_filter_select.evaluate(
+            """
+            (el) => {
+                if (el.tomselect) {
+                    el.tomselect.setValue('isbn');
+                    return;
+                }
+                el.value = 'isbn';
+                el.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+            """
+        )
+    page.wait_for_load_state("networkidle")
+    open_filters_panel(page)
+    expect(page.locator("#filter-form input[name='isbn']")).to_have_count(1)
+
+    get_sample_navigation(page).locator("a", has_text="Authors").click()
+    page.wait_for_load_state("networkidle")
+    expect(page.locator("body")).to_contain_text("The Author Persons")
+
+    get_sample_navigation(page).get_by_label("Load books with HTMX").click()
+    page.wait_for_load_state("networkidle")
+
+    expect_filters_panel_closed(page)
+    expect(page.locator("#filter-form input[name='isbn']")).to_have_count(0)
+
+
+def test_filter_toggle_marks_only_active_filter_values(
+    page, books_url, sample_books
+):
+    """The filter toggle should show active state only for actual filter values."""
+
+    target_book = sample_books[0]
+
+    install_htmx_init_script(page)
+    page.goto(books_url)
+    page.wait_for_load_state("networkidle")
+    ensure_htmx_available(page)
+
+    toggle = page.locator("#filterToggleBtn")
+    outline_icon = toggle.locator("[data-powercrud-filter-toggle-icon-outline='true']")
+    filled_icon = toggle.locator("[data-powercrud-filter-toggle-icon-filled='true']")
+    expect(toggle).to_have_attribute("data-powercrud-filters-active", "false")
+    expect(toggle).to_have_attribute("aria-label", "Show filters")
+    expect(toggle).to_have_class(re.compile(r"\bbtn-outline\b"))
+    expect(toggle).to_have_class(re.compile(r"\bbtn-secondary\b"))
+    expect(toggle).not_to_have_class(re.compile(r"\bbtn-warning\b"))
+    expect(outline_icon).to_have_class(re.compile(r"\btext-secondary\b"))
+    expect(outline_icon).not_to_have_class(re.compile(r"\bhidden\b"))
+    expect(filled_icon).to_have_class(re.compile(r"\btext-primary\b"))
+    expect(filled_icon).to_have_class(re.compile(r"\bhidden\b"))
+
+    with page.expect_response(re.compile(r"/sample/bigbook/")):
+        page.locator("#page-size-select").select_option("10")
+    page.wait_for_load_state("networkidle")
+    toggle = page.locator("#filterToggleBtn")
+    outline_icon = toggle.locator("[data-powercrud-filter-toggle-icon-outline='true']")
+    filled_icon = toggle.locator("[data-powercrud-filter-toggle-icon-filled='true']")
+    expect(toggle).to_have_attribute("data-powercrud-filters-active", "false")
+    expect(outline_icon).not_to_have_class(re.compile(r"\bhidden\b"))
+    expect(filled_icon).to_have_class(re.compile(r"\bhidden\b"))
+
+    open_filters_panel(page)
+    page.locator("#filter-form input[name='title']").fill(target_book.title)
+    expect(page.locator("#filtered_results")).to_contain_text(target_book.title)
+    toggle = page.locator("#filterToggleBtn")
+    outline_icon = toggle.locator("[data-powercrud-filter-toggle-icon-outline='true']")
+    filled_icon = toggle.locator("[data-powercrud-filter-toggle-icon-filled='true']")
+    expect(toggle).to_have_attribute("data-powercrud-filters-active", "true")
+    expect(toggle).to_have_attribute("aria-label", "Hide filters - filters active")
+    expect(toggle).to_have_class(re.compile(r"\bbtn-outline\b"))
+    expect(toggle).to_have_class(re.compile(r"\bbtn-secondary\b"))
+    expect(toggle).not_to_have_class(re.compile(r"\bbtn-warning\b"))
+    expect(outline_icon).to_have_class(re.compile(r"\bhidden\b"))
+    expect(filled_icon).to_have_class(re.compile(r"\btext-primary\b"))
+    expect(filled_icon).not_to_have_class(re.compile(r"\bhidden\b"))
+
+    page.get_by_role("link", name="Reset filters").click()
+    page.wait_for_load_state("networkidle")
+    toggle = page.locator("#filterToggleBtn")
+    outline_icon = toggle.locator("[data-powercrud-filter-toggle-icon-outline='true']")
+    filled_icon = toggle.locator("[data-powercrud-filter-toggle-icon-filled='true']")
+    expect(toggle).to_have_attribute("data-powercrud-filters-active", "false")
+    expect(outline_icon).not_to_have_class(re.compile(r"\bhidden\b"))
+    expect(filled_icon).to_have_class(re.compile(r"\bhidden\b"))
 
 
 def test_toolbar_transient_dropdowns_are_mutually_exclusive(
@@ -526,6 +688,7 @@ def test_changing_favourite_populated_filter_applies_immediately(
     expect(page.locator("#filter-form input[name='title']")).to_have_value(target_book.title)
     expect(page.locator("#filtered_results")).to_contain_text(target_book.title)
     expect(page.locator("#filtered_results")).not_to_contain_text(replacement_book.title)
+    open_filters_panel(page)
 
     title_filter = page.locator("#filter-form input[name='title']")
     title_filter.click()
@@ -623,6 +786,7 @@ def test_filter_reset_marks_selected_favourite_dirty(
     favourite_id = select_saved_favourite(page, "Reset me")
     page.wait_for_load_state("networkidle")
     expect(page.locator("#filter-form input[name='title']")).to_have_value(target_book.title)
+    open_filters_panel(page)
     page.get_by_role("link", name="Reset filters").click()
     page.wait_for_load_state("networkidle")
 
@@ -728,7 +892,6 @@ def test_reset_view_clears_favourite_filter_page_size_and_visible_columns(
     page.wait_for_load_state("networkidle")
     ensure_htmx_available(page)
 
-    open_filters_panel(page)
     expect(page.locator("#filter-form input[name='title']")).to_have_value("")
     expect(page.locator("#page-size-select")).to_have_value("5")
     expect(page.locator("td[data-field-name='uneditable_field']")).to_have_count(0)
@@ -909,6 +1072,7 @@ def test_updating_dirty_selected_favourite_refreshes_heart_state(
     select_saved_favourite(page, "Clean my heart")
     page.wait_for_load_state("networkidle")
     expect(page.locator("#filter-form input[name='title']")).to_have_value(original_book.title)
+    open_filters_panel(page)
 
     title_filter = page.locator("#filter-form input[name='title']")
     title_filter.click()
@@ -1329,18 +1493,198 @@ def test_returning_to_page_via_sample_shell_htmx_keeps_selected_filter_favourite
     page.wait_for_load_state("networkidle")
     expect(page.locator("#content")).to_contain_text("My List of Books")
     expect(page.locator("#filterToggleBtn")).to_be_visible()
+    expect_filters_panel_closed(page)
 
-    open_filters_panel(page)
-
-    open_favourites_dropdown(page)
-    favourites_select = get_open_favourites_panel(page).locator("select[name='favourite_id']")
-    expect(favourites_select).to_have_value(favourite_id)
     trigger = page.locator("[data-powercrud-filter-favourites-trigger='true']:visible").first
     expect(trigger).to_have_attribute("data-powercrud-filter-favourites-selected", "true")
     expect(trigger).to_have_attribute("data-tippy-content", "Shell trip")
+    selected_value = page.evaluate(
+        "(key) => window.sessionStorage.getItem(key)",
+        SELECTED_FAVOURITE_STORAGE_KEY,
+    )
+    assert selected_value == favourite_id, (
+        "Returning through the sample shell should keep the selected favourite in browser state."
+    )
     expect(page.locator("#filter-form input[name='title']")).to_have_value(target_book.title)
     expect(page.locator("#filtered_results")).to_contain_text(target_book.title)
     expect(page.locator("#filtered_results")).not_to_contain_text(other_book.title)
+
+
+def test_stale_remembered_favourite_auto_apply_does_not_overwrite_newer_shell_navigation(
+    page, client, books_url, sample_books
+):
+    """A remembered favourite apply must not reclaim content after a newer shell navigation."""
+
+    user = login_playwright_user(
+        client=client,
+        page=page,
+        books_url=books_url,
+        username="playwright-stale-auto-apply-navigation-user",
+    )
+    target_book = sample_books[0]
+    favourite = SavedFilterFavourite.objects.create(
+        user=user,
+        view_key=BOOK_VIEW_KEY,
+        name="Do not reclaim",
+        state={
+            "filters": {"title": [target_book.title]},
+            "visible_filters": [],
+            "sort": "",
+            "page_size": "5",
+        },
+    )
+
+    install_htmx_init_script(page)
+    page.goto(books_url)
+    page.wait_for_load_state("networkidle")
+    ensure_htmx_available(page)
+    seed_filter_favourite_browser_state(
+        page,
+        selected_favourite_id=str(favourite.pk),
+    )
+
+    get_sample_navigation(page).locator("a", has_text="Authors").click()
+    page.wait_for_load_state("networkidle")
+    expect(page.locator("body")).to_contain_text("The Author Persons")
+
+    navigation_request_urls = []
+    page.on("request", lambda request: navigation_request_urls.append(request.url))
+    page.evaluate(
+        """
+        () => {
+            const originalAjax = window.htmx.ajax.bind(window.htmx);
+            window.__powercrudDelayedFavouriteApplies = [];
+            window.htmx.ajax = (verb, path, options) => {
+                if (String(path).includes('/powercrud/favourites/apply/')) {
+                    let resolveDelayedApply;
+                    let rejectDelayedApply;
+                    const delayedPromise = new Promise((resolve, reject) => {
+                        resolveDelayedApply = resolve;
+                        rejectDelayedApply = reject;
+                    });
+                    window.__powercrudDelayedFavouriteApplies.push(() => {
+                        const applyPromise = originalAjax(verb, path, options);
+                        if (applyPromise && typeof applyPromise.then === 'function') {
+                            applyPromise.then(resolveDelayedApply, rejectDelayedApply);
+                            return;
+                        }
+                        resolveDelayedApply(applyPromise);
+                    });
+                    return delayedPromise;
+                }
+                return originalAjax(verb, path, options);
+            };
+        }
+        """
+    )
+    get_sample_navigation(page).get_by_label("Load books with HTMX").click()
+    expect(page.locator("#content")).to_contain_text("My List of Books")
+    page.wait_for_function(
+        "() => (window.__powercrudDelayedFavouriteApplies || []).length > 0"
+    )
+    get_sample_navigation(page).get_by_role("link", name="Home").click()
+    page.wait_for_load_state("networkidle")
+    expect(page.locator("#content")).to_contain_text("powercrud Test Home Page")
+    page.evaluate(
+        """
+        () => {
+            const delayedApplies = window.__powercrudDelayedFavouriteApplies || [];
+            window.__powercrudDelayedFavouriteApplies = [];
+            delayedApplies.forEach((releaseApply) => releaseApply());
+        }
+        """
+    )
+    page.wait_for_timeout(1000)
+
+    expect(page.locator("#content")).to_contain_text("powercrud Test Home Page")
+    expect(page.locator("#content")).not_to_contain_text("My List of Books")
+    home_request_index = next(
+        (
+            index for index, url in enumerate(navigation_request_urls)
+            if re.search(r"/$", url) and "/sample/" not in url and "/powercrud/" not in url
+        ),
+        None,
+    )
+    assert home_request_index is not None, (
+        "Expected the test to issue a newer sample Home HTMX request after returning to books."
+    )
+    stale_requests_after_home = [
+        url for url in navigation_request_urls[home_request_index + 1:]
+        if "/powercrud/favourites/apply/" in url
+        or re.search(r"/sample/bigbook/\\?", url)
+    ]
+    assert stale_requests_after_home == [], (
+        "Remembered favourite auto-apply should not continue after a newer shell navigation "
+        f"starts; saw stale requests after Home: {stale_requests_after_home}"
+    )
+
+
+def test_clean_remembered_favourite_wins_over_stored_optional_filter_visibility(
+    page, client, books_url, sample_books
+):
+    """Stored optional-filter visibility must not dirty or block a remembered favourite."""
+
+    user = login_playwright_user(
+        client=client,
+        page=page,
+        books_url=books_url,
+        username="playwright-optional-filter-favourite-return-user",
+    )
+    target_book = sample_books[0]
+    other_book = sample_books[1]
+    favourite = SavedFilterFavourite.objects.create(
+        user=user,
+        view_key=BOOK_VIEW_KEY,
+        name="Optional filter trip",
+        state={
+            "filters": {"isbn": [target_book.isbn]},
+            "visible_filters": ["isbn"],
+            "sort": "",
+            "page_size": "5",
+        },
+    )
+
+    install_htmx_init_script(page)
+    page.goto(books_url)
+    page.wait_for_load_state("networkidle")
+    ensure_htmx_available(page)
+    seed_filter_favourite_browser_state(
+        page,
+        selected_favourite_id=str(favourite.pk),
+    )
+    seed_stored_optional_filters(page, ["isbn"])
+
+    get_sample_navigation(page).locator("a", has_text="Authors").click()
+    page.wait_for_load_state("networkidle")
+    expect(page.locator("body")).to_contain_text("The Author Persons")
+
+    with page.expect_response(
+        re.compile(r"/powercrud/favourites/apply/"),
+        timeout=5000,
+    ) as apply_response:
+        get_sample_navigation(page).get_by_label("Load books with HTMX").click()
+    assert apply_response.value.ok, (
+        "Expected the clean remembered favourite to auto-apply instead of being "
+        "blocked by browser-restored optional filter visibility."
+    )
+    page.wait_for_load_state("networkidle")
+    expect_filters_panel_closed(page)
+
+    expect(page.locator("#filter-form input[name='isbn']")).to_have_value(target_book.isbn)
+    expect(page.locator("#filtered_results")).to_contain_text(target_book.title)
+    expect(page.locator("#filtered_results")).not_to_contain_text(other_book.title)
+    trigger = page.locator("[data-powercrud-filter-favourites-trigger='true']:visible").first
+    expect(trigger).to_have_attribute("data-powercrud-filter-favourites-selected", "true")
+    expect(trigger).to_have_attribute("data-powercrud-filter-favourites-dirty", "false")
+    expect(trigger).to_have_attribute("data-tippy-content", "Optional filter trip")
+    dirty_after_return = page.evaluate(
+        "(dirtyKey) => window.sessionStorage.getItem(dirtyKey)",
+        DIRTY_FAVOURITE_STORAGE_KEY,
+    )
+    assert dirty_after_return is None, (
+        "Restoring optional filter visibility during shell navigation should not "
+        "mark a clean remembered favourite as edited."
+    )
 
 
 def test_server_selected_favourite_from_full_page_url_auto_applies_after_shell_return(
@@ -1401,8 +1745,8 @@ def test_server_selected_favourite_from_full_page_url_auto_applies_after_shell_r
     page.wait_for_load_state("networkidle")
     expect(page.locator("#content")).to_contain_text("My List of Books")
     expect(page.locator("#filterToggleBtn")).to_be_visible()
+    expect_filters_panel_closed(page)
 
-    open_filters_panel(page)
     expect(page.locator("#filter-form input[name='title']")).to_have_value(target_book.title)
     expect(page.locator("#filtered_results")).to_contain_text(target_book.title)
     expect(page.locator("#filtered_results")).not_to_contain_text(other_book.title)
@@ -1478,7 +1822,7 @@ def test_matching_remembered_favourite_clears_stale_dirty_state(
 def test_stale_dirty_remembered_favourite_auto_applies_after_shell_return(
     page, client, books_url, sample_books
 ):
-    """Stale dirty state from a matching favourite URL must not block HTMX return apply."""
+    """Dirty current-view edits should not block clean favourite restore after return."""
 
     user = login_playwright_user(
         client=client,
@@ -1501,25 +1845,27 @@ def test_stale_dirty_remembered_favourite_auto_applies_after_shell_return(
     )
 
     install_htmx_init_script(page)
-    page.goto(f"{books_url}?{urlencode({'title': target_book.title, 'page_size': '5'})}")
+    page.goto(books_url)
     page.wait_for_load_state("networkidle")
     ensure_htmx_available(page)
-    seed_filter_favourite_browser_state(
-        page,
-        selected_favourite_id=str(favourite.pk),
-        dirty_favourite_id=str(favourite.pk),
-        stored_view_query=urlencode({"title": other_book.title, "page_size": "5"}),
-    )
 
-    page.evaluate(
-        """
-        () => {
-            const root = document.querySelector('[data-powercrud-object-list="true"]');
-            window.initPowercrud(root);
-        }
-        """
-    )
-    page.wait_for_timeout(500)
+    open_filters_panel(page)
+    open_favourites_dropdown(page)
+    select_saved_favourite(page, "Stale dirty shell trip")
+    page.wait_for_load_state("networkidle")
+    expect(page.locator("#filter-form input[name='title']")).to_have_value(target_book.title)
+    expect(page.locator("#filtered_results")).to_contain_text(target_book.title)
+    expect(page.locator("#filtered_results")).not_to_contain_text(other_book.title)
+    open_filters_panel(page)
+
+    title_filter = page.locator("#filter-form input[name='title']")
+    title_filter.click()
+    page.keyboard.press("Control+A")
+    page.keyboard.type(other_book.title)
+    expect(page.locator("#filtered_results")).to_contain_text(other_book.title)
+    expect(page.locator("#filtered_results")).not_to_contain_text(target_book.title)
+    trigger = page.locator("[data-powercrud-filter-favourites-trigger='true']:visible").first
+    expect(trigger).to_have_attribute("data-powercrud-filter-favourites-dirty", "true")
 
     get_sample_navigation(page).locator("a", has_text="Authors").click()
     page.wait_for_load_state("networkidle")
@@ -1531,11 +1877,11 @@ def test_stale_dirty_remembered_favourite_auto_applies_after_shell_return(
     ) as apply_response:
         get_sample_navigation(page).get_by_label("Load books with HTMX").click()
     assert apply_response.value.ok, (
-        "Expected stale dirty state to be cleared before returning via the sample HTMX shell, "
-        "so the remembered favourite can auto-apply."
+        "Expected leaving a dirty current view to let the remembered favourite restore cleanly "
+        "on the next shell return."
     )
     page.wait_for_load_state("networkidle")
-    open_filters_panel(page)
+    expect_filters_panel_closed(page)
     expect(page.locator("#filter-form input[name='title']")).to_have_value(target_book.title)
     expect(page.locator("#filtered_results")).to_contain_text(target_book.title)
     expect(page.locator("#filtered_results")).not_to_contain_text(other_book.title)

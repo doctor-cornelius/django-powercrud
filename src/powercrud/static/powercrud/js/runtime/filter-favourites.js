@@ -35,6 +35,10 @@ export function createFilterFavouritesRuntime(context) {
     const suppressFavouriteAutoApplyKeys = new Set();
     const favouriteAutoApplyInFlightKeys = new Set();
     const protectedSelectedFavouriteDirtyKeys = new Set();
+    const favouriteAutoApplyContextsByTarget = new WeakMap();
+    const latestInteractiveRequestVersionByTarget = new WeakMap();
+    const currentSwapRequestVersionByTarget = new WeakMap();
+    let nextInteractiveRequestVersion = 0;
     let activeFilterFavouritesPanel = null;
     let activeFilterFavouritesTrigger = null;
 
@@ -475,6 +479,149 @@ export function createFilterFavouritesRuntime(context) {
         favouriteAutoApplyInFlightKeys.delete(autoApplyKey);
     }
 
+    function getHtmxRequestConfig(event) {
+        return event?.detail?.requestConfig || null;
+    }
+
+    function getHtmxRequestPath(event) {
+        const detail = event?.detail || {};
+        return String(detail.path || detail.requestConfig?.path || '');
+    }
+
+    function getHtmxRequestTarget(event) {
+        const detail = event?.detail || {};
+        const target = detail.target || detail.requestConfig?.target || null;
+        return target instanceof Element ? target : null;
+    }
+
+    function getHtmxRequestElement(event, fallbackTarget = null) {
+        const detail = event?.detail || {};
+        const element = detail.elt || detail.requestConfig?.elt || fallbackTarget;
+        return element instanceof Element ? element : null;
+    }
+
+    function normaliseRequestPath(path) {
+        if (!path) {
+            return '';
+        }
+        try {
+            return new URL(path, global.location.href).pathname;
+        } catch (_error) {
+            return normaliseListUrl(path, global);
+        }
+    }
+
+    function isProgrammaticBodyHtmxRequest(event, fallbackTarget = null) {
+        const requestConfig = getHtmxRequestConfig(event);
+        const requestElement = getHtmxRequestElement(event, fallbackTarget);
+        return Boolean(
+            requestElement === documentObject.body
+            && !requestConfig?.triggeringEvent
+        );
+    }
+
+    function resolveHtmxTargetElement(target) {
+        if (target instanceof Element) {
+            return target;
+        }
+        if (typeof target !== 'string' || !target.trim()) {
+            return null;
+        }
+        const targetElement = documentObject.querySelector(target);
+        return targetElement instanceof Element ? targetElement : null;
+    }
+
+    function requestPathMatchesAutoApplyContext(path, context) {
+        if (!path || !context) {
+            return false;
+        }
+        if (path.includes('/powercrud/favourites/apply/')) {
+            return true;
+        }
+        return normaliseRequestPath(path) === context.listUrl;
+    }
+
+    function requestPathMatchesRoot(path, root) {
+        if (!path || !(root instanceof Element)) {
+            return false;
+        }
+        if (path.includes('/powercrud/favourites/apply/')) {
+            return true;
+        }
+        return normaliseRequestPath(path) === normaliseListUrl(
+            root.dataset.powercrudListUrl || '',
+            global,
+        );
+    }
+
+    function trackFavouriteAutoApplyRequest(event, fallbackTarget = null) {
+        const requestTarget = getHtmxRequestTarget(event);
+        if (!(requestTarget instanceof Element)) {
+            return false;
+        }
+
+        const context = favouriteAutoApplyContextsByTarget.get(requestTarget);
+        const isProgrammaticBodyRequest = isProgrammaticBodyHtmxRequest(event, fallbackTarget);
+        const path = getHtmxRequestPath(event);
+        if (
+            context
+            && isProgrammaticBodyRequest
+            && requestPathMatchesAutoApplyContext(path, context)
+        ) {
+            if (context.stale) {
+                event.preventDefault();
+                favouriteAutoApplyContextsByTarget.delete(requestTarget);
+                return true;
+            }
+            return false;
+        }
+
+        if (isProgrammaticBodyRequest) {
+            return false;
+        }
+
+        const requestConfig = getHtmxRequestConfig(event);
+        if (requestConfig) {
+            if (!requestConfig.powercrudFavouriteInteractiveRequestVersion) {
+                nextInteractiveRequestVersion += 1;
+                requestConfig.powercrudFavouriteInteractiveRequestVersion = nextInteractiveRequestVersion;
+            }
+            latestInteractiveRequestVersionByTarget.set(
+                requestTarget,
+                requestConfig.powercrudFavouriteInteractiveRequestVersion,
+            );
+        }
+        if (context) {
+            context.stale = true;
+        }
+        return false;
+    }
+
+    function hasNewerInteractiveRequestForTarget(target) {
+        if (!(target instanceof Element)) {
+            return false;
+        }
+        const latestVersion = latestInteractiveRequestVersionByTarget.get(target) || 0;
+        const currentSwapVersion = currentSwapRequestVersionByTarget.get(target) || 0;
+        return latestVersion > currentSwapVersion;
+    }
+
+    function releaseTrackedFavouriteAutoApplyRequest(event) {
+        const requestTarget = getHtmxRequestTarget(event);
+        if (!(requestTarget instanceof Element)) {
+            return;
+        }
+
+        const context = favouriteAutoApplyContextsByTarget.get(requestTarget);
+        if (
+            context
+            && isProgrammaticBodyHtmxRequest(event)
+            && requestPathMatchesAutoApplyContext(getHtmxRequestPath(event), context)
+        ) {
+            favouriteAutoApplyContextsByTarget.delete(requestTarget);
+        }
+    }
+
     function syncFilterFavouritesSelection(root) {
         const favouritesContainer = getFilterFavouritesContainer(root);
         const favouriteSelect = getFilterFavouritesSelect(favouritesContainer);
@@ -632,6 +779,17 @@ export function createFilterFavouritesRuntime(context) {
             ? originalTargetField.value
             : '';
         const target = originalTarget || favouriteSelect.getAttribute('hx-target') || root;
+        const targetElement = resolveHtmxTargetElement(target);
+        if (isAutoApply && hasNewerInteractiveRequestForTarget(targetElement)) {
+            releaseFavouriteAutoApplyKey(autoApplyKey);
+            return;
+        }
+        if (isAutoApply && targetElement instanceof Element) {
+            favouriteAutoApplyContextsByTarget.set(targetElement, {
+                listUrl: normaliseListUrl(root.dataset.powercrudListUrl || '', global),
+                stale: false,
+            });
+        }
 
         const applyRequest = htmx.ajax('GET', actionUrl, {
             target,
@@ -640,7 +798,9 @@ export function createFilterFavouritesRuntime(context) {
         });
         if (autoApplyKey) {
             if (applyRequest && typeof applyRequest.finally === 'function') {
-                applyRequest.finally(() => releaseFavouriteAutoApplyKey(autoApplyKey));
+                applyRequest.finally(() => {
+                    global.setTimeout(() => releaseFavouriteAutoApplyKey(autoApplyKey), 1000);
+                });
             } else {
                 global.setTimeout(() => releaseFavouriteAutoApplyKey(autoApplyKey), 2000);
             }
@@ -1042,7 +1202,6 @@ export function createFilterFavouritesRuntime(context) {
             setPendingSelectedFilterFavouriteId(root, toolbar, '');
             clearSelectedFilterFavouriteDirty(root, toolbar);
             syncFilterFavouritesSelection(root);
-            getListViewState().rememberCurrentViewState?.(root);
             return true;
         }
 
@@ -1052,7 +1211,6 @@ export function createFilterFavouritesRuntime(context) {
         }
 
         const visibleFilterNames = getFavouriteVisibleFilterNames(selectedOption);
-        getListViewState().setStoredOptionalFilterNames?.(root, visibleFilterNames);
         getListViewState().setPersistedOptionalFilterNames?.(root, visibleFilterNames);
         setPendingSelectedFilterFavouriteId(root, toolbar, target.value);
         clearSelectedFilterFavouriteDirty(root, toolbar);
@@ -1062,6 +1220,10 @@ export function createFilterFavouritesRuntime(context) {
     }
 
     function handleHtmxBeforeRequest(event, target) {
+        if (trackFavouriteAutoApplyRequest(event, target)) {
+            return true;
+        }
+
         if (!target || !target.closest) {
             return false;
         }
@@ -1140,6 +1302,40 @@ export function createFilterFavouritesRuntime(context) {
         }
 
         return false;
+    }
+
+    function handleHtmxBeforeSwap(event) {
+        const requestTarget = getHtmxRequestTarget(event);
+        if (!(requestTarget instanceof Element)) {
+            return;
+        }
+
+        const path = getHtmxRequestPath(event);
+        getAffectedObjectListRoots(requestTarget).forEach(root => {
+            if (requestPathMatchesRoot(path, root)) {
+                return;
+            }
+            const toolbar = getFilterFavouritesContainer(root);
+            clearSelectedFilterFavouriteDirty(root, toolbar);
+        });
+    }
+
+    function handleHtmxAfterSwap(event) {
+        const requestTarget = getHtmxRequestTarget(event);
+        const requestConfig = getHtmxRequestConfig(event);
+        if (
+            requestTarget instanceof Element
+            && requestConfig?.powercrudFavouriteInteractiveRequestVersion
+        ) {
+            currentSwapRequestVersionByTarget.set(
+                requestTarget,
+                requestConfig.powercrudFavouriteInteractiveRequestVersion,
+            );
+        }
+    }
+
+    function handleHtmxAfterRequest(event) {
+        releaseTrackedFavouriteAutoApplyRequest(event);
     }
 
     function handleHtmxConfigRequest(event, target) {
@@ -1263,8 +1459,11 @@ export function createFilterFavouritesRuntime(context) {
         handleFavouriteSelectChange,
         handleFavouriteUpdated,
         handleFavouritesTriggerClick,
+        handleHtmxAfterSwap,
         handleHtmxAfterSwapTarget,
+        handleHtmxAfterRequest,
         handleHtmxBeforeRequest,
+        handleHtmxBeforeSwap,
         handleHtmxConfigRequest,
         handleResetViewClick,
         markSelectedFilterFavouriteDirty,

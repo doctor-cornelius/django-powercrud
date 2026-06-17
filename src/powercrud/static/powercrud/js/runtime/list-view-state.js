@@ -1,26 +1,12 @@
 import {
     LIST_COLUMNS_SELECTOR,
     VISIBLE_FILTERS_PARAM,
-    FILTER_PANEL_STORAGE_PREFIX,
-    VISIBLE_FILTERS_STORAGE_PREFIX,
-    VIEW_STATE_STORAGE_PREFIX,
     IGNORED_VIEW_STATE_FIELD_NAMES,
 } from './selectors.js';
 import {
-    buildRawStorageKey,
-    buildPathStorageKey,
-    buildExplicitOrPathStorageKey,
-    getSessionStorageItem,
-    setSessionStorageItem,
-    removeSessionStorageItem,
-    getLocalStorageJsonArray,
-    setLocalStorageJsonArray,
-} from './storage.js';
-import {
-    currentLocationMatchesListUrl,
-    sanitizeQueryString,
     collectSearchParams,
     getSearchParamFromHref,
+    normaliseListUrl,
 } from './url.js';
 
 export function createListViewStateRuntime(context) {
@@ -44,6 +30,61 @@ export function createListViewStateRuntime(context) {
         syncSelectedFilterFavouritePresentation,
     } = context;
 
+    const pendingFilterPanelOpenCounts = new Map();
+
+    function getFilterPanelRenderKey(root) {
+        return normaliseListUrl(root?.dataset?.powercrudListUrl || '', global)
+            || global.location.pathname
+            || 'default';
+    }
+
+    function markFilterPanelOpenForNextRender(root) {
+        if (root instanceof Element) {
+            pendingFilterPanelOpenCounts.set(getFilterPanelRenderKey(root), 4);
+        }
+    }
+
+    function consumeFilterPanelOpenForNextRender(root) {
+        const key = getFilterPanelRenderKey(root);
+        const remainingCount = pendingFilterPanelOpenCounts.get(key) || 0;
+        if (remainingCount < 1) {
+            return false;
+        }
+        if (remainingCount === 1) {
+            pendingFilterPanelOpenCounts.delete(key);
+        } else {
+            pendingFilterPanelOpenCounts.set(key, remainingCount - 1);
+        }
+        return true;
+    }
+
+    function hasActiveFilterValues(root) {
+        const form = root.querySelector('#filter-form');
+        if (!form) {
+            return false;
+        }
+
+        return Array.from(form.querySelectorAll('[name]')).some(field => {
+            if (!(field instanceof HTMLInputElement || field instanceof HTMLSelectElement || field instanceof HTMLTextAreaElement)) {
+                return false;
+            }
+            if (field.disabled || !field.name || field.name === VISIBLE_FILTERS_PARAM) {
+                return false;
+            }
+            if (field instanceof HTMLInputElement && field.type === 'hidden') {
+                return false;
+            }
+            if (field instanceof HTMLInputElement && (field.type === 'checkbox' || field.type === 'radio')) {
+                return field.checked && String(field.value || '').trim() !== '';
+            }
+            if (field instanceof HTMLSelectElement && field.multiple) {
+                return Array.from(field.selectedOptions)
+                    .some(option => String(option.value || '').trim() !== '');
+            }
+            return String(field.value || '').trim() !== '';
+        });
+    }
+
     function syncFilterToggleLabel(root) {
         const filterCollapse = root.querySelector('#filterCollapse');
         const filterBtn = root.querySelector('[data-powercrud-filter-toggle]');
@@ -51,36 +92,22 @@ export function createListViewStateRuntime(context) {
             return;
         }
         const isHidden = filterCollapse.classList.contains('hidden');
+        const hasActiveFilters = hasActiveFilterValues(root);
+        const baseLabel = isHidden ? 'Show filters' : 'Hide filters';
+        const label = hasActiveFilters ? `${baseLabel} - filters active` : baseLabel;
         filterBtn.setAttribute('aria-expanded', isHidden ? 'false' : 'true');
-        filterBtn.setAttribute('aria-label', isHidden ? 'Show filters' : 'Hide filters');
-        filterBtn.setAttribute('data-tippy-content', isHidden ? 'Show filters' : 'Hide filters');
+        filterBtn.setAttribute('aria-label', label);
+        filterBtn.setAttribute('data-tippy-content', label);
+        filterBtn.setAttribute('data-powercrud-filters-active', hasActiveFilters ? 'true' : 'false');
+        const outlineIcon = filterBtn.querySelector('[data-powercrud-filter-toggle-icon-outline="true"]');
+        const filledIcon = filterBtn.querySelector('[data-powercrud-filter-toggle-icon-filled="true"]');
+        if (outlineIcon instanceof HTMLElement || outlineIcon instanceof SVGElement) {
+            outlineIcon.classList.toggle('hidden', hasActiveFilters);
+        }
+        if (filledIcon instanceof HTMLElement || filledIcon instanceof SVGElement) {
+            filledIcon.classList.toggle('hidden', !hasActiveFilters);
+        }
         schedulePowercrudTooltipRefresh(root);
-    }
-
-    function getFilterPanelStorageKey(root) {
-        return buildRawStorageKey(FILTER_PANEL_STORAGE_PREFIX, root, global);
-    }
-
-    function getVisibleFiltersStorageKey(root) {
-        return buildPathStorageKey(VISIBLE_FILTERS_STORAGE_PREFIX, root, global);
-    }
-
-    function getViewStateStorageKey(root) {
-        const toolbar = root instanceof Element ? getFilterFavouritesContainer(root) : null;
-        const explicitKey = toolbar?.dataset?.powercrudFilterFavouritesViewKey || '';
-        return buildExplicitOrPathStorageKey(VIEW_STATE_STORAGE_PREFIX, explicitKey, root, global);
-    }
-
-    function setPersistedFilterPanelState(root, isOpen) {
-        setSessionStorageItem(global, getFilterPanelStorageKey(root), isOpen ? 'open' : 'closed');
-    }
-
-    function getPersistedFilterPanelState(root) {
-        return getSessionStorageItem(global, getFilterPanelStorageKey(root));
-    }
-
-    function clearPersistedFilterPanelState(root) {
-        removeSessionStorageItem(global, getFilterPanelStorageKey(root));
     }
 
     function getAddFilterContainer(root) {
@@ -112,10 +139,6 @@ export function createListViewStateRuntime(context) {
         return root.querySelector('[data-powercrud-visible-filters-state]');
     }
 
-    function getAddFilterSelect(root) {
-        return root.querySelector('[data-powercrud-add-filter-select]');
-    }
-
     function getVisibleFilterField(root, fieldName) {
         const form = root.querySelector('#filter-form');
         if (!form || !fieldName) {
@@ -138,45 +161,6 @@ export function createListViewStateRuntime(context) {
         ).map(input => input.value).filter(Boolean);
     }
 
-    function getStoredOptionalFilterNames(root) {
-        return getLocalStorageJsonArray(
-            global,
-            getVisibleFiltersStorageKey(root),
-            dedupeFilterNames,
-        );
-    }
-
-    function setStoredOptionalFilterNames(root, names) {
-        const normalizedNames = dedupeFilterNames(names);
-        setLocalStorageJsonArray(global, getVisibleFiltersStorageKey(root), normalizedNames);
-    }
-
-    function getCurrentVisibleFilterNames(root) {
-        const form = root.querySelector('#filter-form');
-        if (!form) {
-            return [];
-        }
-
-        return dedupeFilterNames(
-            Array.from(form.querySelectorAll('.filter-field-input [name]'))
-                .map(field => field.name)
-                .filter(name => name && name !== VISIBLE_FILTERS_PARAM)
-        );
-    }
-
-    function getAvailableOptionalFilterNames(root) {
-        const select = getAddFilterSelect(root);
-        if (!(select instanceof HTMLSelectElement)) {
-            return [];
-        }
-
-        return dedupeFilterNames(
-            Array.from(select.options)
-                .map(option => option.value)
-                .filter(Boolean)
-        );
-    }
-
     function setPersistedOptionalFilterNames(root, names) {
         const container = getVisibleFilterStateContainer(root);
         if (!container) {
@@ -190,34 +174,6 @@ export function createListViewStateRuntime(context) {
             input.value = name;
             container.appendChild(input);
         });
-    }
-
-    function maybeRestoreStoredOptionalFilterVisibility(root) {
-        const state = ensureObjectListState(root);
-        if (state.optionalFilterVisibilityRestored) {
-            return;
-        }
-        state.optionalFilterVisibilityRestored = true;
-
-        const normalizedNames = dedupeFilterNames([
-            ...getPersistedOptionalFilterNames(root),
-            ...getStoredOptionalFilterNames(root),
-        ]);
-        const currentVisibleNames = getCurrentVisibleFilterNames(root);
-        const availableOptionalNames = getAvailableOptionalFilterNames(root);
-        const allowedNames = normalizedNames.filter(
-            name => currentVisibleNames.includes(name) || availableOptionalNames.includes(name)
-        );
-
-        setStoredOptionalFilterNames(root, allowedNames);
-        setPersistedOptionalFilterNames(root, allowedNames);
-
-        if (!allowedNames.some(name => !currentVisibleNames.includes(name))) {
-            return;
-        }
-
-        // Keep this browser-local restoration out of the shared URL.
-        requestObjectListRefresh(root, { preservePage: true, pushURL: false });
     }
 
     function setFilterFieldValue(field, value) {
@@ -317,92 +273,6 @@ export function createListViewStateRuntime(context) {
         });
 
         return values;
-    }
-
-    function currentLocationMatchesRoot(root) {
-        if (!(root instanceof Element)) {
-            return false;
-        }
-        return currentLocationMatchesListUrl(root.dataset.powercrudListUrl, global);
-    }
-
-    function getStoredViewQueryString(root) {
-        const rawQueryString = getSessionStorageItem(global, getViewStateStorageKey(root));
-        const sanitizedQueryString = sanitizeViewQueryString(rawQueryString);
-        if (rawQueryString && sanitizedQueryString !== rawQueryString) {
-            setStoredViewQueryString(root, sanitizedQueryString);
-        }
-        return sanitizedQueryString;
-    }
-
-    function sanitizeViewQueryString(queryString) {
-        return sanitizeQueryString(queryString, IGNORED_VIEW_STATE_FIELD_NAMES);
-    }
-
-    function setStoredViewQueryString(root, queryString) {
-        const normalizedQueryString = sanitizeViewQueryString(queryString);
-        if (!normalizedQueryString) {
-            removeSessionStorageItem(global, getViewStateStorageKey(root));
-            return;
-        }
-        setSessionStorageItem(global, getViewStateStorageKey(root), normalizedQueryString);
-    }
-
-    function clearStoredViewState(root) {
-        removeSessionStorageItem(global, getViewStateStorageKey(root));
-    }
-
-    function rememberCurrentViewState(root) {
-        if (!(root instanceof Element) || !currentLocationMatchesRoot(root)) {
-            return;
-        }
-
-        // A selected clean favourite is the source of truth. Store ad-hoc view
-        // state only when there is no favourite or the favourite has diverged.
-        const { selectedFavouriteId, isDirty } = getSelectedFilterFavouriteViewContext(root);
-        if (selectedFavouriteId) {
-            if (isDirty) {
-                setStoredViewQueryString(root, global.location.search);
-            }
-            return;
-        }
-
-        setStoredViewQueryString(root, global.location.search);
-    }
-
-    function maybeRestoreStoredViewState(root) {
-        if (!(root instanceof Element) || !currentLocationMatchesRoot(root)) {
-            return false;
-        }
-
-        if (global.location.search) {
-            rememberCurrentViewState(root);
-            return false;
-        }
-
-        // Do not replay stored view state over a clean selected favourite; the
-        // favourite auto-apply path owns that restoration.
-        const { selectedFavouriteId, isDirty } = getSelectedFilterFavouriteViewContext(root);
-        if (selectedFavouriteId && !isDirty) {
-            return false;
-        }
-
-        const queryString = getStoredViewQueryString(root);
-        const htmx = getHtmxInstance();
-        const listUrl = root.dataset.powercrudListUrl;
-        if (!queryString || !htmx || !listUrl) {
-            return false;
-        }
-
-        htmx.ajax('GET', `${listUrl}?${queryString}`, {
-            target: root,
-            swap: 'outerHTML',
-            headers: {
-                'X-Filter-Setting-Request': 'true',
-            },
-            pushURL: true,
-        });
-        return true;
     }
 
     function getCurrentSortValue() {
@@ -506,6 +376,14 @@ export function createListViewStateRuntime(context) {
         const values = getCurrentListViewQueryValues(root, {
             preservePage: options.preservePage === true,
         });
+        const filterCollapse = root.querySelector('#filterCollapse');
+        if (
+            options.preserveFilterPanel !== false
+            && filterCollapse instanceof Element
+            && !filterCollapse.classList.contains('hidden')
+        ) {
+            markFilterPanelOpenForNextRender(root);
+        }
         // Any manual list refresh after favourite application means the
         // selected favourite remains selected but becomes dirty.
         const { toolbar } = getSelectedFilterFavouriteViewContext(root);
@@ -570,9 +448,6 @@ export function createListViewStateRuntime(context) {
             persistedNames.push(fieldName);
             setPersistedOptionalFilterNames(root, persistedNames);
         }
-        setStoredOptionalFilterNames(root, persistedNames);
-
-        setPersistedFilterPanelState(root, true);
         requestObjectListRefresh(root, { preservePage: true });
     }
 
@@ -584,12 +459,10 @@ export function createListViewStateRuntime(context) {
         const persistedNames = getPersistedOptionalFilterNames(root)
             .filter(name => name !== fieldName);
         setPersistedOptionalFilterNames(root, persistedNames);
-        setStoredOptionalFilterNames(root, persistedNames);
 
         const field = getVisibleFilterField(root, fieldName);
         setFilterFieldValue(field, '');
 
-        setPersistedFilterPanelState(root, true);
         requestObjectListRefresh(root, { preservePage: true });
     }
 
@@ -640,12 +513,8 @@ export function createListViewStateRuntime(context) {
         });
     }
 
-    function clearCurrentListViewState(root, options = {}) {
-        clearStoredViewState(root);
-        if (options.clearFilterPanel === true) {
-            clearPersistedFilterPanelState(root);
-        }
-        setStoredOptionalFilterNames(root, []);
+    function clearCurrentListViewState(root) {
+        pendingFilterPanelOpenCounts.delete(getFilterPanelRenderKey(root));
         setPersistedOptionalFilterNames(root, []);
     }
 
@@ -672,7 +541,7 @@ export function createListViewStateRuntime(context) {
             return;
         }
 
-        clearCurrentListViewState(root, { clearFilterPanel: true });
+        clearCurrentListViewState(root);
         clearSelectedFilterFavouriteSelection(root);
         closeFilterFavouritesDropdowns();
 
@@ -701,7 +570,7 @@ export function createListViewStateRuntime(context) {
             return;
         }
 
-        const shouldOpen = getPersistedFilterPanelState(root) === 'open';
+        const shouldOpen = consumeFilterPanelOpenForNextRender(root);
         filterCollapse.classList.toggle('hidden', !shouldOpen);
         syncFilterToggleLabel(root);
         syncAddFilterVisibility(root, shouldOpen);
@@ -718,7 +587,6 @@ export function createListViewStateRuntime(context) {
         }
         filterCollapse.classList.toggle('hidden');
         const isOpen = !filterCollapse.classList.contains('hidden');
-        setPersistedFilterPanelState(root, isOpen);
         syncFilterToggleLabel(root);
         syncAddFilterVisibility(root, isOpen);
         syncFilterFavouritesVisibility(root, isOpen);
@@ -730,14 +598,10 @@ export function createListViewStateRuntime(context) {
     return {
         addOptionalFilter,
         applyFilterPanelState,
-        clearStoredViewState,
         collectFavouriteStateFromRoot,
         dedupeFilterNames,
         getCurrentFilters,
         isFilterValueField,
-        maybeRestoreStoredOptionalFilterVisibility,
-        maybeRestoreStoredViewState,
-        rememberCurrentViewState,
         removeEmptyFields,
         removeOptionalFilter,
         requestObjectListRefresh,
@@ -746,7 +610,6 @@ export function createListViewStateRuntime(context) {
         resetViewState,
         scheduleFilterValueRefresh,
         setPersistedOptionalFilterNames,
-        setStoredOptionalFilterNames,
         syncFilterToggleLabel,
         toggleFilterVisibility,
     };
