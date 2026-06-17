@@ -193,6 +193,8 @@ git pull --ff-only origin main
 
 `--prepare` creates a `release/<version>` branch and delegates validation/build/lock work to the dev container. `--publish` runs from the host shell with `gh` authenticated, opens and merges the release PR with a semantic squash subject, updates local `main`, then pushes the version tag that triggers the PyPI and documentation workflows.
 
+Prereleases use the same flow with PEP 440 alpha/beta labels only, for example `./new_release.sh --prepare minor --prerelease alpha`. Release candidates are intentionally unsupported.
+
 For agent-driven branch finish work, see `AGENTS/AGENTS_pr_workflow.md` in the repository root.
 
 ### 8. **Shutdown**
