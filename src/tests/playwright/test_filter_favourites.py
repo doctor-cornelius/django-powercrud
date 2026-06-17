@@ -79,6 +79,26 @@ def expect_filters_panel_closed(page):
     expect(page.locator("#filterCollapse")).to_have_class(re.compile(r"\bhidden\b"))
 
 
+def expect_filters_panel_open_after_repeated_init(page):
+    """Assert the filter panel survives repeated PowerCRUD initialization passes."""
+
+    page.evaluate(
+        """
+        () => {
+            const root = document.querySelector('[data-powercrud-object-list="true"]');
+            if (!root || !window.initPowercrud) {
+                return;
+            }
+            window.initPowercrud(root);
+            window.initPowercrud(root);
+            window.initPowercrud(document);
+        }
+        """
+    )
+    expect(page.locator("#filterToggleBtn")).to_have_attribute("aria-expanded", "true")
+    expect(page.locator("#filterCollapse")).not_to_have_class(re.compile(r"\bhidden\b"))
+
+
 def get_sample_navigation(page):
     """Return the sample shell navigation."""
 
@@ -497,7 +517,7 @@ def test_unsaved_optional_filter_visibility_does_not_restore_after_shell_return(
             """
         )
     page.wait_for_load_state("networkidle")
-    open_filters_panel(page)
+    expect_filters_panel_open_after_repeated_init(page)
     expect(page.locator("#filter-form input[name='isbn']")).to_have_count(1)
 
     get_sample_navigation(page).locator("a", has_text="Authors").click()
@@ -581,6 +601,7 @@ def test_filter_toggle_marks_only_active_filter_values(
     open_filters_panel(page)
     page.locator("#filter-form input[name='title']").fill(target_book.title)
     expect(page.locator("#filtered_results")).to_contain_text(target_book.title)
+    expect_filters_panel_open_after_repeated_init(page)
     toggle = page.locator("#filterToggleBtn")
     outline_icon = toggle.locator("[data-powercrud-filter-toggle-icon-outline='true']")
     filled_icon = toggle.locator("[data-powercrud-filter-toggle-icon-filled='true']")
