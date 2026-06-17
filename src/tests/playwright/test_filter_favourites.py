@@ -490,26 +490,44 @@ def test_filter_toggle_marks_only_active_filter_values(
     ensure_htmx_available(page)
 
     toggle = page.locator("#filterToggleBtn")
+    filter_icon = toggle.locator("[data-powercrud-filter-toggle-icon='true']")
     expect(toggle).to_have_attribute("data-powercrud-filters-active", "false")
     expect(toggle).to_have_attribute("aria-label", "Show filters")
+    expect(toggle).to_have_class(re.compile(r"\bbtn-outline\b"))
+    expect(toggle).to_have_class(re.compile(r"\bbtn-secondary\b"))
+    expect(toggle).not_to_have_class(re.compile(r"\bbtn-warning\b"))
+    expect(filter_icon).to_have_class(re.compile(r"\btext-secondary\b"))
+    expect(filter_icon).not_to_have_class(re.compile(r"\btext-primary\b"))
 
     with page.expect_response(re.compile(r"/sample/bigbook/")):
         page.locator("#page-size-select").select_option("10")
     page.wait_for_load_state("networkidle")
     toggle = page.locator("#filterToggleBtn")
+    filter_icon = toggle.locator("[data-powercrud-filter-toggle-icon='true']")
     expect(toggle).to_have_attribute("data-powercrud-filters-active", "false")
+    expect(filter_icon).to_have_class(re.compile(r"\btext-secondary\b"))
+    expect(filter_icon).not_to_have_class(re.compile(r"\btext-primary\b"))
 
     open_filters_panel(page)
     page.locator("#filter-form input[name='title']").fill(target_book.title)
     expect(page.locator("#filtered_results")).to_contain_text(target_book.title)
     toggle = page.locator("#filterToggleBtn")
+    filter_icon = toggle.locator("[data-powercrud-filter-toggle-icon='true']")
     expect(toggle).to_have_attribute("data-powercrud-filters-active", "true")
     expect(toggle).to_have_attribute("aria-label", "Hide filters - filters active")
+    expect(toggle).to_have_class(re.compile(r"\bbtn-outline\b"))
+    expect(toggle).to_have_class(re.compile(r"\bbtn-secondary\b"))
+    expect(toggle).not_to_have_class(re.compile(r"\bbtn-warning\b"))
+    expect(filter_icon).to_have_class(re.compile(r"\btext-primary\b"))
+    expect(filter_icon).not_to_have_class(re.compile(r"\btext-secondary\b"))
 
     page.get_by_role("link", name="Reset filters").click()
     page.wait_for_load_state("networkidle")
     toggle = page.locator("#filterToggleBtn")
+    filter_icon = toggle.locator("[data-powercrud-filter-toggle-icon='true']")
     expect(toggle).to_have_attribute("data-powercrud-filters-active", "false")
+    expect(filter_icon).to_have_class(re.compile(r"\btext-secondary\b"))
+    expect(filter_icon).not_to_have_class(re.compile(r"\btext-primary\b"))
 
 
 def test_toolbar_transient_dropdowns_are_mutually_exclusive(
@@ -1722,7 +1740,6 @@ def test_server_selected_favourite_from_full_page_url_auto_applies_after_shell_r
     expect(page.locator("#filterToggleBtn")).to_be_visible()
     expect_filters_panel_closed(page)
 
-    open_filters_panel(page)
     expect(page.locator("#filter-form input[name='title']")).to_have_value(target_book.title)
     expect(page.locator("#filtered_results")).to_contain_text(target_book.title)
     expect(page.locator("#filtered_results")).not_to_contain_text(other_book.title)

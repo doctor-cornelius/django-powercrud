@@ -99,8 +99,11 @@ export function createListViewStateRuntime(context) {
         filterBtn.setAttribute('aria-label', label);
         filterBtn.setAttribute('data-tippy-content', label);
         filterBtn.setAttribute('data-powercrud-filters-active', hasActiveFilters ? 'true' : 'false');
-        filterBtn.classList.toggle('btn-warning', hasActiveFilters);
-        filterBtn.classList.toggle('btn-secondary', !hasActiveFilters);
+        const filterIcon = filterBtn.querySelector('[data-powercrud-filter-toggle-icon="true"]');
+        if (filterIcon instanceof HTMLElement || filterIcon instanceof SVGElement) {
+            filterIcon.classList.toggle('text-primary', hasActiveFilters);
+            filterIcon.classList.toggle('text-secondary', !hasActiveFilters);
+        }
         schedulePowercrudTooltipRefresh(root);
     }
 
