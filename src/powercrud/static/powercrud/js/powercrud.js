@@ -42,7 +42,6 @@ import { createCurrentTemplateRuntime } from './runtime/current-template.js';
     const ensureObjectListState = createWeakStateStore(() => ({
         filterRefreshTimer: null,
         lastRowSelectionAnchorId: null,
-        optionalFilterVisibilityRestored: false,
         selectionRequestVersion: 0,
     }));
     function warnMissingDependency(name, detail) {
@@ -191,9 +190,6 @@ import { createCurrentTemplateRuntime } from './runtime/current-template.js';
         dedupeFilterNames,
         getCurrentFilters,
         isFilterValueField,
-        maybeRestoreStoredOptionalFilterVisibility,
-        maybeRestoreStoredViewState,
-        rememberCurrentViewState,
         removeEmptyFields,
         removeOptionalFilter,
         requestObjectListRefresh,
@@ -221,20 +217,16 @@ import { createCurrentTemplateRuntime } from './runtime/current-template.js';
             return;
         }
         // Bring the list root back to a coherent state after render/swap:
-        // normalize HTMX targets, restore list state, then refresh UI affordances.
+        // normalize HTMX targets, sync list controls, then refresh UI affordances.
         cleanupDuplicatePowercrudModals();
         ensureObjectListState(root);
         normalizeFilterFieldHtmxUrls(root);
         syncListToolbarWidth(root);
         bulkActions.hydrateBulkSelectionState(root);
         applyFilterPanelState(root);
-        maybeRestoreStoredOptionalFilterVisibility(root);
         listColumns.syncListColumnChoosers(root);
         filterFavourites.syncFilterFavouritesSelection(root);
         filterFavourites.maybeApplyRememberedFavourite(root);
-        if (!maybeRestoreStoredViewState(root)) {
-            rememberCurrentViewState(root);
-        }
         bulkActions.syncBulkSelectionPresentation(root);
     }
 
@@ -243,7 +235,7 @@ import { createCurrentTemplateRuntime } from './runtime/current-template.js';
     }
 
     function initPowercrud(fragment = document) {
-        // Public fragment lifecycle: enhance controls, restore list state, then
+        // Public fragment lifecycle: enhance controls, sync list state, then
         // recreate tooltips after the final visible markup is in place.
         initPowercrudSearchableSelects(fragment);
         bootstrapObjectLists(fragment);
@@ -623,6 +615,7 @@ import { createCurrentTemplateRuntime } from './runtime/current-template.js';
                     return;
                 }
 
+                filterFavourites.handleHtmxBeforeSwap(event);
                 getHtmxEventRoots(event).forEach(destroyPowercrudFragment);
                 closeRowActionsMenu();
                 listColumns.closeListColumnChoosers(document);
@@ -657,8 +650,6 @@ import { createCurrentTemplateRuntime } from './runtime/current-template.js';
                     inlineEdit.showInlineFieldErrorPopovers(root);
                 });
                 bootstrapObjectLists(document);
-                const target = asElement(event.target);
-                getAffectedObjectListRoots(target || document).forEach(rememberCurrentViewState);
                 schedulePowercrudTooltipRefresh(document, 50);
                 inlineEdit.removeOrphanedInlineFieldErrorPopovers();
             },

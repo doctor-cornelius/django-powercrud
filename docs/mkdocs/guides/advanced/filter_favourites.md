@@ -81,10 +81,12 @@ The view identity is derived automatically from `"<module>.<ClassName>"`.
 
 - Anonymous users still see the toolbar when the view enables favourites, but the save, update, and delete controls remain unavailable and the UI prompts them to sign in.
 - Applying a saved favourite restores the saved filters, optional filter visibility, sort, page size, and visible columns.
+- Applying a saved favourite does not restore whether the filter panel was open. Returning to a list starts with the filter panel closed, and the filter toggle indicates when active filter values are present.
+- Unsaved list experiments are not restored after navigation. Temporary filters, optional filter visibility, sort, page size, and pagination should be saved as a favourite when they need to be reusable.
 - Applying an older saved favourite without visible-column state resets visible columns to the view's `default_list_fields`, or to every allowed column when no default subset is declared.
 - The current UI is intentionally compact:
     - selecting a saved favourite auto-applies it
-    - the toolbar stays hidden until the filter panel is open
+    - the selected-favourite trigger stays visible when the filter panel is closed
     - long selected favourite names are truncated in the trigger and exposed through a tooltip
 
 ## Availability guard

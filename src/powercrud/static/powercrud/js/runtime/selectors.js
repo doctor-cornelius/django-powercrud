@@ -15,11 +15,8 @@ export const INLINE_FIELD_ERROR_SELECTOR = '[data-inline-field-error="true"]';
 export const INLINE_FIELD_ERROR_POPOVER_SELECTOR = '[data-powercrud-inline-error-popover="true"]';
 export const RANGE_SELECT_SUPPRESS_CLASS = 'powercrud-range-selecting';
 export const VISIBLE_FILTERS_PARAM = 'visible_filters';
-export const FILTER_PANEL_STORAGE_PREFIX = 'powercrud:filter-panel:';
-export const VISIBLE_FILTERS_STORAGE_PREFIX = 'powercrud:visible-filters:';
 export const FILTER_FAVOURITE_STORAGE_PREFIX = 'powercrud:selected-filter-favourite:';
 export const FILTER_FAVOURITE_DIRTY_STORAGE_PREFIX = 'powercrud:selected-filter-favourite-dirty:';
-export const VIEW_STATE_STORAGE_PREFIX = 'powercrud:view-state:';
 export const DEFAULT_MODAL_BOX_CLASSES = 'modal-box flex max-h-[calc(100dvh-2rem)] flex-col';
 export const IGNORED_VIEW_STATE_FIELD_NAMES = new Set([
     'csrfmiddlewaretoken',

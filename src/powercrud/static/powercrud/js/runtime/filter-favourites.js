@@ -500,6 +500,17 @@ export function createFilterFavouritesRuntime(context) {
         return element instanceof Element ? element : null;
     }
 
+    function normaliseRequestPath(path) {
+        if (!path) {
+            return '';
+        }
+        try {
+            return new URL(path, global.location.href).pathname;
+        } catch (_error) {
+            return normaliseListUrl(path, global);
+        }
+    }
+
     function isProgrammaticBodyHtmxRequest(event, fallbackTarget = null) {
         const requestConfig = getHtmxRequestConfig(event);
         const requestElement = getHtmxRequestElement(event, fallbackTarget);
@@ -527,7 +538,20 @@ export function createFilterFavouritesRuntime(context) {
         if (path.includes('/powercrud/favourites/apply/')) {
             return true;
         }
-        return normaliseListUrl(path, global) === context.listUrl;
+        return normaliseRequestPath(path) === context.listUrl;
+    }
+
+    function requestPathMatchesRoot(path, root) {
+        if (!path || !(root instanceof Element)) {
+            return false;
+        }
+        if (path.includes('/powercrud/favourites/apply/')) {
+            return true;
+        }
+        return normaliseRequestPath(path) === normaliseListUrl(
+            root.dataset.powercrudListUrl || '',
+            global,
+        );
     }
 
     function trackFavouriteAutoApplyRequest(event, fallbackTarget = null) {
@@ -1178,7 +1202,6 @@ export function createFilterFavouritesRuntime(context) {
             setPendingSelectedFilterFavouriteId(root, toolbar, '');
             clearSelectedFilterFavouriteDirty(root, toolbar);
             syncFilterFavouritesSelection(root);
-            getListViewState().rememberCurrentViewState?.(root);
             return true;
         }
 
@@ -1188,7 +1211,6 @@ export function createFilterFavouritesRuntime(context) {
         }
 
         const visibleFilterNames = getFavouriteVisibleFilterNames(selectedOption);
-        getListViewState().setStoredOptionalFilterNames?.(root, visibleFilterNames);
         getListViewState().setPersistedOptionalFilterNames?.(root, visibleFilterNames);
         setPendingSelectedFilterFavouriteId(root, toolbar, target.value);
         clearSelectedFilterFavouriteDirty(root, toolbar);
@@ -1280,6 +1302,22 @@ export function createFilterFavouritesRuntime(context) {
         }
 
         return false;
+    }
+
+    function handleHtmxBeforeSwap(event) {
+        const requestTarget = getHtmxRequestTarget(event);
+        if (!(requestTarget instanceof Element)) {
+            return;
+        }
+
+        const path = getHtmxRequestPath(event);
+        getAffectedObjectListRoots(requestTarget).forEach(root => {
+            if (requestPathMatchesRoot(path, root)) {
+                return;
+            }
+            const toolbar = getFilterFavouritesContainer(root);
+            clearSelectedFilterFavouriteDirty(root, toolbar);
+        });
     }
 
     function handleHtmxAfterSwap(event) {
@@ -1425,6 +1463,7 @@ export function createFilterFavouritesRuntime(context) {
         handleHtmxAfterSwapTarget,
         handleHtmxAfterRequest,
         handleHtmxBeforeRequest,
+        handleHtmxBeforeSwap,
         handleHtmxConfigRequest,
         handleResetViewClick,
         markSelectedFilterFavouriteDirty,

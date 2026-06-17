@@ -86,6 +86,8 @@ This applies to authenticated and anonymous users. Choices survive reloads and n
 
 For durable named list states, install the optional saved favourites contrib app. Saved favourites include visible columns alongside filters, optional filter visibility, sort, and page size for authenticated users.
 
+Column choices are separate from temporary filter experiments: PowerCRUD can keep the user's current column selection, but it does not automatically restore unsaved filters, sort, page size, pagination, optional filter visibility, or filter-panel open state after navigation.
+
 ## Behavior Rules
 
 - User-selected columns are validated against the current allow-list.
