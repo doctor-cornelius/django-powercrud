@@ -58,6 +58,32 @@ export function createListViewStateRuntime(context) {
         return true;
     }
 
+    function isDjangoNullBooleanUnknownValue(field, value) {
+        if (!(field instanceof HTMLSelectElement) || field.multiple) {
+            return false;
+        }
+        if (String(value || '').trim() !== 'unknown') {
+            return false;
+        }
+
+        const optionValues = Array.from(field.options)
+            .map(option => String(option.value || '').trim())
+            .filter(Boolean)
+            .sort();
+        return optionValues.length === 3
+            && optionValues[0] === 'false'
+            && optionValues[1] === 'true'
+            && optionValues[2] === 'unknown';
+    }
+
+    function hasFilterValue(field, value) {
+        const normalizedValue = String(value || '').trim();
+        if (normalizedValue === '') {
+            return false;
+        }
+        return !isDjangoNullBooleanUnknownValue(field, normalizedValue);
+    }
+
     function hasActiveFilterValues(root) {
         const form = root.querySelector('#filter-form');
         if (!form) {
@@ -81,7 +107,7 @@ export function createListViewStateRuntime(context) {
                 return Array.from(field.selectedOptions)
                     .some(option => String(option.value || '').trim() !== '');
             }
-            return String(field.value || '').trim() !== '';
+            return hasFilterValue(field, field.value);
         });
     }
 
@@ -261,6 +287,10 @@ export function createListViewStateRuntime(context) {
                 return;
             }
 
+            if (!hasFilterValue(field, field.value) && isDjangoNullBooleanUnknownValue(field, field.value)) {
+                return;
+            }
+
             if (Array.isArray(values[name])) {
                 values[name].push(field.value);
                 return;
@@ -348,6 +378,10 @@ export function createListViewStateRuntime(context) {
                     .map(option => option.value)
                     .filter(value => String(value).trim() !== '')
                     .forEach(value => appendFavouriteFilterValue(state.filters, name, value));
+                return;
+            }
+
+            if (!hasFilterValue(field, field.value)) {
                 return;
             }
 
