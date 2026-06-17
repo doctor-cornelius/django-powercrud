@@ -79,6 +79,26 @@ def expect_filters_panel_closed(page):
     expect(page.locator("#filterCollapse")).to_have_class(re.compile(r"\bhidden\b"))
 
 
+def expect_filters_panel_open_after_repeated_init(page):
+    """Assert the filter panel survives repeated PowerCRUD initialization passes."""
+
+    page.evaluate(
+        """
+        () => {
+            const root = document.querySelector('[data-powercrud-object-list="true"]');
+            if (!root || !window.initPowercrud) {
+                return;
+            }
+            window.initPowercrud(root);
+            window.initPowercrud(root);
+            window.initPowercrud(document);
+        }
+        """
+    )
+    expect(page.locator("#filterToggleBtn")).to_have_attribute("aria-expanded", "true")
+    expect(page.locator("#filterCollapse")).not_to_have_class(re.compile(r"\bhidden\b"))
+
+
 def get_sample_navigation(page):
     """Return the sample shell navigation."""
 
@@ -230,6 +250,40 @@ def select_single_filter_value(page, field_name: str, option_value: str):
     else:
         select.select_option(option_value)
     expect(select).to_have_value(option_value)
+
+
+def set_null_boolean_probe_filter(page, value: str):
+    """Add a Django NullBooleanSelect-shaped filter control to the current list."""
+
+    page.evaluate(
+        """
+        (value) => {
+            const form = document.querySelector('#filter-form');
+            if (!form) {
+                throw new Error('Expected #filter-form to exist before adding the probe filter.');
+            }
+            let select = form.querySelector('select[name="null_boolean_probe"]');
+            if (!select) {
+                select = document.createElement('select');
+                select.name = 'null_boolean_probe';
+                select.hidden = true;
+                for (const optionValue of ['unknown', 'true', 'false']) {
+                    const option = document.createElement('option');
+                    option.value = optionValue;
+                    option.textContent = optionValue;
+                    select.appendChild(option);
+                }
+                form.appendChild(select);
+            }
+            select.value = value;
+            const root = document.querySelector('[data-powercrud-object-list="true"]');
+            if (window.initPowercrud) {
+                window.initPowercrud(root || document);
+            }
+        }
+        """,
+        value,
+    )
 
 
 def login_playwright_user(*, client, page, books_url: str, username: str):
@@ -463,7 +517,7 @@ def test_unsaved_optional_filter_visibility_does_not_restore_after_shell_return(
             """
         )
     page.wait_for_load_state("networkidle")
-    open_filters_panel(page)
+    expect_filters_panel_open_after_repeated_init(page)
     expect(page.locator("#filter-form input[name='isbn']")).to_have_count(1)
 
     get_sample_navigation(page).locator("a", has_text="Authors").click()
@@ -478,16 +532,30 @@ def test_unsaved_optional_filter_visibility_does_not_restore_after_shell_return(
 
 
 def test_filter_toggle_marks_only_active_filter_values(
-    page, books_url, sample_books
+    page, client, books_url, sample_books
 ):
     """The filter toggle should show active state only for actual filter values."""
 
+    login_playwright_user(
+        client=client,
+        page=page,
+        books_url=books_url,
+        username="playwright-null-boolean-filter-user",
+    )
     target_book = sample_books[0]
 
     install_htmx_init_script(page)
     page.goto(books_url)
     page.wait_for_load_state("networkidle")
     ensure_htmx_available(page)
+
+    page_size_refresh_urls = []
+    page.on(
+        "request",
+        lambda request: page_size_refresh_urls.append(request.url)
+        if "/sample/bigbook/" in request.url
+        else None,
+    )
 
     toggle = page.locator("#filterToggleBtn")
     outline_icon = toggle.locator("[data-powercrud-filter-toggle-icon-outline='true']")
@@ -502,6 +570,9 @@ def test_filter_toggle_marks_only_active_filter_values(
     expect(filled_icon).to_have_class(re.compile(r"\btext-primary\b"))
     expect(filled_icon).to_have_class(re.compile(r"\bhidden\b"))
 
+    set_null_boolean_probe_filter(page, "unknown")
+    expect(toggle).to_have_attribute("data-powercrud-filters-active", "false")
+
     with page.expect_response(re.compile(r"/sample/bigbook/")):
         page.locator("#page-size-select").select_option("10")
     page.wait_for_load_state("networkidle")
@@ -511,10 +582,26 @@ def test_filter_toggle_marks_only_active_filter_values(
     expect(toggle).to_have_attribute("data-powercrud-filters-active", "false")
     expect(outline_icon).not_to_have_class(re.compile(r"\bhidden\b"))
     expect(filled_icon).to_have_class(re.compile(r"\bhidden\b"))
+    assert not any("null_boolean_probe=unknown" in url for url in page_size_refresh_urls), (
+        "Expected Django null-boolean unknown values to be omitted from list refresh requests."
+    )
+
+    set_null_boolean_probe_filter(page, "true")
+    toggle = page.locator("#filterToggleBtn")
+    expect(toggle).to_have_attribute("data-powercrud-filters-active", "true")
+
+    set_null_boolean_probe_filter(page, "false")
+    toggle = page.locator("#filterToggleBtn")
+    expect(toggle).to_have_attribute("data-powercrud-filters-active", "true")
+
+    set_null_boolean_probe_filter(page, "unknown")
+    toggle = page.locator("#filterToggleBtn")
+    expect(toggle).to_have_attribute("data-powercrud-filters-active", "false")
 
     open_filters_panel(page)
     page.locator("#filter-form input[name='title']").fill(target_book.title)
     expect(page.locator("#filtered_results")).to_contain_text(target_book.title)
+    expect_filters_panel_open_after_repeated_init(page)
     toggle = page.locator("#filterToggleBtn")
     outline_icon = toggle.locator("[data-powercrud-filter-toggle-icon-outline='true']")
     filled_icon = toggle.locator("[data-powercrud-filter-toggle-icon-filled='true']")
@@ -527,14 +614,27 @@ def test_filter_toggle_marks_only_active_filter_values(
     expect(filled_icon).to_have_class(re.compile(r"\btext-primary\b"))
     expect(filled_icon).not_to_have_class(re.compile(r"\bhidden\b"))
 
-    page.get_by_role("link", name="Reset filters").click()
-    page.wait_for_load_state("networkidle")
-    toggle = page.locator("#filterToggleBtn")
-    outline_icon = toggle.locator("[data-powercrud-filter-toggle-icon-outline='true']")
-    filled_icon = toggle.locator("[data-powercrud-filter-toggle-icon-filled='true']")
-    expect(toggle).to_have_attribute("data-powercrud-filters-active", "false")
-    expect(outline_icon).not_to_have_class(re.compile(r"\bhidden\b"))
-    expect(filled_icon).to_have_class(re.compile(r"\bhidden\b"))
+    open_favourites_dropdown(page)
+    inline_form = get_open_favourites_panel(page).locator(
+        "[data-powercrud-favourite-save-form='true']"
+    )
+    inline_form.locator("input[name='name']").fill("Title without null boolean")
+    with page.expect_response(
+        lambda response: response.request.method == "POST"
+        and "/powercrud/favourites/save/" in response.url
+    ) as save_response_info:
+        inline_form.get_by_role("button", name="Save favourite").click()
+    assert save_response_info.value.status == 200, (
+        "Expected saving the favourite to succeed while null-boolean filters are at their default."
+    )
+    saved_favourite = SavedFilterFavourite.objects.get(
+        user__username="playwright-null-boolean-filter-user",
+        view_key=BOOK_VIEW_KEY,
+        name="Title without null boolean",
+    )
+    assert saved_favourite.state["filters"] == {"title": [target_book.title]}, (
+        "Expected favourite state to omit the Django null-boolean unknown sentinel."
+    )
 
 
 def test_toolbar_transient_dropdowns_are_mutually_exclusive(

@@ -30,7 +30,8 @@ export function createListViewStateRuntime(context) {
         syncSelectedFilterFavouritePresentation,
     } = context;
 
-    const pendingFilterPanelOpenCounts = new Map();
+    const FILTER_PANEL_PRESERVE_MS = 2000;
+    const filterPanelOpenPreserveUntil = new Map();
 
     function getFilterPanelRenderKey(root) {
         return normaliseListUrl(root?.dataset?.powercrudListUrl || '', global)
@@ -38,24 +39,55 @@ export function createListViewStateRuntime(context) {
             || 'default';
     }
 
-    function markFilterPanelOpenForNextRender(root) {
+    function markFilterPanelOpenForRefresh(root) {
         if (root instanceof Element) {
-            pendingFilterPanelOpenCounts.set(getFilterPanelRenderKey(root), 4);
+            filterPanelOpenPreserveUntil.set(
+                getFilterPanelRenderKey(root),
+                Date.now() + FILTER_PANEL_PRESERVE_MS,
+            );
         }
     }
 
-    function consumeFilterPanelOpenForNextRender(root) {
+    function clearFilterPanelOpenPreservation(root) {
+        if (root instanceof Element) {
+            filterPanelOpenPreserveUntil.delete(getFilterPanelRenderKey(root));
+        }
+    }
+
+    function shouldPreserveFilterPanelOpen(root) {
         const key = getFilterPanelRenderKey(root);
-        const remainingCount = pendingFilterPanelOpenCounts.get(key) || 0;
-        if (remainingCount < 1) {
+        const preserveUntil = filterPanelOpenPreserveUntil.get(key) || 0;
+        if (preserveUntil < Date.now()) {
+            filterPanelOpenPreserveUntil.delete(key);
             return false;
         }
-        if (remainingCount === 1) {
-            pendingFilterPanelOpenCounts.delete(key);
-        } else {
-            pendingFilterPanelOpenCounts.set(key, remainingCount - 1);
-        }
         return true;
+    }
+
+    function isDjangoNullBooleanUnknownValue(field, value) {
+        if (!(field instanceof HTMLSelectElement) || field.multiple) {
+            return false;
+        }
+        if (String(value || '').trim() !== 'unknown') {
+            return false;
+        }
+
+        const optionValues = Array.from(field.options)
+            .map(option => String(option.value || '').trim())
+            .filter(Boolean)
+            .sort();
+        return optionValues.length === 3
+            && optionValues[0] === 'false'
+            && optionValues[1] === 'true'
+            && optionValues[2] === 'unknown';
+    }
+
+    function hasFilterValue(field, value) {
+        const normalizedValue = String(value || '').trim();
+        if (normalizedValue === '') {
+            return false;
+        }
+        return !isDjangoNullBooleanUnknownValue(field, normalizedValue);
     }
 
     function hasActiveFilterValues(root) {
@@ -81,7 +113,7 @@ export function createListViewStateRuntime(context) {
                 return Array.from(field.selectedOptions)
                     .some(option => String(option.value || '').trim() !== '');
             }
-            return String(field.value || '').trim() !== '';
+            return hasFilterValue(field, field.value);
         });
     }
 
@@ -261,6 +293,10 @@ export function createListViewStateRuntime(context) {
                 return;
             }
 
+            if (!hasFilterValue(field, field.value) && isDjangoNullBooleanUnknownValue(field, field.value)) {
+                return;
+            }
+
             if (Array.isArray(values[name])) {
                 values[name].push(field.value);
                 return;
@@ -351,6 +387,10 @@ export function createListViewStateRuntime(context) {
                 return;
             }
 
+            if (!hasFilterValue(field, field.value)) {
+                return;
+            }
+
             appendFavouriteFilterValue(state.filters, name, field.value);
         });
 
@@ -382,7 +422,7 @@ export function createListViewStateRuntime(context) {
             && filterCollapse instanceof Element
             && !filterCollapse.classList.contains('hidden')
         ) {
-            markFilterPanelOpenForNextRender(root);
+            markFilterPanelOpenForRefresh(root);
         }
         // Any manual list refresh after favourite application means the
         // selected favourite remains selected but becomes dirty.
@@ -421,6 +461,11 @@ export function createListViewStateRuntime(context) {
         const root = getObjectListRoot(field);
         if (!(root instanceof Element)) {
             return;
+        }
+
+        const filterCollapse = root.querySelector('#filterCollapse');
+        if (filterCollapse instanceof Element && !filterCollapse.classList.contains('hidden')) {
+            markFilterPanelOpenForRefresh(root);
         }
 
         const state = ensureObjectListState(root);
@@ -514,7 +559,7 @@ export function createListViewStateRuntime(context) {
     }
 
     function clearCurrentListViewState(root) {
-        pendingFilterPanelOpenCounts.delete(getFilterPanelRenderKey(root));
+        clearFilterPanelOpenPreservation(root);
         setPersistedOptionalFilterNames(root, []);
     }
 
@@ -570,7 +615,7 @@ export function createListViewStateRuntime(context) {
             return;
         }
 
-        const shouldOpen = consumeFilterPanelOpenForNextRender(root);
+        const shouldOpen = shouldPreserveFilterPanelOpen(root);
         filterCollapse.classList.toggle('hidden', !shouldOpen);
         syncFilterToggleLabel(root);
         syncAddFilterVisibility(root, shouldOpen);
@@ -587,6 +632,9 @@ export function createListViewStateRuntime(context) {
         }
         filterCollapse.classList.toggle('hidden');
         const isOpen = !filterCollapse.classList.contains('hidden');
+        if (!isOpen) {
+            clearFilterPanelOpenPreservation(root);
+        }
         syncFilterToggleLabel(root);
         syncAddFilterVisibility(root, isOpen);
         syncFilterFavouritesVisibility(root, isOpen);
@@ -598,6 +646,7 @@ export function createListViewStateRuntime(context) {
     return {
         addOptionalFilter,
         applyFilterPanelState,
+        clearFilterPanelOpenPreservation,
         collectFavouriteStateFromRoot,
         dedupeFilterNames,
         getCurrentFilters,

@@ -760,6 +760,7 @@ export function createFilterFavouritesRuntime(context) {
         setPendingSelectedFilterFavouriteId(root, toolbar, selectedFavouriteId);
         clearSelectedFilterFavouriteDirty(root, toolbar);
         suppressFavouriteAutoApplyOnce(root, toolbar);
+        getListViewState().clearFilterPanelOpenPreservation?.(root);
         if (options.syncState !== false) {
             syncFavouriteToolbarState(toolbar);
         }
@@ -1169,6 +1170,7 @@ export function createFilterFavouritesRuntime(context) {
         const listUrl = listUrlField instanceof HTMLInputElement ? listUrlField.value : '';
         const root = getObjectListRoot(favouriteApplyTrigger) || findObjectListRootByListUrl(listUrl);
         if (root) {
+            getListViewState().clearFilterPanelOpenPreservation?.(root);
             getListViewState().syncFilterToggleLabel?.(root);
         }
         return false;
