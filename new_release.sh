@@ -572,6 +572,12 @@ function require_current_main {
     fi
 }
 
+function update_local_main_from_origin {
+    git fetch --prune origin +refs/heads/main:refs/remotes/origin/main
+    git switch main
+    git merge --ff-only refs/remotes/origin/main
+}
+
 function require_tag_absent {
     local tag_name="$1"
     if git rev-parse "refs/tags/$tag_name" >/dev/null 2>&1; then
@@ -832,42 +838,57 @@ function merge_release_pr {
 function tag_merged_release {
     local version="$1"
     local tag_name="$2"
-    local head_sha
+    local release_target_sha
     local tag_sha
     local remote_tag_sha
+    local merge_commit
 
-    git fetch --prune --tags origin
-    git switch main
-    git pull --ff-only origin main
+    update_local_main_from_origin
+    git fetch --tags origin
 
-    python3 - "$version" <<'PY'
-import pathlib
+    merge_commit=$(load_state_value merge_commit)
+    if [[ -n "$merge_commit" ]]; then
+        release_target_sha=$(git rev-parse "$merge_commit^{commit}")
+        if ! git merge-base --is-ancestor "$release_target_sha" refs/remotes/origin/main; then
+            die "release merge commit $release_target_sha is not reachable from origin/main."
+        fi
+    else
+        release_target_sha=$(git rev-parse HEAD)
+    fi
+
+    python3 - "$version" "$release_target_sha" <<'PY'
+import subprocess
 import tomllib
 import sys
 
 expected = sys.argv[1]
-data = tomllib.loads(pathlib.Path("pyproject.toml").read_text(encoding="utf-8"))
+commit = sys.argv[2]
+data = tomllib.loads(
+    subprocess.check_output(
+        ["git", "show", f"{commit}:pyproject.toml"],
+        text=True,
+    )
+)
 actual = data["project"]["version"]
 if actual != expected:
     raise SystemExit(
-        f"pyproject.toml version {actual!r} does not match release {expected!r}"
+        f"pyproject.toml version at {commit} is {actual!r}, not release {expected!r}"
     )
 PY
 
-    head_sha=$(git rev-parse HEAD)
     if git rev-parse "refs/tags/$tag_name" >/dev/null 2>&1; then
         tag_sha=$(git rev-list -n 1 "$tag_name")
-        if [[ "$tag_sha" != "$head_sha" ]]; then
-            die "local tag $tag_name points to $tag_sha, not current main $head_sha."
+        if [[ "$tag_sha" != "$release_target_sha" ]]; then
+            die "local tag $tag_name points to $tag_sha, not release commit $release_target_sha."
         fi
     else
-        git tag -a "$tag_name" -m "Release $version"
+        git tag -a "$tag_name" "$release_target_sha" -m "Release $version"
     fi
 
     remote_tag_sha=$(git ls-remote --tags origin "refs/tags/$tag_name^{}" | awk '{print $1}' || true)
     if [[ -n "$remote_tag_sha" ]]; then
-        if [[ "$remote_tag_sha" != "$head_sha" ]]; then
-            die "remote tag $tag_name points to $remote_tag_sha, not current main $head_sha."
+        if [[ "$remote_tag_sha" != "$release_target_sha" ]]; then
+            die "remote tag $tag_name points to $remote_tag_sha, not release commit $release_target_sha."
         fi
     else
         git push origin "$tag_name"
