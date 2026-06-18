@@ -1306,7 +1306,7 @@ def object_list(context, objects, view):
             record["cells"].append(
                 {
                     "name": f,
-                    "label": resolve_field_label(view, f, field),
+                    "label": resolve_field_label(view, f, effective_field),
                     "value": display_value,
                     "is_property": False,
                     "is_inline_editable": inline_enabled and f in inline_fields,

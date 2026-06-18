@@ -428,6 +428,7 @@ def test_bulk_field_info_flags_searchable_select_only_for_eligible_fields(rf):
     ), "Boolean bulk fields should remain native selects and not use searchable-select enhancement."
 
 
+@pytest.mark.django_db
 def test_bulk_field_info_uses_configured_field_labels(rf):
     """Bulk edit metadata should preserve configured field labels exactly."""
     request = make_htmx_request(rf)
