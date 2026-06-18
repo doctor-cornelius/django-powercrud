@@ -155,7 +155,7 @@ Nullable auto-generated filters behave differently by field type:
 - Nullable scalar filters such as `CharField`, `TextField`, `DateField`, `TimeField`, `IntegerField`, `DecimalField`, `FloatField`, and `BooleanField` gain a separate companion `... is empty` boolean select.
 - Companion null controls are rendered immediately after their parent auto-generated filter field in the form.
 
-Auto-generated text filters use `icontains` by default. There is no separate declarative setting to change that lookup expression field by field; use `filterset_class` when you need custom lookup expressions.
+Auto-generated model fields with `choices` render as dropdown filters and match the selected value exactly. Text fields without `choices` use `icontains` by default. There is no separate declarative setting to change that lookup expression field by field; use `filterset_class` when you need custom lookup expressions.
 
 ### Queryset annotation filters
 

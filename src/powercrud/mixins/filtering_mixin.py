@@ -4,6 +4,7 @@ from django.core.exceptions import FieldDoesNotExist, ImproperlyConfigured
 from django_filters import (
     FilterSet,
     CharFilter,
+    ChoiceFilter,
     DateFilter,
     NumberFilter,
     BooleanFilter,
@@ -547,6 +548,8 @@ class FilteringMixin:
             ).copy()
         if isinstance(field_to_check, (models.ForeignKey, models.OneToOneField)):
             return base_attrs.get("select", base_attrs.get("default", {})).copy()
+        if self._field_has_choices(field_to_check):
+            return base_attrs.get("select", base_attrs.get("default", {})).copy()
         if isinstance(field_to_check, (models.CharField, models.TextField)):
             return base_attrs.get("text", base_attrs.get("default", {})).copy()
         if isinstance(field_to_check, models.DateField):
@@ -567,6 +570,10 @@ class FilteringMixin:
         if getattr(field_to_check, "null", False) is not True:
             return False
         return field_name not in resolve_config(self).filter_null_fields_exclude
+
+    def _field_has_choices(self, field_to_check) -> bool:
+        """Return whether a model/output field declares a fixed choice set."""
+        return bool(getattr(field_to_check, "choices", None))
 
     def _get_filter_label(self, model_field) -> str:
         """Return the base label for an auto-generated filter field."""
@@ -731,6 +738,12 @@ class FilteringMixin:
                             field_name, model_field
                         ),
                         widget=forms.SelectMultiple(attrs=field_attrs),
+                    )
+                elif self._field_has_choices(field_to_check):
+                    declared_filters[field_name] = ChoiceFilter(
+                        choices=field_to_check.choices,
+                        label=self._get_filter_label(model_field or field_name),
+                        widget=forms.Select(attrs=field_attrs),
                     )
                 elif isinstance(field_to_check, (models.CharField, models.TextField)):
                     declared_filters[field_name] = CharFilter(
