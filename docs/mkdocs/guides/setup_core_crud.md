@@ -441,6 +441,20 @@ By default, the help block uses the quiet `base` colour, aligns to the rendered 
 
 Most views should use either `view_instructions` for a short always-visible sentence or `view_help` for longer optional guidance. Use both only when the short description and expandable detail carry distinct information.
 
+### Field labels
+
+PowerCRUD normally uses each model field's `verbose_name` for display labels. If a view needs an explicit label, use `field_labels`:
+
+```python
+class ProjectCRUDView(PowerCRUDMixin, CRUDView):
+    # …
+    field_labels = {
+        "designated_execution_owner": "DDMS Execution Owner",
+    }
+```
+
+Explicit labels render exactly on list headers, the column chooser, generated forms, inline edit labels, display-only form items, and bulk edit labels. If no explicit label is configured, PowerCRUD preserves the model field `verbose_name` without applying title case, so acronym labels such as `"DDMS Execution Owner"` stay intact.
+
 ### Header tooltips
 
 If you want plain-text help tooltips on selected column headers, use `column_help_text`:

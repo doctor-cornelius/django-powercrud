@@ -21,6 +21,7 @@ def test_powerfield_extracts_list_style_primitive_fragment():
         form=True,
         inline=True,
         bulk=True,
+        label="DDMS Execution Owner",
         tooltip_hook="get_status_tooltip",
     ).to_primitive_fragment()
 
@@ -30,6 +31,7 @@ def test_powerfield_extracts_list_style_primitive_fragment():
         "form_fields": ["status"],
         "inline_edit_fields": ["status"],
         "bulk_fields": ["status"],
+        "field_labels": {"status": "DDMS Execution Owner"},
         "list_cell_tooltip_fields": {"status": "get_status_tooltip"},
     }, "PowerField should expose list-style primitive contributions for one field."
 
@@ -113,6 +115,11 @@ def test_powerfield_rejects_bad_column_options():
 
     with pytest.raises(ValueError, match="alignment must be"):
         PowerField("status", list=True, column={"alignment": "middle"})
+
+
+def test_powerfield_rejects_blank_label():
+    with pytest.raises(ValueError, match="PowerField.label"):
+        PowerField("status", label="   ")
 
 
 @pytest.mark.parametrize(
@@ -289,6 +296,7 @@ def test_powerfields_wire_into_core_mixin_primitive_config():
                 inline=True,
                 bulk=True,
                 default_list=True,
+                label="DDMS Execution Owner",
                 tooltip_hook="get_title_tooltip",
                 column={"help_text": "Book title.", "alignment": "center"},
                 link={"view_name": "sample:book-detail", "open_in": "modal"},
@@ -314,6 +322,9 @@ def test_powerfields_wire_into_core_mixin_primitive_config():
     )
     assert view.default_list_fields == ["title"], (
         "PowerField(default_list=True) should become the primitive default_list_fields list."
+    )
+    assert view.field_labels == {"title": "DDMS Execution Owner"}, (
+        "PowerField(label=...) should become the primitive field_labels map."
     )
     assert view.list_cell_tooltip_fields == {"title": "get_title_tooltip"}, (
         "PowerField(tooltip_hook=...) should become the primitive tooltip hook map."

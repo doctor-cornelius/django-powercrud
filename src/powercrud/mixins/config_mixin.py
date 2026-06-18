@@ -52,6 +52,7 @@ FIELD_INTENT_CONFIG_FIELDS = {
     "inline_edit_fields",
     "inline_edit_enabled",
     "list_cell_tooltip_fields",
+    "field_labels",
     "column_help_text",
     "column_alignments",
     "field_queryset_dependencies",
@@ -84,6 +85,7 @@ class ConfigMixin:
     view_help_default_color: str = "base"
     view_help_min_width: str = "40rem"
     column_help_text: dict[str, str] | None = None
+    field_labels: dict[str, str] | None = None
     column_alignments: dict[str, str] | None = None
     list_cell_tooltip_fields: list[str] | dict[str, str] | None = None
     list_cell_link_default_open_in: str = "new"
@@ -335,6 +337,7 @@ class ConfigMixin:
         self._configure_default_list_fields()
         self._configure_detail_fields()
         self._configure_detail_properties()
+        self._configure_field_labels()
         self._configure_column_alignments()
         self._configure_link_fields()
         self._configure_bulk_fields()
@@ -735,6 +738,32 @@ class ConfigMixin:
             raise ValueError(
                 "The following column_alignments keys are not model fields, "
                 "queryset annotations, configured list fields, or properties "
+                f"in {self.model.__name__}: {', '.join(invalid_names)}"
+            )
+
+    def _configure_field_labels(self) -> None:
+        """
+        Validate optional explicit display labels for fields and properties.
+
+        Keys may reference model fields, properties, or configured queryset
+        annotation columns so one label map can serve list, form, inline, and
+        bulk-edit surfaces.
+        """
+        if self.field_labels is None:
+            self.field_labels = {}
+            return
+
+        if not isinstance(self.field_labels, dict):
+            raise ValueError("field_labels must be a dictionary when provided")
+
+        valid_names = self._get_configurable_list_column_names()
+        invalid_names = [
+            name for name in self.field_labels.keys() if name not in valid_names
+        ]
+        if invalid_names:
+            raise ValueError(
+                "The following field_labels keys are not model fields, queryset "
+                "annotations, configured list fields, or properties "
                 f"in {self.model.__name__}: {', '.join(invalid_names)}"
             )
 
@@ -1545,6 +1574,7 @@ class _ConfigShim:
             "column_sort_fields_override",
             "dropdown_sort_options",
             "field_queryset_dependencies",
+            "field_labels",
             "link_fields",
         }:
             return self._raw(name, {}) or {}

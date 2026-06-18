@@ -30,6 +30,7 @@ class TemplateViewStub:
         "isbn_empty": "Whether the ISBN field is blank.",
     }
     column_alignments = {}
+    field_labels = {}
     list_cell_tooltip_fields = []
     link_fields = {}
     namespace = "sample"
@@ -622,6 +623,40 @@ def test_object_list_renders_booleans_dates_and_selection():
     assert result["selected_ids"] == ["1"]
     assert result["selected_count"] == 1
     assert result["filter_params"] == "filter=1"
+
+
+@pytest.mark.django_db
+def test_object_list_preserves_explicit_labels_and_verbose_name_acronyms():
+    author = Author.objects.create(name="Acronym Author")
+    book = Book.objects.create(
+        title="Acronym Demo",
+        author=author,
+        published_date=date(2024, 5, 1),
+        bestseller=False,
+        isbn="1234567890888",
+        pages=88,
+    )
+    request = apply_session(RequestFactory().get("/"))
+    view = TemplateViewStub(request)
+    view.fields = ["title", "isbn"]
+    view.properties = []
+    view.field_labels = {"title": "DDMS Execution Owner"}
+    isbn_field = Book._meta.get_field("isbn")
+    original_verbose_name = isbn_field.verbose_name
+    isbn_field.verbose_name = "ISBN Code"
+
+    try:
+        result = powercrud.object_list({"request": request}, [book], view)
+    finally:
+        isbn_field.verbose_name = original_verbose_name
+
+    assert [header["label"] for header in result["headers"]] == [
+        "DDMS Execution Owner",
+        "ISBN Code",
+    ], "List headers should preserve explicit labels and model verbose_name acronyms exactly."
+    assert result["object_list"][0]["cells"][0]["label"] == "DDMS Execution Owner", (
+        "Inline/list cell metadata should carry the exact configured field label."
+    )
 
 
 @pytest.mark.django_db

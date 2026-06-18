@@ -16,6 +16,7 @@ try:  # Optional dependency: crispy-forms
 except ImportError:  # pragma: no cover - environments without crispy_forms
     FormHelper = None  # type: ignore[assignment]
 from neapolitan.views import Role
+from powercrud.labels import resolve_field_label
 from powercrud.logging import get_logger
 from .config_mixin import ConfigMixin, resolve_config
 
@@ -276,7 +277,7 @@ class FormMixin:
             items.append(
                 {
                     "name": field_name,
-                    "label": str(field.verbose_name).title(),
+                    "label": resolve_field_label(self, field_name, field),
                     "value": self._format_form_display_value(
                         resolved_instance,
                         field,
@@ -638,13 +639,21 @@ class FormMixin:
                     # sort_field can be "name" or "-name" - Django's order_by handles both
                     form_field.queryset = form_field.queryset.order_by(sort_field)
 
+    def _apply_field_labels(self, form_class):
+        """Apply configured field labels to a generated or custom form class."""
+        field_labels = resolve_config(self).field_labels or {}
+        for field_name, label in field_labels.items():
+            if field_name in form_class.base_fields:
+                form_class.base_fields[field_name].label = label
+        return form_class
+
     def get_form_class(self):
         """Override get_form_class to use form_fields for form generation."""
 
         # Use explicitly defined form class if provided
         cfg = resolve_config(self)
         if cfg.form_class is not None:
-            return self._apply_crispy_helper(cfg.form_class)
+            return self._apply_crispy_helper(self._apply_field_labels(cfg.form_class))
 
         # Generate a default form class using form_fields
         if self.model is not None and cfg.form_fields:
@@ -670,6 +679,7 @@ class FormMixin:
             form_class = form_models.modelform_factory(
                 self.model, fields=cfg.form_fields, widgets=widgets
             )
+            form_class = self._apply_field_labels(form_class)
 
             # Apply dropdown sorting to form fields
             sort_options = cfg.dropdown_sort_options

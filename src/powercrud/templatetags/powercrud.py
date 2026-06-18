@@ -24,6 +24,7 @@ from django.utils.translation import gettext_lazy as _
 from django.db import models
 
 from powercrud.conf import get_powercrud_setting
+from powercrud.labels import resolve_field_label, resolve_property_label
 from powercrud.logging import get_logger
 
 log = get_logger(__name__)
@@ -107,15 +108,7 @@ def _get_effective_list_field(view, field_name: str, queryset=None):
 
 def _get_display_name_for_field(field_name: str, field) -> str:
     """Return a human label for a model or annotation field."""
-    if field is not None and hasattr(field, "remote_field"):
-        remote_field = getattr(field, "remote_field", None)
-        if remote_field and isinstance(remote_field, models.ManyToManyRel):
-            return remote_field.model._meta.verbose_name_plural.title()
-
-    verbose_name = getattr(field, "verbose_name", None)
-    if verbose_name:
-        return str(verbose_name).title()
-    return field_name.replace("_", " ").title()
+    return resolve_field_label(None, field_name, field)
 
 
 def _format_list_field_value(
@@ -1101,7 +1094,7 @@ def object_list(context, objects, view):
         field = _get_effective_list_field(view, f, queryset=queryset)
         headers.append(
             {
-                "label": _get_display_name_for_field(f, field),
+                "label": resolve_field_label(view, f, field),
                 "field_name": f,
                 "is_sortable": True,
                 "help_text": column_help_text.get(f, ""),
@@ -1110,16 +1103,8 @@ def object_list(context, objects, view):
 
     # Add properties with proper display names (not sortable)
     for prop in properties:
-        # Try to get short_description from property
         prop_obj = getattr(view.model, prop, None)
-        if (
-            prop_obj
-            and hasattr(prop_obj.fget, "short_description")
-            and prop_obj.fget.short_description
-        ):
-            display_name = prop_obj.fget.short_description
-        else:
-            display_name = prop.replace("_", " ").title()
+        display_name = resolve_property_label(view, prop, prop_obj)
         headers.append(
             {
                 "label": display_name,
@@ -1321,6 +1306,7 @@ def object_list(context, objects, view):
             record["cells"].append(
                 {
                     "name": f,
+                    "label": resolve_field_label(view, f, field),
                     "value": display_value,
                     "is_property": False,
                     "is_inline_editable": inline_enabled and f in inline_fields,
@@ -1377,6 +1363,11 @@ def object_list(context, objects, view):
             record["cells"].append(
                 {
                     "name": prop,
+                    "label": resolve_property_label(
+                        view,
+                        prop,
+                        getattr(view.model, prop, None),
+                    ),
                     "value": display_value,
                     "is_property": True,
                     "is_inline_editable": inline_enabled and prop in inline_fields,

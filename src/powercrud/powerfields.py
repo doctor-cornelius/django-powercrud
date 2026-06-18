@@ -87,6 +87,7 @@ class PowerField:
     default_list: bool = False
     property: bool = False
     detail_property: bool = False
+    label: str | None = None
     column: dict[str, str] | None = None
     queryset_dependencies: dict[str, Any] | None = None
     link: dict[str, Any] | None = None
@@ -130,6 +131,11 @@ class PowerField:
             if not isinstance(self.tooltip_hook, str) or not self.tooltip_hook.strip():
                 raise ValueError("PowerField.tooltip_hook must be a non-empty string")
             object.__setattr__(self, "tooltip_hook", self.tooltip_hook.strip())
+
+        if self.label is not None:
+            if not isinstance(self.label, str) or not self.label.strip():
+                raise ValueError("PowerField.label must be a non-empty string")
+            object.__setattr__(self, "label", self.label.strip())
 
         for option_name in ("column", "queryset_dependencies", "link"):
             value = getattr(self, option_name)
@@ -226,6 +232,9 @@ class PowerField:
             alignment = self.column.get("alignment")
             if alignment is not None:
                 fragment.setdefault("column_alignments", {})[self.name] = alignment
+
+        if self.label is not None:
+            fragment.setdefault("field_labels", {})[self.name] = self.label
 
         if self.queryset_dependencies:
             fragment.setdefault("field_queryset_dependencies", {})[self.name] = dict(

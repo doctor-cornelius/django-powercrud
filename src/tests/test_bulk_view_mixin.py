@@ -428,6 +428,19 @@ def test_bulk_field_info_flags_searchable_select_only_for_eligible_fields(rf):
     ), "Boolean bulk fields should remain native selects and not use searchable-select enhancement."
 
 
+def test_bulk_field_info_uses_configured_field_labels(rf):
+    """Bulk edit metadata should preserve configured field labels exactly."""
+    request = make_htmx_request(rf)
+    view = HarnessView(request)
+    view.field_labels = {"author": "DDMS Execution Owner"}
+
+    field_info = view._get_bulk_field_info(["author"])
+
+    assert field_info["author"]["verbose_name"] == "DDMS Execution Owner", (
+        "Bulk field metadata should use configured field_labels without title-casing."
+    )
+
+
 def test_bulk_edit_template_renders_nullable_charfield_choices_without_leaked_tags(rf):
     """Render nullable choice fields as one select without leaking template source."""
     request = rf.get("/bulk-edit/")
@@ -474,6 +487,43 @@ def test_bulk_edit_template_renders_nullable_charfield_choices_without_leaked_ta
     )
     assert 'type="number" name="uptick_target_pattern"' not in rendered, (
         "Choice fields should not fall through into the numeric field branch."
+    )
+
+
+def test_bulk_edit_template_preserves_acronym_labels(rf):
+    """Bulk edit template should not title-case resolved labels."""
+    request = rf.get("/bulk-edit/")
+    rendered = render_to_string(
+        "powercrud/daisyUI/bulk_edit_form.html#full_form",
+        {
+            "request": request,
+            "selected_count": 2,
+            "selected_ids": ["1", "2"],
+            "bulk_fields": ["designated_execution_owner"],
+            "enable_bulk_delete": False,
+            "model_name_plural": "ddm cases",
+            "field_info": {
+                "designated_execution_owner": {
+                    "type": "CharField",
+                    "is_relation": False,
+                    "is_m2m": False,
+                    "verbose_name": "DDMS Execution Owner",
+                    "null": False,
+                    "blank": False,
+                    "choices": None,
+                    "searchable_select": False,
+                }
+            },
+            "modal_target": "powercrudModalContent",
+        },
+        request=request,
+    )
+
+    assert "DDMS Execution Owner" in rendered, (
+        "Bulk edit labels should render acronym labels exactly."
+    )
+    assert "Ddms Execution Owner" not in rendered, (
+        "Bulk edit labels should not apply the title filter to acronym labels."
     )
 
 

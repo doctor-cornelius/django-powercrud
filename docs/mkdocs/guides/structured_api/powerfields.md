@@ -2,7 +2,7 @@
 
 PowerField is the Structured Declaration API for Field Intent.
 
-It is not a contrib app, and it is not a replacement product API. It is a structured declaration layer over the Base Configuration API attributes such as `fields`, `detail_fields`, `form_fields`, `inline_edit_fields`, `bulk_fields`, `default_list_fields`, `column_help_text`, `list_cell_tooltip_fields`, and `link_fields`.
+It is not a contrib app, and it is not a replacement product API. It is a structured declaration layer over the Base Configuration API attributes such as `fields`, `detail_fields`, `form_fields`, `inline_edit_fields`, `bulk_fields`, `default_list_fields`, `field_labels`, `column_help_text`, `list_cell_tooltip_fields`, and `link_fields`.
 
 Use it when the same field participates in several places and the Base Configuration API starts to repeat the same names across many lists and dictionaries.
 
@@ -63,6 +63,9 @@ Base configuration is direct and remains the baseline. PowerField is useful when
         list_cell_tooltip_fields = {
             "title": "get_title_tooltip",
         }
+        field_labels = {
+            "title": "DDMS Execution Owner",
+        }
         ```
 
     === "PowerField"
@@ -76,6 +79,7 @@ Base configuration is direct and remains the baseline. PowerField is useful when
                 inline=True,
                 bulk=True,
                 default_list=True,
+                label="DDMS Execution Owner",
                 tooltip_hook="get_title_tooltip",
             ),
             PowerField(
@@ -203,6 +207,9 @@ Field Intent can also include list-column defaults, properties, header help, sem
             "pages": "Demo link: opens this book detail in the current page.",
             "isbn_empty": "Shows whether this row currently has an ISBN value.",
         }
+        field_labels = {
+            "isbn_empty": "ISBN Missing",
+        }
         list_cell_tooltip_fields = {
             "pages": "get_pages_tooltip",
             "isbn_empty": "get_isbn_empty_tooltip",
@@ -241,6 +248,7 @@ Field Intent can also include list-column defaults, properties, header help, sem
                 "isbn_empty",
                 property=True,
                 default_list=True,
+                label="ISBN Missing",
                 tooltip_hook="get_isbn_empty_tooltip",
                 column={
                     "help_text": "Shows whether this row currently has an ISBN value.",
