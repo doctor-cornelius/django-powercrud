@@ -452,6 +452,76 @@ changelog_path.write_text(updated, encoding="utf-8")
 PY
 }
 
+function copy_prerelease_changelog_section {
+    local new_version="$1"
+    python3 - "$new_version" <<'PY'
+import datetime as dt
+import pathlib
+import re
+import sys
+
+new_version = sys.argv[1]
+changelog_path = pathlib.Path("CHANGELOG.md")
+text = changelog_path.read_text(encoding="utf-8")
+
+final_heading = re.compile(rf"^##\s+{re.escape(new_version)}\s+\([^)]+\)\s*$", re.M)
+if final_heading.search(text):
+    raise SystemExit(0)
+
+prerelease_heading = re.compile(
+    rf"^##\s+{re.escape(new_version)}(?:a|b)\d+\s+\([^)]+\)\s*$",
+    re.M,
+)
+match = prerelease_heading.search(text)
+if not match:
+    raise SystemExit(f"Could not find prerelease changelog heading for {new_version}")
+
+section_start = match.end()
+next_heading = re.search(r"^##\s+", text[section_start:], re.M)
+section_end = section_start + next_heading.start() if next_heading else len(text)
+section_text = text[section_start:section_end].strip()
+
+today = dt.date.today().isoformat()
+new_section = f"## {new_version} ({today})\n"
+if section_text:
+    new_section += section_text + "\n"
+new_section += "\n"
+
+first_heading = re.search(r"^##\s+", text, re.M)
+if not first_heading:
+    raise SystemExit("Could not find first changelog release heading")
+
+updated = text[: first_heading.start()] + new_section + text[first_heading.start() :]
+changelog_path.write_text(updated, encoding="utf-8")
+PY
+}
+
+function update_changelog_for_release {
+    local new_version="$1"
+    local output
+    local status
+
+    set +e
+    output=$(cz changelog --incremental --unreleased-version="$new_version" 2>&1)
+    status=$?
+    set -e
+
+    if [[ -n "$output" ]]; then
+        printf '%s\n' "$output"
+    fi
+
+    if [[ "$status" -eq 0 ]]; then
+        return 0
+    fi
+
+    if [[ -z "$PRERELEASE_KIND" ]] && grep -qi "No commits found" <<<"$output"; then
+        copy_prerelease_changelog_section "$new_version"
+        return 0
+    fi
+
+    return "$status"
+}
+
 function ensure_release_section_has_content {
     local new_version="$1"
     python3 - "$new_version" <<'PY'
@@ -682,7 +752,7 @@ function prepare_release_in_container {
     update_project_version "$new_version"
     run_prepare_validation
 
-    cz changelog --incremental --unreleased-version="$new_version"
+    update_changelog_for_release "$new_version"
 
     last_tag=$(git describe --tags --abbrev=0 2>/dev/null || true)
     insert_breaking_notes "$new_version" "$last_tag"

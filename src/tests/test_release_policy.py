@@ -40,3 +40,13 @@ def test_release_workflows_reject_rc_tags():
         assert "a|b|rc" not in workflow, (
             f"{workflow_path.name} should not validate rc tags as publishable."
         )
+
+
+def test_release_script_finalizes_prerelease_without_new_commits():
+    """Final alpha/beta promotion should not fail only because no commits followed it."""
+    release_script = (PROJECT_ROOT / "new_release.sh").read_text(encoding="utf-8")
+
+    assert "function update_changelog_for_release" in release_script
+    assert "No commits found" in release_script
+    assert "copy_prerelease_changelog_section" in release_script
+    assert '[[ -z "$PRERELEASE_KIND" ]]' in release_script
