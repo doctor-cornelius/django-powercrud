@@ -69,7 +69,17 @@ def open_filters_panel(page):
     expect(toggle).to_be_visible()
     if re.search(r"\bhidden\b", filter_panel.get_attribute("class") or ""):
         toggle.click(force=True)
-    expect(filter_panel).not_to_have_class(re.compile(r"\bhidden\b"))
+    try:
+        expect(filter_panel).not_to_have_class(re.compile(r"\bhidden\b"), timeout=1500)
+    except AssertionError:
+        # HTMX list swaps can leave the first click racing the refreshed toolbar.
+        # Re-resolve the controls and retry once against the current DOM.
+        toggle = page.locator("#filterToggleBtn")
+        filter_panel = page.locator("#filterCollapse")
+        expect(toggle).to_be_visible()
+        if re.search(r"\bhidden\b", filter_panel.get_attribute("class") or ""):
+            toggle.click(force=True)
+        expect(filter_panel).not_to_have_class(re.compile(r"\bhidden\b"))
 
 
 def expect_filters_panel_closed(page):
