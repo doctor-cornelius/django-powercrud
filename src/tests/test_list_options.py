@@ -48,6 +48,32 @@ def test_book_list_renders_column_chooser_for_anonymous_user(client):
 
 
 @pytest.mark.django_db
+def test_list_column_label_preserves_explicit_labels_and_verbose_name_acronyms():
+    """Column chooser labels should preserve configured labels and verbose_name acronyms."""
+
+    class LabelledBookView(BookCRUDView):
+        field_labels = {"title": "DDMS Execution Owner"}
+
+    view = LabelledBookView()
+    isbn_field = Book._meta.get_field("isbn")
+    original_verbose_name = isbn_field.verbose_name
+    isbn_field.verbose_name = "ISBN Code"
+
+    try:
+        title_label = view.get_list_column_label("title")
+        isbn_label = view.get_list_column_label("isbn")
+    finally:
+        isbn_field.verbose_name = original_verbose_name
+
+    assert title_label == "DDMS Execution Owner", (
+        "Column chooser labels should use explicit field_labels exactly."
+    )
+    assert isbn_label == "ISBN Code", (
+        "Column chooser labels should preserve model verbose_name acronyms."
+    )
+
+
+@pytest.mark.django_db
 def test_list_column_apply_persists_preference_and_clears_hidden_sort(client):
     """Applying columns should persist session state and clear hidden-column sort."""
 

@@ -66,6 +66,12 @@ PowerField(
         | `bulk=True` | `bulk_fields` | Include the editable model field in bulk editing. |
         | `default_list=True` | `fields` or `properties`, plus `default_list_fields` | Include the name in the list allow-list and in the default visible list columns. |
 
+    === "String kwargs"
+
+        | Kwarg | Base configuration target | Meaning |
+        |-------|---------------------------|---------|
+        | `label="..."` | `field_labels` | Override the display label for list, form, inline, display-only, and bulk-edit surfaces. Explicit labels render exactly. |
+
     === "Dict kwargs"
 
         | Kwarg | Base configuration target | Meaning |
@@ -188,7 +194,7 @@ Invalid `power_fields` config raises `ImproperlyConfigured` when PowerCRUD resol
 
 A view inheritance chain can use Base Configuration API Field Intent or PowerField Field Intent, not both.
 
-Base Field Intent config includes attributes such as `fields`, `properties`, `detail_fields`, `detail_properties`, `form_fields`, `form_display_fields`, `form_disabled_fields`, `inline_edit_fields`, `bulk_fields`, `default_list_fields`, `list_cell_tooltip_fields`, `column_help_text`, `column_alignments`, `field_queryset_dependencies`, and `link_fields`.
+Base Field Intent config includes attributes such as `fields`, `properties`, `detail_fields`, `detail_properties`, `form_fields`, `form_display_fields`, `form_disabled_fields`, `inline_edit_fields`, `bulk_fields`, `default_list_fields`, `field_labels`, `list_cell_tooltip_fields`, `column_help_text`, `column_alignments`, `field_queryset_dependencies`, and `link_fields`.
 
 Non-Field-Intent settings can still be inherited or declared normally. For example, `model`, `namespace`, `base_template_path`, `use_htmx`, `use_modal`, `filterset_fields`, `bulk_delete`, `extra_actions`, and table classes remain ordinary view config.
 

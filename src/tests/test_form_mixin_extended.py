@@ -255,6 +255,38 @@ def test_finalize_form_dedupes_disabled_field_configuration():
 
 
 @pytest.mark.django_db
+def test_field_labels_apply_to_generated_form_and_display_items():
+    """Configured field labels should render exactly on form surfaces."""
+    author = Author.objects.create(name="Label Author")
+    book = Book.objects.create(
+        title="Label Demo",
+        author=author,
+        published_date="2024-01-01",
+        bestseller=False,
+        isbn="1234500000888",
+        pages=10,
+    )
+    request = attach_session(RequestFactory().get("/"))
+    view = DummyFormView(request)
+    view.field_labels = {
+        "title": "DDMS Execution Owner",
+        "published_date": "ISBN Review Date",
+    }
+    view.form_display_fields = ["published_date"]
+    view._object = book
+
+    form_class = view.get_form_class()
+    display_items = view.get_form_display_items(instance=book)
+
+    assert form_class.base_fields["title"].label == "DDMS Execution Owner", (
+        "Generated form field labels should use configured field_labels exactly."
+    )
+    assert display_items[0]["label"] == "ISBN Review Date", (
+        "Display-only form item labels should use configured field_labels exactly."
+    )
+
+
+@pytest.mark.django_db
 def test_disabled_form_field_preserves_instance_value_on_submit():
     """Disabled form fields should ignore submitted tampering and keep instance values."""
     author = Author.objects.create(name="Ada")
@@ -400,7 +432,7 @@ def test_get_form_display_items_formats_configured_model_fields():
     assert items == [
         {
             "name": "uneditable_field",
-            "label": "Uneditable Field",
+            "label": "Uneditable field",
             "value": "This field is uneditable",
         },
         {
@@ -410,7 +442,7 @@ def test_get_form_display_items_formats_configured_model_fields():
         },
         {
             "name": "published_date",
-            "label": "Published Date",
+            "label": "Published date",
             "value": "01/01/2024",
         },
         {

@@ -1341,6 +1341,16 @@ def test_core_mixin_rejects_unknown_column_alignment_keys():
         BrokenView()
 
 
+def test_core_mixin_rejects_unknown_field_label_keys():
+    class BrokenView(CoreMixin):
+        model = Author
+        fields = "__all__"
+        field_labels = {"missing_field": "Missing Field"}
+
+    with pytest.raises(ValueError, match="field_labels"):
+        BrokenView()
+
+
 def test_core_mixin_rejects_invalid_column_alignment_values():
     class BrokenView(CoreMixin):
         model = Author
@@ -1647,6 +1657,16 @@ def test_column_help_text_blank_value_raises():
         model = Author
         fields = ["name"]
         column_help_text = {"name": "   "}
+
+    with pytest.raises(ImproperlyConfigured):
+        BrokenView()
+
+
+def test_field_labels_blank_value_raises():
+    class BrokenView(CoreMixin):
+        model = Author
+        fields = ["name"]
+        field_labels = {"name": "   "}
 
     with pytest.raises(ImproperlyConfigured):
         BrokenView()
@@ -2190,7 +2210,7 @@ def test_book_update_form_renders_display_only_context_and_disabled_field(client
     assert "Context" in response_text, (
         "Book update form should render the display-only context section when form_display_fields are configured."
     )
-    assert "Uneditable Field" in response_text, (
+    assert "Uneditable field" in response_text, (
         "Book update form should render the configured display-only field label above the editable inputs."
     )
     assert "This field is uneditable" in response_text, (
@@ -2210,7 +2230,7 @@ def test_book_create_form_hides_display_only_context_block(client):
     assert response.status_code == 200, (
         "Book create form should render successfully so the absence of display-only context can be inspected."
     )
-    assert "Uneditable Field" not in response_text, (
+    assert "Uneditable field" not in response_text, (
         "Book create form should hide form_display_fields because there is no persisted object yet."
     )
     assert not re.search(r'name="isbn"[^>]*disabled', response_text), (

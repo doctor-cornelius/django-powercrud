@@ -1,6 +1,7 @@
 from typing import Dict, List, Optional
 from django.db import models
 
+from powercrud.labels import resolve_field_label
 from powercrud.logging import get_logger
 from ..config_mixin import resolve_config
 
@@ -80,7 +81,7 @@ class MetadataMixin:
                     "is_relation": is_relation,
                     "is_m2m": is_m2m,  # Add a flag for M2M fields
                     "bulk_choices": bulk_choices,
-                    "verbose_name": field.verbose_name,
+                    "verbose_name": resolve_field_label(self, field_name, field),
                     "null": field.null if hasattr(field, "null") else False,
                     "blank": field.blank if hasattr(field, "blank") else False,
                     "choices": getattr(

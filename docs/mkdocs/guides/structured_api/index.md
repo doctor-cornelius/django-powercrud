@@ -60,7 +60,7 @@ This keeps related intent close to the thing it describes. The `status` field's 
 
 `PowerField` is exclusive for Field Intent within a view inheritance chain. Choose one style for field intent:
 
-- Base Configuration API attributes such as `fields`, `properties`, `detail_fields`, `form_fields`, `inline_edit_fields`, `bulk_fields`, `column_help_text`, `list_cell_tooltip_fields`, and `link_fields`; or
+- Base Configuration API attributes such as `fields`, `properties`, `detail_fields`, `form_fields`, `inline_edit_fields`, `bulk_fields`, `field_labels`, `column_help_text`, `list_cell_tooltip_fields`, and `link_fields`; or
 - `power_fields` using `PowerField` and optional `PowerOverride`.
 
 Do not mix those Field Intent styles in the same view inheritance chain.

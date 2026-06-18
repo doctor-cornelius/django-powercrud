@@ -381,6 +381,7 @@ class InlineEditingMixin:
         cfg = resolve_config(self)
         row_payload = self._build_inline_row_payload(obj)
         inline_form = form or self.build_inline_form(instance=obj)
+        self._ensure_inline_row_cell_labels(row_payload, inline_form)
         self._prepare_inline_number_widgets(inline_form)
         self._prepare_inline_error_widgets(inline_form)
         inline_hidden_fields = self._get_inline_hidden_bound_fields(
@@ -413,6 +414,26 @@ class InlineEditingMixin:
             context,
             request=self.request,
         )
+
+    def _ensure_inline_row_cell_labels(
+        self,
+        row_payload: dict[str, Any],
+        form,
+    ) -> None:
+        """Populate missing inline cell labels from the bound form field."""
+        if not row_payload:
+            return
+
+        for cell in row_payload.get("cells", []):
+            if cell.get("label"):
+                continue
+            field_name = cell.get("name")
+            label = None
+            if form is not None and field_name in form.fields:
+                label = getattr(form.fields[field_name], "label", None)
+            if not label and field_name:
+                label = str(field_name).replace("_", " ").title()
+            cell["label"] = str(label or "")
 
     def _get_inline_visible_field_names(
         self, row_payload: dict[str, Any], form

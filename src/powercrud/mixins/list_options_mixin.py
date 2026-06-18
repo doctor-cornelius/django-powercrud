@@ -15,6 +15,8 @@ from django.http import (
 from django.shortcuts import redirect
 from neapolitan.views import Role
 
+from powercrud.labels import resolve_field_label, resolve_property_label
+
 from .config_mixin import resolve_class_config
 
 LIST_OPTIONS_SESSION_KEY = "powercrud_list_options"
@@ -265,19 +267,10 @@ class ListOptionsMixin:
 
         if column_name in (getattr(self.config(), "properties", []) or []):
             prop_obj = getattr(self.model, column_name, None)
-            if (
-                prop_obj
-                and hasattr(prop_obj.fget, "short_description")
-                and prop_obj.fget.short_description
-            ):
-                return str(prop_obj.fget.short_description)
-            return column_name.replace("_", " ").title()
+            return resolve_property_label(self, column_name, prop_obj)
 
         field = self._get_effective_list_field(column_name, queryset=queryset)
-        verbose_name = getattr(field, "verbose_name", None)
-        if verbose_name:
-            return str(verbose_name).title()
-        return column_name.replace("_", " ").title()
+        return resolve_field_label(self, column_name, field)
 
     def _get_effective_list_field(
         self,

@@ -61,6 +61,7 @@ class PowerCRUDMixinValidator(BaseModel):
     view_help_default_color: Optional[str] = "base"
     view_help_min_width: Optional[str] = "40rem"
     column_help_text: Optional[Dict[str, str]] = None
+    field_labels: Optional[Dict[str, str]] = None
     column_alignments: Optional[Dict[str, Literal["left", "center", "right"]]] = None
     list_cell_tooltip_fields: Optional[Union[List[str], Dict[str, str]]] = None
     list_cell_link_default_open_in: Optional[Literal["current", "new", "modal"]] = "new"
@@ -308,6 +309,7 @@ class PowerCRUDMixinValidator(BaseModel):
 
     @field_validator(
         "column_help_text",
+        "field_labels",
         "column_sort_fields_override",
         "column_alignments",
     )

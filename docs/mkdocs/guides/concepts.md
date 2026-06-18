@@ -26,7 +26,7 @@ Because the queryset defines the working row set, a Surface can expose supported
 
 Field intent describes how a model field, queryset annotation, or property participates in the screen.
 
-Base Field Intent options include `fields`, `properties`, `detail_fields`, `detail_properties`, `form_fields`, `form_display_fields`, `form_disabled_fields`, `inline_edit_fields`, `bulk_fields`, `column_help_text`, `list_cell_tooltip_fields`, `link_fields`, and `get_list_cell_link(...)`.
+Base Field Intent options include `fields`, `properties`, `detail_fields`, `detail_properties`, `form_fields`, `form_display_fields`, `form_disabled_fields`, `inline_edit_fields`, `bulk_fields`, `field_labels`, `column_help_text`, `list_cell_tooltip_fields`, `link_fields`, and `get_list_cell_link(...)`.
 
 `PowerField` is the Structured Declaration API for repeated Field Intent. It lets you declare repeated field participation in `power_fields`, then PowerCRUD compiles that declaration into the same base configuration. A view must choose one Field Intent style: base Field Intent attributes or `power_fields`.
 

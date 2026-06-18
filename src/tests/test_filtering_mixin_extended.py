@@ -6,7 +6,7 @@ import pytest
 from django import forms
 from django.core.exceptions import ImproperlyConfigured
 from django.db.models import BooleanField, Case, Value, When
-from django_filters import BooleanFilter, CharFilter, FilterSet
+from django_filters import BooleanFilter, CharFilter, ChoiceFilter, FilterSet
 from django.test import RequestFactory
 
 from powercrud.mixins.filtering_mixin import (
@@ -74,6 +74,13 @@ class ProfileNullFilterHarness(BaseFilterHarness):
 
     model = Profile
     filterset_fields = ["author", "favorite_genre"]
+
+
+class ProfileChoiceFilterHarness(BaseFilterHarness):
+    """Harness for model choice field filter generation tests."""
+
+    model = Profile
+    filterset_fields = ["status", "priority_band", "nickname"]
 
 
 class ProfileNullFilterExcludeHarness(ProfileNullFilterHarness):
@@ -215,6 +222,62 @@ def test_filterset_builds_choices():
     assert (
         filterset.form.fields["author"].label == "Author"
     ), "Non-text auto-generated filter labels should continue to use the plain field label."
+
+
+@pytest.mark.django_db
+def test_model_choice_fields_generate_select_filters_and_filter_exact_values():
+    """Generate dropdown filters for model fields that declare choices."""
+    active_author = Author.objects.create(name="Active Author")
+    review_author = Author.objects.create(name="Review Author")
+    active_profile = Profile.objects.create(
+        author=active_author,
+        nickname="Active profile",
+        status=Profile.Status.ACTIVE,
+        priority_band=Profile.PriorityBand.LOW,
+    )
+    review_profile = Profile.objects.create(
+        author=review_author,
+        nickname="Review profile",
+        status=Profile.Status.REVIEW,
+        priority_band=Profile.PriorityBand.HIGH,
+    )
+
+    request = RequestFactory().get("/", {"status": Profile.Status.REVIEW.value})
+    view = ProfileChoiceFilterHarness(request)
+    filterset = view.get_filterset(Profile.objects.all())
+
+    assert filterset is not None, (
+        "Expected an auto-generated filterset for model choice field coverage."
+    )
+    assert isinstance(filterset.filters["status"], ChoiceFilter), (
+        "Model fields with choices should generate ChoiceFilter instances."
+    )
+    assert isinstance(filterset.form.fields["status"].widget, forms.Select), (
+        "Model fields with choices should render as dropdown selects."
+    )
+    assert (
+        "select"
+        in filterset.form.fields["status"].widget.attrs.get("class", "").split()
+    ), "Choice field filters should receive select widget styling."
+    assert (
+        (Profile.Status.REVIEW.value, Profile.Status.REVIEW.label)
+        in list(filterset.form.fields["status"].choices)
+    ), "Choice field filters should expose the model field's declared choices."
+    assert isinstance(filterset.filters["priority_band"], ChoiceFilter), (
+        "Every configured model field with choices should use a ChoiceFilter."
+    )
+    assert isinstance(filterset.filters["nickname"], CharFilter), (
+        "Plain CharField filters without choices should remain text filters."
+    )
+    assert isinstance(filterset.form.fields["nickname"].widget, forms.TextInput), (
+        "Plain CharField filters without choices should still render text inputs."
+    )
+    assert list(filterset.qs) == [review_profile], (
+        "ChoiceFilter should apply an exact-value filter for the selected choice."
+    )
+    assert active_profile not in list(filterset.qs), (
+        "Rows with other choice values should not remain in the filtered result."
+    )
 
 
 @pytest.mark.django_db

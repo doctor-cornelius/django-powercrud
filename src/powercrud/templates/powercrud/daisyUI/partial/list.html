@@ -481,14 +481,14 @@
         {% if cell.is_inline_editable and form %}
             {% with inline_field=form|get_form_field:cell.name %}
             {% if inline_field %}
-                <label class="sr-only" for="{{ inline_field.id_for_label }}">{{ inline_field.label|default:cell.name|title }}</label>
+                <label class="sr-only" for="{{ inline_field.id_for_label }}">{{ inline_field.label|default:cell.label }}</label>
                 <div
                     class="inline-field-widget w-full{% if inline_field.errors %} pc-inline-field-error{% endif %}"
                     data-inline-field="{{ cell.name }}"
                     {% if inline_field.errors %}
                         data-inline-field-error="true"
                         data-inline-error-field="{{ cell.name }}"
-                        data-inline-error-label="{{ inline_field.label|default:cell.name|title }}"
+                        data-inline-error-label="{{ inline_field.label|default:cell.label }}"
                         data-inline-error-message="{{ inline_field.errors|join:', ' }}"
                     {% endif %}
                     {% if cell.dependency %}
