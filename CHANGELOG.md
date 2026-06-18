@@ -6,6 +6,9 @@ During the `0.x` series, breaking changes can occur, although we try to minimise
 
 Version numbers below correspond to published git tags. The more important releases include a little extra narrative and upgrade context; smaller patch releases remain deliberately brief. For full detail between any two versions, use the GitHub compare view for the matching tags.
 
+## 0.7.14 (2026-06-18)
+- **Fix (release)**: finalize prereleases without new commits
+
 ## 0.7.14b1 (2026-06-18)
 - **Feature (release)**: surface sample runtime metadata
 
