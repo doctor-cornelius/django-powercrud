@@ -31,7 +31,7 @@ jobs:
           import tomllib
 
           release_version = os.environ["RELEASE_VERSION"]
-          if not re.fullmatch(r"\d+\.\d+\.\d+(?:(?:a|b|rc)\d+)?", release_version):
+          if not re.fullmatch(r"\d+\.\d+\.\d+(?:(?:a|b)\d+)?", release_version):
               raise SystemExit(f"Tag {release_version!r} is not a publishable release tag")
 
           data = tomllib.loads(pathlib.Path("pyproject.toml").read_text())

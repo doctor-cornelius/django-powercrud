@@ -6,7 +6,7 @@ STATE_FILE=".git/new_release_state.json"
 function show_help {
     cat <<'EOF'
 Usage:
-  ./new_release.sh --prepare <patch|minor|major> [--prerelease <alpha|beta|rc>] [--breaking-notes-file <path>]
+  ./new_release.sh --prepare <patch|minor|major> [--prerelease <alpha|beta>] [--breaking-notes-file <path>]
   ./new_release.sh --publish
   ./new_release.sh --abort
   ./new_release.sh --help
@@ -287,7 +287,7 @@ import sys
 
 text = pathlib.Path("pyproject.toml").read_text(encoding="utf-8")
 match = re.search(
-    r'^version\s*=\s*"(?P<version>\d+\.\d+\.\d+(?:(?:a|b|rc)\d+)?)"\s*$',
+    r'^version\s*=\s*"(?P<version>\d+\.\d+\.\d+(?:(?:a|b)\d+)?)"\s*$',
     text,
     re.M,
 )
@@ -297,7 +297,7 @@ if not match:
 version_text = match.group("version")
 parsed = re.fullmatch(
     r"(?P<major>\d+)\.(?P<minor>\d+)\.(?P<patch>\d+)"
-    r"(?:(?P<pre_kind>a|b|rc)(?P<pre_num>\d+))?",
+    r"(?:(?P<pre_kind>a|b)(?P<pre_num>\d+))?",
     version_text,
 )
 if not parsed:
@@ -312,8 +312,8 @@ is_prerelease = current_pre_kind is not None
 
 bump = sys.argv[1]
 requested_prerelease = sys.argv[2]
-requested_suffix = {"": "", "alpha": "a", "beta": "b", "rc": "rc"}[requested_prerelease]
-prerelease_order = {"a": 0, "b": 1, "rc": 2}
+requested_suffix = {"": "", "alpha": "a", "beta": "b"}[requested_prerelease]
+prerelease_order = {"a": 0, "b": 1}
 
 if bump == "major":
     target = (major + 1, 0, 0)
@@ -356,7 +356,7 @@ new_version = sys.argv[1]
 path = pathlib.Path("pyproject.toml")
 text = path.read_text(encoding="utf-8")
 new_text = re.sub(
-    r'(version\s*=\s*")(\d+\.\d+\.\d+(?:(?:a|b|rc)\d+)?)(")',
+    r'(version\s*=\s*")(\d+\.\d+\.\d+(?:(?:a|b)\d+)?)(")',
     lambda m: f'{m.group(1)}{new_version}{m.group(3)}',
     text,
     count=1,
@@ -1015,14 +1015,14 @@ while [[ $# -gt 0 ]]; do
             ;;
         --prerelease)
             if [[ $# -lt 2 ]]; then
-                die "--prerelease requires alpha, beta, or rc."
+                die "--prerelease requires alpha or beta."
             fi
             case "$2" in
-                alpha|beta|rc)
+                alpha|beta)
                     PRERELEASE_KIND="$2"
                     ;;
                 *)
-                    die "--prerelease must be one of alpha, beta, or rc."
+                    die "--prerelease must be alpha or beta."
                     ;;
             esac
             shift 2

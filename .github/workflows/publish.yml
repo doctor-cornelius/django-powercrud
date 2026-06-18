@@ -25,10 +25,10 @@ jobs:
           import re
 
           tag_name = os.environ["TAG_NAME"]
-          if not re.fullmatch(r"\d+\.\d+\.\d+(?:(?:a|b|rc)\d+)?", tag_name):
+          if not re.fullmatch(r"\d+\.\d+\.\d+(?:(?:a|b)\d+)?", tag_name):
               raise SystemExit(f"Tag {tag_name!r} is not a publishable release tag")
 
-          prerelease = re.search(r"(?:a|b|rc)\d+$", tag_name) is not None
+          prerelease = re.search(r"(?:a|b)\d+$", tag_name) is not None
           with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as fh:
               print(f"version={tag_name}", file=fh)
               print(f"prerelease={'true' if prerelease else 'false'}", file=fh)

@@ -188,8 +188,14 @@ def test_sample_templates_cover_vite_and_manual_static_loading_modes() -> None:
     assert "{% vite_asset 'config/static/js/main.js' %}" in vite_template, (
         "The normal sample base should continue to exercise the Vite manifest entry."
     )
+    assert '{% include "sample/_runtime_meta.html" %}' in vite_template, (
+        "The normal sample base should include the shared runtime metadata footer."
+    )
     assert "django_vite" not in manual_template, (
         "The manual-static sample base should not load django-vite tags."
+    )
+    assert '{% include "sample/_runtime_meta.html" %}' in manual_template, (
+        "The manual-static sample base should include the shared runtime metadata footer."
     )
     assert "{% static 'powercrud/css/powercrud.css' %}" in manual_template, (
         "The manual-static sample base should load PowerCRUD CSS through Django static tags."
