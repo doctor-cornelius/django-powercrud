@@ -188,6 +188,14 @@ def test_validator_defaults_list_cell_link_default_open_in_to_new():
     )
 
 
+def test_validator_defaults_paginate_by_to_package_page_size():
+    validator = PowerCRUDMixinValidator()
+
+    assert validator.paginate_by == 25, (
+        "Omitted paginate_by should validate to PowerCRUD's package default page size."
+    )
+
+
 def test_validator_rejects_invalid_list_cell_link_default_open_in():
     with pytest.raises(ValueError):
         PowerCRUDMixinValidator(list_cell_link_default_open_in="popup")

@@ -312,7 +312,7 @@ def test_pagination_controls_advance_across_multiple_pages(
             description="Created to exercise HTMX pagination controls across pages",
         )
 
-    page.goto(books_url)
+    page.goto(f"{books_url}?page_size=5")
     page.wait_for_load_state("networkidle")
 
     pagination = page.get_by_role("navigation", name=re.compile("page navigation", re.I))

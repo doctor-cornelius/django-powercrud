@@ -569,6 +569,44 @@ def test_paginate_mixin_get_paginate_by_handles_query_params():
     assert view.get_paginate_by() == 25
 
 
+def test_paginate_mixin_get_paginate_by_uses_package_default_when_unset():
+    rf = RequestFactory()
+
+    class PaginateView(PaginateMixin):
+        pass
+
+    view = PaginateView()
+    view.request = rf.get("/")
+
+    assert view.get_paginate_by() == 25, (
+        "Omitted paginate_by should fall back to PowerCRUD's package default page size."
+    )
+
+
+def test_powercrud_view_default_paginate_by_ignores_neapolitan_none():
+    rf = RequestFactory()
+    view = sample_views.BookCRUDView()
+    view.request = rf.get("/")
+
+    assert view.get_paginate_by() == 25, (
+        "PowerCRUD's default page size should not be shadowed by Neapolitan's inherited paginate_by=None."
+    )
+
+
+def test_powercrud_view_can_explicitly_disable_default_pagination():
+    rf = RequestFactory()
+
+    class UnpaginatedBookView(sample_views.BookCRUDView):
+        paginate_by = None
+
+    view = UnpaginatedBookView()
+    view.request = rf.get("/")
+
+    assert view.get_paginate_by() is None, (
+        "An explicit view-level paginate_by=None should opt out of default pagination."
+    )
+
+
 def test_paginate_mixin_page_size_options_are_strings_without_duplicates():
     class PaginateView(PaginateMixin):
         paginate_by = 12
@@ -2656,6 +2694,12 @@ def test_book_list_page_size_form_includes_only_page_size_and_filter_form(client
     )
     assert 'class="cursor-pointer" name="page_size"' in response_text, (
         "The page-size select should use a pointer cursor to match clickable toolbar controls."
+    )
+    assert re.search(r'<option value="25"\s+selected\s*>\s*25\s*</option>', response_text), (
+        "The default Book list page-size selection should follow PowerCRUD's package default."
+    )
+    assert not re.search(r'<option value="all"\s+selected', response_text), (
+        "The Book list should not select All unless pagination is explicitly disabled."
     )
 
 

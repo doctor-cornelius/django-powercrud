@@ -8,7 +8,7 @@ from typing import Any, Callable
 
 from ..actions import PowerAction, PowerButton
 from ..powerfields import compile_powerfields
-from ..validators import PowerCRUDMixinValidator
+from ..validators import DEFAULT_PAGINATE_BY, PowerCRUDMixinValidator
 
 from powercrud.conf import get_powercrud_setting
 from powercrud.logging import get_logger
@@ -187,7 +187,7 @@ class ConfigMixin:
     async_manager_config: dict | None = None
 
     # pagination defaults
-    paginate_by: int | None = None
+    paginate_by: int | None = DEFAULT_PAGINATE_BY
 
     EXTRA_CONFIG_FIELDS = {
         "form_class",
@@ -1521,6 +1521,8 @@ class _ConfigShim:
             return self._raw("inline_edit_highlight_accent") or "#14b8a6"
         if name == "inline_save_refresh_policy":
             return self._raw("inline_save_refresh_policy") or "reset_if_filtered_out"
+        if name == "paginate_by":
+            return self._raw("paginate_by", ConfigMixin.paginate_by)
         if name == "view_help_default_color":
             return self._raw("view_help_default_color") or "base"
         if name == "view_help_min_width":
@@ -1693,6 +1695,23 @@ def _get_config_field_names() -> set[str]:
     )
 
 
+def _resolve_paginate_by_class_default(view_cls: type) -> int | None:
+    """
+    Return a view-declared pagination default, falling back to PowerCRUD's default.
+
+    Django and Neapolitan expose ``paginate_by = None`` on their base views.
+    PowerCRUD should only treat ``None`` as an explicit opt-out when it is
+    declared on the PowerCRUD side of the hierarchy before ``ConfigMixin``.
+    """
+    for cls in view_cls.__mro__:
+        if cls is ConfigMixin:
+            break
+        if "paginate_by" in getattr(cls, "__dict__", {}):
+            return cls.__dict__["paginate_by"]
+
+    return ConfigMixin.paginate_by
+
+
 def resolve_class_config(view_cls):
     """
     Return a shallow class-level configuration snapshot for URL registration.
@@ -1705,6 +1724,9 @@ def resolve_class_config(view_cls):
     field_names = _get_config_field_names()
     config: dict[str, Any] = {}
     for attr in field_names:
+        if attr == "paginate_by":
+            config[attr] = _resolve_paginate_by_class_default(view_cls)
+            continue
         if hasattr(view_cls, attr):
             value = getattr(view_cls, attr)
             config[attr] = _copy_config_value(value)

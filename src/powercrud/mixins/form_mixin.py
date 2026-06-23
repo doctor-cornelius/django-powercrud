@@ -594,13 +594,10 @@ class FormMixin:
             self._apply_dropdown_sorting(form_class)
             return form_class
 
-        # Create a new instance to check if it has a helper
-        _temp_form = form_class()
-        has_helper = hasattr(_temp_form, "helper")
+        old_init = self._get_powercrud_crispy_original_init(form_class)
+        has_helper = self._get_powercrud_crispy_original_has_helper(form_class)
 
         if not has_helper:
-            old_init = form_class.__init__
-
             def new_init(self, *args, **kwargs):
                 old_init(self, *args, **kwargs)
                 self.helper = FormHelper()
@@ -609,8 +606,6 @@ class FormMixin:
 
             form_class.__init__ = new_init
         else:
-            old_init = form_class.__init__
-
             def new_init(self, *args, **kwargs):
                 old_init(self, *args, **kwargs)
 
@@ -628,6 +623,32 @@ class FormMixin:
         self._apply_dropdown_sorting(form_class)
 
         return form_class
+
+    def _get_powercrud_crispy_original_init(self, form_class):
+        """
+        Return the unwrapped form ``__init__`` used by PowerCRUD crispy helpers.
+
+        Shared form classes can be resolved many times in one process. Preserve
+        the original initializer once so repeated configuration does not stack
+        wrapper functions recursively.
+        """
+        original_init = getattr(form_class, "_powercrud_crispy_original_init", None)
+        if original_init is None:
+            original_init = form_class.__init__
+            setattr(form_class, "_powercrud_crispy_original_init", original_init)
+        return original_init
+
+    def _get_powercrud_crispy_original_has_helper(self, form_class) -> bool:
+        """
+        Return whether the unwrapped form class originally created a crispy helper.
+        """
+        marker_name = "_powercrud_crispy_original_has_helper"
+        original_has_helper = getattr(form_class, marker_name, None)
+        if original_has_helper is None:
+            _temp_form = form_class()
+            original_has_helper = hasattr(_temp_form, "helper")
+            setattr(form_class, marker_name, original_has_helper)
+        return bool(original_has_helper)
 
     def _apply_dropdown_sorting(self, form_class):
         """Apply dropdown sorting to form fields."""

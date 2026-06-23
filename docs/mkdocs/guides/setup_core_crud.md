@@ -362,7 +362,7 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
     paginate_by = 25
 ```
 
-The view renders every record when `paginate_by` is left unset (`None`). Supplying a number enables server-side pagination and exposes built-in tooling:
+PowerCRUD paginates list views at 25 rows per page by default. Set `paginate_by` to another number to choose a different default page size, or set `paginate_by = None` when a view should render every record by default.
 
 - Users can override the page size at runtime with `?page_size=10` (or `?page_size=all` to disable pagination temporarily). A standard list of sizes (5/10/25/50/100 plus your default) powers the UI selector.
 - When filters change, the mixin automatically snaps back to page 1 so users do not land on empty pages.

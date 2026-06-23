@@ -3,6 +3,8 @@ from typing import Union, Optional, List, Literal, Dict, Any, Callable
 import re
 
 
+DEFAULT_PAGINATE_BY = 25
+
 VIEW_HELP_COLOR_NAMES = {
     "base",
     "primary",
@@ -159,7 +161,7 @@ class PowerCRUDMixinValidator(BaseModel):
     async_manager_class: Optional[Any] = None
     async_manager_class_path: Optional[str] = None
     async_manager_config: Optional[Dict[str, Any]] = None
-    paginate_by: Optional[int] = None
+    paginate_by: Optional[int] = DEFAULT_PAGINATE_BY
 
     @field_validator("fields", "properties", "detail_fields", "detail_properties")
     @classmethod
