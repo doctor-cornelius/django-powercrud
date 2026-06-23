@@ -1,0 +1,1 @@
+# Permission-Aware Affordances Plan
