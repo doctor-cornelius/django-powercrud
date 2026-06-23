@@ -1003,7 +1003,7 @@ def test_reset_view_clears_favourite_filter_page_size_and_visible_columns(
     ensure_htmx_available(page)
 
     expect(page.locator("#filter-form input[name='title']")).to_have_value("")
-    expect(page.locator("#page-size-select")).to_have_value("5")
+    expect(page.locator("#page-size-select")).to_have_value("25")
     expect(page.locator("td[data-field-name='uneditable_field']")).to_have_count(0)
     expect(page.locator("#filtered_results")).to_contain_text(other_book.title)
 

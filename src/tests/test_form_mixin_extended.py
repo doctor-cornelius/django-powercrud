@@ -157,6 +157,44 @@ def test_get_form_class_uses_crispy(settings):
 
 
 @pytest.mark.django_db
+def test_get_form_class_crispy_wrapper_is_idempotent(settings):
+    if "crispy_forms" not in settings.INSTALLED_APPS:
+        settings.INSTALLED_APPS = tuple(settings.INSTALLED_APPS) + ("crispy_forms",)
+
+    class SharedBookForm(forms.ModelForm):
+        """Shared form class used to prove crispy init wrapping is idempotent."""
+
+        class Meta:
+            model = Book
+            fields = ["title", "author", "published_date"]
+
+    class SharedFormView(FormMixin, CoreMixin):
+        """Configured view using a reusable custom form class."""
+
+        model = Book
+        fields = "__all__"
+        use_crispy = True
+        form_class = SharedBookForm
+
+    original_init = SharedBookForm.__init__
+    view = SharedFormView()
+
+    for _ in range(5):
+        form_class = view.get_form_class()
+
+    assert SharedBookForm._powercrud_crispy_original_init is original_init, (
+        "PowerCRUD should preserve the custom form's original __init__ instead of wrapping a wrapper."
+    )
+    form = form_class()
+    assert hasattr(form, "helper"), (
+        "The idempotent crispy wrapper should still attach the form helper."
+    )
+    assert form.helper.form_tag is False, (
+        "The crispy wrapper should keep PowerCRUD modal-compatible form helper settings."
+    )
+
+
+@pytest.mark.django_db
 def test_get_form_class_without_crispy(settings):
     settings.INSTALLED_APPS = tuple(
         app for app in settings.INSTALLED_APPS if app != "crispy_forms"
