@@ -21,6 +21,18 @@ PowerCRUD currently has some good row-state hooks, but it does not provide one c
 
 ## Current Behavior
 
+### Evidence Anchors
+
+The diagnosis is grounded in the current PowerCRUD and Neapolitan flow:
+
+1. The list template renders Create only when `create_view_url` is present.
+2. Neapolitan exposes CRUD operations by registered role and URL reversal. It does not provide model-permission filtering for those roles.
+3. Built-in View/Edit/Delete row actions are rendered from reversible URLs. Edit and Delete then pass through PowerCRUD's disabled-state resolver.
+4. PowerCRUD's standard-action disabled resolver calls `can_update_object()` and `can_delete_object()`, but those hooks default open and are not Django permission checks by default.
+5. Inline edit already composes row lock state, `can_update_object()`, optional `inline_edit_requires_perm`, and optional `inline_edit_allowed()`.
+6. Extra toolbar buttons currently derive disabled state from selection state only; they do not have generic permission, `hidden_if`, or `disabled_state` handling.
+7. Bulk operations validate configured fields and whether bulk delete is enabled, but do not have per-user permission hooks.
+
 ### Built-In Create
 
 The list template shows the Create button when `create_view_url` is present.
@@ -505,7 +517,7 @@ The docs should avoid implying that `hidden_if` is permission-specific. It is no
 
 The enhancement is worth doing, but it should be small and staged.
 
-Recommended first slice:
+Recommended first slice, if one implementation branch is used:
 
 1. Add permission metadata and UI behavior to primitive `extra_actions` and `PowerAction`.
 2. Add permission metadata and UI behavior to primitive `extra_buttons` and `PowerButton`.
@@ -514,6 +526,11 @@ Recommended first slice:
 5. Add `has_power_update_permission(request, obj)` and compose it with `can_update_object()`.
 6. Add `has_power_delete_permission(request, obj)` and compose it with `can_delete_object()`.
 7. Add focused tests proving UI and backend behavior for built-in create/update/delete.
+
+If that is too broad once implementation starts, split it into two smaller slices:
+
+1. First add the central resolver plus permission-aware UI for `PowerAction`, `PowerButton`, and Create.
+2. Then add backend-enforced built-in update/delete permission composition.
 
 Defer until the first contract settles:
 
