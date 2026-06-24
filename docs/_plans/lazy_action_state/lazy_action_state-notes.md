@@ -51,7 +51,7 @@ Future tooltip direction, if resumed later:
 
 ## Proposed Row-Action API Shape
 
-Possible names:
+Accepted public config:
 
 ```python
 PowerAction(
@@ -78,6 +78,24 @@ extra_actions = [
 ```
 
 Default should remain eager.
+
+## Locked Phase A API And UX Decisions
+
+1. Public config is `disabled_state_mode="lazy"`.
+2. Lazy state hydration is one row-level request when the user opens `More`.
+3. The request returns state for all lazy actions in that row dropdown.
+4. PowerCRUD waits for lazy state before opening the dropdown.
+5. While waiting, the `More` trigger should expose a loading or busy state.
+6. Lazy row-action state outside dropdown mode is invalid configuration.
+7. If lazy state resolution fails, unresolved lazy actions render disabled with a generic unavailable message.
+
+Reasoning:
+
+1. `disabled_state_mode="lazy"` reads beside `disabled_state` and leaves room for future modes.
+2. One row-level request avoids a request per action and matches the user intent of opening that row's menu.
+3. Waiting before opening avoids temporary false states and dropdown flicker.
+4. Rejecting button mode is clearer than silently falling back to eager behavior.
+5. Disabling unresolved actions is safer than hiding them or leaving them enabled after validation failed.
 
 ## Proposed Tooltip API Shape
 
@@ -123,13 +141,13 @@ Do not make `hidden_if` lazy in the first slice. If an action is truly not appli
 
 Lazy cell tooltips remain a worthwhile later feature, but they should not be mixed into the first implementation PR.
 
-Remaining decisions before Phase B:
+The remaining Phase A decisions are now locked:
 
-1. Public config name: prefer `disabled_state_mode="lazy"` over `lazy_disabled_state=True` because it leaves room for future modes and reads beside `disabled_state`.
-2. Dropdown hydration shape: prefer one row-level request when `More` opens, returning state for all lazy actions in that dropdown.
-3. Loading behavior: decide whether the menu opens immediately with loading/disabled placeholders, or waits briefly until lazy state returns.
-4. Unsupported button mode: prefer a validation error if an action asks for lazy state while `extra_actions_mode != "dropdown"`, rather than silently falling back to eager behavior.
-5. Error behavior: prefer disabling unresolved lazy actions with a generic unavailable message if the lazy-state request fails.
+1. Use `disabled_state_mode="lazy"`.
+2. Fetch all lazy action states for the row in one request.
+3. Wait for state before opening the dropdown.
+4. Raise a validation error for lazy state outside dropdown mode.
+5. Disable unresolved lazy actions with a generic unavailable message if state resolution fails.
 
 ### Phase B: Add Row-Action Lazy State
 

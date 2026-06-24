@@ -4,6 +4,7 @@
 
 - [x] Initial planning folder created.
 - [x] Phase A row-action scope locked.
+- [x] Phase A API and UX decisions locked.
 - [x] Lazy cell tooltips deferred from the first implementation slice.
 - [ ] API contract not implemented.
 - [ ] Runtime endpoints not implemented.
@@ -11,8 +12,7 @@
 
 ## Next
 
-1. Confirm the remaining Phase A naming and UX decisions.
-2. Implement only the dropdown lazy `disabled_state` path in Phase B.
+1. Implement only the dropdown lazy `disabled_state` path in Phase B.
 
 ## Phase A: Lock The Scope
 
@@ -26,10 +26,12 @@
     1. [x] Keep the likely future shape as field-level opt-in.
     2. [x] Preserve eager tooltip behavior by default.
     3. [x] Keep tooltip content display-only, not validation authority.
-3. [ ] Confirm remaining first-slice API and UX decisions.
-    1. [ ] Confirm the public config name.
-    2. [ ] Confirm row-dropdown hydration behavior.
-    3. [ ] Confirm unsupported button-mode handling.
+3. [x] Confirm remaining first-slice API and UX decisions.
+    1. [x] Use `disabled_state_mode="lazy"` as the public config.
+    2. [x] Hydrate all lazy action states for the row in one request when `More` opens.
+    3. [x] Wait for lazy state before opening the dropdown.
+    4. [x] Reject lazy row-action state outside dropdown mode.
+    5. [x] Disable unresolved lazy actions with a generic unavailable message when state resolution fails.
 
 ## Phase B: Add Row-Action Lazy State
 
