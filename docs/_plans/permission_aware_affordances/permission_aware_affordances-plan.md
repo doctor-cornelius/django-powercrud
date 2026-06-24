@@ -7,6 +7,7 @@
 - [x] Phase B implementation added.
 - [x] Phase C implementation added.
 - [x] DDMS validation captured in notes.
+- [x] DDMS caveats captured in notes.
 
 ## Next
 
@@ -59,8 +60,10 @@
     3. [ ] Add `has_power_delete_permission(request, obj)`.
 2. [ ] Apply the hooks to PowerCRUD-owned UI and endpoints.
     1. [ ] Hide Create/Edit/Delete when permission fails.
-    2. [ ] Deny direct endpoint access when permission fails.
-    3. [ ] Keep row-state disabling separate through `can_update_object()` and `can_delete_object()`.
+    2. [ ] Deny direct create access before form rendering or persistence.
+    3. [ ] Resolve objects before update/delete permission checks.
+    4. [ ] Deny direct update/delete access before form rendering, persistence, or delete execution.
+    5. [ ] Keep row-state disabling separate through `can_update_object()` and `can_delete_object()`.
 
 ## Phase E: Tests And Documentation
 
@@ -82,3 +85,4 @@
     1. [ ] Defer list/detail permission hooks.
     2. [ ] Defer field-sensitive permissions.
     3. [ ] Defer callable permission declarations.
+    4. [ ] Keep DDMS timeline GET/POST handling downstream-owned.

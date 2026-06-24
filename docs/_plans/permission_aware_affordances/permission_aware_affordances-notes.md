@@ -344,15 +344,9 @@ That avoids showing business-state details to users who lack the operation permi
 
 PowerCRUD-owned endpoints should have permission hooks that apply to both UI affordances and backend handling.
 
-Possible hooks:
+Phase D should stay focused on mutation operations:
 
 ```python
-def has_power_list_permission(self, request):
-    return True
-
-def has_power_detail_permission(self, request, obj=None):
-    return True
-
 def has_power_create_permission(self, request):
     return True
 
@@ -367,8 +361,8 @@ The default should be open for backward compatibility.
 
 PowerCRUD should use these hooks in both places:
 
-1. UI rendering: Create, View, Edit, Delete affordances.
-2. Backend endpoints: list, detail, create, update, delete handlers.
+1. UI rendering: Create, Edit, and Delete affordances.
+2. Backend endpoints: create, update, and delete handlers.
 
 For the first design, built-in Create, Edit, and Delete do not need a per-control `permission_behavior` setting. If the relevant permission hook returns `False`, the UI affordance should be hidden. Backend access should be denied for direct requests.
 
@@ -379,6 +373,15 @@ For update and delete, these permission hooks should compose with existing row-s
 3. Both must pass for backend mutation.
 4. Permission failure should normally hide the UI affordance.
 5. Row-state failure should normally disable the UI affordance with an optional reason.
+
+Backend handling order matters:
+
+1. Create permission can be checked before form rendering because it does not need an object.
+2. Update and delete permission must be checked after object resolution because the hooks receive `obj`.
+3. Update permission failure should deny before form rendering and before persistence.
+4. Delete permission failure should deny before confirmation handling and before delete execution.
+
+List/detail permission hooks remain deferred. DDMS already owns screen access through its own view-level permission mechanisms, and this PowerCRUD slice should not expand into general screen authorization.
 
 ### Bulk Permissions
 
@@ -427,18 +430,17 @@ The backend enforcement boundary differs by surface.
 
 ### PowerCRUD-Owned Surfaces
 
-PowerCRUD should enforce permission hooks for endpoints it owns:
+PowerCRUD should enforce permission hooks for endpoints it owns, where those hooks exist:
 
-1. list
-2. detail
-3. create
-4. update
-5. delete
-6. inline edit
-7. bulk update
-8. bulk delete
-9. list options endpoints if they become permission-sensitive
-10. selection endpoints if they expose sensitive scope
+1. create
+2. update
+3. delete
+4. inline edit if it is brought under the update hook
+5. bulk update when bulk permission hooks are added
+6. bulk delete when bulk permission hooks are added
+7. list/detail if those hooks are added later
+8. list options endpoints if they become permission-sensitive
+9. selection endpoints if they expose sensitive scope
 
 For these surfaces, it is reasonable and useful for the same PowerCRUD permission policy to drive both UI and backend behavior.
 
@@ -503,6 +505,8 @@ Key validation points:
 6. PowerCRUD hiding an extra action or extra button must not be treated as backend protection for custom DDMS endpoints.
 7. Operation-level permission is enough for the first slice; field-sensitive permission can wait.
 8. Bulk operations are the likely next gap for viewer-accessible screens.
+9. Built-in update/delete backend checks must happen after object resolution and before form rendering, persistence, or delete execution.
+10. DDMS timeline GET/POST handling is downstream-specific. If viewers can see timelines but cannot add comments, DDMS must split or guard timeline POST separately from PowerCRUD affordance work.
 
 DDMS-style usage:
 
@@ -568,9 +572,28 @@ Verification:
 
 ### Phase D: Built-In Create Edit Delete
 
+Phase D can move forward without reworking Phases A-C.
+
+Notes for implementation:
+
+1. Keep default permissions open for backward compatibility.
+2. Hide built-in Create/Edit/Delete on permission failure.
+3. Deny direct create access before form rendering or persistence.
+4. Resolve the object before update/delete permission checks.
+5. Deny direct update/delete access before form rendering, persistence, or delete execution.
+6. Keep `can_update_object()` and `can_delete_object()` as row/workflow-state hooks, evaluated only after permission passes for UI composition.
+
 ### Phase E: Tests And Documentation
 
 ### Phase F: Deferred Follow-Up Register
+
+Deferred items remain unchanged:
+
+1. Bulk permission hooks are still the likely next gap after Phase D.
+2. List/detail permission hooks remain deferred.
+3. Field-sensitive permissions remain deferred.
+4. Callable permission declarations remain deferred.
+5. DDMS timeline GET/POST behavior remains downstream-owned.
 
 ## Compatibility Requirements
 
@@ -597,6 +620,8 @@ Public docs should be very explicit about the layers:
 6. Extra action and extra button endpoints must enforce permissions downstream.
 7. `permission` is for permission strings, while `permission_check` is for named view methods.
 8. `permission_behavior` takes precedence over `hidden_if` and `disabled_state`; those row-state hooks still run only after permission passes or after permission is converted to a disabled affordance.
+9. Built-in update/delete direct-route checks happen after object lookup and before form rendering, persistence, or delete execution.
+10. DDMS-style timeline concerns are downstream-owned and not solved by PowerCRUD action affordances.
 
 The docs should avoid implying that `hidden_if` is permission-specific. It is not. It may be, and often is, row-state specific.
 
@@ -617,6 +642,7 @@ Settled direction:
 8. `permission_check` should use one signature everywhere: `permission_check(request, obj=None)`.
 9. Operation-level permission is enough for the first slice; field-sensitive permission is deferred.
 10. Bulk permission hooks are a likely follow-up, and viewer-accessible downstream views should disable bulk controls until those hooks exist.
+11. Completed Phases A-C do not need rework based on the latest DDMS feedback.
 
 ## Initial Recommendation
 
