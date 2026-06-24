@@ -525,6 +525,8 @@ The target endpoint still needs its DDMS permission decorator or equivalent serv
 
 ### Phase A: Lock The API Contract
 
+Phase A implementation added the shared permission fields, structured API parity, primitive config validation, and the default resolver. Focused tests were added, but the required container test command could not run because `powercrud_django_dev` was not running.
+
 ### Phase B: Extra Actions And PowerAction
 
 ### Phase C: Extra Buttons And PowerButton

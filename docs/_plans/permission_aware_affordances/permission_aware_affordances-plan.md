@@ -2,24 +2,25 @@
 
 ## Status
 
-- [ ] Implementation not started.
+- [x] Phase A implementation added.
+- [ ] Focused container test run pending; `powercrud_django_dev` was not running.
 - [x] DDMS validation captured in notes.
 
 ## Next
 
-- [ ] Begin Phase A by locking the base API contract and validation rules.
+- [ ] Run focused Phase A tests once the Django container is running.
 
 ## Phase A: Lock The API Contract
 
-1. [ ] Define the base dictionary contract for permission-aware affordances.
-    1. [ ] Add `permission` as a permission-string field.
-    2. [ ] Add `permission_check` as a named view-method field.
-    3. [ ] Add `permission_behavior` with default hide behavior.
-    4. [ ] Add `permission_denied_reason` for disabled permission failures.
-2. [ ] Lock validation and resolver behavior.
-    1. [ ] Raise `ImproperlyConfigured` when `permission` and `permission_check` are both set.
-    2. [ ] Standardize `permission_check(request, obj=None)`.
-    3. [ ] Add the overridable `has_power_permission(permission, request, obj=None)` resolver.
+1. [x] Define the base dictionary contract for permission-aware affordances.
+    1. [x] Add `permission` as a permission-string field.
+    2. [x] Add `permission_check` as a named view-method field.
+    3. [x] Add `permission_behavior` with default hide behavior.
+    4. [x] Add `permission_denied_reason` for disabled permission failures.
+2. [x] Lock validation and resolver behavior.
+    1. [x] Raise `ImproperlyConfigured` when `permission` and `permission_check` are both set.
+    2. [x] Standardize `permission_check(request, obj=None)`.
+    3. [x] Add the overridable `has_power_permission(permission, request, obj=None)` resolver.
 
 ## Phase B: Extra Actions And PowerAction
 

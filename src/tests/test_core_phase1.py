@@ -838,6 +838,111 @@ def test_core_mixin_accepts_powerbutton_in_extra_buttons():
 
 
 @pytest.mark.django_db
+def test_core_mixin_accepts_permission_config_in_extra_buttons():
+    """Accept primitive extra button permission affordance settings."""
+    class ButtonView(CoreMixin):
+        model = Book
+        fields = "__all__"
+        base_template_path = "sample/base.html"
+        extra_buttons = [
+            {
+                "url_name": "sample:bigbook-list",
+                "text": "Admin Review",
+                "permission_check": "can_use_admin_review",
+            },
+            {
+                "url_name": "sample:bigbook-selected-summary",
+                "text": "Selected Summary",
+                "permission": "sample.view_selected_summary",
+                "permission_behavior": "disable",
+                "permission_denied_reason": "You cannot use selected summaries.",
+            },
+        ]
+
+        def can_use_admin_review(self, request, obj=None):
+            """Return whether the user can use the admin review button."""
+            return True
+
+    view = ButtonView()
+
+    assert view.extra_buttons[0]["permission_check"] == "can_use_admin_review", (
+        "Primitive extra_buttons should preserve valid permission_check hooks."
+    )
+    assert view.extra_buttons[0]["permission_behavior"] == "hide", (
+        "Primitive extra_buttons should default permission behavior to hide when omitted."
+    )
+    assert view.extra_buttons[1]["permission"] == "sample.view_selected_summary", (
+        "Primitive extra_buttons should preserve valid permission strings."
+    )
+    assert view.extra_buttons[1]["permission_behavior"] == "disable", (
+        "Primitive extra_buttons should preserve explicit permission behavior."
+    )
+
+
+@pytest.mark.django_db
+def test_core_mixin_rejects_unknown_extra_button_permission_check():
+    """Reject primitive extra button permission checks that do not resolve."""
+    class BrokenView(CoreMixin):
+        model = Book
+        fields = "__all__"
+        base_template_path = "sample/base.html"
+        extra_buttons = [
+            {
+                "url_name": "sample:bigbook-list",
+                "text": "Admin Review",
+                "permission_check": "missing_permission_check",
+            }
+        ]
+
+    with pytest.raises(ImproperlyConfigured, match="permission_check"):
+        BrokenView()
+
+
+@pytest.mark.django_db
+def test_core_mixin_rejects_mixed_extra_button_permission_declarations():
+    """Reject ambiguous primitive extra button permission declarations."""
+    class BrokenView(CoreMixin):
+        model = Book
+        fields = "__all__"
+        base_template_path = "sample/base.html"
+        extra_buttons = [
+            {
+                "url_name": "sample:bigbook-list",
+                "text": "Admin Review",
+                "permission": "sample.manage_books",
+                "permission_check": "can_manage_books",
+            }
+        ]
+
+        def can_manage_books(self, request, obj=None):
+            """Return whether the user can manage books."""
+            return True
+
+    with pytest.raises(ImproperlyConfigured, match="permission"):
+        BrokenView()
+
+
+@pytest.mark.django_db
+def test_core_mixin_rejects_invalid_extra_button_permission_behavior():
+    """Reject unknown primitive extra button permission behavior values."""
+    class BrokenView(CoreMixin):
+        model = Book
+        fields = "__all__"
+        base_template_path = "sample/base.html"
+        extra_buttons = [
+            {
+                "url_name": "sample:bigbook-list",
+                "text": "Admin Review",
+                "permission": "sample.manage_books",
+                "permission_behavior": "show",
+            }
+        ]
+
+    with pytest.raises(ImproperlyConfigured, match="permission_behavior"):
+        BrokenView()
+
+
+@pytest.mark.django_db
 def test_core_mixin_rejects_unknown_extra_action_disabled_hook():
     class BrokenView(CoreMixin):
         model = Book
@@ -1020,6 +1125,132 @@ def test_core_mixin_accepts_poweraction_in_extra_actions():
     assert view.extra_actions[1]["text"] == "Normal Edit", (
         "Primitive extra_actions dictionaries should still work beside PowerAction declarations."
     )
+
+
+@pytest.mark.django_db
+def test_core_mixin_accepts_permission_config_in_extra_actions():
+    """Accept primitive extra action permission affordance settings."""
+    class ActionView(CoreMixin):
+        model = Book
+        fields = "__all__"
+        base_template_path = "sample/base.html"
+        extra_actions = [
+            {
+                "url_name": "sample:bigbook-description-preview",
+                "text": "Description Preview",
+                "permission_check": "can_preview_description",
+                "permission_denied_reason": "You cannot preview descriptions.",
+            }
+        ]
+
+        def can_preview_description(self, request, obj=None):
+            """Return whether the user can preview a description."""
+            return True
+
+    view = ActionView()
+
+    assert view.extra_actions[0]["permission_check"] == "can_preview_description", (
+        "Primitive extra_actions should preserve valid permission_check hooks."
+    )
+    assert view.extra_actions[0]["permission_behavior"] == "hide", (
+        "Primitive extra_actions should default permission behavior to hide when omitted."
+    )
+    assert (
+        view.extra_actions[0]["permission_denied_reason"]
+        == "You cannot preview descriptions."
+    ), "Primitive extra_actions should preserve permission-denied reasons."
+
+
+@pytest.mark.django_db
+def test_core_mixin_rejects_unknown_extra_action_permission_check():
+    """Reject primitive extra action permission checks that do not resolve."""
+    class BrokenView(CoreMixin):
+        model = Book
+        fields = "__all__"
+        base_template_path = "sample/base.html"
+        extra_actions = [
+            {
+                "url_name": "sample:bigbook-description-preview",
+                "text": "Description Preview",
+                "permission_check": "missing_permission_check",
+            }
+        ]
+
+    with pytest.raises(ImproperlyConfigured, match="permission_check"):
+        BrokenView()
+
+
+@pytest.mark.django_db
+def test_core_mixin_rejects_mixed_extra_action_permission_declarations():
+    """Reject ambiguous primitive extra action permission declarations."""
+    class BrokenView(CoreMixin):
+        model = Book
+        fields = "__all__"
+        base_template_path = "sample/base.html"
+        extra_actions = [
+            {
+                "url_name": "sample:bigbook-description-preview",
+                "text": "Description Preview",
+                "permission": "sample.preview_description",
+                "permission_check": "can_preview_description",
+            }
+        ]
+
+        def can_preview_description(self, request, obj=None):
+            """Return whether the user can preview a description."""
+            return True
+
+    with pytest.raises(ImproperlyConfigured, match="permission"):
+        BrokenView()
+
+
+@pytest.mark.django_db
+def test_core_mixin_rejects_invalid_extra_action_permission_behavior():
+    """Reject unknown primitive extra action permission behavior values."""
+    class BrokenView(CoreMixin):
+        model = Book
+        fields = "__all__"
+        base_template_path = "sample/base.html"
+        extra_actions = [
+            {
+                "url_name": "sample:bigbook-description-preview",
+                "text": "Description Preview",
+                "permission": "sample.preview_description",
+                "permission_behavior": "show",
+            }
+        ]
+
+    with pytest.raises(ImproperlyConfigured, match="permission_behavior"):
+        BrokenView()
+
+
+@pytest.mark.django_db
+def test_core_mixin_has_power_permission_delegates_to_user_has_perm():
+    """Delegate default permission resolution to request.user.has_perm."""
+    class PermissionView(CoreMixin):
+        model = Book
+        fields = "__all__"
+        base_template_path = "sample/base.html"
+
+    requested_permissions = []
+
+    def has_perm(permission):
+        requested_permissions.append(permission)
+        return permission == "sample.manage_books"
+
+    request = SimpleNamespace(user=SimpleNamespace(has_perm=has_perm))
+    view = PermissionView()
+
+    assert view.has_power_permission("sample.manage_books", request) is True, (
+        "has_power_permission should return the user's has_perm result."
+    )
+    assert view.has_power_permission("sample.delete_books", request) is False, (
+        "has_power_permission should preserve denied has_perm results."
+    )
+    assert requested_permissions == [
+        "sample.manage_books",
+        "sample.delete_books",
+    ], "has_power_permission should delegate each permission string to user.has_perm."
 
 
 @pytest.mark.django_db
