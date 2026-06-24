@@ -107,6 +107,18 @@ def sample_user_can_preview_descriptions(user):
     )
 
 
+def sample_user_can_use_selected_summaries(user):
+    """Return whether the sample user can open selected-summary toolbar actions."""
+    return bool(
+        user
+        and user.is_authenticated
+        and (
+            user.is_staff
+            or user.get_username() == SAMPLE_DEMO_USERS["manager"]["username"]
+        )
+    )
+
+
 class BookCRUDView(SampleCRUDMixin):
     """Full-featured sample CRUD view for the Book model."""
 
@@ -319,6 +331,8 @@ class BookCRUDView(SampleCRUDMixin):
             "selection_min_count": 1,
             "selection_min_behavior": "disable",
             "selection_min_reason": "Select at least one book first.",
+            "permission_check": "can_use_selected_summary",
+            "permission_behavior": "hide",
         },
     ]
 
@@ -352,6 +366,10 @@ class BookCRUDView(SampleCRUDMixin):
     def can_preview_description(self, request, obj=None):
         """Return whether the sample user can open description previews."""
         return sample_user_can_preview_descriptions(getattr(request, "user", None))
+
+    def can_use_selected_summary(self, request, obj=None):
+        """Return whether the sample user can open selected-summary buttons."""
+        return sample_user_can_use_selected_summaries(getattr(request, "user", None))
 
     def should_hide_description_preview(self, obj, request):
         """Return True when the preview action is not relevant for the row."""
@@ -693,6 +711,8 @@ class PowerFieldBookCRUDView(SampleCRUDMixin):
             selection_min_count=1,
             selection_min_behavior="disable",
             selection_min_reason="Select at least one book first.",
+            permission_check="can_use_selected_summary",
+            permission_behavior="hide",
         ),
     ]
     _book_modal_action = PowerAction(
@@ -730,6 +750,10 @@ class PowerFieldBookCRUDView(SampleCRUDMixin):
     def can_preview_description(self, request, obj=None):
         """Return whether the sample user can open description previews."""
         return sample_user_can_preview_descriptions(getattr(request, "user", None))
+
+    def can_use_selected_summary(self, request, obj=None):
+        """Return whether the sample user can open selected-summary buttons."""
+        return sample_user_can_use_selected_summaries(getattr(request, "user", None))
 
     def get_title_tooltip(self, obj, request=None):
         """Return the semantic tooltip text for the title list cell."""
@@ -961,6 +985,9 @@ def async_task_detail(request, pk):
 
 def book_selected_summary(request):
     """Render a sample modal summarizing the current persisted book selection."""
+    if not sample_user_can_use_selected_summaries(getattr(request, "user", None)):
+        return HttpResponseForbidden("You cannot view selected book summaries.")
+
     framework = get_powercrud_setting("POWERCRUD_CSS_FRAMEWORK")
     template = f"sample/{framework}/book_selected_summary.html"
     if request.htmx:

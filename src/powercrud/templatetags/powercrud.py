@@ -290,6 +290,23 @@ def _resolve_extra_action_permission_state(
     return True, False, None
 
 
+def _resolve_extra_button_permission_state(
+    *,
+    view: Any,
+    button: Dict[str, Any],
+    request: Any,
+) -> tuple[bool, bool, str | None]:
+    """
+    Determine whether permission config should hide or disable an extra button.
+    """
+    return _resolve_extra_action_permission_state(
+        view=view,
+        object=None,
+        action=button,
+        request=request,
+    )
+
+
 def _resolve_extra_action_hidden_state(
     *,
     view: Any,
@@ -1580,7 +1597,6 @@ def extra_buttons(context: Dict[str, Any], view: Any) -> str:
 
     buttons: List[str] = []
     for button in extra_buttons:
-        selection_state = _get_selection_button_state(view, request, button)
         display_modal = button.get("display_modal", False) and use_modal
         modal_attrs = ""
         modal_box_attrs = ""
@@ -1591,6 +1607,27 @@ def extra_buttons(context: Dict[str, Any], view: Any) -> str:
             button["url_name"], kwargs={} if not button.get("needs_pk", False) else None
         )
         if url is not None:
+            hide_permission, disable_permission, permission_disabled_reason = (
+                _resolve_extra_button_permission_state(
+                    view=view,
+                    button=button,
+                    request=request,
+                )
+            )
+            if hide_permission:
+                continue
+
+            selection_state = (
+                {
+                    "uses_selection": False,
+                    "selection_min_count": 0,
+                    "selection_min_behavior": "allow",
+                    "disable": False,
+                    "disabled_reason": None,
+                }
+                if disable_permission
+                else _get_selection_button_state(view, request, button)
+            )
             htmx_attrs = []
             if use_htmx:
                 if display_modal:
@@ -1633,16 +1670,24 @@ def extra_buttons(context: Dict[str, Any], view: Any) -> str:
             button_class = button.get("button_class", styles["extra_default"])
             disabled_classes = ""
             disabled_attrs: list[str] = []
-            if selection_state["disable"]:
-                disabled_classes = " btn-disabled opacity-50 pointer-events-none"
+            if disable_permission or selection_state["disable"]:
+                disabled_classes = " btn-disabled opacity-50"
                 disabled_attrs.append('aria-disabled="true"')
-                if selection_state["disabled_reason"]:
+                disabled_attrs.append(
+                    'style="pointer-events: auto; cursor: not-allowed;"'
+                )
+                disabled_reason = (
+                    permission_disabled_reason
+                    if disable_permission
+                    else selection_state["disabled_reason"]
+                )
+                if disabled_reason:
                     disabled_attrs.append(
-                        f'data-tippy-content="{selection_state["disabled_reason"]}"'
+                        f'data-tippy-content="{disabled_reason}"'
                     )
                     disabled_attrs.append('data-powercrud-tooltip="semantic"')
 
-            if selection_state["uses_selection"]:
+            if not disable_permission and selection_state["uses_selection"]:
                 disabled_attrs.append('data-powercrud-selection-aware="true"')
                 disabled_attrs.append(
                     f'data-powercrud-selection-min-count="{selection_state["selection_min_count"]}"'

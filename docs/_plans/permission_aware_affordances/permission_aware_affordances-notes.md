@@ -548,6 +548,24 @@ Verification:
 
 ### Phase C: Extra Buttons And PowerButton
 
+Phase C made permission metadata active for toolbar extra buttons.
+
+Implemented behavior:
+
+1. `permission` and `permission_check` are evaluated before selection state.
+2. Permission failure with default `permission_behavior="hide"` omits the button.
+3. Permission failure with `permission_behavior="disable"` renders the button disabled and uses `permission_denied_reason`.
+4. Selection-state disabling still runs after permission passes.
+5. Permission failure does not evaluate or reveal selection-state disabled reasons.
+6. Disabled toolbar buttons remain hoverable for semantic tooltips while `aria-disabled="true"` and the frontend click guard prevent action execution.
+7. The sample app now shows the selected-summary toolbar button as manager-only in the primitive Books view and the `PowerButton` PowerField Books view.
+8. The sample selected-summary endpoint still enforces its own permission check because it is downstream-owned from PowerCRUD's perspective.
+
+Verification:
+
+1. `./runproj exec ./runtests --pytest src/tests/test_templatetags_powercrud.py src/sample/tests/test_permission_affordance_demo.py src/tests/test_core_phase1.py src/tests/test_poweractions.py`
+2. Result: 233 passed.
+
 ### Phase D: Built-In Create Edit Delete
 
 ### Phase E: Tests And Documentation

@@ -3132,6 +3132,7 @@ def test_book_list_renders_selection_aware_extra_button(client):
     session["powercrud_selections"] = {"powercrud_bulk_book_": [str(selected_book.pk)]}
     session.save()
 
+    _login_sample_manager(client)
     response = client.get(reverse("sample:bigbook-list"))
     response_text = " ".join(response.content.decode().split())
 
@@ -3289,6 +3290,7 @@ def test_book_selected_summary_uses_persisted_selection(client):
     session["powercrud_selections"] = {"powercrud_bulk_book_": [str(selected_book.pk)]}
     session.save()
 
+    _login_sample_manager(client)
     response = client.get(
         reverse("sample:bigbook-selected-summary"),
         HTTP_HX_REQUEST="true",

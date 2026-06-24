@@ -3,13 +3,14 @@
 ## Status
 
 - [x] Phase A implementation added.
-- [x] Focused Phase A and Phase B container tests passed.
+- [x] Focused Phase A-C container tests passed.
 - [x] Phase B implementation added.
+- [x] Phase C implementation added.
 - [x] DDMS validation captured in notes.
 
 ## Next
 
-- [ ] Start Phase C for `extra_buttons` and `PowerButton`.
+- [ ] Start Phase D for built-in Create/Edit/Delete.
 
 ## Phase A: Lock The API Contract
 
@@ -38,13 +39,17 @@
 
 ## Phase C: Extra Buttons And PowerButton
 
-1. [ ] Add permission-aware affordances to primitive `extra_buttons`.
-    1. [ ] Support permission hiding.
-    2. [ ] Support permission disabling.
-    3. [ ] Preserve existing selection behavior.
-2. [ ] Add matching fields to `PowerButton`.
-    1. [ ] Preserve primitive dictionary parity.
-    2. [ ] Keep toolbar-button endpoint enforcement downstream-owned.
+1. [x] Add permission-aware affordances to primitive `extra_buttons`.
+    1. [x] Support permission hiding.
+    2. [x] Support permission disabling.
+    3. [x] Preserve existing selection behavior.
+2. [x] Add matching fields to `PowerButton`.
+    1. [x] Preserve primitive dictionary parity.
+    2. [x] Keep toolbar-button endpoint enforcement downstream-owned.
+3. [x] Add a simple sample-app demonstration.
+    1. [x] Show permission-hidden selected-summary buttons in primitive and `PowerButton` examples.
+    2. [x] Preserve selection-state disabling after permission passes.
+    3. [x] Keep downstream-owned endpoint enforcement explicit.
 
 ## Phase D: Built-In Create Edit Delete
 

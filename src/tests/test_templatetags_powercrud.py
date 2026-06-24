@@ -46,6 +46,8 @@ class TemplateViewStub:
         self.use_modal = use_modal
         self.allowed_permissions = set()
         self.preview_permission_allowed = True
+        self.button_permission_allowed = True
+        self.button_permission_calls = []
         self.row_state_calls = []
         self.extra_actions = [
             {
@@ -195,6 +197,10 @@ class TemplateViewStub:
 
     def can_preview_with_permission(self, request, obj=None):
         return self.preview_permission_allowed
+
+    def can_use_selected_summary(self, request, obj=None):
+        self.button_permission_calls.append(obj)
+        return self.button_permission_allowed
 
     def should_hide_preview(self, obj, request):
         """Return True when the preview action should not render."""
@@ -2324,8 +2330,11 @@ def test_extra_buttons_handles_modal_htmx_and_selection_thresholds():
     assert 'data-powercrud-selection-aware="true"' in html
     assert 'data-powercrud-selection-min-count="2"' in html
     assert "Select at least two rows first." in html
-    assert "btn-disabled opacity-50 pointer-events-none" in html, (
+    assert "btn-disabled opacity-50" in html, (
         "Selection-aware extra buttons should render disabled styling when the persisted selection is below the minimum."
+    )
+    assert "pointer-events: auto; cursor: not-allowed;" in html, (
+        "Disabled extra buttons should stay hoverable so semantic tooltips can show."
     )
     assert "data-powercrud-extra-buttons-dropdown" not in html, (
         "Extra buttons should keep the legacy inline rendering mode by default."
@@ -2375,7 +2384,7 @@ def test_extra_buttons_dropdown_mode_preserves_button_attributes():
     assert 'data-powercrud-selection-aware="true"' in html, (
         "Dropdown extra buttons should preserve selection-aware metadata."
     )
-    assert "btn-disabled opacity-50 pointer-events-none" in html, (
+    assert "btn-disabled opacity-50" in html, (
         "Dropdown extra buttons should keep disabled styling when selection requirements are unmet."
     )
 
@@ -2421,8 +2430,92 @@ def test_extra_buttons_enable_selection_aware_button_when_minimum_is_met():
 
     assert "Selected Summary" in html
     assert 'data-powercrud-selection-aware="true"' in html
-    assert "btn-disabled opacity-50 pointer-events-none" not in html, (
+    assert "btn-disabled opacity-50" not in html, (
         "Selection-aware extra buttons should stay enabled once the persisted selection meets the configured minimum."
+    )
+
+
+def test_extra_buttons_hide_permission_denied_button_before_selection_state():
+    request = apply_session(RequestFactory().get("/"))
+    request.session["selected"] = []
+    view = TemplateViewStub(request)
+    view.button_permission_allowed = False
+    view.extra_buttons[2]["permission_check"] = "can_use_selected_summary"
+    view.extra_buttons[2]["permission_behavior"] = "hide"
+
+    html = powercrud.extra_buttons({"request": request}, view)
+
+    assert "Selected Summary" not in html, (
+        "Permission-denied extra buttons should be hidden by default."
+    )
+    assert "Select at least two rows first." not in html, (
+        "Permission hide should not expose selection-state disabled reasons."
+    )
+    assert view.button_permission_calls == [None], (
+        "Toolbar button permission_check should receive obj=None."
+    )
+
+
+def test_extra_buttons_disable_permission_denied_button_before_selection_state():
+    request = apply_session(RequestFactory().get("/"))
+    request.session["selected"] = []
+    view = TemplateViewStub(request)
+    view.button_permission_allowed = False
+    view.extra_buttons[2]["permission_check"] = "can_use_selected_summary"
+    view.extra_buttons[2]["permission_behavior"] = "disable"
+    view.extra_buttons[2]["permission_denied_reason"] = "Managers only."
+
+    html = powercrud.extra_buttons({"request": request}, view)
+
+    assert "Selected Summary" in html, (
+        "Explicit disable behavior should keep the permission-denied button visible."
+    )
+    assert "Managers only." in html, (
+        "Permission disable should use the configured permission-denied reason."
+    )
+    assert "Select at least two rows first." not in html, (
+        "Permission disable should take precedence over selection-state reasons."
+    )
+    assert 'data-powercrud-selection-aware="true"' not in html, (
+        "Permission-denied buttons should not be re-enabled by selection-state sync."
+    )
+    assert "pointer-events: auto; cursor: not-allowed;" in html, (
+        "Permission-disabled extra buttons should remain hoverable for tooltips."
+    )
+
+
+def test_extra_buttons_evaluate_selection_state_after_permission_passes():
+    request = apply_session(RequestFactory().get("/"))
+    request.session["selected"] = ["1"]
+    view = TemplateViewStub(request)
+    view.button_permission_allowed = True
+    view.extra_buttons[2]["permission_check"] = "can_use_selected_summary"
+
+    html = powercrud.extra_buttons({"request": request}, view)
+
+    assert "Selected Summary" in html, "Permitted extra buttons should remain visible."
+    assert "Select at least two rows first." in html, (
+        "Permitted selection-aware buttons should still render selection disabled reasons."
+    )
+    assert 'data-powercrud-selection-aware="true"' in html, (
+        "Permitted selection-aware buttons should keep frontend selection metadata."
+    )
+
+
+def test_extra_buttons_permission_string_uses_power_permission_resolver():
+    request = apply_session(RequestFactory().get("/"))
+    request.session["selected"] = ["1", "2"]
+    view = TemplateViewStub(request)
+    view.allowed_permissions = {"sample.view_selected_summary"}
+    view.extra_buttons[2]["permission"] = "sample.view_selected_summary"
+
+    html = powercrud.extra_buttons({"request": request}, view)
+
+    assert "Selected Summary" in html, (
+        "Permission strings allowed by has_power_permission should keep buttons visible."
+    )
+    assert "btn-disabled opacity-50" not in html, (
+        "Allowed buttons should remain enabled when selection requirements are met."
     )
 
 
