@@ -6,12 +6,14 @@
 - [x] Focused Phase A-C container tests passed.
 - [x] Phase B implementation added.
 - [x] Phase C implementation added.
+- [x] Phase D implementation added.
+- [x] Phase E1 focused behavior tests added.
 - [x] DDMS validation captured in notes.
 - [x] DDMS caveats captured in notes.
 
 ## Next
 
-- [ ] Start Phase D for built-in Create/Edit/Delete.
+- [ ] Start Phase E2 public documentation.
 
 ## Phase A: Lock The API Contract
 
@@ -54,23 +56,23 @@
 
 ## Phase D: Built-In Create Edit Delete
 
-1. [ ] Add built-in mutation permission hooks.
-    1. [ ] Add `has_power_create_permission(request)`.
-    2. [ ] Add `has_power_update_permission(request, obj)`.
-    3. [ ] Add `has_power_delete_permission(request, obj)`.
-2. [ ] Apply the hooks to PowerCRUD-owned UI and endpoints.
-    1. [ ] Hide Create/Edit/Delete when permission fails.
-    2. [ ] Deny direct create access before form rendering or persistence.
-    3. [ ] Resolve objects before update/delete permission checks.
-    4. [ ] Deny direct update/delete access before form rendering, persistence, or delete execution.
-    5. [ ] Keep row-state disabling separate through `can_update_object()` and `can_delete_object()`.
+1. [x] Add built-in mutation permission hooks.
+    1. [x] Add `has_power_create_permission(request)`.
+    2. [x] Add `has_power_update_permission(request, obj)`.
+    3. [x] Add `has_power_delete_permission(request, obj)`.
+2. [x] Apply the hooks to PowerCRUD-owned UI and endpoints.
+    1. [x] Hide Create/Edit/Delete when permission fails.
+    2. [x] Deny direct create access before form rendering or persistence.
+    3. [x] Resolve objects before update/delete permission checks.
+    4. [x] Deny direct update/delete access before form rendering, persistence, or delete execution.
+    5. [x] Keep row-state disabling separate through `can_update_object()` and `can_delete_object()`.
 
 ## Phase E: Tests And Documentation
 
-1. [ ] Add focused behavior tests.
-    1. [ ] Prove primitive API and `Power*` API parity.
-    2. [ ] Prove permission precedence over row-state hooks.
-    3. [ ] Prove PowerCRUD-owned backend denial.
+1. [x] Add focused behavior tests.
+    1. [x] Prove primitive API and `Power*` API parity.
+    2. [x] Prove permission precedence over row-state hooks.
+    3. [x] Prove PowerCRUD-owned backend denial.
 2. [ ] Update public docs.
     1. [ ] Document permission versus row/workflow state.
     2. [ ] Document downstream-owned endpoint responsibilities.
