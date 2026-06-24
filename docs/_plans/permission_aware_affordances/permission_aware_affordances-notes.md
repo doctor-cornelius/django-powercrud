@@ -250,6 +250,22 @@ The explicit disable behavior can be useful in admin or training interfaces, but
 
 ## Recommended Enhancement Shape
 
+### API Layering Requirement
+
+The base API remains the fundamental API.
+
+Any permission-aware affordance feature should be available first through the primitive dictionaries that PowerCRUD already accepts. The structured `Power*` APIs should expose the same capability as a clearer, typed declaration layer that compiles down to the base API.
+
+Practical requirement:
+
+1. Add the new keys to the primitive action/button dictionaries.
+2. Add matching fields to `PowerAction` and `PowerButton`.
+3. Keep the semantics identical between the base API and the structured API.
+4. Do not make `PowerAction` or `PowerButton` more capable than the primitive API.
+5. Document the primitive API as the underlying contract, with `Power*` as the preferred ergonomic wrapper.
+
+This changes the design emphasis slightly: implementation should start by proving the base dictionary behavior, then wire the structured declarations through it.
+
 ### Core Permission Resolver
 
 Add a small view-level permission resolver that downstream projects can override.
@@ -271,28 +287,44 @@ def get_power_permission_disabled_reason(self, permission, request, obj=None):
     return None
 ```
 
-This gives downstream apps one place to map PowerCRUD declarations to their permission service. It also keeps the default behavior compatible with Django permission strings.
+This hook should always exist. The default implementation should interpret `permission` as a Django permission string and call `request.user.has_perm(permission)`.
 
-The resolver should not assume every project uses Django model permissions directly. DDMS may want to delegate to an app-specific permission service.
+Downstream apps can override it when they do not use plain Django permissions. DDMS may want to delegate to an app-specific permission service.
 
 ### Permission Metadata On Extra Actions And Buttons
 
-Add optional declaration fields to `PowerAction` and `PowerButton`:
+Add optional declaration fields to primitive action/button dictionaries and to `PowerAction` and `PowerButton`:
 
 ```python
 permission=None
+permission_check=None
 permission_behavior="hide"
 permission_denied_reason=None
 ```
 
-Primitive dictionaries should support the same keys, because helper declarations compile to primitive dictionaries and should not become more capable than the base API.
+`permission` and `permission_check` have separate meanings:
+
+1. `permission` is a permission string. By default, PowerCRUD checks it through `has_power_permission(permission, request, obj=None)`.
+2. `permission_check` is a named view method for projects that want operation-specific logic instead of a permission string.
+3. `permission` and `permission_check` are mutually exclusive. If both are configured, PowerCRUD should raise `ImproperlyConfigured` during configuration validation.
+
+Suggested method signatures:
+
+```python
+def can_use_admin_review(self, request):
+    return request.user.is_staff
+
+def can_submit_case(self, obj, request):
+    return request.user.has_perm("cases.submit_case") and obj.owner == request.user
+```
 
 Compatibility rule:
 
-1. If `permission` is omitted, behavior remains exactly as it is today.
-2. Existing `hidden_if`, `disabled_state`, and selection behavior remain valid.
-3. Permission evaluation happens before row-state disabled-state evaluation when the behavior is hide.
-4. When permission behavior is disable, row-state and permission reasons need a deterministic precedence.
+1. If both `permission` and `permission_check` are omitted, behavior remains exactly as it is today.
+2. If both `permission` and `permission_check` are configured, raise `ImproperlyConfigured`.
+3. Existing `hidden_if`, `disabled_state`, and selection behavior remain valid.
+4. Permission evaluation happens before row-state disabled-state evaluation when the behavior is hide.
+5. When permission behavior is disable, row-state and permission reasons need a deterministic precedence.
 
 Recommended precedence:
 
@@ -331,6 +363,8 @@ PowerCRUD should use these hooks in both places:
 
 1. UI rendering: Create, View, Edit, Delete affordances.
 2. Backend endpoints: list, detail, create, update, delete handlers.
+
+For the first design, built-in Create, Edit, and Delete do not need a per-control `permission_behavior` setting. If the relevant permission hook returns `False`, the UI affordance should be hidden. Backend access should be denied for direct requests.
 
 For update and delete, these permission hooks should compose with existing row-state hooks:
 
@@ -411,72 +445,36 @@ The downstream app must still enforce the endpoint permission and business rule.
 
 That distinction should be explicit in public docs so developers do not confuse a hidden button with authorization.
 
-## Why This Is Useful
+## Main Benefits
 
-### Extra Actions
-
-Current state:
-
-1. Row-state hooks are good.
-2. Permission checks must be repeated inside action-specific hooks or local helper methods.
-
-Benefit:
-
-1. Actions can declare user capability directly.
-2. Row-state hooks remain focused on business state.
-3. Downstream apps can centralize permission interpretation in one view-level resolver.
-
-### Extra Buttons
-
-Current state:
-
-1. Toolbar buttons have no generic hide or disabled-state hook.
-2. Selection-aware disabling exists but is not a permission model.
-
-Benefit:
-
-1. Permission-aware toolbar UI becomes first-class.
-2. Downstream apps no longer need to conditionally assemble `extra_buttons` for common permission cases.
-3. `PowerButton` reaches parity with `PowerAction` for operation availability.
-
-### Regular Actions
-
-Current state:
-
-1. Built-in Edit and Delete have row-state disable hooks.
-2. Built-in actions do not have an explicit permission layer.
-
-Benefit:
-
-1. PowerCRUD can separate "user may update" from "this row can be updated now".
-2. UI and backend behavior for PowerCRUD-owned update/delete endpoints can align.
-3. Existing row-state hooks keep their job.
-
-### Regular Buttons
-
-Current state:
-
-1. Create is controlled indirectly through the presence of `create_view_url`.
-2. There is no `can_create` or `has_power_create_permission` hook.
-
-Benefit:
-
-1. Create can be hidden for users without create permission.
-2. Direct create endpoint access can be rejected consistently.
-3. Downstream apps avoid the `create_view_url = None` workaround.
-
-### UI Versus Backend Protection
-
-Current state:
-
-1. Some UI affordances can be disabled or hidden.
-2. Backend protection is inconsistent across PowerCRUD-owned surfaces and custom downstream endpoints.
-
-Benefit:
-
-1. PowerCRUD-owned operations can enforce permissions in both UI and backend.
-2. Custom downstream endpoints still remain downstream-owned.
-3. Documentation can describe the responsibility split clearly.
+1. Create becomes truthful.
+    - Scope: add a create-permission hook and use it for both the Create button and the create endpoint.
+    - Attack: keep the default open, and only hide or deny when the downstream view opts in.
+    - Downstream benefit: apps stop using `create_view_url = None` as an ad hoc permission workaround.
+2. Edit and Delete get a real permission layer.
+    - Scope: add permission hooks separate from `can_update_object()` and `can_delete_object()`.
+    - Attack: check permission first, then row-state eligibility.
+    - Downstream benefit: apps can express "this user cannot edit" separately from "this row is locked".
+3. Toolbar buttons become first-class.
+    - Scope: add permission, hide, and disabled affordance support to the primitive button API and `PowerButton`.
+    - Attack: bring toolbar buttons closer to the row-action model without changing existing behavior when unset.
+    - Downstream benefit: apps stop conditionally assembling toolbars per user in one-off code.
+4. Extra row actions become cleaner.
+    - Scope: add optional permission metadata to primitive row actions and `PowerAction`.
+    - Attack: let permission describe user capability while `hidden_if` and `disabled_state` keep describing row or workflow state.
+    - Downstream benefit: apps avoid repeating permission checks inside every row-state hook.
+5. PowerCRUD-owned backend behavior aligns with the UI.
+    - Scope: enforce permission hooks only on endpoints PowerCRUD owns, such as create, update, delete, inline edit, and later bulk operations.
+    - Attack: use the same permission policy for UI affordances and backend handling where PowerCRUD controls both.
+    - Downstream benefit: built-in CRUD actions do not rely on hidden buttons as their only protection.
+6. Downstream-owned endpoints stay downstream-owned.
+    - Scope: for extra actions and extra buttons, PowerCRUD improves the UI affordance only.
+    - Attack: document clearly that target views and services still enforce their own permissions.
+    - Downstream benefit: callers get better UI consistency without a false promise that PowerCRUD is now the application authorization system.
+7. The change stays compatible with both APIs.
+    - Scope: enable the primitive/base API first, then expose the same fields through `PowerAction` and `PowerButton`.
+    - Attack: make `Power*` declarations compile to the same primitive keys and semantics.
+    - Downstream benefit: existing dictionary users and structured-API users get the same capability.
 
 ## Compatibility Requirements
 
@@ -485,8 +483,11 @@ Benefit:
 3. Existing `can_update_object()` and `can_delete_object()` behavior must remain valid.
 4. Existing `inline_edit_requires_perm` behavior must remain valid unless explicitly deprecated later.
 5. Existing primitive dictionary configuration must remain valid.
-6. `PowerAction` and `PowerButton` should continue compiling to primitive dictionaries.
-7. Any backend denial should use an overridable response strategy so downstream apps can choose between `403`, login redirect, or custom handling.
+6. New affordance keys must be available through primitive dictionary configuration.
+7. `PowerAction` and `PowerButton` should continue compiling to primitive dictionaries.
+8. `PowerAction` and `PowerButton` must not expose permission behavior that the primitive dictionaries cannot express.
+9. `permission` and `permission_check` must be mutually exclusive in both primitive dictionaries and `Power*` declarations.
+10. Any backend denial should use an overridable response strategy so downstream apps can choose between `403`, login redirect, or custom handling.
 
 ## Documentation Requirements
 
@@ -498,20 +499,26 @@ Public docs should be very explicit about the layers:
 4. Backend enforcement is mandatory.
 5. PowerCRUD enforces backend permissions only for endpoints it owns.
 6. Extra action and extra button endpoints must enforce permissions downstream.
+7. `permission` is for permission strings, while `permission_check` is for named view methods.
+8. `permission_behavior` takes precedence over `hidden_if` and `disabled_state`; those row-state hooks still run only after permission passes or after permission is converted to a disabled affordance.
 
 The docs should avoid implying that `hidden_if` is permission-specific. It is not. It may be, and often is, row-state specific.
 
 ## Open Questions
 
-1. Should built-in create/update/delete permissions use one generic resolver plus named operation strings, explicit methods, or both?
-2. Should missing permission always hide by default, or should built-in Edit/Delete prefer disabled behavior for discoverability?
-3. What is the exact response contract for backend denial: raise `PermissionDenied`, return `HttpResponseForbidden`, or call an overridable handler?
-4. Should permission hooks check Django model permissions automatically by default, or should they only return `True` until the downstream view opts in?
-5. Should `permission` accept only strings, or also callables?
-6. Should `permission_behavior` be accepted on built-in CRUD operations, or only on `PowerAction` and `PowerButton`?
-7. Should detail/list access be included in the first slice, or should the first slice focus on mutation affordances?
-8. How should permission-denied reasons interact with row-state disabled reasons when both exist?
-9. Should bulk update permission be field-sensitive, or is operation-level permission enough for the first slice?
+1. What is the exact response contract for backend denial: raise `PermissionDenied`, return `HttpResponseForbidden`, or call an overridable handler?
+2. Should detail/list access be included in the first slice, or should the first slice focus on mutation affordances?
+3. Should bulk update permission be field-sensitive, or is operation-level permission enough for the first slice?
+
+Settled direction:
+
+1. Built-in Create, Edit, and Delete use explicit hooks and hide their UI affordance when the hook returns `False`.
+2. `permission_behavior` is for custom action/button affordances, not for built-in Create, Edit, and Delete in the first design.
+3. `permission` is a permission string checked through the always-present, overridable `has_power_permission()` resolver.
+4. `permission_check` is the named-method alternative.
+5. `permission` and `permission_check` are mutually exclusive; setting both should raise `ImproperlyConfigured`.
+6. Permission behavior takes precedence over `hidden_if` and `disabled_state`.
+7. Callable permission declarations are deferred; named methods are enough for the first design.
 
 ## Initial Recommendation
 
@@ -519,17 +526,19 @@ The enhancement is worth doing, but it should be small and staged.
 
 Recommended first slice, if one implementation branch is used:
 
-1. Add permission metadata and UI behavior to primitive `extra_actions` and `PowerAction`.
-2. Add permission metadata and UI behavior to primitive `extra_buttons` and `PowerButton`.
-3. Add `has_power_permission(permission, request, obj=None)` as the central resolver.
-4. Add `has_power_create_permission(request)` and use it for Create UI and backend create handling.
-5. Add `has_power_update_permission(request, obj)` and compose it with `can_update_object()`.
-6. Add `has_power_delete_permission(request, obj)` and compose it with `can_delete_object()`.
-7. Add focused tests proving UI and backend behavior for built-in create/update/delete.
+1. Add permission metadata and UI behavior to primitive `extra_actions`.
+2. Add matching permission metadata and UI behavior to `PowerAction`.
+3. Add permission metadata and UI behavior to primitive `extra_buttons`.
+4. Add matching permission metadata and UI behavior to `PowerButton`.
+5. Add `has_power_permission(permission, request, obj=None)` as the central resolver.
+6. Add `has_power_create_permission(request)` and use it for Create UI and backend create handling.
+7. Add `has_power_update_permission(request, obj)` and compose it with `can_update_object()`.
+8. Add `has_power_delete_permission(request, obj)` and compose it with `can_delete_object()`.
+9. Add focused tests proving base API and `Power*` API parity, plus UI and backend behavior for built-in create/update/delete.
 
 If that is too broad once implementation starts, split it into two smaller slices:
 
-1. First add the central resolver plus permission-aware UI for `PowerAction`, `PowerButton`, and Create.
+1. First add the central resolver plus permission-aware UI for primitive actions/buttons, `PowerAction`, `PowerButton`, and Create.
 2. Then add backend-enforced built-in update/delete permission composition.
 
 Defer until the first contract settles:
