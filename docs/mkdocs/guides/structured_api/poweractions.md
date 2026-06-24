@@ -82,6 +82,7 @@ ROW_PREVIEW = PowerAction(
     permission_behavior="hide",
     hidden_if="should_hide_description_preview",
     disabled_state="get_description_preview_disabled_state",
+    disabled_state_mode="lazy",
 )
 
 extra_actions = [
@@ -237,6 +238,8 @@ def get_preview_disabled_state(self, obj, request):
 ```
 
 Return a non-empty string to disable the action and show that string as the reason. Return `None`, `False`, or an empty string to keep the action enabled.
+
+Set `disabled_state_mode="lazy"` for a dropdown row action when the hook is expensive and the exact disabled reason should be resolved only when the row `More` menu opens. Lazy mode requires `disabled_state` and is not supported for visible button-mode row actions.
 
 The older `disabled_if` and `disabled_reason` pair still works for compatibility, but it is deprecated and targeted for removal in v1.0. Do not combine those legacy hooks with `disabled_state` on one action.
 

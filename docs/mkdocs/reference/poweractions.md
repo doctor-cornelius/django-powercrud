@@ -27,6 +27,7 @@ PowerAction(
     refresh_list_on_modal_close=False,
     hidden_if=None,
     disabled_state=None,
+    disabled_state_mode=None,
     disabled_if=None,
     disabled_reason=None,
     permission=None,
@@ -50,6 +51,7 @@ PowerAction(
 | `refresh_list_on_modal_close` | `False` | Refresh the list when this modal closes. |
 | `hidden_if` | `None` | Boolean hook name that hides this row action when true. |
 | `disabled_state` | `None` | Single disabled-state hook name. |
+| `disabled_state_mode` | `None` | `None` or `"eager"` evaluates `disabled_state` during list rendering. `"lazy"` resolves it when a dropdown row action's `More` menu opens. |
 | `disabled_if` | `None` | Deprecated legacy disabled boolean hook name. Use `disabled_state` instead. |
 | `disabled_reason` | `None` | Deprecated legacy disabled reason hook name. Use `disabled_state` instead. |
 | `permission` | `None` | Django permission string resolved through `has_power_permission(permission, request, obj=obj)`. |
@@ -69,6 +71,7 @@ ROW_MODAL = PowerAction(
     modal_box_classes="modal-box flex max-h-[calc(100dvh-2rem)] w-11/12 max-w-5xl flex-col",
     hidden_if="should_hide_workflow_action",
     disabled_state="get_workflow_action_disabled_state",
+    disabled_state_mode="lazy",
     permission_check="can_run_workflow_action",
     permission_behavior="hide",
 )
@@ -175,6 +178,8 @@ extra_buttons = [
 - Boolean parameters must be `True`, `False`, or `None` where the constructor explicitly allows `None`.
 - `PowerAction.hidden_if` must be a method-name string when set.
 - `PowerAction.disabled_state` cannot be combined with `disabled_if` or `disabled_reason`.
+- `PowerAction.disabled_state_mode` must be `"eager"` or `"lazy"` when set, and `"lazy"` requires `disabled_state`.
+- Lazy disabled state is supported for dropdown row actions. Base dictionaries use the same `disabled_state_mode` key.
 - `PowerAction.disabled_if` and `PowerAction.disabled_reason` are deprecated and targeted for removal in v1.0.
 - `PowerAction.disabled_reason` requires `disabled_if`; use `disabled_state` for the single-hook contract.
 - `PowerAction` and `PowerButton` cannot combine `permission` with `permission_check`.

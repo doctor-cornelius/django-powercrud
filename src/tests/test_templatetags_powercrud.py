@@ -122,6 +122,9 @@ class TemplateViewStub:
     def get_extra_actions_dropdown_open_upward_bottom_rows(self):
         return self.extra_actions_dropdown_open_upward_bottom_rows
 
+    def get_row_action_states_url(self, obj):
+        return f"/sample/book/{obj.pk}/row-action-states/"
+
     def get_prefix(self):
         return f"{self.namespace}:{self.url_base}"
 
@@ -755,6 +758,44 @@ def test_action_links_evaluate_disabled_state_after_permission_passes():
     )
     assert view.row_state_calls == ["hidden_if", "disabled_state"], (
         "PowerCRUD should evaluate row-state hooks after permission passes."
+    )
+
+
+@pytest.mark.django_db
+def test_action_links_defer_lazy_disabled_state_in_dropdown():
+    """Lazy dropdown actions should not call disabled_state during list rendering."""
+    author = Author.objects.create(name="Lazy Dropdown Author")
+    book = Book.objects.create(
+        title="Lazy Dropdown Row",
+        author=author,
+        published_date=date(2024, 7, 19),
+        bestseller=False,
+        isbn="9876543210432",
+        pages=54,
+        description="Preview exists",
+    )
+    request = apply_session(RequestFactory().get("/"))
+    view = TemplateViewStub(request)
+    view.extra_actions_mode = "dropdown"
+    view.extra_actions[0].pop("disabled_if")
+    view.extra_actions[0].pop("disabled_reason")
+    view.extra_actions[0]["hidden_if"] = "track_hidden_if_false"
+    view.extra_actions[0]["disabled_state"] = "track_disabled_state"
+    view.extra_actions[0]["disabled_state_mode"] = "lazy"
+
+    html = powercrud.action_links(view, book)
+
+    assert view.row_state_calls == ["hidden_if"], (
+        "Lazy disabled_state should be deferred while eager hidden_if still runs."
+    )
+    assert "Preview is blocked by row state." not in html, (
+        "Lazy disabled reasons should not be rendered during the initial list render."
+    )
+    assert "data-powercrud-row-action-state-mode='lazy'" in html, (
+        "Lazy row actions should carry a frontend hydration marker."
+    )
+    assert "data-powercrud-row-action-states-url='/sample/book/" in html, (
+        "The More trigger should expose the row-action state endpoint URL."
     )
 
 

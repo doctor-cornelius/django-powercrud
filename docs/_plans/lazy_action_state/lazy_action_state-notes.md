@@ -155,6 +155,15 @@ Dropdown mode is the clean first target because the user has already expressed i
 
 Button mode is deferred because all actions are already visible. A lazy button-mode design would need a separate UX decision for whether the button appears enabled, disabled, or neutral before validation.
 
+Implemented row-action slice:
+
+1. Base API dictionaries and `PowerAction` both accept `disabled_state_mode="lazy"`.
+2. Lazy mode requires `disabled_state` and `extra_actions_mode="dropdown"`.
+3. Initial list rendering still evaluates permission checks and `hidden_if`, but skips lazy `disabled_state`.
+4. PowerCRUD registers `<url_base>/<lookup>/row-action-states/` only when a view declares at least one lazy row action.
+5. The endpoint returns state for every lazy row action in that row dropdown, keyed by action index.
+6. The endpoint is read-only and the real action endpoint remains responsible for final server-side validation.
+
 ### Phase C: Add Lazy Cell Tooltips
 
 Tooltip laziness should live beside the tooltip hook because cost varies per field. A separate global `lazy_list_cell_tooltip_fields` setting would split one concept across two places.
@@ -167,8 +176,22 @@ Frontend behavior should request state only when the user opens the relevant row
 
 The implementation should cache or coalesce repeated requests enough to avoid duplicate work during normal open/close or hover/focus cycles.
 
+Implemented row-action UX:
+
+1. The `More` trigger carries the row state endpoint when any dropdown item needs lazy state.
+2. Opening `More` fetches row action state before the floating menu is shown.
+3. The trigger shows a busy/spinner state while the request is pending.
+4. Failed state fetches leave unresolved lazy actions disabled with the generic message `Unable to validate current availability.`
+5. Repeated opens reuse the in-flight request for the same trigger.
+
 ### Phase E: Tests, Sample, Docs
 
 Tests should prove that eager behavior remains the default, lazy callbacks are not called during initial list render, and lazy endpoints call only the requested row/action or row/field hook.
 
 Docs should keep Base API dictionaries visible as the primitive contract and show matching `PowerAction` / `PowerField` examples.
+
+Implemented sample/docs slice:
+
+1. `BookCRUDView` demonstrates lazy Base API row-action state on `Description Preview`.
+2. `PowerFieldBookCRUDView` demonstrates the same behavior through `PowerAction.with_options(...)`.
+3. Public docs cover `disabled_state_mode` in the config reference, `PowerAction` reference, structured API guide, and sample app reference.

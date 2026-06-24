@@ -142,6 +142,30 @@ class SelectionButtonOptOutUrlHarness(SelectionButtonUrlHarness):
     extra_button_selection_controls_disabled = True
 
 
+class LazyRowActionUrlHarness(UrlMixin, ContextBase, View):
+    """URL harness with one lazy dropdown row action."""
+
+    namespace = "sample"
+    url_base = "lazy-book"
+    lookup_field = "pk"
+    lookup_url_kwarg = "pk"
+    template_name = None
+    template_name_suffix = "_detail"
+    templates_path = "powercrud/daisyUI"
+    base_template_path = "powercrud/base.html"
+    path_converter = "int"
+    model = Book
+    extra_actions_mode = "dropdown"
+    extra_actions = [
+        {
+            "url_name": "sample:book-detail",
+            "text": "Preview",
+            "disabled_state": "get_preview_disabled_state",
+            "disabled_state_mode": "lazy",
+        }
+    ]
+
+
 def test_resolve_class_config_copies_mutable_values():
     cfg = resolve_class_config(UrlViewHarness)
 
@@ -308,6 +332,34 @@ def test_get_urls_respects_extra_button_selection_controls_opt_out(monkeypatch):
     assert "selection-opt-out-book-clear-selection" not in names, (
         "Opt-out selection-only views should not register clear-selection endpoints."
     )
+
+
+def test_get_urls_generates_lazy_row_action_state_endpoint(monkeypatch):
+    """Lazy row actions should register the per-row state endpoint."""
+
+    recorded = []
+
+    def fake_as_view(cls, **kwargs):
+        recorded.append(kwargs)
+        return lambda request, *args, **kw: None
+
+    monkeypatch.setattr(
+        LazyRowActionUrlHarness,
+        "as_view",
+        classmethod(fake_as_view),
+    )
+
+    patterns = LazyRowActionUrlHarness.get_urls()
+    names = {pattern.name for pattern in patterns}
+
+    assert "lazy-book-row-action-states" in names, (
+        "Views with lazy row actions should expose a row-action state URL."
+    )
+    assert any(
+        kwargs.get("role") == Role.LIST
+        and kwargs.get("row_action_state_action") == "states"
+        for kwargs in recorded
+    ), "The lazy row-action state URL should route to the list role state handler."
 
 
 def test_legacy_inline_edit_enabled_still_generates_inline_urls(monkeypatch):

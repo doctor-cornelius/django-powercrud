@@ -403,6 +403,7 @@ extra_actions = [
         "permission_behavior": "hide",
         "hidden_if": "should_hide_view_again",
         "disabled_state": "get_view_again_disabled_state",
+        "disabled_state_mode": "lazy",
         "refresh_list_on_modal_close": True,
         "modal_box_classes": "modal-box flex max-h-[calc(100dvh-2rem)] w-11/12 max-w-5xl flex-col",
     },
@@ -420,6 +421,7 @@ Notes:
 - `refresh_list_on_modal_close` is only used when `display_modal=True`; prefer `HX-Trigger: {"refreshTable": true}` when the endpoint knows it changed data.
 - `hidden_if` is an optional view method name with signature `(obj, request) -> bool`. Return `True` to omit the action for that row. Hidden actions are removed before disabled hooks are evaluated.
 - `disabled_state` is a single-hook alternative to `disabled_if` / `disabled_reason`. Return a non-empty string to disable the action and show that string as the reason; return `None`, `False`, or an empty string to keep it enabled.
+- Set `disabled_state_mode = "lazy"` only in `extra_actions_mode = "dropdown"` when the disabled reason is expensive to calculate and should be resolved when the row `More` menu opens. Button-mode actions keep eager disabled-state evaluation.
 - `permission` or `permission_check` hides or disables the action before `hidden_if` and `disabled_state` run. `permission_behavior` defaults to `"hide"`.
 - `disabled_if` and `disabled_reason` are deprecated view method names used to disable a row action based on the current object and request. Use `disabled_state` instead.
 - Do not combine `disabled_state` with `disabled_if` or `disabled_reason` on the same action.
@@ -442,6 +444,7 @@ Notes:
     | `lock_sensitive` | `bool` | Disables the action automatically when PowerCRUD marks the row as blocked by its existing lock logic. |
     | `hidden_if` | `str` | Name of a view method with signature `(obj, request) -> bool` that decides whether the action should be omitted for that row. |
     | `disabled_state` | `str` | Name of a view method with signature `(obj, request) -> str \| None \| bool` that returns a disabled reason string, or a falsey enabled value. |
+    | `disabled_state_mode` | `'eager' \| 'lazy'` | Defaults to `'eager'`. Use `'lazy'` with dropdown row actions to resolve `disabled_state` when the row `More` menu opens. |
     | `disabled_if` | `str` | Deprecated. Name of a view method with signature `(obj, request) -> bool` that decides whether the action is disabled for that row. Use `disabled_state` instead. |
     | `disabled_reason` | `str` | Deprecated. Name of a view method with signature `(obj, request) -> str \| None` that returns the disabled tooltip/help text. Use `disabled_state` instead. |
     | `permission` | `str` | Django permission string resolved through `has_power_permission(permission, request, obj=obj)`. |

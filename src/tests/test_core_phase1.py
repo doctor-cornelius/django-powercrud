@@ -1057,6 +1057,103 @@ def test_core_mixin_accepts_extra_action_disabled_state_hook():
 
 
 @pytest.mark.django_db
+def test_core_mixin_accepts_lazy_extra_action_disabled_state_in_dropdown_mode():
+    """Accept lazy disabled-state declarations for dropdown row actions."""
+    class ActionView(CoreMixin):
+        model = Book
+        fields = "__all__"
+        base_template_path = "sample/base.html"
+        extra_actions_mode = "dropdown"
+        extra_actions = [
+            {
+                "url_name": "sample:bigbook-description-preview",
+                "text": "Description Preview",
+                "disabled_state": "get_description_disabled_state",
+                "disabled_state_mode": "lazy",
+            }
+        ]
+
+        def get_description_disabled_state(self, obj, request):
+            """Return no disabled state for config validation."""
+            return None
+
+    view = ActionView()
+
+    assert view.extra_actions[0]["disabled_state_mode"] == "lazy", (
+        "Primitive extra_actions should preserve lazy disabled-state mode."
+    )
+
+
+@pytest.mark.django_db
+def test_core_mixin_rejects_lazy_extra_action_disabled_state_without_dropdown_mode():
+    """Reject lazy disabled-state mode when extra actions render as buttons."""
+    class BrokenView(CoreMixin):
+        model = Book
+        fields = "__all__"
+        base_template_path = "sample/base.html"
+        extra_actions = [
+            {
+                "url_name": "sample:bigbook-description-preview",
+                "text": "Description Preview",
+                "disabled_state": "get_description_disabled_state",
+                "disabled_state_mode": "lazy",
+            }
+        ]
+
+        def get_description_disabled_state(self, obj, request):
+            """Return no disabled state for config validation."""
+            return None
+
+    with pytest.raises(ImproperlyConfigured, match="extra_actions_mode='dropdown'"):
+        BrokenView()
+
+
+@pytest.mark.django_db
+def test_core_mixin_rejects_lazy_extra_action_disabled_state_without_hook():
+    """Reject lazy disabled-state mode when no disabled_state hook is configured."""
+    class BrokenView(CoreMixin):
+        model = Book
+        fields = "__all__"
+        base_template_path = "sample/base.html"
+        extra_actions_mode = "dropdown"
+        extra_actions = [
+            {
+                "url_name": "sample:bigbook-description-preview",
+                "text": "Description Preview",
+                "disabled_state_mode": "lazy",
+            }
+        ]
+
+    with pytest.raises(ImproperlyConfigured, match="requires disabled_state"):
+        BrokenView()
+
+
+@pytest.mark.django_db
+def test_core_mixin_rejects_unknown_lazy_extra_action_disabled_state_mode():
+    """Reject unsupported disabled-state modes."""
+    class BrokenView(CoreMixin):
+        model = Book
+        fields = "__all__"
+        base_template_path = "sample/base.html"
+        extra_actions_mode = "dropdown"
+        extra_actions = [
+            {
+                "url_name": "sample:bigbook-description-preview",
+                "text": "Description Preview",
+                "disabled_state": "get_description_disabled_state",
+                "disabled_state_mode": "deferred",
+            }
+        ]
+
+        def get_description_disabled_state(self, obj, request):
+            """Return no disabled state for config validation."""
+            return None
+
+    with pytest.raises(ImproperlyConfigured, match="disabled_state_mode"):
+        BrokenView()
+
+
+@pytest.mark.django_db
 def test_core_mixin_accepts_extra_action_hidden_hook_with_disabled_state():
     """Accept primitive hidden_if declarations alongside disabled_state hooks."""
     class ActionView(CoreMixin):
@@ -3220,8 +3317,8 @@ def test_book_list_renders_selection_aware_extra_button(client):
 
 
 @pytest.mark.django_db
-def test_book_list_renders_disabled_extra_action_with_reason(client):
-    """Render disabled row action state for books lacking a description."""
+def test_book_list_defers_lazy_disabled_extra_action_reason(client):
+    """Render lazy row action metadata without calling the disabled-state hook."""
     author = Author.objects.create(name="Descriptionless Author")
     Book.objects.create(
         title="No Description Yet",
@@ -3243,17 +3340,81 @@ def test_book_list_renders_disabled_extra_action_with_reason(client):
     assert "Description Preview" in response_text, (
         "Sample book list should include the description-preview extra action label."
     )
-    assert "This book does not have a description yet." in response_text, (
-        "Sample book list should expose the custom disabled reason for rows that fail the extra-action rule."
+    assert "This book does not have a description yet." not in response_text, (
+        "Sample book list should defer the custom disabled reason until the row menu opens."
     )
-    assert "btn-disabled opacity-50" in response_text, (
-        "Sample book list should render disabled styling for custom-disabled extra actions."
+    assert "data-powercrud-row-action-state-mode='lazy'" in response_text, (
+        "Sample book list should mark the description-preview action for lazy state hydration."
+    )
+    assert "data-powercrud-row-action-states-url=" in response_text, (
+        "Sample book list should render the row-state endpoint URL on the More trigger."
     )
     assert (
         "data-powercrud-modal-box-classes='modal-box flex max-h-[calc(100dvh-2rem)] "
         "w-11/12 max-w-5xl flex-col'"
     ) in response_text, (
         "Sample modal extra action should demonstrate per-action modal sizing."
+    )
+
+
+@pytest.mark.django_db
+def test_book_row_action_states_endpoint_returns_lazy_disabled_reason(client):
+    """Return lazy row-action disabled state for a single sample row."""
+    author = Author.objects.create(name="Lazy State Author")
+    book = Book.objects.create(
+        title="Lazy State Disabled",
+        author=author,
+        published_date=date(2024, 10, 4),
+        bestseller=False,
+        isbn="9876543210670",
+        pages=43,
+        description="",
+    )
+
+    _login_sample_manager(client)
+    response = client.get(
+        reverse("sample:bigbook-row-action-states", args=[book.pk]),
+        HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+    )
+
+    assert response.status_code == 200, (
+        "Lazy row-action state endpoint should respond successfully for sample rows."
+    )
+    payload = response.json()
+    preview_state = payload["actions"]["1"]
+    assert preview_state == {
+        "hidden": False,
+        "disabled": True,
+        "reason": "This book does not have a description yet.",
+    }, "Description Preview should return its lazy disabled reason for blank descriptions."
+
+
+@pytest.mark.django_db
+def test_book_row_action_states_endpoint_reports_hidden_lazy_action(client):
+    """Return hidden state when the row hidden_if hook now matches."""
+    author = Author.objects.create(name="Lazy Hidden Author")
+    book = Book.objects.create(
+        title="Hidden Preview Lazy",
+        author=author,
+        published_date=date(2024, 10, 5),
+        bestseller=False,
+        isbn="9876543210671",
+        pages=44,
+        description="This row would otherwise have a preview.",
+    )
+
+    _login_sample_manager(client)
+    response = client.get(
+        reverse("sample:bigbook-row-action-states", args=[book.pk]),
+        HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+    )
+
+    assert response.status_code == 200, (
+        "Lazy row-action state endpoint should handle rows whose hidden_if hook matches."
+    )
+    preview_state = response.json()["actions"]["1"]
+    assert preview_state["hidden"] is True, (
+        "Description Preview should report hidden when the row hidden_if hook matches."
     )
 
 

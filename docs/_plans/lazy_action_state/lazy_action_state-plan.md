@@ -6,13 +6,14 @@
 - [x] Phase A row-action scope locked.
 - [x] Phase A API and UX decisions locked.
 - [x] Lazy cell tooltips deferred from the first implementation slice.
-- [ ] API contract not implemented.
-- [ ] Runtime endpoints not implemented.
-- [ ] Public docs not updated.
+- [x] Row-action API contract implemented.
+- [x] Row-action runtime endpoint implemented.
+- [x] Public docs updated for the row-action slice.
+- [ ] Lazy cell tooltip implementation remains deferred.
 
 ## Next
 
-1. Implement only the dropdown lazy `disabled_state` path in Phase B.
+1. Revisit Phase C lazy cell tooltips when the row-action slice is accepted.
 
 ## Phase A: Lock The Scope
 
@@ -35,14 +36,14 @@
 
 ## Phase B: Add Row-Action Lazy State
 
-1. [ ] Add Base API and `PowerAction` config.
-    1. [ ] Add a mode flag for lazy disabled-state evaluation.
-    2. [ ] Add optional fallback/loading text.
-    3. [ ] Validate unsupported lazy button-mode combinations.
-2. [ ] Add the row/action state endpoint.
-    1. [ ] Resolve one object and one configured row action.
-    2. [ ] Return current enabled/disabled state and reason.
-    3. [ ] Preserve permission and row-state precedence.
+1. [x] Add Base API and `PowerAction` config.
+    1. [x] Add a mode flag for lazy disabled-state evaluation.
+    2. [x] Use the locked generic fallback message for unresolved lazy state.
+    3. [x] Validate unsupported lazy button-mode combinations.
+2. [x] Add the row/action state endpoint.
+    1. [x] Resolve one object and all configured lazy row actions.
+    2. [x] Return current hidden/enabled/disabled state and reason.
+    3. [x] Preserve permission and row-state precedence.
 
 ## Phase C: Add Lazy Cell Tooltips
 
@@ -57,14 +58,18 @@
 
 ## Phase D: Frontend And UX
 
-1. [ ] Hydrate lazy row-action state when the row `More` menu opens.
+1. [x] Hydrate lazy row-action state when the row `More` menu opens.
 2. [ ] Hydrate lazy cell tooltip content on hover and focus.
-3. [ ] Preserve keyboard and screen-reader behavior for both paths.
-4. [ ] Avoid duplicate requests during repeated open/hover events.
+3. [ ] Preserve keyboard and screen-reader behavior for the deferred tooltip path.
+4. [x] Avoid duplicate row-action state requests during repeated opens.
 
 ## Phase E: Tests, Sample, Docs
 
-1. [ ] Add focused unit tests for config and endpoint behavior.
+1. [x] Add focused unit tests for config and endpoint behavior.
 2. [ ] Add browser coverage for dropdown hydration and lazy tooltip hydration.
-3. [ ] Add a small sample app demonstration.
+    1. [x] Cover dropdown row-action hydration and failure fallback.
+    2. [ ] Cover deferred lazy tooltip hydration.
+3. [x] Add a small sample app demonstration.
 4. [ ] Update Base API, `PowerAction`, `PowerField`, and tooltip docs.
+    1. [x] Update Base API and `PowerAction` docs for row-action lazy state.
+    2. [ ] Update `PowerField` and tooltip docs when Phase C is implemented.

@@ -100,6 +100,41 @@ def test_poweraction_to_dict_exposes_permission_affordance_config():
     ), "PowerAction should expose the permission-denied reason."
 
 
+def test_poweraction_to_dict_exposes_lazy_disabled_state_mode():
+    """Expose lazy disabled-state mode in the primitive action dictionary."""
+    action = PowerAction(
+        text="Preview",
+        url_name="sample:book-detail",
+        disabled_state="get_preview_disabled_state",
+        disabled_state_mode="lazy",
+    )
+
+    assert action.to_dict()["disabled_state_mode"] == "lazy", (
+        "PowerAction should expose disabled_state_mode for Base API parity."
+    )
+
+
+def test_poweraction_rejects_invalid_disabled_state_mode():
+    """Reject unknown lazy disabled-state mode values."""
+    with pytest.raises(ValueError, match="disabled_state_mode"):
+        PowerAction(
+            text="Preview",
+            url_name="sample:book-detail",
+            disabled_state="get_preview_disabled_state",
+            disabled_state_mode="deferred",
+        )
+
+
+def test_poweraction_rejects_lazy_disabled_state_mode_without_hook():
+    """Reject lazy disabled-state mode without a disabled_state hook."""
+    with pytest.raises(ValueError, match="requires disabled_state"):
+        PowerAction(
+            text="Preview",
+            url_name="sample:book-detail",
+            disabled_state_mode="lazy",
+        )
+
+
 def test_poweraction_rejects_mixed_permission_declarations():
     """Reject ambiguous PowerAction permission declarations."""
     with pytest.raises(ValueError, match="permission"):
