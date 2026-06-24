@@ -358,6 +358,15 @@ def test_runtime_js_hides_tooltips_before_interactive_transitions() -> None:
         "handleHtmxBeforeRequest(event) {\n                hidePowercrudTooltips(document);"
         in js
     ), "Runtime JS should hide visible tooltips before HTMX requests can open modal content."
+    assert (
+        "button.classList.remove('pointer-events-none');" in template
+    ), "Selection-aware disabled toolbar buttons should stay hoverable for tooltip triggers."
+    assert (
+        "button.style.setProperty('pointer-events', 'auto', 'important');" in template
+    ), "Selection-aware disabled toolbar buttons should override pointer suppression while disabled."
+    assert (
+        "button.style.removeProperty('pointer-events');" in template
+    ), "Selection-aware toolbar buttons should remove hover overrides again when re-enabled."
 
 
 def test_runtime_js_opens_inline_tomselect_on_focus() -> None:

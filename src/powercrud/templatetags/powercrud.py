@@ -464,7 +464,7 @@ def _render_action_anchor(
     if disable:
         style_declarations.extend(
             [
-                "pointer-events: auto;",
+                "pointer-events: auto !important;",
                 "cursor: not-allowed;",
             ]
         )
@@ -1674,7 +1674,7 @@ def extra_buttons(context: Dict[str, Any], view: Any) -> str:
                 disabled_classes = " btn-disabled opacity-50"
                 disabled_attrs.append('aria-disabled="true"')
                 disabled_attrs.append(
-                    'style="pointer-events: auto; cursor: not-allowed;"'
+                    'style="pointer-events: auto !important; cursor: not-allowed;"'
                 )
                 disabled_reason = (
                     permission_disabled_reason

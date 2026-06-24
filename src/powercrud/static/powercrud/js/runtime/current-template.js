@@ -572,10 +572,12 @@ export function createCurrentTemplateRuntime(context) {
         // disabled visual treatment and optional tooltip reason.
         button.classList.toggle('btn-disabled', disable);
         button.classList.toggle('opacity-50', disable);
-        button.classList.toggle('pointer-events-none', disable);
+        button.classList.remove('pointer-events-none');
 
         if (disable) {
             button.setAttribute('aria-disabled', 'true');
+            button.style.setProperty('pointer-events', 'auto', 'important');
+            button.style.setProperty('cursor', 'not-allowed');
             if (reason) {
                 button.setAttribute('data-tippy-content', reason);
                 button.setAttribute('data-powercrud-tooltip', 'semantic');
@@ -584,6 +586,8 @@ export function createCurrentTemplateRuntime(context) {
         }
 
         button.removeAttribute('aria-disabled');
+        button.style.removeProperty('pointer-events');
+        button.style.removeProperty('cursor');
         if (button.dataset.powercrudSelectionMinReason) {
             button.removeAttribute('data-tippy-content');
             button.removeAttribute('data-powercrud-tooltip');

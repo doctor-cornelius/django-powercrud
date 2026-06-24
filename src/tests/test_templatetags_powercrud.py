@@ -442,7 +442,7 @@ def test_action_links_disable_extra_action_from_disabled_state_reason():
     assert "pointer-events-none" not in html, (
         "Disabled row actions should remain hoverable so semantic tooltips can show."
     )
-    assert "pointer-events: auto;" in html, (
+    assert "pointer-events: auto !important;" in html, (
         "Disabled row actions should override daisyUI btn-disabled pointer suppression."
     )
     assert "cursor: not-allowed;" in html, (
@@ -2333,7 +2333,7 @@ def test_extra_buttons_handles_modal_htmx_and_selection_thresholds():
     assert "btn-disabled opacity-50" in html, (
         "Selection-aware extra buttons should render disabled styling when the persisted selection is below the minimum."
     )
-    assert "pointer-events: auto; cursor: not-allowed;" in html, (
+    assert "pointer-events: auto !important; cursor: not-allowed;" in html, (
         "Disabled extra buttons should stay hoverable so semantic tooltips can show."
     )
     assert "data-powercrud-extra-buttons-dropdown" not in html, (
@@ -2479,7 +2479,7 @@ def test_extra_buttons_disable_permission_denied_button_before_selection_state()
     assert 'data-powercrud-selection-aware="true"' not in html, (
         "Permission-denied buttons should not be re-enabled by selection-state sync."
     )
-    assert "pointer-events: auto; cursor: not-allowed;" in html, (
+    assert "pointer-events: auto !important; cursor: not-allowed;" in html, (
         "Permission-disabled extra buttons should remain hoverable for tooltips."
     )
 

@@ -1,5 +1,6 @@
 """Tests for the bundled sample app runtime metadata footer."""
 
+from pathlib import Path
 from subprocess import CalledProcessError
 
 import pytest
@@ -130,6 +131,25 @@ def test_sample_app_meta_uses_safe_fallbacks_when_git_and_package_fail(
     assert context["sample_git_commit"] == "unknown", (
         "Failed git commit lookup should fall back to unknown."
     )
+
+
+def test_sample_runtime_meta_places_login_before_version_badge():
+    """The sample shell should show auth first, then runtime version metadata."""
+    project_root = Path(__file__).resolve().parents[1]
+    template_path = (
+        project_root / "sample" / "templates" / "sample" / "_runtime_meta.html"
+    )
+    template = template_path.read_text(encoding="utf-8")
+
+    assert 'class="dropdown dropdown-start"' in template, (
+        "The sample auth dropdown should align from the top-left of the shell."
+    )
+    assert 'class="dropdown dropdown-end"' not in template, (
+        "The sample auth dropdown should no longer sit on the far right."
+    )
+    assert template.index('class="dropdown dropdown-start"') < template.index(
+        "django-powercrud {{ sample_package_version }}"
+    ), "The auth control should render immediately before the runtime version badge."
 
 
 @pytest.mark.django_db
