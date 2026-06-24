@@ -1,10 +1,46 @@
-<div class="flex w-fit max-w-full flex-wrap items-center gap-y-1 rounded border border-base-300 bg-base-200/70 px-2 py-1 text-xs text-base-content/70"
+<div class="mb-2 flex max-w-full flex-wrap items-center justify-between gap-2"
      data-sample-runtime-meta="true">
-    <span class="font-medium">{{ sample_app_env }}</span>
-    <span class="mx-1 text-base-content/40">&middot;</span>
-    <span>django-powercrud {{ sample_package_version }}</span>
-    <span class="mx-1 text-base-content/40">&middot;</span>
-    <span>{{ sample_git_version }}</span>
-    <span class="mx-1 text-base-content/40">&middot;</span>
-    <span>{{ sample_git_commit }}</span>
+    <div class="flex w-fit max-w-full flex-wrap items-center gap-y-1 rounded border border-base-300 bg-base-200/70 px-2 py-1 text-xs text-base-content/70">
+        <span class="font-medium">{{ sample_app_env }}</span>
+        <span class="mx-1 text-base-content/40">&middot;</span>
+        <span>django-powercrud {{ sample_package_version }}</span>
+        <span class="mx-1 text-base-content/40">&middot;</span>
+        <span>{{ sample_git_version }}</span>
+        <span class="mx-1 text-base-content/40">&middot;</span>
+        <span>{{ sample_git_commit }}</span>
+    </div>
+    <details class="dropdown dropdown-end">
+        <summary class="btn btn-sm btn-outline">
+            {% if request.user.is_authenticated %}
+                {{ request.user.get_username }}
+            {% else %}
+                Login
+            {% endif %}
+        </summary>
+        <ul class="menu dropdown-content z-[1200] mt-1 min-w-44 rounded-box border border-base-300 bg-base-100 p-2 shadow">
+            <li>
+                <form method="post" action="{% url 'sample:demo-login' 'viewer' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                    <button type="submit">Login as viewer</button>
+                </form>
+            </li>
+            <li>
+                <form method="post" action="{% url 'sample:demo-login' 'manager' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                    <button type="submit">Login as manager</button>
+                </form>
+            </li>
+            {% if request.user.is_authenticated %}
+                <li>
+                    <form method="post" action="{% url 'sample:demo-logout' %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                        <button type="submit">Logout</button>
+                    </form>
+                </li>
+            {% endif %}
+        </ul>
+    </details>
 </div>

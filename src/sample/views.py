@@ -1,6 +1,9 @@
-from django.shortcuts import render, get_object_or_404
+from django.contrib.auth import get_user_model, login, logout
 from django.db.models import BooleanField, Case, Value, When
+from django.http import HttpResponseBadRequest, HttpResponseForbidden
+from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse
+from django.utils.http import url_has_allowed_host_and_scheme
 
 from neapolitan.views import CRUDView
 from powercrud.mixins.async_crud_mixin import PowerCRUDAsyncMixin
@@ -11,6 +14,20 @@ from powercrud.powerfields import PowerField, PowerOverride
 from . import models
 from . import forms
 from .services import BookBulkUpdateService
+
+
+SAMPLE_DEMO_USERS = {
+    "viewer": {
+        "username": "sample-viewer",
+        "email": "sample-viewer@example.com",
+        "is_staff": False,
+    },
+    "manager": {
+        "username": "sample-manager",
+        "email": "sample-manager@example.com",
+        "is_staff": True,
+    },
+}
 
 
 class SampleCRUDMixin(PowerCRUDAsyncMixin, CRUDView):
@@ -30,6 +47,66 @@ def home(request):
     return render(request, template_name, context)
 
 
+def _sample_next_url(request):
+    """Return a safe local redirect target for sample auth actions."""
+    fallback = reverse("sample:bigbook-list")
+    next_url = request.POST.get("next") or request.GET.get("next") or fallback
+    if url_has_allowed_host_and_scheme(
+        next_url,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure(),
+    ):
+        return next_url
+    return fallback
+
+
+def sample_demo_login(request, role):
+    """Log in as one of the sample demo users without a password form."""
+    if request.method != "POST":
+        return HttpResponseBadRequest("Sample demo login requires POST.")
+
+    demo_user = SAMPLE_DEMO_USERS.get(role)
+    if demo_user is None:
+        return HttpResponseBadRequest("Unknown sample demo role.")
+
+    user_model = get_user_model()
+    user, _created = user_model.objects.get_or_create(
+        username=demo_user["username"],
+        defaults={"email": demo_user["email"]},
+    )
+    changed = False
+    for field_name in ("email", "is_staff"):
+        value = demo_user[field_name]
+        if getattr(user, field_name) != value:
+            setattr(user, field_name, value)
+            changed = True
+    if changed:
+        user.save(update_fields=["email", "is_staff"])
+
+    login(request, user, backend="django.contrib.auth.backends.ModelBackend")
+    return redirect(_sample_next_url(request))
+
+
+def sample_demo_logout(request):
+    """Log out the current sample demo user."""
+    if request.method != "POST":
+        return HttpResponseBadRequest("Sample demo logout requires POST.")
+    logout(request)
+    return redirect(_sample_next_url(request))
+
+
+def sample_user_can_preview_descriptions(user):
+    """Return whether the sample user can open description preview actions."""
+    return bool(
+        user
+        and user.is_authenticated
+        and (
+            user.is_staff
+            or user.get_username() == SAMPLE_DEMO_USERS["manager"]["username"]
+        )
+    )
+
+
 class BookCRUDView(SampleCRUDMixin):
     """Full-featured sample CRUD view for the Book model."""
 
@@ -44,6 +121,9 @@ class BookCRUDView(SampleCRUDMixin):
             "Use it to inspect list options, inline editing, saved filter favourites, "
             "bulk actions, async workflows, modal links, external links, selection-aware "
             "toolbar actions, and guarded update behaviour."
+            "\n\n"
+            "Use the sample login menu as viewer or manager to compare permission-hidden "
+            "actions with row-state disabled actions."
         ),
         "color": "info",
     }
@@ -261,11 +341,17 @@ class BookCRUDView(SampleCRUDMixin):
             "button_class": "btn-secondary",
             "htmx_target": "powercrudModalContent",
             "display_modal": True,
+            "permission_check": "can_preview_description",
+            "permission_behavior": "hide",
             "hidden_if": "should_hide_description_preview",
             "disabled_state": "get_description_preview_disabled_state",
             "modal_box_classes": "modal-box flex max-h-[calc(100dvh-2rem)] w-11/12 max-w-5xl flex-col",
         },
     ]
+
+    def can_preview_description(self, request, obj=None):
+        """Return whether the sample user can open description previews."""
+        return sample_user_can_preview_descriptions(getattr(request, "user", None))
 
     def should_hide_description_preview(self, obj, request):
         """Return True when the preview action is not relevant for the row."""
@@ -630,6 +716,8 @@ class PowerFieldBookCRUDView(SampleCRUDMixin):
             button_class="btn-secondary",
             lock_sensitive=False,
             refresh_list_on_modal_close=False,
+            permission_check="can_preview_description",
+            permission_behavior="hide",
             hidden_if="should_hide_description_preview",
             disabled_state="get_description_preview_disabled_state",
             modal_box_classes=(
@@ -638,6 +726,10 @@ class PowerFieldBookCRUDView(SampleCRUDMixin):
             ),
         ),
     ]
+
+    def can_preview_description(self, request, obj=None):
+        """Return whether the sample user can open description previews."""
+        return sample_user_can_preview_descriptions(getattr(request, "user", None))
 
     def get_title_tooltip(self, obj, request=None):
         """Return the semantic tooltip text for the title list cell."""
@@ -927,6 +1019,9 @@ def annotated_book_selected_summary(request):
 def book_description_preview(request, pk):
     """Render a sample modal previewing one book description."""
     book = get_object_or_404(models.Book, pk=pk)
+    if not sample_user_can_preview_descriptions(getattr(request, "user", None)):
+        return HttpResponseForbidden("You cannot preview book descriptions.")
+
     framework = get_powercrud_setting("POWERCRUD_CSS_FRAMEWORK")
     template = f"sample/{framework}/book_description_preview.html"
     if request.htmx:

@@ -3,12 +3,13 @@
 ## Status
 
 - [x] Phase A implementation added.
-- [ ] Focused container test run pending; `powercrud_django_dev` was not running.
+- [x] Focused Phase A and Phase B container tests passed.
+- [x] Phase B implementation added.
 - [x] DDMS validation captured in notes.
 
 ## Next
 
-- [ ] Run focused Phase A tests once the Django container is running.
+- [ ] Start Phase C for `extra_buttons` and `PowerButton`.
 
 ## Phase A: Lock The API Contract
 
@@ -24,12 +25,16 @@
 
 ## Phase B: Extra Actions And PowerAction
 
-1. [ ] Add permission-aware affordances to primitive `extra_actions`.
-    1. [ ] Apply permission checks before `hidden_if`.
-    2. [ ] Apply permission checks before `disabled_state`.
-2. [ ] Add matching fields to `PowerAction`.
-    1. [ ] Preserve primitive dictionary parity.
-    2. [ ] Preserve existing row/workflow-state hook behavior.
+1. [x] Add permission-aware affordances to primitive `extra_actions`.
+    1. [x] Apply permission checks before `hidden_if`.
+    2. [x] Apply permission checks before `disabled_state`.
+2. [x] Add matching fields to `PowerAction`.
+    1. [x] Preserve primitive dictionary parity.
+    2. [x] Preserve existing row/workflow-state hook behavior.
+3. [x] Add a simple sample-app demonstration.
+    1. [x] Add sample viewer and manager login controls.
+    2. [x] Show permission-hidden preview actions in primitive and `PowerAction` examples.
+    3. [x] Keep downstream-owned endpoint enforcement explicit.
 
 ## Phase C: Extra Buttons And PowerButton
 

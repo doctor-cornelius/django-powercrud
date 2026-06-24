@@ -247,6 +247,49 @@ def _resolve_extra_action_disabled_state(
     return disable, disabled_reason
 
 
+def _resolve_extra_action_permission_state(
+    *,
+    view: Any,
+    object: Any,
+    action: Dict[str, Any],
+    request: Any,
+) -> tuple[bool, bool, str | None]:
+    """
+    Determine whether permission config should hide or disable an extra action.
+    """
+    permission = action.get("permission")
+    permission_check_name = action.get("permission_check")
+    if not permission and not permission_check_name:
+        return False, False, None
+
+    allowed = False
+    if permission:
+        permission_resolver = getattr(view, "has_power_permission", None)
+        if callable(permission_resolver):
+            try:
+                allowed = bool(permission_resolver(permission, request, obj=object))
+            except Exception:
+                allowed = False
+    elif permission_check_name:
+        permission_check = _resolve_named_view_method(view, permission_check_name)
+        if permission_check is not None:
+            try:
+                allowed = bool(permission_check(request, object))
+            except Exception:
+                allowed = False
+
+    if allowed:
+        return False, False, None
+
+    disabled_reason = action.get("permission_denied_reason")
+    if not isinstance(disabled_reason, str) or not disabled_reason.strip():
+        disabled_reason = None
+
+    if action.get("permission_behavior", "hide") == "disable":
+        return False, True, disabled_reason
+    return True, False, None
+
+
 def _resolve_extra_action_hidden_state(
     *,
     view: Any,
@@ -825,7 +868,18 @@ def action_links(view: Any, object: Any) -> str:
         )
 
         if url is not None:
-            if _resolve_extra_action_hidden_state(
+            hide_permission, disable_permission, permission_disabled_reason = (
+                _resolve_extra_action_permission_state(
+                    view=view,
+                    object=object,
+                    action=action,
+                    request=getattr(view, "request", None),
+                )
+            )
+            if hide_permission:
+                continue
+
+            if not disable_permission and _resolve_extra_action_hidden_state(
                 view=view,
                 object=object,
                 action=action,
@@ -845,14 +899,18 @@ def action_links(view: Any, object: Any) -> str:
                 str(action.get("modal_box_classes") or "") if show_modal else ""
             )
 
-            disable_extra, disabled_reason = _resolve_extra_action_disabled_state(
-                view=view,
-                object=object,
-                action=action,
-                request=getattr(view, "request", None),
-                lock_reason=lock_reason,
-                lock_label=lock_label,
-            )
+            if disable_permission:
+                disable_extra = True
+                disabled_reason = permission_disabled_reason
+            else:
+                disable_extra, disabled_reason = _resolve_extra_action_disabled_state(
+                    view=view,
+                    object=object,
+                    action=action,
+                    request=getattr(view, "request", None),
+                    lock_reason=lock_reason,
+                    lock_label=lock_label,
+                )
 
             extra_action_items.append(
                 {

@@ -44,6 +44,9 @@ class TemplateViewStub:
         self.request = request
         self.use_htmx = use_htmx
         self.use_modal = use_modal
+        self.allowed_permissions = set()
+        self.preview_permission_allowed = True
+        self.row_state_calls = []
         self.extra_actions = [
             {
                 "url_name": "sample:book-detail",
@@ -187,9 +190,27 @@ class TemplateViewStub:
             return "Preview requires a description."
         return None
 
+    def has_power_permission(self, permission, request, obj=None):
+        return permission in self.allowed_permissions
+
+    def can_preview_with_permission(self, request, obj=None):
+        return self.preview_permission_allowed
+
     def should_hide_preview(self, obj, request):
         """Return True when the preview action should not render."""
         return obj.title.startswith("Hidden Preview")
+
+    def track_hidden_if_false(self, obj, request):
+        self.row_state_calls.append("hidden_if")
+        return False
+
+    def track_hidden_if_true(self, obj, request):
+        self.row_state_calls.append("hidden_if")
+        return True
+
+    def track_disabled_state(self, obj, request):
+        self.row_state_calls.append("disabled_state")
+        return "Preview is blocked by row state."
 
     def get_bulk_selection_key_suffix(self):
         return "user"
@@ -472,6 +493,147 @@ def test_action_links_hide_extra_action_before_disabled_state():
     )
     assert "Preview requires a description." not in html, (
         "PowerCRUD should not evaluate/render disabled_state details for hidden actions."
+    )
+
+
+@pytest.mark.django_db
+def test_action_links_hide_permission_denied_extra_action_before_row_state():
+    """Permission hide should remove an extra action before row-state hooks run."""
+    author = Author.objects.create(name="Permission Hidden")
+    book = Book.objects.create(
+        title="Permission Hidden Preview",
+        author=author,
+        published_date=date(2024, 1, 7),
+        bestseller=False,
+        isbn="9876543210006",
+        pages=42,
+        description="Preview exists",
+    )
+    request = apply_session(RequestFactory().get("/"))
+    view = TemplateViewStub(request)
+    view.preview_permission_allowed = False
+    view.extra_actions[0].pop("disabled_if")
+    view.extra_actions[0].pop("disabled_reason")
+    view.extra_actions[0]["permission_check"] = "can_preview_with_permission"
+    view.extra_actions[0]["permission_behavior"] = "hide"
+    view.extra_actions[0]["hidden_if"] = "track_hidden_if_false"
+    view.extra_actions[0]["disabled_state"] = "track_disabled_state"
+
+    html = powercrud.action_links(view, book)
+
+    assert "Preview" not in html, (
+        "Permission-denied extra actions should be hidden by default."
+    )
+    assert view.row_state_calls == [], (
+        "Permission hide should not evaluate hidden_if or disabled_state."
+    )
+
+
+@pytest.mark.django_db
+def test_action_links_disable_permission_denied_extra_action_before_row_state():
+    """Permission disable should keep an extra action but skip row-state hooks."""
+    author = Author.objects.create(name="Permission Disabled")
+    book = Book.objects.create(
+        title="Permission Disabled Preview",
+        author=author,
+        published_date=date(2024, 1, 8),
+        bestseller=False,
+        isbn="9876543210007",
+        pages=42,
+        description="Preview exists",
+    )
+    request = apply_session(RequestFactory().get("/"))
+    view = TemplateViewStub(request)
+    view.preview_permission_allowed = False
+    view.extra_actions[0].pop("disabled_if")
+    view.extra_actions[0].pop("disabled_reason")
+    view.extra_actions[0]["permission_check"] = "can_preview_with_permission"
+    view.extra_actions[0]["permission_behavior"] = "disable"
+    view.extra_actions[0]["permission_denied_reason"] = "Managers only."
+    view.extra_actions[0]["hidden_if"] = "track_hidden_if_false"
+    view.extra_actions[0]["disabled_state"] = "track_disabled_state"
+
+    html = powercrud.action_links(view, book)
+
+    assert "Preview" in html, (
+        "Explicit disable behavior should keep the permission-denied action visible."
+    )
+    assert "btn-disabled opacity-50 pointer-events-none" in html, (
+        "Explicit disable behavior should render the action disabled."
+    )
+    assert "data-tippy-content='Managers only.'" in html, (
+        "Permission disable should use the configured permission-denied reason."
+    )
+    assert "Preview is blocked by row state." not in html, (
+        "Permission-denied actions should not expose row-state disabled reasons."
+    )
+    assert view.row_state_calls == [], (
+        "Permission disable should not evaluate hidden_if or disabled_state."
+    )
+
+
+@pytest.mark.django_db
+def test_action_links_evaluate_hidden_if_after_permission_passes():
+    """Allowed extra actions should still use existing row hidden hooks."""
+    author = Author.objects.create(name="Permission Hidden State")
+    book = Book.objects.create(
+        title="Permission Pass Hidden",
+        author=author,
+        published_date=date(2024, 1, 9),
+        bestseller=False,
+        isbn="9876543210008",
+        pages=42,
+        description="Preview exists",
+    )
+    request = apply_session(RequestFactory().get("/"))
+    view = TemplateViewStub(request)
+    view.preview_permission_allowed = True
+    view.extra_actions[0].pop("disabled_if")
+    view.extra_actions[0].pop("disabled_reason")
+    view.extra_actions[0]["permission_check"] = "can_preview_with_permission"
+    view.extra_actions[0]["hidden_if"] = "track_hidden_if_true"
+    view.extra_actions[0]["disabled_state"] = "track_disabled_state"
+
+    html = powercrud.action_links(view, book)
+
+    assert "Preview" not in html, (
+        "Existing hidden_if behavior should still remove permitted actions."
+    )
+    assert view.row_state_calls == ["hidden_if"], (
+        "PowerCRUD should evaluate hidden_if after the permission check passes."
+    )
+
+
+@pytest.mark.django_db
+def test_action_links_evaluate_disabled_state_after_permission_passes():
+    """Allowed extra actions should still use existing disabled-state hooks."""
+    author = Author.objects.create(name="Permission Disabled State")
+    book = Book.objects.create(
+        title="Permission Pass Disabled",
+        author=author,
+        published_date=date(2024, 1, 10),
+        bestseller=False,
+        isbn="9876543210009",
+        pages=42,
+        description="Preview exists",
+    )
+    request = apply_session(RequestFactory().get("/"))
+    view = TemplateViewStub(request)
+    view.allowed_permissions = {"sample.preview_book"}
+    view.extra_actions[0].pop("disabled_if")
+    view.extra_actions[0].pop("disabled_reason")
+    view.extra_actions[0]["permission"] = "sample.preview_book"
+    view.extra_actions[0]["hidden_if"] = "track_hidden_if_false"
+    view.extra_actions[0]["disabled_state"] = "track_disabled_state"
+
+    html = powercrud.action_links(view, book)
+
+    assert "Preview" in html, "Permitted extra actions should remain visible."
+    assert "data-tippy-content='Preview is blocked by row state.'" in html, (
+        "Permitted extra actions should still show row-state disabled reasons."
+    )
+    assert view.row_state_calls == ["hidden_if", "disabled_state"], (
+        "PowerCRUD should evaluate row-state hooks after permission passes."
     )
 
 

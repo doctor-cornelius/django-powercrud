@@ -23,6 +23,10 @@ from sample.models import Author, Book, Genre, Profile
 from sample import views as sample_views
 
 
+def _login_sample_manager(client):
+    return client.post(reverse("sample:demo-login", args=["manager"]))
+
+
 @pytest.mark.django_db
 def test_core_mixin_expands_fields_and_properties():
     class AuthorView(CoreMixin):
@@ -3186,6 +3190,7 @@ def test_book_list_renders_disabled_extra_action_with_reason(client):
         description="",
     )
 
+    _login_sample_manager(client)
     response = client.get(reverse("sample:bigbook-list"))
     response_text = " ".join(response.content.decode().split())
 
@@ -3223,6 +3228,7 @@ def test_book_list_hides_primitive_extra_action_when_hidden_hook_matches(client)
         description="This row would otherwise have a preview.",
     )
 
+    _login_sample_manager(client)
     response = client.get(reverse("sample:bigbook-list"))
     response_text = " ".join(response.content.decode().split())
 
@@ -3251,6 +3257,7 @@ def test_powerfield_book_list_hides_poweraction_when_hidden_hook_matches(client)
         description="This row would otherwise have a preview.",
     )
 
+    _login_sample_manager(client)
     response = client.get(reverse("sample:powerfield-book-list"))
     response_text = " ".join(response.content.decode().split())
 
@@ -3313,6 +3320,7 @@ def test_book_description_preview_reports_missing_description(client):
         description="",
     )
 
+    _login_sample_manager(client)
     response = client.get(
         reverse("sample:bigbook-description-preview", args=[book.pk]),
         HTTP_HX_REQUEST="true",
@@ -3380,6 +3388,7 @@ def test_book_list_renders_extra_actions_in_dropdown(client):
         description="Dropdown description",
     )
 
+    _login_sample_manager(client)
     response = client.get(reverse("sample:bigbook-list"))
     response_text = " ".join(response.content.decode().split())
 

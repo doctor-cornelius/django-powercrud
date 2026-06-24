@@ -529,6 +529,23 @@ Phase A implementation added the shared permission fields, structured API parity
 
 ### Phase B: Extra Actions And PowerAction
 
+Phase B made permission metadata active for row extra actions.
+
+Implemented behavior:
+
+1. `permission` and `permission_check` are evaluated before `hidden_if` and `disabled_state`.
+2. Permission failure with default `permission_behavior="hide"` omits the action.
+3. Permission failure with `permission_behavior="disable"` renders the action disabled and uses `permission_denied_reason`.
+4. Row-state hooks still run after permission passes.
+5. Permission failure does not evaluate or reveal row/workflow-state reasons.
+6. The sample app now has viewer and manager login controls so the behavior can be seen in the primitive Books view and the `PowerAction` PowerField Books view.
+7. The sample description-preview endpoint still enforces its own permission check because it is downstream-owned from PowerCRUD's perspective.
+
+Verification:
+
+1. `./runproj exec ./runtests --pytest src/tests/test_templatetags_powercrud.py src/sample/tests/test_permission_affordance_demo.py src/tests/test_poweractions.py src/tests/test_core_phase1.py`
+2. Result: 225 passed.
+
 ### Phase C: Extra Buttons And PowerButton
 
 ### Phase D: Built-In Create Edit Delete
