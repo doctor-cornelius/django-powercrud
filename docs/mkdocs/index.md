@@ -33,10 +33,11 @@ PowerCRUD extends [`Neapolitan`](https://github.com/carltongibson/neapolitan)’
     - [PowerCRUD Concepts](guides/concepts.md) puts the setup guides in perspective and explains the mental model behind surfaces, field intent, actions, presentation, selection, bulk work, and async work.
     - [Structured API](guides/structured_api/index.md) explains when to use `PowerField`, `PowerAction`, and `PowerButton` for repeated field and action config.
     - [Advanced Guides](guides/advanced/index.md) collects deeper implementation walkthroughs for trickier extension patterns, including the optional saved favourites add-on.
-    - [PowerCRUD Recipes](guides/advanced/recipes.md) shows Base Configuration API patterns you can adapt.
+    - [Permission-Aware Affordances](guides/advanced/permission_aware_affordances.md) explains how to hide or disable unavailable operations without mixing permission checks into row-state hooks.
+    - [PowerCRUD Recipes](guides/advanced/recipes.md) shows Base API patterns you can adapt.
 
 !!! tip "Two API styles"
-    PowerCRUD's Base Configuration API uses class attributes, hooks, lists, and dictionaries directly. The Structured Declaration API uses `PowerField`, `PowerAction`, and `PowerButton` to group repeated intent into reusable declaration objects. Both styles use the same runtime behavior.
+    PowerCRUD's Base API uses class attributes, hooks, lists, and dictionaries directly. The Structured API uses `PowerField`, `PowerAction`, and `PowerButton` to group repeated intent into reusable declaration objects. Both styles use the same runtime behavior.
 
 ## What ships in the box
 
@@ -63,12 +64,13 @@ See [Async architecture](reference/async.md) for details.
 
 ## Reference map
 
-- Base Configuration API reference: [config_options.md](reference/config_options.md)
+- Base API reference: [config_options.md](reference/config_options.md)
 - Concepts guide: [concepts.md](guides/concepts.md)
 - Structured API guide: [Choosing an API Style](guides/structured_api/index.md)
 - PowerField guide/reference: [guide](guides/structured_api/powerfields.md), [reference](reference/powerfields.md)
 - PowerAction and PowerButton guide/reference: [guide](guides/structured_api/poweractions.md), [reference](reference/poweractions.md)
 - Hooks reference: [hooks.md](reference/hooks.md)  
+- Permission-aware affordances: [permission_aware_affordances.md](guides/advanced/permission_aware_affordances.md)
 - Complete class example: [complete_example.md](reference/complete_example.md)  
 - Tooling: [dockerised_dev.md](reference/dockerised_dev.md), [mgmt_commands.md](reference/mgmt_commands.md), [testing.md](reference/testing.md)  
 - Sample app overview: [sample_app.md](reference/sample_app.md)  

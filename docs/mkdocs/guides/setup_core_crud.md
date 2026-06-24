@@ -92,7 +92,9 @@ PowerCRUD layers a few convenient defaults so you can start with zero configurat
 
 ### Extra Buttons
 
-Use `extra_buttons` for additional buttons above the table, alongside controls such as filter toggles and create buttons. These are page-level actions, not per-record actions. The Base Configuration API uses dictionaries for these entries.
+Use `extra_buttons` for additional buttons above the table, alongside controls such as filter toggles and create buttons. These are page-level actions, not per-record actions. The Base API uses dictionaries for these entries.
+
+Use permission fields when a button should be hidden or disabled for users who cannot run that operation. Permission checks run before selection-state disabling.
 
 Use `extra_buttons_mode = "dropdown"` when those page-level actions should move into a compact top toolbar overflow menu. The built-in Create button stays visible because it is not part of `extra_buttons`.
 
@@ -126,9 +128,14 @@ extra_buttons = [
         "selection_min_count": 1,
         "selection_min_behavior": "disable",
         "selection_min_reason": "Select at least one row first.",
+        "permission_check": "can_use_selected_summary",
+        "permission_behavior": "hide",
         "modal_box_classes": "modal-box flex max-h-[calc(100dvh-2rem)] w-11/12 max-w-5xl flex-col",
     },
 ]
+
+def can_use_selected_summary(self, request, obj=None):
+    return request.user.has_perm("projects.view_selected_summary")
 ```
 
 Selection-aware header buttons read the current persisted PowerCRUD selection at the endpoint rather than expecting row IDs in the URL. They can render row selection controls even when `bulk_fields = []` and `bulk_delete = False`.
@@ -166,7 +173,9 @@ Keep server-side validation in the endpoint even when you also disable the butto
 
 ### Extra Actions
 
-Use `extra_actions` for additional per-row actions in the list table. These render in the row action area next to the built-in `View`, `Edit`, and `Delete` actions. The Base Configuration API uses dictionaries for these entries.
+Use `extra_actions` for additional per-row actions in the list table. These render in the row action area next to the built-in `View`, `Edit`, and `Delete` actions. The Base API uses dictionaries for these entries.
+
+Use permission fields when a row action should be hidden or disabled for users who cannot run that operation. Permission checks run before `hidden_if` and `disabled_state`.
 
 For row actions, `extra_actions_mode` controls whether the extra actions stay visible as buttons or move into an overflow menu:
 
@@ -187,11 +196,16 @@ class AuthorCRUDView(PowerCRUDMixin, CRUDView):
             "text": "View Again",
             "needs_pk": True,
             "display_modal": True,
+            "permission_check": "can_view_author_again",
+            "permission_behavior": "hide",
             "hidden_if": "should_hide_view_again",
             "disabled_state": "get_view_again_disabled_state",
             "modal_box_classes": "modal-box flex max-h-[calc(100dvh-2rem)] w-11/12 max-w-5xl flex-col",
         },
     ]
+
+    def can_view_author_again(self, request, obj=None):
+        return request.user.has_perm("sample.view_author")
 
     def should_hide_view_again(self, obj, request):
         return not obj.bio
@@ -243,9 +257,11 @@ class AuthorCRUDView(PowerCRUDMixin, CRUDView):
 
 ### Reusable Action And Button Declarations
 
-Use the Structured Declaration API when related views repeat the same action mechanics with only small changes. `PowerAction` and `PowerButton` compile to the same base dictionaries shown above, and they may be mixed with dictionaries in one list.
+Use the Structured API when related views repeat the same action mechanics with only small changes. `PowerAction` and `PowerButton` compile to the same Base API dictionaries shown above, and they may be mixed with dictionaries in one list.
 
 For reusable action patterns, see [PowerAction and PowerButton](structured_api/poweractions.md) and [Structured API Recipes](structured_api/recipes.md). For the full constructor contract, see [PowerAction and PowerButton Reference](../reference/poweractions.md).
+
+For operation permission, hide versus disable behavior, and backend enforcement boundaries, see [Permission-Aware Affordances](advanced/permission_aware_affordances.md).
 
 ---
 

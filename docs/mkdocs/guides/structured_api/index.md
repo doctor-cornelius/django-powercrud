@@ -65,7 +65,7 @@ This keeps related intent close to the thing it describes. The `status` field's 
 
 Do not mix those Field Intent styles in the same view inheritance chain.
 
-`PowerAction` and `PowerButton` are different. They can be mixed with base dictionaries inside `extra_actions` and `extra_buttons`.
+`PowerAction` and `PowerButton` are different. They can be mixed with Base API dictionaries inside `extra_actions` and `extra_buttons`.
 
 ```python
 extra_actions = [

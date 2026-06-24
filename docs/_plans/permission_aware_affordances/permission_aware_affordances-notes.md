@@ -95,7 +95,7 @@ This is a good precedent for composing a broad update permission with row-state 
 
 ### Extra Row Actions
 
-`PowerAction` and primitive `extra_actions` support:
+`PowerAction` and Base API `extra_actions` support:
 
 1. `hidden_if`
 2. `disabled_state`
@@ -113,7 +113,7 @@ Current limitation:
 
 ### Extra Toolbar Buttons
 
-`PowerButton` and primitive `extra_buttons` support toolbar/modal/selection mechanics, including selection thresholds.
+`PowerButton` and Base API `extra_buttons` support toolbar/modal/selection mechanics, including selection thresholds.
 
 They do not currently have generic `hidden_if` or `disabled_state` equivalents.
 
@@ -252,19 +252,19 @@ The explicit disable behavior can be useful in admin or training interfaces, but
 
 ### API Layering Requirement
 
-The base API remains the fundamental API.
+The Base API remains the fundamental API.
 
-Any permission-aware affordance feature should be available first through the primitive dictionaries that PowerCRUD already accepts. The structured `Power*` APIs should expose the same capability as a clearer, typed declaration layer that compiles down to the base API.
+Any permission-aware affordance feature should be available first through the Base API dictionaries that PowerCRUD already accepts. The structured `Power*` APIs should expose the same capability as a clearer, typed declaration layer that compiles down to the Base API.
 
 Practical requirement:
 
-1. Add the new keys to the primitive action/button dictionaries.
+1. Add the new keys to the base action/button dictionaries.
 2. Add matching fields to `PowerAction` and `PowerButton`.
-3. Keep the semantics identical between the base API and the structured API.
-4. Do not make `PowerAction` or `PowerButton` more capable than the primitive API.
-5. Document the primitive API as the underlying contract, with `Power*` as the preferred ergonomic wrapper.
+3. Keep the semantics identical between the Base API and the structured API.
+4. Do not make `PowerAction` or `PowerButton` more capable than the Base API.
+5. Document the Base API as the underlying contract, with `Power*` as the preferred ergonomic wrapper.
 
-This changes the design emphasis slightly: implementation should start by proving the base dictionary behavior, then wire the structured declarations through it.
+This changes the design emphasis slightly: implementation should start by proving the Base API dictionary behavior, then wire the structured declarations through it.
 
 ### Core Permission Resolver
 
@@ -293,7 +293,7 @@ Downstream apps can override it when they do not use plain Django permissions. D
 
 ### Permission Metadata On Extra Actions And Buttons
 
-Add optional declaration fields to primitive action/button dictionaries and to `PowerAction` and `PowerButton`:
+Add optional declaration fields to base action/button dictionaries and to `PowerAction` and `PowerButton`:
 
 ```python
 permission=None
@@ -468,11 +468,11 @@ That distinction should be explicit in public docs so developers do not confuse 
     - Attack: check permission first, then row-state eligibility.
     - Downstream benefit: apps can express "this user cannot edit" separately from "this row is locked".
 3. Toolbar buttons become first-class.
-    - Scope: add permission, hide, and disabled affordance support to the primitive button API and `PowerButton`.
+    - Scope: add permission, hide, and disabled affordance support to the base button API and `PowerButton`.
     - Attack: bring toolbar buttons closer to the row-action model without changing existing behavior when unset.
     - Downstream benefit: apps stop conditionally assembling toolbars per user in one-off code.
 4. Extra row actions become cleaner.
-    - Scope: add optional permission metadata to primitive row actions and `PowerAction`.
+    - Scope: add optional permission metadata to base row actions and `PowerAction`.
     - Attack: let permission describe user capability while `hidden_if` and `disabled_state` keep describing row or workflow state.
     - Downstream benefit: apps avoid repeating permission checks inside every row-state hook.
 5. PowerCRUD-owned backend behavior aligns with the UI.
@@ -484,8 +484,8 @@ That distinction should be explicit in public docs so developers do not confuse 
     - Attack: document clearly that target views and services still enforce their own permissions.
     - Downstream benefit: callers get better UI consistency without a false promise that PowerCRUD is now the application authorization system.
 7. The change stays compatible with both APIs.
-    - Scope: enable the primitive/base API first, then expose the same fields through `PowerAction` and `PowerButton`.
-    - Attack: make `Power*` declarations compile to the same primitive keys and semantics.
+    - Scope: enable the Base API first, then expose the same fields through `PowerAction` and `PowerButton`.
+    - Attack: make `Power*` declarations compile to the same base keys and semantics.
     - Downstream benefit: existing dictionary users and structured-API users get the same capability.
 
 ## DDMS Validation
@@ -529,7 +529,7 @@ The target endpoint still needs its DDMS permission decorator or equivalent serv
 
 ### Phase A: Lock The API Contract
 
-Phase A implementation added the shared permission fields, structured API parity, primitive config validation, and the default resolver. Focused tests were added, but the required container test command could not run because `powercrud_django_dev` was not running.
+Phase A implementation added the shared permission fields, structured API parity, base config validation, and the default resolver. Focused tests were added, but the required container test command could not run because `powercrud_django_dev` was not running.
 
 ### Phase B: Extra Actions And PowerAction
 
@@ -542,7 +542,7 @@ Implemented behavior:
 3. Permission failure with `permission_behavior="disable"` renders the action disabled and uses `permission_denied_reason`.
 4. Row-state hooks still run after permission passes.
 5. Permission failure does not evaluate or reveal row/workflow-state reasons.
-6. The sample app now has viewer and manager login controls so the behavior can be seen in the primitive Books view and the `PowerAction` PowerField Books view.
+6. The sample app now has viewer and manager login controls so the behavior can be seen in the base Books view and the `PowerAction` PowerField Books view.
 7. The sample description-preview endpoint still enforces its own permission check because it is downstream-owned from PowerCRUD's perspective.
 
 Verification:
@@ -562,7 +562,7 @@ Implemented behavior:
 4. Selection-state disabling still runs after permission passes.
 5. Permission failure does not evaluate or reveal selection-state disabled reasons.
 6. Disabled toolbar buttons remain hoverable for semantic tooltips while `aria-disabled="true"` and the frontend click guard prevent action execution.
-7. The sample app now shows the selected-summary toolbar button as manager-only in the primitive Books view and the `PowerButton` PowerField Books view.
+7. The sample app now shows the selected-summary toolbar button as manager-only in the base Books view and the `PowerButton` PowerField Books view.
 8. The sample selected-summary endpoint still enforces its own permission check because it is downstream-owned from PowerCRUD's perspective.
 
 Verification:
@@ -601,11 +601,11 @@ Deferred items remain unchanged:
 2. Existing `hidden_if` and `disabled_state` behavior must remain unchanged.
 3. Existing `can_update_object()` and `can_delete_object()` behavior must remain valid.
 4. Existing `inline_edit_requires_perm` behavior must remain valid unless explicitly deprecated later.
-5. Existing primitive dictionary configuration must remain valid.
-6. New affordance keys must be available through primitive dictionary configuration.
-7. `PowerAction` and `PowerButton` should continue compiling to primitive dictionaries.
-8. `PowerAction` and `PowerButton` must not expose permission behavior that the primitive dictionaries cannot express.
-9. `permission` and `permission_check` must be mutually exclusive in both primitive dictionaries and `Power*` declarations.
+5. Existing Base API dictionary configuration must remain valid.
+6. New affordance keys must be available through Base API dictionary configuration.
+7. `PowerAction` and `PowerButton` should continue compiling to Base API dictionaries.
+8. `PowerAction` and `PowerButton` must not expose permission behavior that the Base API dictionaries cannot express.
+9. `permission` and `permission_check` must be mutually exclusive in both Base API dictionaries and `Power*` declarations.
 10. Any backend denial should use an overridable response strategy so downstream apps can choose between `403`, login redirect, or custom handling.
 
 ## Documentation Requirements
@@ -650,19 +650,19 @@ The enhancement is worth doing, but it should be small and staged.
 
 Recommended first slice, if one implementation branch is used:
 
-1. Add permission metadata and UI behavior to primitive `extra_actions`.
+1. Add permission metadata and UI behavior to Base API `extra_actions`.
 2. Add matching permission metadata and UI behavior to `PowerAction`.
-3. Add permission metadata and UI behavior to primitive `extra_buttons`.
+3. Add permission metadata and UI behavior to Base API `extra_buttons`.
 4. Add matching permission metadata and UI behavior to `PowerButton`.
 5. Add `has_power_permission(permission, request, obj=None)` as the central resolver.
 6. Add `has_power_create_permission(request)` and use it for Create UI and backend create handling.
 7. Add `has_power_update_permission(request, obj)` and compose it with `can_update_object()`.
 8. Add `has_power_delete_permission(request, obj)` and compose it with `can_delete_object()`.
-9. Add focused tests proving base API and `Power*` API parity, plus UI and backend behavior for built-in create/update/delete.
+9. Add focused tests proving Base API and `Power*` API parity, plus UI and backend behavior for built-in create/update/delete.
 
 If that is too broad once implementation starts, split it into two smaller slices:
 
-1. First add the central resolver plus permission-aware UI for primitive actions/buttons, `PowerAction`, `PowerButton`, and Create.
+1. First add the central resolver plus permission-aware UI for base actions/buttons, `PowerAction`, `PowerButton`, and Create.
 2. Then add backend-enforced built-in update/delete permission composition.
 
 Defer until the first contract settles:

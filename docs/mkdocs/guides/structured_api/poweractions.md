@@ -2,7 +2,7 @@
 
 `PowerAction` and `PowerButton` are Structured Declaration API objects for reusable `extra_actions` and `extra_buttons` declarations.
 
-They do not replace the Base Configuration API dictionary shape. Use them when related views repeat the same action mechanics and only change text, URL names, modal size, selection rules, or disabled logic.
+They do not replace the Base API dictionary shape. Use them when related views repeat the same action mechanics and only change text, URL names, modal size, selection rules, or disabled logic.
 
 ```python
 from powercrud.actions import PowerAction, PowerButton
@@ -10,13 +10,13 @@ from powercrud.actions import PowerAction, PowerButton
 
 ## When To Use PowerActions And PowerButtons
 
-Use base dictionaries for one-off buttons and actions.
+Use Base API dictionaries for one-off buttons and actions.
 
 Use `PowerAction` or `PowerButton` when you want to name and reuse a pattern:
 
-??? example "Base Configuration API vs PowerAction"
+??? example "Base API and Structured API"
 
-    === "Base Configuration API"
+    === "Base API"
 
         ```python
         extra_actions = [
@@ -71,11 +71,15 @@ Use `PowerAction` for row-level `extra_actions`.
 
 `PowerAction` also supports `disabled_state` for row actions that should stay visible but unavailable with a reason.
 
+It also supports permission affordance fields. Use those for user capability, and keep `hidden_if` / `disabled_state` for row or workflow state.
+
 ```python
 ROW_PREVIEW = PowerAction(
     text="Description Preview",
     url_name="sample:book-description-preview",
     display_modal=True,
+    permission_check="can_preview_description",
+    permission_behavior="hide",
     hidden_if="should_hide_description_preview",
     disabled_state="get_description_preview_disabled_state",
 )
@@ -96,6 +100,9 @@ def get_description_preview_disabled_state(self, obj, request):
     if not obj.description:
         return "This book does not have a description yet."
     return None
+
+def can_preview_description(self, request, obj=None):
+    return request.user.has_perm("sample.preview_book_description")
 ```
 
 `PowerAction.needs_pk` defaults to `True`, matching the normal row-action case.
@@ -104,9 +111,9 @@ def get_description_preview_disabled_state(self, obj, request):
 
 Use `PowerButton` for list-level `extra_buttons`.
 
-??? example "Base Configuration API vs PowerButton"
+??? example "Base API and Structured API"
 
-    === "Base Configuration API"
+    === "Base API"
 
         ```python
         extra_buttons = [
@@ -158,6 +165,25 @@ Use `PowerButton` for list-level `extra_buttons`.
 
 `PowerButton.needs_pk` defaults to `False`, matching the normal toolbar-button case.
 
+`PowerButton` supports the same permission affordance fields as `PowerAction`.
+
+```python
+PowerButton(
+    text="Selected Summary",
+    url_name="sample:book-selected-summary",
+    display_modal=True,
+    uses_selection=True,
+    selection_min_count=1,
+    selection_min_behavior="disable",
+    selection_min_reason="Select at least one row first.",
+    permission_check="can_use_selected_summary",
+    permission_behavior="hide",
+)
+
+def can_use_selected_summary(self, request, obj=None):
+    return request.user.has_perm("sample.view_selected_summary")
+```
+
 `uses_selection=True` can render row selection controls even when the view has no built-in bulk edit/delete configuration.
 
 Set `extra_button_selection_controls_disabled = True` on the view if the button uses selected rows, but this list should not show checkboxes just because of that button.
@@ -195,9 +221,9 @@ extra_buttons = [
 ]
 ```
 
-PowerCRUD compiles structured declarations to base dictionaries before rendering.
+PowerCRUD compiles structured declarations to Base API dictionaries before rendering.
 
-This is different from `PowerField`: a view inheritance chain must choose either Base Configuration API Field Intent attributes or `power_fields`. `PowerAction` and `PowerButton` are list entries, so they can safely sit beside dictionaries in `extra_actions` and `extra_buttons`.
+This is different from `PowerField`: a view inheritance chain must choose either Base API Field Intent attributes or `power_fields`. `PowerAction` and `PowerButton` are list entries, so they can safely sit beside dictionaries in `extra_actions` and `extra_buttons`.
 
 ## PowerAction Disabled State
 
@@ -216,6 +242,8 @@ The older `disabled_if` and `disabled_reason` pair still works for compatibility
 
 Use `hidden_if` when the row action is not applicable and should not render. Use `disabled_state` when the action is applicable but unavailable and the user benefits from a reason.
 
+Use `permission_check` or `permission` when the user is not allowed to perform the operation at all. Permission checks run before `hidden_if` and `disabled_state`; the default permission behavior is to hide the action.
+
 ## Reference
 
-See [Choosing an API Style](index.md), [Structured API Recipes](recipes.md), and [PowerAction and PowerButton Reference](../../reference/poweractions.md) for constructor parameters, defaults, and validation rules.
+See [Choosing an API Style](index.md), [Structured API Recipes](recipes.md), [Permission-Aware Affordances](../advanced/permission_aware_affordances.md), and [PowerAction and PowerButton Reference](../../reference/poweractions.md) for constructor parameters, defaults, and validation rules.

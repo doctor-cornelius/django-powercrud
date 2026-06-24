@@ -23,6 +23,11 @@ If you want step-by-step walkthroughs rather than contracts, start with the adva
     | `persist_bulk_update()` | Use this when you want PowerCRUD to keep the bulk UI and normalized payload handling, but you want the actual multi-row update to go through your own bulk service or orchestration code. |
     | `get_bulk_choices_for_field()` | Use this when a bulk-edit form dropdown should offer a narrower or more carefully ordered set of choices than the default related queryset. |
     | `get_bulk_selection_key_suffix()` | Use this when PowerCRUD's default bulk selection storage is too broad and you want selections kept separate by user, tenant, tab, or another context value. |
+    | `has_power_permission()` | Resolve `permission="app.codename"` declarations on custom actions and buttons. |
+    | `has_power_create_permission()` | Decide whether the request may use PowerCRUD-owned create handling. |
+    | `has_power_update_permission()` | Decide whether the request may use PowerCRUD-owned update handling for a row. |
+    | `has_power_delete_permission()` | Decide whether the request may use PowerCRUD-owned delete handling for a row. |
+    | `handle_power_permission_denied()` | Customize the response for denied PowerCRUD-owned create, update, delete, or inline-update requests. |
     | `can_update_object()` | Use this when some rows should keep the built-in Edit action visible but disabled, for example workflow-owned rows, canonical records, or objects that should stay read-only on a per-row basis. |
     | `get_update_disabled_reason()` | Use this with `can_update_object()` when you want disabled Edit and inline affordances to explain why the row cannot be edited. |
     | `can_delete_object()` | Use this when some rows should keep the built-in Delete action visible but disabled, for example canonical records, workflow-owned rows, or rows that should remain undeletable except to privileged users. |
@@ -339,11 +344,61 @@ Upgrade notes:
 
 ---
 
+## Permission hooks
+
+### `has_power_permission()`
+
+- Purpose: Resolve `permission="app.codename"` declarations on `extra_actions`, `PowerAction`, `extra_buttons`, and `PowerButton`.
+- When it is called: During row-action and toolbar-button rendering when a declaration uses `permission`.
+- Signature: `def has_power_permission(self, permission, request, obj=None)`
+- Default behavior: Calls `request.user.has_perm(permission)` when a user is available.
+- Return contract: Truthy allows the affordance; falsy applies the declaration's permission behavior.
+- Important note: `obj` is the row object for row actions and `None` for toolbar buttons.
+- Related docs: [Permission-Aware Affordances](../guides/advanced/permission_aware_affordances.md), [PowerAction and PowerButton Reference](poweractions.md)
+
+### `has_power_create_permission()`
+
+- Purpose: Decide whether the request may use PowerCRUD-owned create handling.
+- When it is called: While building list context for the Create affordance, before rendering the create form, and before processing create submissions.
+- Signature: `def has_power_create_permission(self, request)`
+- Default behavior: Returns `True`.
+- Return contract: Truthy allows Create; falsy hides Create and rejects direct PowerCRUD create requests.
+- Related docs: [Permission-Aware Affordances](../guides/advanced/permission_aware_affordances.md)
+
+### `has_power_update_permission()`
+
+- Purpose: Decide whether the request may use PowerCRUD-owned update handling for a row.
+- When it is called: During built-in Edit rendering, before rendering or processing update forms, and before inline update rendering or saving.
+- Signature: `def has_power_update_permission(self, request, obj)`
+- Default behavior: Returns `True`.
+- Return contract: Truthy allows update to continue into row-state checks; falsy hides built-in Edit and rejects direct PowerCRUD update and inline-update requests.
+- Important note: Use `can_update_object()` for row or workflow state after permission passes.
+- Related docs: [Permission-Aware Affordances](../guides/advanced/permission_aware_affordances.md), [Inline editing](../guides/inline_editing.md)
+
+### `has_power_delete_permission()`
+
+- Purpose: Decide whether the request may use PowerCRUD-owned delete handling for a row.
+- When it is called: During built-in Delete rendering, before rendering delete confirmation, and before delete execution.
+- Signature: `def has_power_delete_permission(self, request, obj)`
+- Default behavior: Returns `True`.
+- Return contract: Truthy allows delete to continue into row-state checks; falsy hides built-in Delete and rejects direct PowerCRUD delete requests.
+- Important note: Use `can_delete_object()` for row or workflow state after permission passes.
+- Related docs: [Permission-Aware Affordances](../guides/advanced/permission_aware_affordances.md)
+
+### `handle_power_permission_denied()`
+
+- Purpose: Customize the response returned when a PowerCRUD-owned operation is denied by one of the built-in permission hooks.
+- When it is called: For denied direct create, update, delete, and inline-update requests.
+- Signature: `def handle_power_permission_denied(self, request, operation, obj=None)`
+- Default behavior: Returns `HttpResponseForbidden(f"{operation} is not permitted.")`.
+- Return contract: A Django response.
+- Related docs: [Permission-Aware Affordances](../guides/advanced/permission_aware_affordances.md)
+
 ## Standard action guard hooks
 
 ### `can_update_object()`
 
-- Purpose: Use this when some rows should keep the built-in Edit action visible but disabled, for example workflow-owned rows, canonical records, or objects that should stay read-only on a per-row basis.
+- Purpose: Use this when permitted users should keep the built-in Edit action visible but disabled for row or workflow-state reasons.
 - When it is called: During standard row-action rendering for the built-in Edit action, and while evaluating whether a row may enter inline edit mode.
 - Signature: `def can_update_object(self, obj, request)`
 - Default behavior: Returns `True`, so built-in Edit and inline editing remain available unless a downstream override blocks the row.
@@ -379,7 +434,7 @@ Upgrade notes:
 
 ### `can_delete_object()`
 
-- Purpose: Use this when some rows should keep the built-in Delete action visible but disabled, for example canonical records, workflow-owned rows, or rows that should remain undeletable except to privileged users.
+- Purpose: Use this when permitted users should keep the built-in Delete action visible but disabled for row or workflow-state reasons.
 - When it is called: During standard row-action rendering for the built-in Delete action.
 - Signature: `def can_delete_object(self, obj, request)`
 - Default behavior: Returns `True`, so the built-in Delete action remains enabled unless a downstream override blocks it.

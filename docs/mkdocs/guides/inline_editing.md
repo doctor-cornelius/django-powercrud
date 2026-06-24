@@ -169,9 +169,12 @@ For a fuller explanation of `filter_by`, multiple-parent mappings, and migration
 
 Inline editing piggybacks on the same hooks the bulk/async flows use:
 
+- `has_power_update_permission(request, obj)` – broad update permission for PowerCRUD-owned update operations.
 - `inline_edit_requires_perm` – e.g. `"sample.change_book"`.
 - `inline_edit_allowed(obj, request)` – custom per-row checks.
 - `is_inline_row_locked(self, obj)` / `get_inline_lock_details(self, obj)` – pair with `AsyncManager` to keep rows read-only while background jobs run.
+
+PowerCRUD checks the broad update permission before inline-specific checks. Use `inline_edit_allowed` for inline-only restrictions after the user is otherwise allowed to update the row.
 
 See the [Hooks reference](../reference/hooks.md#inline-editing-hooks) for the canonical contract details for these extension points.
 

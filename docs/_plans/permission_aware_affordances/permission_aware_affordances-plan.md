@@ -8,16 +8,17 @@
 - [x] Phase C implementation added.
 - [x] Phase D implementation added.
 - [x] Phase E1 focused behavior tests added.
+- [x] Phase E2 public documentation added.
 - [x] DDMS validation captured in notes.
 - [x] DDMS caveats captured in notes.
 
 ## Next
 
-- [ ] Start Phase E2 public documentation.
+- [ ] Start Phase F deferred follow-up register.
 
 ## Phase A: Lock The API Contract
 
-1. [x] Define the base dictionary contract for permission-aware affordances.
+1. [x] Define the Base API dictionary contract for permission-aware affordances.
     1. [x] Add `permission` as a permission-string field.
     2. [x] Add `permission_check` as a named view-method field.
     3. [x] Add `permission_behavior` with default hide behavior.
@@ -29,28 +30,28 @@
 
 ## Phase B: Extra Actions And PowerAction
 
-1. [x] Add permission-aware affordances to primitive `extra_actions`.
+1. [x] Add permission-aware affordances to Base API `extra_actions`.
     1. [x] Apply permission checks before `hidden_if`.
     2. [x] Apply permission checks before `disabled_state`.
 2. [x] Add matching fields to `PowerAction`.
-    1. [x] Preserve primitive dictionary parity.
+    1. [x] Preserve Base API dictionary parity.
     2. [x] Preserve existing row/workflow-state hook behavior.
 3. [x] Add a simple sample-app demonstration.
     1. [x] Add sample viewer and manager login controls.
-    2. [x] Show permission-hidden preview actions in primitive and `PowerAction` examples.
+    2. [x] Show permission-hidden preview actions in Base API and `PowerAction` examples.
     3. [x] Keep downstream-owned endpoint enforcement explicit.
 
 ## Phase C: Extra Buttons And PowerButton
 
-1. [x] Add permission-aware affordances to primitive `extra_buttons`.
+1. [x] Add permission-aware affordances to Base API `extra_buttons`.
     1. [x] Support permission hiding.
     2. [x] Support permission disabling.
     3. [x] Preserve existing selection behavior.
 2. [x] Add matching fields to `PowerButton`.
-    1. [x] Preserve primitive dictionary parity.
+    1. [x] Preserve Base API dictionary parity.
     2. [x] Keep toolbar-button endpoint enforcement downstream-owned.
 3. [x] Add a simple sample-app demonstration.
-    1. [x] Show permission-hidden selected-summary buttons in primitive and `PowerButton` examples.
+    1. [x] Show permission-hidden selected-summary buttons in Base API and `PowerButton` examples.
     2. [x] Preserve selection-state disabling after permission passes.
     3. [x] Keep downstream-owned endpoint enforcement explicit.
 
@@ -70,13 +71,13 @@
 ## Phase E: Tests And Documentation
 
 1. [x] Add focused behavior tests.
-    1. [x] Prove primitive API and `Power*` API parity.
+    1. [x] Prove Base API and `Power*` API parity.
     2. [x] Prove permission precedence over row-state hooks.
     3. [x] Prove PowerCRUD-owned backend denial.
-2. [ ] Update public docs.
-    1. [ ] Document permission versus row/workflow state.
-    2. [ ] Document downstream-owned endpoint responsibilities.
-    3. [ ] Document DDMS-style usage examples.
+2. [x] Update public docs.
+    1. [x] Document permission versus row/workflow state.
+    2. [x] Document downstream-owned endpoint responsibilities.
+    3. [x] Document DDMS-style usage examples.
 
 ## Phase F: Deferred Follow-Up Register
 

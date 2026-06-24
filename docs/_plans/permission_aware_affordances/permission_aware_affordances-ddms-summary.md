@@ -86,7 +86,7 @@ There is no first-design `permission_behavior` choice for built-in Edit/Delete. 
 
 ## Extra Buttons And PowerButton
 
-PowerCRUD's base API remains the fundamental API. New keys should work in primitive `extra_buttons` dictionaries first:
+PowerCRUD's Base API remains the fundamental API. New keys should work in Base API `extra_buttons` dictionaries first:
 
 ```python
 extra_buttons = [
@@ -148,7 +148,7 @@ Use the same `permission_check(request, obj=None)` shape for toolbar buttons and
 
 The same base-API-first rule applies to row actions.
 
-Primitive API:
+Base API:
 
 ```python
 extra_actions = [
@@ -210,15 +210,15 @@ The target extra action endpoint remains downstream-owned. DDMS must still enfor
 
 Suggested first slice:
 
-1. Add `permission`, `permission_check`, `permission_behavior`, and `permission_denied_reason` to primitive `extra_actions`.
+1. Add `permission`, `permission_check`, `permission_behavior`, and `permission_denied_reason` to Base API `extra_actions`.
 2. Add the same fields to `PowerAction`.
-3. Add the same fields to primitive `extra_buttons`.
+3. Add the same fields to Base API `extra_buttons`.
 4. Add the same fields to `PowerButton`.
 5. Add the always-present, overridable `has_power_permission()` resolver.
 6. Add `has_power_create_permission()` for Create UI and backend create handling.
 7. Add `has_power_update_permission()` and compose it with `can_update_object()`.
 8. Add `has_power_delete_permission()` and compose it with `can_delete_object()`.
-9. Add tests proving primitive API and `Power*` API parity.
+9. Add tests proving Base API and `Power*` API parity.
 
 Deferred:
 
