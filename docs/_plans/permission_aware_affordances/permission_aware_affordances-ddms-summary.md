@@ -136,11 +136,13 @@ extra_buttons = [
     )
 ]
 
-def can_use_admin_review(self, request):
+def can_use_admin_review(self, request, obj=None):
     return request.user.is_staff
 ```
 
 `permission` and `permission_check` are mutually exclusive. If both are set, PowerCRUD should raise `ImproperlyConfigured`.
+
+Use the same `permission_check(request, obj=None)` shape for toolbar buttons and row actions. Toolbar buttons call the method with `obj=None`; row actions pass the row object.
 
 ## Extra Actions And PowerAction
 

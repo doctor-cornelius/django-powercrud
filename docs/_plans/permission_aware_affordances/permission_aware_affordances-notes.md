@@ -311,12 +311,18 @@ permission_denied_reason=None
 Suggested method signatures:
 
 ```python
-def can_use_admin_review(self, request):
+def can_use_admin_review(self, request, obj=None):
     return request.user.is_staff
 
-def can_submit_case(self, obj, request):
-    return request.user.has_perm("cases.submit_case") and obj.owner == request.user
+def can_submit_case(self, request, obj=None):
+    return (
+        obj is not None
+        and request.user.has_perm("cases.submit_case")
+        and obj.owner == request.user
+    )
 ```
+
+Use the same `permission_check(request, obj=None)` shape for toolbar buttons and row actions. Toolbar buttons call the method with `obj=None`; row actions pass the row object.
 
 Compatibility rule:
 
@@ -376,6 +382,8 @@ For update and delete, these permission hooks should compose with existing row-s
 
 ### Bulk Permissions
 
+Bulk permissions are likely the next gap after the first mutation/action slice.
+
 Add explicit bulk permission hooks because bulk operations are PowerCRUD-owned endpoints.
 
 Possible hooks:
@@ -394,6 +402,8 @@ PowerCRUD should use these hooks in both places:
 2. Backend handling: bulk edit modal GET, bulk update POST, bulk delete POST.
 
 Bulk field validation remains separate and still mandatory.
+
+DDMS feedback confirmed that operation-level permission is enough for the first implementation slice, but viewer-accessible DDMS screens must not expose bulk edit/delete controls. If bulk hooks are deferred, DDMS should explicitly disable bulk edit/delete on viewer-accessible views or keep those screens read-only until PowerCRUD has bulk permission hooks.
 
 ### Inline Editing Permissions
 
@@ -476,6 +486,55 @@ That distinction should be explicit in public docs so developers do not confuse 
     - Attack: make `Power*` declarations compile to the same primitive keys and semantics.
     - Downstream benefit: existing dictionary users and structured-API users get the same capability.
 
+## DDMS Validation
+
+DDMS review confirmed that this enhancement fits the DDMS model.
+
+Key validation points:
+
+1. Hiding permission-denied Create, Edit, and Delete matches DDMS viewer-style UX.
+2. Disabled affordances should remain for row/workflow-state problems, not for users who can never perform the operation.
+3. `permission_check` as a named view method fits DDMS well because DDMS can wrap `DDMSPermissionService` methods locally.
+4. The important semantic split is:
+    - `permission` / `permission_check` = user capability
+    - `hidden_if` = row/action relevance
+    - `disabled_state` = row/workflow-state reason
+5. Toolbar buttons are the biggest immediate DDMS UI gap, but built-in Create/Edit/Delete also matter once viewer users can open broader PowerCRUD screens.
+6. PowerCRUD hiding an extra action or extra button must not be treated as backend protection for custom DDMS endpoints.
+7. Operation-level permission is enough for the first slice; field-sensitive permission can wait.
+8. Bulk operations are the likely next gap for viewer-accessible screens.
+
+DDMS-style usage:
+
+```python
+PowerAction(
+    text="Send for Approval",
+    url_name="ddms:ddmcase-send-for-approval-single",
+    permission_check="can_send_for_approval",
+    permission_behavior="hide",
+    disabled_state="get_submit_for_approval_disabled_reason",
+)
+
+def can_send_for_approval(self, request, obj=None):
+    return DDMSPermissionService.can_manage_cases(request.user)
+```
+
+The target endpoint still needs its DDMS permission decorator or equivalent service check.
+
+## Plan Phases
+
+### Phase A: Lock The API Contract
+
+### Phase B: Extra Actions And PowerAction
+
+### Phase C: Extra Buttons And PowerButton
+
+### Phase D: Built-In Create Edit Delete
+
+### Phase E: Tests And Documentation
+
+### Phase F: Deferred Follow-Up Register
+
 ## Compatibility Requirements
 
 1. Default behavior must remain open when no permission hook or permission declaration is configured.
@@ -508,7 +567,6 @@ The docs should avoid implying that `hidden_if` is permission-specific. It is no
 
 1. What is the exact response contract for backend denial: raise `PermissionDenied`, return `HttpResponseForbidden`, or call an overridable handler?
 2. Should detail/list access be included in the first slice, or should the first slice focus on mutation affordances?
-3. Should bulk update permission be field-sensitive, or is operation-level permission enough for the first slice?
 
 Settled direction:
 
@@ -519,6 +577,9 @@ Settled direction:
 5. `permission` and `permission_check` are mutually exclusive; setting both should raise `ImproperlyConfigured`.
 6. Permission behavior takes precedence over `hidden_if` and `disabled_state`.
 7. Callable permission declarations are deferred; named methods are enough for the first design.
+8. `permission_check` should use one signature everywhere: `permission_check(request, obj=None)`.
+9. Operation-level permission is enough for the first slice; field-sensitive permission is deferred.
+10. Bulk permission hooks are a likely follow-up, and viewer-accessible downstream views should disable bulk controls until those hooks exist.
 
 ## Initial Recommendation
 

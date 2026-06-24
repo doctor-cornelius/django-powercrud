@@ -102,6 +102,15 @@ Follow a checkbox-oriented layout with explicit phases, for example:
 - decisions made and why, in plain English
 - the minimum detail needed to later promote stable content into `docs/mkdocs/`
 
+When a feature plan needs both a succinct checklist and room for working detail, keep `<feature>-plan.md` terse and put the detail in `<feature>-notes.md` under a `## Plan Phases` section.
+
+In that case:
+
+- create matching `### Phase ...` headers in the notes for each plan phase
+- keep the plan as checkbox tasks and subtasks only
+- put rationale, evidence, phase-specific notes, deferred debate, and implementation discussion under the matching notes phase header
+- do not expand the plan with long explanatory paragraphs when matching notes phase headers exist
+
 ## Navigation (`mkdocs-awesome-nav`)
 
 Do not create or maintain `.nav.yml` files for `docs/_plans/`.
