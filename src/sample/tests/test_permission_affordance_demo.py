@@ -166,3 +166,132 @@ def test_sample_powerbutton_demo_uses_same_permission_affordance(client):
     response = client.get(reverse("sample:powerfield-book-list"))
     assert response.status_code == 200
     assert "Selected Summary" in response.content.decode()
+
+
+@pytest.mark.django_db
+def test_sample_viewer_cannot_see_builtin_book_mutation_affordances(client):
+    """Viewer users should not see built-in Book mutation affordances."""
+    book = _create_preview_book()
+
+    _login_as(client, "viewer")
+    response = client.get(reverse("sample:bigbook-list"))
+    response_text = response.content.decode()
+
+    assert response.status_code == 200, (
+        "Viewer-accessible Book list should still render successfully."
+    )
+    assert "Create book" not in response_text, (
+        "Viewer users should not see the built-in Create affordance."
+    )
+    assert "Normal Edit" not in response_text, (
+        "Viewer users should not see the sample extra action that targets update."
+    )
+    assert reverse("sample:bigbook-update", args=[book.pk]) not in response_text, (
+        "Viewer users should not see built-in Edit URLs in row actions."
+    )
+    assert reverse("sample:bigbook-delete", args=[book.pk]) not in response_text, (
+        "Viewer users should not see built-in Delete URLs in row actions."
+    )
+
+
+@pytest.mark.django_db
+def test_sample_viewer_direct_builtin_mutation_routes_are_forbidden(client):
+    """Viewer users should be forbidden by direct built-in mutation routes."""
+    book = _create_preview_book()
+    original_title = book.title
+
+    _login_as(client, "viewer")
+
+    assert client.get(reverse("sample:bigbook-create")).status_code == 403, (
+        "Viewer users should not be able to render the create form directly."
+    )
+    assert client.post(reverse("sample:bigbook-create"), data={}).status_code == 403, (
+        "Viewer users should not be able to submit the create endpoint directly."
+    )
+    assert client.get(reverse("sample:bigbook-update", args=[book.pk])).status_code == 403, (
+        "Viewer users should not be able to render the update form directly."
+    )
+    assert client.post(
+        reverse("sample:bigbook-update", args=[book.pk]),
+        data={"title": "Viewer Update Attempt"},
+    ).status_code == 403, (
+        "Viewer users should not be able to submit the update endpoint directly."
+    )
+    assert client.get(reverse("sample:bigbook-delete", args=[book.pk])).status_code == 403, (
+        "Viewer users should not be able to render the delete confirmation directly."
+    )
+    assert client.post(reverse("sample:bigbook-delete", args=[book.pk])).status_code == 403, (
+        "Viewer users should not be able to submit the delete endpoint directly."
+    )
+
+    book.refresh_from_db()
+    assert book.title == original_title, (
+        "Denied direct update attempts should not mutate the existing book."
+    )
+    assert Book.objects.filter(pk=book.pk).exists(), (
+        "Denied direct delete attempts should not delete the existing book."
+    )
+
+
+@pytest.mark.django_db
+def test_sample_manager_can_see_builtin_book_mutation_affordances(client):
+    """Manager users should see built-in Book mutation affordances."""
+    book = _create_preview_book()
+
+    _login_as(client, "manager")
+    response = client.get(reverse("sample:bigbook-list"))
+    response_text = response.content.decode()
+
+    assert response.status_code == 200, (
+        "Manager-accessible Book list should render successfully."
+    )
+    assert "Create book" in response_text, (
+        "Manager users should see the built-in Create affordance."
+    )
+    assert "Normal Edit" in response_text, (
+        "Manager users should see the sample extra action that targets update."
+    )
+    assert reverse("sample:bigbook-update", args=[book.pk]) in response_text, (
+        "Manager users should see built-in Edit URLs in row actions."
+    )
+    assert reverse("sample:bigbook-delete", args=[book.pk]) in response_text, (
+        "Manager users should see built-in Delete URLs in row actions."
+    )
+
+
+@pytest.mark.django_db
+def test_sample_powerfield_view_uses_same_builtin_mutation_permissions(client):
+    """PowerField sample views should use the same built-in mutation permissions."""
+    book = _create_preview_book()
+
+    _login_as(client, "viewer")
+    response = client.get(reverse("sample:powerfield-book-list"))
+    response_text = response.content.decode()
+    assert response.status_code == 200, (
+        "Viewer-accessible PowerField Book list should render successfully."
+    )
+    assert "Create book" not in response_text, (
+        "PowerButton demo viewers should not see built-in Create."
+    )
+    assert reverse("sample:powerfield-book-update", args=[book.pk]) not in response_text, (
+        "PowerButton demo viewers should not see built-in Edit URLs."
+    )
+    assert reverse("sample:powerfield-book-delete", args=[book.pk]) not in response_text, (
+        "PowerButton demo viewers should not see built-in Delete URLs."
+    )
+
+    _login_as(client, "manager")
+    response = client.get(reverse("sample:powerfield-book-list"))
+    response_text = response.content.decode()
+    assert response.status_code == 200, (
+        "Manager-accessible PowerField Book list should render successfully."
+    )
+    assert "Create book" in response_text, (
+        "PowerButton demo managers should see built-in Create."
+    )
+    assert reverse("sample:powerfield-book-update", args=[book.pk]) in response_text, (
+        "PowerButton demo managers should see built-in Edit URLs."
+    )
+    assert reverse("sample:powerfield-book-delete", args=[book.pk]) in response_text, (
+        "PowerButton demo managers should see built-in Delete URLs."
+    )

@@ -1258,6 +1258,33 @@ def test_core_mixin_has_power_permission_delegates_to_user_has_perm():
 
 
 @pytest.mark.django_db
+def test_core_mixin_builtin_mutation_permission_hooks_default_open():
+    """Built-in mutation permission hooks should be open by default."""
+    class PermissionView(CoreMixin):
+        model = Book
+        fields = "__all__"
+        base_template_path = "sample/base.html"
+
+    request = SimpleNamespace()
+    obj = SimpleNamespace(pk=1)
+    view = PermissionView()
+
+    assert view.has_power_create_permission(request) is True, (
+        "Create permission should default open for backward compatibility."
+    )
+    assert view.has_power_update_permission(request, obj) is True, (
+        "Update permission should default open for backward compatibility."
+    )
+    assert view.has_power_delete_permission(request, obj) is True, (
+        "Delete permission should default open for backward compatibility."
+    )
+    response = view.handle_power_permission_denied(request, "update", obj=obj)
+    assert response.status_code == 403, (
+        "The default built-in mutation denial handler should return HTTP 403."
+    )
+
+
+@pytest.mark.django_db
 def test_core_mixin_warns_when_disabled_reason_without_disabled_if(caplog):
     class WarningView(CoreMixin):
         model = Book
@@ -2474,6 +2501,7 @@ def test_book_update_form_renders_display_only_context_and_disabled_field(client
         pages=321,
     )
 
+    _login_sample_manager(client)
     response = client.get(reverse("sample:bigbook-update", args=[book.pk]))
     response_text = response.content.decode()
 
@@ -2497,6 +2525,7 @@ def test_book_update_form_renders_display_only_context_and_disabled_field(client
 @pytest.mark.django_db
 def test_book_create_form_hides_display_only_context_block(client):
     """Create forms should not render display-only context before an object exists."""
+    _login_sample_manager(client)
     response = client.get(reverse("sample:bigbook-create"))
     response_text = response.content.decode()
 
@@ -2680,6 +2709,7 @@ def test_book_list_renders_sample_semantic_list_cell_tooltips(client):
         description="Semantic tooltip sample",
     )
 
+    _login_sample_manager(client)
     response = client.get(reverse("sample:bigbook-list"))
     response_text = response.content.decode()
 
@@ -2781,6 +2811,7 @@ def test_book_list_escapes_semantic_list_cell_tooltip_html(client, monkeypatch):
         description="Escaped tooltip sample",
     )
 
+    _login_sample_manager(client)
     response = client.get(reverse("sample:bigbook-list"))
     response_text = response.content.decode()
 

@@ -385,6 +385,32 @@ def _resolve_standard_action_disabled_state(
     return disable, disabled_reason
 
 
+def _resolve_standard_action_permission_allowed(
+    *,
+    view: Any,
+    object: Any,
+    action_name: str,
+    request: Any,
+) -> bool:
+    """
+    Return whether a built-in standard action should be available by permission.
+    """
+    if action_name == "Edit":
+        checker = getattr(view, "has_power_update_permission", None)
+    elif action_name == "Delete":
+        checker = getattr(view, "has_power_delete_permission", None)
+    else:
+        return True
+
+    if not callable(checker):
+        return True
+
+    try:
+        return bool(checker(request, object))
+    except Exception:
+        return False
+
+
 def _get_selection_button_state(
     view: Any,
     request: Any,
@@ -860,6 +886,13 @@ def action_links(view: Any, object: Any) -> str:
     for name, url in standard_actions:
         if url is None:
             continue
+        if not _resolve_standard_action_permission_allowed(
+            view=view,
+            object=object,
+            action_name=name,
+            request=getattr(view, "request", None),
+        ):
+            continue
         disable, disabled_reason = _resolve_standard_action_disabled_state(
             view=view,
             object=object,
@@ -1239,7 +1272,14 @@ def object_list(context, objects, view):
         action_blocked_label = None
         can_update = getattr(view, "can_update_object", None)
         update_allowed = True
-        if callable(can_update):
+        if not _resolve_standard_action_permission_allowed(
+            view=view,
+            object=obj,
+            action_name="Edit",
+            request=request,
+        ):
+            update_allowed = False
+        if update_allowed and callable(can_update):
             try:
                 update_allowed = bool(can_update(obj, request))
             except Exception:

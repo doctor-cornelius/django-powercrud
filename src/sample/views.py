@@ -119,6 +119,11 @@ def sample_user_can_use_selected_summaries(user):
     )
 
 
+def sample_user_can_manage_books(user):
+    """Return whether the sample user can use built-in book mutation actions."""
+    return sample_user_can_use_selected_summaries(user)
+
+
 class BookCRUDView(SampleCRUDMixin):
     """Full-featured sample CRUD view for the Book model."""
 
@@ -346,6 +351,8 @@ class BookCRUDView(SampleCRUDMixin):
             "display_modal": True,
             "lock_sensitive": True,  # this will be greyed out if async locks in force
             "refresh_list_on_modal_close": True,
+            "permission_check": "can_manage_books",
+            "permission_behavior": "hide",
             "modal_box_classes": "modal-box flex max-h-[calc(100dvh-2rem)] w-11/12 max-w-4xl flex-col",
         },
         {
@@ -370,6 +377,22 @@ class BookCRUDView(SampleCRUDMixin):
     def can_use_selected_summary(self, request, obj=None):
         """Return whether the sample user can open selected-summary buttons."""
         return sample_user_can_use_selected_summaries(getattr(request, "user", None))
+
+    def can_manage_books(self, request, obj=None):
+        """Return whether the sample user can use built-in book mutation actions."""
+        return sample_user_can_manage_books(getattr(request, "user", None))
+
+    def has_power_create_permission(self, request):
+        """Return whether the sample user can create books."""
+        return sample_user_can_manage_books(getattr(request, "user", None))
+
+    def has_power_update_permission(self, request, obj):
+        """Return whether the sample user can update books."""
+        return sample_user_can_manage_books(getattr(request, "user", None))
+
+    def has_power_delete_permission(self, request, obj):
+        """Return whether the sample user can delete books."""
+        return sample_user_can_manage_books(getattr(request, "user", None))
 
     def should_hide_description_preview(self, obj, request):
         """Return True when the preview action is not relevant for the row."""
@@ -723,6 +746,8 @@ class PowerFieldBookCRUDView(SampleCRUDMixin):
         display_modal=True,
         lock_sensitive=True,
         refresh_list_on_modal_close=True,
+        permission_check="can_manage_books",
+        permission_behavior="hide",
         modal_box_classes=(
             "modal-box flex max-h-[calc(100dvh-2rem)] w-11/12 "
             "max-w-4xl flex-col"
@@ -754,6 +779,22 @@ class PowerFieldBookCRUDView(SampleCRUDMixin):
     def can_use_selected_summary(self, request, obj=None):
         """Return whether the sample user can open selected-summary buttons."""
         return sample_user_can_use_selected_summaries(getattr(request, "user", None))
+
+    def can_manage_books(self, request, obj=None):
+        """Return whether the sample user can use built-in book mutation actions."""
+        return sample_user_can_manage_books(getattr(request, "user", None))
+
+    def has_power_create_permission(self, request):
+        """Return whether the sample user can create PowerField books."""
+        return sample_user_can_manage_books(getattr(request, "user", None))
+
+    def has_power_update_permission(self, request, obj):
+        """Return whether the sample user can update PowerField books."""
+        return sample_user_can_manage_books(getattr(request, "user", None))
+
+    def has_power_delete_permission(self, request, obj):
+        """Return whether the sample user can delete PowerField books."""
+        return sample_user_can_manage_books(getattr(request, "user", None))
 
     def get_title_tooltip(self, obj, request=None):
         """Return the semantic tooltip text for the title list cell."""

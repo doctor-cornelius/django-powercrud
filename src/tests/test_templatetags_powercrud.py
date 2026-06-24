@@ -49,6 +49,9 @@ class TemplateViewStub:
         self.button_permission_allowed = True
         self.button_permission_calls = []
         self.row_state_calls = []
+        self.update_permission_allowed = True
+        self.delete_permission_allowed = True
+        self.standard_row_state_calls = []
         self.extra_actions = [
             {
                 "url_name": "sample:book-detail",
@@ -202,6 +205,14 @@ class TemplateViewStub:
         self.button_permission_calls.append(obj)
         return self.button_permission_allowed
 
+    def has_power_update_permission(self, request, obj):
+        """Return the configured built-in update permission state."""
+        return self.update_permission_allowed
+
+    def has_power_delete_permission(self, request, obj):
+        """Return the configured built-in delete permission state."""
+        return self.delete_permission_allowed
+
     def should_hide_preview(self, obj, request):
         """Return True when the preview action should not render."""
         return obj.title.startswith("Hidden Preview")
@@ -225,9 +236,11 @@ class TemplateViewStub:
         return "sample.book"
 
     def can_delete_object(self, obj, request):
+        self.standard_row_state_calls.append("can_delete_object")
         return True
 
     def can_update_object(self, obj, request):
+        self.standard_row_state_calls.append("can_update_object")
         return True
 
     def get_update_disabled_reason(self, obj, request):
@@ -450,6 +463,64 @@ def test_action_links_disable_extra_action_from_disabled_state_reason():
     )
     assert "data-tippy-content='Preview requires a description.'" in html, (
         "The disabled_state string should render as the disabled tooltip reason."
+    )
+
+
+@pytest.mark.django_db
+def test_action_links_hide_edit_when_update_permission_fails():
+    """Permission-denied built-in Edit should be hidden, not row-state disabled."""
+    author = Author.objects.create(name="Denied Update")
+    book = Book.objects.create(
+        title="Denied Update Book",
+        author=author,
+        published_date=date(2024, 1, 5),
+        bestseller=False,
+        isbn="9876543210004",
+        pages=42,
+    )
+    request = apply_session(RequestFactory().get("/"))
+    view = TemplateViewStub(request)
+    view.update_permission_allowed = False
+
+    html = powercrud.action_links(view, book)
+
+    assert "/sample:book-detail/" in html, (
+        "The standard View action should remain visible when update permission fails."
+    )
+    assert "/sample:book-update/" not in html, (
+        "Permission-denied built-in Edit should be hidden from the row actions."
+    )
+    assert "can_update_object" not in view.standard_row_state_calls, (
+        "Row-state update hooks should not run when update permission already fails."
+    )
+
+
+@pytest.mark.django_db
+def test_action_links_hide_delete_when_delete_permission_fails():
+    """Permission-denied built-in Delete should be hidden, not row-state disabled."""
+    author = Author.objects.create(name="Denied Delete")
+    book = Book.objects.create(
+        title="Denied Delete Book",
+        author=author,
+        published_date=date(2024, 1, 6),
+        bestseller=False,
+        isbn="9876543210005",
+        pages=42,
+    )
+    request = apply_session(RequestFactory().get("/"))
+    view = TemplateViewStub(request)
+    view.delete_permission_allowed = False
+
+    html = powercrud.action_links(view, book)
+
+    assert "/sample:book-detail/" in html, (
+        "The standard View action should remain visible when delete permission fails."
+    )
+    assert "/sample:book-delete/" not in html, (
+        "Permission-denied built-in Delete should be hidden from the row actions."
+    )
+    assert "can_delete_object" not in view.standard_row_state_calls, (
+        "Row-state delete hooks should not run when delete permission already fails."
     )
 
 

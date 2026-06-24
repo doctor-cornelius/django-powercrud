@@ -19,6 +19,11 @@ from sample.services import BookBulkUpdateService, BookWriteService
 from sample.views import BookCRUDView
 
 
+def _login_sample_manager(client):
+    """Authenticate the client as the sample manager user."""
+    return client.post(reverse("sample:demo-login", args=["manager"]))
+
+
 class SampleAsyncDashboardTests(TestCase):
     def setUp(self):
         self.manager = SampleAsyncManager()
@@ -706,6 +711,7 @@ class SampleBookUpdateGuardTests(TestCase):
         )
         guarded_book.genres.add(genre)
 
+        _login_sample_manager(self.client)
         response = self.client.get(reverse("sample:bigbook-list"))
 
         self.assertEqual(

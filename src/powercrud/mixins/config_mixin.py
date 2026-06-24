@@ -3,6 +3,7 @@ import warnings
 
 from django.conf import settings
 from django.core.exceptions import FieldDoesNotExist, ImproperlyConfigured
+from django.http import HttpResponseForbidden
 from django.db.models.fields.reverse_related import ManyToOneRel
 from typing import Any, Callable
 
@@ -378,6 +379,35 @@ class ConfigMixin:
         """
         user = getattr(request, "user", None)
         return bool(user and user.has_perm(permission))
+
+    def has_power_create_permission(self, request: Any) -> bool:
+        """
+        Return whether the request may use PowerCRUD-owned create handling.
+        """
+        return True
+
+    def has_power_update_permission(self, request: Any, obj: Any) -> bool:
+        """
+        Return whether the request may use PowerCRUD-owned update handling.
+        """
+        return True
+
+    def has_power_delete_permission(self, request: Any, obj: Any) -> bool:
+        """
+        Return whether the request may use PowerCRUD-owned delete handling.
+        """
+        return True
+
+    def handle_power_permission_denied(
+        self,
+        request: Any,
+        operation: str,
+        obj: Any = None,
+    ) -> HttpResponseForbidden:
+        """
+        Return the response used when a PowerCRUD-owned operation is denied.
+        """
+        return HttpResponseForbidden(f"{operation} is not permitted.")
 
     @staticmethod
     def _dedupe_preserving_first(values: list[str] | None) -> list[str]:
