@@ -1,0 +1,9 @@
+vulnerabilities:
+  - id: CVE-2026-12151
+    paths:
+      - "usr/lib/node_modules/npm/node_modules/undici/package.json"
+    expired_at: 2026-09-30
+    statement: >-
+      npm-internal undici in the dev/test Docker image. This is not a
+      PowerCRUD runtime dependency, project package-lock dependency, or PyPI
+      package artifact. Remove once pinned npm bundles undici >= 6.27.0.

@@ -61,7 +61,10 @@ Add simple, low-maintenance CI security checks for dependency and container risk
 - Docker image fix applied on `security/dependency-hardening`: move NodeSource from `node_20.x` to `node_22.x`.
 - Follow-up image fix applied on `security/dependency-hardening`: pin global npm to `11.17.0`, which bundles `picomatch` `4.0.4`.
 - Validation passed on PR #140: Trivy filesystem and image scans report 0 vulnerabilities for the configured `HIGH,CRITICAL` scan set.
-- No Trivy allowlist is currently needed.
+- PR #165 later found `CVE-2026-12151` in `usr/lib/node_modules/npm/node_modules/undici/package.json` from npm's bundled internal dependencies inside the Docker image.
+- The finding is not from this repo's `package-lock.json`, not a PowerCRUD runtime dependency, and not included in the PyPI package artifacts.
+- A path-scoped `.trivyignore.yaml` exception now suppresses only `CVE-2026-12151` for npm's bundled `undici` path, expiring on 2026-09-30.
+- Remove the exception once the pinned global npm release bundles `undici >= 6.27.0`.
 
 ## Deferred
 

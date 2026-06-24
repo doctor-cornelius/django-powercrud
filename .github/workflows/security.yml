@@ -52,6 +52,7 @@ jobs:
         with:
           image-ref: django-powercrud:${{ github.sha }}
           format: table
+          trivyignores: .trivyignore.yaml
           vuln-type: os,library
           severity: HIGH,CRITICAL
           ignore-unfixed: true
@@ -63,6 +64,7 @@ jobs:
         with:
           image-ref: django-powercrud:${{ github.sha }}
           format: table
+          trivyignores: .trivyignore.yaml
           vuln-type: os,library
           severity: HIGH,CRITICAL
           ignore-unfixed: true
