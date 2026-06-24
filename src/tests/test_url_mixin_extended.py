@@ -63,6 +63,9 @@ class UrlViewHarness(UrlMixin, ContextBase, View):
     def get_original_target(self):
         return "#content"
 
+    def get_htmx_target(self):
+        return "#content"
+
     def get_table_pixel_height_other_page_elements(self):
         return "0px"
 
@@ -83,6 +86,14 @@ class UrlViewHarness(UrlMixin, ContextBase, View):
 
     def get_selected_ids_from_session(self, request):
         return request.session.get("selected", [])
+
+
+class CreateDeniedUrlViewHarness(UrlViewHarness):
+    """URL context harness that denies PowerCRUD-owned create permission."""
+
+    def has_power_create_permission(self, request):
+        """Deny create permission for context-level create URL tests."""
+        return False
 
 
 class LegacyInlineUrlViewHarness(UrlMixin, ContextBase, View):
@@ -203,6 +214,28 @@ def test_safe_reverse_handles_failure(monkeypatch):
 
     monkeypatch.setattr(url_module, "reverse", boom)
     assert view.safe_reverse("missing") is None
+
+
+def test_get_context_data_hides_create_url_when_create_permission_denied(monkeypatch):
+    """Denied create permission should clear create_view_url at context level."""
+    request = RequestFactory().get("/")
+    request.session = {"selected": []}
+    view = CreateDeniedUrlViewHarness(request, None, role=Role.LIST)
+
+    monkeypatch.setattr(
+        url_module,
+        "reverse",
+        lambda name, kwargs=None: f"/{name}",
+    )
+
+    context = view.get_context_data()
+
+    assert context["create_view_url"] is None, (
+        "Denied create permission should hide Create before template rendering, even when the create route reverses."
+    )
+    assert context["list_view_url"] == "/sample:book-list", (
+        "The harness should still resolve the list URL so the test proves create permission, not URL reversal, hid Create."
+    )
 
 
 def test_get_urls_generates_patterns(monkeypatch):
