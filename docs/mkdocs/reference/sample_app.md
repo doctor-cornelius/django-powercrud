@@ -71,6 +71,7 @@ class BookCRUDView(PowerCRUDAsyncMixin, CRUDView):
         "pages": "Demo link: opens this book detail in the current page.",
         "isbn": "Demo link: opens an external ISBN reference in a new tab or window.",
         "isbn_empty": "Shows whether this row currently has an ISBN value.",
+        "description_empty": "Shows whether this row currently has description text.",
         "a_really_long_property_header_for_title": (
             "Demo link: opens the related author detail in a larger PowerCRUD modal."
         ),
@@ -147,7 +148,7 @@ class BookCRUDView(PowerCRUDAsyncMixin, CRUDView):
         return f"ISBN: {obj.isbn}"
 ```
 
-The sample `BookCRUDView` uses `view_title = "My List of Books"` plus `view_instructions = "Here you can edit books"` to demonstrate the narrow heading/helper-text overrides. It also sets `view_help` to demonstrate collapsed screen-level guidance with a one-line summary, escaped paragraph text, a subtle `info` colour tint, and table-aligned width. The `column_help_text` mapping covers one field and one property so the sample list shows the header-help tooltip pattern; on linked demo columns, the header help explicitly says whether the link opens in the current page, a new tab/window, or the PowerCRUD modal. `list_cell_tooltip_fields` maps selected fields/properties to row-specific tooltip hooks for the inline-editable `title`, the visible non-inline `pages` field, and the boolean-like `isbn_empty` property cell. The sample `title` tooltip intentionally uses a newline so the demo shows multiline semantic list-cell tooltip rendering, while header-help tooltips and other tooltip surfaces keep their normal single-line behavior. That changes only the list surface above and inside the table; other UI copy such as the create button still comes from the model verbose names, and the instructions text, collapsed screen help, header help text, and semantic cell tooltip text are all rendered as plain escaped text rather than HTML.
+The sample `BookCRUDView` uses `view_title = "My List of Books"` plus `view_instructions = "Here you can edit books"` to demonstrate the narrow heading/helper-text overrides. It also sets `view_help` to demonstrate collapsed screen-level guidance with a one-line summary, escaped paragraph text, a subtle `info` colour tint, and table-aligned width. The `column_help_text` mapping covers fields and properties so the sample list shows the header-help tooltip pattern; on linked demo columns, the header help explicitly says whether the link opens in the current page, a new tab/window, or the PowerCRUD modal. `list_cell_tooltip_fields` maps selected fields/properties to row-specific tooltip hooks for the inline-editable `title`, the visible non-inline `pages` field, and the boolean-like `isbn_empty` property cell. The optional `description_empty` property column can be added through **Cols** when checking lazy row-action availability for books with no description. The sample `title` tooltip intentionally uses a newline so the demo shows multiline semantic list-cell tooltip rendering, while header-help tooltips and other tooltip surfaces keep their normal single-line behavior. That changes only the list surface above and inside the table; other UI copy such as the create button still comes from the model verbose names, and the instructions text, collapsed screen help, header help text, and semantic cell tooltip text are all rendered as plain escaped text rather than HTML.
 
 The same sample view now also demonstrates list-cell linking through the narrow declarative `link_fields` API. The live sample uses the non-inline property column `a_really_long_property_header_for_title` so the screen can keep its primary `title` and `author` columns reserved for inline-edit and dependency demos. That is deliberate: PowerCRUD never turns inline-editable cells into links. The sample sets `list_cell_link_default_open_in = "modal"` and uses the dict form with `pk_attr = "author_id"` plus `modal_box_classes`, so that existing non-inline link opens the related author detail through a noticeably larger PowerCRUD modal when the sample page is running with modal support. In views that omit `list_cell_link_default_open_in`, PowerCRUD assumes `"new"`. The sample links `pages` to the current book detail with explicit `open_in = "current"`, and keeps `isbn` out of `inline_edit_fields` so that visible field can link to a static external ISBN reference with explicit `open_in = "new"`.
 
@@ -160,7 +161,7 @@ The same sample view now also demonstrates progressive filter visibility:
 The same sample view now also demonstrates list options:
 
 - `list_options_enabled = True` enables **Cols**, while `default_list_fields` keeps the initial book table narrower than the full allowed column set
-- users can open **Cols** and add allowed hidden columns such as `uneditable_field`
+- users can open **Cols** and add allowed hidden columns such as `description_empty` and `uneditable_field`
 - the current column choice is scoped to the browser session and the `BookCRUDView`
 - reset returns the table to the declared `default_list_fields`
 
@@ -301,6 +302,11 @@ class PowerFieldBookCRUDView(PowerCRUDAsyncMixin, CRUDView):
             detail_property=True,
             default_list=True,
             tooltip_hook="get_isbn_empty_tooltip",
+        ),
+        PowerField(
+            "description_empty",
+            property=True,
+            detail_property=True,
         ),
         PowerField("description", form=True, inline=True),
         PowerField("uneditable_field", form_display=True),

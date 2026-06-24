@@ -129,6 +129,11 @@ class Book(models.Model):
         return not self.isbn
 
     @property
+    def description_empty(self):
+        """Return whether the sample book currently has no description text."""
+        return not bool((self.description or "").strip())
+
+    @property
     def there_are_so_many_pages_this_header_surely_will_wrap(self):
         return self.pages > 10
 
@@ -137,6 +142,7 @@ class Book(models.Model):
         return self.title
 
     a_really_long_property_header_for_title.fget.short_description = "Really Long Title"
+    description_empty.fget.short_description = "Description Empty"
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
