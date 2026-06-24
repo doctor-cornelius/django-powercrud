@@ -6,6 +6,13 @@ During the `0.x` series, breaking changes can occur, although we try to minimise
 
 Version numbers below correspond to published git tags. The more important releases include a little extra narrative and upgrade context; smaller patch releases remain deliberately brief. For full detail between any two versions, use the GitHub compare view for the matching tags.
 
+## 0.8.0 (2026-06-24)
+- **Feature (permissions)**: add permission-aware affordances
+
+  PowerCRUD can now hide or disable operations that the current user is not allowed to use, while keeping permission checks separate from row/workflow state checks. Built-in hooks cover the standard PowerCRUD-owned create, detail, update, delete, inline-update, bulk update, and bulk delete flows, with matching backend enforcement for direct requests. Custom `extra_actions` and `extra_buttons`, including `PowerAction` and `PowerButton`, now support `permission`, `permission_check`, `permission_behavior`, and `permission_denied_reason` so applications can present truthful row actions and toolbar buttons without folding authorization into `hidden_if`, `disabled_state`, or selection-state logic. Defaults remain open for existing views; downstream custom action endpoints still need to enforce their own permissions.
+
+- **Feature (config)**: default list pagination to 25 rows
+
 ## 0.7.15 (2026-06-18)
 - **Feature (fields)**: add labels and choice filters
 
