@@ -160,22 +160,118 @@ class OperationMixin:
 
     def get_bulk_edit_enabled(self) -> bool:
         """
-        Determine if bulk edit functionality should be enabled.
+        Determine if the bulk action modal should be available.
 
         Returns:
-            bool: True if bulk_fields are configured and modal/HTMX are enabled.
+            bool: True if bulk update or bulk delete is configured and permitted.
         """
+        return bool(self.get_bulk_update_enabled() or self.get_bulk_delete_enabled())
 
-        return bool(resolve_config(self).bulk_edit_enabled)
+    def get_bulk_update_configured(self) -> bool:
+        """
+        Return whether bulk update is configured before runtime permissions.
+        """
+        cfg = resolve_config(self)
+        return bool((cfg.bulk_fields or []) and cfg.use_modal_enabled)
+
+    def get_bulk_delete_configured(self) -> bool:
+        """
+        Return whether bulk delete is configured before runtime permissions.
+        """
+        cfg = resolve_config(self)
+        return bool(cfg.bulk_delete and cfg.use_modal_enabled)
+
+    def _get_bulk_permission_request(self):
+        """
+        Return the request used for runtime bulk permission hooks, when available.
+        """
+        return getattr(self, "request", None)
+
+    def get_bulk_update_permission_allowed(self) -> bool:
+        """
+        Return whether runtime permission allows bulk update.
+        """
+        request = self._get_bulk_permission_request()
+        if request is None:
+            return True
+        permission_checker = getattr(self, "has_power_bulk_update_permission", None)
+        if permission_checker is None:
+            return True
+        return bool(permission_checker(request))
+
+    def get_bulk_delete_permission_allowed(self) -> bool:
+        """
+        Return whether runtime permission allows bulk delete.
+        """
+        request = self._get_bulk_permission_request()
+        if request is None:
+            return True
+        permission_checker = getattr(self, "has_power_bulk_delete_permission", None)
+        if permission_checker is None:
+            return True
+        return bool(permission_checker(request))
+
+    def get_bulk_update_enabled(self) -> bool:
+        """
+        Return whether configured bulk update is visible and callable.
+        """
+        return bool(
+            self.get_bulk_update_configured()
+            and self.get_bulk_update_permission_allowed()
+        )
 
     def get_bulk_delete_enabled(self) -> bool:
         """
         Determine if bulk delete is allowed.
 
         Returns:
-            bool: True if bulk_delete is enabled and bulk edit is allowed.
+            bool: True if bulk_delete is configured and permitted.
         """
-        return bool(resolve_config(self).bulk_delete_enabled)
+        return bool(
+            self.get_bulk_delete_configured()
+            and self.get_bulk_delete_permission_allowed()
+        )
+
+    def _extra_button_permission_allows_selection(self, button: dict) -> bool:
+        """
+        Return whether a selection-aware extra button should drive selection controls.
+        """
+        if hasattr(button, "to_dict"):
+            button = button.to_dict()
+        if not isinstance(button, dict):
+            return False
+
+        if not bool(button.get("uses_selection", False)):
+            return False
+
+        request = self._get_bulk_permission_request()
+        permission = button.get("permission")
+        permission_check_name = button.get("permission_check")
+        if request is None or (not permission and not permission_check_name):
+            return True
+
+        if permission:
+            permission_resolver = getattr(self, "has_power_permission", None)
+            if permission_resolver is None:
+                return False
+            return bool(permission_resolver(permission, request, obj=None))
+
+        permission_check = getattr(self, permission_check_name, None)
+        if not callable(permission_check):
+            return False
+        return bool(permission_check(request, None))
+
+    def has_permitted_selection_aware_extra_buttons(self) -> bool:
+        """
+        Return whether any permitted extra button needs row selection controls.
+        """
+        extra_buttons = getattr(self, "extra_buttons", []) or []
+        if not isinstance(extra_buttons, (list, tuple)):
+            return False
+        return any(
+            self._extra_button_permission_allows_selection(button)
+            for button in extra_buttons
+        )
 
     def get_selection_controls_enabled(self) -> bool:
         """
@@ -184,7 +280,15 @@ class OperationMixin:
         Bulk edit/delete require selection controls. Selection-aware extra
         buttons may also enable them unless the view opts out.
         """
-        return bool(resolve_config(self).selection_controls_enabled)
+        cfg = resolve_config(self)
+        return bool(
+            self.get_bulk_edit_enabled()
+            or (
+                cfg.use_htmx_enabled
+                and not cfg.extra_button_selection_controls_disabled
+                and self.has_permitted_selection_aware_extra_buttons()
+            )
+        )
 
     def _perform_bulk_delete(
         self,

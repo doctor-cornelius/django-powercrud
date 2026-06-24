@@ -9,12 +9,13 @@
 - [x] Phase D implementation added.
 - [x] Phase E1 focused behavior tests added.
 - [x] Phase E2 public documentation added.
+- [x] Phase F bulk permission hooks added.
 - [x] DDMS validation captured in notes.
 - [x] DDMS caveats captured in notes.
 
 ## Next
 
-- [ ] Start Phase F deferred follow-up register.
+- [ ] Start Phase G deferred follow-up register.
 
 ## Phase A: Lock The API Contract
 
@@ -79,13 +80,23 @@
     2. [x] Document downstream-owned endpoint responsibilities.
     3. [x] Document DDMS-style usage examples.
 
-## Phase F: Deferred Follow-Up Register
+## Phase F: Bulk Permission Hooks
 
-1. [ ] Track bulk permissions as the likely next gap.
-    1. [ ] Defer bulk update/delete hooks from the first slice.
-    2. [ ] Note downstream viewer screens should disable bulk controls until hooks exist.
-2. [ ] Keep wider permission surfaces deferred.
+1. [x] Add PowerCRUD-owned bulk permission hooks.
+    1. [x] Add `has_power_bulk_update_permission(request)`.
+    2. [x] Add `has_power_bulk_delete_permission(request)`.
+2. [x] Apply hooks to bulk UI and backend handling.
+    1. [x] Hide bulk update controls when update permission fails.
+    2. [x] Hide bulk delete controls when delete permission fails.
+    3. [x] Deny the bulk modal when neither bulk operation is permitted.
+    4. [x] Deny direct bulk update/delete submissions before validation, async queueing, persistence, or delete execution.
+3. [x] Keep selection controls tied to visible permitted operations.
+    1. [x] Hide row selection controls when no permitted bulk operation or permitted selection-aware button needs them.
+    2. [x] Preserve selection-aware extra button behavior when its own permission passes.
+
+## Phase G: Deferred Follow-Up Register
+
+1. [ ] Keep wider permission surfaces deferred.
     1. [ ] Defer list/detail permission hooks.
     2. [ ] Defer field-sensitive permissions.
     3. [ ] Defer callable permission declarations.
-    4. [ ] Keep DDMS timeline GET/POST handling downstream-owned.

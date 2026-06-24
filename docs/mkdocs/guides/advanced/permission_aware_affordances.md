@@ -13,7 +13,7 @@ Keep these concerns separate:
 3. Row or workflow state: is the operation valid for this object right now?
 4. Backend enforcement: does the endpoint or service reject direct unauthorized attempts?
 
-PowerCRUD helps with operation affordances. For PowerCRUD-owned create, update, delete, and inline-update endpoints, it also enforces the matching built-in permission hooks.
+PowerCRUD helps with operation affordances. For PowerCRUD-owned create, update, delete, inline-update, bulk update, and bulk delete endpoints, it also enforces the matching built-in permission hooks.
 
 For custom `extra_actions` and `extra_buttons`, PowerCRUD can hide or disable the UI affordance. The endpoint is yours, so it must still enforce its own permission and business rules.
 
@@ -47,6 +47,29 @@ You may also override the denial response:
 def handle_power_permission_denied(self, request, operation, obj=None):
     return HttpResponseForbidden(f"You cannot {operation} cases.")
 ```
+
+## Built-In Bulk Update And Bulk Delete
+
+Use the bulk hooks when PowerCRUD-owned bulk operations should be available only to some users.
+
+```python
+class CaseCRUDView(PowerCRUDMixin, CRUDView):
+    def has_power_bulk_update_permission(self, request):
+        return request.user.has_perm("cases.change_case")
+
+    def has_power_bulk_delete_permission(self, request):
+        return request.user.has_perm("cases.delete_case")
+```
+
+When these hooks return `False`:
+
+- bulk update fields and Apply Changes are removed from the bulk modal
+- the bulk delete section is removed from the bulk modal
+- the bulk modal is denied entirely when neither bulk operation is permitted
+- direct PowerCRUD bulk update and bulk delete submissions are rejected
+- row selection controls are hidden when no permitted bulk operation or permitted selection-aware extra button needs them
+
+The hooks are operation-level. `bulk_fields` remains the allow-list for which fields may be bulk edited.
 
 ## Extra Row Actions
 
@@ -184,6 +207,8 @@ PowerCRUD enforces permission hooks only for operations it owns:
 - standard update
 - standard delete
 - inline update
+- bulk update
+- bulk delete
 
 Custom `extra_actions` and `extra_buttons` call downstream endpoints. Hiding or disabling those controls makes the UI truthful, but the endpoint must still enforce permission directly.
 

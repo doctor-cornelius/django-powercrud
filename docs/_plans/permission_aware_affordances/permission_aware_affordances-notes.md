@@ -17,33 +17,33 @@ The conceptual model has four separate layers:
 3. Row or workflow state: is this operation valid for this object right now?
 4. Backend enforcement: does the endpoint or service reject unauthorized or invalid attempts?
 
-PowerCRUD currently has some good row-state hooks, but it does not provide one coherent permission contract across built-in CRUD actions, extra row actions, toolbar buttons, bulk operations, and inline editing.
+PowerCRUD now has a coherent first-slice permission contract across built-in CRUD actions, extra row actions, toolbar buttons, bulk operations, and inline editing. Remaining gaps are intentionally deferred rather than treated as part of the release slice.
 
 ## Current Behavior
 
-### Evidence Anchors
+### Original Evidence Anchors
 
-The diagnosis is grounded in the current PowerCRUD and Neapolitan flow:
+The original diagnosis was grounded in the PowerCRUD and Neapolitan flow before this planning slice was implemented:
 
 1. The list template renders Create only when `create_view_url` is present.
 2. Neapolitan exposes CRUD operations by registered role and URL reversal. It does not provide model-permission filtering for those roles.
 3. Built-in View/Edit/Delete row actions are rendered from reversible URLs. Edit and Delete then pass through PowerCRUD's disabled-state resolver.
 4. PowerCRUD's standard-action disabled resolver calls `can_update_object()` and `can_delete_object()`, but those hooks default open and are not Django permission checks by default.
 5. Inline edit already composes row lock state, `can_update_object()`, optional `inline_edit_requires_perm`, and optional `inline_edit_allowed()`.
-6. Extra toolbar buttons currently derive disabled state from selection state only; they do not have generic permission, `hidden_if`, or `disabled_state` handling.
-7. Bulk operations validate configured fields and whether bulk delete is enabled, but do not have per-user permission hooks.
+6. Extra toolbar buttons derived disabled state from selection state only; they did not have generic permission, `hidden_if`, or `disabled_state` handling.
+7. Bulk operations validated configured fields and whether bulk delete was enabled, but did not have per-user permission hooks. This was resolved by Phase F.
 
 ### Built-In Create
 
-The list template shows the Create button when `create_view_url` is present.
+The original list template showed the Create button when `create_view_url` was present.
 
-That URL is present when the create route can be reversed. It is not currently filtered by a Django `add` permission check inside PowerCRUD.
+That URL was present when the create route could be reversed. It was not filtered by a Django `add` permission check inside PowerCRUD.
 
 Practical effect:
 
 1. If the downstream app does not register the create URL, the Create button is hidden.
-2. If the create URL exists but the current user lacks model or view create permission, PowerCRUD still shows the button unless downstream code clears or suppresses `create_view_url`.
-3. The create endpoint itself does not have a PowerCRUD-owned permission hook today.
+2. If the create URL existed but the current user lacked model or view create permission, PowerCRUD still showed the button unless downstream code cleared or suppressed `create_view_url`.
+3. The create endpoint itself did not have a PowerCRUD-owned permission hook.
 
 Relevant current surfaces:
 
@@ -53,17 +53,17 @@ Relevant current surfaces:
 
 ### Built-In Edit
 
-The built-in Edit action is rendered when the update URL can be reversed.
+The built-in Edit action was rendered when the update URL could be reversed.
 
 PowerCRUD can disable it through `can_update_object(obj, request)` and explain it through `get_update_disabled_reason(obj, request)`.
 
-That hook is currently best understood as a row-state affordance hook. Its default returns `True`, and it does not automatically check Django `change` permission.
+That hook was best understood as a row-state affordance hook. Its default returned `True`, and it did not automatically check Django `change` permission.
 
-Important limitation:
+Original limitation:
 
 1. The row UI affordance can be disabled through `can_update_object()`.
 2. Inline editing also respects `can_update_object()`.
-3. The regular update form endpoint does not currently use `can_update_object()` as backend authorization before rendering or saving the form.
+3. The regular update form endpoint did not use `can_update_object()` as backend authorization before rendering or saving the form.
 
 ### Built-In Delete
 
@@ -73,11 +73,11 @@ PowerCRUD can disable the built-in Delete row action through `can_delete_object(
 
 PowerCRUD also catches `ValidationError` raised by the model delete operation and redisplays it cleanly.
 
-Important limitation:
+Original limitation:
 
 1. The row UI affordance can be disabled through `can_delete_object()`.
 2. Direct delete endpoint protection still depends on downstream checks or model/service refusal.
-3. The current hook is row-state oriented, not an automatic Django `delete` permission check.
+3. The hook was row-state oriented, not an automatic Django `delete` permission check.
 
 ### Inline Editing
 
@@ -105,7 +105,7 @@ These hooks receive the row object and request.
 
 They are adequate for row-state and workflow-state logic. In DDMS they are already used that way, and they should not be replaced by a permission abstraction.
 
-Current limitation:
+Original limitation:
 
 1. Permission checks can be repeated inside each `hidden_if` or `disabled_state` method.
 2. There is no declarative operation-permission field on the action itself.
@@ -115,11 +115,11 @@ Current limitation:
 
 `PowerButton` and Base API `extra_buttons` support toolbar/modal/selection mechanics, including selection thresholds.
 
-They do not currently have generic `hidden_if` or `disabled_state` equivalents.
+They did not have generic `hidden_if` or `disabled_state` equivalents.
 
-This is the largest UI-affordance gap in the current action/button surface.
+This was the largest UI-affordance gap in the action/button surface.
 
-Current limitation:
+Original limitation:
 
 1. Downstream projects can conditionally assemble `extra_buttons` per request, but that is ad hoc.
 2. Selection-aware disabling exists, but permission-aware disabling or hiding does not.
@@ -136,11 +136,11 @@ Bulk edit and bulk delete are driven by configuration:
 
 Bulk update validates submitted fields against configured `bulk_fields`.
 
-Current limitation:
+Original limitation, resolved by Phase F:
 
-1. There is no first-class per-user permission hook for showing or denying bulk update.
-2. There is no first-class per-user permission hook for showing or denying bulk delete.
-3. Bulk delete only checks whether the operation is enabled by configuration before processing.
+1. There was no first-class per-user permission hook for showing or denying bulk update.
+2. There was no first-class per-user permission hook for showing or denying bulk delete.
+3. Bulk delete only checked whether the operation was enabled by configuration before processing.
 
 ## Downstream Workarounds Available Today
 
@@ -385,11 +385,11 @@ List/detail permission hooks remain deferred. DDMS already owns screen access th
 
 ### Bulk Permissions
 
-Bulk permissions are likely the next gap after the first mutation/action slice.
+Bulk permissions were pulled into the release slice after the first mutation/action work.
 
 Add explicit bulk permission hooks because bulk operations are PowerCRUD-owned endpoints.
 
-Possible hooks:
+Hooks:
 
 ```python
 def has_power_bulk_update_permission(self, request):
@@ -399,14 +399,14 @@ def has_power_bulk_delete_permission(self, request):
     return True
 ```
 
-PowerCRUD should use these hooks in both places:
+PowerCRUD uses these hooks in both places:
 
 1. UI rendering: bulk edit controls, bulk delete controls, selection affordances where relevant.
 2. Backend handling: bulk edit modal GET, bulk update POST, bulk delete POST.
 
 Bulk field validation remains separate and still mandatory.
 
-DDMS feedback confirmed that operation-level permission is enough for the first implementation slice, but viewer-accessible DDMS screens must not expose bulk edit/delete controls. If bulk hooks are deferred, DDMS should explicitly disable bulk edit/delete on viewer-accessible views or keep those screens read-only until PowerCRUD has bulk permission hooks.
+DDMS feedback confirmed that operation-level permission is enough for this slice. Field-sensitive bulk permissions remain deferred.
 
 ### Inline Editing Permissions
 
@@ -436,8 +436,8 @@ PowerCRUD should enforce permission hooks for endpoints it owns, where those hoo
 2. update
 3. delete
 4. inline edit if it is brought under the update hook
-5. bulk update when bulk permission hooks are added
-6. bulk delete when bulk permission hooks are added
+5. bulk update
+6. bulk delete
 7. list/detail if those hooks are added later
 8. list options endpoints if they become permission-sensitive
 9. selection endpoints if they expose sensitive scope
@@ -476,7 +476,7 @@ That distinction should be explicit in public docs so developers do not confuse 
     - Attack: let permission describe user capability while `hidden_if` and `disabled_state` keep describing row or workflow state.
     - Downstream benefit: apps avoid repeating permission checks inside every row-state hook.
 5. PowerCRUD-owned backend behavior aligns with the UI.
-    - Scope: enforce permission hooks only on endpoints PowerCRUD owns, such as create, update, delete, inline edit, and later bulk operations.
+    - Scope: enforce permission hooks only on endpoints PowerCRUD owns, such as create, update, delete, inline edit, and bulk operations.
     - Attack: use the same permission policy for UI affordances and backend handling where PowerCRUD controls both.
     - Downstream benefit: built-in CRUD actions do not rely on hidden buttons as their only protection.
 6. Downstream-owned endpoints stay downstream-owned.
@@ -504,9 +504,8 @@ Key validation points:
 5. Toolbar buttons are the biggest immediate DDMS UI gap, but built-in Create/Edit/Delete also matter once viewer users can open broader PowerCRUD screens.
 6. PowerCRUD hiding an extra action or extra button must not be treated as backend protection for custom DDMS endpoints.
 7. Operation-level permission is enough for the first slice; field-sensitive permission can wait.
-8. Bulk operations are the likely next gap for viewer-accessible screens.
+8. Bulk operation permissions are included for viewer-accessible screens.
 9. Built-in update/delete backend checks must happen after object resolution and before form rendering, persistence, or delete execution.
-10. DDMS timeline GET/POST handling is downstream-specific. If viewers can see timelines but cannot add comments, DDMS must split or guard timeline POST separately from PowerCRUD affordance work.
 
 DDMS-style usage:
 
@@ -585,15 +584,27 @@ Notes for implementation:
 
 ### Phase E: Tests And Documentation
 
-### Phase F: Deferred Follow-Up Register
+### Phase F: Bulk Permission Hooks
 
-Deferred items remain unchanged:
+Bulk permission hooks were pulled forward before release because bulk update and bulk delete are PowerCRUD-owned mutation operations.
 
-1. Bulk permission hooks are still the likely next gap after Phase D.
-2. List/detail permission hooks remain deferred.
-3. Field-sensitive permissions remain deferred.
-4. Callable permission declarations remain deferred.
-5. DDMS timeline GET/POST behavior remains downstream-owned.
+The narrow slice covers:
+
+1. `has_power_bulk_update_permission(request)`.
+2. `has_power_bulk_delete_permission(request)`.
+3. UI hiding for denied bulk update/delete operations.
+4. Backend denial for direct bulk modal, bulk update, and bulk delete requests.
+5. Selection controls that render only when a permitted bulk operation or permitted selection-aware button needs them.
+
+Field-sensitive bulk permissions remain deferred.
+
+### Phase G: Deferred Follow-Up Register
+
+Deferred items:
+
+1. List/detail permission hooks remain deferred.
+2. Field-sensitive permissions remain deferred.
+3. Callable permission declarations remain deferred.
 
 ## Compatibility Requirements
 
@@ -621,7 +632,6 @@ Public docs should be very explicit about the layers:
 7. `permission` is for permission strings, while `permission_check` is for named view methods.
 8. `permission_behavior` takes precedence over `hidden_if` and `disabled_state`; those row-state hooks still run only after permission passes or after permission is converted to a disabled affordance.
 9. Built-in update/delete direct-route checks happen after object lookup and before form rendering, persistence, or delete execution.
-10. DDMS-style timeline concerns are downstream-owned and not solved by PowerCRUD action affordances.
 
 The docs should avoid implying that `hidden_if` is permission-specific. It is not. It may be, and often is, row-state specific.
 
@@ -641,7 +651,7 @@ Settled direction:
 7. Callable permission declarations are deferred; named methods are enough for the first design.
 8. `permission_check` should use one signature everywhere: `permission_check(request, obj=None)`.
 9. Operation-level permission is enough for the first slice; field-sensitive permission is deferred.
-10. Bulk permission hooks are a likely follow-up, and viewer-accessible downstream views should disable bulk controls until those hooks exist.
+10. Bulk permission hooks are now included for operation-level bulk update/delete. Field-sensitive bulk permissions remain deferred.
 11. Completed Phases A-C do not need rework based on the latest DDMS feedback.
 
 ## Initial Recommendation
@@ -658,7 +668,7 @@ Recommended first slice, if one implementation branch is used:
 6. Add `has_power_create_permission(request)` and use it for Create UI and backend create handling.
 7. Add `has_power_update_permission(request, obj)` and compose it with `can_update_object()`.
 8. Add `has_power_delete_permission(request, obj)` and compose it with `can_delete_object()`.
-9. Add focused tests proving Base API and `Power*` API parity, plus UI and backend behavior for built-in create/update/delete.
+9. Add focused tests proving Base API and `Power*` API parity, plus UI and backend behavior for built-in create/update/delete and bulk update/delete.
 
 If that is too broad once implementation starts, split it into two smaller slices:
 
@@ -668,9 +678,8 @@ If that is too broad once implementation starts, split it into two smaller slice
 Defer until the first contract settles:
 
 1. list/detail permission hooks
-2. bulk operation permission hooks
-3. field-sensitive bulk permissions
-4. richer denial response customization
-5. callable permission declarations
+2. field-sensitive bulk permissions
+3. richer denial response customization
+4. callable permission declarations
 
 The first slice should prove the concept across the most visible gaps without trying to redesign every access-control edge in one pass.

@@ -8,7 +8,11 @@ from playwright.sync_api import expect
 
 from sample.models import Author, Book, Genre
 
-pytestmark = [pytest.mark.playwright, pytest.mark.django_db]
+pytestmark = [
+    pytest.mark.playwright,
+    pytest.mark.django_db,
+    pytest.mark.usefixtures("sample_manager_page"),
+]
 
 
 def test_bulk_selection_toggle(page, books_url, sample_books):

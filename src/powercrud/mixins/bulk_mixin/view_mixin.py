@@ -1,7 +1,7 @@
 import json
 from typing import Any, Dict, List, Optional
 
-from django.http import HttpResponse, HttpResponseForbidden, HttpResponseBadRequest
+from django.http import HttpResponse, HttpResponseBadRequest, HttpResponseForbidden
 from django.shortcuts import render
 from django.core.exceptions import SuspiciousOperation
 from django.db import models
@@ -59,6 +59,7 @@ class ViewMixin:
             else []
         )
         context["enable_selection_controls"] = enable_selection_controls
+        context["enable_bulk_update"] = self.get_bulk_update_enabled()
         context["selected_ids"] = selected_ids
         context["selected_count"] = len(selected_ids)
         # Determine if all items on the current page are selected
@@ -174,6 +175,15 @@ class ViewMixin:
         allowed_fields = set(bulk_fields)
         return [field for field in fields_to_update if field not in allowed_fields]
 
+    def _handle_bulk_permission_denied(self, request, operation: str) -> HttpResponse:
+        """
+        Return a permission-denied response for a PowerCRUD-owned bulk operation.
+        """
+        handler = getattr(self, "handle_power_permission_denied", None)
+        if callable(handler):
+            return handler(request, operation)
+        return HttpResponseForbidden(f"{operation} is not permitted.")
+
     def bulk_edit(self, request, *args, **kwargs) -> HttpResponse:
         """
         Handle GET and POST requests for bulk editing.
@@ -189,6 +199,7 @@ class ViewMixin:
         Returns:
             HttpResponse: The response containing the form or processing result.
         """
+        self.request = request
         cfg = resolve_config(self)
         template_name = f"{cfg.templates_path}/bulk_edit_form.html#full_form"
         template_errors = f"{cfg.templates_path}/partial/bulk_edit_errors.html"
@@ -245,6 +256,22 @@ class ViewMixin:
         # Get the queryset of selected objects
         queryset = self.model.objects.filter(pk__in=selected_ids)
 
+        # Get bulk fields (fields that can be bulk edited)
+        bulk_fields = cfg.bulk_fields or []
+        bulk_update_configured = self.get_bulk_update_configured()
+        bulk_delete_configured = self.get_bulk_delete_configured()
+        if not bulk_update_configured and not bulk_delete_configured:
+            return self._render_bulk_edit_error(
+                request,
+                template_errors,
+                "No fields configured for bulk editing.",
+            )
+
+        enable_bulk_update = self.get_bulk_update_enabled()
+        enable_bulk_delete = self.get_bulk_delete_enabled()
+        if not enable_bulk_update and not enable_bulk_delete:
+            return self._handle_bulk_permission_denied(request, "bulk")
+
         # Check for conflicts before showing the form
         if self.get_conflict_checking_enabled() and self._check_for_conflicts(
             selected_ids
@@ -258,14 +285,6 @@ class ViewMixin:
             }
             return render(request, f"{template_errors}#bulk_edit_conflict", context)
 
-        # Get bulk fields (fields that can be bulk edited)
-        bulk_fields = cfg.bulk_fields or []
-        if not bulk_fields and not getattr(self, "bulk_delete", False):
-            return self._render_bulk_edit_error(
-                request,
-                template_errors,
-                "No fields configured for bulk editing.",
-            )
         # Handle form submission
         if request.method == "POST" and "bulk_submit" in request.POST:
             # If logic gets too large, move to a helper method
@@ -278,8 +297,9 @@ class ViewMixin:
                 str(pk) for pk in queryset.values_list("pk", flat=True)
             ],  # Ensure selected_ids in context reflect the actual queryset
             "selected_count": len(selected_ids),
-            "bulk_fields": bulk_fields,
-            "enable_bulk_delete": self.get_bulk_delete_enabled(),
+            "bulk_fields": bulk_fields if enable_bulk_update else [],
+            "enable_bulk_update": enable_bulk_update,
+            "enable_bulk_delete": enable_bulk_delete,
             "enable_bulk_edit": self.get_bulk_edit_enabled(),
             "enable_selection_controls": self.get_selection_controls_enabled(),
             "model": self.model,
@@ -320,11 +340,18 @@ class ViewMixin:
         Returns:
             HttpResponse: Success response or error form rendering.
         """
+        self.request = request
         cfg = resolve_config(self)
         field_info = self._get_bulk_field_info(bulk_fields)
         template_errors = f"{cfg.templates_path}/partial/bulk_edit_errors.html"
         # extract necessary data from the request
         delete_selected = request.POST.get("delete_selected")
+        if delete_selected:
+            if not self.get_bulk_delete_enabled():
+                return self._handle_bulk_permission_denied(request, "bulk delete")
+        elif not self.get_bulk_update_enabled():
+            return self._handle_bulk_permission_denied(request, "bulk update")
+
         fields_to_update = request.POST.getlist("fields_to_update")
         invalid_fields = self._validate_bulk_fields_to_update(
             fields_to_update=fields_to_update,
@@ -366,9 +393,6 @@ class ViewMixin:
 
         # log.debug(f"Processing bulk edit for {len(selected_ids)} selected records")
         if delete_selected:
-            if not self.get_bulk_delete_enabled():
-                return HttpResponseForbidden("Bulk delete is not allowed.")
-
             # check if should process asynchronously
             if self.should_process_async(len(selected_ids)):
                 # log.debug(
@@ -396,7 +420,11 @@ class ViewMixin:
                         str(pk) for pk in queryset.values_list("pk", flat=True)
                     ],  # Ensure selected_ids in context reflect the actual queryset
                     "selected_count": queryset.count(),
-                    "bulk_fields": bulk_fields,
+                    "bulk_fields": bulk_fields if self.get_bulk_update_enabled() else [],
+                    "enable_bulk_update": self.get_bulk_update_enabled(),
+                    "enable_bulk_delete": self.get_bulk_delete_enabled(),
+                    "enable_bulk_edit": self.get_bulk_edit_enabled(),
+                    "enable_selection_controls": self.get_selection_controls_enabled(),
                     "model": self.model,
                     "model_name": self.model.__name__.lower()
                     if hasattr(self.model, "__name__")
@@ -484,7 +512,11 @@ class ViewMixin:
                     str(pk) for pk in queryset.values_list("pk", flat=True)
                 ],  # Ensure selected_ids in context reflect the actual queryset
                 "selected_count": queryset.count(),
-                "bulk_fields": bulk_fields,
+                "bulk_fields": bulk_fields if self.get_bulk_update_enabled() else [],
+                "enable_bulk_update": self.get_bulk_update_enabled(),
+                "enable_bulk_delete": self.get_bulk_delete_enabled(),
+                "enable_bulk_edit": self.get_bulk_edit_enabled(),
+                "enable_selection_controls": self.get_selection_controls_enabled(),
                 "model": self.model,
                 "model_name": self.model.__name__.lower()
                 if hasattr(self.model, "__name__")

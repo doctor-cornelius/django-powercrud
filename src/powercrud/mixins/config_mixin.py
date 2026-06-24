@@ -398,6 +398,18 @@ class ConfigMixin:
         """
         return True
 
+    def has_power_bulk_update_permission(self, request: Any) -> bool:
+        """
+        Return whether the request may use PowerCRUD-owned bulk update handling.
+        """
+        return True
+
+    def has_power_bulk_delete_permission(self, request: Any) -> bool:
+        """
+        Return whether the request may use PowerCRUD-owned bulk delete handling.
+        """
+        return True
+
     def handle_power_permission_denied(
         self,
         request: Any,

@@ -539,8 +539,8 @@ That lets the sample app demonstrate permission-hidden header actions, selection
 
 The top-left sample login menu includes a viewer and manager:
 
-- `sample-viewer` can open the Book lists but does not see built-in Create/Edit/Delete or permission-hidden custom actions.
-- `sample-manager` sees those affordances, and then row or selection state can still disable controls with tooltip reasons.
+- `sample-viewer` can open the Book lists but does not see built-in Create/Edit/Delete, bulk update/delete, row selection controls, or permission-hidden custom actions.
+- `sample-manager` sees those affordances, and then row, selection, or bulk state can still disable controls with tooltip reasons.
 
 ## Management Commands
 

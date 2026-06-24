@@ -416,6 +416,7 @@ class UrlMixin:
             else enable_bulk_edit
         )
         kwargs["enable_bulk_edit"] = enable_bulk_edit
+        kwargs["enable_bulk_update"] = self.get_bulk_update_enabled()
         kwargs["enable_selection_controls"] = enable_selection_controls
         kwargs["enable_bulk_delete"] = self.get_bulk_delete_enabled()
         kwargs["storage_key"] = self.get_storage_key()

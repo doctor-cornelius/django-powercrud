@@ -218,15 +218,15 @@ Suggested first slice:
 6. Add `has_power_create_permission()` for Create UI and backend create handling.
 7. Add `has_power_update_permission()` and compose it with `can_update_object()`.
 8. Add `has_power_delete_permission()` and compose it with `can_delete_object()`.
-9. Add tests proving Base API and `Power*` API parity.
+9. Add `has_power_bulk_update_permission()` and `has_power_bulk_delete_permission()` for PowerCRUD-owned bulk operations.
+10. Add tests proving Base API and `Power*` API parity.
 
 Deferred:
 
 1. list/detail permission hooks
-2. bulk operation permission hooks
-3. field-sensitive bulk permissions
-4. callable permission declarations
-5. richer backend denial customization
+2. field-sensitive bulk permissions
+3. callable permission declarations
+4. richer backend denial customization
 
 ## DDMS Review Questions
 

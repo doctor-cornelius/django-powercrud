@@ -36,7 +36,7 @@
 
         <!-- Main form content -->
         <div id="main-form-content">
-            {% if bulk_fields %}
+            {% if enable_bulk_update %}
             <div class="mb-4">
                 <p class="text-sm text-base-content/70 mb-2">
                     Select which fields to update and provide new values.
@@ -159,36 +159,38 @@
             {% endif %}
         </div>
 
-        <!-- Delete confirmation section (initially hidden) -->
-        <div id="delete-confirmation" class="hidden">
-            <div class="p-4 border-t mt-2">
-                <h3 class="text-lg font-bold text-error">Confirm Deletion</h3>
-                <p class="my-4">
-                    Are you sure you want to delete {{ selected_count }} selected {{ model_name_plural }}?
-                    This action cannot be undone.
-                </p>
+        {% if enable_bulk_delete %}
+            <!-- Delete confirmation section (initially hidden) -->
+            <div id="delete-confirmation" class="hidden">
+                <div class="p-4 border-t mt-2">
+                    <h3 class="text-lg font-bold text-error">Confirm Deletion</h3>
+                    <p class="my-4">
+                        Are you sure you want to delete {{ selected_count }} selected {{ model_name_plural }}?
+                        This action cannot be undone.
+                    </p>
 
-                <div class="form-control">
-                    <label class="cursor-pointer label justify-start gap-4">
-                        <input type="checkbox" id="confirm-delete-checkbox" class="checkbox checkbox-error"
-                            onchange="toggleDeleteButton()">
-                        <span class="label-text">I understand this will permanently delete these items</span>
-                    </label>
-                </div>
+                    <div class="form-control">
+                        <label class="cursor-pointer label justify-start gap-4">
+                            <input type="checkbox" id="confirm-delete-checkbox" class="checkbox checkbox-error"
+                                onchange="toggleDeleteButton()">
+                            <span class="label-text">I understand this will permanently delete these items</span>
+                        </label>
+                    </div>
 
-                <div class="flex justify-end gap-4 mt-4">
-                    <button type="button" class="btn btn-outline" onclick="hideDeleteConfirmation()">
-                        Cancel
-                    </button>
-                    <button type="button" id="confirm-delete-button" class="btn btn-error" hx-post="{{ request.path }}"
-                        hx-target="#{{ modal_target|default:'powercrudModalContent' }}" hx-include="#bulk-edit-form"
-                        hx-vals='{"delete_selected": "1", "bulk_submit": "1"}'
-                        data-powercrud-bulk-delete-submit disabled>
-                        Delete Items
-                    </button>
+                    <div class="flex justify-end gap-4 mt-4">
+                        <button type="button" class="btn btn-outline" onclick="hideDeleteConfirmation()">
+                            Cancel
+                        </button>
+                        <button type="button" id="confirm-delete-button" class="btn btn-error" hx-post="{{ request.path }}"
+                            hx-target="#{{ modal_target|default:'powercrudModalContent' }}" hx-include="#bulk-edit-form"
+                            hx-vals='{"delete_selected": "1", "bulk_submit": "1"}'
+                            data-powercrud-bulk-delete-submit disabled>
+                            Delete Items
+                        </button>
+                    </div>
                 </div>
             </div>
-        </div>
+        {% endif %}
     </form>
 </div>
 

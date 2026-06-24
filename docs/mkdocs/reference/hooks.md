@@ -27,7 +27,9 @@ If you want step-by-step walkthroughs rather than contracts, start with the adva
     | `has_power_create_permission()` | Decide whether the request may use PowerCRUD-owned create handling. |
     | `has_power_update_permission()` | Decide whether the request may use PowerCRUD-owned update handling for a row. |
     | `has_power_delete_permission()` | Decide whether the request may use PowerCRUD-owned delete handling for a row. |
-    | `handle_power_permission_denied()` | Customize the response for denied PowerCRUD-owned create, update, delete, or inline-update requests. |
+    | `has_power_bulk_update_permission()` | Decide whether the request may use PowerCRUD-owned bulk update handling. |
+    | `has_power_bulk_delete_permission()` | Decide whether the request may use PowerCRUD-owned bulk delete handling. |
+    | `handle_power_permission_denied()` | Customize the response for denied PowerCRUD-owned create, update, delete, inline-update, bulk update, or bulk delete requests. |
     | `can_update_object()` | Use this when some rows should keep the built-in Edit action visible but disabled, for example workflow-owned rows, canonical records, or objects that should stay read-only on a per-row basis. |
     | `get_update_disabled_reason()` | Use this with `can_update_object()` when you want disabled Edit and inline affordances to explain why the row cannot be edited. |
     | `can_delete_object()` | Use this when some rows should keep the built-in Delete action visible but disabled, for example canonical records, workflow-owned rows, or rows that should remain undeletable except to privileged users. |
@@ -385,10 +387,29 @@ Upgrade notes:
 - Important note: Use `can_delete_object()` for row or workflow state after permission passes.
 - Related docs: [Permission-Aware Affordances](../guides/advanced/permission_aware_affordances.md)
 
+### `has_power_bulk_update_permission()`
+
+- Purpose: Decide whether the request may use PowerCRUD-owned bulk update handling.
+- When it is called: While building list selection controls, before rendering the bulk modal, and before processing bulk update submissions.
+- Signature: `def has_power_bulk_update_permission(self, request)`
+- Default behavior: Returns `True`.
+- Return contract: Truthy allows configured bulk update; falsy hides bulk update fields and rejects direct PowerCRUD bulk update submissions.
+- Important note: `bulk_fields` remains the configured field allow-list. Use this hook for operation permission, not field-sensitive permission.
+- Related docs: [Permission-Aware Affordances](../guides/advanced/permission_aware_affordances.md), [Bulk editing (synchronous)](../guides/bulk_edit_sync.md)
+
+### `has_power_bulk_delete_permission()`
+
+- Purpose: Decide whether the request may use PowerCRUD-owned bulk delete handling.
+- When it is called: While building list selection controls, before rendering the bulk modal, and before processing bulk delete submissions.
+- Signature: `def has_power_bulk_delete_permission(self, request)`
+- Default behavior: Returns `True`.
+- Return contract: Truthy allows configured bulk delete; falsy hides bulk delete controls and rejects direct PowerCRUD bulk delete submissions.
+- Related docs: [Permission-Aware Affordances](../guides/advanced/permission_aware_affordances.md), [Bulk editing (synchronous)](../guides/bulk_edit_sync.md)
+
 ### `handle_power_permission_denied()`
 
 - Purpose: Customize the response returned when a PowerCRUD-owned operation is denied by one of the built-in permission hooks.
-- When it is called: For denied direct create, update, delete, and inline-update requests.
+- When it is called: For denied direct create, update, delete, inline-update, bulk update, and bulk delete requests.
 - Signature: `def handle_power_permission_denied(self, request, operation, obj=None)`
 - Default behavior: Returns `HttpResponseForbidden(f"{operation} is not permitted.")`.
 - Return contract: A Django response.

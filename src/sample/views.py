@@ -394,6 +394,14 @@ class BookCRUDView(SampleCRUDMixin):
         """Return whether the sample user can delete books."""
         return sample_user_can_manage_books(getattr(request, "user", None))
 
+    def has_power_bulk_update_permission(self, request):
+        """Return whether the sample user can bulk update books."""
+        return sample_user_can_manage_books(getattr(request, "user", None))
+
+    def has_power_bulk_delete_permission(self, request):
+        """Return whether the sample user can bulk delete books."""
+        return sample_user_can_manage_books(getattr(request, "user", None))
+
     def should_hide_description_preview(self, obj, request):
         """Return True when the preview action is not relevant for the row."""
         return obj.title.startswith("Hidden Preview")
@@ -794,6 +802,14 @@ class PowerFieldBookCRUDView(SampleCRUDMixin):
 
     def has_power_delete_permission(self, request, obj):
         """Return whether the sample user can delete PowerField books."""
+        return sample_user_can_manage_books(getattr(request, "user", None))
+
+    def has_power_bulk_update_permission(self, request):
+        """Return whether the sample user can bulk update PowerField books."""
+        return sample_user_can_manage_books(getattr(request, "user", None))
+
+    def has_power_bulk_delete_permission(self, request):
+        """Return whether the sample user can bulk delete PowerField books."""
         return sample_user_can_manage_books(getattr(request, "user", None))
 
     def get_title_tooltip(self, obj, request=None):

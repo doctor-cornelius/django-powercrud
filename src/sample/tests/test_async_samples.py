@@ -746,6 +746,8 @@ class SampleBookBulkValidationTests(TestCase):
 
     def test_bulk_validation_sample_book_rerenders_modal_with_error(self):
         """The sample bulk validation rule should return a handled modal error response."""
+        _login_sample_manager(self.client)
+
         author = Author.objects.create(name="Bulk Validation Author")
         genre = Genre.objects.create(name="Bulk Validation Genre")
         book = Book.objects.create(

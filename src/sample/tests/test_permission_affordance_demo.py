@@ -192,6 +192,12 @@ def test_sample_viewer_cannot_see_builtin_book_mutation_affordances(client):
     assert reverse("sample:bigbook-delete", args=[book.pk]) not in response_text, (
         "Viewer users should not see built-in Delete URLs in row actions."
     )
+    assert "Bulk Edit" not in response_text, (
+        "Viewer users should not see the built-in Bulk Edit affordance."
+    )
+    assert 'data-powercrud-row-select="true"' not in response_text, (
+        "Viewer users should not see row selection controls when no permitted operation needs them."
+    )
 
 
 @pytest.mark.django_db
@@ -222,6 +228,39 @@ def test_sample_viewer_direct_builtin_mutation_routes_are_forbidden(client):
     )
     assert client.post(reverse("sample:bigbook-delete", args=[book.pk])).status_code == 403, (
         "Viewer users should not be able to submit the delete endpoint directly."
+    )
+    response = client.get(
+        reverse("sample:bigbook-bulk-edit"),
+        data={"selected_ids[]": [book.pk]},
+        HTTP_HX_REQUEST="true",
+    )
+    assert response.status_code == 403, (
+        "Viewer users should not be able to render the bulk edit modal directly."
+    )
+    response = client.post(
+        reverse("sample:bigbook-bulk-edit"),
+        data={
+            "bulk_submit": "1",
+            "selected_ids[]": [book.pk],
+            "fields_to_update": ["title"],
+            "title": "Viewer Bulk Update Attempt",
+        },
+        HTTP_HX_REQUEST="true",
+    )
+    assert response.status_code == 403, (
+        "Viewer users should not be able to submit bulk update directly."
+    )
+    response = client.post(
+        reverse("sample:bigbook-bulk-edit"),
+        data={
+            "bulk_submit": "1",
+            "delete_selected": "1",
+            "selected_ids[]": [book.pk],
+        },
+        HTTP_HX_REQUEST="true",
+    )
+    assert response.status_code == 403, (
+        "Viewer users should not be able to submit bulk delete directly."
     )
 
     book.refresh_from_db()
@@ -257,6 +296,12 @@ def test_sample_manager_can_see_builtin_book_mutation_affordances(client):
     assert reverse("sample:bigbook-delete", args=[book.pk]) in response_text, (
         "Manager users should see built-in Delete URLs in row actions."
     )
+    assert "Bulk Edit" in response_text, (
+        "Manager users should see the built-in Bulk Edit affordance."
+    )
+    assert 'data-powercrud-row-select="true"' in response_text, (
+        "Manager users should see row selection controls for permitted bulk operations."
+    )
 
 
 @pytest.mark.django_db
@@ -279,6 +324,12 @@ def test_sample_powerfield_view_uses_same_builtin_mutation_permissions(client):
     assert reverse("sample:powerfield-book-delete", args=[book.pk]) not in response_text, (
         "PowerButton demo viewers should not see built-in Delete URLs."
     )
+    assert "Bulk Edit" not in response_text, (
+        "PowerButton demo viewers should not see built-in Bulk Edit."
+    )
+    assert 'data-powercrud-row-select="true"' not in response_text, (
+        "PowerButton demo viewers should not see row selection controls when no permitted operation needs them."
+    )
 
     _login_as(client, "manager")
     response = client.get(reverse("sample:powerfield-book-list"))
@@ -294,4 +345,10 @@ def test_sample_powerfield_view_uses_same_builtin_mutation_permissions(client):
     )
     assert reverse("sample:powerfield-book-delete", args=[book.pk]) in response_text, (
         "PowerButton demo managers should see built-in Delete URLs."
+    )
+    assert "Bulk Edit" in response_text, (
+        "PowerButton demo managers should see built-in Bulk Edit."
+    )
+    assert 'data-powercrud-row-select="true"' in response_text, (
+        "PowerButton demo managers should see row selection controls for permitted bulk operations."
     )

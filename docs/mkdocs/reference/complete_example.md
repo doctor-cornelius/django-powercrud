@@ -271,6 +271,12 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
     def has_power_delete_permission(self, request, obj):
         return request.user.has_perm("projects.delete_project")
 
+    def has_power_bulk_update_permission(self, request):
+        return request.user.has_perm("projects.change_project")
+
+    def has_power_bulk_delete_permission(self, request):
+        return request.user.has_perm("projects.delete_project")
+
     def get_history_action_disabled_state(self, obj, request):
         if obj.archived_at is None:
             return "History is only available for archived projects."
@@ -327,7 +333,7 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
 - `extra_buttons_mode = "dropdown"` is optional. When omitted, top-level `extra_buttons` keep the legacy visible-button behavior. Dropdown mode keeps built-in actions such as Create visible and moves only configured `extra_buttons` into the top toolbar `More` menu.
 - `extra_actions_mode = "dropdown"` is optional. When omitted, `extra_actions` keep the legacy visible-button behavior. Dropdown mode keeps `View/Edit/Delete` visible and moves only the extra row actions into the row-level `More` menu.
 - `extra_actions_dropdown_open_upward_bottom_rows = 3` makes the `More` menu open upward for the last three rendered rows on the current page. Set it to `0` if you want every dropdown to keep opening downward.
-- `has_power_create_permission()`, `has_power_update_permission()`, and `has_power_delete_permission()` hide and deny PowerCRUD-owned mutation operations when the user lacks permission.
+- `has_power_create_permission()`, `has_power_update_permission()`, `has_power_delete_permission()`, `has_power_bulk_update_permission()`, and `has_power_bulk_delete_permission()` hide and deny PowerCRUD-owned mutation operations when the user lacks permission.
 - `permission_check` on `extra_buttons` and `extra_actions` controls whether custom affordances render before row-state, selection-state, or disabled-state hooks run.
 - `uses_selection = True` turns a header button into a selection-aware action that reads the persisted PowerCRUD selection at the endpoint. It can render selector controls even when the view does not configure built-in bulk edit/delete.
 - `extra_button_selection_controls_disabled = True` is for cases where the button uses selected rows, but this list should not show checkboxes just because of that button.

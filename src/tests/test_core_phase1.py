@@ -1278,6 +1278,12 @@ def test_core_mixin_builtin_mutation_permission_hooks_default_open():
     assert view.has_power_delete_permission(request, obj) is True, (
         "Delete permission should default open for backward compatibility."
     )
+    assert view.has_power_bulk_update_permission(request) is True, (
+        "Bulk update permission should default open for backward compatibility."
+    )
+    assert view.has_power_bulk_delete_permission(request) is True, (
+        "Bulk delete permission should default open for backward compatibility."
+    )
     response = view.handle_power_permission_denied(request, "update", obj=obj)
     assert response.status_code == 403, (
         "The default built-in mutation denial handler should return HTTP 403."
@@ -3085,6 +3091,8 @@ def test_book_list_renders_modal_with_explicit_close_button(client):
 @pytest.mark.django_db
 def test_book_list_renders_custom_modal_context(client, monkeypatch):
     """Render configured modal IDs, targets, and class hooks in the shared modal shell."""
+    _login_sample_manager(client)
+
     author = Author.objects.create(name="Large Modal Link Author")
     Book.objects.create(
         title="Large Modal Link Book",
