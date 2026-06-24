@@ -430,8 +430,11 @@ def test_action_links_disable_extra_action_from_disabled_state_reason():
 
     html = powercrud.action_links(view, book)
 
-    assert "btn-disabled opacity-50 pointer-events-none" in html, (
+    assert "btn-disabled opacity-50" in html, (
         "A non-empty disabled_state string should disable the extra action."
+    )
+    assert "pointer-events-none" not in html, (
+        "Disabled row actions should remain hoverable so semantic tooltips can show."
     )
     assert "data-tippy-content='Preview requires a description.'" in html, (
         "The disabled_state string should render as the disabled tooltip reason."
@@ -461,7 +464,7 @@ def test_action_links_leave_extra_action_enabled_when_disabled_state_is_empty():
     assert "Preview requires a description." not in html, (
         "An empty disabled_state result should not render a disabled reason."
     )
-    assert html.count("btn-disabled opacity-50 pointer-events-none") < 3, (
+    assert html.count("btn-disabled opacity-50") < 3, (
         "An empty disabled_state result should leave the extra action enabled."
     )
 
@@ -558,7 +561,7 @@ def test_action_links_disable_permission_denied_extra_action_before_row_state():
     assert "Preview" in html, (
         "Explicit disable behavior should keep the permission-denied action visible."
     )
-    assert "btn-disabled opacity-50 pointer-events-none" in html, (
+    assert "btn-disabled opacity-50" in html, (
         "Explicit disable behavior should render the action disabled."
     )
     assert "data-tippy-content='Managers only.'" in html, (
@@ -992,7 +995,7 @@ def test_action_links_disable_when_locked():
 
     html = powercrud.action_links(view, book)
 
-    assert html.count("btn-disabled opacity-50 pointer-events-none") >= 3, (
+    assert html.count("btn-disabled opacity-50") >= 3, (
         "Locked rows should disable each lock-sensitive action, including extra actions rendered as buttons."
     )
     assert "data-tippy-content='Row locked'" in html, (
@@ -1030,7 +1033,7 @@ def test_action_links_disable_dropdown_items_when_locked():
         "Locked rows should still render floating-menu template markup when dropdown mode is enabled."
     )
     assert "Preview" in html, "Locked dropdown rows should still include the extra action label inside the menu."
-    assert "btn-disabled opacity-50 pointer-events-none" in html, (
+    assert "btn-disabled opacity-50" in html, (
         "Locked dropdown items should retain the disabled styling classes for consistent affordances."
     )
 
@@ -2069,7 +2072,7 @@ def test_action_links_disable_custom_extra_action_when_rule_matches():
     assert "Preview requires a description." in html, (
         "Custom-disabled extra actions should expose the configured disabled reason tooltip."
     )
-    assert "btn-disabled opacity-50 pointer-events-none" in html, (
+    assert "btn-disabled opacity-50" in html, (
         "Custom-disabled extra actions should reuse the standard disabled action styling."
     )
 
@@ -2148,7 +2151,7 @@ def test_action_links_disable_builtin_edit_when_update_guard_blocks_row():
     assert "Editing locked by policy." in html, (
         "Built-in Edit should expose the configured update-guard tooltip reason when the row is blocked."
     )
-    assert html.count("btn-disabled opacity-50 pointer-events-none") >= 1, (
+    assert html.count("btn-disabled opacity-50") >= 1, (
         "Built-in Edit should reuse the standard disabled styling when an update guard hook blocks the row."
     )
 
@@ -2177,7 +2180,7 @@ def test_action_links_disable_builtin_delete_when_delete_guard_blocks_row():
     assert "Delete locked by policy." in html, (
         "Built-in Delete should expose the configured delete-guard tooltip reason when the row is blocked."
     )
-    assert html.count("btn-disabled opacity-50 pointer-events-none") >= 1, (
+    assert html.count("btn-disabled opacity-50") >= 1, (
         "Built-in Delete should reuse the standard disabled styling when a delete guard hook blocks the row."
     )
 

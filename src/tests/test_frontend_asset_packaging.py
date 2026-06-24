@@ -130,6 +130,15 @@ def test_runtime_startup_centralises_once_only_listener_registration() -> None:
         "globalObject.addEventListener('scroll', handlers.handleWindowScrollCapture, true);" in startup
     ), "Startup runtime should preserve the capturing window scroll listener."
     assert (
+        "documentObject.addEventListener('click', handlers.handleDisabledActionClickCapture, true);" in startup
+    ), "Startup runtime should block disabled action clicks before HTMX can process them."
+    assert (
+        "handleDisabledActionClickCapture(event)" in js
+    ), "Runtime JS should expose a capture-phase disabled action click guard."
+    assert (
+        "a[aria-disabled=\"true\"], button[aria-disabled=\"true\"]" in js
+    ), "Disabled action click guard should target ARIA-disabled links and buttons."
+    assert (
         "function createPowercrudGlobalListenerHandlers()" in js
     ), "Runtime JS should keep feature handler bodies beside the feature runtime dependencies."
     assert (

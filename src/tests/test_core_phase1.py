@@ -3203,7 +3203,7 @@ def test_book_list_renders_disabled_extra_action_with_reason(client):
     assert "This book does not have a description yet." in response_text, (
         "Sample book list should expose the custom disabled reason for rows that fail the extra-action rule."
     )
-    assert "btn-disabled opacity-50 pointer-events-none" in response_text, (
+    assert "btn-disabled opacity-50" in response_text, (
         "Sample book list should render disabled styling for custom-disabled extra actions."
     )
     assert (

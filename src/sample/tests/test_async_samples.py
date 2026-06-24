@@ -683,7 +683,7 @@ class SampleGenreDeleteRefusalTests(TestCase):
         )
         self.assertContains(
             response,
-            "btn-disabled opacity-50 pointer-events-none",
+            "btn-disabled opacity-50",
             msg_prefix="The guarded sample genre should render the built-in Delete action with the standard disabled styling.",
         )
 
@@ -725,7 +725,7 @@ class SampleBookUpdateGuardTests(TestCase):
         )
         self.assertContains(
             response,
-            "btn-disabled opacity-50 pointer-events-none",
+            "btn-disabled opacity-50",
             msg_prefix="The guarded sample book should render the built-in Edit action with the standard disabled styling.",
         )
         self.assertContains(

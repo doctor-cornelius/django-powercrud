@@ -428,9 +428,7 @@ def _render_action_anchor(
     Render a single row-action anchor with HTMX and disabled metadata.
     """
     resolved_url = _resolve_modal_action_url(url, query_string, show_modal)
-    disabled_classes = (
-        " btn-disabled opacity-50 pointer-events-none" if disable else ""
-    )
+    disabled_classes = " btn-disabled opacity-50" if disable else ""
 
     attrs = [
         f"href='{resolved_url}'",
