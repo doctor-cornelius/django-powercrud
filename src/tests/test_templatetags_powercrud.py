@@ -436,6 +436,12 @@ def test_action_links_disable_extra_action_from_disabled_state_reason():
     assert "pointer-events-none" not in html, (
         "Disabled row actions should remain hoverable so semantic tooltips can show."
     )
+    assert "pointer-events: auto;" in html, (
+        "Disabled row actions should override daisyUI btn-disabled pointer suppression."
+    )
+    assert "cursor: not-allowed;" in html, (
+        "Disabled row actions should still signal that the action cannot be clicked."
+    )
     assert "data-tippy-content='Preview requires a description.'" in html, (
         "The disabled_state string should render as the disabled tooltip reason."
     )

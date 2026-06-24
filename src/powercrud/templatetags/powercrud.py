@@ -434,6 +434,7 @@ def _render_action_anchor(
         f"href='{resolved_url}'",
         f"class='{class_name}{disabled_classes}'",
     ]
+    style_declarations = []
     if label_html:
         attrs.append(f"aria-label='{anchor_text}'")
         attrs.append(
@@ -441,7 +442,18 @@ def _render_action_anchor(
             f"'{conditional_escape(str(lock_label if disable and lock_label else anchor_text))}'"
         )
         attrs.append("data-powercrud-tooltip='semantic'")
-        attrs.append("style='min-width: 2.5rem;'")
+        style_declarations.append("min-width: 2.5rem;")
+
+    if disable:
+        style_declarations.extend(
+            [
+                "pointer-events: auto;",
+                "cursor: not-allowed;",
+            ]
+        )
+
+    if style_declarations:
+        attrs.append(f"style='{' '.join(style_declarations)}'")
 
     if use_htmx:
         attrs.append(f"hx-{'post' if hx_post else 'get'}='{resolved_url}'")
