@@ -311,7 +311,7 @@ def test_book_list_column_chooser_escapes_overflow_wrapper(
 
 
 def test_book_list_pagination_centres_on_table_width(
-    page, books_url, sample_author, sample_books
+    page, books_url, sample_author, sample_books, sample_manager_page
 ):
     """Pagination controls should stay centered within the rendered table footprint."""
 

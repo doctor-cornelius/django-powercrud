@@ -14,7 +14,11 @@ from sample.models import Author
 INLINE_ROW_SELECTOR = 'tr[data-inline-row="true"]'
 INLINE_ACTIVE_SELECTOR = f'{INLINE_ROW_SELECTOR}[data-inline-active="true"]'
 
-pytestmark = [pytest.mark.playwright, pytest.mark.django_db]
+pytestmark = [
+    pytest.mark.playwright,
+    pytest.mark.django_db,
+    pytest.mark.usefixtures("sample_manager_page"),
+]
 
 
 @pytest.fixture
