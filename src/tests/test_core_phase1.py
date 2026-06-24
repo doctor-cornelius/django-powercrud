@@ -1272,6 +1272,9 @@ def test_core_mixin_builtin_mutation_permission_hooks_default_open():
     assert view.has_power_create_permission(request) is True, (
         "Create permission should default open for backward compatibility."
     )
+    assert view.has_power_detail_permission(request, obj) is True, (
+        "Detail permission should default open for backward compatibility."
+    )
     assert view.has_power_update_permission(request, obj) is True, (
         "Update permission should default open for backward compatibility."
     )

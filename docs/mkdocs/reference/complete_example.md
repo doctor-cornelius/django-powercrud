@@ -265,6 +265,9 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
     def has_power_create_permission(self, request):
         return request.user.has_perm("projects.add_project")
 
+    def has_power_detail_permission(self, request, obj):
+        return request.user.has_perm("projects.view_project")
+
     def has_power_update_permission(self, request, obj):
         return request.user.has_perm("projects.change_project")
 
@@ -333,7 +336,7 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
 - `extra_buttons_mode = "dropdown"` is optional. When omitted, top-level `extra_buttons` keep the legacy visible-button behavior. Dropdown mode keeps built-in actions such as Create visible and moves only configured `extra_buttons` into the top toolbar `More` menu.
 - `extra_actions_mode = "dropdown"` is optional. When omitted, `extra_actions` keep the legacy visible-button behavior. Dropdown mode keeps `View/Edit/Delete` visible and moves only the extra row actions into the row-level `More` menu.
 - `extra_actions_dropdown_open_upward_bottom_rows = 3` makes the `More` menu open upward for the last three rendered rows on the current page. Set it to `0` if you want every dropdown to keep opening downward.
-- `has_power_create_permission()`, `has_power_update_permission()`, `has_power_delete_permission()`, `has_power_bulk_update_permission()`, and `has_power_bulk_delete_permission()` hide and deny PowerCRUD-owned mutation operations when the user lacks permission.
+- `has_power_create_permission()`, `has_power_detail_permission()`, `has_power_update_permission()`, `has_power_delete_permission()`, `has_power_bulk_update_permission()`, and `has_power_bulk_delete_permission()` hide and deny PowerCRUD-owned operations when the user lacks permission.
 - `permission_check` on `extra_buttons` and `extra_actions` controls whether custom affordances render before row-state, selection-state, or disabled-state hooks run.
 - `uses_selection = True` turns a header button into a selection-aware action that reads the persisted PowerCRUD selection at the endpoint. It can render selector controls even when the view does not configure built-in bulk edit/delete.
 - `extra_button_selection_controls_disabled = True` is for cases where the button uses selected rows, but this list should not show checkboxes just because of that button.
@@ -343,7 +346,7 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
 - `modal_box_classes` also works on list-cell links and hook-returned list-cell links when `open_in = "modal"`.
 - `hidden_if` lets row `extra_actions` omit themselves entirely when an action is not applicable to that row.
 - `disabled_state` lets row `extra_actions` disable themselves through one hook that returns a disabled reason string. The legacy `disabled_if` / `disabled_reason` pair remains available for compatibility but is deprecated.
-- Custom action and button endpoints should still enforce permissions server-side. PowerCRUD only enforces backend permission hooks for its own create, update, delete, and inline-update flows.
+- Custom action and button endpoints should still enforce permissions server-side. PowerCRUD only enforces backend permission hooks for its own create, detail, update, delete, and inline-update flows.
 - `modal_box_classes` works the same way on modal `extra_actions`, including actions rendered inside the dropdown `More` menu.
 - `inline_edit_fields` is the current inline-editing configuration. Older `inline_edit_enabled` usage is legacy and should not be used in new code.
 - `inline_edit_always_visible = True` is the current default, so editable cells keep a subtle resting hint unless you disable it.

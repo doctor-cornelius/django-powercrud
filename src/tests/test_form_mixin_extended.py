@@ -68,6 +68,9 @@ class DummyFormView(HtmxMixin, ViewMixin, FormMixin, BaseContext):
     def get_selected_ids_from_session(self, request):
         return request.session.get("selected", [])
 
+    def get_bulk_update_enabled(self):
+        return True
+
     def save_selected_ids_to_session(self, request, ids):
         request.session["selected"] = list(ids)
 

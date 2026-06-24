@@ -203,7 +203,7 @@ The target extra action endpoint remains downstream-owned. DDMS must still enfor
 2. DDMS can stop treating row/workflow hooks as permission hooks.
 3. Toolbar buttons get a first-class permission affordance instead of being assembled per request in ad hoc code.
 4. Extra row actions can declare user capability separately from workflow eligibility.
-5. Built-in Create/Edit/Delete UI can align with backend checks for PowerCRUD-owned endpoints.
+5. Built-in Create/Detail/Edit/Delete UI can align with backend checks for PowerCRUD-owned endpoints.
 6. Custom DDMS endpoints remain DDMS-owned and still enforce their own permissions.
 
 ## First Implementation Slice
@@ -223,14 +223,14 @@ Suggested first slice:
 
 Deferred:
 
-1. list/detail permission hooks
+1. list/screen-access permission hooks
 2. field-sensitive bulk permissions
 3. callable permission declarations
 4. richer backend denial customization
 
 ## DDMS Review Questions
 
-1. Does hiding permission-denied Create/Edit/Delete match DDMS viewer-style UX?
+1. Does hiding permission-denied Create/Detail/Edit/Delete match DDMS viewer-style UX?
 2. Does `permission_check` as a named view method fit DDMS better than callable declarations?
 3. Does this preserve DDMS's current use of `hidden_if` and `disabled_state` for row/workflow state?
 4. Are toolbar buttons the biggest DDMS UI gap, or are built-in actions more urgent?

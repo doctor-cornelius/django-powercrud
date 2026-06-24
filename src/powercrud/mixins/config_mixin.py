@@ -386,6 +386,12 @@ class ConfigMixin:
         """
         return True
 
+    def has_power_detail_permission(self, request: Any, obj: Any) -> bool:
+        """
+        Return whether the request may use PowerCRUD-owned detail handling.
+        """
+        return True
+
     def has_power_update_permission(self, request: Any, obj: Any) -> bool:
         """
         Return whether the request may use PowerCRUD-owned update handling.

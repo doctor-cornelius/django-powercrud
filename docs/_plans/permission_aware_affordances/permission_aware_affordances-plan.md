@@ -10,12 +10,13 @@
 - [x] Phase E1 focused behavior tests added.
 - [x] Phase E2 public documentation added.
 - [x] Phase F bulk permission hooks added.
+- [x] Built-in Detail permission follow-up added.
 - [x] DDMS validation captured in notes.
 - [x] DDMS caveats captured in notes.
 
 ## Next
 
-- [ ] Start Phase G deferred follow-up register.
+- [ ] Continue Phase G deferred follow-up register.
 
 ## Phase A: Lock The API Contract
 
@@ -96,7 +97,12 @@
 
 ## Phase G: Deferred Follow-Up Register
 
-1. [ ] Keep wider permission surfaces deferred.
-    1. [ ] Defer list/detail permission hooks.
+1. [x] Add the narrow built-in Detail operation permission hook.
+    1. [x] Add `has_power_detail_permission(request, obj)`.
+    2. [x] Hide the built-in Detail/View row action when the hook denies.
+    3. [x] Deny the PowerCRUD-owned detail endpoint after object resolution.
+    4. [x] Keep broader list/screen access hooks deferred.
+2. [ ] Keep wider permission surfaces deferred.
+    1. [ ] Defer list/screen-access permission hooks.
     2. [ ] Defer field-sensitive permissions.
     3. [ ] Defer callable permission declarations.

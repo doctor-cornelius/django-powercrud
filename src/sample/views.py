@@ -386,6 +386,10 @@ class BookCRUDView(SampleCRUDMixin):
         """Return whether the sample user can create books."""
         return sample_user_can_manage_books(getattr(request, "user", None))
 
+    def has_power_detail_permission(self, request, obj):
+        """Return whether the sample user can view book details."""
+        return sample_user_can_manage_books(getattr(request, "user", None))
+
     def has_power_update_permission(self, request, obj):
         """Return whether the sample user can update books."""
         return sample_user_can_manage_books(getattr(request, "user", None))
@@ -794,6 +798,10 @@ class PowerFieldBookCRUDView(SampleCRUDMixin):
 
     def has_power_create_permission(self, request):
         """Return whether the sample user can create PowerField books."""
+        return sample_user_can_manage_books(getattr(request, "user", None))
+
+    def has_power_detail_permission(self, request, obj):
+        """Return whether the sample user can view PowerField book details."""
         return sample_user_can_manage_books(getattr(request, "user", None))
 
     def has_power_update_permission(self, request, obj):

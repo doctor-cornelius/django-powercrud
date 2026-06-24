@@ -13,18 +13,21 @@ Keep these concerns separate:
 3. Row or workflow state: is the operation valid for this object right now?
 4. Backend enforcement: does the endpoint or service reject direct unauthorized attempts?
 
-PowerCRUD helps with operation affordances. For PowerCRUD-owned create, update, delete, inline-update, bulk update, and bulk delete endpoints, it also enforces the matching built-in permission hooks.
+PowerCRUD helps with operation affordances. For PowerCRUD-owned create, detail, update, delete, inline-update, bulk update, and bulk delete endpoints, it also enforces the matching built-in permission hooks.
 
 For custom `extra_actions` and `extra_buttons`, PowerCRUD can hide or disable the UI affordance. The endpoint is yours, so it must still enforce its own permission and business rules.
 
-## Built-In Create, Edit, And Delete
+## Built-In Create, Detail, Edit, And Delete
 
-Use the built-in hooks when the standard PowerCRUD mutation operations should be available only to some users.
+Use the built-in hooks when the standard PowerCRUD-owned operations should be available only to some users.
 
 ```python
 class CaseCRUDView(PowerCRUDMixin, CRUDView):
     def has_power_create_permission(self, request):
         return request.user.has_perm("cases.add_case")
+
+    def has_power_detail_permission(self, request, obj):
+        return request.user.has_perm("cases.view_case")
 
     def has_power_update_permission(self, request, obj):
         return request.user.has_perm("cases.change_case")
@@ -36,10 +39,12 @@ class CaseCRUDView(PowerCRUDMixin, CRUDView):
 When these hooks return `False`:
 
 - Create is removed from the list toolbar.
-- Built-in Edit and Delete are removed from row actions.
-- Direct PowerCRUD create, update, delete, and inline-update requests are rejected.
+- Built-in Detail/View, Edit, and Delete are removed from row actions.
+- Direct PowerCRUD create, detail, update, delete, and inline-update requests are rejected.
 
 The default implementation returns `True`, so existing views remain open unless you override the hooks.
+
+`has_power_detail_permission()` covers the built-in Detail/View row action and PowerCRUD-owned detail endpoint only. It is not a whole-screen list-access hook, and it does not authorize arbitrary linked fields or downstream custom detail-like endpoints.
 
 You may also override the denial response:
 
@@ -204,6 +209,7 @@ This is why `hidden_if`, `disabled_state`, `can_update_object()`, and `can_delet
 PowerCRUD enforces permission hooks only for operations it owns:
 
 - standard create
+- standard detail
 - standard update
 - standard delete
 - inline update
@@ -233,7 +239,7 @@ The sample app includes viewer and manager users in the runtime login menu.
 
 On `/sample/bigbook/`:
 
-- viewer users can open the list but do not see built-in Create, Edit, Delete, the permission-hidden row action, or the permission-hidden toolbar button
+- viewer users can open the list but do not see built-in Create, Detail/View, Edit, Delete, the permission-hidden row action, or the permission-hidden toolbar button
 - manager users see those affordances
 - row and selection state can still disable controls after permission passes
 

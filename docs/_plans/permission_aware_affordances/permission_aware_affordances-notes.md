@@ -17,7 +17,7 @@ The conceptual model has four separate layers:
 3. Row or workflow state: is this operation valid for this object right now?
 4. Backend enforcement: does the endpoint or service reject unauthorized or invalid attempts?
 
-PowerCRUD now has a coherent first-slice permission contract across built-in CRUD actions, extra row actions, toolbar buttons, bulk operations, and inline editing. Remaining gaps are intentionally deferred rather than treated as part of the release slice.
+PowerCRUD now has a coherent first-slice permission contract across built-in CRUD/detail actions, extra row actions, toolbar buttons, bulk operations, and inline editing. Remaining gaps are intentionally deferred rather than treated as part of the release slice.
 
 ## Current Behavior
 
@@ -381,7 +381,9 @@ Backend handling order matters:
 3. Update permission failure should deny before form rendering and before persistence.
 4. Delete permission failure should deny before confirmation handling and before delete execution.
 
-List/detail permission hooks remain deferred. DDMS already owns screen access through its own view-level permission mechanisms, and this PowerCRUD slice should not expand into general screen authorization.
+List/screen-access permission hooks remain deferred. DDMS already owns screen access through its own view-level permission mechanisms, and this PowerCRUD slice should not expand into general screen authorization.
+
+The later built-in Detail follow-up is a narrow standard-operation hook, not a reversal of that deferral. `has_power_detail_permission(request, obj)` covers the built-in Detail/View row action and PowerCRUD-owned detail endpoint after object resolution. It does not govern list access, arbitrary linked fields, or downstream custom detail-like endpoints.
 
 ### Bulk Permissions
 
@@ -438,7 +440,7 @@ PowerCRUD should enforce permission hooks for endpoints it owns, where those hoo
 4. inline edit if it is brought under the update hook
 5. bulk update
 6. bulk delete
-7. list/detail if those hooks are added later
+7. list/screen-access hooks if those are added later
 8. list options endpoints if they become permission-sensitive
 9. selection endpoints if they expose sensitive scope
 
@@ -476,7 +478,7 @@ That distinction should be explicit in public docs so developers do not confuse 
     - Attack: let permission describe user capability while `hidden_if` and `disabled_state` keep describing row or workflow state.
     - Downstream benefit: apps avoid repeating permission checks inside every row-state hook.
 5. PowerCRUD-owned backend behavior aligns with the UI.
-    - Scope: enforce permission hooks only on endpoints PowerCRUD owns, such as create, update, delete, inline edit, and bulk operations.
+    - Scope: enforce permission hooks only on endpoints PowerCRUD owns, such as create, detail, update, delete, inline edit, and bulk operations.
     - Attack: use the same permission policy for UI affordances and backend handling where PowerCRUD controls both.
     - Downstream benefit: built-in CRUD actions do not rely on hidden buttons as their only protection.
 6. Downstream-owned endpoints stay downstream-owned.
@@ -501,7 +503,7 @@ Key validation points:
     - `permission` / `permission_check` = user capability
     - `hidden_if` = row/action relevance
     - `disabled_state` = row/workflow-state reason
-5. Toolbar buttons are the biggest immediate DDMS UI gap, but built-in Create/Edit/Delete also matter once viewer users can open broader PowerCRUD screens.
+5. Toolbar buttons are the biggest immediate DDMS UI gap, but built-in Create/Detail/Edit/Delete also matter once viewer users can open broader PowerCRUD screens.
 6. PowerCRUD hiding an extra action or extra button must not be treated as backend protection for custom DDMS endpoints.
 7. Operation-level permission is enough for the first slice; field-sensitive permission can wait.
 8. Bulk operation permissions are included for viewer-accessible screens.
@@ -677,7 +679,7 @@ If that is too broad once implementation starts, split it into two smaller slice
 
 Defer until the first contract settles:
 
-1. list/detail permission hooks
+1. list/screen-access permission hooks
 2. field-sensitive bulk permissions
 3. richer denial response customization
 4. callable permission declarations

@@ -395,7 +395,9 @@ def _resolve_standard_action_permission_allowed(
     """
     Return whether a built-in standard action should be available by permission.
     """
-    if action_name == "Edit":
+    if action_name == "View":
+        checker = getattr(view, "has_power_detail_permission", None)
+    elif action_name == "Edit":
         checker = getattr(view, "has_power_update_permission", None)
     elif action_name == "Delete":
         checker = getattr(view, "has_power_delete_permission", None)

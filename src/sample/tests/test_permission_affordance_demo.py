@@ -186,6 +186,9 @@ def test_sample_viewer_cannot_see_builtin_book_mutation_affordances(client):
     assert "Normal Edit" not in response_text, (
         "Viewer users should not see the sample extra action that targets update."
     )
+    assert "sr-only'>View</span>" not in response_text, (
+        "Viewer users should not see the built-in Detail/View row action."
+    )
     assert reverse("sample:bigbook-update", args=[book.pk]) not in response_text, (
         "Viewer users should not see built-in Edit URLs in row actions."
     )
@@ -213,6 +216,9 @@ def test_sample_viewer_direct_builtin_mutation_routes_are_forbidden(client):
     )
     assert client.post(reverse("sample:bigbook-create"), data={}).status_code == 403, (
         "Viewer users should not be able to submit the create endpoint directly."
+    )
+    assert client.get(reverse("sample:bigbook-detail", args=[book.pk])).status_code == 403, (
+        "Viewer users should not be able to render the detail endpoint directly."
     )
     assert client.get(reverse("sample:bigbook-update", args=[book.pk])).status_code == 403, (
         "Viewer users should not be able to render the update form directly."
@@ -290,6 +296,9 @@ def test_sample_manager_can_see_builtin_book_mutation_affordances(client):
     assert "Normal Edit" in response_text, (
         "Manager users should see the sample extra action that targets update."
     )
+    assert "sr-only'>View</span>" in response_text, (
+        "Manager users should see the built-in Detail/View row action."
+    )
     assert reverse("sample:bigbook-update", args=[book.pk]) in response_text, (
         "Manager users should see built-in Edit URLs in row actions."
     )
@@ -318,6 +327,9 @@ def test_sample_powerfield_view_uses_same_builtin_mutation_permissions(client):
     assert "Create book" not in response_text, (
         "PowerButton demo viewers should not see built-in Create."
     )
+    assert "sr-only'>View</span>" not in response_text, (
+        "PowerButton demo viewers should not see the built-in Detail/View row action."
+    )
     assert reverse("sample:powerfield-book-update", args=[book.pk]) not in response_text, (
         "PowerButton demo viewers should not see built-in Edit URLs."
     )
@@ -339,6 +351,9 @@ def test_sample_powerfield_view_uses_same_builtin_mutation_permissions(client):
     )
     assert "Create book" in response_text, (
         "PowerButton demo managers should see built-in Create."
+    )
+    assert "sr-only'>View</span>" in response_text, (
+        "PowerButton demo managers should see the built-in Detail/View row action."
     )
     assert reverse("sample:powerfield-book-update", args=[book.pk]) in response_text, (
         "PowerButton demo managers should see built-in Edit URLs."

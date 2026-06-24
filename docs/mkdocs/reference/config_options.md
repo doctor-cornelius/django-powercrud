@@ -449,7 +449,7 @@ Notes:
     | `permission_behavior` | `'hide' \| 'disable'` | Controls whether permission failure removes the action or renders it disabled. Defaults to `'hide'`. |
     | `permission_denied_reason` | `str` | Tooltip/help text used only when `permission_behavior = 'disable'`. |
 
-See [Permission-Aware Affordances](../guides/advanced/permission_aware_affordances.md) for built-in Create/Edit/Delete permission hooks and backend enforcement boundaries.
+See [Permission-Aware Affordances](../guides/advanced/permission_aware_affordances.md) for built-in Create/Detail/Edit/Delete permission hooks and backend enforcement boundaries.
 
 ### Searchable select enhancement
 
@@ -518,6 +518,7 @@ See [Forms](../guides/forms.md#dependent-form-fields) for a fuller worked exampl
 - **Required settings**: Only `model` and `base_template_path` are required.
 - **Auto-detection**: `use_crispy` auto-detects whether `crispy_forms` is installed; everything else is opt-in.
 - **Dependencies**: Bulk operations require both `use_htmx = True` and `use_modal = True`.
+- **Detail permissions**: Override `has_power_detail_permission(request, obj)` when the current user should not see the built-in Detail/View row action or call the PowerCRUD-owned detail endpoint.
 - **Bulk permissions**: `bulk_fields` and `bulk_delete` configure the operation surface. Override `has_power_bulk_update_permission(request)` or `has_power_bulk_delete_permission(request)` when the current user should not see or call those PowerCRUD-owned bulk operations.
 - **Duplicate entries**: Supported list-style config options quietly remove duplicates and keep the first occurrence.
 - **Field shortcuts**: Use `'__all__'` for all fields, `'__fields__'` to reference the `fields` setting.

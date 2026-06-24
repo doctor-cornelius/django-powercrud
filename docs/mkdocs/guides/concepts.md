@@ -52,13 +52,13 @@ Permission describes whether the current user can perform an operation at all.
 
 Permission-aware affordances let a screen stay readable while hiding or disabling operations that the current user cannot perform. This is different from screen access: a user may be allowed to open a list or detail page while being denied create, edit, delete, approval, export, or other operations on that page.
 
-Permission options and hooks include `permission`, `permission_check`, `permission_behavior`, `permission_denied_reason`, `has_power_permission(...)`, `has_power_create_permission(...)`, `has_power_update_permission(...)`, `has_power_delete_permission(...)`, and `handle_power_permission_denied(...)`.
+Permission options and hooks include `permission`, `permission_check`, `permission_behavior`, `permission_denied_reason`, `has_power_permission(...)`, `has_power_create_permission(...)`, `has_power_detail_permission(...)`, `has_power_update_permission(...)`, `has_power_delete_permission(...)`, and `handle_power_permission_denied(...)`.
 
 Keep the concepts separate:
 
 - Permission hooks and permission fields decide whether the user can see or use an operation at all.
 - `hidden_if`, `disabled_state`, `can_update_object()`, and `can_delete_object()` describe row or workflow state after permission has passed.
-- PowerCRUD-owned Create/Edit/Delete endpoints enforce their permission hooks server-side.
+- PowerCRUD-owned Create/Detail/Edit/Delete endpoints enforce their permission hooks server-side.
 - Downstream-owned custom endpoints must still enforce their own backend permissions.
 
 ### Presentation

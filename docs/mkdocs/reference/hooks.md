@@ -25,11 +25,12 @@ If you want step-by-step walkthroughs rather than contracts, start with the adva
     | `get_bulk_selection_key_suffix()` | Use this when PowerCRUD's default bulk selection storage is too broad and you want selections kept separate by user, tenant, tab, or another context value. |
     | `has_power_permission()` | Resolve `permission="app.codename"` declarations on custom actions and buttons. |
     | `has_power_create_permission()` | Decide whether the request may use PowerCRUD-owned create handling. |
+    | `has_power_detail_permission()` | Decide whether the request may use PowerCRUD-owned detail handling for a row. |
     | `has_power_update_permission()` | Decide whether the request may use PowerCRUD-owned update handling for a row. |
     | `has_power_delete_permission()` | Decide whether the request may use PowerCRUD-owned delete handling for a row. |
     | `has_power_bulk_update_permission()` | Decide whether the request may use PowerCRUD-owned bulk update handling. |
     | `has_power_bulk_delete_permission()` | Decide whether the request may use PowerCRUD-owned bulk delete handling. |
-    | `handle_power_permission_denied()` | Customize the response for denied PowerCRUD-owned create, update, delete, inline-update, bulk update, or bulk delete requests. |
+    | `handle_power_permission_denied()` | Customize the response for denied PowerCRUD-owned create, detail, update, delete, inline-update, bulk update, or bulk delete requests. |
     | `can_update_object()` | Use this when some rows should keep the built-in Edit action visible but disabled, for example workflow-owned rows, canonical records, or objects that should stay read-only on a per-row basis. |
     | `get_update_disabled_reason()` | Use this with `can_update_object()` when you want disabled Edit and inline affordances to explain why the row cannot be edited. |
     | `can_delete_object()` | Use this when some rows should keep the built-in Delete action visible but disabled, for example canonical records, workflow-owned rows, or rows that should remain undeletable except to privileged users. |
@@ -367,6 +368,16 @@ Upgrade notes:
 - Return contract: Truthy allows Create; falsy hides Create and rejects direct PowerCRUD create requests.
 - Related docs: [Permission-Aware Affordances](../guides/advanced/permission_aware_affordances.md)
 
+### `has_power_detail_permission()`
+
+- Purpose: Decide whether the request may use PowerCRUD-owned detail handling for a row.
+- When it is called: During built-in Detail/View rendering and after object resolution before rendering the PowerCRUD detail endpoint.
+- Signature: `def has_power_detail_permission(self, request, obj)`
+- Default behavior: Returns `True`.
+- Return contract: Truthy allows Detail/View; falsy hides built-in Detail/View and rejects direct PowerCRUD detail requests.
+- Important note: This is a standard operation hook, not whole-screen list access and not authorization for arbitrary linked fields or custom detail-like endpoints.
+- Related docs: [Permission-Aware Affordances](../guides/advanced/permission_aware_affordances.md)
+
 ### `has_power_update_permission()`
 
 - Purpose: Decide whether the request may use PowerCRUD-owned update handling for a row.
@@ -409,7 +420,7 @@ Upgrade notes:
 ### `handle_power_permission_denied()`
 
 - Purpose: Customize the response returned when a PowerCRUD-owned operation is denied by one of the built-in permission hooks.
-- When it is called: For denied direct create, update, delete, inline-update, bulk update, and bulk delete requests.
+- When it is called: For denied direct create, detail, update, delete, inline-update, bulk update, and bulk delete requests.
 - Signature: `def handle_power_permission_denied(self, request, operation, obj=None)`
 - Default behavior: Returns `HttpResponseForbidden(f"{operation} is not permitted.")`.
 - Return contract: A Django response.

@@ -54,6 +54,9 @@ class UrlViewHarness(UrlMixin, ContextBase, View):
     def get_bulk_edit_enabled(self):
         return True
 
+    def get_bulk_update_enabled(self):
+        return True
+
     def get_bulk_delete_enabled(self):
         return True
 

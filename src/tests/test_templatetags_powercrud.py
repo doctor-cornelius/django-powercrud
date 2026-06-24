@@ -49,6 +49,7 @@ class TemplateViewStub:
         self.button_permission_allowed = True
         self.button_permission_calls = []
         self.row_state_calls = []
+        self.detail_permission_allowed = True
         self.update_permission_allowed = True
         self.delete_permission_allowed = True
         self.standard_row_state_calls = []
@@ -208,6 +209,10 @@ class TemplateViewStub:
     def has_power_update_permission(self, request, obj):
         """Return the configured built-in update permission state."""
         return self.update_permission_allowed
+
+    def has_power_detail_permission(self, request, obj):
+        """Return the configured built-in detail permission state."""
+        return self.detail_permission_allowed
 
     def has_power_delete_permission(self, request, obj):
         """Return the configured built-in delete permission state."""
@@ -463,6 +468,36 @@ def test_action_links_disable_extra_action_from_disabled_state_reason():
     )
     assert "data-tippy-content='Preview requires a description.'" in html, (
         "The disabled_state string should render as the disabled tooltip reason."
+    )
+
+
+@pytest.mark.django_db
+def test_action_links_hide_view_when_detail_permission_fails():
+    """Permission-denied built-in View should be hidden from row actions."""
+    author = Author.objects.create(name="Denied Detail")
+    book = Book.objects.create(
+        title="Denied Detail Book",
+        author=author,
+        published_date=date(2024, 1, 5),
+        bestseller=False,
+        isbn="9876543210004",
+        pages=42,
+    )
+    request = apply_session(RequestFactory().get("/"))
+    view = TemplateViewStub(request)
+    view.detail_permission_allowed = False
+    view.extra_actions = []
+
+    html = powercrud.action_links(view, book)
+
+    assert "/sample:book-detail/" not in html, (
+        "Permission-denied built-in View should be hidden from row actions."
+    )
+    assert "/sample:book-update/" in html, (
+        "Denied detail permission should not hide the built-in Edit action."
+    )
+    assert "/sample:book-delete/" in html, (
+        "Denied detail permission should not hide the built-in Delete action."
     )
 
 
