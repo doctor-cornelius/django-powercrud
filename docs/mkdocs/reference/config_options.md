@@ -37,13 +37,13 @@ For the mental model behind the option groups, see [PowerCRUD Concepts](../guide
 | `detail_properties_exclude` (`list[str]`) | `list[str]` | `[]` | All listed detail properties render | Remove specific properties from the detail page. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
 | `dropdown_sort_options` (`dict`) | `dict[str, str]` | `{}` | PowerCRUD orders dropdowns by `name/title/...` heuristics | Explicit ordering for dropdowns in filters, forms, and bulk edit widgets. | [Bulk editing (synchronous)](../guides/bulk_edit_sync.md) |
 | `exclude` (`list[str]`) | `list[str]` | `[]` | Every concrete model field is shown | Remove individual fields from the list view while keeping the rest. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
-| `extra_actions` (`list[dict \| PowerAction]`) | `list[action spec]` | `[]` | Only the default action buttons render | Define extra per-row actions (URL, label, attributes). Modal actions may set per-trigger `modal_box_classes`, `refresh_list_on_modal_close`, `hidden_if`, and disabled-state hooks. | [Complete Example](complete_example.md) |
+| `extra_actions` (`list[dict \| PowerAction]`) | `list[action spec]` | `[]` | Only the default action buttons render | Define extra per-row actions (URL, label, attributes). Modal actions may set per-trigger `modal_box_classes`, `refresh_list_on_modal_close`, `hidden_if`, disabled-state hooks, and permission affordance fields. | [Complete Example](complete_example.md) |
 | `extra_actions_mode` (`str`) | `'buttons'`, `'dropdown'` | `'buttons'` | Extra row actions render as visible buttons after the standard actions | Control how row-level `extra_actions` are rendered. Use `'dropdown'` to keep `View/Edit/Delete` visible and move only the extra row actions into a `More` overflow menu. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
 | `extra_actions_dropdown_open_upward_bottom_rows` (`int`) | `int >= 0` | `3` | All `More` menus open downward | In dropdown mode, open the `More` menu upward for the last N rendered rows on the current page. Set `0` to disable this behavior. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
 | `extra_button_classes` (`str`) | `str` | `""` | Extra buttons use the default button styling | Additional CSS classes shared by every entry in `extra_buttons`. | [Styling & Tailwind](../guides/styling_tailwind.md) |
 | `extra_button_selection_controls_disabled` (`bool`) | `True`, `False` | `False` | Selection-aware extra buttons can render row selection controls | Set to `True` if the button uses selected rows, but this list should not show checkboxes just because of that button. Bulk edit and bulk delete still show checkboxes because they need them. | [Setup & Core CRUD basics](../guides/setup_core_crud.md#extra-buttons) |
 | `extra_buttons_mode` (`str`) | `'buttons'`, `'dropdown'` | `'buttons'` | Extra header buttons render as visible toolbar buttons | Control how list-level `extra_buttons` are rendered. Use `'dropdown'` to move configured extra buttons into a top toolbar `More` menu. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
-| `extra_buttons` (`list[dict \| PowerButton]`) | `list[button spec]` | `[]` | No extra header buttons are shown | Add top-of-page buttons (e.g., custom actions, links). Buttons with `uses_selection=True` can render row selection controls even when built-in bulk edit/delete is not configured. Modal buttons may set per-trigger `modal_box_classes` for custom width/height and `refresh_list_on_modal_close` for close-driven list refreshes. | [Complete Example](complete_example.md) |
+| `extra_buttons` (`list[dict \| PowerButton]`) | `list[button spec]` | `[]` | No extra header buttons are shown | Add top-of-page buttons (e.g., custom actions, links). Buttons with `uses_selection=True` can render row selection controls even when built-in bulk edit/delete is not configured. Modal buttons may set per-trigger `modal_box_classes`, `refresh_list_on_modal_close`, and permission affordance fields. | [Complete Example](complete_example.md) |
 | `filter_favourites_enabled` (`bool`) | `True`, `False` | `False` | No saved-favourites toolbar is rendered | Enable the optional saved favourites UI for this list view when the `powercrud.contrib.favourites` app is installed and `powercrud.urls` is mounted under the `powercrud` namespace. | [Saved Favourites](../guides/advanced/filter_favourites.md) |
 | `fields` (`list/str`) | `None`, `'__all__'`, `list[str]` | `'__all__'` | All concrete model fields show in the list view | Columns displayed in the list view. Explicit lists may contain model field names and queryset annotation names. Combine with `exclude`. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
 | `filter_null_fields_exclude` (`list[str]`) | `list[str]` | `[]` | Nullable auto-generated filters gain built-in null filtering | Opt out specific `filterset_fields` from automatic null-filter controls. | [Filter controls](#filter-controls) |
@@ -335,6 +335,8 @@ extra_buttons = [
         "selection_min_count": 1,
         "selection_min_behavior": "disable",
         "selection_min_reason": "Select at least one row first.",
+        "permission_check": "can_view_project_report",
+        "permission_behavior": "hide",
     },
 ]
 ```
@@ -350,6 +352,7 @@ Notes:
 - A selection-aware `extra_buttons` entry can render row selection controls even when `bulk_fields = []` and `bulk_delete = False`.
 - Set `extra_button_selection_controls_disabled = True` if the button uses selected rows, but this list should not show checkboxes just because of that button.
 - This is mainly useful when the selected rows come from somewhere else, or when the page has its own custom way to choose rows. Bulk edit and bulk delete still show checkboxes because they need them.
+- `permission` or `permission_check` hides or disables the button before selection-state checks run. `permission_behavior` defaults to `"hide"`.
 - The endpoint should still validate selection size, permissions, and lock rules server-side.
 
 ??? info "Parameter Guide"
@@ -368,12 +371,16 @@ Notes:
     | `extra_class_attrs` | `str` | Additional CSS classes appended after the standard button classes. |
     | `uses_selection` | `bool` | Declares that the endpoint should read the current persisted PowerCRUD selection. |
     | `selection_min_count` | `int` | Minimum selected-row count required before the button is considered ready. |
-    | `selection_min_behavior` | `'allow' | 'disable'` | Controls whether the button stays clickable or becomes disabled when the selected count is below `selection_min_count`. |
+    | `selection_min_behavior` | `'allow' \| 'disable'` | Controls whether the button stays clickable or becomes disabled when the selected count is below `selection_min_count`. |
     | `selection_min_reason` | `str` | Tooltip/help text shown when a selection-aware header button is disabled. |
+    | `permission` | `str` | Django permission string resolved through `has_power_permission(permission, request, obj=None)`. |
+    | `permission_check` | `str` | Named view method with signature `permission_check(request, obj=None)`. |
+    | `permission_behavior` | `'hide' \| 'disable'` | Controls whether permission failure removes the button or renders it disabled. Defaults to `'hide'`. |
+    | `permission_denied_reason` | `str` | Tooltip/help text used only when `permission_behavior = 'disable'`. |
 
 ## Row actions
 
-Use `extra_actions` to add per-row actions beyond the built-in `View`, `Edit`, and `Delete` links. Entries may be base dictionaries or `PowerAction` declarations from `powercrud.actions`.
+Use `extra_actions` to add per-row actions beyond the built-in `View`, `Edit`, and `Delete` links. Entries may be Base API dictionaries or `PowerAction` declarations from `powercrud.actions`.
 
 `extra_actions_mode` controls how those extra row actions are displayed:
 
@@ -392,6 +399,8 @@ extra_actions = [
         "text": "View Again",
         "needs_pk": True,
         "display_modal": True,
+        "permission_check": "can_view_author_again",
+        "permission_behavior": "hide",
         "hidden_if": "should_hide_view_again",
         "disabled_state": "get_view_again_disabled_state",
         "refresh_list_on_modal_close": True,
@@ -411,6 +420,7 @@ Notes:
 - `refresh_list_on_modal_close` is only used when `display_modal=True`; prefer `HX-Trigger: {"refreshTable": true}` when the endpoint knows it changed data.
 - `hidden_if` is an optional view method name with signature `(obj, request) -> bool`. Return `True` to omit the action for that row. Hidden actions are removed before disabled hooks are evaluated.
 - `disabled_state` is a single-hook alternative to `disabled_if` / `disabled_reason`. Return a non-empty string to disable the action and show that string as the reason; return `None`, `False`, or an empty string to keep it enabled.
+- `permission` or `permission_check` hides or disables the action before `hidden_if` and `disabled_state` run. `permission_behavior` defaults to `"hide"`.
 - `disabled_if` and `disabled_reason` are deprecated view method names used to disable a row action based on the current object and request. Use `disabled_state` instead.
 - Do not combine `disabled_state` with `disabled_if` or `disabled_reason` on the same action.
 - Use `hidden_if` when an action is not applicable for a row. Use `disabled_state` when the action is applicable but unavailable and needs an explanatory reason.
@@ -431,9 +441,15 @@ Notes:
     | `hx_post` | `bool` | Sends the action as an HTMX POST instead of the default GET when `True`. |
     | `lock_sensitive` | `bool` | Disables the action automatically when PowerCRUD marks the row as blocked by its existing lock logic. |
     | `hidden_if` | `str` | Name of a view method with signature `(obj, request) -> bool` that decides whether the action should be omitted for that row. |
-    | `disabled_state` | `str` | Name of a view method with signature `(obj, request) -> str | None | bool` that returns a disabled reason string, or a falsey enabled value. |
+    | `disabled_state` | `str` | Name of a view method with signature `(obj, request) -> str \| None \| bool` that returns a disabled reason string, or a falsey enabled value. |
     | `disabled_if` | `str` | Deprecated. Name of a view method with signature `(obj, request) -> bool` that decides whether the action is disabled for that row. Use `disabled_state` instead. |
-    | `disabled_reason` | `str` | Deprecated. Name of a view method with signature `(obj, request) -> str | None` that returns the disabled tooltip/help text. Use `disabled_state` instead. |
+    | `disabled_reason` | `str` | Deprecated. Name of a view method with signature `(obj, request) -> str \| None` that returns the disabled tooltip/help text. Use `disabled_state` instead. |
+    | `permission` | `str` | Django permission string resolved through `has_power_permission(permission, request, obj=obj)`. |
+    | `permission_check` | `str` | Named view method with signature `permission_check(request, obj=None)`. |
+    | `permission_behavior` | `'hide' \| 'disable'` | Controls whether permission failure removes the action or renders it disabled. Defaults to `'hide'`. |
+    | `permission_denied_reason` | `str` | Tooltip/help text used only when `permission_behavior = 'disable'`. |
+
+See [Permission-Aware Affordances](../guides/advanced/permission_aware_affordances.md) for built-in Create/Detail/Edit/Delete permission hooks and backend enforcement boundaries.
 
 ### Searchable select enhancement
 
@@ -502,6 +518,8 @@ See [Forms](../guides/forms.md#dependent-form-fields) for a fuller worked exampl
 - **Required settings**: Only `model` and `base_template_path` are required.
 - **Auto-detection**: `use_crispy` auto-detects whether `crispy_forms` is installed; everything else is opt-in.
 - **Dependencies**: Bulk operations require both `use_htmx = True` and `use_modal = True`.
+- **Detail permissions**: Override `has_power_detail_permission(request, obj)` when the current user should not see the built-in Detail/View row action or call the PowerCRUD-owned detail endpoint.
+- **Bulk permissions**: `bulk_fields` and `bulk_delete` configure the operation surface. Override `has_power_bulk_update_permission(request)` or `has_power_bulk_delete_permission(request)` when the current user should not see or call those PowerCRUD-owned bulk operations.
 - **Duplicate entries**: Supported list-style config options quietly remove duplicates and keep the first occurrence.
 - **Field shortcuts**: Use `'__all__'` for all fields, `'__fields__'` to reference the `fields` setting.
 - **Property shortcuts**: Use `'__all__'` for all properties, `'__properties__'` to reference the `properties` setting.

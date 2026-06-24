@@ -153,6 +153,168 @@ def test_bulk_edit_handles_missing_bulk_fields(rf, fake_render):
 
 
 @pytest.mark.django_db
+def test_bulk_edit_denies_modal_when_no_bulk_operation_is_permitted(rf, fake_render):
+    author = Author.objects.create(name="Alpha")
+    book = Book.objects.create(
+        title="Example",
+        author=author,
+        published_date="2024-01-01",
+        bestseller=False,
+        isbn="4444444444445",
+        pages=12,
+    )
+
+    class DeniedBulkView(HarnessView):
+        def has_power_bulk_update_permission(self, request):
+            return False
+
+        def has_power_bulk_delete_permission(self, request):
+            return False
+
+    request = make_htmx_request(rf, data={"selected_ids[]": [book.pk]})
+    view = DeniedBulkView(request)
+
+    response = view.bulk_edit(request)
+
+    assert response.status_code == 403
+    assert response.content == b"bulk is not permitted."
+
+
+@pytest.mark.django_db
+def test_bulk_edit_modal_can_render_delete_only_when_update_denied(rf, fake_render):
+    author = Author.objects.create(name="Alpha")
+    book = Book.objects.create(
+        title="Example",
+        author=author,
+        published_date="2024-01-01",
+        bestseller=False,
+        isbn="4444444444446",
+        pages=12,
+    )
+
+    class DeleteOnlyBulkView(HarnessView):
+        def has_power_bulk_update_permission(self, request):
+            return False
+
+    request = make_htmx_request(rf, data={"selected_ids[]": [book.pk]})
+    view = DeleteOnlyBulkView(request)
+
+    response = view.bulk_edit(request)
+
+    assert response.context_data["enable_bulk_update"] is False
+    assert response.context_data["enable_bulk_delete"] is True
+    assert response.context_data["enable_bulk_edit"] is True
+    assert response.context_data["bulk_fields"] == []
+
+
+@pytest.mark.django_db
+def test_bulk_edit_modal_can_render_update_only_when_delete_denied(rf, fake_render):
+    author = Author.objects.create(name="Alpha")
+    book = Book.objects.create(
+        title="Example",
+        author=author,
+        published_date="2024-01-01",
+        bestseller=False,
+        isbn="4444444444447",
+        pages=12,
+    )
+
+    class UpdateOnlyBulkView(HarnessView):
+        def has_power_bulk_delete_permission(self, request):
+            return False
+
+    request = make_htmx_request(rf, data={"selected_ids[]": [book.pk]})
+    view = UpdateOnlyBulkView(request)
+
+    response = view.bulk_edit(request)
+
+    assert response.context_data["enable_bulk_update"] is True
+    assert response.context_data["enable_bulk_delete"] is False
+    assert response.context_data["enable_bulk_edit"] is True
+    assert response.context_data["bulk_fields"] == ["author"]
+
+
+@pytest.mark.django_db
+def test_bulk_update_permission_denial_precedes_field_validation(
+    rf, fake_render, monkeypatch
+):
+    author = Author.objects.create(name="Alpha")
+    book = Book.objects.create(
+        title="Example",
+        author=author,
+        published_date="2024-01-01",
+        bestseller=False,
+        isbn="4444444444448",
+        pages=12,
+    )
+
+    class UpdateDeniedBulkView(HarnessView):
+        def has_power_bulk_update_permission(self, request):
+            return False
+
+    request = make_htmx_request(
+        rf,
+        method="post",
+        data={
+            "bulk_submit": "1",
+            "selected_ids[]": [book.pk],
+            "fields_to_update": ["not_configured"],
+        },
+    )
+    view = UpdateDeniedBulkView(request)
+
+    def fail_if_called(*args, **kwargs):
+        raise AssertionError("Bulk field validation should not run when update permission fails.")
+
+    monkeypatch.setattr(view, "_validate_bulk_fields_to_update", fail_if_called)
+
+    response = view.bulk_edit(request)
+
+    assert response.status_code == 403
+    assert response.content == b"bulk update is not permitted."
+
+
+@pytest.mark.django_db
+def test_bulk_delete_permission_denial_precedes_delete_execution(
+    rf, fake_render, monkeypatch
+):
+    author = Author.objects.create(name="Alpha")
+    book = Book.objects.create(
+        title="Example",
+        author=author,
+        published_date="2024-01-01",
+        bestseller=False,
+        isbn="4444444444449",
+        pages=12,
+    )
+
+    class DeleteDeniedBulkView(HarnessView):
+        def has_power_bulk_delete_permission(self, request):
+            return False
+
+    request = make_htmx_request(
+        rf,
+        method="post",
+        data={
+            "bulk_submit": "1",
+            "delete_selected": "1",
+            "selected_ids[]": [book.pk],
+        },
+    )
+    view = DeleteDeniedBulkView(request)
+
+    def fail_if_called(*args, **kwargs):
+        raise AssertionError("Bulk delete should not run when delete permission fails.")
+
+    monkeypatch.setattr(view, "_perform_bulk_delete", fail_if_called)
+
+    response = view.bulk_edit(request)
+
+    assert response.status_code == 403
+    assert response.content == b"bulk delete is not permitted."
+
+
+@pytest.mark.django_db
 def test_bulk_edit_rejects_submitted_fields_outside_configured_bulk_fields(
     rf, fake_render, monkeypatch
 ):
@@ -452,6 +614,7 @@ def test_bulk_edit_template_renders_nullable_charfield_choices_without_leaked_ta
             "selected_count": 2,
             "selected_ids": ["1", "2"],
             "bulk_fields": ["uptick_target_pattern"],
+            "enable_bulk_update": True,
             "enable_bulk_delete": False,
             "model_name_plural": "ddm cases",
             "field_info": {
@@ -501,6 +664,7 @@ def test_bulk_edit_template_preserves_acronym_labels(rf):
             "selected_count": 2,
             "selected_ids": ["1", "2"],
             "bulk_fields": ["designated_execution_owner"],
+            "enable_bulk_update": True,
             "enable_bulk_delete": False,
             "model_name_plural": "ddm cases",
             "field_info": {
@@ -526,6 +690,79 @@ def test_bulk_edit_template_preserves_acronym_labels(rf):
     assert "Ddms Execution Owner" not in rendered, (
         "Bulk edit labels should not apply the title filter to acronym labels."
     )
+
+
+def test_bulk_edit_template_hides_update_controls_when_update_denied(rf):
+    """Delete-only bulk modals should not render field update controls."""
+    request = rf.get("/bulk-edit/")
+    rendered = render_to_string(
+        "powercrud/daisyUI/bulk_edit_form.html#full_form",
+        {
+            "request": request,
+            "selected_count": 2,
+            "selected_ids": ["1", "2"],
+            "bulk_fields": ["author"],
+            "enable_bulk_update": False,
+            "enable_bulk_delete": True,
+            "model_name_plural": "books",
+            "field_info": {
+                "author": {
+                    "type": "CharField",
+                    "is_relation": False,
+                    "is_m2m": False,
+                    "verbose_name": "Author",
+                    "null": False,
+                    "blank": False,
+                    "choices": None,
+                    "searchable_select": False,
+                }
+            },
+            "modal_target": "powercrudModalContent",
+        },
+        request=request,
+    )
+
+    assert "Select which fields to update" not in rendered
+    assert 'name="fields_to_update"' not in rendered
+    assert "Apply Changes" not in rendered
+    assert "Delete All Selected Items" in rendered
+
+
+def test_bulk_edit_template_hides_delete_controls_when_delete_denied(rf):
+    """Update-only bulk modals should not render delete controls."""
+    request = rf.get("/bulk-edit/")
+    rendered = render_to_string(
+        "powercrud/daisyUI/bulk_edit_form.html#full_form",
+        {
+            "request": request,
+            "selected_count": 2,
+            "selected_ids": ["1", "2"],
+            "bulk_fields": ["author"],
+            "enable_bulk_update": True,
+            "enable_bulk_delete": False,
+            "model_name_plural": "books",
+            "field_info": {
+                "author": {
+                    "type": "CharField",
+                    "is_relation": False,
+                    "is_m2m": False,
+                    "verbose_name": "Author",
+                    "null": False,
+                    "blank": False,
+                    "choices": None,
+                    "searchable_select": False,
+                }
+            },
+            "modal_target": "powercrudModalContent",
+        },
+        request=request,
+    )
+
+    assert "Select which fields to update" in rendered
+    assert 'name="fields_to_update"' in rendered
+    assert "Apply Changes" in rendered
+    assert "Delete All Selected Items" not in rendered
+    assert 'data-powercrud-bulk-delete-submit' not in rendered
 
 
 @pytest.mark.django_db

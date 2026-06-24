@@ -19,6 +19,16 @@ urlpatterns += views.ProfileCRUDView.get_urls(
 urlpatterns += views.AsyncTaskRecordCRUDView.get_urls(roles={Role.LIST})
 urlpatterns += [
     path(
+        "auth/login/<str:role>/",
+        views.sample_demo_login,
+        name="demo-login",
+    ),
+    path(
+        "auth/logout/",
+        views.sample_demo_logout,
+        name="demo-logout",
+    ),
+    path(
         "bigbook/selected-summary/",
         views.book_selected_summary,
         name="bigbook-selected-summary",

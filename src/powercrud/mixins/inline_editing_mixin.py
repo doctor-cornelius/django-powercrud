@@ -695,6 +695,15 @@ class InlineEditingMixin:
         """
         Return whether row-level update affordances are allowed for this object.
         """
+        permission_checker = getattr(self, "has_power_update_permission", None)
+        if callable(permission_checker):
+            try:
+                permission_allowed = bool(permission_checker(request, obj))
+            except Exception:
+                permission_allowed = False
+            if not permission_allowed:
+                return {"allowed": False, "reason": None}
+
         checker = getattr(self, "can_update_object", None)
         allowed = True
         if callable(checker):

@@ -19,6 +19,11 @@ from sample.services import BookBulkUpdateService, BookWriteService
 from sample.views import BookCRUDView
 
 
+def _login_sample_manager(client):
+    """Authenticate the client as the sample manager user."""
+    return client.post(reverse("sample:demo-login", args=["manager"]))
+
+
 class SampleAsyncDashboardTests(TestCase):
     def setUp(self):
         self.manager = SampleAsyncManager()
@@ -683,7 +688,7 @@ class SampleGenreDeleteRefusalTests(TestCase):
         )
         self.assertContains(
             response,
-            "btn-disabled opacity-50 pointer-events-none",
+            "btn-disabled opacity-50",
             msg_prefix="The guarded sample genre should render the built-in Delete action with the standard disabled styling.",
         )
 
@@ -706,6 +711,7 @@ class SampleBookUpdateGuardTests(TestCase):
         )
         guarded_book.genres.add(genre)
 
+        _login_sample_manager(self.client)
         response = self.client.get(reverse("sample:bigbook-list"))
 
         self.assertEqual(
@@ -725,7 +731,7 @@ class SampleBookUpdateGuardTests(TestCase):
         )
         self.assertContains(
             response,
-            "btn-disabled opacity-50 pointer-events-none",
+            "btn-disabled opacity-50",
             msg_prefix="The guarded sample book should render the built-in Edit action with the standard disabled styling.",
         )
         self.assertContains(
@@ -740,6 +746,8 @@ class SampleBookBulkValidationTests(TestCase):
 
     def test_bulk_validation_sample_book_rerenders_modal_with_error(self):
         """The sample bulk validation rule should return a handled modal error response."""
+        _login_sample_manager(self.client)
+
         author = Author.objects.create(name="Bulk Validation Author")
         genre = Genre.objects.create(name="Bulk Validation Genre")
         book = Book.objects.create(

@@ -7,7 +7,11 @@ from playwright.sync_api import expect
 
 from sample.models import Author
 
-pytestmark = [pytest.mark.playwright, pytest.mark.django_db]
+pytestmark = [
+    pytest.mark.playwright,
+    pytest.mark.django_db,
+    pytest.mark.usefixtures("sample_manager_page"),
+]
 
 
 def select_single_value(page, container, field_name: str, option_value: str):

@@ -8,6 +8,7 @@ from django.http import HttpResponse
 from django.test import RequestFactory, override_settings
 from django.contrib.sessions.middleware import SessionMiddleware
 
+from powercrud.actions import PowerButton
 from powercrud.mixins.htmx_mixin import HtmxMixin
 from powercrud.mixins.bulk_mixin import (
     SelectionMixin,
@@ -336,6 +337,7 @@ def test_bulk_edit_flags_require_modal_and_htmx():
     request = make_request(RequestFactory())
     view = DummyBulkView(request)
     assert view.get_bulk_edit_enabled() is True
+    assert view.get_bulk_update_enabled() is True
     assert view.get_bulk_delete_enabled() is True
     assert view.get_selection_controls_enabled() is True
 
@@ -344,6 +346,42 @@ def test_bulk_edit_flags_require_modal_and_htmx():
     view.use_modal = True
     view.use_htmx = False
     assert view.get_bulk_edit_enabled() is False
+
+
+@pytest.mark.django_db
+def test_bulk_edit_flags_compose_runtime_permissions():
+    request = make_request(RequestFactory())
+
+    class DeniedBulkView(DummyBulkView):
+        bulk_update_allowed = False
+        bulk_delete_allowed = False
+
+        def has_power_bulk_update_permission(self, request):
+            return self.bulk_update_allowed
+
+        def has_power_bulk_delete_permission(self, request):
+            return self.bulk_delete_allowed
+
+    view = DeniedBulkView(request)
+    assert view.get_bulk_update_configured() is True
+    assert view.get_bulk_delete_configured() is True
+    assert view.get_bulk_update_enabled() is False
+    assert view.get_bulk_delete_enabled() is False
+    assert view.get_bulk_edit_enabled() is False
+    assert view.get_selection_controls_enabled() is False
+
+    view.bulk_delete_allowed = True
+    assert view.get_bulk_update_enabled() is False
+    assert view.get_bulk_delete_enabled() is True
+    assert view.get_bulk_edit_enabled() is True
+    assert view.get_selection_controls_enabled() is True
+
+    view.bulk_update_allowed = True
+    view.bulk_delete_allowed = False
+    assert view.get_bulk_update_enabled() is True
+    assert view.get_bulk_delete_enabled() is False
+    assert view.get_bulk_edit_enabled() is True
+    assert view.get_selection_controls_enabled() is True
 
 
 @pytest.mark.django_db
@@ -377,6 +415,58 @@ def test_selection_controls_can_be_driven_by_extra_button_selection():
     view.bulk_delete = True
     assert view.get_selection_controls_enabled() is True, (
         "Bulk delete should still enable selection controls even when extra-button selection controls are disabled."
+    )
+
+
+@pytest.mark.django_db
+def test_selection_controls_can_be_driven_by_powerbutton_selection():
+    request = make_request(RequestFactory())
+
+    class SelectionPowerButtonView(DummyBulkView):
+        bulk_fields = []
+        bulk_delete = False
+        extra_buttons = [
+            PowerButton(
+                text="Selected Summary",
+                url_name="sample:bigbook-selected-summary",
+                uses_selection=True,
+            )
+        ]
+
+    view = SelectionPowerButtonView(request)
+    assert view.get_selection_controls_enabled() is True, (
+        "Structured PowerButton declarations should enable row selection controls when permitted."
+    )
+
+
+@pytest.mark.django_db
+def test_selection_controls_ignore_permission_denied_selection_buttons():
+    request = make_request(RequestFactory())
+
+    class SelectionPermissionView(DummyBulkView):
+        bulk_fields = []
+        bulk_delete = False
+        extra_buttons = [
+            {
+                "url_name": "sample:bigbook-selected-summary",
+                "text": "Selected Summary",
+                "uses_selection": True,
+                "permission_check": "can_use_selected_summary",
+            }
+        ]
+        button_allowed = False
+
+        def can_use_selected_summary(self, request, obj=None):
+            return self.button_allowed
+
+    view = SelectionPermissionView(request)
+    assert view.get_selection_controls_enabled() is False, (
+        "Permission-denied selection-aware buttons should not keep selection controls visible."
+    )
+
+    view.button_allowed = True
+    assert view.get_selection_controls_enabled() is True, (
+        "Permitted selection-aware buttons should still enable selection controls."
     )
 
 

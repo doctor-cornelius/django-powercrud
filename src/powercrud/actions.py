@@ -20,10 +20,46 @@ def _validate_optional_method_name(
         raise ValueError(f"{class_name}.{field_name} must be a non-empty string")
 
 
+def _validate_optional_string(
+    value: str | None, field_name: str, class_name: str
+) -> None:
+    """Validate an optional non-empty string field."""
+    if value is None:
+        return
+    if not isinstance(value, str) or not value.strip():
+        raise ValueError(f"{class_name}.{field_name} must be a non-empty string")
+
+
 def _validate_bool(value: bool | None, field_name: str, class_name: str) -> None:
     """Validate an optional boolean field."""
     if value is not None and not isinstance(value, bool):
         raise ValueError(f"{class_name}.{field_name} must be True or False")
+
+
+def _validate_permission_options(
+    *,
+    permission: str | None,
+    permission_check: str | None,
+    permission_behavior: str | None,
+    permission_denied_reason: str | None,
+    class_name: str,
+) -> None:
+    """Validate shared permission affordance declaration options."""
+    _validate_optional_string(permission, "permission", class_name)
+    _validate_optional_method_name(permission_check, "permission_check", class_name)
+    _validate_optional_string(
+        permission_denied_reason,
+        "permission_denied_reason",
+        class_name,
+    )
+    if permission and permission_check:
+        raise ValueError(f"{class_name} cannot combine permission with permission_check")
+    if permission_behavior is not None:
+        _validate_optional_string(permission_behavior, "permission_behavior", class_name)
+        if permission_behavior not in {"hide", "disable"}:
+            raise ValueError(
+                f"{class_name}.permission_behavior must be 'hide' or 'disable'"
+            )
 
 
 def _copy_without_none(values: dict[str, Any]) -> dict[str, Any]:
@@ -49,6 +85,10 @@ class PowerAction:
     disabled_state: str | None = None
     disabled_if: str | None = None
     disabled_reason: str | None = None
+    permission: str | None = None
+    permission_check: str | None = None
+    permission_behavior: str | None = None
+    permission_denied_reason: str | None = None
 
     def __post_init__(self) -> None:
         """Validate the declaration shape before it reaches view config."""
@@ -82,6 +122,13 @@ class PowerAction:
             raise ValueError(
                 "PowerAction.disabled_reason requires disabled_if; use disabled_state for a single-hook disabled contract"
             )
+        _validate_permission_options(
+            permission=self.permission,
+            permission_check=self.permission_check,
+            permission_behavior=self.permission_behavior,
+            permission_denied_reason=self.permission_denied_reason,
+            class_name=class_name,
+        )
 
     def with_options(self, **changes: Any) -> "PowerAction":
         """Return a copy of this action with selected options changed."""
@@ -105,6 +152,10 @@ class PowerAction:
                 "disabled_state": self.disabled_state,
                 "disabled_if": self.disabled_if,
                 "disabled_reason": self.disabled_reason,
+                "permission": self.permission,
+                "permission_check": self.permission_check,
+                "permission_behavior": self.permission_behavior,
+                "permission_denied_reason": self.permission_denied_reason,
             }
         )
 
@@ -127,6 +178,10 @@ class PowerButton:
     selection_min_count: int = 0
     selection_min_behavior: str = "allow"
     selection_min_reason: str | None = None
+    permission: str | None = None
+    permission_check: str | None = None
+    permission_behavior: str | None = None
+    permission_denied_reason: str | None = None
 
     def __post_init__(self) -> None:
         """Validate the declaration shape before it reaches view config."""
@@ -155,6 +210,13 @@ class PowerButton:
             raise ValueError(
                 "PowerButton cannot set needs_pk=True when uses_selection=True"
             )
+        _validate_permission_options(
+            permission=self.permission,
+            permission_check=self.permission_check,
+            permission_behavior=self.permission_behavior,
+            permission_denied_reason=self.permission_denied_reason,
+            class_name=class_name,
+        )
 
     def with_options(self, **changes: Any) -> "PowerButton":
         """Return a copy of this button with selected options changed."""
@@ -174,6 +236,10 @@ class PowerButton:
             "extra_attrs": self.extra_attrs,
             "extra_class_attrs": self.extra_class_attrs,
             "uses_selection": self.uses_selection,
+            "permission": self.permission,
+            "permission_check": self.permission_check,
+            "permission_behavior": self.permission_behavior,
+            "permission_denied_reason": self.permission_denied_reason,
         }
         has_selection_options = (
             self.selection_min_count != 0

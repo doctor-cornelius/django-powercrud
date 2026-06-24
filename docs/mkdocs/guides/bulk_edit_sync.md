@@ -32,10 +32,11 @@ Every entry in `bulk_fields` must be an editable model field. If you include a f
 - `bulk_delete = True` adds a “Delete selected” option.
 - HTMX + modal support are required for the bulk UI.
 - The server validates `fields_to_update` against configured `bulk_fields`, so tampered POST payloads cannot update fields outside the declared bulk-edit surface.
+- Override `has_power_bulk_update_permission(request)` or `has_power_bulk_delete_permission(request)` when the current user should not see or call those PowerCRUD-owned bulk operations. These hooks are operation-level; `bulk_fields` remains the field allow-list.
 
 Selections persist across pagination because PowerCRUD stores them in the session for the current view.
 
-The selector controls are shared PowerCRUD selection controls. Built-in `bulk_fields` and `bulk_delete` always render them when the bulk UI is usable, and selection-aware `extra_buttons` can also render them without enabling the built-in bulk edit/delete modal. This guide focuses on the built-in bulk-edit consumer of that selection state.
+The selector controls are shared PowerCRUD selection controls. Permitted built-in `bulk_fields` and `bulk_delete` render them when the bulk UI is usable, and permitted selection-aware `extra_buttons` can also render them without enabling the built-in bulk edit/delete modal. This guide focuses on the built-in bulk-edit consumer of that selection state.
 
 ---
 

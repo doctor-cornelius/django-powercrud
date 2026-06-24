@@ -11,6 +11,22 @@ class CoreMixin(ConfigMixin):
     Behavioural core mixin for queryset handling and list view orchestration.
     """
 
+    def detail(self, request, *args, **kwargs):
+        """
+        Render the detail view only when detail permission allows it.
+        """
+        self.request = request
+        self.kwargs = kwargs
+        self.object = self.get_object()
+        if not self.has_power_detail_permission(request, self.object):
+            return self.handle_power_permission_denied(
+                request,
+                "detail",
+                obj=self.object,
+            )
+        context = self.get_context_data()
+        return self.render_to_response(context)
+
     def get_column_sort_fields_override(self) -> dict[str, str]:
         """
         Return explicit queryset ordering overrides keyed by visible column name.

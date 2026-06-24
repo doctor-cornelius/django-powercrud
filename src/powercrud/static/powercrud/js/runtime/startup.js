@@ -55,6 +55,7 @@ export function installPowercrudGlobalListeners({
     documentObject.addEventListener('DOMContentLoaded', handlers.handleDOMContentLoaded);
     globalObject.addEventListener('pageshow', handlers.handlePageShow);
     documentObject.addEventListener('pointerdown', handlers.handlePointerDownCapture, true);
+    documentObject.addEventListener('click', handlers.handleDisabledActionClickCapture, true);
     documentObject.addEventListener('click', handlers.handleTooltipClickCapture, true);
     documentObject.addEventListener('click', handlers.handleInlineDocumentClickCapture, true);
     documentObject.addEventListener('click', handlers.handleModalClassClickCapture, true);

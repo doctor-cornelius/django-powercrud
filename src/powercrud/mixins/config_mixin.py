@@ -3,6 +3,7 @@ import warnings
 
 from django.conf import settings
 from django.core.exceptions import FieldDoesNotExist, ImproperlyConfigured
+from django.http import HttpResponseForbidden
 from django.db.models.fields.reverse_related import ManyToOneRel
 from typing import Any, Callable
 
@@ -371,6 +372,60 @@ class ConfigMixin:
         `resolve_config(self)` when they need a configuration view.
         """
         return self._build_config_namespace()
+
+    def has_power_permission(self, permission: str, request: Any, obj: Any = None) -> bool:
+        """
+        Resolve a permission string for permission-aware affordance declarations.
+        """
+        user = getattr(request, "user", None)
+        return bool(user and user.has_perm(permission))
+
+    def has_power_create_permission(self, request: Any) -> bool:
+        """
+        Return whether the request may use PowerCRUD-owned create handling.
+        """
+        return True
+
+    def has_power_detail_permission(self, request: Any, obj: Any) -> bool:
+        """
+        Return whether the request may use PowerCRUD-owned detail handling.
+        """
+        return True
+
+    def has_power_update_permission(self, request: Any, obj: Any) -> bool:
+        """
+        Return whether the request may use PowerCRUD-owned update handling.
+        """
+        return True
+
+    def has_power_delete_permission(self, request: Any, obj: Any) -> bool:
+        """
+        Return whether the request may use PowerCRUD-owned delete handling.
+        """
+        return True
+
+    def has_power_bulk_update_permission(self, request: Any) -> bool:
+        """
+        Return whether the request may use PowerCRUD-owned bulk update handling.
+        """
+        return True
+
+    def has_power_bulk_delete_permission(self, request: Any) -> bool:
+        """
+        Return whether the request may use PowerCRUD-owned bulk delete handling.
+        """
+        return True
+
+    def handle_power_permission_denied(
+        self,
+        request: Any,
+        operation: str,
+        obj: Any = None,
+    ) -> HttpResponseForbidden:
+        """
+        Return the response used when a PowerCRUD-owned operation is denied.
+        """
+        return HttpResponseForbidden(f"{operation} is not permitted.")
 
     @staticmethod
     def _dedupe_preserving_first(values: list[str] | None) -> list[str]:
@@ -1097,6 +1152,11 @@ class ConfigMixin:
                     "extra_buttons",
                 )
             )
+            self._normalize_permission_affordance_config(
+                normalized,
+                index,
+                "extra_buttons",
+            )
             normalized_buttons.append(normalized)
 
         self.extra_buttons = normalized_buttons
@@ -1117,25 +1177,122 @@ class ConfigMixin:
             )
         return value
 
+    def _validate_optional_extra_string(
+        self,
+        value: Any,
+        index: int,
+        config_name: str,
+        setting_name: str,
+    ) -> str | None:
+        """
+        Return a non-empty optional string setting for an action/button item.
+        """
+        if value is None or value == "":
+            return None
+        if not isinstance(value, str) or not value.strip():
+            raise ValueError(
+                f"{config_name}[{index}].{setting_name} must be a non-empty string"
+            )
+        return value
+
+    def _resolve_extra_config_method(
+        self, method_name: Any, index: int, setting_name: str, config_name: str
+    ) -> str | None:
+        """
+        Resolve and validate a named action/button hook declared on the view.
+        """
+        if method_name is None or method_name == "":
+            return None
+        if not isinstance(method_name, str):
+            raise ValueError(
+                f"{config_name}[{index}].{setting_name} must be a method name string"
+            )
+
+        resolver = getattr(self, method_name, None)
+        if not callable(resolver):
+            raise ValueError(
+                f"{config_name}[{index}].{setting_name} references unknown method '{method_name}'"
+            )
+        return method_name
+
     def _resolve_extra_action_method(
         self, method_name: Any, index: int, setting_name: str
     ) -> str | None:
         """
         Resolve and validate a named extra-action hook declared on the view.
         """
-        if method_name in {None, ""}:
-            return None
-        if not isinstance(method_name, str):
+        return self._resolve_extra_config_method(
+            method_name,
+            index,
+            setting_name,
+            "extra_actions",
+        )
+
+    def _normalize_permission_affordance_config(
+        self,
+        item: dict[str, Any],
+        index: int,
+        config_name: str,
+    ) -> None:
+        """
+        Normalize shared permission affordance settings for an action/button.
+        """
+        permission_keys_present = any(
+            key in item
+            for key in (
+                "permission",
+                "permission_check",
+                "permission_behavior",
+                "permission_denied_reason",
+            )
+        )
+        permission = self._validate_optional_extra_string(
+            item.get("permission"),
+            index,
+            config_name,
+            "permission",
+        )
+        permission_check = self._resolve_extra_config_method(
+            item.get("permission_check"),
+            index,
+            "permission_check",
+            config_name,
+        )
+        permission_denied_reason = self._validate_optional_extra_string(
+            item.get("permission_denied_reason"),
+            index,
+            config_name,
+            "permission_denied_reason",
+        )
+        if permission and permission_check:
             raise ValueError(
-                f"extra_actions[{index}].{setting_name} must be a method name string"
+                f"{config_name}[{index}] cannot combine permission with permission_check"
             )
 
-        resolver = getattr(self, method_name, None)
-        if not callable(resolver):
-            raise ValueError(
-                f"extra_actions[{index}].{setting_name} references unknown method '{method_name}'"
+        permission_behavior = item.get("permission_behavior")
+        if (permission_behavior is None or permission_behavior == "") and (
+            permission or permission_check
+        ):
+            permission_behavior = "hide"
+        else:
+            permission_behavior = self._validate_optional_extra_string(
+                permission_behavior,
+                index,
+                config_name,
+                "permission_behavior",
             )
-        return method_name
+        if permission_behavior and permission_behavior not in {"hide", "disable"}:
+            raise ValueError(
+                f"{config_name}[{index}].permission_behavior must be 'hide' or 'disable'"
+            )
+
+        if not permission_keys_present:
+            return
+
+        item["permission"] = permission
+        item["permission_check"] = permission_check
+        item["permission_behavior"] = permission_behavior
+        item["permission_denied_reason"] = permission_denied_reason
 
     def _configure_extra_actions(self) -> None:
         """
@@ -1203,6 +1360,11 @@ class ConfigMixin:
                     index,
                     "extra_actions",
                 )
+            )
+            self._normalize_permission_affordance_config(
+                normalized,
+                index,
+                "extra_actions",
             )
             normalized_actions.append(normalized)
 

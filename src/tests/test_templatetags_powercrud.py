@@ -44,6 +44,15 @@ class TemplateViewStub:
         self.request = request
         self.use_htmx = use_htmx
         self.use_modal = use_modal
+        self.allowed_permissions = set()
+        self.preview_permission_allowed = True
+        self.button_permission_allowed = True
+        self.button_permission_calls = []
+        self.row_state_calls = []
+        self.detail_permission_allowed = True
+        self.update_permission_allowed = True
+        self.delete_permission_allowed = True
+        self.standard_row_state_calls = []
         self.extra_actions = [
             {
                 "url_name": "sample:book-detail",
@@ -187,9 +196,43 @@ class TemplateViewStub:
             return "Preview requires a description."
         return None
 
+    def has_power_permission(self, permission, request, obj=None):
+        return permission in self.allowed_permissions
+
+    def can_preview_with_permission(self, request, obj=None):
+        return self.preview_permission_allowed
+
+    def can_use_selected_summary(self, request, obj=None):
+        self.button_permission_calls.append(obj)
+        return self.button_permission_allowed
+
+    def has_power_update_permission(self, request, obj):
+        """Return the configured built-in update permission state."""
+        return self.update_permission_allowed
+
+    def has_power_detail_permission(self, request, obj):
+        """Return the configured built-in detail permission state."""
+        return self.detail_permission_allowed
+
+    def has_power_delete_permission(self, request, obj):
+        """Return the configured built-in delete permission state."""
+        return self.delete_permission_allowed
+
     def should_hide_preview(self, obj, request):
         """Return True when the preview action should not render."""
         return obj.title.startswith("Hidden Preview")
+
+    def track_hidden_if_false(self, obj, request):
+        self.row_state_calls.append("hidden_if")
+        return False
+
+    def track_hidden_if_true(self, obj, request):
+        self.row_state_calls.append("hidden_if")
+        return True
+
+    def track_disabled_state(self, obj, request):
+        self.row_state_calls.append("disabled_state")
+        return "Preview is blocked by row state."
 
     def get_bulk_selection_key_suffix(self):
         return "user"
@@ -198,9 +241,11 @@ class TemplateViewStub:
         return "sample.book"
 
     def can_delete_object(self, obj, request):
+        self.standard_row_state_calls.append("can_delete_object")
         return True
 
     def can_update_object(self, obj, request):
+        self.standard_row_state_calls.append("can_update_object")
         return True
 
     def get_update_disabled_reason(self, obj, request):
@@ -409,11 +454,108 @@ def test_action_links_disable_extra_action_from_disabled_state_reason():
 
     html = powercrud.action_links(view, book)
 
-    assert "btn-disabled opacity-50 pointer-events-none" in html, (
+    assert "btn-disabled opacity-50" in html, (
         "A non-empty disabled_state string should disable the extra action."
+    )
+    assert "pointer-events-none" not in html, (
+        "Disabled row actions should remain hoverable so semantic tooltips can show."
+    )
+    assert "pointer-events: auto !important;" in html, (
+        "Disabled row actions should override daisyUI btn-disabled pointer suppression."
+    )
+    assert "cursor: not-allowed;" in html, (
+        "Disabled row actions should still signal that the action cannot be clicked."
     )
     assert "data-tippy-content='Preview requires a description.'" in html, (
         "The disabled_state string should render as the disabled tooltip reason."
+    )
+
+
+@pytest.mark.django_db
+def test_action_links_hide_view_when_detail_permission_fails():
+    """Permission-denied built-in View should be hidden from row actions."""
+    author = Author.objects.create(name="Denied Detail")
+    book = Book.objects.create(
+        title="Denied Detail Book",
+        author=author,
+        published_date=date(2024, 1, 5),
+        bestseller=False,
+        isbn="9876543210004",
+        pages=42,
+    )
+    request = apply_session(RequestFactory().get("/"))
+    view = TemplateViewStub(request)
+    view.detail_permission_allowed = False
+    view.extra_actions = []
+
+    html = powercrud.action_links(view, book)
+
+    assert "/sample:book-detail/" not in html, (
+        "Permission-denied built-in View should be hidden from row actions."
+    )
+    assert "/sample:book-update/" in html, (
+        "Denied detail permission should not hide the built-in Edit action."
+    )
+    assert "/sample:book-delete/" in html, (
+        "Denied detail permission should not hide the built-in Delete action."
+    )
+
+
+@pytest.mark.django_db
+def test_action_links_hide_edit_when_update_permission_fails():
+    """Permission-denied built-in Edit should be hidden, not row-state disabled."""
+    author = Author.objects.create(name="Denied Update")
+    book = Book.objects.create(
+        title="Denied Update Book",
+        author=author,
+        published_date=date(2024, 1, 5),
+        bestseller=False,
+        isbn="9876543210004",
+        pages=42,
+    )
+    request = apply_session(RequestFactory().get("/"))
+    view = TemplateViewStub(request)
+    view.update_permission_allowed = False
+
+    html = powercrud.action_links(view, book)
+
+    assert "/sample:book-detail/" in html, (
+        "The standard View action should remain visible when update permission fails."
+    )
+    assert "/sample:book-update/" not in html, (
+        "Permission-denied built-in Edit should be hidden from the row actions."
+    )
+    assert "can_update_object" not in view.standard_row_state_calls, (
+        "Row-state update hooks should not run when update permission already fails."
+    )
+
+
+@pytest.mark.django_db
+def test_action_links_hide_delete_when_delete_permission_fails():
+    """Permission-denied built-in Delete should be hidden, not row-state disabled."""
+    author = Author.objects.create(name="Denied Delete")
+    book = Book.objects.create(
+        title="Denied Delete Book",
+        author=author,
+        published_date=date(2024, 1, 6),
+        bestseller=False,
+        isbn="9876543210005",
+        pages=42,
+    )
+    request = apply_session(RequestFactory().get("/"))
+    view = TemplateViewStub(request)
+    view.delete_permission_allowed = False
+
+    html = powercrud.action_links(view, book)
+
+    assert "/sample:book-detail/" in html, (
+        "The standard View action should remain visible when delete permission fails."
+    )
+    assert "/sample:book-delete/" not in html, (
+        "Permission-denied built-in Delete should be hidden from the row actions."
+    )
+    assert "can_delete_object" not in view.standard_row_state_calls, (
+        "Row-state delete hooks should not run when delete permission already fails."
     )
 
 
@@ -440,7 +582,7 @@ def test_action_links_leave_extra_action_enabled_when_disabled_state_is_empty():
     assert "Preview requires a description." not in html, (
         "An empty disabled_state result should not render a disabled reason."
     )
-    assert html.count("btn-disabled opacity-50 pointer-events-none") < 3, (
+    assert html.count("btn-disabled opacity-50") < 3, (
         "An empty disabled_state result should leave the extra action enabled."
     )
 
@@ -472,6 +614,147 @@ def test_action_links_hide_extra_action_before_disabled_state():
     )
     assert "Preview requires a description." not in html, (
         "PowerCRUD should not evaluate/render disabled_state details for hidden actions."
+    )
+
+
+@pytest.mark.django_db
+def test_action_links_hide_permission_denied_extra_action_before_row_state():
+    """Permission hide should remove an extra action before row-state hooks run."""
+    author = Author.objects.create(name="Permission Hidden")
+    book = Book.objects.create(
+        title="Permission Hidden Preview",
+        author=author,
+        published_date=date(2024, 1, 7),
+        bestseller=False,
+        isbn="9876543210006",
+        pages=42,
+        description="Preview exists",
+    )
+    request = apply_session(RequestFactory().get("/"))
+    view = TemplateViewStub(request)
+    view.preview_permission_allowed = False
+    view.extra_actions[0].pop("disabled_if")
+    view.extra_actions[0].pop("disabled_reason")
+    view.extra_actions[0]["permission_check"] = "can_preview_with_permission"
+    view.extra_actions[0]["permission_behavior"] = "hide"
+    view.extra_actions[0]["hidden_if"] = "track_hidden_if_false"
+    view.extra_actions[0]["disabled_state"] = "track_disabled_state"
+
+    html = powercrud.action_links(view, book)
+
+    assert "Preview" not in html, (
+        "Permission-denied extra actions should be hidden by default."
+    )
+    assert view.row_state_calls == [], (
+        "Permission hide should not evaluate hidden_if or disabled_state."
+    )
+
+
+@pytest.mark.django_db
+def test_action_links_disable_permission_denied_extra_action_before_row_state():
+    """Permission disable should keep an extra action but skip row-state hooks."""
+    author = Author.objects.create(name="Permission Disabled")
+    book = Book.objects.create(
+        title="Permission Disabled Preview",
+        author=author,
+        published_date=date(2024, 1, 8),
+        bestseller=False,
+        isbn="9876543210007",
+        pages=42,
+        description="Preview exists",
+    )
+    request = apply_session(RequestFactory().get("/"))
+    view = TemplateViewStub(request)
+    view.preview_permission_allowed = False
+    view.extra_actions[0].pop("disabled_if")
+    view.extra_actions[0].pop("disabled_reason")
+    view.extra_actions[0]["permission_check"] = "can_preview_with_permission"
+    view.extra_actions[0]["permission_behavior"] = "disable"
+    view.extra_actions[0]["permission_denied_reason"] = "Managers only."
+    view.extra_actions[0]["hidden_if"] = "track_hidden_if_false"
+    view.extra_actions[0]["disabled_state"] = "track_disabled_state"
+
+    html = powercrud.action_links(view, book)
+
+    assert "Preview" in html, (
+        "Explicit disable behavior should keep the permission-denied action visible."
+    )
+    assert "btn-disabled opacity-50" in html, (
+        "Explicit disable behavior should render the action disabled."
+    )
+    assert "data-tippy-content='Managers only.'" in html, (
+        "Permission disable should use the configured permission-denied reason."
+    )
+    assert "Preview is blocked by row state." not in html, (
+        "Permission-denied actions should not expose row-state disabled reasons."
+    )
+    assert view.row_state_calls == [], (
+        "Permission disable should not evaluate hidden_if or disabled_state."
+    )
+
+
+@pytest.mark.django_db
+def test_action_links_evaluate_hidden_if_after_permission_passes():
+    """Allowed extra actions should still use existing row hidden hooks."""
+    author = Author.objects.create(name="Permission Hidden State")
+    book = Book.objects.create(
+        title="Permission Pass Hidden",
+        author=author,
+        published_date=date(2024, 1, 9),
+        bestseller=False,
+        isbn="9876543210008",
+        pages=42,
+        description="Preview exists",
+    )
+    request = apply_session(RequestFactory().get("/"))
+    view = TemplateViewStub(request)
+    view.preview_permission_allowed = True
+    view.extra_actions[0].pop("disabled_if")
+    view.extra_actions[0].pop("disabled_reason")
+    view.extra_actions[0]["permission_check"] = "can_preview_with_permission"
+    view.extra_actions[0]["hidden_if"] = "track_hidden_if_true"
+    view.extra_actions[0]["disabled_state"] = "track_disabled_state"
+
+    html = powercrud.action_links(view, book)
+
+    assert "Preview" not in html, (
+        "Existing hidden_if behavior should still remove permitted actions."
+    )
+    assert view.row_state_calls == ["hidden_if"], (
+        "PowerCRUD should evaluate hidden_if after the permission check passes."
+    )
+
+
+@pytest.mark.django_db
+def test_action_links_evaluate_disabled_state_after_permission_passes():
+    """Allowed extra actions should still use existing disabled-state hooks."""
+    author = Author.objects.create(name="Permission Disabled State")
+    book = Book.objects.create(
+        title="Permission Pass Disabled",
+        author=author,
+        published_date=date(2024, 1, 10),
+        bestseller=False,
+        isbn="9876543210009",
+        pages=42,
+        description="Preview exists",
+    )
+    request = apply_session(RequestFactory().get("/"))
+    view = TemplateViewStub(request)
+    view.allowed_permissions = {"sample.preview_book"}
+    view.extra_actions[0].pop("disabled_if")
+    view.extra_actions[0].pop("disabled_reason")
+    view.extra_actions[0]["permission"] = "sample.preview_book"
+    view.extra_actions[0]["hidden_if"] = "track_hidden_if_false"
+    view.extra_actions[0]["disabled_state"] = "track_disabled_state"
+
+    html = powercrud.action_links(view, book)
+
+    assert "Preview" in html, "Permitted extra actions should remain visible."
+    assert "data-tippy-content='Preview is blocked by row state.'" in html, (
+        "Permitted extra actions should still show row-state disabled reasons."
+    )
+    assert view.row_state_calls == ["hidden_if", "disabled_state"], (
+        "PowerCRUD should evaluate row-state hooks after permission passes."
     )
 
 
@@ -830,7 +1113,7 @@ def test_action_links_disable_when_locked():
 
     html = powercrud.action_links(view, book)
 
-    assert html.count("btn-disabled opacity-50 pointer-events-none") >= 3, (
+    assert html.count("btn-disabled opacity-50") >= 3, (
         "Locked rows should disable each lock-sensitive action, including extra actions rendered as buttons."
     )
     assert "data-tippy-content='Row locked'" in html, (
@@ -868,7 +1151,7 @@ def test_action_links_disable_dropdown_items_when_locked():
         "Locked rows should still render floating-menu template markup when dropdown mode is enabled."
     )
     assert "Preview" in html, "Locked dropdown rows should still include the extra action label inside the menu."
-    assert "btn-disabled opacity-50 pointer-events-none" in html, (
+    assert "btn-disabled opacity-50" in html, (
         "Locked dropdown items should retain the disabled styling classes for consistent affordances."
     )
 
@@ -1907,7 +2190,7 @@ def test_action_links_disable_custom_extra_action_when_rule_matches():
     assert "Preview requires a description." in html, (
         "Custom-disabled extra actions should expose the configured disabled reason tooltip."
     )
-    assert "btn-disabled opacity-50 pointer-events-none" in html, (
+    assert "btn-disabled opacity-50" in html, (
         "Custom-disabled extra actions should reuse the standard disabled action styling."
     )
 
@@ -1986,7 +2269,7 @@ def test_action_links_disable_builtin_edit_when_update_guard_blocks_row():
     assert "Editing locked by policy." in html, (
         "Built-in Edit should expose the configured update-guard tooltip reason when the row is blocked."
     )
-    assert html.count("btn-disabled opacity-50 pointer-events-none") >= 1, (
+    assert html.count("btn-disabled opacity-50") >= 1, (
         "Built-in Edit should reuse the standard disabled styling when an update guard hook blocks the row."
     )
 
@@ -2015,7 +2298,7 @@ def test_action_links_disable_builtin_delete_when_delete_guard_blocks_row():
     assert "Delete locked by policy." in html, (
         "Built-in Delete should expose the configured delete-guard tooltip reason when the row is blocked."
     )
-    assert html.count("btn-disabled opacity-50 pointer-events-none") >= 1, (
+    assert html.count("btn-disabled opacity-50") >= 1, (
         "Built-in Delete should reuse the standard disabled styling when a delete guard hook blocks the row."
     )
 
@@ -2153,8 +2436,11 @@ def test_extra_buttons_handles_modal_htmx_and_selection_thresholds():
     assert 'data-powercrud-selection-aware="true"' in html
     assert 'data-powercrud-selection-min-count="2"' in html
     assert "Select at least two rows first." in html
-    assert "btn-disabled opacity-50 pointer-events-none" in html, (
+    assert "btn-disabled opacity-50" in html, (
         "Selection-aware extra buttons should render disabled styling when the persisted selection is below the minimum."
+    )
+    assert "pointer-events: auto !important; cursor: not-allowed;" in html, (
+        "Disabled extra buttons should stay hoverable so semantic tooltips can show."
     )
     assert "data-powercrud-extra-buttons-dropdown" not in html, (
         "Extra buttons should keep the legacy inline rendering mode by default."
@@ -2204,7 +2490,7 @@ def test_extra_buttons_dropdown_mode_preserves_button_attributes():
     assert 'data-powercrud-selection-aware="true"' in html, (
         "Dropdown extra buttons should preserve selection-aware metadata."
     )
-    assert "btn-disabled opacity-50 pointer-events-none" in html, (
+    assert "btn-disabled opacity-50" in html, (
         "Dropdown extra buttons should keep disabled styling when selection requirements are unmet."
     )
 
@@ -2250,8 +2536,92 @@ def test_extra_buttons_enable_selection_aware_button_when_minimum_is_met():
 
     assert "Selected Summary" in html
     assert 'data-powercrud-selection-aware="true"' in html
-    assert "btn-disabled opacity-50 pointer-events-none" not in html, (
+    assert "btn-disabled opacity-50" not in html, (
         "Selection-aware extra buttons should stay enabled once the persisted selection meets the configured minimum."
+    )
+
+
+def test_extra_buttons_hide_permission_denied_button_before_selection_state():
+    request = apply_session(RequestFactory().get("/"))
+    request.session["selected"] = []
+    view = TemplateViewStub(request)
+    view.button_permission_allowed = False
+    view.extra_buttons[2]["permission_check"] = "can_use_selected_summary"
+    view.extra_buttons[2]["permission_behavior"] = "hide"
+
+    html = powercrud.extra_buttons({"request": request}, view)
+
+    assert "Selected Summary" not in html, (
+        "Permission-denied extra buttons should be hidden by default."
+    )
+    assert "Select at least two rows first." not in html, (
+        "Permission hide should not expose selection-state disabled reasons."
+    )
+    assert view.button_permission_calls == [None], (
+        "Toolbar button permission_check should receive obj=None."
+    )
+
+
+def test_extra_buttons_disable_permission_denied_button_before_selection_state():
+    request = apply_session(RequestFactory().get("/"))
+    request.session["selected"] = []
+    view = TemplateViewStub(request)
+    view.button_permission_allowed = False
+    view.extra_buttons[2]["permission_check"] = "can_use_selected_summary"
+    view.extra_buttons[2]["permission_behavior"] = "disable"
+    view.extra_buttons[2]["permission_denied_reason"] = "Managers only."
+
+    html = powercrud.extra_buttons({"request": request}, view)
+
+    assert "Selected Summary" in html, (
+        "Explicit disable behavior should keep the permission-denied button visible."
+    )
+    assert "Managers only." in html, (
+        "Permission disable should use the configured permission-denied reason."
+    )
+    assert "Select at least two rows first." not in html, (
+        "Permission disable should take precedence over selection-state reasons."
+    )
+    assert 'data-powercrud-selection-aware="true"' not in html, (
+        "Permission-denied buttons should not be re-enabled by selection-state sync."
+    )
+    assert "pointer-events: auto !important; cursor: not-allowed;" in html, (
+        "Permission-disabled extra buttons should remain hoverable for tooltips."
+    )
+
+
+def test_extra_buttons_evaluate_selection_state_after_permission_passes():
+    request = apply_session(RequestFactory().get("/"))
+    request.session["selected"] = ["1"]
+    view = TemplateViewStub(request)
+    view.button_permission_allowed = True
+    view.extra_buttons[2]["permission_check"] = "can_use_selected_summary"
+
+    html = powercrud.extra_buttons({"request": request}, view)
+
+    assert "Selected Summary" in html, "Permitted extra buttons should remain visible."
+    assert "Select at least two rows first." in html, (
+        "Permitted selection-aware buttons should still render selection disabled reasons."
+    )
+    assert 'data-powercrud-selection-aware="true"' in html, (
+        "Permitted selection-aware buttons should keep frontend selection metadata."
+    )
+
+
+def test_extra_buttons_permission_string_uses_power_permission_resolver():
+    request = apply_session(RequestFactory().get("/"))
+    request.session["selected"] = ["1", "2"]
+    view = TemplateViewStub(request)
+    view.allowed_permissions = {"sample.view_selected_summary"}
+    view.extra_buttons[2]["permission"] = "sample.view_selected_summary"
+
+    html = powercrud.extra_buttons({"request": request}, view)
+
+    assert "Selected Summary" in html, (
+        "Permission strings allowed by has_power_permission should keep buttons visible."
+    )
+    assert "btn-disabled opacity-50" not in html, (
+        "Allowed buttons should remain enabled when selection requirements are met."
     )
 
 

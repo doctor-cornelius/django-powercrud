@@ -4,9 +4,12 @@ from datetime import date
 import pytest
 
 pytest.importorskip("playwright.sync_api")
+from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.urls import reverse
 
 from sample.models import Author, Book, Genre, Profile
+from sample.views import SAMPLE_DEMO_USERS
 
 
 os.environ.setdefault("DJANGO_ALLOW_ASYNC_UNSAFE", "true")
@@ -46,6 +49,39 @@ def profiles_url(live_server):
     if base:
         return f"{base.rstrip('/')}{path}"
     return f"{live_server.url.rstrip('/')}{path}"
+
+
+@pytest.fixture
+def sample_manager_page(page, client, live_server):
+    """Authenticate the Playwright page as the sample manager user."""
+    demo_user = SAMPLE_DEMO_USERS["manager"]
+    user_model = get_user_model()
+    user, _created = user_model.objects.get_or_create(
+        username=demo_user["username"],
+        defaults={"email": demo_user["email"]},
+    )
+    changed = False
+    for field_name in ("email", "is_staff"):
+        value = demo_user[field_name]
+        if getattr(user, field_name) != value:
+            setattr(user, field_name, value)
+            changed = True
+    if changed:
+        user.save(update_fields=["email", "is_staff"])
+
+    client.force_login(user)
+    session_cookie = client.cookies[settings.SESSION_COOKIE_NAME].value
+    base = os.getenv("PLAYWRIGHT_BASE_URL") or live_server.url
+    page.context.add_cookies(
+        [
+            {
+                "name": settings.SESSION_COOKIE_NAME,
+                "value": session_cookie,
+                "url": base.rstrip("/"),
+            }
+        ]
+    )
+    return page
 
 
 @pytest.fixture

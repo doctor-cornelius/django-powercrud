@@ -247,6 +247,66 @@ def _resolve_extra_action_disabled_state(
     return disable, disabled_reason
 
 
+def _resolve_extra_action_permission_state(
+    *,
+    view: Any,
+    object: Any,
+    action: Dict[str, Any],
+    request: Any,
+) -> tuple[bool, bool, str | None]:
+    """
+    Determine whether permission config should hide or disable an extra action.
+    """
+    permission = action.get("permission")
+    permission_check_name = action.get("permission_check")
+    if not permission and not permission_check_name:
+        return False, False, None
+
+    allowed = False
+    if permission:
+        permission_resolver = getattr(view, "has_power_permission", None)
+        if callable(permission_resolver):
+            try:
+                allowed = bool(permission_resolver(permission, request, obj=object))
+            except Exception:
+                allowed = False
+    elif permission_check_name:
+        permission_check = _resolve_named_view_method(view, permission_check_name)
+        if permission_check is not None:
+            try:
+                allowed = bool(permission_check(request, object))
+            except Exception:
+                allowed = False
+
+    if allowed:
+        return False, False, None
+
+    disabled_reason = action.get("permission_denied_reason")
+    if not isinstance(disabled_reason, str) or not disabled_reason.strip():
+        disabled_reason = None
+
+    if action.get("permission_behavior", "hide") == "disable":
+        return False, True, disabled_reason
+    return True, False, None
+
+
+def _resolve_extra_button_permission_state(
+    *,
+    view: Any,
+    button: Dict[str, Any],
+    request: Any,
+) -> tuple[bool, bool, str | None]:
+    """
+    Determine whether permission config should hide or disable an extra button.
+    """
+    return _resolve_extra_action_permission_state(
+        view=view,
+        object=None,
+        action=button,
+        request=request,
+    )
+
+
 def _resolve_extra_action_hidden_state(
     *,
     view: Any,
@@ -325,6 +385,34 @@ def _resolve_standard_action_disabled_state(
     return disable, disabled_reason
 
 
+def _resolve_standard_action_permission_allowed(
+    *,
+    view: Any,
+    object: Any,
+    action_name: str,
+    request: Any,
+) -> bool:
+    """
+    Return whether a built-in standard action should be available by permission.
+    """
+    if action_name == "View":
+        checker = getattr(view, "has_power_detail_permission", None)
+    elif action_name == "Edit":
+        checker = getattr(view, "has_power_update_permission", None)
+    elif action_name == "Delete":
+        checker = getattr(view, "has_power_delete_permission", None)
+    else:
+        return True
+
+    if not callable(checker):
+        return True
+
+    try:
+        return bool(checker(request, object))
+    except Exception:
+        return False
+
+
 def _get_selection_button_state(
     view: Any,
     request: Any,
@@ -385,14 +473,13 @@ def _render_action_anchor(
     Render a single row-action anchor with HTMX and disabled metadata.
     """
     resolved_url = _resolve_modal_action_url(url, query_string, show_modal)
-    disabled_classes = (
-        " btn-disabled opacity-50 pointer-events-none" if disable else ""
-    )
+    disabled_classes = " btn-disabled opacity-50" if disable else ""
 
     attrs = [
         f"href='{resolved_url}'",
         f"class='{class_name}{disabled_classes}'",
     ]
+    style_declarations = []
     if label_html:
         attrs.append(f"aria-label='{anchor_text}'")
         attrs.append(
@@ -400,7 +487,18 @@ def _render_action_anchor(
             f"'{conditional_escape(str(lock_label if disable and lock_label else anchor_text))}'"
         )
         attrs.append("data-powercrud-tooltip='semantic'")
-        attrs.append("style='min-width: 2.5rem;'")
+        style_declarations.append("min-width: 2.5rem;")
+
+    if disable:
+        style_declarations.extend(
+            [
+                "pointer-events: auto !important;",
+                "cursor: not-allowed;",
+            ]
+        )
+
+    if style_declarations:
+        attrs.append(f"style='{' '.join(style_declarations)}'")
 
     if use_htmx:
         attrs.append(f"hx-{'post' if hx_post else 'get'}='{resolved_url}'")
@@ -790,6 +888,13 @@ def action_links(view: Any, object: Any) -> str:
     for name, url in standard_actions:
         if url is None:
             continue
+        if not _resolve_standard_action_permission_allowed(
+            view=view,
+            object=object,
+            action_name=name,
+            request=getattr(view, "request", None),
+        ):
+            continue
         disable, disabled_reason = _resolve_standard_action_disabled_state(
             view=view,
             object=object,
@@ -825,7 +930,18 @@ def action_links(view: Any, object: Any) -> str:
         )
 
         if url is not None:
-            if _resolve_extra_action_hidden_state(
+            hide_permission, disable_permission, permission_disabled_reason = (
+                _resolve_extra_action_permission_state(
+                    view=view,
+                    object=object,
+                    action=action,
+                    request=getattr(view, "request", None),
+                )
+            )
+            if hide_permission:
+                continue
+
+            if not disable_permission and _resolve_extra_action_hidden_state(
                 view=view,
                 object=object,
                 action=action,
@@ -845,14 +961,18 @@ def action_links(view: Any, object: Any) -> str:
                 str(action.get("modal_box_classes") or "") if show_modal else ""
             )
 
-            disable_extra, disabled_reason = _resolve_extra_action_disabled_state(
-                view=view,
-                object=object,
-                action=action,
-                request=getattr(view, "request", None),
-                lock_reason=lock_reason,
-                lock_label=lock_label,
-            )
+            if disable_permission:
+                disable_extra = True
+                disabled_reason = permission_disabled_reason
+            else:
+                disable_extra, disabled_reason = _resolve_extra_action_disabled_state(
+                    view=view,
+                    object=object,
+                    action=action,
+                    request=getattr(view, "request", None),
+                    lock_reason=lock_reason,
+                    lock_label=lock_label,
+                )
 
             extra_action_items.append(
                 {
@@ -1154,7 +1274,14 @@ def object_list(context, objects, view):
         action_blocked_label = None
         can_update = getattr(view, "can_update_object", None)
         update_allowed = True
-        if callable(can_update):
+        if not _resolve_standard_action_permission_allowed(
+            view=view,
+            object=obj,
+            action_name="Edit",
+            request=request,
+        ):
+            update_allowed = False
+        if update_allowed and callable(can_update):
             try:
                 update_allowed = bool(can_update(obj, request))
             except Exception:
@@ -1512,7 +1639,6 @@ def extra_buttons(context: Dict[str, Any], view: Any) -> str:
 
     buttons: List[str] = []
     for button in extra_buttons:
-        selection_state = _get_selection_button_state(view, request, button)
         display_modal = button.get("display_modal", False) and use_modal
         modal_attrs = ""
         modal_box_attrs = ""
@@ -1523,6 +1649,27 @@ def extra_buttons(context: Dict[str, Any], view: Any) -> str:
             button["url_name"], kwargs={} if not button.get("needs_pk", False) else None
         )
         if url is not None:
+            hide_permission, disable_permission, permission_disabled_reason = (
+                _resolve_extra_button_permission_state(
+                    view=view,
+                    button=button,
+                    request=request,
+                )
+            )
+            if hide_permission:
+                continue
+
+            selection_state = (
+                {
+                    "uses_selection": False,
+                    "selection_min_count": 0,
+                    "selection_min_behavior": "allow",
+                    "disable": False,
+                    "disabled_reason": None,
+                }
+                if disable_permission
+                else _get_selection_button_state(view, request, button)
+            )
             htmx_attrs = []
             if use_htmx:
                 if display_modal:
@@ -1565,16 +1712,24 @@ def extra_buttons(context: Dict[str, Any], view: Any) -> str:
             button_class = button.get("button_class", styles["extra_default"])
             disabled_classes = ""
             disabled_attrs: list[str] = []
-            if selection_state["disable"]:
-                disabled_classes = " btn-disabled opacity-50 pointer-events-none"
+            if disable_permission or selection_state["disable"]:
+                disabled_classes = " btn-disabled opacity-50"
                 disabled_attrs.append('aria-disabled="true"')
-                if selection_state["disabled_reason"]:
+                disabled_attrs.append(
+                    'style="pointer-events: auto !important; cursor: not-allowed;"'
+                )
+                disabled_reason = (
+                    permission_disabled_reason
+                    if disable_permission
+                    else selection_state["disabled_reason"]
+                )
+                if disabled_reason:
                     disabled_attrs.append(
-                        f'data-tippy-content="{selection_state["disabled_reason"]}"'
+                        f'data-tippy-content="{disabled_reason}"'
                     )
                     disabled_attrs.append('data-powercrud-tooltip="semantic"')
 
-            if selection_state["uses_selection"]:
+            if not disable_permission and selection_state["uses_selection"]:
                 disabled_attrs.append('data-powercrud-selection-aware="true"')
                 disabled_attrs.append(
                     f'data-powercrud-selection-min-count="{selection_state["selection_min_count"]}"'

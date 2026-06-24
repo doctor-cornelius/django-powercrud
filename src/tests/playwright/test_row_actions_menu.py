@@ -6,7 +6,11 @@ pytest.importorskip("playwright.sync_api")
 from playwright.sync_api import expect
 
 
-pytestmark = [pytest.mark.playwright, pytest.mark.django_db]
+pytestmark = [
+    pytest.mark.playwright,
+    pytest.mark.django_db,
+    pytest.mark.usefixtures("sample_manager_page"),
+]
 
 
 def test_row_actions_menu_stays_visible_for_top_and_bottom_rows(

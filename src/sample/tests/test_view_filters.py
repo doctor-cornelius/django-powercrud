@@ -17,6 +17,11 @@ from sample import views as sample_views
 from sample.models import Author, Book, Genre, Profile
 
 
+def _login_sample_manager(client):
+    """Authenticate the client as the sample manager user."""
+    return client.post(reverse("sample:demo-login", args=["manager"]))
+
+
 @pytest.mark.django_db
 def test_author_sample_view_exposes_nullable_scalar_companion_filter():
     """Author sample view should expose the nullable birth-date companion filter."""
@@ -707,6 +712,7 @@ def test_book_sample_inline_row_endpoint_renders_edit_form(monkeypatch):
         lambda self, obj: False,
     )
     client = Client()
+    _login_sample_manager(client)
     response = client.get(
         reverse("sample:bigbook-inline-row", args=[book.pk]),
         HTTP_HX_REQUEST="true",
@@ -753,6 +759,7 @@ def test_book_sample_inline_row_respects_session_list_columns(monkeypatch):
         }
     }
     session.save()
+    _login_sample_manager(client)
 
     response = client.get(
         reverse("sample:bigbook-inline-row", args=[book.pk]),
@@ -797,6 +804,7 @@ def test_book_sample_list_renders_inline_trigger_targets(monkeypatch):
         lambda self, obj: False,
     )
     client = Client()
+    _login_sample_manager(client)
     response = client.get(
         reverse("sample:bigbook-list"),
     )

@@ -130,6 +130,15 @@ def test_runtime_startup_centralises_once_only_listener_registration() -> None:
         "globalObject.addEventListener('scroll', handlers.handleWindowScrollCapture, true);" in startup
     ), "Startup runtime should preserve the capturing window scroll listener."
     assert (
+        "documentObject.addEventListener('click', handlers.handleDisabledActionClickCapture, true);" in startup
+    ), "Startup runtime should block disabled action clicks before HTMX can process them."
+    assert (
+        "handleDisabledActionClickCapture(event)" in js
+    ), "Runtime JS should expose a capture-phase disabled action click guard."
+    assert (
+        "a[aria-disabled=\"true\"], button[aria-disabled=\"true\"]" in js
+    ), "Disabled action click guard should target ARIA-disabled links and buttons."
+    assert (
         "function createPowercrudGlobalListenerHandlers()" in js
     ), "Runtime JS should keep feature handler bodies beside the feature runtime dependencies."
     assert (
@@ -349,6 +358,15 @@ def test_runtime_js_hides_tooltips_before_interactive_transitions() -> None:
         "handleHtmxBeforeRequest(event) {\n                hidePowercrudTooltips(document);"
         in js
     ), "Runtime JS should hide visible tooltips before HTMX requests can open modal content."
+    assert (
+        "button.classList.remove('pointer-events-none');" in template
+    ), "Selection-aware disabled toolbar buttons should stay hoverable for tooltip triggers."
+    assert (
+        "button.style.setProperty('pointer-events', 'auto', 'important');" in template
+    ), "Selection-aware disabled toolbar buttons should override pointer suppression while disabled."
+    assert (
+        "button.style.removeProperty('pointer-events');" in template
+    ), "Selection-aware toolbar buttons should remove hover overrides again when re-enabled."
 
 
 def test_runtime_js_opens_inline_tomselect_on_focus() -> None:

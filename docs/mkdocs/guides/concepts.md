@@ -1,8 +1,8 @@
 # PowerCRUD Concepts
 
-PowerCRUD can be used directly through the Base Configuration API: class attributes, hooks, lists, and dictionaries. That remains the underlying contract.
+PowerCRUD can be used directly through the Base API: class attributes, hooks, lists, and dictionaries. That remains the underlying contract.
 
-As CRUD screens grow, the same ideas appear repeatedly across the settings: a working list surface, field intent, actions, modals, selection, bulk work, async work, and styling. This page names those ideas so the individual options are easier to reason about.
+As CRUD screens grow, the same ideas appear repeatedly across the settings: a working list surface, field intent, actions, permissions, modals, selection, bulk work, async work, and styling. This page names those ideas so the individual options are easier to reason about.
 
 ## Why This Page Exists
 
@@ -42,9 +42,24 @@ An Action is a user-visible operation: a header button, row action, standard Vie
 
 Action options and hooks include `extra_buttons`, `extra_actions`, `extra_actions_mode`, `can_update_object(...)`, `get_update_disabled_reason(...)`, `can_delete_object(...)`, `get_delete_disabled_reason(...)`, `persist_single_object(...)`, and `persist_bulk_update(...)`.
 
-`PowerAction` and `PowerButton` are Structured Declaration API objects for reusable `extra_actions` and `extra_buttons` declarations. Base dictionaries remain the underlying Action API, and may be mixed with `PowerAction` or `PowerButton` entries.
+`PowerAction` and `PowerButton` are Structured Declaration API objects for reusable `extra_actions` and `extra_buttons` declarations. Base API dictionaries remain the underlying Action API, and may be mixed with `PowerAction` or `PowerButton` entries.
 
 Actions should keep their business rules server-side. Disabled-state hooks and persistence hooks are the right place for rules that should not depend only on frontend affordances.
+
+### Permission
+
+Permission describes whether the current user can perform an operation at all.
+
+Permission-aware affordances let a screen stay readable while hiding or disabling operations that the current user cannot perform. This is different from screen access: a user may be allowed to open a list or detail page while being denied create, edit, delete, approval, export, or other operations on that page.
+
+Permission options and hooks include `permission`, `permission_check`, `permission_behavior`, `permission_denied_reason`, `has_power_permission(...)`, `has_power_create_permission(...)`, `has_power_detail_permission(...)`, `has_power_update_permission(...)`, `has_power_delete_permission(...)`, and `handle_power_permission_denied(...)`.
+
+Keep the concepts separate:
+
+- Permission hooks and permission fields decide whether the user can see or use an operation at all.
+- `hidden_if`, `disabled_state`, `can_update_object()`, and `can_delete_object()` describe row or workflow state after permission has passed.
+- PowerCRUD-owned Create/Detail/Edit/Delete endpoints enforce their permission hooks server-side.
+- Downstream-owned custom endpoints must still enforce their own backend permissions.
 
 ### Presentation
 
@@ -103,11 +118,12 @@ When configuring a view, start by asking which concept you are changing:
 1. Is this about the working list screen? Start with Surface options.
 2. Is this about how a field appears or behaves? Start with Field intent.
 3. Is this a user operation? Start with Action options and hooks.
-4. Is this about where something opens? Start with Presentation.
-5. Is this about selected rows? Start with Selection.
-6. Is this about many records? Start with Bulk operation.
-7. Is this long-running work? Start with Async operation.
-8. Is this only visual treatment? Start with Styling.
+4. Is this about whether the user may perform an operation? Start with Permission.
+5. Is this about where something opens? Start with Presentation.
+6. Is this about selected rows? Start with Selection.
+7. Is this about many records? Start with Bulk operation.
+8. Is this long-running work? Start with Async operation.
+9. Is this only visual treatment? Start with Styling.
 
 Then use the reference docs for exact accepted values.
 
@@ -115,10 +131,12 @@ Then use the reference docs for exact accepted values.
 
 These concepts are a mental model, not a replacement API.
 
-PowerCRUD's Base Configuration API is already declarative: you configure class attributes, hooks, lists, and dictionaries, and PowerCRUD builds the runtime behavior. The Structured Declaration API groups repeated intent into reusable objects, then compiles back to that same base configuration.
+PowerCRUD's Base API is already declarative: you configure class attributes, hooks, lists, and dictionaries, and PowerCRUD builds the runtime behavior. The Structured API groups repeated intent into reusable objects, then compiles back to that same base configuration.
 
 See the [Configuration Options](../reference/config_options.md) reference for the full option list.
 
-See [PowerCRUD Recipes](./advanced/recipes.md) for copyable examples that compose these concepts using the Base Configuration API.
+See [PowerCRUD Recipes](./advanced/recipes.md) for copyable examples that compose these concepts using the Base API.
+
+See [Permission-Aware Affordances](./advanced/permission_aware_affordances.md) when a list screen should be readable by users who cannot use every operation on it.
 
 See [Choosing an API Style](./structured_api/index.md) and [PowerField](./structured_api/powerfields.md) when repeated Field Intent config starts to obscure the screen's actual intent.

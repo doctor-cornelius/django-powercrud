@@ -228,6 +228,8 @@ The sample form configuration now also demonstrates two contextual form-surface 
 The sample `BookCRUDView` now also demonstrates both custom action enhancements discussed in the docs:
 
 - a selection-aware `extra_button` that opens a modal summary for the current persisted PowerCRUD selection
+- permission-hidden built-in Create/Detail/Edit/Delete affordances for the sample viewer user
+- permission-hidden toolbar and row actions for the sample viewer user
 - a row-level `extra_action` that disables itself with a tooltip when the book has no description
 - an opt-in modal `extra_action` using `refresh_list_on_modal_close=True` to refresh the current list when its modal is closed
 - per-trigger modal sizing on a modal list-cell link, a modal `extra_button`, and modal `extra_actions` through `modal_box_classes`
@@ -244,7 +246,7 @@ These examples are intentionally simple so package users can inspect both the vi
 
 The sample app includes a sibling Book view at `/sample/powerfield-book/` labelled **PowerField Books**.
 
-This view uses `power_fields` instead of Base Configuration API Field Intent attributes. It is not a subclass of `BookCRUDView`, because PowerCRUD rejects mixing base Field Intent and PowerField declarations in one inheritance chain.
+This view uses `power_fields` instead of Base API Field Intent attributes. It is not a subclass of `BookCRUDView`, because PowerCRUD rejects mixing base Field Intent and PowerField declarations in one inheritance chain.
 
 ```python
 from powercrud.actions import PowerAction, PowerButton
@@ -319,6 +321,8 @@ class PowerFieldBookCRUDView(PowerCRUDAsyncMixin, CRUDView):
         text="Normal Edit",
         url_name="sample:bigbook-update",
         display_modal=True,
+        permission_check="can_manage_books",
+        permission_behavior="hide",
     )
 
     extra_actions = [
@@ -326,6 +330,8 @@ class PowerFieldBookCRUDView(PowerCRUDAsyncMixin, CRUDView):
         row_modal.with_options(
             text="Description Preview",
             url_name="sample:bigbook-description-preview",
+            permission_check="can_preview_description",
+            permission_behavior="hide",
             hidden_if="should_hide_description_preview",
             disabled_state="get_description_preview_disabled_state",
         ),
@@ -339,6 +345,8 @@ class PowerFieldBookCRUDView(PowerCRUDAsyncMixin, CRUDView):
             uses_selection=True,
             selection_min_count=1,
             selection_min_behavior="disable",
+            permission_check="can_use_selected_summary",
+            permission_behavior="hide",
         ),
     ]
 ```
@@ -410,7 +418,7 @@ When the user changes `author` inline, PowerCRUD posts the current row data to t
 - **GenreCRUDView**: Minimal configuration example plus two focused delete demos: a guarded row (`Guarded Sample Genre`) that disables the built-in Delete action before click, and a protected row (`Protected Sample Genre`) that demonstrates handled single-delete `ValidationError` responses after submit
 - **ProfileCRUDView**: OneToOneField, the sample app's column-alignment demo (`status` centered, `priority_band` right-aligned, `favorite_genre` left-aligned), inline editing, bulk operations, merged nullable relation filtering on `favorite_genre`, and a static queryset rule that limits `favorite_genre` choices to genres whose names start with `S`
 - **AuthorCRUDView**: Properties, filtering, template debugging, companion nullable scalar filtering on `birth_date`, the sample app's red inline-edit highlight accent demo, and visible row-level `extra_actions` in the default button mode
-- **BookCRUDView**: Async bulk editing, dependent `author -> genres` queryset scoping, `view_title` / `view_instructions` / `view_help` heading-area overrides, `column_help_text` header tooltips, list options through **Cols**, semantic field-level list-cell tooltips on inline and non-inline columns, declarative modal and external list-cell link demos, selection-aware `extra_buttons` in the top toolbar overflow menu, dropdown row actions that open upward for the last five rendered rows, and a guarded sample row for built-in Edit and inline update guards
+- **BookCRUDView**: Async bulk editing, dependent `author -> genres` queryset scoping, `view_title` / `view_instructions` / `view_help` heading-area overrides, `column_help_text` header tooltips, list options through **Cols**, semantic field-level list-cell tooltips on inline and non-inline columns, declarative modal and external list-cell link demos, permission-aware Create/Detail/Edit/Delete and custom action affordances, selection-aware `extra_buttons` in the top toolbar overflow menu, dropdown row actions that open upward for the last five rendered rows, and a guarded sample row for built-in Edit and inline update guards
 - **AnnotatedBookCRUDView**: Queryset annotation fields, annotation filters, list options, inline editing of the real `pages` model field, and a selection-aware toolbar button that renders selector controls without built-in bulk edit/delete
 
 The `Genre` sample keeps these delete demos deliberately narrow:
@@ -507,6 +515,8 @@ extra_buttons = [
         "uses_selection": True,
         "selection_min_count": 1,
         "selection_min_behavior": "disable",
+        "permission_check": "can_use_selected_summary",
+        "permission_behavior": "hide",
     },
 ]
 
@@ -516,6 +526,8 @@ extra_actions = [
         "text": "Description Preview",
         "needs_pk": True,
         "display_modal": True,
+        "permission_check": "can_preview_description",
+        "permission_behavior": "hide",
         "hidden_if": "should_hide_description_preview",
         "disabled_state": "get_description_preview_disabled_state",
         "modal_box_classes": "modal-box flex max-h-[calc(100dvh-2rem)] w-11/12 max-w-5xl flex-col",
@@ -523,7 +535,12 @@ extra_actions = [
 ]
 ```
 
-That lets the sample app demonstrate selection-aware header actions, hidden row actions, conditionally disabled row actions, and per-trigger modal sizing in the same CRUD surface. `hidden_if` omits a row action when it is not applicable. `disabled_state` is the single-hook disabled contract: return a non-empty string to disable the action and show that string as the reason. `Selected Summary` intentionally uses the view default modal width, while `Home in Modal!` shows a header-button override. The `modal_box_classes` entries are full replacement strings: they keep the default viewport-height classes and add per-trigger width classes for those specific modal calls.
+That lets the sample app demonstrate permission-hidden header actions, selection-aware header actions, hidden row actions, conditionally disabled row actions, and per-trigger modal sizing in the same CRUD surface. `permission_check` omits actions before row or selection state is evaluated. `hidden_if` omits a row action when it is not applicable. `disabled_state` is the single-hook disabled contract: return a non-empty string to disable the action and show that string as the reason. `Selected Summary` intentionally uses the view default modal width, while `Home in Modal!` shows a header-button override. The `modal_box_classes` entries are full replacement strings: they keep the default viewport-height classes and add per-trigger width classes for those specific modal calls.
+
+The top-left sample login menu includes a viewer and manager:
+
+- `sample-viewer` can open the Book lists but does not see built-in Create/Detail/Edit/Delete, bulk update/delete, row selection controls, or permission-hidden custom actions.
+- `sample-manager` sees those affordances, and then row, selection, or bulk state can still disable controls with tooltip reasons.
 
 ## Management Commands
 

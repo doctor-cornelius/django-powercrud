@@ -6,7 +6,7 @@
 from powercrud.actions import PowerAction, PowerButton
 ```
 
-They are plain Python declarations. PowerCRUD compiles them to the same base dictionaries used by `extra_actions` and `extra_buttons`.
+They are plain Python declarations. PowerCRUD compiles them to the same Base API dictionaries used by `extra_actions` and `extra_buttons`.
 
 ## PowerAction
 
@@ -29,6 +29,10 @@ PowerAction(
     disabled_state=None,
     disabled_if=None,
     disabled_reason=None,
+    permission=None,
+    permission_check=None,
+    permission_behavior=None,
+    permission_denied_reason=None,
 )
 ```
 
@@ -48,6 +52,10 @@ PowerAction(
 | `disabled_state` | `None` | Single disabled-state hook name. |
 | `disabled_if` | `None` | Deprecated legacy disabled boolean hook name. Use `disabled_state` instead. |
 | `disabled_reason` | `None` | Deprecated legacy disabled reason hook name. Use `disabled_state` instead. |
+| `permission` | `None` | Django permission string resolved through `has_power_permission(permission, request, obj=obj)`. |
+| `permission_check` | `None` | Named view method with signature `permission_check(request, obj=None)`. |
+| `permission_behavior` | `None` | `"hide"` or `"disable"` when permission fails. `None` behaves as `"hide"`. |
+| `permission_denied_reason` | `None` | Tooltip/help text used only when `permission_behavior="disable"`. |
 
 `to_dict()` returns the base `extra_actions` dictionary. `with_options(...)` returns a new `PowerAction` with selected values changed.
 
@@ -61,6 +69,8 @@ ROW_MODAL = PowerAction(
     modal_box_classes="modal-box flex max-h-[calc(100dvh-2rem)] w-11/12 max-w-5xl flex-col",
     hidden_if="should_hide_workflow_action",
     disabled_state="get_workflow_action_disabled_state",
+    permission_check="can_run_workflow_action",
+    permission_behavior="hide",
 )
 
 extra_actions = [
@@ -95,6 +105,10 @@ PowerButton(
     selection_min_count=0,
     selection_min_behavior="allow",
     selection_min_reason=None,
+    permission=None,
+    permission_check=None,
+    permission_behavior=None,
+    permission_denied_reason=None,
 )
 ```
 
@@ -114,6 +128,10 @@ PowerButton(
 | `selection_min_count` | `0` | Minimum selected-row count required. |
 | `selection_min_behavior` | `"allow"` | `"allow"` keeps the button clickable; `"disable"` disables it below the minimum. |
 | `selection_min_reason` | `None` | Disabled tooltip/help text when the selected count is too low. |
+| `permission` | `None` | Django permission string resolved through `has_power_permission(permission, request, obj=None)`. |
+| `permission_check` | `None` | Named view method with signature `permission_check(request, obj=None)`. |
+| `permission_behavior` | `None` | `"hide"` or `"disable"` when permission fails. `None` behaves as `"hide"`. |
+| `permission_denied_reason` | `None` | Tooltip/help text used only when `permission_behavior="disable"`. |
 
 `to_dict()` returns the base `extra_buttons` dictionary. `with_options(...)` returns a new `PowerButton` with selected values changed.
 
@@ -134,6 +152,8 @@ SELECTED_MODAL = PowerButton(
     selection_min_count=1,
     selection_min_behavior="disable",
     selection_min_reason="Select at least one row first.",
+    permission_check="can_use_selected_summary",
+    permission_behavior="hide",
 )
 
 extra_buttons = [
@@ -157,7 +177,12 @@ extra_buttons = [
 - `PowerAction.disabled_state` cannot be combined with `disabled_if` or `disabled_reason`.
 - `PowerAction.disabled_if` and `PowerAction.disabled_reason` are deprecated and targeted for removal in v1.0.
 - `PowerAction.disabled_reason` requires `disabled_if`; use `disabled_state` for the single-hook contract.
+- `PowerAction` and `PowerButton` cannot combine `permission` with `permission_check`.
+- `permission_behavior`, when set, must be `"hide"` or `"disable"`.
+- `permission_denied_reason` is only used by disabled permission failures.
 - `PowerButton.selection_min_behavior` must be `"allow"` or `"disable"`.
 - `PowerButton` cannot combine `uses_selection=True` with `needs_pk=True`.
 
 Base dictionaries remain valid and are still the underlying Action API. `PowerAction` and `PowerButton` are for reuse, defaults, and early validation.
+
+See [Permission-Aware Affordances](../guides/advanced/permission_aware_affordances.md) for the distinction between permission checks, row state, and backend enforcement.

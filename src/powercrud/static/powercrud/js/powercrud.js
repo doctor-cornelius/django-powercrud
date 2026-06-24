@@ -330,6 +330,16 @@ import { createCurrentTemplateRuntime } from './runtime/current-template.js';
                 }
                 hidePowercrudTooltips(document);
             },
+            handleDisabledActionClickCapture(event) {
+                const trigger = asElement(event.target);
+                const disabledAction = trigger?.closest(
+                    'a[aria-disabled="true"], button[aria-disabled="true"]',
+                );
+                if (disabledAction instanceof HTMLElement) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                }
+            },
             handleTooltipClickCapture() {
                 global.setTimeout(() => {
                     hidePowercrudTooltips(document);

@@ -19,11 +19,31 @@ class DeleteMixin:
 
     DELETE_FILTER_PREFIX = "_powercrud_filter_"
 
+    def confirm_delete(self, request, *args, **kwargs):
+        """Render the delete confirmation only when delete permission allows it."""
+        self.request = request
+        self.kwargs = kwargs
+        self.object = self.get_object()
+        if not self.has_power_delete_permission(request, self.object):
+            return self.handle_power_permission_denied(
+                request,
+                "delete",
+                obj=self.object,
+            )
+        context = self.get_context_data()
+        return self.render_to_response(context)
+
     def process_deletion(self, request, *args, **kwargs):
         """Delete the current object and gracefully redisplay delete refusals."""
         self.request = request
         self.kwargs = kwargs
         self.object = self.get_object()
+        if not self.has_power_delete_permission(request, self.object):
+            return self.handle_power_permission_denied(
+                request,
+                "delete",
+                obj=self.object,
+            )
 
         try:
             self.object.delete()

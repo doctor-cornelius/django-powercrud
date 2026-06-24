@@ -760,17 +760,49 @@ class FormMixin:
         form = form_class(**form_kwargs)
         return self._finalize_form(form, inline=True)
 
+    def _get_form_permission_denial_response(self, request, *, form=None):
+        """
+        Return a denial response for create/update form handling, if needed.
+        """
+        if self.role == Role.CREATE:
+            checker = getattr(self, "has_power_create_permission", None)
+            allowed = True if not callable(checker) else bool(checker(request))
+            if not allowed:
+                handler = getattr(self, "handle_power_permission_denied", None)
+                if callable(handler):
+                    return handler(request, "create")
+            return None
+
+        if self.role != Role.UPDATE:
+            return None
+
+        obj = getattr(self, "object", None)
+        if obj is None and form is not None:
+            obj = getattr(form, "instance", None)
+        if obj is None:
+            obj = self.get_object()
+        self.object = obj
+        checker = getattr(self, "has_power_update_permission", None)
+        allowed = True if not callable(checker) else bool(checker(request, obj))
+        if not allowed:
+            handler = getattr(self, "handle_power_permission_denied", None)
+            if callable(handler):
+                return handler(request, "update", obj=obj)
+        return None
+
     def show_form(self, request, *args, **kwargs):
         """Override to check for conflicts before showing edit form"""
         # Only check conflicts for UPDATE operations (not CREATE)
         pk = None
         current_object = None
         if self.role == Role.UPDATE:
-            try:
-                current_object = self.get_object()
-                pk = current_object.pk
-            except Exception:
-                pk = None
+            current_object = self.get_object()
+            self.object = current_object
+            pk = current_object.pk
+
+        denial_response = self._get_form_permission_denial_response(request)
+        if denial_response is not None:
+            return denial_response
 
         if (
             self.role == Role.UPDATE
@@ -803,6 +835,19 @@ class FormMixin:
         # No conflict, proceed normally
         return super().show_form(request, *args, **kwargs)
 
+    def process_form(self, request, *args, **kwargs):
+        """
+        Reject denied create/update POSTs before form construction or persistence.
+        """
+        if self.role == Role.UPDATE:
+            self.object = self.get_object()
+
+        denial_response = self._get_form_permission_denial_response(request)
+        if denial_response is not None:
+            return denial_response
+
+        return super().process_form(request, *args, **kwargs)
+
     def form_valid(self, form):
         """
         Handle form validation success with HTMX support.
@@ -830,6 +875,13 @@ class FormMixin:
         Returns:
             HttpResponse: Either a rendered list view or a redirect
         """
+        denial_response = self._get_form_permission_denial_response(
+            self.request,
+            form=form,
+        )
+        if denial_response is not None:
+            return denial_response
+
         if self.role == Role.UPDATE and self.get_conflict_checking_enabled():
             pk = getattr(form.instance, "pk", None) or self.kwargs.get(
                 getattr(self, "pk_url_kwarg", "pk")

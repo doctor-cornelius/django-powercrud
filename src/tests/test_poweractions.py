@@ -79,6 +79,49 @@ def test_poweraction_rejects_disabled_reason_without_disabled_if():
         )
 
 
+def test_poweraction_to_dict_exposes_permission_affordance_config():
+    """Expose permission affordance settings in the primitive action dictionary."""
+    action = PowerAction(
+        text="Submit",
+        url_name="sample:book-submit",
+        permission_check="can_submit_book",
+        permission_behavior="disable",
+        permission_denied_reason="You cannot submit this book.",
+    )
+
+    assert action.to_dict()["permission_check"] == "can_submit_book", (
+        "PowerAction should expose permission_check in the primitive dictionary."
+    )
+    assert action.to_dict()["permission_behavior"] == "disable", (
+        "PowerAction should expose explicit permission behavior."
+    )
+    assert (
+        action.to_dict()["permission_denied_reason"] == "You cannot submit this book."
+    ), "PowerAction should expose the permission-denied reason."
+
+
+def test_poweraction_rejects_mixed_permission_declarations():
+    """Reject ambiguous PowerAction permission declarations."""
+    with pytest.raises(ValueError, match="permission"):
+        PowerAction(
+            text="Submit",
+            url_name="sample:book-submit",
+            permission="sample.submit_book",
+            permission_check="can_submit_book",
+        )
+
+
+def test_poweraction_rejects_invalid_permission_behavior():
+    """Reject unknown PowerAction permission behavior values."""
+    with pytest.raises(ValueError, match="permission_behavior"):
+        PowerAction(
+            text="Submit",
+            url_name="sample:book-submit",
+            permission="sample.submit_book",
+            permission_behavior="show",
+        )
+
+
 def test_powerbutton_to_dict_exposes_primitive_extra_button_config():
     button = PowerButton(
         text="Selected Summary",
@@ -174,3 +217,42 @@ def test_powerbutton_normalizes_selection_min_count_to_int():
     assert button.to_dict()["selection_min_count"] == 2, (
         "PowerButton should normalize selection_min_count the same way view config does."
     )
+
+
+def test_powerbutton_to_dict_exposes_permission_affordance_config():
+    """Expose permission affordance settings in the primitive button dictionary."""
+    button = PowerButton(
+        text="Admin Review",
+        url_name="sample:book-admin-review",
+        permission="sample.manage_books",
+        permission_behavior="hide",
+    )
+
+    assert button.to_dict()["permission"] == "sample.manage_books", (
+        "PowerButton should expose permission strings in the primitive dictionary."
+    )
+    assert button.to_dict()["permission_behavior"] == "hide", (
+        "PowerButton should expose explicit permission behavior."
+    )
+
+
+def test_powerbutton_rejects_mixed_permission_declarations():
+    """Reject ambiguous PowerButton permission declarations."""
+    with pytest.raises(ValueError, match="permission"):
+        PowerButton(
+            text="Admin Review",
+            url_name="sample:book-admin-review",
+            permission="sample.manage_books",
+            permission_check="can_manage_books",
+        )
+
+
+def test_powerbutton_rejects_invalid_permission_behavior():
+    """Reject unknown PowerButton permission behavior values."""
+    with pytest.raises(ValueError, match="permission_behavior"):
+        PowerButton(
+            text="Admin Review",
+            url_name="sample:book-admin-review",
+            permission="sample.manage_books",
+            permission_behavior="show",
+        )

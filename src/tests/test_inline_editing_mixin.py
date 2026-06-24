@@ -296,8 +296,16 @@ class InlineResetPageView(InlineFilterAwareView):
     inline_save_refresh_policy = "reset_page"
 
 
+class InlinePowerUpdateDeniedView(InlineTestView):
+    """Block all row updates through the built-in update permission hook."""
+
+    def has_power_update_permission(self, request, obj):
+        """Deny update permission for the current test row."""
+        return False
+
+
 class InlineUpdateGuardView(InlineTestView):
-    """Block all row updates through the new built-in update guard hooks."""
+    """Block all row updates through the row-state update guard hooks."""
 
     def can_update_object(self, obj, request):
         """Disable updates for the current test row."""
@@ -893,6 +901,57 @@ def test_inline_guard_blocks_post_when_update_guard_denies_row(sample_book, samp
     sample_book.refresh_from_db()
     assert sample_book.title == "Original Title", (
         "Inline POST should not persist changes when can_update_object blocks the row."
+    )
+
+
+@pytest.mark.django_db
+def test_inline_guard_blocks_get_when_power_update_permission_denies_row(sample_book):
+    """Inline GET should reject rows denied by the built-in update permission hook."""
+    request = _make_request("get")
+    view = InlinePowerUpdateDeniedView(request, sample_book)
+
+    response = view._dispatch_inline_row(request, pk=sample_book.pk)
+    payload = json.loads(response["HX-Trigger"])
+
+    assert response.status_code == 403, (
+        "Inline GET should reject rows blocked by has_power_update_permission before rendering an editable form."
+    )
+    assert payload["inline-row-forbidden"]["message"] == "Editing not permitted for this row.", (
+        "Inline GET should use the generic forbidden message when permission, not row state, blocks editing."
+    )
+
+
+@pytest.mark.django_db
+def test_inline_guard_blocks_post_when_power_update_permission_denies_row(
+    sample_book,
+    sample_author,
+):
+    """Inline POST should reject rows denied by the built-in update permission hook."""
+    request = _make_request(
+        "post",
+        data={
+            "title": "Permission Denied Inline Title",
+            "author": str(sample_author.pk),
+            "published_date": "2024-01-01",
+            "isbn": "9780000000022",
+            "pages": "123",
+            "bestseller": "",
+        },
+    )
+    view = InlinePowerUpdateDeniedView(request, sample_book)
+
+    response = view._dispatch_inline_row(request, pk=sample_book.pk)
+    payload = json.loads(response["HX-Trigger"])
+
+    assert response.status_code == 403, (
+        "Inline POST should reject rows blocked by has_power_update_permission instead of saving them."
+    )
+    assert payload["inline-row-forbidden"]["message"] == "Editing not permitted for this row.", (
+        "Inline POST should use the generic forbidden message when permission, not row state, blocks editing."
+    )
+    sample_book.refresh_from_db()
+    assert sample_book.title == "Original Title", (
+        "Inline POST should not persist changes when has_power_update_permission blocks the row."
     )
 
 
