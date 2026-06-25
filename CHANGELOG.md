@@ -6,6 +6,15 @@ During the `0.x` series, breaking changes can occur, although we try to minimise
 
 Version numbers below correspond to published git tags. The more important releases include a little extra narrative and upgrade context; smaller patch releases remain deliberately brief. For full detail between any two versions, use the GitHub compare view for the matching tags.
 
+## 0.8.2b1 (2026-06-25)
+- **Feature (row-actions)**: add lazy `hidden_if` row actions
+  
+  Dropdown row-action menus can now defer `hidden_if` checks until the user opens the row `More` menu. This keeps expensive or state-sensitive visibility checks out of the initial list render while still removing hidden actions before the user can choose them.
+
+- **Feature (selection)**: clear selection-aware extra buttons after successful actions
+- **Fix (tooltips)**: prevent stale lazy tooltip replay
+- **Fix (ui)**: close toolbar `More` menus after option selection
+
 ## 0.8.1 (2026-06-25)
 - **Feature (tooltips)**: add lazy row state and cell tooltips
 
