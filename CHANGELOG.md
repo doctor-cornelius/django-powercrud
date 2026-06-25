@@ -6,6 +6,9 @@ During the `0.x` series, breaking changes can occur, although we try to minimise
 
 Version numbers below correspond to published git tags. The more important releases include a little extra narrative and upgrade context; smaller patch releases remain deliberately brief. For full detail between any two versions, use the GitHub compare view for the matching tags.
 
+## 0.8.1 (2026-06-25)
+- **Feature (tooltips)**: add lazy row state and cell tooltips
+
 ## 0.8.0 (2026-06-24)
 - **Feature (permissions)**: add permission-aware affordances
 
