@@ -734,6 +734,34 @@ def test_core_mixin_warns_when_selection_thresholds_without_uses_selection(caplo
 
 
 @pytest.mark.django_db
+def test_core_mixin_warns_when_clear_selection_without_uses_selection(caplog):
+    class WarningView(CoreMixin):
+        model = Book
+        fields = "__all__"
+        base_template_path = "sample/base.html"
+        extra_buttons = [
+            {
+                "url_name": "sample:bigbook-list",
+                "text": "Reload",
+                "clear_selection_on_success": True,
+            }
+        ]
+
+    with caplog.at_level("WARNING", logger="powercrud"):
+        view = WarningView()
+
+    assert view.extra_buttons[0]["uses_selection"] is False, (
+        "Extra buttons should still default uses_selection to False when the setting is omitted."
+    )
+    assert view.extra_buttons[0]["clear_selection_on_success"] is False, (
+        "PowerCRUD should ignore clear_selection_on_success unless the button consumes a selection."
+    )
+    assert "clear_selection_on_success without uses_selection=True" in caplog.text, (
+        "PowerCRUD should warn when clear-on-success is declared on a non-selection extra button."
+    )
+
+
+@pytest.mark.django_db
 def test_core_mixin_does_not_warn_for_plain_powerbutton_defaults(caplog):
     class ButtonView(CoreMixin):
         model = Book
@@ -787,6 +815,65 @@ def test_core_mixin_normalizes_extra_button_modal_close_refresh_flag():
     assert view.extra_buttons[1]["refresh_list_on_modal_close"] is True, (
         "Extra buttons should preserve an explicit True modal-close refresh flag."
     )
+
+
+@pytest.mark.django_db
+def test_core_mixin_normalizes_selection_extra_button_clear_on_success_flag():
+    class ButtonClearView(CoreMixin):
+        model = Book
+        fields = "__all__"
+        base_template_path = "sample/base.html"
+        extra_buttons = [
+            {
+                "url_name": "sample:bigbook-list",
+                "text": "Reload",
+            },
+            {
+                "url_name": "sample:bigbook-selected-summary",
+                "text": "Selected Summary",
+                "uses_selection": True,
+            },
+            {
+                "url_name": "sample:bigbook-selected-summary",
+                "text": "Selected Summary Preview",
+                "uses_selection": True,
+                "clear_selection_on_success": False,
+            },
+        ]
+
+    view = ButtonClearView()
+
+    assert view.extra_buttons[0]["clear_selection_on_success"] is False, (
+        "Non-selection extra buttons should default clear_selection_on_success to False when omitted."
+    )
+    assert view.extra_buttons[1]["clear_selection_on_success"] is True, (
+        "Selection-aware extra buttons should clear on success by default."
+    )
+    assert view.extra_buttons[2]["clear_selection_on_success"] is False, (
+        "Selection-aware extra buttons should preserve an explicit clear-on-success opt-out."
+    )
+
+
+@pytest.mark.django_db
+def test_core_mixin_rejects_non_bool_extra_button_clear_on_success_flag():
+    class BrokenView(CoreMixin):
+        model = Book
+        fields = "__all__"
+        base_template_path = "sample/base.html"
+        extra_buttons = [
+            {
+                "url_name": "sample:bigbook-selected-summary",
+                "text": "Selected Summary",
+                "uses_selection": True,
+                "clear_selection_on_success": "yes",
+            }
+        ]
+
+    with pytest.raises(
+        ImproperlyConfigured,
+        match="extra_buttons\\[0\\]\\.clear_selection_on_success",
+    ):
+        BrokenView()
 
 
 @pytest.mark.django_db
@@ -1082,6 +1169,103 @@ def test_core_mixin_accepts_lazy_extra_action_disabled_state_in_dropdown_mode():
     assert view.extra_actions[0]["disabled_state_mode"] == "lazy", (
         "Primitive extra_actions should preserve lazy disabled-state mode."
     )
+
+
+@pytest.mark.django_db
+def test_core_mixin_accepts_lazy_extra_action_hidden_if_in_dropdown_mode():
+    """Accept lazy hidden-if declarations for dropdown row actions."""
+    class ActionView(CoreMixin):
+        model = Book
+        fields = "__all__"
+        base_template_path = "sample/base.html"
+        extra_actions_mode = "dropdown"
+        extra_actions = [
+            {
+                "url_name": "sample:bigbook-description-preview",
+                "text": "Description Preview",
+                "hidden_if": "should_hide_description_preview",
+                "hidden_if_mode": "lazy",
+            }
+        ]
+
+        def should_hide_description_preview(self, obj, request):
+            """Return no hidden state for config validation."""
+            return False
+
+    view = ActionView()
+
+    assert view.extra_actions[0]["hidden_if_mode"] == "lazy", (
+        "Primitive extra_actions should preserve lazy hidden-if mode."
+    )
+
+
+@pytest.mark.django_db
+def test_core_mixin_rejects_lazy_extra_action_hidden_if_without_dropdown_mode():
+    """Reject lazy hidden-if mode when extra actions render as buttons."""
+    class BrokenView(CoreMixin):
+        model = Book
+        fields = "__all__"
+        base_template_path = "sample/base.html"
+        extra_actions = [
+            {
+                "url_name": "sample:bigbook-description-preview",
+                "text": "Description Preview",
+                "hidden_if": "should_hide_description_preview",
+                "hidden_if_mode": "lazy",
+            }
+        ]
+
+        def should_hide_description_preview(self, obj, request):
+            """Return no hidden state for config validation."""
+            return False
+
+    with pytest.raises(ImproperlyConfigured, match="extra_actions_mode='dropdown'"):
+        BrokenView()
+
+
+@pytest.mark.django_db
+def test_core_mixin_rejects_lazy_extra_action_hidden_if_without_hook():
+    """Reject lazy hidden-if mode when no hidden_if hook is configured."""
+    class BrokenView(CoreMixin):
+        model = Book
+        fields = "__all__"
+        base_template_path = "sample/base.html"
+        extra_actions_mode = "dropdown"
+        extra_actions = [
+            {
+                "url_name": "sample:bigbook-description-preview",
+                "text": "Description Preview",
+                "hidden_if_mode": "lazy",
+            }
+        ]
+
+    with pytest.raises(ImproperlyConfigured, match="requires hidden_if"):
+        BrokenView()
+
+
+@pytest.mark.django_db
+def test_core_mixin_rejects_unknown_lazy_extra_action_hidden_if_mode():
+    """Reject unsupported hidden-if modes."""
+    class BrokenView(CoreMixin):
+        model = Book
+        fields = "__all__"
+        base_template_path = "sample/base.html"
+        extra_actions_mode = "dropdown"
+        extra_actions = [
+            {
+                "url_name": "sample:bigbook-description-preview",
+                "text": "Description Preview",
+                "hidden_if": "should_hide_description_preview",
+                "hidden_if_mode": "deferred",
+            }
+        ]
+
+        def should_hide_description_preview(self, obj, request):
+            """Return no hidden state for config validation."""
+            return False
+
+    with pytest.raises(ImproperlyConfigured, match="hidden_if_mode"):
+        BrokenView()
 
 
 @pytest.mark.django_db
@@ -3382,6 +3566,9 @@ def test_book_list_renders_selection_aware_extra_button(client):
     assert "Selected Summary" in response_text, (
         "Sample book list should render the configured selection-aware extra button label."
     )
+    assert "Selected Summary (Do Not Clear)" in response_text, (
+        "Sample book list should render the clear-on-success opt-out extra button demo."
+    )
     selected_summary_index = response_text.find("Selected Summary")
     selected_summary_anchor_start = response_text.rfind("<a ", 0, selected_summary_index)
     selected_summary_anchor_end = response_text.find(">", selected_summary_anchor_start)
@@ -3396,6 +3583,28 @@ def test_book_list_renders_selection_aware_extra_button(client):
     )
     assert "data-powercrud-modal-box-classes" not in selected_summary_link, (
         "Selected Summary should use the view default modal width rather than a per-button override."
+    )
+    assert 'data-powercrud-clear-selection-on-success="true"' in selected_summary_link, (
+        "Selected Summary should expose the default clear-on-success frontend marker."
+    )
+    selected_summary_no_clear_index = response_text.find("Selected Summary (Do Not Clear)")
+    selected_summary_no_clear_anchor_start = response_text.rfind(
+        "<a ",
+        0,
+        selected_summary_no_clear_index,
+    )
+    selected_summary_no_clear_anchor_end = response_text.find(
+        ">",
+        selected_summary_no_clear_anchor_start,
+    )
+    selected_summary_no_clear_link = response_text[
+        selected_summary_no_clear_anchor_start:selected_summary_no_clear_anchor_end
+    ]
+    assert (
+        'data-powercrud-clear-selection-on-success="true"'
+        not in selected_summary_no_clear_link
+    ), (
+        "Selected Summary (Do Not Clear) should opt out of the clear-on-success frontend marker."
     )
     assert "Home in Modal!" in response_text, (
         "Sample book list should keep a separate modal header button for per-button sizing."
@@ -3511,8 +3720,8 @@ def test_book_row_action_states_endpoint_reports_hidden_lazy_action(client):
 
 
 @pytest.mark.django_db
-def test_book_list_hides_primitive_extra_action_when_hidden_hook_matches(client):
-    """Hide primitive row actions from the base book sample when hidden_if matches."""
+def test_book_list_defers_primitive_hidden_extra_action(client):
+    """Defer primitive sample hidden_if evaluation until row-action hydration."""
     author = Author.objects.create(name="Primitive Hidden Action Author")
     Book.objects.create(
         title="Hidden Preview Primitive",
@@ -3529,10 +3738,13 @@ def test_book_list_hides_primitive_extra_action_when_hidden_hook_matches(client)
     response_text = " ".join(response.content.decode().split())
 
     assert response.status_code == 200, (
-        "Book list view should render successfully so primitive hidden_if behavior can be inspected."
+        "Book list view should render successfully so primitive lazy hidden_if behavior can be inspected."
     )
-    assert "Description Preview" not in response_text, (
-        "Base BookCRUDView should hide the primitive description-preview action when hidden_if matches."
+    assert "Description Preview" in response_text, (
+        "Base BookCRUDView should keep the lazy-hidden description-preview action in the hidden menu template."
+    )
+    assert "data-powercrud-row-action-hidden-mode='lazy'" in response_text, (
+        "Base BookCRUDView should mark the primitive description-preview action for lazy hidden-if hydration."
     )
     assert ">More<" in response_text, (
         "The row should keep More visible because the Normal Edit extra action still applies."
@@ -3540,8 +3752,8 @@ def test_book_list_hides_primitive_extra_action_when_hidden_hook_matches(client)
 
 
 @pytest.mark.django_db
-def test_powerfield_book_list_hides_poweraction_when_hidden_hook_matches(client):
-    """Hide PowerAction row actions from the PowerField book sample when hidden_if matches."""
+def test_powerfield_book_list_defers_poweraction_hidden_hook(client):
+    """Defer PowerAction sample hidden_if evaluation until row-action hydration."""
     author = Author.objects.create(name="PowerAction Hidden Action Author")
     Book.objects.create(
         title="Hidden Preview PowerAction",
@@ -3558,10 +3770,13 @@ def test_powerfield_book_list_hides_poweraction_when_hidden_hook_matches(client)
     response_text = " ".join(response.content.decode().split())
 
     assert response.status_code == 200, (
-        "PowerField book list view should render successfully so PowerAction hidden_if behavior can be inspected."
+        "PowerField book list view should render successfully so PowerAction lazy hidden_if behavior can be inspected."
     )
-    assert "Description Preview" not in response_text, (
-        "PowerFieldBookCRUDView should hide the PowerAction description-preview action when hidden_if matches."
+    assert "Description Preview" in response_text, (
+        "PowerFieldBookCRUDView should keep the lazy-hidden PowerAction in the hidden menu template."
+    )
+    assert "data-powercrud-row-action-hidden-mode='lazy'" in response_text, (
+        "PowerFieldBookCRUDView should mark the PowerAction for lazy hidden-if hydration."
     )
     assert ">More<" in response_text, (
         "The row should keep More visible because the Normal Edit PowerAction still applies."

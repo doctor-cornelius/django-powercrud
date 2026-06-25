@@ -26,6 +26,7 @@ PowerAction(
     lock_sensitive=False,
     refresh_list_on_modal_close=False,
     hidden_if=None,
+    hidden_if_mode=None,
     disabled_state=None,
     disabled_state_mode=None,
     disabled_if=None,
@@ -50,6 +51,7 @@ PowerAction(
 | `lock_sensitive` | `False` | Disable the action under PowerCRUD row-lock logic. |
 | `refresh_list_on_modal_close` | `False` | Refresh the list when this modal closes. |
 | `hidden_if` | `None` | Boolean hook name that hides this row action when true. |
+| `hidden_if_mode` | `None` | `None` or `"eager"` evaluates `hidden_if` during list rendering. `"lazy"` resolves it when a dropdown row action's `More` menu opens. |
 | `disabled_state` | `None` | Single disabled-state hook name. |
 | `disabled_state_mode` | `None` | `None` or `"eager"` evaluates `disabled_state` during list rendering. `"lazy"` resolves it when a dropdown row action's `More` menu opens. |
 | `disabled_if` | `None` | Deprecated legacy disabled boolean hook name. Use `disabled_state` instead. |
@@ -70,6 +72,7 @@ ROW_MODAL = PowerAction(
     display_modal=True,
     modal_box_classes="modal-box flex max-h-[calc(100dvh-2rem)] w-11/12 max-w-5xl flex-col",
     hidden_if="should_hide_workflow_action",
+    hidden_if_mode="lazy",
     disabled_state="get_workflow_action_disabled_state",
     disabled_state_mode="lazy",
     permission_check="can_run_workflow_action",
@@ -105,6 +108,7 @@ PowerButton(
     extra_attrs=None,
     extra_class_attrs=None,
     uses_selection=False,
+    clear_selection_on_success=None,
     selection_min_count=0,
     selection_min_behavior="allow",
     selection_min_reason=None,
@@ -128,6 +132,7 @@ PowerButton(
 | `extra_attrs` | `None` | Raw HTML attributes appended to the button element. |
 | `extra_class_attrs` | `None` | Extra CSS classes appended after the standard button classes. |
 | `uses_selection` | `False` | Endpoint should operate on the current persisted PowerCRUD selection. |
+| `clear_selection_on_success` | `None` | Clear the persisted selection after a successful HTMX request. `None` follows `uses_selection`, so selection-aware buttons clear by default. Ignored unless `uses_selection=True`. |
 | `selection_min_count` | `0` | Minimum selected-row count required. |
 | `selection_min_behavior` | `"allow"` | `"allow"` keeps the button clickable; `"disable"` disables it below the minimum. |
 | `selection_min_reason` | `None` | Disabled tooltip/help text when the selected count is too low. |
@@ -141,6 +146,8 @@ PowerButton(
 Any constructor parameter in the table above can be passed to `with_options(...)`.
 
 `uses_selection=True` can render row selection controls even when the view has no built-in bulk edit/delete configuration.
+
+Selection-aware buttons clear persisted selection after a successful HTMX request by default. Set `clear_selection_on_success=False` for summary or preview modals that merely read the selected rows and should preserve the user's selection.
 
 Set `extra_button_selection_controls_disabled = True` on the view if the button uses selected rows, but this list should not show checkboxes just because of that button.
 
@@ -162,6 +169,10 @@ SELECTED_MODAL = PowerButton(
 extra_buttons = [
     SELECTED_MODAL,
     SELECTED_MODAL.with_options(
+        text="Selected Summary (Do Not Clear)",
+        clear_selection_on_success=False,
+    ),
+    SELECTED_MODAL.with_options(
         text="Selected Export",
         url_name="sample:book-selected-export",
         modal_box_classes="modal-box flex max-h-[calc(100dvh-2rem)] w-11/12 max-w-7xl flex-col",
@@ -177,9 +188,10 @@ extra_buttons = [
 - `text` and `url_name` must be non-empty strings.
 - Boolean parameters must be `True`, `False`, or `None` where the constructor explicitly allows `None`.
 - `PowerAction.hidden_if` must be a method-name string when set.
+- `PowerAction.hidden_if_mode` must be `"eager"` or `"lazy"` when set, and `"lazy"` requires `hidden_if`.
 - `PowerAction.disabled_state` cannot be combined with `disabled_if` or `disabled_reason`.
 - `PowerAction.disabled_state_mode` must be `"eager"` or `"lazy"` when set, and `"lazy"` requires `disabled_state`.
-- Lazy disabled state is supported for dropdown row actions. Base dictionaries use the same `disabled_state_mode` key.
+- Lazy hidden and disabled state are supported for dropdown row actions. Base dictionaries use the same `hidden_if_mode` and `disabled_state_mode` keys.
 - `PowerAction.disabled_if` and `PowerAction.disabled_reason` are deprecated and targeted for removal in v1.0.
 - `PowerAction.disabled_reason` requires `disabled_if`; use `disabled_state` for the single-hook contract.
 - `PowerAction` and `PowerButton` cannot combine `permission` with `permission_check`.
@@ -187,7 +199,8 @@ extra_buttons = [
 - `permission_denied_reason` is only used by disabled permission failures.
 - `PowerButton.selection_min_behavior` must be `"allow"` or `"disable"`.
 - `PowerButton` cannot combine `uses_selection=True` with `needs_pk=True`.
+- `PowerButton.clear_selection_on_success` is ignored unless `uses_selection=True`.
 
 Base dictionaries remain valid and are still the underlying Action API. `PowerAction` and `PowerButton` are for reuse, defaults, and early validation.
 
-See [Permission-Aware Affordances](../guides/advanced/permission_aware_affordances.md) for the distinction between permission checks, row state, and backend enforcement. See [Lazy Evaluation](../guides/advanced/lazy_evaluation.md) for deferring expensive row-action disabled state until the row menu opens.
+See [Permission-Aware Affordances](../guides/advanced/permission_aware_affordances.md) for the distinction between permission checks, row state, and backend enforcement. See [Lazy Evaluation](../guides/advanced/lazy_evaluation.md) for deferring expensive row-action state until the row menu opens.

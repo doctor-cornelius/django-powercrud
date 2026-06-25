@@ -140,6 +140,8 @@ def can_use_selected_summary(self, request, obj=None):
 
 Selection-aware header buttons read the current persisted PowerCRUD selection at the endpoint rather than expecting row IDs in the URL. They can render row selection controls even when `bulk_fields = []` and `bulk_delete = False`.
 
+Selection-aware header buttons clear the persisted selection by default after a successful HTMX request completes. Set `clear_selection_on_success = False` for summary or preview buttons that merely read the current selection and should leave it intact. Failed requests leave the selection intact.
+
 Set `extra_button_selection_controls_disabled = True` if the button uses selected rows, but this list should not show checkboxes just because of that button.
 
 This is mainly useful when the selected rows come from somewhere else, or when the page has its own custom way to choose rows. Bulk edit and bulk delete still show checkboxes because they need them.
@@ -161,6 +163,7 @@ Keep server-side validation in the endpoint even when you also disable the butto
     | `extra_attrs` | `str` | Raw HTML attributes appended to the button element when you need custom HTMX or data attributes. |
     | `extra_class_attrs` | `str` | Extra CSS classes appended to the button in addition to `button_class`. |
     | `uses_selection` | `bool` | When `True`, the endpoint should operate on the current persisted PowerCRUD selection. |
+    | `clear_selection_on_success` | `bool` | Clears the persisted selection after a successful HTMX request from a selection-aware button. Defaults to `True` when `uses_selection=True`, otherwise `False`; ignored unless `uses_selection=True`. |
     | `selection_min_count` | `int` | Minimum number of selected rows required before the button is considered ready. |
     | `selection_min_behavior` | `str` | `'allow'` leaves the button clickable below the minimum and lets the endpoint handle the error; `'disable'` greys it out in the UI. |
     | `selection_min_reason` | `str` | Tooltip/help text shown when a selection-aware button is disabled because too few rows are selected. |
@@ -199,7 +202,9 @@ class AuthorCRUDView(PowerCRUDMixin, CRUDView):
             "permission_check": "can_view_author_again",
             "permission_behavior": "hide",
             "hidden_if": "should_hide_view_again",
+            "hidden_if_mode": "lazy",
             "disabled_state": "get_view_again_disabled_state",
+            "disabled_state_mode": "lazy",
             "modal_box_classes": "modal-box flex max-h-[calc(100dvh-2rem)] w-11/12 max-w-5xl flex-col",
         },
     ]
@@ -233,13 +238,15 @@ class AuthorCRUDView(PowerCRUDMixin, CRUDView):
     | `hx_post` | `bool` | If `True`, renders the action as an HTMX POST instead of the default GET. |
     | `lock_sensitive` | `bool` | Reuses PowerCRUD's existing blocked-row/lock logic so the action disables automatically when the row is not currently actionable. |
     | `hidden_if` | `str` | Name of a view method with signature `(obj, request) -> bool` that decides whether this row action should be omitted. |
+    | `hidden_if_mode` | `'eager' \| 'lazy'` | Defaults to `'eager'`. Use `'lazy'` with dropdown row actions to resolve `hidden_if` when the row `More` menu opens. |
     | `disabled_state` | `str` | Name of a view method with signature `(obj, request) -> str | None | bool`. Return a non-empty string to disable the action and show the reason; return `None`, `False`, or an empty string to keep it enabled. |
+    | `disabled_state_mode` | `'eager' \| 'lazy'` | Defaults to `'eager'`. Use `'lazy'` with dropdown row actions to resolve `disabled_state` when the row `More` menu opens. |
     | `disabled_if` | `str` | Deprecated. Name of a view method with signature `(obj, request) -> bool` that decides whether this row action should be disabled. Use `disabled_state` instead. |
     | `disabled_reason` | `str` | Deprecated. Name of a view method with signature `(obj, request) -> str | None` that returns the tooltip/help text when the action is disabled. Use `disabled_state` instead. |
 
     Do not combine `disabled_state` with `disabled_if` or `disabled_reason` on the same action.
 
-    Use `hidden_if` when an action is not applicable for a row. Use `disabled_state` when the action is applicable but unavailable and needs an explanatory reason. The legacy `disabled_if` / `disabled_reason` pair is deprecated and targeted for removal in v1.0.
+    Use `hidden_if` when an action is not applicable for a row. Use `disabled_state` when the action is applicable but unavailable and needs an explanatory reason. Add lazy modes only for dropdown row actions with expensive hooks. The legacy `disabled_if` / `disabled_reason` pair is deprecated and targeted for removal in v1.0.
 
 ??? note "Refreshing the list after custom modal close"
 

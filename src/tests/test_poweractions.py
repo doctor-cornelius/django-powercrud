@@ -114,6 +114,41 @@ def test_poweraction_to_dict_exposes_lazy_disabled_state_mode():
     )
 
 
+def test_poweraction_to_dict_exposes_lazy_hidden_if_mode():
+    """Expose lazy hidden-if mode in the primitive action dictionary."""
+    action = PowerAction(
+        text="Preview",
+        url_name="sample:book-detail",
+        hidden_if="should_hide_preview",
+        hidden_if_mode="lazy",
+    )
+
+    assert action.to_dict()["hidden_if_mode"] == "lazy", (
+        "PowerAction should expose hidden_if_mode for Base API parity."
+    )
+
+
+def test_poweraction_rejects_invalid_hidden_if_mode():
+    """Reject unknown lazy hidden-if mode values."""
+    with pytest.raises(ValueError, match="hidden_if_mode"):
+        PowerAction(
+            text="Preview",
+            url_name="sample:book-detail",
+            hidden_if="should_hide_preview",
+            hidden_if_mode="deferred",
+        )
+
+
+def test_poweraction_rejects_lazy_hidden_if_mode_without_hook():
+    """Reject lazy hidden-if mode without a hidden_if hook."""
+    with pytest.raises(ValueError, match="requires hidden_if"):
+        PowerAction(
+            text="Preview",
+            url_name="sample:book-detail",
+            hidden_if_mode="lazy",
+        )
+
+
 def test_poweraction_rejects_invalid_disabled_state_mode():
     """Reject unknown lazy disabled-state mode values."""
     with pytest.raises(ValueError, match="disabled_state_mode"):
@@ -175,10 +210,26 @@ def test_powerbutton_to_dict_exposes_primitive_extra_button_config():
         "display_modal": True,
         "refresh_list_on_modal_close": False,
         "uses_selection": True,
+        "clear_selection_on_success": True,
         "selection_min_count": 1,
         "selection_min_behavior": "disable",
         "selection_min_reason": "Select at least one book first.",
     }, "PowerButton should compile to the primitive extra_buttons dictionary shape."
+
+
+def test_powerbutton_to_dict_preserves_selection_clear_opt_out():
+    """Allow read-only selection buttons to preserve selection after success."""
+    button = PowerButton(
+        text="Selected Summary Preview",
+        url_name="sample:book-selected-summary",
+        display_modal=True,
+        uses_selection=True,
+        clear_selection_on_success=False,
+    )
+
+    assert button.to_dict()["clear_selection_on_success"] is False, (
+        "PowerButton should preserve an explicit clear_selection_on_success=False opt-out."
+    )
 
 
 def test_powerbutton_to_dict_omits_non_selection_default_thresholds():
@@ -194,6 +245,9 @@ def test_powerbutton_to_dict_omits_non_selection_default_thresholds():
 
     assert button_dict["uses_selection"] is False, (
         "Plain PowerButton declarations should still expose the normalized selection flag."
+    )
+    assert button_dict["clear_selection_on_success"] is False, (
+        "Plain PowerButton declarations should not clear selections by default."
     )
     assert "selection_min_count" not in button_dict, (
         "Plain PowerButton declarations should not serialize generated selection defaults."

@@ -340,6 +340,19 @@ class BookCRUDView(SampleCRUDMixin):
             "permission_check": "can_use_selected_summary",
             "permission_behavior": "hide",
         },
+        {
+            "url_name": "sample:bigbook-selected-summary",
+            "text": "Selected Summary (Do Not Clear)",
+            "button_class": "btn-accent",
+            "display_modal": True,
+            "uses_selection": True,
+            "clear_selection_on_success": False,
+            "selection_min_count": 1,
+            "selection_min_behavior": "disable",
+            "selection_min_reason": "Select at least one book first.",
+            "permission_check": "can_use_selected_summary",
+            "permission_behavior": "hide",
+        },
     ]
 
     extra_actions = [
@@ -366,6 +379,7 @@ class BookCRUDView(SampleCRUDMixin):
             "permission_check": "can_preview_description",
             "permission_behavior": "hide",
             "hidden_if": "should_hide_description_preview",
+            "hidden_if_mode": "lazy",
             "disabled_state": "get_description_preview_disabled_state",
             "disabled_state_mode": "lazy",
             "modal_box_classes": "modal-box flex max-h-[calc(100dvh-2rem)] w-11/12 max-w-5xl flex-col",
@@ -762,6 +776,19 @@ class PowerFieldBookCRUDView(SampleCRUDMixin):
             permission_check="can_use_selected_summary",
             permission_behavior="hide",
         ),
+        PowerButton(
+            text="Selected Summary (Do Not Clear)",
+            url_name="sample:bigbook-selected-summary",
+            button_class="btn-accent",
+            display_modal=True,
+            uses_selection=True,
+            clear_selection_on_success=False,
+            selection_min_count=1,
+            selection_min_behavior="disable",
+            selection_min_reason="Select at least one book first.",
+            permission_check="can_use_selected_summary",
+            permission_behavior="hide",
+        ),
     ]
     _book_modal_action = PowerAction(
         text="Normal Edit",
@@ -789,6 +816,7 @@ class PowerFieldBookCRUDView(SampleCRUDMixin):
             permission_check="can_preview_description",
             permission_behavior="hide",
             hidden_if="should_hide_description_preview",
+            hidden_if_mode="lazy",
             disabled_state="get_description_preview_disabled_state",
             disabled_state_mode="lazy",
             modal_box_classes=(

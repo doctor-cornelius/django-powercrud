@@ -123,10 +123,42 @@ def test_row_actions_menu_hydrates_lazy_disabled_state(
     )
 
 
-def test_row_actions_menu_disables_lazy_actions_when_state_fetch_fails(
+def test_row_actions_menu_removes_lazy_hidden_action(
     page, books_url, sample_books
 ):
-    """Failed lazy state requests should leave unresolved lazy actions disabled."""
+    """Opening More should remove lazy-hidden row actions before display."""
+
+    target_book = sample_books[0]
+    target_book.title = "Hidden Preview Playwright"
+    target_book.save(update_fields=["title"])
+
+    page.goto(f"{books_url}?page_size=2")
+    page.wait_for_load_state("networkidle")
+
+    row = page.get_by_role("row").filter(has_text=target_book.title)
+    trigger = row.locator("[data-powercrud-row-actions-trigger='true']").first
+
+    with page.expect_request(
+        lambda request: (
+            request.method == "GET"
+            and f"/sample/bigbook/{target_book.pk}/row-action-states/"
+            in request.url
+        )
+    ):
+        trigger.dispatch_event("click")
+
+    floating_panel = page.locator("[data-powercrud-row-actions-floating-panel='true']")
+    expect(floating_panel).to_be_visible()
+    expect(floating_panel.get_by_role("link", name="Normal Edit")).to_be_visible()
+    expect(
+        floating_panel.get_by_role("link", name="Description Preview")
+    ).to_have_count(0)
+
+
+def test_row_actions_menu_removes_lazy_hidden_actions_when_state_fetch_fails(
+    page, books_url, sample_books
+):
+    """Failed lazy state requests should remove unresolved lazy-hidden actions."""
 
     target_book = sample_books[0]
 
@@ -144,15 +176,10 @@ def test_row_actions_menu_disables_lazy_actions_when_state_fetch_fails(
 
     floating_panel = page.locator("[data-powercrud-row-actions-floating-panel='true']")
     expect(floating_panel).to_be_visible()
-    description_preview = floating_panel.get_by_role(
-        "link",
-        name="Description Preview",
-    )
-    expect(description_preview).to_have_attribute("aria-disabled", "true")
-    expect(description_preview).to_have_attribute(
-        "data-tippy-content",
-        "Unable to validate current availability.",
-    )
+    expect(floating_panel.get_by_role("link", name="Normal Edit")).to_be_visible()
+    expect(
+        floating_panel.get_by_role("link", name="Description Preview")
+    ).to_have_count(0)
 
 
 def test_row_actions_flagged_modal_close_refreshes_current_list(

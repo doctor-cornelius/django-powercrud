@@ -10,7 +10,7 @@ from typing import Any, Callable
 from ..actions import PowerAction, PowerButton
 from ..cell_tooltips import has_lazy_list_cell_tooltip
 from ..powerfields import compile_powerfields
-from ..row_actions import is_lazy_disabled_state_action
+from ..row_actions import is_lazy_row_action_state_action
 from ..validators import DEFAULT_PAGINATE_BY, PowerCRUDMixinValidator
 
 from powercrud.conf import get_powercrud_setting
@@ -38,7 +38,7 @@ def has_selection_aware_extra_buttons(extra_buttons: Any) -> bool:
 
 
 def has_lazy_row_action_state(extra_actions: Any) -> bool:
-    """Return True when any row action declares lazy disabled-state resolution."""
+    """Return True when any row action declares lazy runtime-state resolution."""
     if not extra_actions:
         return False
     if not isinstance(extra_actions, (list, tuple)):
@@ -47,7 +47,7 @@ def has_lazy_row_action_state(extra_actions: Any) -> bool:
     for action in extra_actions:
         if isinstance(action, PowerAction):
             action = action.to_dict()
-        if isinstance(action, dict) and is_lazy_disabled_state_action(action):
+        if isinstance(action, dict) and is_lazy_row_action_state_action(action):
             return True
     return False
 
@@ -1123,6 +1123,10 @@ class ConfigMixin:
 
             normalized = button.copy()
             uses_selection = bool(normalized.get("uses_selection", False))
+            clear_selection_on_success = normalized.get(
+                "clear_selection_on_success",
+                uses_selection,
+            )
             selection_min_count = normalized.get("selection_min_count", 0)
             selection_min_behavior = normalized.get("selection_min_behavior", "allow")
 
@@ -1142,6 +1146,11 @@ class ConfigMixin:
                 raise ValueError(
                     "extra_buttons[%s].selection_min_behavior must be "
                     "'allow' or 'disable'" % index
+                )
+
+            if not isinstance(clear_selection_on_success, bool):
+                raise ValueError(
+                    f"extra_buttons[{index}].clear_selection_on_success must be True or False"
                 )
 
             if uses_selection and normalized.get("needs_pk", False):
@@ -1164,7 +1173,16 @@ class ConfigMixin:
                     index,
                 )
 
+            if clear_selection_on_success and not uses_selection:
+                log.warning(
+                    "extra_buttons[%s] defines clear_selection_on_success without uses_selection=True; "
+                    "PowerCRUD will ignore the clear-on-success flag",
+                    index,
+                )
+                clear_selection_on_success = False
+
             normalized["uses_selection"] = uses_selection
+            normalized["clear_selection_on_success"] = clear_selection_on_success
             normalized["selection_min_count"] = selection_min_count
             normalized["selection_min_behavior"] = selection_min_behavior
             normalized["refresh_list_on_modal_close"] = (
@@ -1342,6 +1360,27 @@ class ConfigMixin:
                 index,
                 "hidden_if",
             )
+            hidden_if_mode = normalized.get("hidden_if_mode", "eager")
+            if hidden_if_mode is None:
+                hidden_if_mode = "eager"
+            if hidden_if_mode not in {"eager", "lazy"}:
+                raise ValueError(
+                    "extra_actions[%s].hidden_if_mode must be 'eager' or 'lazy'"
+                    % index
+                )
+            if hidden_if_mode == "lazy" and not hidden_if:
+                raise ValueError(
+                    "extra_actions[%s].hidden_if_mode='lazy' requires "
+                    "hidden_if" % index
+                )
+            if (
+                hidden_if_mode == "lazy"
+                and getattr(self, "extra_actions_mode", "buttons") != "dropdown"
+            ):
+                raise ValueError(
+                    "extra_actions[%s].hidden_if_mode='lazy' requires "
+                    "extra_actions_mode='dropdown'" % index
+                )
             disabled_state = self._resolve_extra_action_method(
                 normalized.get("disabled_state"),
                 index,
@@ -1394,6 +1433,10 @@ class ConfigMixin:
                 disabled_reason = None
 
             normalized["hidden_if"] = hidden_if
+            if hidden_if_mode != "eager" or "hidden_if_mode" in normalized:
+                normalized["hidden_if_mode"] = hidden_if_mode
+            else:
+                normalized.pop("hidden_if_mode", None)
             normalized["disabled_state"] = disabled_state
             if (
                 disabled_state_mode != "eager"

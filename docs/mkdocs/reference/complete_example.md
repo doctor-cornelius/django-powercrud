@@ -339,6 +339,7 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
 - `has_power_create_permission()`, `has_power_detail_permission()`, `has_power_update_permission()`, `has_power_delete_permission()`, `has_power_bulk_update_permission()`, and `has_power_bulk_delete_permission()` hide and deny PowerCRUD-owned operations when the user lacks permission.
 - `permission_check` on `extra_buttons` and `extra_actions` controls whether custom affordances render before row-state, selection-state, or disabled-state hooks run.
 - `uses_selection = True` turns a header button into a selection-aware action that reads the persisted PowerCRUD selection at the endpoint. It can render selector controls even when the view does not configure built-in bulk edit/delete.
+- Selection-aware header buttons clear the persisted selection by default after a successful HTMX request completes. Set `clear_selection_on_success = False` for summary or preview modals that should preserve the user's selection.
 - `extra_button_selection_controls_disabled = True` is for cases where the button uses selected rows, but this list should not show checkboxes just because of that button.
 - This is mainly useful when the selected rows come from somewhere else, or when the page has its own custom way to choose rows. Bulk edit and bulk delete still show checkboxes because they need them.
 - `selection_min_behavior = "disable"` lets the frontend grey out a selection-aware header button until enough rows are selected, but the endpoint should still validate the selection server-side.

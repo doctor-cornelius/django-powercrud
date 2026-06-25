@@ -82,6 +82,7 @@ class PowerAction:
     lock_sensitive: bool = False
     refresh_list_on_modal_close: bool = False
     hidden_if: str | None = None
+    hidden_if_mode: str | None = None
     disabled_state: str | None = None
     disabled_state_mode: str | None = None
     disabled_if: str | None = None
@@ -116,6 +117,12 @@ class PowerAction:
                 field_name,
                 class_name,
             )
+        if self.hidden_if_mode is not None:
+            _validate_optional_string(self.hidden_if_mode, "hidden_if_mode", class_name)
+            if self.hidden_if_mode not in {"eager", "lazy"}:
+                raise ValueError("PowerAction.hidden_if_mode must be 'eager' or 'lazy'")
+            if self.hidden_if_mode == "lazy" and not self.hidden_if:
+                raise ValueError("PowerAction.hidden_if_mode='lazy' requires hidden_if")
         if self.disabled_state and (self.disabled_if or self.disabled_reason):
             raise ValueError(
                 "PowerAction cannot combine disabled_state with disabled_if or disabled_reason"
@@ -160,6 +167,7 @@ class PowerAction:
                 "lock_sensitive": self.lock_sensitive,
                 "refresh_list_on_modal_close": self.refresh_list_on_modal_close,
                 "hidden_if": self.hidden_if,
+                "hidden_if_mode": self.hidden_if_mode,
                 "disabled_state": self.disabled_state,
                 "disabled_state_mode": self.disabled_state_mode,
                 "disabled_if": self.disabled_if,
@@ -187,6 +195,7 @@ class PowerButton:
     extra_attrs: str | None = None
     extra_class_attrs: str | None = None
     uses_selection: bool = False
+    clear_selection_on_success: bool | None = None
     selection_min_count: int = 0
     selection_min_behavior: str = "allow"
     selection_min_reason: str | None = None
@@ -207,6 +216,12 @@ class PowerButton:
             "uses_selection",
         ):
             _validate_bool(getattr(self, field_name), field_name, class_name)
+        if self.clear_selection_on_success is not None:
+            _validate_bool(
+                self.clear_selection_on_success,
+                "clear_selection_on_success",
+                class_name,
+            )
         try:
             selection_min_count = int(self.selection_min_count)
         except (TypeError, ValueError) as exc:
@@ -248,6 +263,11 @@ class PowerButton:
             "extra_attrs": self.extra_attrs,
             "extra_class_attrs": self.extra_class_attrs,
             "uses_selection": self.uses_selection,
+            "clear_selection_on_success": (
+                self.uses_selection
+                if self.clear_selection_on_success is None
+                else self.clear_selection_on_success
+            ),
             "permission": self.permission,
             "permission_check": self.permission_check,
             "permission_behavior": self.permission_behavior,

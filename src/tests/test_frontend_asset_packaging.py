@@ -105,6 +105,31 @@ def test_runtime_js_exposes_shared_fragment_initializer() -> None:
     ), "Runtime JS should define a shared per-fragment teardown helper."
 
 
+def test_runtime_js_clears_opted_in_selection_extra_buttons_after_success() -> None:
+    """Runtime JS should clear selection only after opted-in extra-button success."""
+    package_root = Path(powercrud.__file__).resolve().parent
+    runtime_js = package_root / "static" / "powercrud" / "js" / "powercrud.js"
+    bulk_actions_js = (
+        package_root / "static" / "powercrud" / "js" / "runtime" / "bulk-actions.js"
+    )
+
+    runtime = runtime_js.read_text(encoding="utf-8")
+    bulk_actions = bulk_actions_js.read_text(encoding="utf-8")
+
+    assert (
+        "bulkActions.handleSelectionExtraButtonAfterRequest(event, target);" in runtime
+    ), "Runtime afterRequest handling should delegate selection-extra-button success clearing."
+    assert (
+        "data-powercrud-clear-selection-on-success" in bulk_actions
+    ), "Bulk actions runtime should target the opt-in clear-on-success marker."
+    assert (
+        "event.detail?.successful !== true" in bulk_actions
+    ), "Selection-aware extra buttons should clear only after successful HTMX requests."
+    assert (
+        "source: actionsContainer" in bulk_actions
+    ), "Internal clear requests should not reuse the marked extra button as their HTMX source."
+
+
 def test_runtime_startup_centralises_once_only_listener_registration() -> None:
     """Startup runtime should own once-only listener registration without moving handlers."""
     package_root = Path(powercrud.__file__).resolve().parent
@@ -367,6 +392,30 @@ def test_runtime_js_hides_tooltips_before_interactive_transitions() -> None:
     assert (
         "button.style.removeProperty('pointer-events');" in template
     ), "Selection-aware toolbar buttons should remove hover overrides again when re-enabled."
+
+
+def test_runtime_js_closes_more_dropdowns_after_enabled_option_clicks() -> None:
+    """Runtime JS should close open More menus after enabled menu item clicks."""
+    package_root = Path(powercrud.__file__).resolve().parent
+    runtime_js = package_root / "static" / "powercrud" / "js" / "powercrud.js"
+
+    js = runtime_js.read_text(encoding="utf-8")
+
+    assert (
+        "function closeExtraButtonsDropdownFromOption(trigger)" in js
+    ), "Runtime JS should define a helper for closing toolbar More dropdowns from option clicks."
+    assert (
+        "trigger.closest('[data-powercrud-extra-buttons-dropdown=\"true\"]')" in js
+    ), "Toolbar More closing should target the nearest extra-buttons dropdown wrapper."
+    assert (
+        "dropdown.open = false;" in js
+    ), "Toolbar More closing should close the native details dropdown immediately."
+    assert (
+        "closeExtraButtonsDropdownFromOption(trigger);" in js
+    ), "Document click handling should close toolbar More after enabled option clicks."
+    assert (
+        "closeRowActionsMenu();" in js
+    ), "Document click handling should keep closing floating row More menus after option clicks."
 
 
 def test_runtime_js_opens_inline_tomselect_on_focus() -> None:

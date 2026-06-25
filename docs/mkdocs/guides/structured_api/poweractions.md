@@ -81,6 +81,7 @@ ROW_PREVIEW = PowerAction(
     permission_check="can_preview_description",
     permission_behavior="hide",
     hidden_if="should_hide_description_preview",
+    hidden_if_mode="lazy",
     disabled_state="get_description_preview_disabled_state",
     disabled_state_mode="lazy",
 )
@@ -119,11 +120,12 @@ Use `PowerButton` for list-level `extra_buttons`.
         ```python
         extra_buttons = [
             {
-                "text": "Selected Summary",
+                "text": "Selected Summary (Do Not Clear)",
                 "url_name": "sample:book-selected-summary",
                 "needs_pk": False,
                 "display_modal": True,
                 "uses_selection": True,
+                "clear_selection_on_success": False,
                 "selection_min_count": 1,
                 "selection_min_behavior": "disable",
                 "selection_min_reason": "Select at least one row first.",
@@ -157,6 +159,10 @@ Use `PowerButton` for list-level `extra_buttons`.
         extra_buttons = [
             SELECTED_MODAL,
             SELECTED_MODAL.with_options(
+                text="Selected Summary (Do Not Clear)",
+                clear_selection_on_success=False,
+            ),
+            SELECTED_MODAL.with_options(
                 text="Selected Export",
                 url_name="sample:book-selected-export",
                 selection_min_reason="Select at least one row to export.",
@@ -186,6 +192,8 @@ def can_use_selected_summary(self, request, obj=None):
 ```
 
 `uses_selection=True` can render row selection controls even when the view has no built-in bulk edit/delete configuration.
+
+Selection-aware buttons clear persisted selection after a successful HTMX request by default. Set `clear_selection_on_success=False` for summary or preview modals that should preserve the user's selection.
 
 Set `extra_button_selection_controls_disabled = True` on the view if the button uses selected rows, but this list should not show checkboxes just because of that button.
 
@@ -239,7 +247,7 @@ def get_preview_disabled_state(self, obj, request):
 
 Return a non-empty string to disable the action and show that string as the reason. Return `None`, `False`, or an empty string to keep the action enabled.
 
-Set `disabled_state_mode="lazy"` for a dropdown row action when the hook is expensive and the exact disabled reason should be resolved only when the row `More` menu opens. Lazy mode requires `disabled_state` and is not supported for visible button-mode row actions. See [Lazy Evaluation](../advanced/lazy_evaluation.md) for the Base API and Structured API lazy patterns together.
+Set `hidden_if_mode="lazy"` for a dropdown row action when the row relevance hook is expensive. Set `disabled_state_mode="lazy"` when the exact disabled reason is expensive. Lazy hidden mode requires `hidden_if`, lazy disabled mode requires `disabled_state`, and neither mode is supported for visible button-mode row actions. See [Lazy Evaluation](../advanced/lazy_evaluation.md) for the Base API and Structured API lazy patterns together.
 
 The older `disabled_if` and `disabled_reason` pair still works for compatibility, but it is deprecated and targeted for removal in v1.0. Do not combine those legacy hooks with `disabled_state` on one action.
 

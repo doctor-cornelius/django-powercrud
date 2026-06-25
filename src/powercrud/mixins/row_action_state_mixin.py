@@ -6,7 +6,7 @@ from django.http import HttpResponseNotAllowed, JsonResponse
 from neapolitan.views import Role
 
 from powercrud.row_actions import (
-    is_lazy_disabled_state_action,
+    is_lazy_row_action_state_action,
     resolve_extra_action_runtime_state,
 )
 
@@ -50,7 +50,7 @@ class RowActionStateMixin:
 
         actions: dict[str, dict[str, Any]] = {}
         for index, action in enumerate(getattr(self, "extra_actions", []) or []):
-            if not is_lazy_disabled_state_action(action):
+            if not is_lazy_row_action_state_action(action):
                 continue
             state = resolve_extra_action_runtime_state(
                 view=self,
@@ -87,6 +87,6 @@ class RowActionStateMixin:
         if self.get_extra_actions_mode() != "dropdown":
             return False
         return any(
-            is_lazy_disabled_state_action(action)
+            is_lazy_row_action_state_action(action)
             for action in getattr(self, "extra_actions", []) or []
         )

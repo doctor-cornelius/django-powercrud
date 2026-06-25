@@ -359,6 +359,32 @@ export function createBulkActionsRuntime(context) {
         });
     }
 
+    function handleSelectionExtraButtonAfterRequest(event, target) {
+        if (
+            event.detail?.successful !== true
+            || !(target instanceof Element)
+            || !target.matches('[data-powercrud-clear-selection-on-success="true"]')
+        ) {
+            return false;
+        }
+
+        const htmx = getHtmxInstance();
+        const root = getObjectListRoot(target);
+        const listUrl = root?.dataset?.powercrudListUrl;
+        const actionsContainer = root?.querySelector('#bulk-actions-container');
+        if (!htmx || !root || !listUrl || !actionsContainer) {
+            return false;
+        }
+
+        clearSelectionOptimistic(root);
+        htmx.ajax('POST', `${listUrl}clear-selection/`, {
+            source: actionsContainer,
+            target: '#bulk-actions-container',
+            swap: 'outerHTML',
+        });
+        return true;
+    }
+
     function setBulkActionButtonsDisabled(source, disabled) {
         const root = source?.closest ? source.closest('#bulk-edit-form') : null;
         if (!root) {
@@ -529,6 +555,7 @@ export function createBulkActionsRuntime(context) {
         handleBulkHtmxBeforeSwap,
         handleBulkHtmxResponseError,
         handleClearSelectionClick,
+        handleSelectionExtraButtonAfterRequest,
         handleRowSelectionChange,
         handleRowSelectionClickCapture,
         handleRowSelectionMouseDownCapture,

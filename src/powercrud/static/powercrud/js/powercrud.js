@@ -282,6 +282,26 @@ import { createCurrentTemplateRuntime } from './runtime/current-template.js';
         }
     }
 
+    function closeExtraButtonsDropdownFromOption(trigger) {
+        if (!(trigger instanceof Element)) {
+            return false;
+        }
+        const actionableElement = trigger.closest('a, button');
+        if (
+            !(actionableElement instanceof HTMLElement)
+            || actionableElement.getAttribute('aria-disabled') === 'true'
+            || actionableElement.classList.contains('pointer-events-none')
+        ) {
+            return false;
+        }
+        const dropdown = trigger.closest('[data-powercrud-extra-buttons-dropdown="true"]');
+        if (!(dropdown instanceof HTMLDetailsElement)) {
+            return false;
+        }
+        dropdown.open = false;
+        return true;
+    }
+
     function markSelectedFavouriteDirtyForListColumns(target) {
         const root = listColumns.getListColumnRootFromElement(target);
         if (!(root instanceof Element)) {
@@ -404,6 +424,8 @@ import { createCurrentTemplateRuntime } from './runtime/current-template.js';
                     }
                     return;
                 }
+
+                closeExtraButtonsDropdownFromOption(trigger);
 
                 if (trigger.closest('[data-powercrud-filter-favourites-trigger="true"]')) {
                     closeToolbarTransientControls('favourites');
@@ -675,6 +697,7 @@ import { createCurrentTemplateRuntime } from './runtime/current-template.js';
                     stopButtonSpinner(target);
                 }
                 bulkActions.handleBulkHtmxAfterRequest(target);
+                bulkActions.handleSelectionExtraButtonAfterRequest(event, target);
                 filterFavourites.handleHtmxAfterRequest(event);
                 inlineEdit.handleHtmxAfterRequest(target);
             },

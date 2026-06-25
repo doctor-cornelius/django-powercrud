@@ -18,9 +18,9 @@ For lazy features, both styles support the same capability:
 - Structured API exposes matching constructor options.
 - Existing eager behavior remains the default when the lazy mode option is omitted.
 
-## Lazy Row-Action Disabled State
+## Lazy Row-Action State
 
-Use lazy row-action state when a dropdown row action is visible, but the exact disabled reason is expensive to calculate.
+Use lazy row-action state when a dropdown row action has expensive row-specific visibility or disabled-state logic.
 
 === "Base API"
 
@@ -32,6 +32,7 @@ Use lazy row-action state when a dropdown row action is visible, but the exact d
             "url_name": "sample:book-description-preview",
             "display_modal": True,
             "hidden_if": "should_hide_description_preview",
+            "hidden_if_mode": "lazy",
             "disabled_state": "get_description_preview_disabled_state",
             "disabled_state_mode": "lazy",
         },
@@ -48,13 +49,16 @@ Use lazy row-action state when a dropdown row action is visible, but the exact d
             url_name="sample:book-description-preview",
             display_modal=True,
             hidden_if="should_hide_description_preview",
+            hidden_if_mode="lazy",
             disabled_state="get_description_preview_disabled_state",
             disabled_state_mode="lazy",
         ),
     ]
     ```
 
-PowerCRUD still evaluates permission checks and `hidden_if` during list rendering. It defers only `disabled_state`, then resolves it when the row `More` menu opens.
+PowerCRUD still evaluates permission checks during list rendering. It defers only the hooks that opt into lazy mode, then resolves them when the row `More` menu opens.
+
+Use `hidden_if_mode="lazy"` when the action may not apply to a row and that relevance check is expensive. Use `disabled_state_mode="lazy"` when the action applies, but the exact disabled reason is expensive.
 
 Lazy row-action state is supported only for dropdown row actions. Visible button-mode row actions stay eager.
 
@@ -107,6 +111,6 @@ Do not use lazy tooltip content as validation, permission, or workflow authority
 
 The sample book list demonstrates both lazy features:
 
-- `/sample/bigbook/` uses lazy row-action disabled state on `Description Preview`.
+- `/sample/bigbook/` uses lazy row-action hidden and disabled state on `Description Preview`.
 - `/sample/bigbook/` uses lazy cell tooltip content on the default-visible `pages` column.
-- `/sample/powerfield-book/` demonstrates the same tooltip behavior through `PowerField(..., tooltip_mode="lazy")`.
+- `/sample/powerfield-book/` demonstrates the same row-action behavior through `PowerAction(..., hidden_if_mode="lazy", disabled_state_mode="lazy")` and the same tooltip behavior through `PowerField(..., tooltip_mode="lazy")`.
