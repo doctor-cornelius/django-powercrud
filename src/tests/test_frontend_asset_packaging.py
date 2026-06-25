@@ -105,6 +105,28 @@ def test_runtime_js_exposes_shared_fragment_initializer() -> None:
     ), "Runtime JS should define a shared per-fragment teardown helper."
 
 
+def test_runtime_js_clears_opted_in_selection_extra_buttons_after_success() -> None:
+    """Runtime JS should clear selection only after opted-in extra-button success."""
+    package_root = Path(powercrud.__file__).resolve().parent
+    runtime_js = package_root / "static" / "powercrud" / "js" / "powercrud.js"
+    bulk_actions_js = (
+        package_root / "static" / "powercrud" / "js" / "runtime" / "bulk-actions.js"
+    )
+
+    runtime = runtime_js.read_text(encoding="utf-8")
+    bulk_actions = bulk_actions_js.read_text(encoding="utf-8")
+
+    assert (
+        "bulkActions.handleSelectionExtraButtonAfterRequest(event, target);" in runtime
+    ), "Runtime afterRequest handling should delegate selection-extra-button success clearing."
+    assert (
+        "data-powercrud-clear-selection-on-success" in bulk_actions
+    ), "Bulk actions runtime should target the opt-in clear-on-success marker."
+    assert (
+        "event.detail?.successful !== true" in bulk_actions
+    ), "Selection-aware extra buttons should clear only after successful HTMX requests."
+
+
 def test_runtime_startup_centralises_once_only_listener_registration() -> None:
     """Startup runtime should own once-only listener registration without moving handlers."""
     package_root = Path(powercrud.__file__).resolve().parent

@@ -734,6 +734,34 @@ def test_core_mixin_warns_when_selection_thresholds_without_uses_selection(caplo
 
 
 @pytest.mark.django_db
+def test_core_mixin_warns_when_clear_selection_without_uses_selection(caplog):
+    class WarningView(CoreMixin):
+        model = Book
+        fields = "__all__"
+        base_template_path = "sample/base.html"
+        extra_buttons = [
+            {
+                "url_name": "sample:bigbook-list",
+                "text": "Reload",
+                "clear_selection_on_success": True,
+            }
+        ]
+
+    with caplog.at_level("WARNING", logger="powercrud"):
+        view = WarningView()
+
+    assert view.extra_buttons[0]["uses_selection"] is False, (
+        "Extra buttons should still default uses_selection to False when the setting is omitted."
+    )
+    assert view.extra_buttons[0]["clear_selection_on_success"] is False, (
+        "PowerCRUD should ignore clear_selection_on_success unless the button consumes a selection."
+    )
+    assert "clear_selection_on_success without uses_selection=True" in caplog.text, (
+        "PowerCRUD should warn when clear-on-success is declared on a non-selection extra button."
+    )
+
+
+@pytest.mark.django_db
 def test_core_mixin_does_not_warn_for_plain_powerbutton_defaults(caplog):
     class ButtonView(CoreMixin):
         model = Book
@@ -787,6 +815,57 @@ def test_core_mixin_normalizes_extra_button_modal_close_refresh_flag():
     assert view.extra_buttons[1]["refresh_list_on_modal_close"] is True, (
         "Extra buttons should preserve an explicit True modal-close refresh flag."
     )
+
+
+@pytest.mark.django_db
+def test_core_mixin_normalizes_selection_extra_button_clear_on_success_flag():
+    class ButtonClearView(CoreMixin):
+        model = Book
+        fields = "__all__"
+        base_template_path = "sample/base.html"
+        extra_buttons = [
+            {
+                "url_name": "sample:bigbook-list",
+                "text": "Reload",
+            },
+            {
+                "url_name": "sample:bigbook-selected-summary",
+                "text": "Selected Summary",
+                "uses_selection": True,
+                "clear_selection_on_success": True,
+            },
+        ]
+
+    view = ButtonClearView()
+
+    assert view.extra_buttons[0]["clear_selection_on_success"] is False, (
+        "Extra buttons should default clear_selection_on_success to False when omitted."
+    )
+    assert view.extra_buttons[1]["clear_selection_on_success"] is True, (
+        "Selection-aware extra buttons should preserve an explicit clear-on-success flag."
+    )
+
+
+@pytest.mark.django_db
+def test_core_mixin_rejects_non_bool_extra_button_clear_on_success_flag():
+    class BrokenView(CoreMixin):
+        model = Book
+        fields = "__all__"
+        base_template_path = "sample/base.html"
+        extra_buttons = [
+            {
+                "url_name": "sample:bigbook-selected-summary",
+                "text": "Selected Summary",
+                "uses_selection": True,
+                "clear_selection_on_success": "yes",
+            }
+        ]
+
+    with pytest.raises(
+        ImproperlyConfigured,
+        match="extra_buttons\\[0\\]\\.clear_selection_on_success",
+    ):
+        BrokenView()
 
 
 @pytest.mark.django_db

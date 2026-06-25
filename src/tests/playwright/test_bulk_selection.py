@@ -64,6 +64,57 @@ def test_bulk_selection_survives_repeated_fragment_initialisation(
     )
 
 
+def test_selection_extra_button_does_not_clear_without_opt_in(
+    page, books_url, sample_books
+):
+    """Selection-aware summary buttons should preserve selection unless explicitly opted in."""
+    page.goto(books_url)
+    page.wait_for_load_state("networkidle")
+
+    checkbox = page.locator("input.row-select-checkbox").first
+    expect(checkbox).to_be_visible()
+    checkbox.click()
+    expect(page.locator("#selected-items-counter")).to_have_text("1")
+
+    page.locator("[data-powercrud-extra-buttons-dropdown='true'] > summary").click()
+    page.get_by_role("link", name="Selected Summary").click()
+    page.wait_for_load_state("networkidle")
+
+    expect(page.locator("#selected-items-counter")).to_have_text("1")
+    expect(checkbox).to_be_checked()
+
+
+def test_selection_extra_button_clears_after_success_when_opted_in(
+    page, books_url, sample_books
+):
+    """Opted-in selection-aware extra buttons should clear selection after success."""
+    page.goto(books_url)
+    page.wait_for_load_state("networkidle")
+
+    checkbox = page.locator("input.row-select-checkbox").first
+    expect(checkbox).to_be_visible()
+    checkbox.click()
+    expect(page.locator("#selected-items-counter")).to_have_text("1")
+
+    selected_summary = page.locator(
+        "[data-powercrud-selection-aware='true']",
+        has_text="Selected Summary",
+    )
+    selected_summary.evaluate(
+        "el => el.setAttribute('data-powercrud-clear-selection-on-success', 'true')"
+    )
+
+    page.locator("[data-powercrud-extra-buttons-dropdown='true'] > summary").click()
+    page.get_by_role("link", name="Selected Summary").click()
+    page.wait_for_load_state("networkidle")
+
+    expect(page.locator("#selected-items-counter")).to_have_text("0")
+    expect(page.locator("#bulk-actions-container").first).to_have_class(
+        re.compile(r"\bhidden\b")
+    )
+    expect(checkbox).not_to_be_checked()
+
+
 def test_bulk_selection_shift_click_selects_visible_range(
     page, books_url, sample_author, sample_books
 ):

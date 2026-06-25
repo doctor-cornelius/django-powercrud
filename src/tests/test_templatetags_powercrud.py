@@ -2707,6 +2707,36 @@ def test_extra_buttons_enable_selection_aware_button_when_minimum_is_met():
     )
 
 
+def test_extra_buttons_render_clear_selection_on_success_marker():
+    request = apply_session(RequestFactory().get("/"))
+    request.session["selected"] = ["1", "2"]
+    view = TemplateViewStub(request)
+    view.extra_buttons[2]["clear_selection_on_success"] = True
+
+    html = powercrud.extra_buttons({"request": request}, view)
+
+    assert 'data-powercrud-clear-selection-on-success="true"' in html, (
+        "Opted-in selection-aware extra buttons should expose a frontend marker for successful selection clearing."
+    )
+
+
+def test_extra_buttons_dropdown_mode_preserves_clear_selection_on_success_marker():
+    request = apply_session(RequestFactory().get("/"))
+    request.session["selected"] = ["1", "2"]
+    view = TemplateViewStub(request)
+    view.extra_buttons_mode = "dropdown"
+    view.extra_buttons[2]["clear_selection_on_success"] = True
+
+    html = powercrud.extra_buttons({"request": request}, view)
+
+    assert "data-powercrud-extra-buttons-dropdown='true'" in html, (
+        "Dropdown mode should render a top toolbar overflow wrapper for configured extra buttons."
+    )
+    assert 'data-powercrud-clear-selection-on-success="true"' in html, (
+        "Dropdown extra buttons should preserve the successful selection-clearing marker."
+    )
+
+
 def test_extra_buttons_hide_permission_denied_button_before_selection_state():
     request = apply_session(RequestFactory().get("/"))
     request.session["selected"] = []
