@@ -165,6 +165,18 @@ export function createCurrentTemplateRuntime(context) {
         );
     }
 
+    function isTooltipTriggerActive(trigger) {
+        return (
+            trigger instanceof HTMLElement
+            && trigger.isConnected
+            && (
+                trigger.matches(':hover')
+                || trigger.matches(':focus')
+                || trigger.matches(':focus-within')
+            )
+        );
+    }
+
     function getTooltipTheme(trigger) {
         if (isTooltipSemanticCellTarget(trigger)) {
             return 'powercrud-semantic-cell';
@@ -305,6 +317,11 @@ export function createCurrentTemplateRuntime(context) {
             trigger.dataset.powercrudTooltipLazyState = 'loaded';
             trigger.setAttribute('data-tippy-content', tooltip);
             instance.setContent(tooltip);
+            if (!isTooltipTriggerActive(trigger)) {
+                instance.hide();
+                return;
+            }
+            hidePowercrudTooltips(documentObject);
             trigger.dataset.powercrudTooltipLazyReplay = 'true';
             instance.show();
         } catch {

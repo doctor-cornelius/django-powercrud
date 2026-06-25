@@ -476,3 +476,75 @@ def test_lazy_semantic_list_cell_tooltip_hydrates_on_hover(
     assert len(tooltip_requests) == 1, (
         "Repeated hover on the same rendered cell should reuse the resolved tooltip content."
     )
+
+
+def test_lazy_semantic_list_cell_tooltip_does_not_replay_after_pointer_leaves(
+    page, books_url, sample_books
+):
+    """Lazy semantic tooltips should not appear after the pointer leaves."""
+    target_book = sample_books[0]
+    expected_tooltip = f"Page count: {target_book.pages}"
+    lazy_selector = (
+        "td[data-field-name='pages'] "
+        "[data-powercrud-tooltip='semantic-cell'][data-powercrud-tooltip-mode='lazy']"
+    )
+    page.add_init_script(
+        """
+        window.__powercrudLazyTooltipText = '';
+        window.__powercrudLazyTooltipFetchStarted = false;
+        window.__powercrudResolveLazyTooltipFetch = null;
+        const originalFetch = window.fetch.bind(window);
+        window.fetch = (input, init) => {
+            const url = typeof input === 'string' ? input : (input?.url || '');
+            if (!url.includes('/cell-tooltip/pages/')) {
+                return originalFetch(input, init);
+            }
+            window.__powercrudLazyTooltipFetchStarted = true;
+            return new Promise((resolve) => {
+                window.__powercrudResolveLazyTooltipFetch = () => {
+                    resolve(new Response(
+                        JSON.stringify({ tooltip: window.__powercrudLazyTooltipText }),
+                        {
+                            status: 200,
+                            headers: { 'Content-Type': 'application/json' },
+                        },
+                    ));
+                };
+            });
+        };
+        """
+    )
+    page.set_viewport_size({"width": 900, "height": 900})
+    page.goto(books_url)
+    page.wait_for_load_state("networkidle")
+    page.evaluate(
+        "(tooltip) => { window.__powercrudLazyTooltipText = tooltip; }",
+        expected_tooltip,
+    )
+
+    lazy_trigger = page.locator(lazy_selector).first
+    expect(lazy_trigger).to_be_visible()
+    wait_for_tippy_instance(page, lazy_selector)
+
+    lazy_trigger.hover()
+    page.wait_for_function(
+        "() => window.__powercrudLazyTooltipFetchStarted === true"
+    )
+
+    page.mouse.move(0, 0)
+    page.evaluate("window.__powercrudResolveLazyTooltipFetch()")
+    page.wait_for_function(
+        """
+        ({ selector, expected }) => {
+            const element = document.querySelector(selector);
+            return element?.getAttribute('data-tippy-content') === expected;
+        }
+        """,
+        arg={"selector": lazy_selector, "expected": expected_tooltip},
+    )
+
+    stale_tooltip = page.locator(
+        "[data-tippy-root] .tippy-content",
+        has_text=expected_tooltip,
+    )
+    expect(stale_tooltip).to_have_count(0)
