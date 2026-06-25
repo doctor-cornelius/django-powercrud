@@ -132,7 +132,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v6
         with:
-          node-version: "24.16.0"
+          node-version: "24.17.0"
 
       - name: Install frontend dependencies
         run: npm ci
@@ -194,7 +194,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
-          python-version: "3.14.5"
+          python-version: "3.14.6"
 
       - name: Install uv
         uses: astral-sh/setup-uv@v8.2.0
@@ -207,7 +207,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v6
         with:
-          node-version: "24.16.0"
+          node-version: "24.17.0"
 
       - name: Install frontend dependencies
         run: npm ci
