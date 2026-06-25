@@ -1085,6 +1085,103 @@ def test_core_mixin_accepts_lazy_extra_action_disabled_state_in_dropdown_mode():
 
 
 @pytest.mark.django_db
+def test_core_mixin_accepts_lazy_extra_action_hidden_if_in_dropdown_mode():
+    """Accept lazy hidden-if declarations for dropdown row actions."""
+    class ActionView(CoreMixin):
+        model = Book
+        fields = "__all__"
+        base_template_path = "sample/base.html"
+        extra_actions_mode = "dropdown"
+        extra_actions = [
+            {
+                "url_name": "sample:bigbook-description-preview",
+                "text": "Description Preview",
+                "hidden_if": "should_hide_description_preview",
+                "hidden_if_mode": "lazy",
+            }
+        ]
+
+        def should_hide_description_preview(self, obj, request):
+            """Return no hidden state for config validation."""
+            return False
+
+    view = ActionView()
+
+    assert view.extra_actions[0]["hidden_if_mode"] == "lazy", (
+        "Primitive extra_actions should preserve lazy hidden-if mode."
+    )
+
+
+@pytest.mark.django_db
+def test_core_mixin_rejects_lazy_extra_action_hidden_if_without_dropdown_mode():
+    """Reject lazy hidden-if mode when extra actions render as buttons."""
+    class BrokenView(CoreMixin):
+        model = Book
+        fields = "__all__"
+        base_template_path = "sample/base.html"
+        extra_actions = [
+            {
+                "url_name": "sample:bigbook-description-preview",
+                "text": "Description Preview",
+                "hidden_if": "should_hide_description_preview",
+                "hidden_if_mode": "lazy",
+            }
+        ]
+
+        def should_hide_description_preview(self, obj, request):
+            """Return no hidden state for config validation."""
+            return False
+
+    with pytest.raises(ImproperlyConfigured, match="extra_actions_mode='dropdown'"):
+        BrokenView()
+
+
+@pytest.mark.django_db
+def test_core_mixin_rejects_lazy_extra_action_hidden_if_without_hook():
+    """Reject lazy hidden-if mode when no hidden_if hook is configured."""
+    class BrokenView(CoreMixin):
+        model = Book
+        fields = "__all__"
+        base_template_path = "sample/base.html"
+        extra_actions_mode = "dropdown"
+        extra_actions = [
+            {
+                "url_name": "sample:bigbook-description-preview",
+                "text": "Description Preview",
+                "hidden_if_mode": "lazy",
+            }
+        ]
+
+    with pytest.raises(ImproperlyConfigured, match="requires hidden_if"):
+        BrokenView()
+
+
+@pytest.mark.django_db
+def test_core_mixin_rejects_unknown_lazy_extra_action_hidden_if_mode():
+    """Reject unsupported hidden-if modes."""
+    class BrokenView(CoreMixin):
+        model = Book
+        fields = "__all__"
+        base_template_path = "sample/base.html"
+        extra_actions_mode = "dropdown"
+        extra_actions = [
+            {
+                "url_name": "sample:bigbook-description-preview",
+                "text": "Description Preview",
+                "hidden_if": "should_hide_description_preview",
+                "hidden_if_mode": "deferred",
+            }
+        ]
+
+        def should_hide_description_preview(self, obj, request):
+            """Return no hidden state for config validation."""
+            return False
+
+    with pytest.raises(ImproperlyConfigured, match="hidden_if_mode"):
+        BrokenView()
+
+
+@pytest.mark.django_db
 def test_core_mixin_rejects_lazy_extra_action_disabled_state_without_dropdown_mode():
     """Reject lazy disabled-state mode when extra actions render as buttons."""
     class BrokenView(CoreMixin):
@@ -3511,8 +3608,8 @@ def test_book_row_action_states_endpoint_reports_hidden_lazy_action(client):
 
 
 @pytest.mark.django_db
-def test_book_list_hides_primitive_extra_action_when_hidden_hook_matches(client):
-    """Hide primitive row actions from the base book sample when hidden_if matches."""
+def test_book_list_defers_primitive_hidden_extra_action(client):
+    """Defer primitive sample hidden_if evaluation until row-action hydration."""
     author = Author.objects.create(name="Primitive Hidden Action Author")
     Book.objects.create(
         title="Hidden Preview Primitive",
@@ -3529,10 +3626,13 @@ def test_book_list_hides_primitive_extra_action_when_hidden_hook_matches(client)
     response_text = " ".join(response.content.decode().split())
 
     assert response.status_code == 200, (
-        "Book list view should render successfully so primitive hidden_if behavior can be inspected."
+        "Book list view should render successfully so primitive lazy hidden_if behavior can be inspected."
     )
-    assert "Description Preview" not in response_text, (
-        "Base BookCRUDView should hide the primitive description-preview action when hidden_if matches."
+    assert "Description Preview" in response_text, (
+        "Base BookCRUDView should keep the lazy-hidden description-preview action in the hidden menu template."
+    )
+    assert "data-powercrud-row-action-hidden-mode='lazy'" in response_text, (
+        "Base BookCRUDView should mark the primitive description-preview action for lazy hidden-if hydration."
     )
     assert ">More<" in response_text, (
         "The row should keep More visible because the Normal Edit extra action still applies."
@@ -3540,8 +3640,8 @@ def test_book_list_hides_primitive_extra_action_when_hidden_hook_matches(client)
 
 
 @pytest.mark.django_db
-def test_powerfield_book_list_hides_poweraction_when_hidden_hook_matches(client):
-    """Hide PowerAction row actions from the PowerField book sample when hidden_if matches."""
+def test_powerfield_book_list_defers_poweraction_hidden_hook(client):
+    """Defer PowerAction sample hidden_if evaluation until row-action hydration."""
     author = Author.objects.create(name="PowerAction Hidden Action Author")
     Book.objects.create(
         title="Hidden Preview PowerAction",
@@ -3558,10 +3658,13 @@ def test_powerfield_book_list_hides_poweraction_when_hidden_hook_matches(client)
     response_text = " ".join(response.content.decode().split())
 
     assert response.status_code == 200, (
-        "PowerField book list view should render successfully so PowerAction hidden_if behavior can be inspected."
+        "PowerField book list view should render successfully so PowerAction lazy hidden_if behavior can be inspected."
     )
-    assert "Description Preview" not in response_text, (
-        "PowerFieldBookCRUDView should hide the PowerAction description-preview action when hidden_if matches."
+    assert "Description Preview" in response_text, (
+        "PowerFieldBookCRUDView should keep the lazy-hidden PowerAction in the hidden menu template."
+    )
+    assert "data-powercrud-row-action-hidden-mode='lazy'" in response_text, (
+        "PowerFieldBookCRUDView should mark the PowerAction for lazy hidden-if hydration."
     )
     assert ">More<" in response_text, (
         "The row should keep More visible because the Normal Edit PowerAction still applies."

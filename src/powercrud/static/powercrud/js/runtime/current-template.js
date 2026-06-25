@@ -485,6 +485,32 @@ export function createCurrentTemplateRuntime(context) {
         ).filter(link => link instanceof HTMLElement);
     }
 
+    function isLazyHiddenRowActionLink(link) {
+        return (
+            link instanceof HTMLElement
+            && link.dataset.powercrudRowActionHiddenMode === 'lazy'
+        );
+    }
+
+    function removeRowActionLink(link) {
+        if (!(link instanceof HTMLElement)) {
+            return;
+        }
+        const listItem = link.closest('li');
+        if (listItem instanceof HTMLElement) {
+            listItem.remove();
+        } else {
+            link.remove();
+        }
+    }
+
+    function hasRowActionMenuItems(menuElement) {
+        return (
+            menuElement instanceof HTMLElement
+            && Boolean(menuElement.querySelector('li'))
+        );
+    }
+
     function setRowActionLinkDisabled(link, disabled, reason = '') {
         if (!(link instanceof HTMLElement)) {
             return;
@@ -511,6 +537,10 @@ export function createCurrentTemplateRuntime(context) {
 
     function disableUnresolvedLazyRowActions(menuElement) {
         getLazyRowActionLinks(menuElement).forEach(link => {
+            if (isLazyHiddenRowActionLink(link)) {
+                removeRowActionLink(link);
+                return;
+            }
             setRowActionLinkDisabled(link, true, ROW_ACTION_STATE_UNAVAILABLE_MESSAGE);
         });
     }
@@ -523,16 +553,15 @@ export function createCurrentTemplateRuntime(context) {
             const actionIndex = link.dataset.powercrudRowActionIndex || '';
             const actionState = actions[actionIndex];
             if (!actionState || typeof actionState !== 'object') {
+                if (isLazyHiddenRowActionLink(link)) {
+                    removeRowActionLink(link);
+                    return;
+                }
                 setRowActionLinkDisabled(link, true, ROW_ACTION_STATE_UNAVAILABLE_MESSAGE);
                 return;
             }
             if (actionState.hidden === true) {
-                const listItem = link.closest('li');
-                if (listItem instanceof HTMLElement) {
-                    listItem.remove();
-                } else {
-                    link.remove();
-                }
+                removeRowActionLink(link);
                 return;
             }
             setRowActionLinkDisabled(
@@ -608,6 +637,11 @@ export function createCurrentTemplateRuntime(context) {
             stopButtonSpinner(trigger);
             trigger.removeAttribute('aria-busy');
             if (!trigger.isConnected) {
+                return;
+            }
+            if (!hasRowActionMenuItems(menuElement)) {
+                trigger.hidden = true;
+                trigger.setAttribute('aria-expanded', 'false');
                 return;
             }
         }

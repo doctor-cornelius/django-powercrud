@@ -366,6 +366,7 @@ class BookCRUDView(SampleCRUDMixin):
             "permission_check": "can_preview_description",
             "permission_behavior": "hide",
             "hidden_if": "should_hide_description_preview",
+            "hidden_if_mode": "lazy",
             "disabled_state": "get_description_preview_disabled_state",
             "disabled_state_mode": "lazy",
             "modal_box_classes": "modal-box flex max-h-[calc(100dvh-2rem)] w-11/12 max-w-5xl flex-col",
@@ -789,6 +790,7 @@ class PowerFieldBookCRUDView(SampleCRUDMixin):
             permission_check="can_preview_description",
             permission_behavior="hide",
             hidden_if="should_hide_description_preview",
+            hidden_if_mode="lazy",
             disabled_state="get_description_preview_disabled_state",
             disabled_state_mode="lazy",
             modal_box_classes=(

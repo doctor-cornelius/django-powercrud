@@ -199,7 +199,9 @@ class AuthorCRUDView(PowerCRUDMixin, CRUDView):
             "permission_check": "can_view_author_again",
             "permission_behavior": "hide",
             "hidden_if": "should_hide_view_again",
+            "hidden_if_mode": "lazy",
             "disabled_state": "get_view_again_disabled_state",
+            "disabled_state_mode": "lazy",
             "modal_box_classes": "modal-box flex max-h-[calc(100dvh-2rem)] w-11/12 max-w-5xl flex-col",
         },
     ]
@@ -233,13 +235,15 @@ class AuthorCRUDView(PowerCRUDMixin, CRUDView):
     | `hx_post` | `bool` | If `True`, renders the action as an HTMX POST instead of the default GET. |
     | `lock_sensitive` | `bool` | Reuses PowerCRUD's existing blocked-row/lock logic so the action disables automatically when the row is not currently actionable. |
     | `hidden_if` | `str` | Name of a view method with signature `(obj, request) -> bool` that decides whether this row action should be omitted. |
+    | `hidden_if_mode` | `'eager' \| 'lazy'` | Defaults to `'eager'`. Use `'lazy'` with dropdown row actions to resolve `hidden_if` when the row `More` menu opens. |
     | `disabled_state` | `str` | Name of a view method with signature `(obj, request) -> str | None | bool`. Return a non-empty string to disable the action and show the reason; return `None`, `False`, or an empty string to keep it enabled. |
+    | `disabled_state_mode` | `'eager' \| 'lazy'` | Defaults to `'eager'`. Use `'lazy'` with dropdown row actions to resolve `disabled_state` when the row `More` menu opens. |
     | `disabled_if` | `str` | Deprecated. Name of a view method with signature `(obj, request) -> bool` that decides whether this row action should be disabled. Use `disabled_state` instead. |
     | `disabled_reason` | `str` | Deprecated. Name of a view method with signature `(obj, request) -> str | None` that returns the tooltip/help text when the action is disabled. Use `disabled_state` instead. |
 
     Do not combine `disabled_state` with `disabled_if` or `disabled_reason` on the same action.
 
-    Use `hidden_if` when an action is not applicable for a row. Use `disabled_state` when the action is applicable but unavailable and needs an explanatory reason. The legacy `disabled_if` / `disabled_reason` pair is deprecated and targeted for removal in v1.0.
+    Use `hidden_if` when an action is not applicable for a row. Use `disabled_state` when the action is applicable but unavailable and needs an explanatory reason. Add lazy modes only for dropdown row actions with expensive hooks. The legacy `disabled_if` / `disabled_reason` pair is deprecated and targeted for removal in v1.0.
 
 ??? note "Refreshing the list after custom modal close"
 

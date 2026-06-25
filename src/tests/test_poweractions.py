@@ -114,6 +114,41 @@ def test_poweraction_to_dict_exposes_lazy_disabled_state_mode():
     )
 
 
+def test_poweraction_to_dict_exposes_lazy_hidden_if_mode():
+    """Expose lazy hidden-if mode in the primitive action dictionary."""
+    action = PowerAction(
+        text="Preview",
+        url_name="sample:book-detail",
+        hidden_if="should_hide_preview",
+        hidden_if_mode="lazy",
+    )
+
+    assert action.to_dict()["hidden_if_mode"] == "lazy", (
+        "PowerAction should expose hidden_if_mode for Base API parity."
+    )
+
+
+def test_poweraction_rejects_invalid_hidden_if_mode():
+    """Reject unknown lazy hidden-if mode values."""
+    with pytest.raises(ValueError, match="hidden_if_mode"):
+        PowerAction(
+            text="Preview",
+            url_name="sample:book-detail",
+            hidden_if="should_hide_preview",
+            hidden_if_mode="deferred",
+        )
+
+
+def test_poweraction_rejects_lazy_hidden_if_mode_without_hook():
+    """Reject lazy hidden-if mode without a hidden_if hook."""
+    with pytest.raises(ValueError, match="requires hidden_if"):
+        PowerAction(
+            text="Preview",
+            url_name="sample:book-detail",
+            hidden_if_mode="lazy",
+        )
+
+
 def test_poweraction_rejects_invalid_disabled_state_mode():
     """Reject unknown lazy disabled-state mode values."""
     with pytest.raises(ValueError, match="disabled_state_mode"):

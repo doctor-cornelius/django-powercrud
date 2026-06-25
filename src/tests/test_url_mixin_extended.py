@@ -166,6 +166,30 @@ class LazyRowActionUrlHarness(UrlMixin, ContextBase, View):
     ]
 
 
+class LazyHiddenRowActionUrlHarness(UrlMixin, ContextBase, View):
+    """URL harness with one lazy-hidden dropdown row action."""
+
+    namespace = "sample"
+    url_base = "lazy-hidden-book"
+    lookup_field = "pk"
+    lookup_url_kwarg = "pk"
+    template_name = None
+    template_name_suffix = "_detail"
+    templates_path = "powercrud/daisyUI"
+    base_template_path = "powercrud/base.html"
+    path_converter = "int"
+    model = Book
+    extra_actions_mode = "dropdown"
+    extra_actions = [
+        {
+            "url_name": "sample:book-detail",
+            "text": "Preview",
+            "hidden_if": "should_hide_preview",
+            "hidden_if_mode": "lazy",
+        }
+    ]
+
+
 class LazyCellTooltipUrlHarness(UrlMixin, ContextBase, View):
     """URL harness with one lazy list-cell tooltip."""
 
@@ -379,6 +403,34 @@ def test_get_urls_generates_lazy_row_action_state_endpoint(monkeypatch):
         and kwargs.get("row_action_state_action") == "states"
         for kwargs in recorded
     ), "The lazy row-action state URL should route to the list role state handler."
+
+
+def test_get_urls_generates_lazy_hidden_row_action_state_endpoint(monkeypatch):
+    """Lazy-hidden row actions should register the per-row state endpoint."""
+
+    recorded = []
+
+    def fake_as_view(cls, **kwargs):
+        recorded.append(kwargs)
+        return lambda request, *args, **kw: None
+
+    monkeypatch.setattr(
+        LazyHiddenRowActionUrlHarness,
+        "as_view",
+        classmethod(fake_as_view),
+    )
+
+    patterns = LazyHiddenRowActionUrlHarness.get_urls()
+    names = {pattern.name for pattern in patterns}
+
+    assert "lazy-hidden-book-row-action-states" in names, (
+        "Views with lazy hidden row actions should expose a row-action state URL."
+    )
+    assert any(
+        kwargs.get("role") == Role.LIST
+        and kwargs.get("row_action_state_action") == "states"
+        for kwargs in recorded
+    ), "The lazy hidden row-action state URL should route to the list role state handler."
 
 
 def test_get_urls_generates_lazy_cell_tooltip_endpoint(monkeypatch):

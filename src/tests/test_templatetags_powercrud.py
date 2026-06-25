@@ -803,6 +803,43 @@ def test_action_links_defer_lazy_disabled_state_in_dropdown():
 
 
 @pytest.mark.django_db
+def test_action_links_defer_lazy_hidden_if_in_dropdown():
+    """Lazy dropdown actions should not call hidden_if during list rendering."""
+    author = Author.objects.create(name="Lazy Hidden Dropdown Author")
+    book = Book.objects.create(
+        title="Lazy Hidden Dropdown Row",
+        author=author,
+        published_date=date(2024, 7, 20),
+        bestseller=False,
+        isbn="9876543210433",
+        pages=55,
+        description="Preview exists",
+    )
+    request = apply_session(RequestFactory().get("/"))
+    view = TemplateViewStub(request)
+    view.extra_actions_mode = "dropdown"
+    view.extra_actions[0].pop("disabled_if")
+    view.extra_actions[0].pop("disabled_reason")
+    view.extra_actions[0]["hidden_if"] = "track_hidden_if_true"
+    view.extra_actions[0]["hidden_if_mode"] = "lazy"
+
+    html = powercrud.action_links(view, book)
+
+    assert view.row_state_calls == [], (
+        "Lazy hidden_if should be deferred during the initial list render."
+    )
+    assert "Preview" in html, (
+        "Lazy hidden_if actions should remain in the hidden dropdown template until hydrated."
+    )
+    assert "data-powercrud-row-action-state-mode='lazy'" in html, (
+        "Lazy hidden_if row actions should carry a frontend hydration marker."
+    )
+    assert "data-powercrud-row-action-states-url='/sample/book/" in html, (
+        "The More trigger should expose the row-action state endpoint URL."
+    )
+
+
+@pytest.mark.django_db
 def test_action_links_can_render_extra_actions_in_dropdown():
     author = Author.objects.create(name="Dana")
     book = Book.objects.create(
@@ -878,6 +915,46 @@ def test_action_links_omit_dropdown_more_when_all_extra_actions_are_hidden():
     )
     assert "data-powercrud-row-actions-template='true'" not in html, (
         "Dropdown row action mode should not render an empty floating menu template."
+    )
+
+
+@pytest.mark.django_db
+def test_action_links_keep_dropdown_more_when_all_extra_actions_are_lazy_hidden():
+    """Keep the row More trigger when all hidden checks are deferred."""
+    author = Author.objects.create(name="Lazy Hidden Dropdown Only")
+    book = Book.objects.create(
+        title="Hidden Preview Lazy Dropdown",
+        author=author,
+        published_date=date(2024, 2, 4),
+        bestseller=False,
+        isbn="9876543210125",
+        pages=78,
+        description="Dropdown preview",
+    )
+    request = apply_session(RequestFactory().get("/"))
+    view = TemplateViewStub(request)
+    view.extra_actions_mode = "dropdown"
+    view.extra_actions = [
+        {
+            "url_name": "sample:book-detail",
+            "text": "Preview",
+            "button_class": "btn-secondary",
+            "display_modal": True,
+            "hidden_if": "should_hide_preview",
+            "hidden_if_mode": "lazy",
+        }
+    ]
+
+    html = powercrud.action_links(view, book)
+
+    assert "Preview" in html, (
+        "Lazy hidden-only dropdowns should keep the unresolved action in the hidden menu template."
+    )
+    assert "data-powercrud-row-actions-trigger='true'" in html, (
+        "Lazy hidden-only dropdowns should keep More visible so state can hydrate on click."
+    )
+    assert "data-powercrud-row-action-hidden-mode='lazy'" in html, (
+        "Lazy hidden-only dropdown actions should carry the frontend removal marker."
     )
 
 

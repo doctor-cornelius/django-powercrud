@@ -11,6 +11,16 @@ def is_lazy_disabled_state_action(action: dict[str, Any]) -> bool:
     return action.get("disabled_state_mode", "eager") == "lazy"
 
 
+def is_lazy_hidden_if_action(action: dict[str, Any]) -> bool:
+    """Return True when a row action opts into lazy hidden-if resolution."""
+    return action.get("hidden_if_mode", "eager") == "lazy"
+
+
+def is_lazy_row_action_state_action(action: dict[str, Any]) -> bool:
+    """Return True when a row action opts into any lazy row-action state."""
+    return is_lazy_hidden_if_action(action) or is_lazy_disabled_state_action(action)
+
+
 def resolve_named_view_method(view: Any, method_name: str | None) -> Any:
     """Resolve a named method on the view, returning None when unavailable."""
     if not method_name:

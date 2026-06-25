@@ -32,6 +32,8 @@ from powercrud.labels import resolve_field_label, resolve_property_label
 from powercrud.logging import get_logger
 from powercrud.row_actions import (
     is_lazy_disabled_state_action,
+    is_lazy_hidden_if_action,
+    is_lazy_row_action_state_action,
     resolve_extra_action_disabled_state as _resolve_extra_action_disabled_state,
     resolve_extra_action_hidden_state as _resolve_extra_action_hidden_state,
     resolve_extra_action_permission_state as _resolve_extra_action_permission_state,
@@ -742,7 +744,7 @@ def action_links(view: Any, object: Any) -> str:
     )
     extra_actions: List[Dict[str, Any]] = getattr(view, "extra_actions", [])
     has_lazy_row_action = extra_actions_mode == "dropdown" and any(
-        is_lazy_disabled_state_action(action) for action in extra_actions
+        is_lazy_row_action_state_action(action) for action in extra_actions
     )
     row_action_states_url = None
     if has_lazy_row_action:
@@ -821,11 +823,20 @@ def action_links(view: Any, object: Any) -> str:
             if hide_permission:
                 continue
 
-            if not disable_permission and _resolve_extra_action_hidden_state(
-                view=view,
-                object=object,
-                action=action,
-                request=getattr(view, "request", None),
+            lazy_hidden_if = (
+                extra_actions_mode == "dropdown"
+                and row_action_states_url
+                and is_lazy_hidden_if_action(action)
+            )
+            if (
+                not disable_permission
+                and not lazy_hidden_if
+                and _resolve_extra_action_hidden_state(
+                    view=view,
+                    object=object,
+                    action=action,
+                    request=getattr(view, "request", None),
+                )
             ):
                 continue
 
@@ -842,6 +853,7 @@ def action_links(view: Any, object: Any) -> str:
             )
 
             lazy_disabled_state = False
+            lazy_row_action_state = lazy_hidden_if
             if disable_permission:
                 disable_extra = True
                 disabled_reason = permission_disabled_reason
@@ -853,6 +865,7 @@ def action_links(view: Any, object: Any) -> str:
                 disable_extra = bool(lock_reason and action.get("lock_sensitive", False))
                 disabled_reason = lock_label if disable_extra else None
                 lazy_disabled_state = not disable_extra
+                lazy_row_action_state = True
             else:
                 disable_extra, disabled_reason = _resolve_extra_action_disabled_state(
                     view=view,
@@ -880,6 +893,8 @@ def action_links(view: Any, object: Any) -> str:
                     "disabled_reason": disabled_reason,
                     "action_index": action_index,
                     "lazy_disabled_state": lazy_disabled_state,
+                    "lazy_hidden_if": lazy_hidden_if,
+                    "lazy_row_action_state": lazy_row_action_state,
                 }
             )
 
@@ -928,7 +943,12 @@ def action_links(view: Any, object: Any) -> str:
                         "data-powercrud-row-action-index="
                         f"'{conditional_escape(str(action['action_index']))}'",
                     ]
-                    if action.get("lazy_disabled_state")
+                    + (
+                        ["data-powercrud-row-action-hidden-mode='lazy'"]
+                        if action.get("lazy_hidden_if")
+                        else []
+                    )
+                    if action.get("lazy_row_action_state")
                     else None
                 ),
             )
@@ -941,7 +961,9 @@ def action_links(view: Any, object: Any) -> str:
             + (
                 " data-powercrud-row-action-states-url="
                 f"'{conditional_escape(str(row_action_states_url))}'"
-                if any(action.get("lazy_disabled_state") for action in extra_action_items)
+                if any(
+                    action.get("lazy_row_action_state") for action in extra_action_items
+                )
                 and row_action_states_url
                 else ""
             )

@@ -82,6 +82,7 @@ class PowerAction:
     lock_sensitive: bool = False
     refresh_list_on_modal_close: bool = False
     hidden_if: str | None = None
+    hidden_if_mode: str | None = None
     disabled_state: str | None = None
     disabled_state_mode: str | None = None
     disabled_if: str | None = None
@@ -116,6 +117,12 @@ class PowerAction:
                 field_name,
                 class_name,
             )
+        if self.hidden_if_mode is not None:
+            _validate_optional_string(self.hidden_if_mode, "hidden_if_mode", class_name)
+            if self.hidden_if_mode not in {"eager", "lazy"}:
+                raise ValueError("PowerAction.hidden_if_mode must be 'eager' or 'lazy'")
+            if self.hidden_if_mode == "lazy" and not self.hidden_if:
+                raise ValueError("PowerAction.hidden_if_mode='lazy' requires hidden_if")
         if self.disabled_state and (self.disabled_if or self.disabled_reason):
             raise ValueError(
                 "PowerAction cannot combine disabled_state with disabled_if or disabled_reason"
@@ -160,6 +167,7 @@ class PowerAction:
                 "lock_sensitive": self.lock_sensitive,
                 "refresh_list_on_modal_close": self.refresh_list_on_modal_close,
                 "hidden_if": self.hidden_if,
+                "hidden_if_mode": self.hidden_if_mode,
                 "disabled_state": self.disabled_state,
                 "disabled_state_mode": self.disabled_state_mode,
                 "disabled_if": self.disabled_if,

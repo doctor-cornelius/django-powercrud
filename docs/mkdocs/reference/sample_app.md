@@ -339,6 +339,7 @@ class PowerFieldBookCRUDView(PowerCRUDAsyncMixin, CRUDView):
             permission_check="can_preview_description",
             permission_behavior="hide",
             hidden_if="should_hide_description_preview",
+            hidden_if_mode="lazy",
             disabled_state="get_description_preview_disabled_state",
             disabled_state_mode="lazy",
         ),
@@ -536,6 +537,7 @@ extra_actions = [
         "permission_check": "can_preview_description",
         "permission_behavior": "hide",
         "hidden_if": "should_hide_description_preview",
+        "hidden_if_mode": "lazy",
         "disabled_state": "get_description_preview_disabled_state",
         "disabled_state_mode": "lazy",
         "modal_box_classes": "modal-box flex max-h-[calc(100dvh-2rem)] w-11/12 max-w-5xl flex-col",
@@ -543,7 +545,7 @@ extra_actions = [
 ]
 ```
 
-That lets the sample app demonstrate permission-hidden header actions, selection-aware header actions, hidden row actions, conditionally disabled row actions, lazy dropdown disabled-state hydration, and per-trigger modal sizing in the same CRUD surface. `permission_check` omits actions before row or selection state is evaluated. `hidden_if` omits a row action when it is not applicable. `disabled_state` is the single-hook disabled contract: return a non-empty string to disable the action and show that string as the reason. `disabled_state_mode = "lazy"` keeps that exact disabled reason out of the initial list render and resolves it when the row `More` menu opens. `Selected Summary` intentionally uses the view default modal width, while `Home in Modal!` shows a header-button override. The `modal_box_classes` entries are full replacement strings: they keep the default viewport-height classes and add per-trigger width classes for those specific modal calls.
+That lets the sample app demonstrate permission-hidden header actions, selection-aware header actions, hidden row actions, conditionally disabled row actions, lazy dropdown hidden-state and disabled-state hydration, and per-trigger modal sizing in the same CRUD surface. `permission_check` omits actions before row or selection state is evaluated. `hidden_if` omits a row action when it is not applicable. `hidden_if_mode = "lazy"` keeps that relevance check out of the initial list render and resolves it when the row `More` menu opens. `disabled_state` is the single-hook disabled contract: return a non-empty string to disable the action and show that string as the reason. `disabled_state_mode = "lazy"` keeps that exact disabled reason out of the initial list render and resolves it when the row `More` menu opens. `Selected Summary` intentionally uses the view default modal width, while `Home in Modal!` shows a header-button override. The `modal_box_classes` entries are full replacement strings: they keep the default viewport-height classes and add per-trigger width classes for those specific modal calls.
 
 The top-left sample login menu includes a viewer and manager:
 
