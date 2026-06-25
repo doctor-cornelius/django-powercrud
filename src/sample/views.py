@@ -184,7 +184,7 @@ class BookCRUDView(SampleCRUDMixin):
     }
     list_cell_tooltip_fields = {
         "title": "get_title_tooltip",
-        "pages": "get_pages_tooltip",
+        "pages": {"hook": "get_pages_tooltip", "mode": "lazy"},
         "isbn_empty": "get_isbn_empty_tooltip",
     }
     list_cell_link_default_open_in = "modal"
@@ -603,6 +603,7 @@ class PowerFieldBookCRUDView(SampleCRUDMixin):
             "pages",
             default_list=True,
             tooltip_hook="get_pages_tooltip",
+            tooltip_mode="lazy",
             form=True,
             bulk=True,
             column={

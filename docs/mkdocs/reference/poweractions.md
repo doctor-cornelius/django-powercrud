@@ -190,4 +190,4 @@ extra_buttons = [
 
 Base dictionaries remain valid and are still the underlying Action API. `PowerAction` and `PowerButton` are for reuse, defaults, and early validation.
 
-See [Permission-Aware Affordances](../guides/advanced/permission_aware_affordances.md) for the distinction between permission checks, row state, and backend enforcement.
+See [Permission-Aware Affordances](../guides/advanced/permission_aware_affordances.md) for the distinction between permission checks, row state, and backend enforcement. See [Lazy Evaluation](../guides/advanced/lazy_evaluation.md) for deferring expensive row-action disabled state until the row menu opens.

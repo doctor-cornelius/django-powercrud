@@ -97,9 +97,9 @@ Reasoning:
 4. Rejecting button mode is clearer than silently falling back to eager behavior.
 5. Disabling unresolved actions is safer than hiding them or leaving them enabled after validation failed.
 
-## Proposed Tooltip API Shape
+## Implemented Tooltip API Shape
 
-Preferred `PowerField` shape:
+`PowerField` shape:
 
 ```python
 PowerField(
@@ -125,11 +125,12 @@ list_cell_tooltip_fields = {
     "status": {
         "hook": "get_status_tooltip",
         "mode": "lazy",
-        "loading_text": "Loading...",
-        "empty_text": None,
     },
 }
 ```
+
+Only `hook` and `mode` are public rich-config keys in this slice. `loading_text`
+and `empty_text` are deferred until there is a demonstrated need.
 
 ## Plan Phases
 
@@ -170,6 +171,15 @@ Tooltip laziness should live beside the tooltip hook because cost varies per fie
 
 Lazy tooltip content is display-only. It must not become a permission or workflow validation path.
 
+Implemented tooltip slice:
+
+1. Base API accepts `list_cell_tooltip_fields = {"field": {"hook": "get_field_tooltip", "mode": "lazy"}}`.
+2. String tooltip mappings remain eager and unchanged.
+3. `PowerField(..., tooltip_hook="...", tooltip_mode="lazy")` emits the same rich primitive config.
+4. Initial list rendering skips lazy tooltip hooks and emits a per-cell endpoint URL.
+5. The endpoint resolves one object and one configured lazy field/property, then returns `{"tooltip": text_or_null}`.
+6. Empty tooltip content renders as no tooltip.
+
 ### Phase D: Frontend And UX
 
 Frontend behavior should request state only when the user opens the relevant row-action dropdown or hovers/focuses the relevant tooltip trigger.
@@ -184,6 +194,13 @@ Implemented row-action UX:
 4. Failed state fetches leave unresolved lazy actions disabled with the generic message `Unable to validate current availability.`
 5. Repeated opens reuse the in-flight request for the same trigger.
 
+Implemented lazy tooltip UX:
+
+1. Hovering or focusing a lazy semantic cell tooltip fetches its endpoint once for the current rendered cell.
+2. The first tooltip show is cancelled while content resolves, then replayed if text is returned.
+3. Repeated hover/focus on the same rendered cell reuses the resolved content.
+4. Failed or empty tooltip responses leave the cell usable and show no tooltip.
+
 ### Phase E: Tests, Sample, Docs
 
 Tests should prove that eager behavior remains the default, lazy callbacks are not called during initial list render, and lazy endpoints call only the requested row/action or row/field hook.
@@ -195,3 +212,6 @@ Implemented sample/docs slice:
 1. `BookCRUDView` demonstrates lazy Base API row-action state on `Description Preview`.
 2. `PowerFieldBookCRUDView` demonstrates the same behavior through `PowerAction.with_options(...)`.
 3. Public docs cover `disabled_state_mode` in the config reference, `PowerAction` reference, structured API guide, and sample app reference.
+4. `BookCRUDView` demonstrates lazy Base API list-cell tooltip content on the default-visible `pages` column.
+5. `PowerFieldBookCRUDView` demonstrates the same tooltip behavior through `PowerField(..., tooltip_mode="lazy")`.
+6. Public docs cover rich tooltip config and `PowerField.tooltip_mode`.

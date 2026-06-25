@@ -9,11 +9,13 @@
 - [x] Row-action API contract implemented.
 - [x] Row-action runtime endpoint implemented.
 - [x] Public docs updated for the row-action slice.
-- [ ] Lazy cell tooltip implementation remains deferred.
+- [x] Lazy cell tooltip API and endpoint implemented.
+- [x] Lazy cell tooltip frontend hydration implemented.
+- [x] Public docs updated for the tooltip slice.
 
 ## Next
 
-1. Revisit Phase C lazy cell tooltips when the row-action slice is accepted.
+1. Verify the lazy tooltip sample behavior in the browser.
 
 ## Phase A: Lock The Scope
 
@@ -47,29 +49,29 @@
 
 ## Phase C: Add Lazy Cell Tooltips
 
-1. [ ] Extend tooltip config.
-    1. [ ] Support `PowerField(..., tooltip_mode="lazy")`.
-    2. [ ] Support primitive rich tooltip config per field.
-    3. [ ] Validate invalid tooltip config shapes.
-2. [ ] Add the tooltip content endpoint.
-    1. [ ] Resolve one object and one configured field/property.
-    2. [ ] Call the configured tooltip hook on demand.
-    3. [ ] Return empty content cleanly when no tooltip applies.
+1. [x] Extend tooltip config.
+    1. [x] Support `PowerField(..., tooltip_mode="lazy")`.
+    2. [x] Support primitive rich tooltip config per field.
+    3. [x] Validate invalid tooltip config shapes.
+2. [x] Add the tooltip content endpoint.
+    1. [x] Resolve one object and one configured field/property.
+    2. [x] Call the configured tooltip hook on demand.
+    3. [x] Return empty content cleanly when no tooltip applies.
 
 ## Phase D: Frontend And UX
 
 1. [x] Hydrate lazy row-action state when the row `More` menu opens.
-2. [ ] Hydrate lazy cell tooltip content on hover and focus.
-3. [ ] Preserve keyboard and screen-reader behavior for the deferred tooltip path.
+2. [x] Hydrate lazy cell tooltip content on hover and focus.
+3. [x] Preserve keyboard and screen-reader behavior for the deferred tooltip path.
 4. [x] Avoid duplicate row-action state requests during repeated opens.
 
 ## Phase E: Tests, Sample, Docs
 
 1. [x] Add focused unit tests for config and endpoint behavior.
-2. [ ] Add browser coverage for dropdown hydration and lazy tooltip hydration.
+2. [x] Add browser coverage for dropdown hydration and lazy tooltip hydration.
     1. [x] Cover dropdown row-action hydration and failure fallback.
-    2. [ ] Cover deferred lazy tooltip hydration.
+    2. [x] Cover deferred lazy tooltip hydration.
 3. [x] Add a small sample app demonstration.
-4. [ ] Update Base API, `PowerAction`, `PowerField`, and tooltip docs.
+4. [x] Update Base API, `PowerAction`, `PowerField`, and tooltip docs.
     1. [x] Update Base API and `PowerAction` docs for row-action lazy state.
-    2. [ ] Update `PowerField` and tooltip docs when Phase C is implemented.
+    2. [x] Update `PowerField` and tooltip docs when Phase C is implemented.

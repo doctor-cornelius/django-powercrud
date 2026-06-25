@@ -410,3 +410,69 @@ def test_semantic_list_cell_tooltips_preserve_multiline_text(
     ), (
         "Expected the rendered semantic tooltip bubble to occupy at least two lines of height when the tooltip text contains a newline."
     )
+
+
+def test_lazy_semantic_list_cell_tooltip_hydrates_on_hover(
+    page, books_url, sample_books
+):
+    """Lazy semantic list-cell tooltips should fetch content only on interaction."""
+    target_book = sample_books[0]
+    expected_tooltip = f"Page count: {target_book.pages}"
+    tooltip_requests = []
+
+    page.on(
+        "request",
+        lambda request: tooltip_requests.append(request)
+        if "/cell-tooltip/pages/" in request.url
+        else None,
+    )
+
+    page.set_viewport_size({"width": 900, "height": 900})
+    page.goto(books_url)
+    page.wait_for_load_state("networkidle")
+
+    assert tooltip_requests == [], (
+        "Lazy sample page-count tooltip should not fetch during initial list load."
+    )
+
+    lazy_selector = (
+        "td[data-field-name='pages'] "
+        "[data-powercrud-tooltip='semantic-cell'][data-powercrud-tooltip-mode='lazy']"
+    )
+    lazy_trigger = page.locator(lazy_selector).first
+    expect(lazy_trigger).to_be_visible()
+    wait_for_tippy_instance(page, lazy_selector)
+    assert lazy_trigger.get_attribute("data-tippy-content") == "", (
+        "Lazy tooltip trigger should start without resolved semantic content."
+    )
+
+    with page.expect_response(
+        lambda response: "/cell-tooltip/pages/" in response.url
+        and response.status == 200
+    ):
+        lazy_trigger.hover()
+    page.wait_for_function(
+        """
+        ({ selector, expected }) => {
+            const element = document.querySelector(selector);
+            return element?.getAttribute('data-tippy-content') === expected;
+        }
+        """,
+        arg={"selector": lazy_selector, "expected": expected_tooltip},
+    )
+
+    tooltip_content = page.locator(
+        "[data-tippy-root] .tippy-content",
+        has_text=expected_tooltip,
+    ).last
+    expect(tooltip_content).to_be_visible()
+    assert len(tooltip_requests) == 1, (
+        "First hover should make exactly one lazy tooltip request for the rendered cell."
+    )
+
+    page.mouse.move(0, 0)
+    lazy_trigger.hover()
+    page.wait_for_timeout(300)
+    assert len(tooltip_requests) == 1, (
+        "Repeated hover on the same rendered cell should reuse the resolved tooltip content."
+    )

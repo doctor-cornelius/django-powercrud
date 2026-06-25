@@ -8,6 +8,7 @@ from django.db.models.fields.reverse_related import ManyToOneRel
 from typing import Any, Callable
 
 from ..actions import PowerAction, PowerButton
+from ..cell_tooltips import has_lazy_list_cell_tooltip
 from ..powerfields import compile_powerfields
 from ..row_actions import is_lazy_disabled_state_action
 from ..validators import DEFAULT_PAGINATE_BY, PowerCRUDMixinValidator
@@ -49,6 +50,11 @@ def has_lazy_row_action_state(extra_actions: Any) -> bool:
         if isinstance(action, dict) and is_lazy_disabled_state_action(action):
             return True
     return False
+
+
+def has_lazy_list_cell_tooltip_state(list_cell_tooltip_fields: Any) -> bool:
+    """Return True when any list-cell tooltip declares lazy content resolution."""
+    return has_lazy_list_cell_tooltip(list_cell_tooltip_fields)
 
 
 FIELD_INTENT_CONFIG_FIELDS = {
@@ -104,7 +110,7 @@ class ConfigMixin:
     column_help_text: dict[str, str] | None = None
     field_labels: dict[str, str] | None = None
     column_alignments: dict[str, str] | None = None
-    list_cell_tooltip_fields: list[str] | dict[str, str] | None = None
+    list_cell_tooltip_fields: list[str] | dict[str, Any] | None = None
     list_cell_link_default_open_in: str = "new"
     link_fields: dict[str, Any] | None = None
     column_sort_fields_override: dict[str, str] | None = None
@@ -1963,6 +1969,7 @@ def resolve_class_config(view_cls):
 
 __all__ = [
     "ConfigMixin",
+    "has_lazy_list_cell_tooltip_state",
     "has_lazy_row_action_state",
     "has_selection_aware_extra_buttons",
     "resolve_config",

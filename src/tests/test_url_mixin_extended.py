@@ -166,6 +166,25 @@ class LazyRowActionUrlHarness(UrlMixin, ContextBase, View):
     ]
 
 
+class LazyCellTooltipUrlHarness(UrlMixin, ContextBase, View):
+    """URL harness with one lazy list-cell tooltip."""
+
+    namespace = "sample"
+    url_base = "lazy-tooltip-book"
+    lookup_field = "pk"
+    lookup_url_kwarg = "pk"
+    template_name = None
+    template_name_suffix = "_detail"
+    templates_path = "powercrud/daisyUI"
+    base_template_path = "powercrud/base.html"
+    path_converter = "int"
+    model = Book
+    fields = ["title"]
+    list_cell_tooltip_fields = {
+        "title": {"hook": "get_title_tooltip", "mode": "lazy"}
+    }
+
+
 def test_resolve_class_config_copies_mutable_values():
     cfg = resolve_class_config(UrlViewHarness)
 
@@ -360,6 +379,34 @@ def test_get_urls_generates_lazy_row_action_state_endpoint(monkeypatch):
         and kwargs.get("row_action_state_action") == "states"
         for kwargs in recorded
     ), "The lazy row-action state URL should route to the list role state handler."
+
+
+def test_get_urls_generates_lazy_cell_tooltip_endpoint(monkeypatch):
+    """Lazy list-cell tooltips should register the per-cell content endpoint."""
+
+    recorded = []
+
+    def fake_as_view(cls, **kwargs):
+        recorded.append(kwargs)
+        return lambda request, *args, **kw: None
+
+    monkeypatch.setattr(
+        LazyCellTooltipUrlHarness,
+        "as_view",
+        classmethod(fake_as_view),
+    )
+
+    patterns = LazyCellTooltipUrlHarness.get_urls()
+    names = {pattern.name for pattern in patterns}
+
+    assert "lazy-tooltip-book-cell-tooltip" in names, (
+        "Views with lazy list-cell tooltips should expose a cell-tooltip URL."
+    )
+    assert any(
+        kwargs.get("role") == Role.LIST
+        and kwargs.get("cell_tooltip_action") == "content"
+        for kwargs in recorded
+    ), "The lazy cell-tooltip URL should route to the list role content handler."
 
 
 def test_legacy_inline_edit_enabled_still_generates_inline_urls(monkeypatch):

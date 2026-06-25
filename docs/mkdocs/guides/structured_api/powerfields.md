@@ -211,7 +211,7 @@ Field Intent can also include list-column defaults, properties, header help, sem
             "isbn_empty": "ISBN Missing",
         }
         list_cell_tooltip_fields = {
-            "pages": "get_pages_tooltip",
+            "pages": {"hook": "get_pages_tooltip", "mode": "lazy"},
             "isbn_empty": "get_isbn_empty_tooltip",
         }
         link_fields = {
@@ -234,6 +234,7 @@ Field Intent can also include list-column defaults, properties, header help, sem
                 "pages",
                 default_list=True,
                 tooltip_hook="get_pages_tooltip",
+                tooltip_mode="lazy",
                 column={
                     "help_text": (
                         "Demo link: opens this book detail in the current page."
@@ -261,7 +262,7 @@ Field Intent can also include list-column defaults, properties, header help, sem
         ]
         ```
 
-`tooltip_hook="..."` maps the visible list cell to a row-specific hook. The hook must exist on the view and returns plain text or `None`.
+`tooltip_hook="..."` maps the visible list cell to a row-specific hook. The hook must exist on the view and returns plain text or `None`. Add `tooltip_mode="lazy"` when the hook should run only after the user hovers or focuses the rendered cell. See [Lazy Evaluation](../advanced/lazy_evaluation.md) for the Base API and Structured API lazy patterns together.
 
 ```python
 def get_pages_tooltip(self, obj, request=None):

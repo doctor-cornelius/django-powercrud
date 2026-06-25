@@ -45,7 +45,9 @@ EXCLUDE_DIMENSIONS = {
     "property": "properties_exclude",
 }
 
-LIST_CELL_METADATA_OPTIONS = ("tooltip_hook", "column", "link")
+LIST_CELL_METADATA_OPTIONS = ("tooltip_hook", "tooltip_mode", "column", "link")
+
+TOOLTIP_MODES = {"eager", "lazy"}
 
 COLUMN_OPTIONS = {"help_text", "alignment"}
 
@@ -82,6 +84,7 @@ class PowerField:
     form_display: bool = False
     form_disabled: bool = False
     tooltip_hook: str | None = None
+    tooltip_mode: str | None = None
     detail: bool = False
     list: bool = False
     default_list: bool = False
@@ -131,6 +134,16 @@ class PowerField:
             if not isinstance(self.tooltip_hook, str) or not self.tooltip_hook.strip():
                 raise ValueError("PowerField.tooltip_hook must be a non-empty string")
             object.__setattr__(self, "tooltip_hook", self.tooltip_hook.strip())
+
+        if self.tooltip_mode is not None:
+            if not isinstance(self.tooltip_mode, str) or not self.tooltip_mode.strip():
+                raise ValueError("PowerField.tooltip_mode must be 'eager' or 'lazy'")
+            tooltip_mode = self.tooltip_mode.strip()
+            if tooltip_mode not in TOOLTIP_MODES:
+                raise ValueError("PowerField.tooltip_mode must be 'eager' or 'lazy'")
+            if not self.tooltip_hook:
+                raise ValueError("PowerField.tooltip_mode requires tooltip_hook")
+            object.__setattr__(self, "tooltip_mode", tooltip_mode)
 
         if self.label is not None:
             if not isinstance(self.label, str) or not self.label.strip():
@@ -242,9 +255,14 @@ class PowerField:
             )
 
         if self.tooltip_hook:
-            fragment.setdefault("list_cell_tooltip_fields", {})[self.name] = (
-                self.tooltip_hook
-            )
+            tooltip_config: str | dict[str, str]
+            if self.tooltip_mode is None:
+                tooltip_config = self.tooltip_hook
+            else:
+                tooltip_config = {"hook": self.tooltip_hook, "mode": self.tooltip_mode}
+            fragment.setdefault("list_cell_tooltip_fields", {})[
+                self.name
+            ] = tooltip_config
 
         if self.link:
             fragment.setdefault("link_fields", {})[self.name] = dict(self.link)

@@ -65,7 +65,7 @@ class PowerCRUDMixinValidator(BaseModel):
     column_help_text: Optional[Dict[str, str]] = None
     field_labels: Optional[Dict[str, str]] = None
     column_alignments: Optional[Dict[str, Literal["left", "center", "right"]]] = None
-    list_cell_tooltip_fields: Optional[Union[List[str], Dict[str, str]]] = None
+    list_cell_tooltip_fields: Optional[Union[List[str], Dict[str, Any]]] = None
     list_cell_link_default_open_in: Optional[Literal["current", "new", "modal"]] = "new"
     link_fields: Optional[Dict[str, Union[str, Dict[str, Any]]]] = None
     column_sort_fields_override: Optional[Dict[str, str]] = None
@@ -468,7 +468,7 @@ class PowerCRUDMixinValidator(BaseModel):
     @field_validator("list_cell_tooltip_fields", mode="before")
     @classmethod
     def validate_list_cell_tooltip_fields(cls, v):
-        """Require tooltip declarations to use legacy list or field-hook map shape."""
+        """Require tooltip declarations to use legacy, eager, or rich map shape."""
         if v is None:
             return v
         if isinstance(v, list):
@@ -480,19 +480,55 @@ class PowerCRUDMixinValidator(BaseModel):
                     )
             return v
         if isinstance(v, dict):
-            for field_name, hook_name in v.items():
+            for field_name, config in v.items():
                 if not isinstance(field_name, str) or not field_name.strip():
                     raise ValueError(
                         "list_cell_tooltip_fields dict keys must be non-empty strings"
                     )
+
+                if isinstance(config, str):
+                    if not config.strip():
+                        raise ValueError(
+                            "list_cell_tooltip_fields dict values must be "
+                            "non-empty strings"
+                        )
+                    continue
+
+                if not isinstance(config, dict):
+                    raise ValueError(
+                        "list_cell_tooltip_fields dict values must be non-empty "
+                        "strings or tooltip config dictionaries"
+                    )
+
+                unknown_keys = set(config) - {"hook", "mode"}
+                if unknown_keys:
+                    raise ValueError(
+                        "list_cell_tooltip_fields tooltip config supports only "
+                        f"hook and mode; unknown keys: {', '.join(sorted(unknown_keys))}"
+                    )
+
+                hook_name = config.get("hook")
                 if not isinstance(hook_name, str) or not hook_name.strip():
                     raise ValueError(
-                        "list_cell_tooltip_fields dict values must be non-empty strings"
+                        "list_cell_tooltip_fields tooltip config hook must be a "
+                        "non-empty string"
+                    )
+
+                mode = config.get("mode", "eager")
+                if not isinstance(mode, str) or not mode.strip():
+                    raise ValueError(
+                        "list_cell_tooltip_fields tooltip config mode must be "
+                        "'eager' or 'lazy'"
+                    )
+                if mode.strip() not in {"eager", "lazy"}:
+                    raise ValueError(
+                        "list_cell_tooltip_fields tooltip config mode must be "
+                        "'eager' or 'lazy'"
                     )
             return v
         raise ValueError(
             "list_cell_tooltip_fields must be either a dict of field names to "
-            "hook names or a deprecated list of field names"
+            "hook names/config dictionaries or a deprecated list of field names"
         )
 
     @field_validator("inline_edit_highlight_accent")

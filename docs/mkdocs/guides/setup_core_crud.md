@@ -510,6 +510,8 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
         return obj.status_explanation
 ```
 
+For expensive tooltip hooks, see [Lazy Evaluation](advanced/lazy_evaluation.md).
+
 `list_cell_tooltip_fields` is opt-in. PowerCRUD only calls the named hook methods for rendered list fields or properties named in the mapping, and silently ignores configured names that are not actually visible in the table. Each hook receives the row object and should return plain text for the tooltip, or `None` when that row should not show a semantic tooltip.
 
 Hook-backed semantic list-cell tooltip text may include newline characters when a tooltip should display as multiple lines. That multiline rendering is limited to semantic list-cell tooltips returned by the configured hook; header-help and other tooltip surfaces keep their existing behavior.

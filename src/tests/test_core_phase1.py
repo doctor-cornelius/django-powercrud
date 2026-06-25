@@ -2098,6 +2098,42 @@ def test_list_cell_tooltip_fields_mapping_blank_value_raises():
         BrokenView()
 
 
+def test_list_cell_tooltip_fields_rich_lazy_config_is_valid():
+    class TooltipView(CoreMixin):
+        model = Author
+        fields = ["name"]
+        list_cell_tooltip_fields = {
+            "name": {"hook": "get_name_tooltip", "mode": "lazy"}
+        }
+
+    view = TooltipView()
+
+    assert view.list_cell_tooltip_fields == {
+        "name": {"hook": "get_name_tooltip", "mode": "lazy"}
+    }, "Rich lazy tooltip config should be accepted without changing its public shape."
+
+
+@pytest.mark.parametrize(
+    "tooltip_config",
+    [
+        {"name": {"mode": "lazy"}},
+        {"name": {"hook": "   ", "mode": "lazy"}},
+        {"name": {"hook": "get_name_tooltip", "mode": "deferred"}},
+        {"name": {"hook": "get_name_tooltip", "mode": ""}},
+        {"name": {"hook": "get_name_tooltip", "loading_text": "Loading..."}},
+        {"name": 123},
+    ],
+)
+def test_list_cell_tooltip_fields_invalid_rich_config_raises(tooltip_config):
+    class BrokenView(CoreMixin):
+        model = Author
+        fields = ["name"]
+        list_cell_tooltip_fields = tooltip_config
+
+    with pytest.raises(ImproperlyConfigured):
+        BrokenView()
+
+
 def test_list_cell_tooltip_fields_mixed_style_raises():
     class BrokenView(CoreMixin):
         model = Author
@@ -2825,14 +2861,70 @@ def test_book_list_renders_sample_semantic_list_cell_tooltips(client):
     assert 'data-tippy-content="Semantic Tooltip Author\n412 pages"' in response_text, (
         "Configured sample title cells should preserve newline-separated semantic tooltip text from the shared hook."
     )
-    assert 'data-tippy-content="Page count: 412"' in response_text, (
-        "Configured sample pages cells should render semantic tooltip text on a visible non-inline model field."
+    assert 'data-powercrud-tooltip-url="/sample/bigbook/' in response_text, (
+        "Configured sample pages cells should render lazy tooltip endpoint metadata instead of eager tooltip text."
+    )
+    assert 'data-tippy-content="Page count: 412"' not in response_text, (
+        "Lazy sample pages cells should defer their semantic tooltip content until hover or focus."
     )
     assert 'data-tippy-content="ISBN: 978-1-4028-9462-1"' in response_text, (
         "Configured sample property cells should render semantic list-cell tooltip text, even when the displayed value is an icon."
     )
     assert 'data-powercrud-tooltip="semantic-cell"' in response_text, (
         "Configured sample list cells should use the dedicated semantic-cell tooltip channel rather than the generic semantic or overflow channels."
+    )
+
+
+@pytest.mark.django_db
+def test_book_cell_tooltip_endpoint_returns_lazy_tooltip_content(client):
+    """Return lazy tooltip content for a single sample row/field."""
+    author = Author.objects.create(name="Lazy Tooltip Author")
+    book = Book.objects.create(
+        title="Lazy Tooltip Book",
+        author=author,
+        published_date=date(2024, 10, 6),
+        bestseller=False,
+        isbn="9876543210672",
+        pages=45,
+        description="Tooltip endpoint coverage.",
+    )
+
+    _login_sample_manager(client)
+    response = client.get(
+        reverse("sample:bigbook-cell-tooltip", args=[book.pk, "pages"]),
+        HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+    )
+
+    assert response.status_code == 200, (
+        "Lazy cell tooltip endpoint should respond successfully for configured sample fields."
+    )
+    assert response.json() == {"tooltip": "Page count: 45"}, (
+        "The lazy tooltip endpoint should return the same content the eager hook would have rendered."
+    )
+
+
+@pytest.mark.django_db
+def test_book_cell_tooltip_endpoint_rejects_eager_tooltip_field(client):
+    """Do not expose eager tooltip fields through the lazy tooltip endpoint."""
+    author = Author.objects.create(name="Eager Tooltip Author")
+    book = Book.objects.create(
+        title="Eager Tooltip Book",
+        author=author,
+        published_date=date(2024, 10, 7),
+        bestseller=False,
+        isbn="9876543210673",
+        pages=46,
+        description="Tooltip endpoint rejection coverage.",
+    )
+
+    _login_sample_manager(client)
+    response = client.get(
+        reverse("sample:bigbook-cell-tooltip", args=[book.pk, "title"]),
+        HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+    )
+
+    assert response.status_code == 404, (
+        "Lazy cell tooltip endpoint should reject fields that are configured for eager tooltip rendering."
     )
 
 

@@ -37,6 +37,7 @@ PowerField(
     form_display=False,
     form_disabled=False,
     tooltip_hook=None,
+    tooltip_mode=None,
     detail=False,
     list=False,
     default_list=False,
@@ -88,8 +89,9 @@ PowerField(
         | Kwarg | Base configuration target | Meaning |
         |-------|---------------------------|---------|
         | `tooltip_hook="get_status_tooltip"` | `list_cell_tooltip_fields` | Map the visible list cell to a row-specific tooltip hook. |
+        | `tooltip_mode="lazy"` | `list_cell_tooltip_fields` | Resolve that hook only when the cell tooltip is hovered or focused. Omit it for eager behavior. |
 
-        The hook must exist on the view and accept `(obj, request=None)`.
+        The hook must exist on the view and accept `(obj, request=None)`. `tooltip_mode` accepts `"eager"` or `"lazy"` and requires `tooltip_hook`. See [Lazy Evaluation](../guides/advanced/lazy_evaluation.md) for when lazy tooltip resolution is useful.
 
 ### Copying With Changes
 
@@ -177,6 +179,7 @@ PowerCRUD validates PowerField declarations early.
 - `PowerOverride` must be the first entry if present.
 - A `PowerField` name must be a non-empty string.
 - `tooltip_hook` must be a non-empty string when supplied.
+- `tooltip_mode` must be `"eager"` or `"lazy"` when supplied, and it requires `tooltip_hook`.
 - A field cannot be explicitly included and excluded from the same dimension.
 - Boolean options must be `True` or `False`.
 - `exclude` must be a dict using supported exclude dimensions.

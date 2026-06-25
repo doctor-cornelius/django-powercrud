@@ -304,7 +304,7 @@
                     hx-trigger="click, keyup[key=='Enter'], keyup[key==' ']"
                     >
                 <span class="pc-inline-display-label {% if align_class == 'center' %}text-center{% elif align_class == 'right' %}w-full text-right{% else %}w-full{% endif %}"
-                    {% if cell.tooltip_text %}data-tippy-content="{{ cell.tooltip_text }}" data-powercrud-tooltip="semantic-cell"{% elif value_str|slice:":1" != "<" %}data-tippy-content="{{ cell.value }}" data-powercrud-tooltip="overflow"{% endif %}>
+                    {% if cell.tooltip_text %}data-tippy-content="{{ cell.tooltip_text }}" data-powercrud-tooltip="semantic-cell"{% elif cell.tooltip_url %}data-tippy-content="" data-powercrud-tooltip="semantic-cell" data-powercrud-tooltip-mode="lazy" data-powercrud-tooltip-url="{{ cell.tooltip_url }}"{% elif value_str|slice:":1" != "<" %}data-tippy-content="{{ cell.value }}" data-powercrud-tooltip="overflow"{% endif %}>
                     {{ cell.value }}
                 </span>
             </button>
@@ -333,12 +333,12 @@
                {% if cell.link.rel %}rel="{{ cell.link.rel }}"{% endif %}
                {{ cell.link.modal_attrs|safe }}
                {% if cell.link.modal_box_classes %}data-powercrud-modal-box-classes="{{ cell.link.modal_box_classes }}"{% endif %}
-               {% if cell.tooltip_text %}data-tippy-content="{{ cell.tooltip_text }}" data-powercrud-tooltip="semantic-cell"{% elif value_str|slice:":1" != "<" %}data-tippy-content="{{ cell.value }}" data-powercrud-tooltip="overflow"{% endif %}>
+               {% if cell.tooltip_text %}data-tippy-content="{{ cell.tooltip_text }}" data-powercrud-tooltip="semantic-cell"{% elif cell.tooltip_url %}data-tippy-content="" data-powercrud-tooltip="semantic-cell" data-powercrud-tooltip-mode="lazy" data-powercrud-tooltip-url="{{ cell.tooltip_url }}"{% elif value_str|slice:":1" != "<" %}data-tippy-content="{{ cell.value }}" data-powercrud-tooltip="overflow"{% endif %}>
                 {{ cell.value }}
             </a>
             {% else %}
             <div class="{% if cell.align == 'center' %}flex justify-center items-center w-full{% elif cell.align == 'right' %}w-full text-right{% else %}w-full text-left{% endif %}"
-                 {% if cell.tooltip_text %}data-tippy-content="{{ cell.tooltip_text }}" data-powercrud-tooltip="semantic-cell"{% elif value_str|slice:":1" != "<" %}data-tippy-content="{{ cell.value }}" data-powercrud-tooltip="overflow"{% endif %}>
+                 {% if cell.tooltip_text %}data-tippy-content="{{ cell.tooltip_text }}" data-powercrud-tooltip="semantic-cell"{% elif cell.tooltip_url %}data-tippy-content="" data-powercrud-tooltip="semantic-cell" data-powercrud-tooltip-mode="lazy" data-powercrud-tooltip-url="{{ cell.tooltip_url }}"{% elif value_str|slice:":1" != "<" %}data-tippy-content="{{ cell.value }}" data-powercrud-tooltip="overflow"{% endif %}>
                 {{ cell.value }}
             </div>
             {% endif %}
@@ -405,7 +405,7 @@
                     hx-trigger="click, keyup[key=='Enter'], keyup[key==' ']"
                     >
                 <span class="pc-inline-display-label {% if align_class == 'center' %}text-center{% elif align_class == 'right' %}w-full text-right{% else %}w-full{% endif %}"
-                    {% if cell.tooltip_text %}data-tippy-content="{{ cell.tooltip_text }}" data-powercrud-tooltip="semantic-cell"{% elif value_str|slice:":1" != "<" %}data-tippy-content="{{ cell.value }}" data-powercrud-tooltip="overflow"{% endif %}>
+                    {% if cell.tooltip_text %}data-tippy-content="{{ cell.tooltip_text }}" data-powercrud-tooltip="semantic-cell"{% elif cell.tooltip_url %}data-tippy-content="" data-powercrud-tooltip="semantic-cell" data-powercrud-tooltip-mode="lazy" data-powercrud-tooltip-url="{{ cell.tooltip_url }}"{% elif value_str|slice:":1" != "<" %}data-tippy-content="{{ cell.value }}" data-powercrud-tooltip="overflow"{% endif %}>
                     {{ cell.value }}
                 </span>
             </button>
@@ -434,12 +434,12 @@
                {% if cell.link.rel %}rel="{{ cell.link.rel }}"{% endif %}
                {{ cell.link.modal_attrs|safe }}
                {% if cell.link.modal_box_classes %}data-powercrud-modal-box-classes="{{ cell.link.modal_box_classes }}"{% endif %}
-               {% if cell.tooltip_text %}data-tippy-content="{{ cell.tooltip_text }}" data-powercrud-tooltip="semantic-cell"{% elif value_str|slice:":1" != "<" %}data-tippy-content="{{ cell.value }}" data-powercrud-tooltip="overflow"{% endif %}>
+               {% if cell.tooltip_text %}data-tippy-content="{{ cell.tooltip_text }}" data-powercrud-tooltip="semantic-cell"{% elif cell.tooltip_url %}data-tippy-content="" data-powercrud-tooltip="semantic-cell" data-powercrud-tooltip-mode="lazy" data-powercrud-tooltip-url="{{ cell.tooltip_url }}"{% elif value_str|slice:":1" != "<" %}data-tippy-content="{{ cell.value }}" data-powercrud-tooltip="overflow"{% endif %}>
                 {{ cell.value }}
             </a>
             {% else %}
             <div class="{% if cell.align == 'center' %}flex justify-center items-center w-full{% elif cell.align == 'right' %}w-full text-right{% else %}w-full text-left{% endif %}"
-                 {% if cell.tooltip_text %}data-tippy-content="{{ cell.tooltip_text }}" data-powercrud-tooltip="semantic-cell"{% elif value_str|slice:":1" != "<" %}data-tippy-content="{{ cell.value }}" data-powercrud-tooltip="overflow"{% endif %}>
+                 {% if cell.tooltip_text %}data-tippy-content="{{ cell.tooltip_text }}" data-powercrud-tooltip="semantic-cell"{% elif cell.tooltip_url %}data-tippy-content="" data-powercrud-tooltip="semantic-cell" data-powercrud-tooltip-mode="lazy" data-powercrud-tooltip-url="{{ cell.tooltip_url }}"{% elif value_str|slice:":1" != "<" %}data-tippy-content="{{ cell.value }}" data-powercrud-tooltip="overflow"{% endif %}>
                 {{ cell.value }}
             </div>
             {% endif %}

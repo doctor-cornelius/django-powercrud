@@ -24,6 +24,10 @@ from django.utils.translation import gettext_lazy as _
 from django.db import models
 
 from powercrud.conf import get_powercrud_setting
+from powercrud.cell_tooltips import (
+    normalize_list_cell_tooltip_specs,
+    resolve_list_cell_tooltip,
+)
 from powercrud.labels import resolve_field_label, resolve_property_label
 from powercrud.logging import get_logger
 from powercrud.row_actions import (
@@ -446,36 +450,14 @@ def _resolve_list_cell_tooltip(
     """
     Resolve a plain-text semantic tooltip for one rendered list cell.
     """
-    if hook_name is not None:
-        resolver = getattr(view, hook_name, None)
-        if not callable(resolver):
-            raise ImproperlyConfigured(
-                "list_cell_tooltip_fields configured "
-                f"{field_name!r} with missing or non-callable hook "
-                f"{hook_name!r}."
-            )
-        tooltip_text = resolver(obj, request=request)
-        if tooltip_text is None:
-            return None
-        tooltip_text = str(tooltip_text).strip()
-        return tooltip_text or None
-
-    resolver = getattr(view, "get_list_cell_tooltip", None)
-    if not callable(resolver):
-        return None
-    try:
-        tooltip_text = resolver(
-            obj,
-            field_name,
-            is_property=is_property,
-            request=request,
-        )
-    except Exception:
-        return None
-    if tooltip_text is None:
-        return None
-    tooltip_text = str(tooltip_text).strip()
-    return tooltip_text or None
+    return resolve_list_cell_tooltip(
+        view=view,
+        obj=obj,
+        field_name=field_name,
+        is_property=is_property,
+        request=request,
+        hook_name=hook_name,
+    )
 
 
 LIST_CELL_OPEN_IN_VALUES = {"current", "new", "modal"}
@@ -1119,20 +1101,14 @@ def object_list(context, objects, view):
         default=[],
     )
     rendered_column_names = set(fields) | set(properties)
-    if isinstance(configured_cell_tooltips, dict):
-        eligible_cell_tooltip_fields = {
-            field_name: hook_name
-            for field_name, hook_name in configured_cell_tooltips.items()
-            if field_name in rendered_column_names
-        }
-    elif isinstance(configured_cell_tooltips, list):
-        eligible_cell_tooltip_fields = {
-            field_name: None
-            for field_name in configured_cell_tooltips
-            if field_name in rendered_column_names
-        }
-    else:
-        eligible_cell_tooltip_fields = {}
+    eligible_cell_tooltip_fields = {
+        field_name: spec
+        for field_name, spec in normalize_list_cell_tooltip_specs(
+            configured_cell_tooltips
+        ).items()
+        if field_name in rendered_column_names
+    }
+    list_cell_tooltip_url_getter = getattr(view, "get_list_cell_tooltip_url", None)
 
     # Create header metadata for each field
     headers = []
@@ -1306,6 +1282,44 @@ def object_list(context, objects, view):
             and row_index >= first_upward_dropdown_index,
         )
 
+        def resolve_cell_tooltip_metadata(
+            field_name: str,
+            *,
+            is_property: bool,
+        ) -> dict[str, str | None]:
+            spec = eligible_cell_tooltip_fields.get(field_name)
+            if not spec:
+                return {
+                    "tooltip_text": None,
+                    "tooltip_mode": None,
+                    "tooltip_url": None,
+                }
+
+            if spec.mode == "lazy":
+                tooltip_url = (
+                    list_cell_tooltip_url_getter(obj, field_name)
+                    if callable(list_cell_tooltip_url_getter)
+                    else None
+                )
+                return {
+                    "tooltip_text": None,
+                    "tooltip_mode": "lazy",
+                    "tooltip_url": tooltip_url,
+                }
+
+            return {
+                "tooltip_text": _resolve_list_cell_tooltip(
+                    view=view,
+                    obj=obj,
+                    field_name=field_name,
+                    is_property=is_property,
+                    request=request,
+                    hook_name=spec.hook,
+                ),
+                "tooltip_mode": "eager",
+                "tooltip_url": None,
+            }
+
         actions_html = action_links(view, obj)
         has_actions = "data-inline-action=" in str(actions_html)
 
@@ -1355,6 +1369,7 @@ def object_list(context, objects, view):
                 name=f,
                 default_align=default_align,
             )
+            tooltip_metadata = resolve_cell_tooltip_metadata(f, is_property=False)
 
             record["cells"].append(
                 {
@@ -1365,18 +1380,7 @@ def object_list(context, objects, view):
                     "is_inline_editable": inline_enabled and f in inline_fields,
                     "dependency": resolve_cell_dependency(f),
                     "align": cell_align,
-                    "tooltip_text": (
-                        _resolve_list_cell_tooltip(
-                            view=view,
-                            obj=obj,
-                            field_name=f,
-                            is_property=False,
-                            request=request,
-                            hook_name=eligible_cell_tooltip_fields.get(f),
-                        )
-                        if f in eligible_cell_tooltip_fields
-                        else None
-                    ),
+                    **tooltip_metadata,
                     "link": _resolve_list_cell_link(
                         view=view,
                         obj=obj,
@@ -1397,6 +1401,10 @@ def object_list(context, objects, view):
                 column_alignments=column_alignments,
                 name=prop,
                 default_align=default_align,
+            )
+            tooltip_metadata = resolve_cell_tooltip_metadata(
+                prop,
+                is_property=True,
             )
             if (
                 isinstance(getattr(obj.__class__, prop), property)
@@ -1426,18 +1434,7 @@ def object_list(context, objects, view):
                     "is_inline_editable": inline_enabled and prop in inline_fields,
                     "dependency": resolve_cell_dependency(prop),
                     "align": prop_align,
-                    "tooltip_text": (
-                        _resolve_list_cell_tooltip(
-                            view=view,
-                            obj=obj,
-                            field_name=prop,
-                            is_property=True,
-                            request=request,
-                            hook_name=eligible_cell_tooltip_fields.get(prop),
-                        )
-                        if prop in eligible_cell_tooltip_fields
-                        else None
-                    ),
+                    **tooltip_metadata,
                     "link": _resolve_list_cell_link(
                         view=view,
                         obj=obj,

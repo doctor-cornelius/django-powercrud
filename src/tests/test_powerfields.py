@@ -36,6 +36,23 @@ def test_powerfield_extracts_list_style_primitive_fragment():
     }, "PowerField should expose list-style primitive contributions for one field."
 
 
+def test_powerfield_extracts_lazy_tooltip_primitive_fragment():
+    fragment = PowerField(
+        "status",
+        default_list=True,
+        tooltip_hook="get_status_tooltip",
+        tooltip_mode="lazy",
+    ).to_primitive_fragment()
+
+    assert fragment == {
+        "fields": ["status"],
+        "default_list_fields": ["status"],
+        "list_cell_tooltip_fields": {
+            "status": {"hook": "get_status_tooltip", "mode": "lazy"}
+        },
+    }, "PowerField tooltip_mode='lazy' should compile to the rich primitive tooltip config."
+
+
 def test_powerfield_default_list_adds_property_to_list_allow_list():
     fragment = PowerField(
         "status_label",
@@ -159,6 +176,22 @@ def test_powerfield_rejects_invalid_tooltip_hook(tooltip_hook):
         PowerField("status", default_list=True, tooltip_hook=tooltip_hook)
 
 
+@pytest.mark.parametrize("tooltip_mode", ["", "   ", "deferred", 1])
+def test_powerfield_rejects_invalid_tooltip_mode(tooltip_mode):
+    with pytest.raises(ValueError, match="tooltip_mode"):
+        PowerField(
+            "status",
+            default_list=True,
+            tooltip_hook="get_status_tooltip",
+            tooltip_mode=tooltip_mode,
+        )
+
+
+def test_powerfield_rejects_tooltip_mode_without_tooltip_hook():
+    with pytest.raises(ValueError, match="tooltip_mode requires tooltip_hook"):
+        PowerField("status", default_list=True, tooltip_mode="lazy")
+
+
 def test_powerfield_rejects_removed_tooltip_kwarg():
     with pytest.raises(TypeError, match="unexpected keyword"):
         PowerField("status", default_list=True, tooltip=True)
@@ -188,6 +221,20 @@ def test_powerfield_with_options_returns_changed_copy_without_mutating_original(
         "default_list_fields": ["status"],
         "list_cell_tooltip_fields": {"status": "get_status_summary"},
     }, "The copied PowerField should compile with the changed options."
+
+
+def test_powerfield_with_options_can_set_lazy_tooltip_mode():
+    original = PowerField(
+        "status",
+        default_list=True,
+        tooltip_hook="get_status_tooltip",
+    )
+
+    copied = original.with_options(tooltip_mode="lazy")
+
+    assert copied.to_primitive_fragment()["list_cell_tooltip_fields"] == {
+        "status": {"hook": "get_status_tooltip", "mode": "lazy"}
+    }, "with_options should support opting an existing tooltip hook into lazy mode."
 
 
 def test_powerfield_with_options_reruns_validation():

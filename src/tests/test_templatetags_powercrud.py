@@ -125,6 +125,9 @@ class TemplateViewStub:
     def get_row_action_states_url(self, obj):
         return f"/sample/book/{obj.pk}/row-action-states/"
 
+    def get_list_cell_tooltip_url(self, obj, field_name):
+        return f"/sample/book/{obj.pk}/cell-tooltip/{field_name}/"
+
     def get_prefix(self):
         return f"{self.namespace}:{self.url_base}"
 
@@ -1402,6 +1405,51 @@ def test_object_list_calls_named_semantic_tooltip_hooks_for_configured_cells():
     )
     assert cell_map["author"]["tooltip_text"] is None, (
         "Unconfigured rendered cells should not carry semantic tooltip text."
+    )
+
+
+@pytest.mark.django_db
+def test_object_list_defers_lazy_semantic_tooltip_hook_for_configured_cell():
+    author = Author.objects.create(name="Lazy Tooltip Author")
+    book = Book.objects.create(
+        title="Lazy Tooltip Book",
+        author=author,
+        published_date=date(2024, 3, 23),
+        bestseller=False,
+        isbn="9876543210324",
+        pages=127,
+        description="Lazy mapped tooltip coverage",
+    )
+
+    request = apply_session(RequestFactory().get("/"))
+    view = TemplateViewStub(request)
+    view.fields = ["title", "author"]
+    view.properties = []
+    view.list_cell_tooltip_fields = {
+        "title": {"hook": "get_title_tooltip", "mode": "lazy"}
+    }
+    view.get_title_tooltip = pytest.fail
+
+    context = {
+        "request": request,
+        "use_htmx": True,
+        "original_target": "#content",
+        "htmx_target": "#content",
+    }
+    result = powercrud.object_list(context, [book], view)
+    cell_map = {cell["name"]: cell for cell in result["object_list"][0]["cells"]}
+
+    assert cell_map["title"]["tooltip_text"] is None, (
+        "Lazy semantic tooltip hooks should not run during initial list rendering."
+    )
+    assert cell_map["title"]["tooltip_mode"] == "lazy", (
+        "Lazy semantic tooltip cells should carry a lazy metadata marker."
+    )
+    assert cell_map["title"]["tooltip_url"] == (
+        f"/sample/book/{book.pk}/cell-tooltip/title/"
+    ), "Lazy semantic tooltip cells should carry the endpoint URL for the field."
+    assert cell_map["author"]["tooltip_text"] is None, (
+        "Unconfigured cells should remain without semantic tooltip metadata."
     )
 
 
