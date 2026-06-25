@@ -64,10 +64,30 @@ def test_bulk_selection_survives_repeated_fragment_initialisation(
     )
 
 
-def test_selection_extra_button_does_not_clear_without_opt_in(
+def test_selection_extra_button_preserves_selection_when_opted_out(
     page, books_url, sample_books
 ):
-    """Selection-aware summary buttons should preserve selection unless explicitly opted in."""
+    """Selection-aware summary buttons should preserve selection when opted out."""
+    page.goto(books_url)
+    page.wait_for_load_state("networkidle")
+
+    checkbox = page.locator("input.row-select-checkbox").first
+    expect(checkbox).to_be_visible()
+    checkbox.click()
+    expect(page.locator("#selected-items-counter")).to_have_text("1")
+
+    page.locator("[data-powercrud-extra-buttons-dropdown='true'] > summary").click()
+    page.get_by_role("link", name="Selected Summary (Do Not Clear)").click()
+    page.wait_for_load_state("networkidle")
+
+    expect(page.locator("#selected-items-counter")).to_have_text("1")
+    expect(checkbox).to_be_checked()
+
+
+def test_selection_extra_button_clears_after_success_by_default(
+    page, books_url, sample_books
+):
+    """Selection-aware extra buttons should clear selection after success by default."""
     page.goto(books_url)
     page.wait_for_load_state("networkidle")
 
@@ -78,26 +98,6 @@ def test_selection_extra_button_does_not_clear_without_opt_in(
 
     page.locator("[data-powercrud-extra-buttons-dropdown='true'] > summary").click()
     page.get_by_role("link", name="Selected Summary", exact=True).click()
-    page.wait_for_load_state("networkidle")
-
-    expect(page.locator("#selected-items-counter")).to_have_text("1")
-    expect(checkbox).to_be_checked()
-
-
-def test_selection_extra_button_clears_after_success_when_opted_in(
-    page, books_url, sample_books
-):
-    """Opted-in selection-aware extra buttons should clear selection after success."""
-    page.goto(books_url)
-    page.wait_for_load_state("networkidle")
-
-    checkbox = page.locator("input.row-select-checkbox").first
-    expect(checkbox).to_be_visible()
-    checkbox.click()
-    expect(page.locator("#selected-items-counter")).to_have_text("1")
-
-    page.locator("[data-powercrud-extra-buttons-dropdown='true'] > summary").click()
-    page.get_by_role("link", name="Selected Summary (Clear)").click()
     page.wait_for_load_state("networkidle")
 
     expect(page.locator("#selected-items-counter")).to_have_text("0")

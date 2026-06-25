@@ -106,7 +106,7 @@ def test_sample_viewer_cannot_see_or_call_selected_summary(client):
 
     assert response.status_code == 200
     assert "Selected Summary" not in response.content.decode()
-    assert "Selected Summary (Clear)" not in response.content.decode()
+    assert "Selected Summary (Do Not Clear)" not in response.content.decode()
 
     response = client.get(reverse("sample:bigbook-selected-summary"))
 
@@ -123,7 +123,7 @@ def test_sample_manager_sees_selected_summary_disabled_without_selection(client)
 
     assert response.status_code == 200
     assert "Selected Summary" in response_text
-    assert "Selected Summary (Clear)" in response_text
+    assert "Selected Summary (Do Not Clear)" in response_text
     assert "Select at least one book first." in response_text
     assert "btn-disabled opacity-50" in response_text
 
@@ -141,7 +141,7 @@ def test_sample_manager_can_see_and_call_selected_summary(client):
 
     assert response.status_code == 200
     assert "Selected Summary" in response_text
-    assert "Selected Summary (Clear)" in response_text
+    assert "Selected Summary (Do Not Clear)" in response_text
     selected_summary_index = response_text.find("Selected Summary")
     selected_summary_anchor_start = response_text.rfind("<a ", 0, selected_summary_index)
     selected_summary_anchor_end = response_text.find(">", selected_summary_anchor_start)
@@ -164,13 +164,13 @@ def test_sample_powerbutton_demo_uses_same_permission_affordance(client):
     response = client.get(reverse("sample:powerfield-book-list"))
     assert response.status_code == 200
     assert "Selected Summary" not in response.content.decode()
-    assert "Selected Summary (Clear)" not in response.content.decode()
+    assert "Selected Summary (Do Not Clear)" not in response.content.decode()
 
     _login_as(client, "manager")
     response = client.get(reverse("sample:powerfield-book-list"))
     assert response.status_code == 200
     assert "Selected Summary" in response.content.decode()
-    assert "Selected Summary (Clear)" in response.content.decode()
+    assert "Selected Summary (Do Not Clear)" in response.content.decode()
 
 
 @pytest.mark.django_db

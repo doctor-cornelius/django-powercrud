@@ -140,7 +140,7 @@ def can_use_selected_summary(self, request, obj=None):
 
 Selection-aware header buttons read the current persisted PowerCRUD selection at the endpoint rather than expecting row IDs in the URL. They can render row selection controls even when `bulk_fields = []` and `bulk_delete = False`.
 
-Set `clear_selection_on_success = True` only for HTMX header buttons that consume the current selection. PowerCRUD clears the persisted selection after that button request succeeds; failed requests and ordinary summary/modal-preview buttons leave the selection intact.
+Selection-aware header buttons clear the persisted selection by default after a successful HTMX request completes. Set `clear_selection_on_success = False` for summary or preview buttons that merely read the current selection and should leave it intact. Failed requests leave the selection intact.
 
 Set `extra_button_selection_controls_disabled = True` if the button uses selected rows, but this list should not show checkboxes just because of that button.
 
@@ -163,7 +163,7 @@ Keep server-side validation in the endpoint even when you also disable the butto
     | `extra_attrs` | `str` | Raw HTML attributes appended to the button element when you need custom HTMX or data attributes. |
     | `extra_class_attrs` | `str` | Extra CSS classes appended to the button in addition to `button_class`. |
     | `uses_selection` | `bool` | When `True`, the endpoint should operate on the current persisted PowerCRUD selection. |
-    | `clear_selection_on_success` | `bool` | Clears the persisted selection after a successful HTMX request from a selection-aware button. Ignored unless `uses_selection=True`. |
+    | `clear_selection_on_success` | `bool` | Clears the persisted selection after a successful HTMX request from a selection-aware button. Defaults to `True` when `uses_selection=True`, otherwise `False`; ignored unless `uses_selection=True`. |
     | `selection_min_count` | `int` | Minimum number of selected rows required before the button is considered ready. |
     | `selection_min_behavior` | `str` | `'allow'` leaves the button clickable below the minimum and lets the endpoint handle the error; `'disable'` greys it out in the UI. |
     | `selection_min_reason` | `str` | Tooltip/help text shown when a selection-aware button is disabled because too few rows are selected. |

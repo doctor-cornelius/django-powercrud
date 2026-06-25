@@ -832,17 +832,25 @@ def test_core_mixin_normalizes_selection_extra_button_clear_on_success_flag():
                 "url_name": "sample:bigbook-selected-summary",
                 "text": "Selected Summary",
                 "uses_selection": True,
-                "clear_selection_on_success": True,
+            },
+            {
+                "url_name": "sample:bigbook-selected-summary",
+                "text": "Selected Summary Preview",
+                "uses_selection": True,
+                "clear_selection_on_success": False,
             },
         ]
 
     view = ButtonClearView()
 
     assert view.extra_buttons[0]["clear_selection_on_success"] is False, (
-        "Extra buttons should default clear_selection_on_success to False when omitted."
+        "Non-selection extra buttons should default clear_selection_on_success to False when omitted."
     )
     assert view.extra_buttons[1]["clear_selection_on_success"] is True, (
-        "Selection-aware extra buttons should preserve an explicit clear-on-success flag."
+        "Selection-aware extra buttons should clear on success by default."
+    )
+    assert view.extra_buttons[2]["clear_selection_on_success"] is False, (
+        "Selection-aware extra buttons should preserve an explicit clear-on-success opt-out."
     )
 
 
@@ -3558,8 +3566,8 @@ def test_book_list_renders_selection_aware_extra_button(client):
     assert "Selected Summary" in response_text, (
         "Sample book list should render the configured selection-aware extra button label."
     )
-    assert "Selected Summary (Clear)" in response_text, (
-        "Sample book list should render the clear-on-success extra button demo."
+    assert "Selected Summary (Do Not Clear)" in response_text, (
+        "Sample book list should render the clear-on-success opt-out extra button demo."
     )
     selected_summary_index = response_text.find("Selected Summary")
     selected_summary_anchor_start = response_text.rfind("<a ", 0, selected_summary_index)
@@ -3576,21 +3584,27 @@ def test_book_list_renders_selection_aware_extra_button(client):
     assert "data-powercrud-modal-box-classes" not in selected_summary_link, (
         "Selected Summary should use the view default modal width rather than a per-button override."
     )
-    selected_summary_clear_index = response_text.find("Selected Summary (Clear)")
-    selected_summary_clear_anchor_start = response_text.rfind(
+    assert 'data-powercrud-clear-selection-on-success="true"' in selected_summary_link, (
+        "Selected Summary should expose the default clear-on-success frontend marker."
+    )
+    selected_summary_no_clear_index = response_text.find("Selected Summary (Do Not Clear)")
+    selected_summary_no_clear_anchor_start = response_text.rfind(
         "<a ",
         0,
-        selected_summary_clear_index,
+        selected_summary_no_clear_index,
     )
-    selected_summary_clear_anchor_end = response_text.find(
+    selected_summary_no_clear_anchor_end = response_text.find(
         ">",
-        selected_summary_clear_anchor_start,
+        selected_summary_no_clear_anchor_start,
     )
-    selected_summary_clear_link = response_text[
-        selected_summary_clear_anchor_start:selected_summary_clear_anchor_end
+    selected_summary_no_clear_link = response_text[
+        selected_summary_no_clear_anchor_start:selected_summary_no_clear_anchor_end
     ]
-    assert 'data-powercrud-clear-selection-on-success="true"' in selected_summary_clear_link, (
-        "Selected Summary (Clear) should expose the clear-on-success frontend marker."
+    assert (
+        'data-powercrud-clear-selection-on-success="true"'
+        not in selected_summary_no_clear_link
+    ), (
+        "Selected Summary (Do Not Clear) should opt out of the clear-on-success frontend marker."
     )
     assert "Home in Modal!" in response_text, (
         "Sample book list should keep a separate modal header button for per-button sizing."

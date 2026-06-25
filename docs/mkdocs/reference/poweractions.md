@@ -108,7 +108,7 @@ PowerButton(
     extra_attrs=None,
     extra_class_attrs=None,
     uses_selection=False,
-    clear_selection_on_success=False,
+    clear_selection_on_success=None,
     selection_min_count=0,
     selection_min_behavior="allow",
     selection_min_reason=None,
@@ -132,7 +132,7 @@ PowerButton(
 | `extra_attrs` | `None` | Raw HTML attributes appended to the button element. |
 | `extra_class_attrs` | `None` | Extra CSS classes appended after the standard button classes. |
 | `uses_selection` | `False` | Endpoint should operate on the current persisted PowerCRUD selection. |
-| `clear_selection_on_success` | `False` | Clear the persisted selection after a successful HTMX request. Ignored unless `uses_selection=True`. |
+| `clear_selection_on_success` | `None` | Clear the persisted selection after a successful HTMX request. `None` follows `uses_selection`, so selection-aware buttons clear by default. Ignored unless `uses_selection=True`. |
 | `selection_min_count` | `0` | Minimum selected-row count required. |
 | `selection_min_behavior` | `"allow"` | `"allow"` keeps the button clickable; `"disable"` disables it below the minimum. |
 | `selection_min_reason` | `None` | Disabled tooltip/help text when the selected count is too low. |
@@ -147,7 +147,7 @@ Any constructor parameter in the table above can be passed to `with_options(...)
 
 `uses_selection=True` can render row selection controls even when the view has no built-in bulk edit/delete configuration.
 
-Set `clear_selection_on_success=True` only when the button's successful HTMX request consumes the current selection. Leave it off for summary or preview modals that merely read the selected rows.
+Selection-aware buttons clear persisted selection after a successful HTMX request by default. Set `clear_selection_on_success=False` for summary or preview modals that merely read the selected rows and should preserve the user's selection.
 
 Set `extra_button_selection_controls_disabled = True` on the view if the button uses selected rows, but this list should not show checkboxes just because of that button.
 
@@ -168,6 +168,10 @@ SELECTED_MODAL = PowerButton(
 
 extra_buttons = [
     SELECTED_MODAL,
+    SELECTED_MODAL.with_options(
+        text="Selected Summary (Do Not Clear)",
+        clear_selection_on_success=False,
+    ),
     SELECTED_MODAL.with_options(
         text="Selected Export",
         url_name="sample:book-selected-export",

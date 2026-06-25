@@ -378,7 +378,7 @@ export function createBulkActionsRuntime(context) {
 
         clearSelectionOptimistic(root);
         htmx.ajax('POST', `${listUrl}clear-selection/`, {
-            source: target,
+            source: actionsContainer,
             target: '#bulk-actions-container',
             swap: 'outerHTML',
         });

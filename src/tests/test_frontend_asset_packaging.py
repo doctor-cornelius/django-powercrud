@@ -125,6 +125,9 @@ def test_runtime_js_clears_opted_in_selection_extra_buttons_after_success() -> N
     assert (
         "event.detail?.successful !== true" in bulk_actions
     ), "Selection-aware extra buttons should clear only after successful HTMX requests."
+    assert (
+        "source: actionsContainer" in bulk_actions
+    ), "Internal clear requests should not reuse the marked extra button as their HTMX source."
 
 
 def test_runtime_startup_centralises_once_only_listener_registration() -> None:

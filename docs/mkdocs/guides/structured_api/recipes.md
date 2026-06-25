@@ -126,11 +126,12 @@ Use this when toolbar buttons share the same selection rules.
     ```python
     extra_buttons = [
         {
-            "text": "Selected Summary",
+            "text": "Selected Summary (Do Not Clear)",
             "url_name": "sample:book-selected-summary",
             "needs_pk": False,
             "display_modal": True,
             "uses_selection": True,
+            "clear_selection_on_success": False,
             "selection_min_count": 1,
             "selection_min_behavior": "disable",
             "selection_min_reason": "Select at least one row first.",
@@ -166,6 +167,10 @@ Use this when toolbar buttons share the same selection rules.
 
     extra_buttons = [
         SELECTED_MODAL,
+        SELECTED_MODAL.with_options(
+            text="Selected Summary (Do Not Clear)",
+            clear_selection_on_success=False,
+        ),
         SELECTED_MODAL.with_options(
             text="Selected Export",
             url_name="sample:book-selected-export",

@@ -1125,7 +1125,7 @@ class ConfigMixin:
             uses_selection = bool(normalized.get("uses_selection", False))
             clear_selection_on_success = normalized.get(
                 "clear_selection_on_success",
-                False,
+                uses_selection,
             )
             selection_min_count = normalized.get("selection_min_count", 0)
             selection_min_behavior = normalized.get("selection_min_behavior", "allow")

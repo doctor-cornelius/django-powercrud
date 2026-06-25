@@ -198,7 +198,6 @@ def test_powerbutton_to_dict_exposes_primitive_extra_button_config():
         url_name="sample:book-selected-summary",
         display_modal=True,
         uses_selection=True,
-        clear_selection_on_success=True,
         selection_min_count=1,
         selection_min_behavior="disable",
         selection_min_reason="Select at least one book first.",
@@ -218,6 +217,21 @@ def test_powerbutton_to_dict_exposes_primitive_extra_button_config():
     }, "PowerButton should compile to the primitive extra_buttons dictionary shape."
 
 
+def test_powerbutton_to_dict_preserves_selection_clear_opt_out():
+    """Allow read-only selection buttons to preserve selection after success."""
+    button = PowerButton(
+        text="Selected Summary Preview",
+        url_name="sample:book-selected-summary",
+        display_modal=True,
+        uses_selection=True,
+        clear_selection_on_success=False,
+    )
+
+    assert button.to_dict()["clear_selection_on_success"] is False, (
+        "PowerButton should preserve an explicit clear_selection_on_success=False opt-out."
+    )
+
+
 def test_powerbutton_to_dict_omits_non_selection_default_thresholds():
     button = PowerButton(
         text="Approvals Queue",
@@ -231,6 +245,9 @@ def test_powerbutton_to_dict_omits_non_selection_default_thresholds():
 
     assert button_dict["uses_selection"] is False, (
         "Plain PowerButton declarations should still expose the normalized selection flag."
+    )
+    assert button_dict["clear_selection_on_success"] is False, (
+        "Plain PowerButton declarations should not clear selections by default."
     )
     assert "selection_min_count" not in button_dict, (
         "Plain PowerButton declarations should not serialize generated selection defaults."
