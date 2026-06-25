@@ -3558,6 +3558,9 @@ def test_book_list_renders_selection_aware_extra_button(client):
     assert "Selected Summary" in response_text, (
         "Sample book list should render the configured selection-aware extra button label."
     )
+    assert "Selected Summary (Clear)" in response_text, (
+        "Sample book list should render the clear-on-success extra button demo."
+    )
     selected_summary_index = response_text.find("Selected Summary")
     selected_summary_anchor_start = response_text.rfind("<a ", 0, selected_summary_index)
     selected_summary_anchor_end = response_text.find(">", selected_summary_anchor_start)
@@ -3572,6 +3575,22 @@ def test_book_list_renders_selection_aware_extra_button(client):
     )
     assert "data-powercrud-modal-box-classes" not in selected_summary_link, (
         "Selected Summary should use the view default modal width rather than a per-button override."
+    )
+    selected_summary_clear_index = response_text.find("Selected Summary (Clear)")
+    selected_summary_clear_anchor_start = response_text.rfind(
+        "<a ",
+        0,
+        selected_summary_clear_index,
+    )
+    selected_summary_clear_anchor_end = response_text.find(
+        ">",
+        selected_summary_clear_anchor_start,
+    )
+    selected_summary_clear_link = response_text[
+        selected_summary_clear_anchor_start:selected_summary_clear_anchor_end
+    ]
+    assert 'data-powercrud-clear-selection-on-success="true"' in selected_summary_clear_link, (
+        "Selected Summary (Clear) should expose the clear-on-success frontend marker."
     )
     assert "Home in Modal!" in response_text, (
         "Sample book list should keep a separate modal header button for per-button sizing."

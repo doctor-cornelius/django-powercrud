@@ -77,7 +77,7 @@ def test_selection_extra_button_does_not_clear_without_opt_in(
     expect(page.locator("#selected-items-counter")).to_have_text("1")
 
     page.locator("[data-powercrud-extra-buttons-dropdown='true'] > summary").click()
-    page.get_by_role("link", name="Selected Summary").click()
+    page.get_by_role("link", name="Selected Summary", exact=True).click()
     page.wait_for_load_state("networkidle")
 
     expect(page.locator("#selected-items-counter")).to_have_text("1")
@@ -96,16 +96,8 @@ def test_selection_extra_button_clears_after_success_when_opted_in(
     checkbox.click()
     expect(page.locator("#selected-items-counter")).to_have_text("1")
 
-    selected_summary = page.locator(
-        "[data-powercrud-selection-aware='true']",
-        has_text="Selected Summary",
-    )
-    selected_summary.evaluate(
-        "el => el.setAttribute('data-powercrud-clear-selection-on-success', 'true')"
-    )
-
     page.locator("[data-powercrud-extra-buttons-dropdown='true'] > summary").click()
-    page.get_by_role("link", name="Selected Summary").click()
+    page.get_by_role("link", name="Selected Summary (Clear)").click()
     page.wait_for_load_state("networkidle")
 
     expect(page.locator("#selected-items-counter")).to_have_text("0")

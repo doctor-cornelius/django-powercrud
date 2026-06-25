@@ -133,7 +133,7 @@ class BookCRUDView(PowerCRUDAsyncMixin, CRUDView):
     dropdown_sort_options = {"author": "name"}
     inline_edit_fields = ['title', 'author', 'genres', 'published_date', 'bestseller', 'description']
     
-    extra_buttons = [...]  # Includes a selection-aware "Selected Summary" demo
+    extra_buttons = [...]  # Includes preserving and clear-on-success selection demos
     extra_actions = [...]  # Includes a conditional "Description Preview" demo
 
     def get_title_tooltip(self, obj, request=None):
@@ -216,6 +216,8 @@ class AnnotatedBookCRUDView(PowerCRUDAsyncMixin, CRUDView):
 The `long_book` column is not a model field. It is the public queryset annotation name, and PowerCRUD uses that same name in `fields`, generated filters, sorting, header help, cell tooltips, and list-column selection. The sample sets `list_options_enabled = True` and keeps `long_book` out of `default_list_fields` so it appears as an optional selectable column in the **Cols** control. The sample makes the real `pages` model field inline-editable while keeping `long_book` out of inline edit and bulk edit config because annotation fields are read-only.
 
 The same annotated list also demonstrates selection controls for a selection-aware toolbar button without enabling built-in bulk edit/delete. `Annotated Selection Summary` uses `uses_selection=True`, while `bulk_fields = []` and `bulk_delete = False`, so row selection exists solely for the custom modal endpoint. See [Queryset Annotation Fields](../guides/advanced/queryset_annotation_fields.md) for the declaration details behind this sample.
+
+The main Books list has two selected-summary toolbar demos. `Selected Summary` reads the current selection and preserves it after the modal opens. `Selected Summary (Clear)` reads the same selection but sets `clear_selection_on_success=True`, so PowerCRUD clears the persisted selection after the HTMX request succeeds.
 
 The sample frontend now also shows the downstream tooltip-styling path. In [`src/config/static/css/app.custom.css`](https://github.com/doctor-cornelius/django-powercrud/blob/main/src/config/static/css/app.custom.css), the sample app actively overrides `--pc-tooltip-bg` and `--pc-tooltip-fg` to use daisyUI's primary semantic tokens, while PowerCRUD itself keeps neutral tooltip defaults. The sample Vite entry imports that file after `powercrud/css/powercrud.css`, so readers can inspect the real app-level override pattern rather than only reading about it in the styling guide.
 
@@ -426,7 +428,7 @@ When the user changes `author` inline, PowerCRUD posts the current row data to t
 - **GenreCRUDView**: Minimal configuration example plus two focused delete demos: a guarded row (`Guarded Sample Genre`) that disables the built-in Delete action before click, and a protected row (`Protected Sample Genre`) that demonstrates handled single-delete `ValidationError` responses after submit
 - **ProfileCRUDView**: OneToOneField, the sample app's column-alignment demo (`status` centered, `priority_band` right-aligned, `favorite_genre` left-aligned), inline editing, bulk operations, merged nullable relation filtering on `favorite_genre`, and a static queryset rule that limits `favorite_genre` choices to genres whose names start with `S`
 - **AuthorCRUDView**: Properties, filtering, template debugging, companion nullable scalar filtering on `birth_date`, the sample app's red inline-edit highlight accent demo, and visible row-level `extra_actions` in the default button mode
-- **BookCRUDView**: Async bulk editing, dependent `author -> genres` queryset scoping, `view_title` / `view_instructions` / `view_help` heading-area overrides, `column_help_text` header tooltips, list options through **Cols**, semantic field-level list-cell tooltips on inline and non-inline columns, declarative modal and external list-cell link demos, permission-aware Create/Detail/Edit/Delete and custom action affordances, selection-aware `extra_buttons` in the top toolbar overflow menu, dropdown row actions that open upward for the last five rendered rows, and a guarded sample row for built-in Edit and inline update guards
+- **BookCRUDView**: Async bulk editing, dependent `author -> genres` queryset scoping, `view_title` / `view_instructions` / `view_help` heading-area overrides, `column_help_text` header tooltips, list options through **Cols**, semantic field-level list-cell tooltips on inline and non-inline columns, declarative modal and external list-cell link demos, permission-aware Create/Detail/Edit/Delete and custom action affordances, preserving and clear-on-success selection-aware `extra_buttons` in the top toolbar overflow menu, dropdown row actions that open upward for the last five rendered rows, and a guarded sample row for built-in Edit and inline update guards
 - **AnnotatedBookCRUDView**: Queryset annotation fields, annotation filters, list options, inline editing of the real `pages` model field, and a selection-aware toolbar button that renders selector controls without built-in bulk edit/delete
 
 The `Genre` sample keeps these delete demos deliberately narrow:
@@ -526,6 +528,17 @@ extra_buttons = [
         "permission_check": "can_use_selected_summary",
         "permission_behavior": "hide",
     },
+    {
+        "url_name": "sample:bigbook-selected-summary",
+        "text": "Selected Summary (Clear)",
+        "display_modal": True,
+        "uses_selection": True,
+        "clear_selection_on_success": True,
+        "selection_min_count": 1,
+        "selection_min_behavior": "disable",
+        "permission_check": "can_use_selected_summary",
+        "permission_behavior": "hide",
+    },
 ]
 
 extra_actions = [
@@ -545,7 +558,7 @@ extra_actions = [
 ]
 ```
 
-That lets the sample app demonstrate permission-hidden header actions, selection-aware header actions, hidden row actions, conditionally disabled row actions, lazy dropdown hidden-state and disabled-state hydration, and per-trigger modal sizing in the same CRUD surface. `permission_check` omits actions before row or selection state is evaluated. `hidden_if` omits a row action when it is not applicable. `hidden_if_mode = "lazy"` keeps that relevance check out of the initial list render and resolves it when the row `More` menu opens. `disabled_state` is the single-hook disabled contract: return a non-empty string to disable the action and show that string as the reason. `disabled_state_mode = "lazy"` keeps that exact disabled reason out of the initial list render and resolves it when the row `More` menu opens. `Selected Summary` intentionally uses the view default modal width, while `Home in Modal!` shows a header-button override. The `modal_box_classes` entries are full replacement strings: they keep the default viewport-height classes and add per-trigger width classes for those specific modal calls.
+That lets the sample app demonstrate permission-hidden header actions, preserving and clear-on-success selection-aware header actions, hidden row actions, conditionally disabled row actions, lazy dropdown hidden-state and disabled-state hydration, and per-trigger modal sizing in the same CRUD surface. `permission_check` omits actions before row or selection state is evaluated. `hidden_if` omits a row action when it is not applicable. `hidden_if_mode = "lazy"` keeps that relevance check out of the initial list render and resolves it when the row `More` menu opens. `disabled_state` is the single-hook disabled contract: return a non-empty string to disable the action and show that string as the reason. `disabled_state_mode = "lazy"` keeps that exact disabled reason out of the initial list render and resolves it when the row `More` menu opens. `Selected Summary` intentionally preserves selection and uses the view default modal width, while `Selected Summary (Clear)` demonstrates `clear_selection_on_success=True`. `Home in Modal!` shows a header-button modal-width override. The `modal_box_classes` entries are full replacement strings: they keep the default viewport-height classes and add per-trigger width classes for those specific modal calls.
 
 The top-left sample login menu includes a viewer and manager:
 
