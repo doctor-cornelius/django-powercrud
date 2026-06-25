@@ -135,6 +135,7 @@ Use `PowerButton` for list-level `extra_buttons`.
                 "needs_pk": False,
                 "display_modal": True,
                 "uses_selection": True,
+                "clear_selection_on_success": True,
                 "selection_min_count": 1,
                 "selection_min_behavior": "disable",
                 "selection_min_reason": "Select at least one row to export.",
@@ -160,6 +161,7 @@ Use `PowerButton` for list-level `extra_buttons`.
             SELECTED_MODAL.with_options(
                 text="Selected Export",
                 url_name="sample:book-selected-export",
+                clear_selection_on_success=True,
                 selection_min_reason="Select at least one row to export.",
             ),
         ]
@@ -187,6 +189,8 @@ def can_use_selected_summary(self, request, obj=None):
 ```
 
 `uses_selection=True` can render row selection controls even when the view has no built-in bulk edit/delete configuration.
+
+Use `clear_selection_on_success=True` only for selection-consuming HTMX actions, such as an export or submit endpoint. Leave it off for summary or preview modals that should preserve the user's selection.
 
 Set `extra_button_selection_controls_disabled = True` on the view if the button uses selected rows, but this list should not show checkboxes just because of that button.
 

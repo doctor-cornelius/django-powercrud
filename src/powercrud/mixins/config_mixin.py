@@ -1123,6 +1123,10 @@ class ConfigMixin:
 
             normalized = button.copy()
             uses_selection = bool(normalized.get("uses_selection", False))
+            clear_selection_on_success = normalized.get(
+                "clear_selection_on_success",
+                False,
+            )
             selection_min_count = normalized.get("selection_min_count", 0)
             selection_min_behavior = normalized.get("selection_min_behavior", "allow")
 
@@ -1142,6 +1146,11 @@ class ConfigMixin:
                 raise ValueError(
                     "extra_buttons[%s].selection_min_behavior must be "
                     "'allow' or 'disable'" % index
+                )
+
+            if not isinstance(clear_selection_on_success, bool):
+                raise ValueError(
+                    f"extra_buttons[{index}].clear_selection_on_success must be True or False"
                 )
 
             if uses_selection and normalized.get("needs_pk", False):
@@ -1164,7 +1173,16 @@ class ConfigMixin:
                     index,
                 )
 
+            if clear_selection_on_success and not uses_selection:
+                log.warning(
+                    "extra_buttons[%s] defines clear_selection_on_success without uses_selection=True; "
+                    "PowerCRUD will ignore the clear-on-success flag",
+                    index,
+                )
+                clear_selection_on_success = False
+
             normalized["uses_selection"] = uses_selection
+            normalized["clear_selection_on_success"] = clear_selection_on_success
             normalized["selection_min_count"] = selection_min_count
             normalized["selection_min_behavior"] = selection_min_behavior
             normalized["refresh_list_on_modal_close"] = (

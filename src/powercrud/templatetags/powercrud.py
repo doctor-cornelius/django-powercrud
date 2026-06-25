@@ -1676,6 +1676,10 @@ def extra_buttons(context: Dict[str, Any], view: Any) -> str:
 
             if not disable_permission and selection_state["uses_selection"]:
                 disabled_attrs.append('data-powercrud-selection-aware="true"')
+                if button.get("clear_selection_on_success", False):
+                    disabled_attrs.append(
+                        'data-powercrud-clear-selection-on-success="true"'
+                    )
                 disabled_attrs.append(
                     f'data-powercrud-selection-min-count="{selection_state["selection_min_count"]}"'
                 )

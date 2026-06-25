@@ -675,6 +675,7 @@ import { createCurrentTemplateRuntime } from './runtime/current-template.js';
                     stopButtonSpinner(target);
                 }
                 bulkActions.handleBulkHtmxAfterRequest(target);
+                bulkActions.handleSelectionExtraButtonAfterRequest(event, target);
                 filterFavourites.handleHtmxAfterRequest(event);
                 inlineEdit.handleHtmxAfterRequest(target);
             },

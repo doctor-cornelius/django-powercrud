@@ -195,6 +195,7 @@ class PowerButton:
     extra_attrs: str | None = None
     extra_class_attrs: str | None = None
     uses_selection: bool = False
+    clear_selection_on_success: bool = False
     selection_min_count: int = 0
     selection_min_behavior: str = "allow"
     selection_min_reason: str | None = None
@@ -213,6 +214,7 @@ class PowerButton:
             "display_modal",
             "refresh_list_on_modal_close",
             "uses_selection",
+            "clear_selection_on_success",
         ):
             _validate_bool(getattr(self, field_name), field_name, class_name)
         try:
@@ -256,6 +258,7 @@ class PowerButton:
             "extra_attrs": self.extra_attrs,
             "extra_class_attrs": self.extra_class_attrs,
             "uses_selection": self.uses_selection,
+            "clear_selection_on_success": self.clear_selection_on_success,
             "permission": self.permission,
             "permission_check": self.permission_check,
             "permission_behavior": self.permission_behavior,

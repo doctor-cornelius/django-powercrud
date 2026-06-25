@@ -108,6 +108,7 @@ PowerButton(
     extra_attrs=None,
     extra_class_attrs=None,
     uses_selection=False,
+    clear_selection_on_success=False,
     selection_min_count=0,
     selection_min_behavior="allow",
     selection_min_reason=None,
@@ -131,6 +132,7 @@ PowerButton(
 | `extra_attrs` | `None` | Raw HTML attributes appended to the button element. |
 | `extra_class_attrs` | `None` | Extra CSS classes appended after the standard button classes. |
 | `uses_selection` | `False` | Endpoint should operate on the current persisted PowerCRUD selection. |
+| `clear_selection_on_success` | `False` | Clear the persisted selection after a successful HTMX request. Ignored unless `uses_selection=True`. |
 | `selection_min_count` | `0` | Minimum selected-row count required. |
 | `selection_min_behavior` | `"allow"` | `"allow"` keeps the button clickable; `"disable"` disables it below the minimum. |
 | `selection_min_reason` | `None` | Disabled tooltip/help text when the selected count is too low. |
@@ -144,6 +146,8 @@ PowerButton(
 Any constructor parameter in the table above can be passed to `with_options(...)`.
 
 `uses_selection=True` can render row selection controls even when the view has no built-in bulk edit/delete configuration.
+
+Set `clear_selection_on_success=True` only when the button's successful HTMX request consumes the current selection. Leave it off for summary or preview modals that merely read the selected rows.
 
 Set `extra_button_selection_controls_disabled = True` on the view if the button uses selected rows, but this list should not show checkboxes just because of that button.
 
@@ -191,6 +195,7 @@ extra_buttons = [
 - `permission_denied_reason` is only used by disabled permission failures.
 - `PowerButton.selection_min_behavior` must be `"allow"` or `"disable"`.
 - `PowerButton` cannot combine `uses_selection=True` with `needs_pk=True`.
+- `PowerButton.clear_selection_on_success` is ignored unless `uses_selection=True`.
 
 Base dictionaries remain valid and are still the underlying Action API. `PowerAction` and `PowerButton` are for reuse, defaults, and early validation.
 
