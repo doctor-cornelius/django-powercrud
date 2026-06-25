@@ -86,6 +86,75 @@ def test_row_actions_floating_panel_modal_action_uses_cloned_trigger_classes(
     expect(floating_panel).not_to_be_visible()
 
 
+def test_row_actions_menu_hydrates_lazy_disabled_state(
+    page, books_url, sample_books
+):
+    """Opening More should fetch and apply lazy disabled-state details."""
+
+    target_book = sample_books[0]
+    target_book.description = ""
+    target_book.save(update_fields=["description"])
+
+    page.goto(f"{books_url}?page_size=2")
+    page.wait_for_load_state("networkidle")
+
+    row = page.get_by_role("row").filter(has_text=target_book.title)
+    trigger = row.locator("[data-powercrud-row-actions-trigger='true']").first
+
+    with page.expect_request(
+        lambda request: (
+            request.method == "GET"
+            and f"/sample/bigbook/{target_book.pk}/row-action-states/"
+            in request.url
+        )
+    ):
+        trigger.dispatch_event("click")
+
+    floating_panel = page.locator("[data-powercrud-row-actions-floating-panel='true']")
+    expect(floating_panel).to_be_visible()
+    description_preview = floating_panel.get_by_role(
+        "link",
+        name="Description Preview",
+    )
+    expect(description_preview).to_have_attribute("aria-disabled", "true")
+    expect(description_preview).to_have_attribute(
+        "data-tippy-content",
+        "This book does not have a description yet.",
+    )
+
+
+def test_row_actions_menu_disables_lazy_actions_when_state_fetch_fails(
+    page, books_url, sample_books
+):
+    """Failed lazy state requests should leave unresolved lazy actions disabled."""
+
+    target_book = sample_books[0]
+
+    page.route(
+        "**/row-action-states/",
+        lambda route: route.fulfill(status=500, body="error"),
+    )
+    page.goto(f"{books_url}?page_size=2")
+    page.wait_for_load_state("networkidle")
+
+    row = page.get_by_role("row").filter(has_text=target_book.title)
+    row.locator("[data-powercrud-row-actions-trigger='true']").first.dispatch_event(
+        "click"
+    )
+
+    floating_panel = page.locator("[data-powercrud-row-actions-floating-panel='true']")
+    expect(floating_panel).to_be_visible()
+    description_preview = floating_panel.get_by_role(
+        "link",
+        name="Description Preview",
+    )
+    expect(description_preview).to_have_attribute("aria-disabled", "true")
+    expect(description_preview).to_have_attribute(
+        "data-tippy-content",
+        "Unable to validate current availability.",
+    )
+
+
 def test_row_actions_flagged_modal_close_refreshes_current_list(
     page, books_url, sample_books
 ):

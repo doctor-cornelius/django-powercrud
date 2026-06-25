@@ -5,6 +5,7 @@ nav:
   - Queryset Annotation Fields: queryset_annotation_fields.md
   - List Options: list_options.md
   - Saved Favourites: filter_favourites.md
+  - Lazy Evaluation: lazy_evaluation.md
   - Permission-Aware Affordances: permission_aware_affordances.md
   - Persistence Hooks: persistence_hooks_sync.md
   - Async Bulk Persistence: persistence_hooks_async_bulk.md

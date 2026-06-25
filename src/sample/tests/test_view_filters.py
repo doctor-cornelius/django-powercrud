@@ -446,11 +446,11 @@ def test_powerfield_book_sample_view_matches_book_field_intent_config():
     )
     assert powerfield_view.list_cell_tooltip_fields == {
         "title": "get_title_tooltip",
-        "pages": "get_pages_tooltip",
+        "pages": {"hook": "get_pages_tooltip", "mode": "lazy"},
         "isbn_empty": "get_isbn_empty_tooltip",
     }, (
         "PowerFieldBookCRUDView should compile tooltip_hook declarations to the "
-        "preferred primitive tooltip hook mapping."
+        "same primitive tooltip mapping as BookCRUDView, including lazy mode where configured."
     )
 
     primitive_links = primitive_view.link_fields
@@ -619,8 +619,17 @@ def test_book_sample_view_demonstrates_property_link_fields():
     assert sample_views.BookCRUDView.list_cell_link_default_open_in == "modal", (
         "BookCRUDView should make modal opening the view-wide default for list-cell link demos."
     )
-    assert cell_map["pages"]["tooltip_text"] == "Page count: 321", (
-        "BookCRUDView should demonstrate semantic list-cell tooltips on a visible non-inline model field."
+    assert cell_map["pages"]["tooltip_text"] is None, (
+        "BookCRUDView should defer the lazy pages tooltip during list rendering."
+    )
+    assert cell_map["pages"]["tooltip_mode"] == "lazy", (
+        "BookCRUDView should mark the visible non-inline pages field for lazy semantic tooltip hydration."
+    )
+    assert cell_map["pages"]["tooltip_url"] == reverse(
+        "sample:bigbook-cell-tooltip",
+        kwargs={"pk": book.pk, "field_name": "pages"},
+    ), (
+        "BookCRUDView should expose the lazy tooltip endpoint for the visible non-inline pages field."
     )
     assert cell_map["pages"]["link"] == {
         "url": reverse("sample:bigbook-detail", kwargs={"pk": book.pk}),

@@ -9,6 +9,8 @@ from powercrud.logging import get_logger
 from .config_mixin import (
     DEFAULT_MODAL_BODY_CLASSES,
     DEFAULT_MODAL_BOX_CLASSES,
+    has_lazy_list_cell_tooltip_state,
+    has_lazy_row_action_state,
     has_selection_aware_extra_buttons,
     resolve_class_config,
     resolve_config,
@@ -311,6 +313,32 @@ class UrlMixin:
                     f"{cls.url_base}/columns/",
                     cls.as_view(role=Role.LIST, list_options_action="columns"),
                     name=f"{cls.url_base}-columns",
+                )
+            )
+
+        if has_lazy_row_action_state(getattr(cfg, "extra_actions", [])):
+            lookup_kwarg = getattr(cls, "lookup_url_kwarg", None) or getattr(
+                cls, "lookup_field", "pk"
+            )
+            urls.append(
+                path(
+                    f"{cls.url_base}/<{lookup_kwarg}>/row-action-states/",
+                    cls.as_view(role=Role.LIST, row_action_state_action="states"),
+                    name=f"{cls.url_base}-row-action-states",
+                )
+            )
+
+        if has_lazy_list_cell_tooltip_state(
+            getattr(cfg, "list_cell_tooltip_fields", None)
+        ):
+            lookup_kwarg = getattr(cls, "lookup_url_kwarg", None) or getattr(
+                cls, "lookup_field", "pk"
+            )
+            urls.append(
+                path(
+                    f"{cls.url_base}/<{lookup_kwarg}>/cell-tooltip/<str:field_name>/",
+                    cls.as_view(role=Role.LIST, cell_tooltip_action="content"),
+                    name=f"{cls.url_base}-cell-tooltip",
                 )
             )
 

@@ -83,6 +83,7 @@ class PowerAction:
     refresh_list_on_modal_close: bool = False
     hidden_if: str | None = None
     disabled_state: str | None = None
+    disabled_state_mode: str | None = None
     disabled_if: str | None = None
     disabled_reason: str | None = None
     permission: str | None = None
@@ -106,6 +107,7 @@ class PowerAction:
         for field_name in (
             "hidden_if",
             "disabled_state",
+            "disabled_state_mode",
             "disabled_if",
             "disabled_reason",
         ):
@@ -118,6 +120,15 @@ class PowerAction:
             raise ValueError(
                 "PowerAction cannot combine disabled_state with disabled_if or disabled_reason"
             )
+        if self.disabled_state_mode is not None:
+            if self.disabled_state_mode not in {"eager", "lazy"}:
+                raise ValueError(
+                    "PowerAction.disabled_state_mode must be 'eager' or 'lazy'"
+                )
+            if self.disabled_state_mode == "lazy" and not self.disabled_state:
+                raise ValueError(
+                    "PowerAction.disabled_state_mode='lazy' requires disabled_state"
+                )
         if self.disabled_reason and not self.disabled_if:
             raise ValueError(
                 "PowerAction.disabled_reason requires disabled_if; use disabled_state for a single-hook disabled contract"
@@ -150,6 +161,7 @@ class PowerAction:
                 "refresh_list_on_modal_close": self.refresh_list_on_modal_close,
                 "hidden_if": self.hidden_if,
                 "disabled_state": self.disabled_state,
+                "disabled_state_mode": self.disabled_state_mode,
                 "disabled_if": self.disabled_if,
                 "disabled_reason": self.disabled_reason,
                 "permission": self.permission,

@@ -177,13 +177,14 @@ class BookCRUDView(SampleCRUDMixin):
         "pages": "Demo link: opens this book detail in the current page.",
         "isbn": "Demo link: opens an external ISBN reference in a new tab or window.",
         "isbn_empty": "Shows whether this row currently has an ISBN value.",
+        "description_empty": "Shows whether this row currently has description text.",
         "a_really_long_property_header_for_title": (
             "Demo link: opens the related author detail in a larger PowerCRUD modal."
         ),
     }
     list_cell_tooltip_fields = {
         "title": "get_title_tooltip",
-        "pages": "get_pages_tooltip",
+        "pages": {"hook": "get_pages_tooltip", "mode": "lazy"},
         "isbn_empty": "get_isbn_empty_tooltip",
     }
     list_cell_link_default_open_in = "modal"
@@ -366,6 +367,7 @@ class BookCRUDView(SampleCRUDMixin):
             "permission_behavior": "hide",
             "hidden_if": "should_hide_description_preview",
             "disabled_state": "get_description_preview_disabled_state",
+            "disabled_state_mode": "lazy",
             "modal_box_classes": "modal-box flex max-h-[calc(100dvh-2rem)] w-11/12 max-w-5xl flex-col",
         },
     ]
@@ -601,6 +603,7 @@ class PowerFieldBookCRUDView(SampleCRUDMixin):
             "pages",
             default_list=True,
             tooltip_hook="get_pages_tooltip",
+            tooltip_mode="lazy",
             form=True,
             bulk=True,
             column={
@@ -650,6 +653,16 @@ class PowerFieldBookCRUDView(SampleCRUDMixin):
             default_list=True,
             tooltip_hook="get_isbn_empty_tooltip",
             column={"help_text": "Shows whether this row currently has an ISBN value."},
+        ),
+        PowerField(
+            "description_empty",
+            property=True,
+            detail_property=True,
+            column={
+                "help_text": (
+                    "Shows whether this row currently has description text."
+                )
+            },
         ),
         PowerField(
             "a_really_long_property_header_for_title",
@@ -777,6 +790,7 @@ class PowerFieldBookCRUDView(SampleCRUDMixin):
             permission_behavior="hide",
             hidden_if="should_hide_description_preview",
             disabled_state="get_description_preview_disabled_state",
+            disabled_state_mode="lazy",
             modal_box_classes=(
                 "modal-box flex max-h-[calc(100dvh-2rem)] w-11/12 "
                 "max-w-5xl flex-col"

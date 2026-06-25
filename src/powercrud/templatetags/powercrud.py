@@ -24,8 +24,18 @@ from django.utils.translation import gettext_lazy as _
 from django.db import models
 
 from powercrud.conf import get_powercrud_setting
+from powercrud.cell_tooltips import (
+    normalize_list_cell_tooltip_specs,
+    resolve_list_cell_tooltip,
+)
 from powercrud.labels import resolve_field_label, resolve_property_label
 from powercrud.logging import get_logger
+from powercrud.row_actions import (
+    is_lazy_disabled_state_action,
+    resolve_extra_action_disabled_state as _resolve_extra_action_disabled_state,
+    resolve_extra_action_hidden_state as _resolve_extra_action_hidden_state,
+    resolve_extra_action_permission_state as _resolve_extra_action_permission_state,
+)
 
 log = get_logger(__name__)
 
@@ -186,110 +196,6 @@ def _resolve_modal_action_url(
     return f"{url}{separator}{query_string}"
 
 
-def _resolve_named_view_method(view: Any, method_name: str | None) -> Any:
-    """
-    Resolve a named method on the view, returning None when unavailable.
-    """
-    if not method_name:
-        return None
-    resolver = getattr(view, method_name, None)
-    if callable(resolver):
-        return resolver
-    return None
-
-
-def _resolve_extra_action_disabled_state(
-    *,
-    view: Any,
-    object: Any,
-    action: Dict[str, Any],
-    request: Any,
-    lock_reason: str | None,
-    lock_label: str | None,
-) -> tuple[bool, str | None]:
-    """
-    Determine whether an extra action should render disabled and why.
-    """
-    disable = bool(lock_reason and action.get("lock_sensitive", False))
-    disabled_reason = lock_label if disable else None
-
-    disabled_state_name = action.get("disabled_state")
-    if disabled_state_name:
-        disabled_state = _resolve_named_view_method(view, disabled_state_name)
-        if disabled_state is not None:
-            try:
-                state_reason = disabled_state(object, request)
-            except Exception:
-                state_reason = None
-            if isinstance(state_reason, str) and state_reason.strip():
-                return True, state_reason
-
-    disabled_if_name = action.get("disabled_if")
-    if disabled_if_name:
-        disabled_if = _resolve_named_view_method(view, disabled_if_name)
-        if disabled_if is not None:
-            try:
-                custom_disabled = bool(disabled_if(object, request))
-            except Exception:
-                custom_disabled = False
-            if custom_disabled:
-                disable = True
-                disabled_reason_name = action.get("disabled_reason")
-                disabled_reason_resolver = _resolve_named_view_method(
-                    view, disabled_reason_name
-                )
-                if disabled_reason_resolver is not None:
-                    try:
-                        disabled_reason = disabled_reason_resolver(object, request)
-                    except Exception:
-                        disabled_reason = None
-
-    return disable, disabled_reason
-
-
-def _resolve_extra_action_permission_state(
-    *,
-    view: Any,
-    object: Any,
-    action: Dict[str, Any],
-    request: Any,
-) -> tuple[bool, bool, str | None]:
-    """
-    Determine whether permission config should hide or disable an extra action.
-    """
-    permission = action.get("permission")
-    permission_check_name = action.get("permission_check")
-    if not permission and not permission_check_name:
-        return False, False, None
-
-    allowed = False
-    if permission:
-        permission_resolver = getattr(view, "has_power_permission", None)
-        if callable(permission_resolver):
-            try:
-                allowed = bool(permission_resolver(permission, request, obj=object))
-            except Exception:
-                allowed = False
-    elif permission_check_name:
-        permission_check = _resolve_named_view_method(view, permission_check_name)
-        if permission_check is not None:
-            try:
-                allowed = bool(permission_check(request, object))
-            except Exception:
-                allowed = False
-
-    if allowed:
-        return False, False, None
-
-    disabled_reason = action.get("permission_denied_reason")
-    if not isinstance(disabled_reason, str) or not disabled_reason.strip():
-        disabled_reason = None
-
-    if action.get("permission_behavior", "hide") == "disable":
-        return False, True, disabled_reason
-    return True, False, None
-
-
 def _resolve_extra_button_permission_state(
     *,
     view: Any,
@@ -305,28 +211,6 @@ def _resolve_extra_button_permission_state(
         action=button,
         request=request,
     )
-
-
-def _resolve_extra_action_hidden_state(
-    *,
-    view: Any,
-    object: Any,
-    action: Dict[str, Any],
-    request: Any,
-) -> bool:
-    """
-    Determine whether an extra action should be hidden for a row.
-    """
-    hidden_if_name = action.get("hidden_if")
-    if not hidden_if_name:
-        return False
-    hidden_if = _resolve_named_view_method(view, hidden_if_name)
-    if hidden_if is None:
-        return False
-    try:
-        return bool(hidden_if(object, request))
-    except Exception:
-        return False
 
 
 def _resolve_standard_action_disabled_state(
@@ -468,6 +352,7 @@ def _render_action_anchor(
     modal_box_classes: str | None = None,
     refresh_list_on_modal_close: bool = False,
     label_html: str | None = None,
+    extra_attrs: list[str] | None = None,
 ) -> str:
     """
     Render a single row-action anchor with HTMX and disabled metadata.
@@ -524,6 +409,9 @@ def _render_action_anchor(
         attrs.append(f"data-tippy-content='{lock_label}'")
         attrs.append("data-powercrud-tooltip='semantic'")
 
+    if extra_attrs:
+        attrs.extend(extra_attrs)
+
     attrs.append(f"data-inline-action='{anchor_text.lower()}'")
     return f"<a {' '.join(attrs)}>{label_html or anchor_text}</a>"
 
@@ -562,36 +450,14 @@ def _resolve_list_cell_tooltip(
     """
     Resolve a plain-text semantic tooltip for one rendered list cell.
     """
-    if hook_name is not None:
-        resolver = getattr(view, hook_name, None)
-        if not callable(resolver):
-            raise ImproperlyConfigured(
-                "list_cell_tooltip_fields configured "
-                f"{field_name!r} with missing or non-callable hook "
-                f"{hook_name!r}."
-            )
-        tooltip_text = resolver(obj, request=request)
-        if tooltip_text is None:
-            return None
-        tooltip_text = str(tooltip_text).strip()
-        return tooltip_text or None
-
-    resolver = getattr(view, "get_list_cell_tooltip", None)
-    if not callable(resolver):
-        return None
-    try:
-        tooltip_text = resolver(
-            obj,
-            field_name,
-            is_property=is_property,
-            request=request,
-        )
-    except Exception:
-        return None
-    if tooltip_text is None:
-        return None
-    tooltip_text = str(tooltip_text).strip()
-    return tooltip_text or None
+    return resolve_list_cell_tooltip(
+        view=view,
+        obj=obj,
+        field_name=field_name,
+        is_property=is_property,
+        request=request,
+        hook_name=hook_name,
+    )
 
 
 LIST_CELL_OPEN_IN_VALUES = {"current", "new", "modal"}
@@ -874,6 +740,21 @@ def action_links(view: Any, object: Any) -> str:
         attr_name="default_htmx_target",
         default="#content",
     )
+    extra_actions: List[Dict[str, Any]] = getattr(view, "extra_actions", [])
+    has_lazy_row_action = extra_actions_mode == "dropdown" and any(
+        is_lazy_disabled_state_action(action) for action in extra_actions
+    )
+    row_action_states_url = None
+    if has_lazy_row_action:
+        row_action_states_url_getter = getattr(view, "get_row_action_states_url", None)
+        row_action_states_url = (
+            row_action_states_url_getter(object)
+            if callable(row_action_states_url_getter)
+            else view.safe_reverse(
+                f"{prefix}-row-action-states",
+                kwargs={"pk": object.pk},
+            )
+        )
 
     # Standard actions with framework-specific button classes
     lock_reason = getattr(object, "_blocked_reason", None)
@@ -921,9 +802,8 @@ def action_links(view: Any, object: Any) -> str:
         )
 
     # Add extra actions if defined
-    extra_actions: List[Dict[str, Any]] = getattr(view, "extra_actions", [])
     extra_action_items: List[Dict[str, Any]] = []
-    for action in extra_actions:
+    for action_index, action in enumerate(extra_actions):
         url: Optional[str] = view.safe_reverse(
             action["url_name"],
             kwargs={"pk": object.pk} if action.get("needs_pk", True) else None,
@@ -961,9 +841,18 @@ def action_links(view: Any, object: Any) -> str:
                 str(action.get("modal_box_classes") or "") if show_modal else ""
             )
 
+            lazy_disabled_state = False
             if disable_permission:
                 disable_extra = True
                 disabled_reason = permission_disabled_reason
+            elif (
+                extra_actions_mode == "dropdown"
+                and row_action_states_url
+                and is_lazy_disabled_state_action(action)
+            ):
+                disable_extra = bool(lock_reason and action.get("lock_sensitive", False))
+                disabled_reason = lock_label if disable_extra else None
+                lazy_disabled_state = not disable_extra
             else:
                 disable_extra, disabled_reason = _resolve_extra_action_disabled_state(
                     view=view,
@@ -989,6 +878,8 @@ def action_links(view: Any, object: Any) -> str:
                     ),
                     "disable": disable_extra,
                     "disabled_reason": disabled_reason,
+                    "action_index": action_index,
+                    "lazy_disabled_state": lazy_disabled_state,
                 }
             )
 
@@ -1031,13 +922,30 @@ def action_links(view: Any, object: Any) -> str:
                 query_string=query_string,
                 modal_box_classes=action["modal_box_classes"],
                 refresh_list_on_modal_close=action["refresh_list_on_modal_close"],
+                extra_attrs=(
+                    [
+                        "data-powercrud-row-action-state-mode='lazy'",
+                        "data-powercrud-row-action-index="
+                        f"'{conditional_escape(str(action['action_index']))}'",
+                    ]
+                    if action.get("lazy_disabled_state")
+                    else None
+                ),
             )
             + "</li>"
             for action in extra_action_items
         ]
         extra_links = [
             "<div class='relative' data-powercrud-row-actions-dropdown='true'>"
-            f"<button type='button' class='{styles['base']} join-item {styles['extra_default']} {action_button_classes} gap-1' aria-label='More actions' aria-expanded='false' data-inline-action='more' data-powercrud-row-actions-trigger='true'>More"
+            f"<button type='button' class='{styles['base']} join-item {styles['extra_default']} {action_button_classes} gap-1' aria-label='More actions' aria-expanded='false' data-inline-action='more' data-powercrud-row-actions-trigger='true'"
+            + (
+                " data-powercrud-row-action-states-url="
+                f"'{conditional_escape(str(row_action_states_url))}'"
+                if any(action.get("lazy_disabled_state") for action in extra_action_items)
+                and row_action_states_url
+                else ""
+            )
+            + ">More"
             "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='currentColor' class='h-3.5 w-3.5' aria-hidden='true'>"
             "<path fill-rule='evenodd' d='M5.23 7.21a.75.75 0 0 1 1.06.02L10 11.168l3.71-3.938a.75.75 0 1 1 1.08 1.04l-4.25 4.5a.75.75 0 0 1-1.08 0l-4.25-4.5a.75.75 0 0 1 .02-1.06Z' clip-rule='evenodd' />"
             "</svg></button>"
@@ -1193,20 +1101,14 @@ def object_list(context, objects, view):
         default=[],
     )
     rendered_column_names = set(fields) | set(properties)
-    if isinstance(configured_cell_tooltips, dict):
-        eligible_cell_tooltip_fields = {
-            field_name: hook_name
-            for field_name, hook_name in configured_cell_tooltips.items()
-            if field_name in rendered_column_names
-        }
-    elif isinstance(configured_cell_tooltips, list):
-        eligible_cell_tooltip_fields = {
-            field_name: None
-            for field_name in configured_cell_tooltips
-            if field_name in rendered_column_names
-        }
-    else:
-        eligible_cell_tooltip_fields = {}
+    eligible_cell_tooltip_fields = {
+        field_name: spec
+        for field_name, spec in normalize_list_cell_tooltip_specs(
+            configured_cell_tooltips
+        ).items()
+        if field_name in rendered_column_names
+    }
+    list_cell_tooltip_url_getter = getattr(view, "get_list_cell_tooltip_url", None)
 
     # Create header metadata for each field
     headers = []
@@ -1380,6 +1282,44 @@ def object_list(context, objects, view):
             and row_index >= first_upward_dropdown_index,
         )
 
+        def resolve_cell_tooltip_metadata(
+            field_name: str,
+            *,
+            is_property: bool,
+        ) -> dict[str, str | None]:
+            spec = eligible_cell_tooltip_fields.get(field_name)
+            if not spec:
+                return {
+                    "tooltip_text": None,
+                    "tooltip_mode": None,
+                    "tooltip_url": None,
+                }
+
+            if spec.mode == "lazy":
+                tooltip_url = (
+                    list_cell_tooltip_url_getter(obj, field_name)
+                    if callable(list_cell_tooltip_url_getter)
+                    else None
+                )
+                return {
+                    "tooltip_text": None,
+                    "tooltip_mode": "lazy",
+                    "tooltip_url": tooltip_url,
+                }
+
+            return {
+                "tooltip_text": _resolve_list_cell_tooltip(
+                    view=view,
+                    obj=obj,
+                    field_name=field_name,
+                    is_property=is_property,
+                    request=request,
+                    hook_name=spec.hook,
+                ),
+                "tooltip_mode": "eager",
+                "tooltip_url": None,
+            }
+
         actions_html = action_links(view, obj)
         has_actions = "data-inline-action=" in str(actions_html)
 
@@ -1429,6 +1369,7 @@ def object_list(context, objects, view):
                 name=f,
                 default_align=default_align,
             )
+            tooltip_metadata = resolve_cell_tooltip_metadata(f, is_property=False)
 
             record["cells"].append(
                 {
@@ -1439,18 +1380,7 @@ def object_list(context, objects, view):
                     "is_inline_editable": inline_enabled and f in inline_fields,
                     "dependency": resolve_cell_dependency(f),
                     "align": cell_align,
-                    "tooltip_text": (
-                        _resolve_list_cell_tooltip(
-                            view=view,
-                            obj=obj,
-                            field_name=f,
-                            is_property=False,
-                            request=request,
-                            hook_name=eligible_cell_tooltip_fields.get(f),
-                        )
-                        if f in eligible_cell_tooltip_fields
-                        else None
-                    ),
+                    **tooltip_metadata,
                     "link": _resolve_list_cell_link(
                         view=view,
                         obj=obj,
@@ -1471,6 +1401,10 @@ def object_list(context, objects, view):
                 column_alignments=column_alignments,
                 name=prop,
                 default_align=default_align,
+            )
+            tooltip_metadata = resolve_cell_tooltip_metadata(
+                prop,
+                is_property=True,
             )
             if (
                 isinstance(getattr(obj.__class__, prop), property)
@@ -1500,18 +1434,7 @@ def object_list(context, objects, view):
                     "is_inline_editable": inline_enabled and prop in inline_fields,
                     "dependency": resolve_cell_dependency(prop),
                     "align": prop_align,
-                    "tooltip_text": (
-                        _resolve_list_cell_tooltip(
-                            view=view,
-                            obj=obj,
-                            field_name=prop,
-                            is_property=True,
-                            request=request,
-                            hook_name=eligible_cell_tooltip_fields.get(prop),
-                        )
-                        if prop in eligible_cell_tooltip_fields
-                        else None
-                    ),
+                    **tooltip_metadata,
                     "link": _resolve_list_cell_link(
                         view=view,
                         obj=obj,

@@ -28,6 +28,9 @@ export function createCurrentTemplateRuntime(context) {
     const BUTTON_SPINNER_STATE = new WeakMap();
     const MODAL_CLOSE_REFRESH_ROOTS = new WeakMap();
     const MODAL_CLOSE_REFRESH_LISTENERS = new WeakSet();
+    const ROW_ACTION_STATE_REQUESTS = new WeakMap();
+    const LAZY_CELL_TOOLTIP_REQUESTS = new WeakMap();
+    const ROW_ACTION_STATE_UNAVAILABLE_MESSAGE = 'Unable to validate current availability.';
     let tooltipResizeTimer = null;
     let activeRowActionsMenu = null;
     let activeRowActionsTrigger = null;
@@ -155,6 +158,13 @@ export function createCurrentTemplateRuntime(context) {
         return trigger?.dataset?.powercrudTooltip === 'semantic-cell';
     }
 
+    function isLazyCellTooltipTarget(trigger) {
+        return (
+            isTooltipSemanticCellTarget(trigger)
+            && trigger?.dataset?.powercrudTooltipMode === 'lazy'
+        );
+    }
+
     function getTooltipTheme(trigger) {
         if (isTooltipSemanticCellTarget(trigger)) {
             return 'powercrud-semantic-cell';
@@ -177,6 +187,7 @@ export function createCurrentTemplateRuntime(context) {
             if (trigger._tippy) {
                 trigger._tippy.destroy();
             }
+            LAZY_CELL_TOOLTIP_REQUESTS.delete(trigger);
         });
     }
 
@@ -206,6 +217,7 @@ export function createCurrentTemplateRuntime(context) {
             const isOverflowTarget = isTooltipOverflowTarget(trigger);
             const isSemanticTarget = isTooltipSemanticTarget(trigger);
             const isSemanticCellTarget = isTooltipSemanticCellTarget(trigger);
+            const isLazyCellTarget = isLazyCellTooltipTarget(trigger);
             if (!isOverflowTarget && !isSemanticTarget && !isSemanticCellTarget) {
                 return;
             }
@@ -213,6 +225,9 @@ export function createCurrentTemplateRuntime(context) {
                 theme: getTooltipTheme(trigger),
                 placement: 'top',
                 onShow(instance) {
+                    if (isLazyCellTarget) {
+                        return handleLazyCellTooltipShow(instance);
+                    }
                     if (!isOverflowTarget) {
                         return true;
                     }
@@ -220,6 +235,85 @@ export function createCurrentTemplateRuntime(context) {
                 },
             });
         });
+    }
+
+    function handleLazyCellTooltipShow(instance) {
+        const trigger = instance.reference;
+        if (!(trigger instanceof HTMLElement)) {
+            return false;
+        }
+        if (trigger.dataset.powercrudTooltipLazyReplay === 'true') {
+            delete trigger.dataset.powercrudTooltipLazyReplay;
+            return true;
+        }
+        if (trigger.dataset.powercrudTooltipLazyState === 'loaded') {
+            return Boolean(trigger.getAttribute('data-tippy-content'));
+        }
+        if (trigger.dataset.powercrudTooltipLazyState === 'empty') {
+            return false;
+        }
+
+        hydrateLazyCellTooltip(instance);
+        return false;
+    }
+
+    async function hydrateLazyCellTooltip(instance) {
+        const trigger = instance.reference;
+        if (!(trigger instanceof HTMLElement) || !trigger.isConnected) {
+            return;
+        }
+
+        const url = trigger.dataset.powercrudTooltipUrl || '';
+        if (!url) {
+            trigger.dataset.powercrudTooltipLazyState = 'empty';
+            return;
+        }
+
+        let request = LAZY_CELL_TOOLTIP_REQUESTS.get(trigger);
+        if (!request) {
+            trigger.dataset.powercrudTooltipLazyState = 'loading';
+            request = global.fetch(url, {
+                method: 'GET',
+                credentials: 'same-origin',
+                headers: {
+                    Accept: 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+            }).then(response => {
+                if (!response.ok) {
+                    throw new Error(`Lazy tooltip request failed with ${response.status}`);
+                }
+                return response.json();
+            }).finally(() => {
+                LAZY_CELL_TOOLTIP_REQUESTS.delete(trigger);
+            });
+            LAZY_CELL_TOOLTIP_REQUESTS.set(trigger, request);
+        }
+
+        try {
+            const payload = await request;
+            if (!(trigger instanceof HTMLElement) || !trigger.isConnected) {
+                return;
+            }
+            const tooltip = typeof payload?.tooltip === 'string' ? payload.tooltip.trim() : '';
+            if (!tooltip) {
+                trigger.dataset.powercrudTooltipLazyState = 'empty';
+                trigger.setAttribute('data-tippy-content', '');
+                instance.setContent('');
+                return;
+            }
+            trigger.dataset.powercrudTooltipLazyState = 'loaded';
+            trigger.setAttribute('data-tippy-content', tooltip);
+            instance.setContent(tooltip);
+            trigger.dataset.powercrudTooltipLazyReplay = 'true';
+            instance.show();
+        } catch {
+            if (trigger instanceof HTMLElement && trigger.isConnected) {
+                trigger.dataset.powercrudTooltipLazyState = 'empty';
+                trigger.setAttribute('data-tippy-content', '');
+                instance.setContent('');
+            }
+        }
     }
 
     function schedulePowercrudTooltipRefresh(root = documentObject, delay = 0) {
@@ -365,7 +459,112 @@ export function createCurrentTemplateRuntime(context) {
         menuElement.style.left = `${left}px`;
     }
 
-    function openRowActionsMenu(trigger) {
+    function getLazyRowActionLinks(menuElement) {
+        if (!(menuElement instanceof HTMLElement)) {
+            return [];
+        }
+        return Array.from(
+            menuElement.querySelectorAll('[data-powercrud-row-action-state-mode="lazy"]'),
+        ).filter(link => link instanceof HTMLElement);
+    }
+
+    function setRowActionLinkDisabled(link, disabled, reason = '') {
+        if (!(link instanceof HTMLElement)) {
+            return;
+        }
+        link.classList.toggle('btn-disabled', disabled);
+        link.classList.toggle('opacity-50', disabled);
+        link.classList.remove('pointer-events-none');
+        if (disabled) {
+            link.setAttribute('aria-disabled', 'true');
+            link.style.setProperty('pointer-events', 'auto', 'important');
+            link.style.setProperty('cursor', 'not-allowed');
+            if (reason) {
+                link.setAttribute('data-tippy-content', reason);
+                link.setAttribute('data-powercrud-tooltip', 'semantic');
+            }
+            return;
+        }
+        link.removeAttribute('aria-disabled');
+        link.style.removeProperty('pointer-events');
+        link.style.removeProperty('cursor');
+        link.removeAttribute('data-tippy-content');
+        link.removeAttribute('data-powercrud-tooltip');
+    }
+
+    function disableUnresolvedLazyRowActions(menuElement) {
+        getLazyRowActionLinks(menuElement).forEach(link => {
+            setRowActionLinkDisabled(link, true, ROW_ACTION_STATE_UNAVAILABLE_MESSAGE);
+        });
+    }
+
+    function applyLazyRowActionStates(menuElement, payload) {
+        const actions = payload?.actions && typeof payload.actions === 'object'
+            ? payload.actions
+            : {};
+        getLazyRowActionLinks(menuElement).forEach(link => {
+            const actionIndex = link.dataset.powercrudRowActionIndex || '';
+            const actionState = actions[actionIndex];
+            if (!actionState || typeof actionState !== 'object') {
+                setRowActionLinkDisabled(link, true, ROW_ACTION_STATE_UNAVAILABLE_MESSAGE);
+                return;
+            }
+            if (actionState.hidden === true) {
+                const listItem = link.closest('li');
+                if (listItem instanceof HTMLElement) {
+                    listItem.remove();
+                } else {
+                    link.remove();
+                }
+                return;
+            }
+            setRowActionLinkDisabled(
+                link,
+                actionState.disabled === true,
+                actionState.reason || '',
+            );
+        });
+    }
+
+    async function hydrateLazyRowActionStates(trigger, menuElement) {
+        if (!getLazyRowActionLinks(menuElement).length) {
+            return;
+        }
+
+        const stateUrl = trigger.dataset.powercrudRowActionStatesUrl || '';
+        if (!stateUrl) {
+            disableUnresolvedLazyRowActions(menuElement);
+            return;
+        }
+
+        let request = ROW_ACTION_STATE_REQUESTS.get(trigger);
+        if (!request) {
+            request = global.fetch(stateUrl, {
+                method: 'GET',
+                credentials: 'same-origin',
+                headers: {
+                    Accept: 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+            }).then(response => {
+                if (!response.ok) {
+                    throw new Error(`Lazy row-action state request failed with ${response.status}`);
+                }
+                return response.json();
+            }).finally(() => {
+                ROW_ACTION_STATE_REQUESTS.delete(trigger);
+            });
+            ROW_ACTION_STATE_REQUESTS.set(trigger, request);
+        }
+
+        try {
+            applyLazyRowActionStates(menuElement, await request);
+        } catch {
+            disableUnresolvedLazyRowActions(menuElement);
+        }
+    }
+
+    async function openRowActionsMenu(trigger) {
         if (!(trigger instanceof HTMLElement)) {
             return;
         }
@@ -382,6 +581,18 @@ export function createCurrentTemplateRuntime(context) {
         const menuElement = template.firstElementChild?.cloneNode(true);
         if (!(menuElement instanceof HTMLElement)) {
             return;
+        }
+
+        const hasLazyRowActionState = getLazyRowActionLinks(menuElement).length > 0;
+        if (hasLazyRowActionState) {
+            trigger.setAttribute('aria-busy', 'true');
+            startButtonSpinner(trigger);
+            await hydrateLazyRowActionStates(trigger, menuElement);
+            stopButtonSpinner(trigger);
+            trigger.removeAttribute('aria-busy');
+            if (!trigger.isConnected) {
+                return;
+            }
         }
 
         menuElement.dataset.powercrudRowActionsFloatingPanel = 'true';

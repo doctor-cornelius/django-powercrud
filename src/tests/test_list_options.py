@@ -24,7 +24,7 @@ def test_book_list_renders_column_chooser_for_anonymous_user(client):
     response_text = response.content.decode()
 
     assert response.status_code == 200, "Book list should render successfully."
-    assert "Cols 9/12" in response_text, (
+    assert "Cols 9/13" in response_text, (
         "Users should see the list-column chooser with active/allowed counts."
     )
     assert 'data-powercrud-list-columns-trigger="true"' in response_text and 'data-tippy-content="Choose visible columns"' in response_text, (
@@ -44,6 +44,9 @@ def test_book_list_renders_column_chooser_for_anonymous_user(client):
     )
     assert 'value="uneditable_field"' in response_text, (
         "Hidden-by-default columns should still be available in the chooser."
+    )
+    assert 'value="description_empty"' in response_text, (
+        "The sample should expose a hidden Description Empty column for lazy row-action checks."
     )
 
 

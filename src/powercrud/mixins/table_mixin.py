@@ -261,7 +261,7 @@ class TableMixin:
             return dict(configured_alignments)
         return {}
 
-    def get_list_cell_tooltip_fields(self) -> list[str] | dict[str, str]:
+    def get_list_cell_tooltip_fields(self) -> list[str] | dict[str, Any]:
         """
         Return rendered list fields/properties configured for semantic tooltips.
         """
