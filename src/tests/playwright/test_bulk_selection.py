@@ -84,6 +84,33 @@ def test_selection_extra_button_preserves_selection_when_opted_out(
     expect(checkbox).to_be_checked()
 
 
+def test_extra_buttons_more_dropdown_closes_after_option_click(
+    page, books_url, sample_books
+):
+    """Choosing an enabled toolbar More option should close the open menu."""
+    page.goto(books_url)
+    page.wait_for_load_state("networkidle")
+
+    checkbox = page.locator("input.row-select-checkbox").first
+    expect(checkbox).to_be_visible()
+    checkbox.click()
+    expect(page.locator("#selected-items-counter")).to_have_text("1")
+
+    dropdown = page.locator("[data-powercrud-extra-buttons-dropdown='true']")
+    dropdown.locator("> summary").click()
+    assert dropdown.evaluate("element => element.open") is True, (
+        "Expected the toolbar More dropdown to be open before clicking an option."
+    )
+
+    page.get_by_role("link", name="Selected Summary (Do Not Clear)").click()
+    page.wait_for_load_state("networkidle")
+
+    assert dropdown.evaluate("element => element.open") is False, (
+        "Expected the toolbar More dropdown to close after choosing an enabled option."
+    )
+    expect(page.locator("#powercrudBaseModal")).to_be_visible()
+
+
 def test_selection_extra_button_clears_after_success_by_default(
     page, books_url, sample_books
 ):

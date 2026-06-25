@@ -394,6 +394,30 @@ def test_runtime_js_hides_tooltips_before_interactive_transitions() -> None:
     ), "Selection-aware toolbar buttons should remove hover overrides again when re-enabled."
 
 
+def test_runtime_js_closes_more_dropdowns_after_enabled_option_clicks() -> None:
+    """Runtime JS should close open More menus after enabled menu item clicks."""
+    package_root = Path(powercrud.__file__).resolve().parent
+    runtime_js = package_root / "static" / "powercrud" / "js" / "powercrud.js"
+
+    js = runtime_js.read_text(encoding="utf-8")
+
+    assert (
+        "function closeExtraButtonsDropdownFromOption(trigger)" in js
+    ), "Runtime JS should define a helper for closing toolbar More dropdowns from option clicks."
+    assert (
+        "trigger.closest('[data-powercrud-extra-buttons-dropdown=\"true\"]')" in js
+    ), "Toolbar More closing should target the nearest extra-buttons dropdown wrapper."
+    assert (
+        "dropdown.open = false;" in js
+    ), "Toolbar More closing should close the native details dropdown immediately."
+    assert (
+        "closeExtraButtonsDropdownFromOption(trigger);" in js
+    ), "Document click handling should close toolbar More after enabled option clicks."
+    assert (
+        "closeRowActionsMenu();" in js
+    ), "Document click handling should keep closing floating row More menus after option clicks."
+
+
 def test_runtime_js_opens_inline_tomselect_on_focus() -> None:
     """Inline searchable selects should keep the original focus-and-open behavior."""
     package_root = Path(powercrud.__file__).resolve().parent
