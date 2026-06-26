@@ -15,6 +15,7 @@ from .services import (
     build_query_string_from_state,
     build_toolbar_context,
     create_saved_favourite,
+    get_filter_favourite_user,
     sync_visible_columns_state_to_session,
 )
 
@@ -57,6 +58,7 @@ def _build_toolbar_render_context(
 ) -> dict[str, object]:
     """Return a consistent toolbar context for initial and refreshed renders."""
 
+    favourite_user = get_filter_favourite_user(request)
     resolved_save_form = save_form or _build_default_save_form(
         view_key=view_key,
         list_view_url=list_view_url,
@@ -67,7 +69,7 @@ def _build_toolbar_render_context(
     )
 
     return build_toolbar_context(
-        user=request.user,
+        user=favourite_user,
         view_key=view_key,
         list_view_url=list_view_url,
         toolbar_dom_id=toolbar_dom_id,
@@ -218,13 +220,14 @@ def favourites_toolbar(request: HttpRequest) -> HttpResponse:
 def favourite_save(request: HttpRequest) -> HttpResponse:
     """Persist a new saved favourite for the current user."""
 
-    if not request.user.is_authenticated:
+    favourite_user = get_filter_favourite_user(request)
+    if not favourite_user or not favourite_user.is_authenticated:
         return _forbidden_response("Sign in to save favourites.")
 
     form = FavouriteSaveForm(request.POST)
     if form.is_valid():
         if SavedFilterFavourite.objects.filter(
-            user=request.user,
+            user=favourite_user,
             view_key=form.cleaned_data["view_key"],
             name=form.cleaned_data["name"].strip(),
         ).exists():
@@ -234,7 +237,7 @@ def favourite_save(request: HttpRequest) -> HttpResponse:
             )
         else:
             saved_favourite = create_saved_favourite(
-                user=request.user,
+                user=favourite_user,
                 view_key=form.cleaned_data["view_key"],
                 name=form.cleaned_data["name"],
                 state=form.cleaned_data["normalized_state"],
@@ -275,7 +278,8 @@ def favourite_save(request: HttpRequest) -> HttpResponse:
 def favourite_apply(request: HttpRequest) -> HttpResponse:
     """Apply a saved favourite and navigate to the saved list state."""
 
-    if not request.user.is_authenticated:
+    favourite_user = get_filter_favourite_user(request)
+    if not favourite_user or not favourite_user.is_authenticated:
         return _forbidden_response("Sign in to apply saved favourites.")
 
     form = FavouriteActionForm(request.GET)
@@ -285,7 +289,7 @@ def favourite_apply(request: HttpRequest) -> HttpResponse:
     favourite = get_object_or_404(
         SavedFilterFavourite,
         pk=form.cleaned_data["favourite_id"],
-        user=request.user,
+        user=favourite_user,
         view_key=form.cleaned_data["view_key"],
     )
     sync_visible_columns_state_to_session(
@@ -318,7 +322,8 @@ def favourite_apply(request: HttpRequest) -> HttpResponse:
 def favourite_update(request: HttpRequest) -> HttpResponse:
     """Update the selected favourite with the current list state."""
 
-    if not request.user.is_authenticated:
+    favourite_user = get_filter_favourite_user(request)
+    if not favourite_user or not favourite_user.is_authenticated:
         return _forbidden_response("Sign in to update saved favourites.")
 
     form = FavouriteUpdateForm(request.POST)
@@ -328,7 +333,7 @@ def favourite_update(request: HttpRequest) -> HttpResponse:
     favourite = get_object_or_404(
         SavedFilterFavourite,
         pk=form.cleaned_data["favourite_id"],
-        user=request.user,
+        user=favourite_user,
         view_key=form.cleaned_data["view_key"],
     )
     favourite.state = form.cleaned_data["normalized_state"]
@@ -353,7 +358,8 @@ def favourite_update(request: HttpRequest) -> HttpResponse:
 def favourite_delete(request: HttpRequest) -> HttpResponse:
     """Delete a saved favourite for the current authenticated user."""
 
-    if not request.user.is_authenticated:
+    favourite_user = get_filter_favourite_user(request)
+    if not favourite_user or not favourite_user.is_authenticated:
         return _forbidden_response("Sign in to delete saved favourites.")
 
     form = FavouriteActionForm(request.POST)
@@ -363,7 +369,7 @@ def favourite_delete(request: HttpRequest) -> HttpResponse:
     favourite = get_object_or_404(
         SavedFilterFavourite,
         pk=form.cleaned_data["favourite_id"],
-        user=request.user,
+        user=favourite_user,
         view_key=form.cleaned_data["view_key"],
     )
     favourite_id = favourite.pk

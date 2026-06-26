@@ -77,6 +77,19 @@ Saved favourites are scoped per:
 
 The view identity is derived automatically from `"<module>.<ClassName>"`.
 
+Projects that need a different owner for saved favourites can configure a resolver:
+
+```python
+POWERCRUD_SETTINGS = {
+    "FILTER_FAVOURITE_USER_RESOLVER": "myapp.powercrud.resolve_filter_favourite_user",
+}
+```
+
+The resolver receives the request and must return the user whose favourites should be listed, created, updated, applied, and deleted.
+If unset, PowerCRUD uses `request.user`.
+
+List views can also override `get_filter_favourite_user(request)` when only the initial list-render context needs custom ownership.
+
 ## Behavior notes
 
 - Anonymous users still see the toolbar when the view enables favourites, but the save, update, and delete controls remain unavailable and the UI prompts them to sign in.

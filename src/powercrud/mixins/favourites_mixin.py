@@ -94,17 +94,27 @@ class FavouritesMixin:
             sort_keys=True,
         )
 
+    def get_filter_favourite_user(self, request):
+        """Return the user whose saved filter favourites should render for a request."""
+
+        from powercrud.contrib.favourites.services import get_filter_favourite_user
+
+        return get_filter_favourite_user(request)
+
     def get_saved_filter_favourites(self) -> list[object]:
         """Return saved favourites for the current authenticated user and view."""
 
-        request_user = getattr(self.request, "user", None)
-        if not request_user or not request_user.is_authenticated:
+        if not self.get_favourites_contrib_installed():
+            return []
+
+        favourite_user = self.get_filter_favourite_user(self.request)
+        if not favourite_user or not favourite_user.is_authenticated:
             return []
 
         from powercrud.contrib.favourites.services import get_saved_favourites_for_user
 
         return get_saved_favourites_for_user(
-            user=request_user,
+            user=favourite_user,
             view_key=self.get_favourites_key(),
         )
 
@@ -116,8 +126,6 @@ class FavouritesMixin:
         """Build template context for the optional favourites toolbar."""
 
         enabled = self.get_favourites_enabled()
-        request_user = getattr(self.request, "user", None)
-        can_manage = bool(request_user and request_user.is_authenticated)
         save_form = None
 
         if not enabled:
@@ -125,6 +133,8 @@ class FavouritesMixin:
                 "filter_favourites_enabled": False,
                 "saved_filter_favourites": [],
             }
+        favourite_user = self.get_filter_favourite_user(self.request)
+        can_manage = bool(favourite_user and favourite_user.is_authenticated)
         current_state = self.get_current_list_state(
             filterset,
             list_column_state=list_column_state,

@@ -12,6 +12,7 @@ DEFAULTS = {
     "CACHE_NAME": "default",
     "QCLUSTER_PROBE_TIMEOUT_MS": 300,
     "BULK_MAX_SELECTED_RECORDS": 1000,
+    "FILTER_FAVOURITE_USER_RESOLVER": None,
     "POWERCRUD_CSS_FRAMEWORK": "daisyUI",  # this is for the rendering of powercrud forms
     "TAILWIND_SAFELIST_JSON_LOC": ".",  # location of the safelist json file for tailwind tree shaker
 }
