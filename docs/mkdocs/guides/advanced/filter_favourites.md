@@ -77,6 +77,60 @@ Saved favourites are scoped per:
 
 The view identity is derived automatically from `"<module>.<ClassName>"`.
 
+### Ownership resolver
+
+By default, PowerCRUD stores and reads favourites for `request.user`.
+If you do not configure anything else, the current authenticated Django user owns every saved favourite.
+
+Projects that need a different owner for saved favourites can configure a resolver in `POWERCRUD_SETTINGS`:
+
+```python
+POWERCRUD_SETTINGS = {
+    "FILTER_FAVOURITE_USER_RESOLVER": "myapp.powercrud.resolve_filter_favourite_user",
+}
+```
+
+The resolver receives the current request and returns the user whose favourites should be listed, created, updated, applied, and deleted:
+
+```python
+# myapp/powercrud.py
+
+
+def resolve_filter_favourite_user(request):
+    """Return the user who should own saved PowerCRUD filter favourites."""
+
+    return getattr(request, "original_operator", None) or request.user
+```
+
+A session-backed resolver can also look up the owner explicitly:
+
+```python
+# myapp/powercrud.py
+
+from django.contrib.auth import get_user_model
+
+
+def resolve_filter_favourite_user(request):
+    """Return the user who should own saved PowerCRUD filter favourites."""
+
+    user_id = request.session.get("original_operator_user_id")
+    if not user_id:
+        return request.user
+
+    return get_user_model().objects.get(pk=user_id)
+```
+
+This setting exists because the save, apply, update, and delete endpoints are shared PowerCRUD function views.
+Those endpoints receive the HTTP request, but not the original CRUDView instance that rendered the list.
+The setting gives those shared endpoints the same owner decision as the toolbar/list render path.
+
+List views can also override `get_filter_favourite_user(request)` when only the initial list-render context needs custom ownership.
+For end-to-end custom ownership, prefer `FILTER_FAVOURITE_USER_RESOLVER` so the shared favourites endpoints use the same owner.
+
+Changing the resolver does not change the database shape.
+Favourites remain keyed by `user + view_key + name`.
+If an existing deployment changes from `request.user` ownership to another owner, any migration or copy of existing saved favourites is a downstream data decision.
+
 ## Behavior notes
 
 - Anonymous users still see the toolbar when the view enables favourites, but the save, update, and delete controls remain unavailable and the UI prompts them to sign in.

@@ -5,9 +5,12 @@ from __future__ import annotations
 from collections import OrderedDict
 import json
 
+from django.core.exceptions import ImproperlyConfigured
 from django.http import QueryDict
 from django.urls import NoReverseMatch, reverse
+from django.utils.module_loading import import_string
 
+from powercrud.conf import get_powercrud_setting
 from powercrud.mixins.list_options_mixin import LIST_OPTIONS_SESSION_KEY
 
 from .models import SavedFilterFavourite
@@ -50,6 +53,31 @@ def favourites_routes_available() -> bool:
     """Return whether the shared favourites endpoints are mounted and reversible."""
 
     return not get_unavailable_favourites_route_names()
+
+
+def get_filter_favourite_user(request):
+    """Return the user whose saved filter favourites should be used for a request."""
+
+    resolver = get_powercrud_setting("FILTER_FAVOURITE_USER_RESOLVER")
+    if not resolver:
+        return getattr(request, "user", None)
+
+    if isinstance(resolver, str):
+        try:
+            resolver = import_string(resolver)
+        except ImportError as exc:
+            raise ImproperlyConfigured(
+                "POWERCRUD_SETTINGS['FILTER_FAVOURITE_USER_RESOLVER'] must be "
+                "a callable or dotted import path."
+            ) from exc
+
+    if not callable(resolver):
+        raise ImproperlyConfigured(
+            "POWERCRUD_SETTINGS['FILTER_FAVOURITE_USER_RESOLVER'] must be "
+            "a callable or dotted import path."
+        )
+
+    return resolver(request)
 
 
 def normalise_saved_state(raw_state: object) -> dict[str, object]:

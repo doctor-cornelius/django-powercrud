@@ -16,12 +16,31 @@ from neapolitan.views import Role
 from powercrud.contrib.favourites.models import SavedFilterFavourite
 from powercrud.contrib.favourites.services import (
     build_query_string_from_state,
+    get_filter_favourite_user,
     normalise_saved_state,
 )
 from powercrud.mixins.list_options_mixin import LIST_OPTIONS_SESSION_KEY
 from sample.views import BookCRUDView
 
 BOOK_VIEW_KEY = f"{BookCRUDView.__module__}.{BookCRUDView.__name__}"
+SESSION_FAVOURITE_OWNER_USERNAME = "powercrud_filter_favourite_owner_username"
+
+
+def resolve_filter_favourite_owner_from_session(request):
+    """Return the saved-favourite owner named in the test session."""
+
+    username = request.session.get(SESSION_FAVOURITE_OWNER_USERNAME)
+    if not username:
+        return request.user
+    return get_user_model().objects.get(username=username)
+
+
+def set_filter_favourite_owner_session(client, user):
+    """Store the resolved saved-favourite owner username on the test session."""
+
+    session = client.session
+    session[SESSION_FAVOURITE_OWNER_USERNAME] = user.username
+    session.save()
 
 
 @pytest.mark.django_db
@@ -209,6 +228,73 @@ def test_book_view_derives_favourites_key_from_view_identity():
 
     assert view.get_favourites_key() == BOOK_VIEW_KEY, (
         "BookCRUDView should derive its favourites scope key from its module and class name."
+    )
+
+
+def test_filter_favourite_user_resolver_defaults_to_request_user():
+    """The package resolver should preserve request.user as the default owner."""
+
+    user = object()
+    request = type("Request", (), {"user": user})()
+
+    assert get_filter_favourite_user(request) is user, (
+        "The saved-favourite owner resolver should default to request.user."
+    )
+
+
+@pytest.mark.django_db
+def test_book_view_filter_favourite_user_hook_controls_initial_list_context():
+    """List views should use the overridable favourite-user hook for initial context."""
+
+    active_user = get_user_model().objects.create_user(username="fav-list-active-user")
+    owner_user = get_user_model().objects.create_user(username="fav-list-owner-user")
+    favourite = SavedFilterFavourite.objects.create(
+        user=owner_user,
+        view_key=BOOK_VIEW_KEY,
+        name="Owner favourite",
+        state={
+            "filters": {},
+            "visible_filters": [],
+            "sort": "",
+            "page_size": "",
+            "visible_columns": list(BookCRUDView.default_list_fields),
+        },
+    )
+
+    class OwnerFavouriteBookView(BookCRUDView):
+        """Book view that stores favourites against a resolved owner."""
+
+        def get_favourites_key(self):
+            """Keep this test view scoped to the sample BookCRUDView favourites."""
+
+            return BOOK_VIEW_KEY
+
+        def get_filter_favourite_user(self, request):
+            """Return the owner user instead of the active request user."""
+
+            return owner_user
+
+    request = RequestFactory().get("/sample/bigbook/")
+    request.user = active_user
+    view = OwnerFavouriteBookView()
+    view.request = request
+    view.role = Role.LIST
+    filterset = view.get_filterset(view.get_queryset())
+    list_column_state = view.build_list_column_state(queryset=filterset.qs)
+
+    context = view.get_favourites_context(
+        filterset,
+        list_column_state=list_column_state,
+    )
+
+    assert context["filter_favourites_can_manage"] is True, (
+        "A resolved authenticated favourite owner should keep management controls enabled."
+    )
+    assert [item.pk for item in context["saved_filter_favourites"]] == [favourite.pk], (
+        "Initial list context should load saved favourites for the resolved owner."
+    )
+    assert context["selected_filter_favourite_id"] == favourite.pk, (
+        "Initial list context should match selected state against the resolved owner's favourites."
     )
 
 
@@ -400,6 +486,56 @@ def test_favourite_save_view_persists_state_and_returns_toolbar_fragment(client)
     )
 
 
+@override_settings(
+    POWERCRUD_SETTINGS={
+        "FILTER_FAVOURITE_USER_RESOLVER": (
+            "tests.test_favourites_contrib."
+            "resolve_filter_favourite_owner_from_session"
+        )
+    }
+)
+@pytest.mark.django_db
+def test_favourite_save_view_uses_configured_owner_resolver(client):
+    """Saving a favourite should attach ownership to the configured resolved user."""
+
+    active_user = get_user_model().objects.create_user(username="fav-save-active-user")
+    owner_user = get_user_model().objects.create_user(username="fav-save-owner-user")
+    client.force_login(active_user)
+    set_filter_favourite_owner_session(client, owner_user)
+
+    state = {"filters": {}, "visible_filters": [], "sort": "", "page_size": ""}
+    response = client.post(
+        reverse("powercrud:favourites-save"),
+        {
+            "name": "Operator owned",
+            "view_key": BOOK_VIEW_KEY,
+            "list_view_url": reverse("sample:bigbook-list"),
+            "toolbar_dom_id": "powercrud-favourites-toolbar-test",
+            "current_state_json": json.dumps(state),
+            "original_target": "#content",
+            "state_json": json.dumps(state),
+        },
+        HTTP_HX_REQUEST="true",
+    )
+
+    assert response.status_code == 200, (
+        "Saving with a configured owner resolver should still return a toolbar fragment."
+    )
+    assert SavedFilterFavourite.objects.filter(
+        user=owner_user,
+        view_key=BOOK_VIEW_KEY,
+        name="Operator owned",
+    ).exists(), "The saved favourite should be created for the resolved owner user."
+    assert not SavedFilterFavourite.objects.filter(
+        user=active_user,
+        view_key=BOOK_VIEW_KEY,
+        name="Operator owned",
+    ).exists(), (
+        "The active request user should not own the saved favourite when the "
+        "resolver returns another user."
+    )
+
+
 @pytest.mark.django_db
 def test_favourite_save_view_rejects_duplicate_names_per_user_and_view(client):
     """Duplicate favourite names should validate instead of creating a second row."""
@@ -438,6 +574,58 @@ def test_favourite_save_view_rejects_duplicate_names_per_user_and_view(client):
     )
     assert "Favourite name" in response.content.decode(), (
         "Duplicate favourite saves should re-render the inline save form so the user can correct the name in place."
+    )
+
+
+@override_settings(
+    POWERCRUD_SETTINGS={
+        "FILTER_FAVOURITE_USER_RESOLVER": (
+            "tests.test_favourites_contrib."
+            "resolve_filter_favourite_owner_from_session"
+        )
+    }
+)
+@pytest.mark.django_db
+def test_duplicate_favourite_save_uses_configured_owner_resolver(client):
+    """Duplicate-name validation should check the resolved favourite owner."""
+
+    active_user = get_user_model().objects.create_user(username="fav-dup-active-user")
+    owner_user = get_user_model().objects.create_user(username="fav-dup-owner-user")
+    client.force_login(active_user)
+    set_filter_favourite_owner_session(client, owner_user)
+    SavedFilterFavourite.objects.create(
+        user=owner_user,
+        view_key=BOOK_VIEW_KEY,
+        name="Existing owner favourite",
+        state={"filters": {}, "visible_filters": [], "sort": "", "page_size": ""},
+    )
+
+    response = client.post(
+        reverse("powercrud:favourites-save"),
+        {
+            "name": "Existing owner favourite",
+            "view_key": BOOK_VIEW_KEY,
+            "list_view_url": reverse("sample:bigbook-list"),
+            "toolbar_dom_id": "powercrud-favourites-toolbar-test",
+            "current_state_json": "{}",
+            "original_target": "#content",
+            "state_json": "{}",
+        },
+        HTTP_HX_REQUEST="true",
+    )
+
+    assert response.status_code == 200, (
+        "Duplicate validation against the resolved owner should still render as a toolbar-panel response."
+    )
+    assert SavedFilterFavourite.objects.filter(
+        user=owner_user,
+        view_key=BOOK_VIEW_KEY,
+    ).count() == 1, (
+        "Duplicate-name validation should not create a second favourite for "
+        "the resolved owner."
+    )
+    assert "already exists" in response.content.decode(), (
+        "The resolved owner's duplicate favourite should be reported to the active user."
     )
 
 
@@ -498,6 +686,49 @@ def test_favourites_toolbar_view_can_expand_inline_save_form(client):
     )
     assert "Favourite name" in response.content.decode(), (
         "Requesting inline save mode should render the favourite name field inside the dropdown panel."
+    )
+
+
+@override_settings(
+    POWERCRUD_SETTINGS={
+        "FILTER_FAVOURITE_USER_RESOLVER": (
+            "tests.test_favourites_contrib."
+            "resolve_filter_favourite_owner_from_session"
+        )
+    }
+)
+@pytest.mark.django_db
+def test_favourites_toolbar_view_lists_configured_owner_favourites(client):
+    """The toolbar endpoint should list saved favourites for the resolved owner."""
+
+    active_user = get_user_model().objects.create_user(username="fav-toolbar-active-user")
+    owner_user = get_user_model().objects.create_user(username="fav-toolbar-owner-user")
+    client.force_login(active_user)
+    set_filter_favourite_owner_session(client, owner_user)
+    SavedFilterFavourite.objects.create(
+        user=owner_user,
+        view_key=BOOK_VIEW_KEY,
+        name="Owner toolbar favourite",
+        state={"filters": {}, "visible_filters": [], "sort": "", "page_size": ""},
+    )
+
+    response = client.get(
+        reverse("powercrud:favourites-toolbar"),
+        {
+            "view_key": BOOK_VIEW_KEY,
+            "list_view_url": reverse("sample:bigbook-list"),
+            "toolbar_dom_id": "powercrud-favourites-toolbar-test",
+            "current_state_json": "{}",
+            "original_target": "#content",
+        },
+        HTTP_HX_REQUEST="true",
+    )
+
+    assert response.status_code == 200, (
+        "The toolbar endpoint should render successfully when an owner resolver is configured."
+    )
+    assert "Owner toolbar favourite" in response.content.decode(), (
+        "The toolbar endpoint should list saved favourites for the resolved owner."
     )
 
 
@@ -703,6 +934,100 @@ def test_favourite_delete_view_removes_only_the_current_users_favourite(client):
         "powercrud:favourite-deleted": {"favouriteId": favourite_id}
     }, (
         "Successful favourite deletes should trigger browser state sync after the panel fragment has swapped."
+    )
+
+
+@override_settings(
+    POWERCRUD_SETTINGS={
+        "FILTER_FAVOURITE_USER_RESOLVER": (
+            "tests.test_favourites_contrib."
+            "resolve_filter_favourite_owner_from_session"
+        )
+    }
+)
+@pytest.mark.django_db
+def test_favourite_apply_update_and_delete_use_configured_owner_resolver(client):
+    """Shared action endpoints should use the resolved owner for favourite lookups."""
+
+    active_user = get_user_model().objects.create_user(username="fav-action-active-user")
+    owner_user = get_user_model().objects.create_user(username="fav-action-owner-user")
+    favourite = SavedFilterFavourite.objects.create(
+        user=owner_user,
+        view_key=BOOK_VIEW_KEY,
+        name="Owner action favourite",
+        state={
+            "filters": {"title": ["owner"]},
+            "visible_filters": [],
+            "sort": "",
+            "page_size": "",
+        },
+    )
+    client.force_login(active_user)
+    set_filter_favourite_owner_session(client, owner_user)
+
+    apply_response = client.get(
+        reverse("powercrud:favourites-apply"),
+        {
+            "favourite_id": favourite.pk,
+            "view_key": BOOK_VIEW_KEY,
+            "list_view_url": reverse("sample:bigbook-list"),
+            "toolbar_dom_id": "powercrud-favourites-toolbar-test",
+            "current_state_json": "{}",
+            "original_target": "#content",
+        },
+        HTTP_HX_REQUEST="true",
+    )
+    updated_state = {
+        "filters": {"title": ["updated"]},
+        "visible_filters": [],
+        "sort": "",
+        "page_size": "",
+    }
+    update_response = client.post(
+        reverse("powercrud:favourites-update"),
+        {
+            "favourite_id": favourite.pk,
+            "view_key": BOOK_VIEW_KEY,
+            "list_view_url": reverse("sample:bigbook-list"),
+            "toolbar_dom_id": "powercrud-favourites-toolbar-test",
+            "current_state_json": json.dumps(updated_state),
+            "state_json": json.dumps(updated_state),
+            "original_target": "#content",
+        },
+        HTTP_HX_REQUEST="true",
+    )
+    favourite.refresh_from_db()
+    delete_response = client.post(
+        reverse("powercrud:favourites-delete"),
+        {
+            "favourite_id": favourite.pk,
+            "view_key": BOOK_VIEW_KEY,
+            "list_view_url": reverse("sample:bigbook-list"),
+            "toolbar_dom_id": "powercrud-favourites-toolbar-test",
+            "current_state_json": "{}",
+            "original_target": "#content",
+        },
+        HTTP_HX_REQUEST="true",
+    )
+
+    assert apply_response.status_code == 200, (
+        "Applying a favourite owned by the resolved user should succeed even "
+        "when request.user differs."
+    )
+    assert "title=owner" in apply_response.headers["HX-Location"], (
+        "Applying should use the resolved owner's saved favourite state."
+    )
+    assert update_response.status_code == 200, (
+        "Updating a favourite owned by the resolved user should succeed."
+    )
+    assert favourite.state == updated_state, (
+        "Updating should modify the resolved owner's favourite."
+    )
+    assert delete_response.status_code == 200, (
+        "Deleting a favourite owned by the resolved user should succeed."
+    )
+    assert not SavedFilterFavourite.objects.filter(pk=favourite.pk).exists(), (
+        "Deleting should remove the resolved owner's favourite."
     )
 
 

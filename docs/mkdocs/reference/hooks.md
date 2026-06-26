@@ -18,6 +18,7 @@ If you want step-by-step walkthroughs rather than contracts, start with the adva
     | `get_list_cell_tooltip()` | Deprecated generic hook for legacy `list_cell_tooltip_fields = [...]` declarations. Prefer field-specific hooks through `list_cell_tooltip_fields = {"field": "hook"}`. |
     | `get_list_cell_link()` | Use this when a rendered list cell should navigate somewhere conditionally, or when the narrow declarative `link_fields` config is not expressive enough. |
     | `get_filter_queryset_for_field()` | Use this when a filter-form dropdown should not show every possible related record, for example when you only want active owners, visible categories, or tenant-scoped choices. |
+    | `get_filter_favourite_user()` | Use this when initial saved-favourite list context should read favourites for a different user than `request.user`. |
     | `get_field_queryset_dependencies()` | Use this when you want to refine, filter, or inspect the declarative `field_queryset_dependencies` metadata before PowerCRUD applies it to forms or derives inline dependency wiring. |
     | `persist_single_object()` | Use this when you want PowerCRUD to keep form validation and response handling, but you want the actual save to go through your own application service or domain write logic. |
     | `persist_bulk_update()` | Use this when you want PowerCRUD to keep the bulk UI and normalized payload handling, but you want the actual multi-row update to go through your own bulk service or orchestration code. |
@@ -209,6 +210,16 @@ Upgrade notes:
     ```
 
 - Related docs: [Forms](../guides/forms.md), [Customisation tips](../guides/advanced/customisation_tips.md)
+
+### `get_filter_favourite_user()`
+
+- Purpose: Choose the user whose saved favourites should be loaded while rendering a PowerCRUD list view.
+- When it is called: During list context building when the optional favourites contrib app is enabled.
+- Signature: `def get_filter_favourite_user(self, request)`
+- Default behavior: Delegates to the package-level saved-favourite user resolver, which uses `request.user` unless `POWERCRUD_SETTINGS["FILTER_FAVOURITE_USER_RESOLVER"]` is configured.
+- Return contract: A Django user object, or a falsey/anonymous value when favourites should behave as unavailable for management.
+- Important note: This view hook affects the CRUDView render path. The save, apply, update, and delete endpoints are shared function views, so use `FILTER_FAVOURITE_USER_RESOLVER` when custom ownership must apply end to end.
+- Related docs: [Saved Favourites](../guides/advanced/filter_favourites.md#ownership-resolver), [Configuration options](./config_options.md#settings-configuration)
 
 ### `get_field_queryset_dependencies()`
 
