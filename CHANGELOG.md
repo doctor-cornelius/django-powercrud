@@ -6,6 +6,9 @@ During the `0.x` series, breaking changes can occur, although we try to minimise
 
 Version numbers below correspond to published git tags. The more important releases include a little extra narrative and upgrade context; smaller patch releases remain deliberately brief. For full detail between any two versions, use the GitHub compare view for the matching tags.
 
+## 0.8.2 (2026-06-26)
+- **Feature (favourites)**: add filter favourite owner resolver
+
 ## 0.8.2b1 (2026-06-25)
 - **Feature (row-actions)**: add lazy `hidden_if` row actions
   
