@@ -264,6 +264,11 @@ def test_book_view_filter_favourite_user_hook_controls_initial_list_context():
     class OwnerFavouriteBookView(BookCRUDView):
         """Book view that stores favourites against a resolved owner."""
 
+        def get_favourites_key(self):
+            """Keep this test view scoped to the sample BookCRUDView favourites."""
+
+            return BOOK_VIEW_KEY
+
         def get_filter_favourite_user(self, request):
             """Return the owner user instead of the active request user."""
 
