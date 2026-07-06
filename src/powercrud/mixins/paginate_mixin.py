@@ -6,21 +6,52 @@ class PaginateMixin:
     Provides pagination functionality for powercrud views.
     """
 
+    def _get_fallback_page_size(self):
+        """Return the configured default page size for invalid requests."""
+        return resolve_config(self).paginate_by
+
+    def _get_explicit_page_size_options(self):
+        """Return normalized explicit page-size options, or None for legacy mode."""
+        configured_options = resolve_config(self).page_size_options
+        if configured_options is None:
+            return None
+        return sorted(
+            {
+                int(size)
+                for size in configured_options
+                if type(size) is int and size > 0
+            }
+        )
+
     def get_paginate_by(self):
         """Override of parent method to enable dealing with user-specified
         page size set on screen.
         """
+        cfg = resolve_config(self)
+        explicit_options = self._get_explicit_page_size_options()
         page_size = self.request.GET.get("page_size")
         if page_size == "all":
-            return None  # disables pagination, returns all records
+            if cfg.page_size_all_enabled is not False:
+                return None  # disables pagination, returns all records
+            return self._get_fallback_page_size()
         try:
-            return int(page_size)
+            requested_size = int(page_size)
         except (TypeError, ValueError):
-            return resolve_config(self).paginate_by  # fallback to default
+            return self._get_fallback_page_size()
+        if requested_size <= 0:
+            return self._get_fallback_page_size()
+        if explicit_options is not None and requested_size not in explicit_options:
+            return self._get_fallback_page_size()
+        return requested_size
 
     def get_page_size_options(self):
+        cfg = resolve_config(self)
+        explicit_options = self._get_explicit_page_size_options()
+        if explicit_options is not None:
+            return [str(size) for size in explicit_options]
+
         standard_sizes = [5, 10, 25, 50, 100]
-        default = resolve_config(self).paginate_by
+        default = cfg.paginate_by
         options = []
         for size in sorted(
             set(

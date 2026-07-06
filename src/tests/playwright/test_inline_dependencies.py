@@ -66,7 +66,7 @@ def build_inline_row_path(books_url: str, pk: int) -> str:
 
 
 def open_books_page(page: Page, books_url: str) -> None:
-    page.goto(f"{books_url}?page_size=all")
+    page.goto(f"{books_url}?page_size=50")
     page.wait_for_load_state("networkidle")
     expect(page.locator("table[data-inline-enabled='true']")).to_be_visible()
 

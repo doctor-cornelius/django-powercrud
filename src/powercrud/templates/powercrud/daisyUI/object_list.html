@@ -456,8 +456,10 @@
                                     selected
                                 {% endif %}>{{ size }}</option>
                         {% endfor %}
-                        <option value="all" {% if request.GET.page_size == 'all' or not request.GET.page_size and default_page_size is None %}selected{% endif %}>
-                            All</option>
+                        {% if page_size_all_enabled %}
+                            <option value="all" {% if request.GET.page_size == 'all' or not request.GET.page_size and default_page_size is None %}selected{% endif %}>
+                                All</option>
+                        {% endif %}
                     </select>
                 </label>
                 <span class="text-xs text-base-content/70">per page</span>

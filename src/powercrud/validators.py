@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, field_validator, ConfigDict
+from pydantic import BaseModel, Field, field_validator, model_validator, ConfigDict
 from typing import Union, Optional, List, Literal, Dict, Any, Callable
 import re
 
@@ -162,6 +162,8 @@ class PowerCRUDMixinValidator(BaseModel):
     async_manager_class_path: Optional[str] = None
     async_manager_config: Optional[Dict[str, Any]] = None
     paginate_by: Optional[int] = DEFAULT_PAGINATE_BY
+    page_size_options: Optional[List[int]] = None
+    page_size_all_enabled: Optional[bool] = True
 
     @field_validator("fields", "properties", "detail_fields", "detail_properties")
     @classmethod
@@ -186,6 +188,34 @@ class PowerCRUDMixinValidator(BaseModel):
             if not isinstance(value, str) or not value.strip():
                 raise ValueError("default_list_fields must contain non-empty strings")
         return [value.strip() for value in v]
+
+    @field_validator("page_size_options", mode="before")
+    @classmethod
+    def validate_page_size_options(cls, v):
+        """Validate explicit page-size selector choices."""
+        if v is None:
+            return v
+        if not isinstance(v, list):
+            raise ValueError("page_size_options must be a list of positive integers")
+        if not v:
+            raise ValueError("page_size_options cannot be empty")
+        if not all(type(value) is int and value > 0 for value in v):
+            raise ValueError("page_size_options must contain only positive integers")
+        return sorted(set(v))
+
+    @model_validator(mode="after")
+    def validate_page_size_defaults(self):
+        """Ensure page-size controls always leave a valid default state."""
+        if self.page_size_options is not None and self.paginate_by is not None:
+            if self.paginate_by not in self.page_size_options:
+                raise ValueError(
+                    "paginate_by must be included in explicit page_size_options"
+                )
+        if self.paginate_by is None and self.page_size_all_enabled is False:
+            raise ValueError(
+                "page_size_all_enabled cannot be False when paginate_by is None"
+            )
+        return self
 
     @field_validator("hx_trigger")
     @classmethod

@@ -153,6 +153,8 @@ class BookCRUDView(SampleCRUDMixin):
     # standard neapolitan setting; this demonstrates how to override the default url_base (ie model name)
     # useful if you want multiple CRUDViews for the same model
     url_base = "bigbook"
+    page_size_options = [5, 10, 25, 50]
+    page_size_all_enabled = False
 
     # use_crispy = False
 

@@ -148,7 +148,7 @@ def test_bulk_selection_shift_click_selects_visible_range(
             description="Created for shift-click bulk selection coverage",
         )
 
-    page.goto(f"{books_url}?page_size=all")
+    page.goto(f"{books_url}?page_size=50")
     page.wait_for_load_state("networkidle")
 
     checkboxes = page.locator("input.row-select-checkbox")
@@ -178,7 +178,7 @@ def test_bulk_selection_shift_click_can_clear_visible_range(
             description="Created for shift-click clear coverage",
         )
 
-    page.goto(f"{books_url}?page_size=all")
+    page.goto(f"{books_url}?page_size=50")
     page.wait_for_load_state("networkidle")
 
     checkboxes = page.locator("input.row-select-checkbox")

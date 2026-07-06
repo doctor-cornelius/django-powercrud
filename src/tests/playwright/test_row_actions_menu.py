@@ -19,7 +19,7 @@ def test_row_actions_menu_stays_visible_for_top_and_bottom_rows(
     """Keep floating row-action menus fully visible on short pages."""
     del sample_books
 
-    page.goto(f"{books_url}?page_size=2")
+    page.goto(f"{books_url}?page_size=5")
     page.wait_for_load_state("networkidle")
 
     row_action_triggers = page.locator("[data-powercrud-row-actions-trigger='true']")
@@ -68,7 +68,7 @@ def test_row_actions_floating_panel_modal_action_uses_cloned_trigger_classes(
     target_book.description = "Description Preview Playwright Body"
     target_book.save(update_fields=["description"])
 
-    page.goto(f"{books_url}?page_size=2")
+    page.goto(f"{books_url}?page_size=5")
     page.wait_for_load_state("networkidle")
 
     page.locator("[data-powercrud-row-actions-trigger='true']").first.dispatch_event("click")
@@ -95,7 +95,7 @@ def test_row_actions_menu_hydrates_lazy_disabled_state(
     target_book.description = ""
     target_book.save(update_fields=["description"])
 
-    page.goto(f"{books_url}?page_size=2")
+    page.goto(f"{books_url}?page_size=5")
     page.wait_for_load_state("networkidle")
 
     row = page.get_by_role("row").filter(has_text=target_book.title)
@@ -132,7 +132,7 @@ def test_row_actions_menu_removes_lazy_hidden_action(
     target_book.title = "Hidden Preview Playwright"
     target_book.save(update_fields=["title"])
 
-    page.goto(f"{books_url}?page_size=2")
+    page.goto(f"{books_url}?page_size=5")
     page.wait_for_load_state("networkidle")
 
     row = page.get_by_role("row").filter(has_text=target_book.title)
@@ -166,7 +166,7 @@ def test_row_actions_menu_removes_lazy_hidden_actions_when_state_fetch_fails(
         "**/row-action-states/",
         lambda route: route.fulfill(status=500, body="error"),
     )
-    page.goto(f"{books_url}?page_size=2")
+    page.goto(f"{books_url}?page_size=5")
     page.wait_for_load_state("networkidle")
 
     row = page.get_by_role("row").filter(has_text=target_book.title)
@@ -189,7 +189,7 @@ def test_row_actions_flagged_modal_close_refreshes_current_list(
 
     del sample_books
 
-    page.goto(f"{books_url}?page_size=2")
+    page.goto(f"{books_url}?page_size=5")
     page.wait_for_load_state("networkidle")
 
     page.locator("[data-powercrud-row-actions-trigger='true']").first.dispatch_event("click")
