@@ -387,7 +387,9 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
 
 PowerCRUD paginates list views at 25 rows per page by default. Set `paginate_by` to another number to choose a different default page size, or set `paginate_by = None` when a view should render every record by default.
 
-- Users can override the page size at runtime with `?page_size=10` (or `?page_size=all` to disable pagination temporarily). A standard list of sizes (5/10/25/50/100 plus your default) powers the UI selector.
+- By default, the selector shows `5/10/25/50/100` plus `All`, and `?page_size=all` disables pagination temporarily.
+- Set `page_size_options = [10, 25, 50]` to control the finite selector choices and restrict direct `?page_size=` requests to those values.
+- Set `page_size_all_enabled = False` to remove `All` and make direct `?page_size=all` requests fall back to `paginate_by`.
 - When filters change, the mixin automatically snaps back to page 1 so users do not land on empty pages.
 - Pagination works with or without HTMX. With HTMX enabled, only the table/pager fragment updates on navigation.
 

@@ -211,6 +211,8 @@ class ConfigMixin:
 
     # pagination defaults
     paginate_by: int | None = DEFAULT_PAGINATE_BY
+    page_size_options: list[int] | None = None
+    page_size_all_enabled: bool = True
 
     EXTRA_CONFIG_FIELDS = {
         "form_class",
@@ -244,6 +246,8 @@ class ConfigMixin:
         "async_manager_class_path",
         "async_manager_config",
         "paginate_by",
+        "page_size_options",
+        "page_size_all_enabled",
         "extra_buttons",
         "extra_actions",
     }
@@ -1703,6 +1707,10 @@ class _ConfigShim:
             )
         if name == "extra_button_selection_controls_disabled":
             return bool(self._raw("extra_button_selection_controls_disabled", False))
+        if name == "page_size_options":
+            return self._raw("page_size_options")
+        if name == "page_size_all_enabled":
+            return self._raw("page_size_all_enabled", True) is not False
         if name == "selection_controls_enabled":
             return bool(
                 self.__getattr__("bulk_edit_enabled")

@@ -573,6 +573,37 @@ def test_paginate_mixin_get_paginate_by_handles_query_params():
     assert view.get_paginate_by() == 25
 
 
+def test_paginate_mixin_restricts_explicit_page_size_options():
+    rf = RequestFactory()
+
+    class PaginateView(PaginateMixin):
+        paginate_by = 25
+        page_size_options = [10, 25, 50]
+        page_size_all_enabled = False
+
+    view = PaginateView()
+
+    view.request = rf.get("/?page_size=50")
+    assert view.get_paginate_by() == 50, (
+        "Explicit page-size options should allow configured finite sizes."
+    )
+
+    view.request = rf.get("/?page_size=100")
+    assert view.get_paginate_by() == 25, (
+        "Disallowed finite page sizes should fall back to the configured default."
+    )
+
+    view.request = rf.get("/?page_size=all")
+    assert view.get_paginate_by() == 25, (
+        "Disabled All requests should fall back to the configured default."
+    )
+
+    view.request = rf.get("/?page_size=-1")
+    assert view.get_paginate_by() == 25, (
+        "Non-positive page sizes should fall back to the configured default."
+    )
+
+
 def test_paginate_mixin_get_paginate_by_uses_package_default_when_unset():
     rf = RequestFactory()
 
@@ -602,6 +633,7 @@ def test_powercrud_view_can_explicitly_disable_default_pagination():
 
     class UnpaginatedBookView(sample_views.BookCRUDView):
         paginate_by = None
+        page_size_all_enabled = True
 
     view = UnpaginatedBookView()
     view.request = rf.get("/")
@@ -609,6 +641,23 @@ def test_powercrud_view_can_explicitly_disable_default_pagination():
     assert view.get_paginate_by() is None, (
         "An explicit view-level paginate_by=None should opt out of default pagination."
     )
+
+
+def test_powercrud_view_rejects_page_size_options_missing_default():
+    class InvalidBookView(sample_views.BookCRUDView):
+        page_size_options = [5, 10, 50]
+
+    with pytest.raises(ImproperlyConfigured):
+        InvalidBookView()
+
+
+def test_powercrud_view_rejects_disabled_all_without_finite_default():
+    class InvalidBookView(sample_views.BookCRUDView):
+        paginate_by = None
+        page_size_all_enabled = False
+
+    with pytest.raises(ImproperlyConfigured):
+        InvalidBookView()
 
 
 def test_paginate_mixin_page_size_options_are_strings_without_duplicates():
@@ -620,6 +669,21 @@ def test_paginate_mixin_page_size_options_are_strings_without_duplicates():
     options = view.get_page_size_options()
     assert all(isinstance(option, str) for option in options)
     assert options.count("12") == 1
+    assert "100" in options, (
+        "Legacy page-size options should continue to include 100 by default."
+    )
+
+
+def test_paginate_mixin_explicit_page_size_options_are_strings_and_sorted():
+    class PaginateView(PaginateMixin):
+        paginate_by = 25
+        page_size_options = [50, 10, 25, 10]
+
+    view = PaginateView()
+
+    assert view.get_page_size_options() == ["10", "25", "50"], (
+        "Explicit page-size options should render as sorted strings without duplicates."
+    )
 
 
 def test_paginate_queryset_resets_page_when_flagged(monkeypatch):
@@ -3346,8 +3410,14 @@ def test_book_list_page_size_form_includes_only_page_size_and_filter_form(client
     assert re.search(r'<option value="25"\s+selected\s*>\s*25\s*</option>', response_text), (
         "The default Book list page-size selection should follow PowerCRUD's package default."
     )
-    assert not re.search(r'<option value="all"\s+selected', response_text), (
-        "The Book list should not select All unless pagination is explicitly disabled."
+    assert '<option value="5"' in response_text
+    assert '<option value="10"' in response_text
+    assert '<option value="50"' in response_text
+    assert '<option value="100"' not in response_text, (
+        "The Book sample should demonstrate removing oversized page-size options."
+    )
+    assert '<option value="all"' not in response_text, (
+        "The Book sample should demonstrate disabling the All page-size option."
     )
 
 

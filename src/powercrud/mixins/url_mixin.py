@@ -492,6 +492,7 @@ class UrlMixin:
         kwargs["default_page_size"] = (
             str(cfg.paginate_by) if cfg.paginate_by is not None else None
         )
+        kwargs["page_size_all_enabled"] = cfg.page_size_all_enabled is not False
 
         # If we have a form with errors and modals are enabled,
         # ensure the htmx_target is set to the modal target

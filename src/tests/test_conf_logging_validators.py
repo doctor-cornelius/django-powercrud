@@ -196,6 +196,39 @@ def test_validator_defaults_paginate_by_to_package_page_size():
     )
 
 
+def test_validator_accepts_page_size_controls():
+    validator = PowerCRUDMixinValidator(
+        paginate_by=25,
+        page_size_options=[50, 10, 25, 10],
+        page_size_all_enabled=False,
+    )
+
+    assert validator.page_size_options == [10, 25, 50], (
+        "Explicit page-size options should validate to sorted unique integers."
+    )
+    assert validator.page_size_all_enabled is False, (
+        "The validator should preserve an explicit disabled All option."
+    )
+
+
+def test_validator_rejects_page_size_options_missing_default():
+    with pytest.raises(ValueError):
+        PowerCRUDMixinValidator(paginate_by=25, page_size_options=[10, 50])
+
+
+@pytest.mark.parametrize(
+    "page_size_options", [[], [0, 25], [-1, 25], ["25"], [True, 25]]
+)
+def test_validator_rejects_invalid_page_size_options(page_size_options):
+    with pytest.raises(ValueError):
+        PowerCRUDMixinValidator(page_size_options=page_size_options)
+
+
+def test_validator_rejects_disabled_all_without_paginate_default():
+    with pytest.raises(ValueError):
+        PowerCRUDMixinValidator(paginate_by=None, page_size_all_enabled=False)
+
+
 def test_validator_rejects_invalid_list_cell_link_default_open_in():
     with pytest.raises(ValueError):
         PowerCRUDMixinValidator(list_cell_link_default_open_in="popup")

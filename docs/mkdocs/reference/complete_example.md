@@ -177,6 +177,8 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
     # Pagination / metadata
     # ------------------------------------------------------------------
     paginate_by = 25
+    page_size_options = [10, 25, 50]
+    page_size_all_enabled = False
     show_record_count = True
     show_bulk_selection_meta = True
 
