@@ -8,7 +8,7 @@ The current recommendation is to improve package gates incrementally rather than
 
 The next implementation slice should be small: split `Dependency Review` into a required runtime-package check and an advisory dev/local-repo check.
 
-Implementation status: the Security workflow should expose `Dependency Review / Runtime Package` as the required candidate and `Dependency Review / Dev and Local Repo` as an advisory signal. The `protect_main` ruleset still needs to be updated after the new check names are visible from a PR run.
+Implementation status: the Security workflow exposes `Dependency Review / Runtime Package` as the required gate and `Dependency Review / Dev and Local Repo` as an advisory signal. The `protect_main` ruleset requires the runtime-package check along with the existing test matrix and Playwright smoke checks.
 
 ## Current Situation
 
@@ -91,6 +91,8 @@ If PR checks are required and branches must be current enough before merging, re
 Scheduled security scans should probably stay because vulnerability databases change even when code does not.
 
 Do not remove post-merge checks until the required PR checks and release gates are agreed.
+
+Phase D removes only the redundant `push` to `main` triggers from the PR Tests and Security workflows. Pull-request checks remain required, Security keeps its scheduled and manual triggers, and tag-based release workflows remain unchanged.
 
 ## Deferred Decisions
 
