@@ -212,10 +212,11 @@ import { createCurrentTemplateRuntime } from './runtime/current-template.js';
         syncSelectionAwareButtonVisualState: currentTemplate.syncSelectionAwareButtonVisualState,
     });
 
-    function bootstrapObjectList(root) {
+    function bootstrapObjectList(root, options = {}) {
         if (!(root instanceof Element)) {
             return;
         }
+        const allowFavouriteAutoApply = options.allowFavouriteAutoApply !== false;
         // Bring the list root back to a coherent state after render/swap:
         // normalize HTMX targets, sync list controls, then refresh UI affordances.
         cleanupDuplicatePowercrudModals();
@@ -226,19 +227,23 @@ import { createCurrentTemplateRuntime } from './runtime/current-template.js';
         applyFilterPanelState(root);
         listColumns.syncListColumnChoosers(root);
         filterFavourites.syncFilterFavouritesSelection(root);
-        filterFavourites.maybeApplyRememberedFavourite(root);
+        if (allowFavouriteAutoApply) {
+            filterFavourites.maybeApplyRememberedFavourite(root);
+        }
         bulkActions.syncBulkSelectionPresentation(root);
     }
 
-    function bootstrapObjectLists(scope = document) {
-        getAffectedObjectListRoots(scope).forEach(bootstrapObjectList);
+    function bootstrapObjectLists(scope = document, options = {}) {
+        getAffectedObjectListRoots(scope).forEach(root => {
+            bootstrapObjectList(root, options);
+        });
     }
 
-    function initPowercrud(fragment = document) {
+    function initPowercrud(fragment = document, options = {}) {
         // Public fragment lifecycle: enhance controls, sync list state, then
         // recreate tooltips after the final visible markup is in place.
         initPowercrudSearchableSelects(fragment);
-        bootstrapObjectLists(fragment);
+        bootstrapObjectLists(fragment, options);
         initPowercrudTooltips(fragment);
     }
 
@@ -667,7 +672,7 @@ import { createCurrentTemplateRuntime } from './runtime/current-template.js';
                 // shell-level state shared across list roots.
                 filterFavourites.handleHtmxAfterSwap(event);
                 getHtmxEventRoots(event).forEach(initPowercrud);
-                bootstrapObjectLists(document);
+                bootstrapObjectLists(document, { allowFavouriteAutoApply: false });
                 schedulePowercrudTooltipRefresh(document, 50);
 
                 if (inlineEdit.handleHtmxAfterSwapTarget(target)) {
@@ -681,7 +686,7 @@ import { createCurrentTemplateRuntime } from './runtime/current-template.js';
                     initPowercrud(root);
                     inlineEdit.showInlineFieldErrorPopovers(root);
                 });
-                bootstrapObjectLists(document);
+                bootstrapObjectLists(document, { allowFavouriteAutoApply: false });
                 schedulePowercrudTooltipRefresh(document, 50);
                 inlineEdit.removeOrphanedInlineFieldErrorPopovers();
             },
