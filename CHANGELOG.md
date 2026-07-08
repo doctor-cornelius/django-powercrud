@@ -6,6 +6,10 @@ During the `0.x` series, breaking changes can occur, although we try to minimise
 
 Version numbers below correspond to published git tags. The more important releases include a little extra narrative and upgrade context; smaller patch releases remain deliberately brief. For full detail between any two versions, use the GitHub compare view for the matching tags.
 
+## 0.8.5 (2026-07-08)
+
+
+Maintenance release with internal-only or tooling-only changes; no curated user-facing changelog entries.
 ## 0.8.4 (2026-07-08)
 - **Fix (favourites)**: guard auto-apply during modal swaps
 
