@@ -700,6 +700,34 @@ def test_action_links_disable_permission_denied_extra_action_before_row_state():
 
 
 @pytest.mark.django_db
+def test_action_links_strip_csrf_from_modal_query_string():
+    """Row-action links should not reflect CSRF tokens from current list state."""
+    author = Author.objects.create(name="Action CSRF Author")
+    book = Book.objects.create(
+        title="Action CSRF",
+        author=author,
+        published_date=date(2024, 1, 11),
+        bestseller=False,
+        isbn="9876543210010",
+        pages=42,
+        description="Preview exists",
+    )
+    request = apply_session(
+        RequestFactory().get("/?page_size=20&csrfmiddlewaretoken=leaked-token")
+    )
+    view = TemplateViewStub(request)
+
+    html = powercrud.action_links(view, book)
+
+    assert "csrfmiddlewaretoken" not in html, (
+        "Row-action links should strip csrfmiddlewaretoken from reflected list query strings."
+    )
+    assert "page_size=20" in html, (
+        "Row-action links should still preserve legitimate list query state for modal returns."
+    )
+
+
+@pytest.mark.django_db
 def test_action_links_evaluate_hidden_if_after_permission_passes():
     """Allowed extra actions should still use existing row hidden hooks."""
     author = Author.objects.create(name="Permission Hidden State")
@@ -998,7 +1026,9 @@ def test_object_list_renders_booleans_dates_and_selection():
         pages=15,
     )
     book.genres.add(genre)
-    request = apply_session(RequestFactory().get("/?sort=title&filter=1"))
+    request = apply_session(
+        RequestFactory().get("/?sort=title&filter=1&csrfmiddlewaretoken=leaked-token")
+    )
     request.session["selected"] = ["1"]
     view = TemplateViewStub(request)
 
@@ -1027,6 +1057,9 @@ def test_object_list_renders_booleans_dates_and_selection():
     assert result["selected_ids"] == ["1"]
     assert result["selected_count"] == 1
     assert result["filter_params"] == "filter=1"
+    assert "csrfmiddlewaretoken" not in result["filter_params"], (
+        "Object-list filter params should not reflect CSRF tokens into sort/filter URLs."
+    )
 
 
 @pytest.mark.django_db

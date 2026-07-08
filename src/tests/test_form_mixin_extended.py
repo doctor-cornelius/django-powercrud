@@ -602,6 +602,54 @@ def test_form_valid_htmx_returns_list(monkeypatch):
 
 
 @pytest.mark.django_db
+def test_form_valid_htmx_push_url_strips_preserved_csrf_filter(monkeypatch):
+    """HTMX form success should not push preserved CSRF filter parameters into history."""
+    author = Author.objects.create(name="Ada Filter")
+    book = Book.objects.create(
+        title="Async Filter",
+        author=author,
+        published_date="2024-01-01",
+        bestseller=False,
+        isbn="5555555550001",
+        pages=51,
+    )
+    request = attach_session(
+        RequestFactory().post(
+            "/",
+            {
+                "_powercrud_filter_page_size": "10",
+                "_powercrud_filter_title": "Async",
+                "_powercrud_filter_csrfmiddlewaretoken": "leaked-token",
+            },
+        )
+    )
+    request.htmx = SimpleNamespace()
+    view = DummyFormView(request)
+    view._object = book
+    view.object = book
+    view.role = Role.UPDATE
+
+    monkeypatch.setattr(
+        "powercrud.mixins.form_mixin.reverse", lambda name, kwargs=None: f"/{name}"
+    )
+    monkeypatch.setattr(view, "_check_for_conflicts", lambda selected_ids: False)
+
+    form = view.get_form_class()(
+        instance=book,
+        data={"title": "Async Filter", "author": author.pk, "published_date": "2024-01-01"},
+    )
+    assert form.is_valid(), (
+        "The form should validate before exercising HTMX success URL canonicalization."
+    )
+
+    response = view.form_valid(form)
+
+    assert response["HX-Push-Url"] == "/sample:book-list?page_size=10&title=Async", (
+        "HTMX form success should preserve real list state but strip csrfmiddlewaretoken from the pushed URL."
+    )
+
+
+@pytest.mark.django_db
 def test_form_valid_uses_persist_single_object_hook(monkeypatch):
     author = Author.objects.create(name="Grace")
     book = Book.objects.create(

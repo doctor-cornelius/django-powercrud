@@ -13,6 +13,7 @@ from django.template.response import TemplateResponse
 import json
 from neapolitan.views import Role
 from powercrud.logging import get_logger
+from powercrud.query_params import build_navigation_query_string
 from .config_mixin import resolve_config
 
 log = get_logger(__name__)
@@ -332,16 +333,8 @@ class HtmxMixin:
 
             # Only set HX-Push-Url for GET requests and when role is LIST
             if self.request.method == "GET" and self.role == Role.LIST:
-                clean_params: list[tuple[str, str]] = []
-                for k in self.request.GET:
-                    values = self.request.GET.getlist(k)
-                    clean_params.extend(
-                        (k, value) for value in values if str(value).strip()
-                    )
-                if clean_params:
-                    from urllib.parse import urlencode
-
-                    canonical_query = urlencode(clean_params, doseq=True)
+                canonical_query = build_navigation_query_string(self.request.GET)
+                if canonical_query:
                     canonical_url = f"{self.request.path}?{canonical_query}"
                 else:
                     canonical_url = self.request.path
