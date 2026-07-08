@@ -71,8 +71,8 @@ jobs:
           exit-code: 1
           skip-setup-trivy: true
 
-  dependency-review:
-    name: Dependency Review
+  dependency-review-runtime:
+    name: Dependency Review / Runtime Package
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     permissions:
@@ -85,6 +85,25 @@ jobs:
         uses: actions/dependency-review-action@v5
         with:
           fail-on-severity: high
+          fail-on-scopes: runtime
+          license-check: false
+
+  dependency-review-dev-local:
+    name: Dependency Review / Dev and Local Repo
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Review development and local dependency changes
+        uses: actions/dependency-review-action@v5
+        with:
+          fail-on-severity: high
+          fail-on-scopes: development, unknown
           license-check: false
 
   socket-firewall:
