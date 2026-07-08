@@ -388,7 +388,7 @@
                                 {% csrf_token %}
                                 <input type="hidden" name="list_view_url" value="{{ list_view_url }}">
                                 {% for key, values in request.GET.lists %}
-                                    {% if key != 'page' %}
+                                    {% if key != 'csrfmiddlewaretoken' and key != 'page' %}
                                         {% for value in values %}
                                             <input type="hidden" name="{{ key }}" value="{{ value }}">
                                         {% endfor %}
@@ -563,7 +563,7 @@
 
         <!-- Hidden fields to preserve current filter and sort parameters -->
         {% for key, values in request.GET.lists %}
-            {% if key != 'page_size' and key != 'page' and key != visible_filter_param_name %}
+            {% if key != 'csrfmiddlewaretoken' and key != 'page_size' and key != 'page' and key != visible_filter_param_name %}
                 {% for value in values %}
                     {% if filterset and key not in filterset.form.fields %}
                         <input type="hidden" name="{{ key }}" value="{{ value }}">

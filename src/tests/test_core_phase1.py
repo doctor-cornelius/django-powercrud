@@ -3854,6 +3854,42 @@ def test_powerfield_book_list_defers_poweraction_hidden_hook(client):
 
 
 @pytest.mark.django_db
+def test_book_list_htmx_push_url_strips_csrf_query_param(client):
+    """HTMX list navigation should not push submitted CSRF tokens into browser history."""
+    author = Author.objects.create(name="Canonical URL Author")
+    Book.objects.create(
+        title="Canonical URL",
+        author=author,
+        published_date=date(2024, 12, 2),
+        bestseller=False,
+        isbn="9876543210111",
+        pages=31,
+    )
+
+    _login_sample_manager(client)
+    response = client.get(
+        reverse("sample:bigbook-list"),
+        {
+            "page_size": "10",
+            "title": "Canonical",
+            "csrfmiddlewaretoken": "leaked-token",
+        },
+        HTTP_HX_REQUEST="true",
+        HTTP_HX_TARGET="content",
+    )
+
+    assert response.status_code == 200, (
+        "Sample book list should render successfully for an HTMX navigation request."
+    )
+    assert response["HX-Push-Url"] == (
+        f"{reverse('sample:bigbook-list')}?page_size=10&title=Canonical"
+    ), "HTMX list responses should preserve real list parameters but strip csrfmiddlewaretoken from the pushed URL."
+    assert "leaked-token" not in response.content.decode(), (
+        "List markup should not preserve a submitted CSRF token as hidden list-state input."
+    )
+
+
+@pytest.mark.django_db
 def test_book_selected_summary_uses_persisted_selection(client):
     """Render selected book details from the persisted bulk selection."""
     author = Author.objects.create(name="Summary Author")

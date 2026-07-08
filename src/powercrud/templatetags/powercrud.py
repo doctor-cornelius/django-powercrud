@@ -30,6 +30,10 @@ from powercrud.cell_tooltips import (
 )
 from powercrud.labels import resolve_field_label, resolve_property_label
 from powercrud.logging import get_logger
+from powercrud.query_params import (
+    build_navigation_query_string,
+    build_navigation_querydict,
+)
 from powercrud.row_actions import (
     is_lazy_disabled_state_action,
     is_lazy_hidden_if_action,
@@ -734,7 +738,7 @@ def action_links(view: Any, object: Any) -> str:
     )
     query_string = ""
     if hasattr(view, "request") and hasattr(view.request, "GET") and view.request.GET:
-        query_string = view.request.GET.urlencode()
+        query_string = build_navigation_query_string(view.request.GET)
 
     default_target: str = _resolve_view_option(
         view,
@@ -1476,19 +1480,10 @@ def object_list(context, objects, view):
     current_sort = request.GET.get("sort", "") if request else ""
 
     # Get all current filter parameters
-    filter_params = request.GET.copy() if request else {}
-    if "sort" in filter_params:
-        filter_params.pop("sort")
-    if "page" in filter_params:
-        filter_params.pop("page")
-
-    # Only keep the last value for each key to avoid duplicate params in URLs
-    clean_params = {}
-    for k in filter_params:
-        clean_params[k] = filter_params.getlist(k)[-1]
-    filter_params = filter_params.__class__("", mutable=True)
-    for k, v in clean_params.items():
-        filter_params[k] = v
+    filter_params = build_navigation_querydict(
+        request.GET if request else {},
+        exclude={"sort", "page"},
+    )
 
     use_htmx = context.get("use_htmx", view.get_use_htmx())
     original_target = context.get("original_target", view.get_original_target())

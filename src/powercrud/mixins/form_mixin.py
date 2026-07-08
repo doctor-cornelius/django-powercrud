@@ -9,8 +9,6 @@ from django.http import HttpResponseRedirect, QueryDict
 from django.shortcuts import render
 from django.urls import reverse
 
-from urllib.parse import urlencode
-
 try:  # Optional dependency: crispy-forms
     from crispy_forms.helper import FormHelper
 except ImportError:  # pragma: no cover - environments without crispy_forms
@@ -18,6 +16,10 @@ except ImportError:  # pragma: no cover - environments without crispy_forms
 from neapolitan.views import Role
 from powercrud.labels import resolve_field_label
 from powercrud.logging import get_logger
+from powercrud.query_params import (
+    build_navigation_query_string,
+    build_navigation_querydict,
+)
 from .config_mixin import ConfigMixin, resolve_config
 
 log = get_logger(__name__)
@@ -909,13 +911,9 @@ class FormMixin:
                     for value in v:
                         filter_params.appendlist(real_key, value)
 
-            # Build canonical list URL with current filter/sort params
-            clean_params = {}
-            for k, v in filter_params.lists():
-                # filter out keys with no values
-                if v:
-                    clean_params[k] = v[-1]
+            filter_params = build_navigation_querydict(filter_params)
 
+            # Build canonical list URL with current filter/sort params
             # determine the canonical url that includes the filter parameters
             if self.namespace:
                 list_url_name = f"{self.namespace}:{self.url_base}-list"
@@ -923,8 +921,8 @@ class FormMixin:
                 list_url_name = f"{self.url_base}-list"
             list_path = reverse(list_url_name)
 
-            if clean_params:
-                canonical_query = urlencode(clean_params)
+            canonical_query = build_navigation_query_string(filter_params)
+            if canonical_query:
                 canonical_url = f"{list_path}?{canonical_query}"
             else:
                 canonical_url = list_path
