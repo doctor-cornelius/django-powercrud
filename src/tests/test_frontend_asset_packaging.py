@@ -86,14 +86,17 @@ def test_runtime_js_exposes_shared_fragment_initializer() -> None:
     js = runtime_js.read_text(encoding="utf-8")
 
     assert (
-        "function initPowercrud(fragment = document)" in js
+        "function initPowercrud(fragment = document, options = {})" in js
     ), "Runtime JS should define a shared per-fragment initializer."
     assert (
         "initPowercrudSearchableSelects(fragment);" in js
     ), "Shared initializer should initialise searchable selects for the fragment."
     assert (
-        "bootstrapObjectLists(fragment);" in js
+        "bootstrapObjectLists(fragment, options);" in js
     ), "Shared initializer should bootstrap object-list state for the fragment."
+    assert (
+        "bootstrapObjectLists(document, { allowFavouriteAutoApply: false });" in js
+    ), "Global HTMX resync should not auto-apply remembered favourites for unrelated swaps."
     assert (
         "initPowercrudTooltips(fragment);" in js
     ), "Shared initializer should initialise tooltips for the fragment."

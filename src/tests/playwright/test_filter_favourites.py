@@ -14,7 +14,7 @@ from playwright.sync_api import expect
 
 from powercrud.contrib.favourites.models import SavedFilterFavourite
 from sample.models import Author, Book
-from sample.views import BookCRUDView
+from sample.views import BookCRUDView, SAMPLE_DEMO_USERS
 
 pytestmark = [pytest.mark.playwright, pytest.mark.django_db]
 HTMX_TEST_BUNDLE_PATH = (
@@ -1552,6 +1552,72 @@ def test_remembered_favourite_uses_server_state_before_auto_apply(
     assert apply_request_urls == [], (
         "Remembered favourite auto-apply should trust matching server-rendered toolbar state "
         "instead of dispatching from incomplete client-collected filter state."
+    )
+
+
+def test_remembered_favourite_does_not_auto_apply_after_row_action_modal_swap(
+    page, client, books_url, sample_books, sample_manager_page
+):
+    """Opening a row-action modal should not auto-apply a stale remembered favourite."""
+    del sample_manager_page
+
+    user = get_user_model().objects.get(
+        username=SAMPLE_DEMO_USERS["manager"]["username"]
+    )
+    target_book = sample_books[0]
+    other_book = sample_books[1]
+    target_book.description = "Favourite modal guard body"
+    target_book.save(update_fields=["description"])
+    favourite = SavedFilterFavourite.objects.create(
+        user=user,
+        view_key=BOOK_VIEW_KEY,
+        name="Modal guard favourite",
+        state={
+            "filters": {"title": [other_book.title]},
+            "visible_filters": [],
+            "sort": "",
+            "page_size": "5",
+            "visible_columns": list(BookCRUDView.default_list_fields),
+        },
+    )
+
+    install_htmx_init_script(page)
+    page.goto(f"{books_url}?page_size=5")
+    page.wait_for_load_state("networkidle")
+    ensure_htmx_available(page)
+    seed_filter_favourite_browser_state(
+        page,
+        selected_favourite_id=str(favourite.pk),
+    )
+
+    apply_request_urls = []
+    page.on(
+        "request",
+        lambda request: apply_request_urls.append(request.url)
+        if "/powercrud/favourites/apply/" in request.url
+        else None,
+    )
+
+    row = page.get_by_role("row").filter(has_text=target_book.title)
+    row.locator("[data-powercrud-row-actions-trigger='true']").first.dispatch_event(
+        "click"
+    )
+    floating_panel = page.locator("[data-powercrud-row-actions-floating-panel='true']")
+    expect(floating_panel).to_be_visible()
+    with page.expect_response(re.compile(r"/sample/bigbook/.*/description-preview/")):
+        floating_panel.get_by_role("link", name="Description Preview").click()
+    page.wait_for_load_state("networkidle")
+
+    modal = page.locator("#powercrudBaseModal")
+    expect(modal).to_be_visible()
+    expect(modal.locator("#powercrudModalContent")).to_contain_text(
+        "Description Preview"
+    )
+    expect(modal.locator("#powercrudModalContent")).to_contain_text(target_book.description)
+    expect(page.locator("#filtered_results")).to_contain_text(target_book.title)
+    assert apply_request_urls == [], (
+        "Opening a row-action modal should not dispatch remembered favourite auto-apply "
+        "from the global HTMX after-swap list bootstrap."
     )
 
 
