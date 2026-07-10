@@ -19,7 +19,7 @@
   "dependencyDashboardAutoclose": true,
   "platformAutomerge": false,
   "enabledManagers": [
-    "poetry",
+    "pep621",
     "npm",
     "dockerfile",
     "github-actions"
@@ -28,7 +28,7 @@
     {
       "description": "Group Python dependency updates.",
       "matchManagers": [
-        "poetry"
+        "pep621"
       ],
       "groupName": "python-packages",
       "groupSlug": "python-packages",
@@ -108,7 +108,7 @@
     {
       "description": "Keep django-crispy-forms within the declared range.",
       "matchManagers": [
-        "poetry"
+        "pep621"
       ],
       "matchPackageNames": [
         "django-crispy-forms"
@@ -118,7 +118,7 @@
     {
       "description": "Do not raise pytest major updates automatically.",
       "matchManagers": [
-        "poetry"
+        "pep621"
       ],
       "matchPackageNames": [
         "pytest"
