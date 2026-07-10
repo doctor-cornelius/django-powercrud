@@ -112,7 +112,35 @@ That is the main readability win: the field's participation is visible in one pl
 
 `default_list=True` also adds the field to the underlying list allow-list. For property-backed columns, combine it with `property=True`.
 
-Start with the boolean kwargs for field roles. Add dict kwargs such as `column={...}`, `link={...}`, or `queryset_dependencies={...}` only when that field needs richer list-column, link, or choice-scoping behaviour. For a typed temporal list field, use `column={"value_format": "date"}`, `"time"`, or `"datetime"`; it compiles to Base API `column_value_formats`. Set view-level `default_datetime_value_format` when unoverridden datetime columns should not use the package's legacy `date` default.
+Start with the boolean kwargs for field roles. Add dict kwargs such as `column={...}`, `link={...}`, or `queryset_dependencies={...}` only when that field needs richer list-column, link, or choice-scoping behaviour.
+
+### Temporal list columns
+
+Use `column={"value_format": ...}` for a named temporal-column override. It compiles to Base API `column_value_formats`:
+
+```python
+class TaskCRUDView(PowerCRUDMixin, CRUDView):
+    model = Task
+
+    # Omit this line to keep PowerCRUD's legacy date-only datetime default.
+    default_datetime_value_format = "datetime"
+
+    power_fields = [
+        PowerField("created_at", default_list=True),
+        PowerField(
+            "updated_at",
+            default_list=True,
+            column={"value_format": "time"},
+        ),
+        PowerField(
+            "completed_at",
+            default_list=True,
+            column={"value_format": "datetime"},
+        ),
+    ]
+```
+
+The permitted values are `date`, `time`, and `datetime`. `DateField` accepts only `date`; `TimeField` only `time`; and `DateTimeField` all three. Set Django `DATE_FORMAT`, `TIME_FORMAT`, and `DATETIME_FORMAT` to control the rendered text. See [Temporal list value formats](../setup_core_crud.md#temporal-list-value-formats) for the shared Base API rules.
 
 PowerCRUD also supports repeating a field across multiple declarations. The compiler merges and de-duplicates the generated base lists, so this works:
 

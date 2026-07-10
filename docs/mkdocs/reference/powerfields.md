@@ -85,6 +85,30 @@ PowerField(
 
         `link` must be a metadata dict. There is no `link=True` shorthand.
 
+### Temporal List Example
+
+```python
+class TaskCRUDView(PowerCRUDMixin, CRUDView):
+    model = Task
+    default_datetime_value_format = "date"  # Package default; optional here.
+
+    power_fields = [
+        PowerField("created_at", default_list=True),
+        PowerField(
+            "updated_at",
+            default_list=True,
+            column={"value_format": "time"},
+        ),
+        PowerField(
+            "completed_at",
+            default_list=True,
+            column={"value_format": "datetime"},
+        ),
+    ]
+```
+
+`column["value_format"]` compiles to Base API `column_value_formats`. Omit `default_datetime_value_format` to retain the package's date-only default for unoverridden `DateTimeField` columns. Django `DATE_FORMAT`, `TIME_FORMAT`, and `DATETIME_FORMAT` control the output text.
+
     === "Hook kwargs"
 
         | Kwarg | Base configuration target | Meaning |
