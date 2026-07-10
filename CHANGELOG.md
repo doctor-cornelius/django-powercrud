@@ -6,8 +6,14 @@ During the `0.x` series, breaking changes can occur, although we try to minimise
 
 Version numbers below correspond to published git tags. The more important releases include a little extra narrative and upgrade context; smaller patch releases remain deliberately brief. For full detail between any two versions, use the GitHub compare view for the matching tags.
 
-## 0.8.5 (2026-07-08)
+## 0.8.6 (2026-07-10)
+- **Feature (powercrud)**: add temporal list column formats
+  
+  PowerCRUD now supports configurable list rendering for `DateField`, `TimeField`, and `DateTimeField` values. `DateField` and `TimeField` use `DATE_FORMAT` and `TIME_FORMAT`, while unconfigured `DateTimeField` columns retain the legacy date-only default and use `DATE_FORMAT`; set `default_datetime_value_format` on a view to change that default, or use `column_value_formats` (or `PowerField(column={"value_format": ...})`) for individual columns. 
+  
+  Legacy projects that need to preserve their existing `DD/MM/YYYY` appearance should explicitly set `DATE_FORMAT = "d/m/Y"` in Django settings; projects using time-only or date-and-time output should also define `TIME_FORMAT` and `DATETIME_FORMAT`. If these settings are omitted, Django’s own defaults apply.
 
+## 0.8.5 (2026-07-08)
 
 Maintenance release with internal-only or tooling-only changes; no curated user-facing changelog entries.
 ## 0.8.4 (2026-07-08)
