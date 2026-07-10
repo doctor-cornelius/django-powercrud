@@ -688,14 +688,23 @@ Accepted values are `left`, `center`, and `right`. This is a semantic presentati
 
 ### Temporal list value formats
 
-Date, time, and datetime columns use Django's active `DATE_FORMAT`, `TIME_FORMAT`, and `DATETIME_FORMAT` settings. `DateField` defaults to date output, `TimeField` defaults to time output, and `DateTimeField` defaults to date-and-time output.
+Date, time, and datetime columns use Django's `DATE_FORMAT`, `TIME_FORMAT`, and `DATETIME_FORMAT` settings. `DateField` defaults to date output, `TimeField` defaults to time output, and `DateTimeField` defaults to date-only output for legacy compatibility.
 
-Set `default_datetime_value_format` when most datetime columns on one screen should instead be date-only or time-only. Use `column_value_formats` for named `DateTimeField` or typed datetime-annotation overrides:
+Set these Django settings explicitly when PowerCRUD should use a particular regional display format:
+
+```python
+# settings.py
+DATE_FORMAT = "d/m/Y"
+TIME_FORMAT = "H:i"
+DATETIME_FORMAT = "d/m/Y H:i"
+```
+
+If they are unset, Django's own defaults apply. Set `default_datetime_value_format` when most datetime columns on one screen should instead be time-only or date-and-time. Use `column_value_formats` for named `DateTimeField` or typed datetime-annotation overrides:
 
 ```python
 class ProjectCRUDView(PowerCRUDMixin, CRUDView):
     # ...
-    default_datetime_value_format = "date"
+    default_datetime_value_format = "datetime"
     column_value_formats = {
         "updated_at": "time",
         "completed_at": "datetime",

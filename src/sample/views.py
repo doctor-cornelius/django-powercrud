@@ -1051,7 +1051,6 @@ class AsyncTaskRecordCRUDView(SampleCRUDMixin):
     use_htmx = True
     use_modal = True
     bulk_delete = True
-    default_datetime_value_format = "date"
     column_value_formats = {
         "updated_at": "time",
         "completed_at": "datetime",

@@ -55,7 +55,7 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
         "status": "center",
         "needs_attention": "center",
     }
-    default_datetime_value_format = "date"
+    default_datetime_value_format = "datetime"
     column_value_formats = {
         "updated_at": "time",
         "completed_at": "datetime",
@@ -326,7 +326,7 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
 - `view_help` adds collapsed plain-text screen help below `view_instructions` and above the list toolbar. The `summary` is always visible; blank lines in `details` create paragraphs; set `default_open = True` only when the help should start expanded. Help aligns to the table width, respects `view_help_min_width`, and can use `color` to apply a subtle daisyUI semantic or hex colour tint.
 - `column_help_text` adds optional plain-text tooltips to specific header labels. The help trigger is a separate info icon, so sortable headers keep sorting behavior.
 - `column_alignments` lets you override list body-cell alignment for specific rendered fields or properties without changing the default heuristic for the rest of the table.
-- `default_datetime_value_format` controls the unconfigured list display of `DateTimeField` columns on this view. `column_value_formats` then overrides individual typed temporal fields or annotations; values are `date`, `time`, or `datetime` and use Django's active timezone and format settings.
+- `default_datetime_value_format` controls the unconfigured list display of `DateTimeField` columns on this view; package default is `date` for legacy compatibility. `column_value_formats` then overrides individual typed temporal fields or annotations; values are `date`, `time`, or `datetime`. Set Django `DATE_FORMAT`, `TIME_FORMAT`, and `DATETIME_FORMAT` in `settings.py` to control their rendered appearance.
 - `list_cell_tooltip_fields` maps selected rendered columns to semantic list-cell tooltip hooks. Named hooks are only called for configured names that are actually visible in the current list, and returned plain text may include newline characters when the semantic cell tooltip should render on multiple lines.
 - `list_cell_link_default_open_in` is optional and sets the default opening mode for list-cell links on this view. If omitted, PowerCRUD assumes `"new"`. Use `"modal"` when internal drill-in links should preserve the current list context.
 - `link_fields` is intentionally narrow. Use it for the common cases where a visible column should reverse to a named detail page or use a static external URL. Dict values accept exactly one of `view_name` or `url`, plus optional `pk_attr`, `open_in`, and `modal_box_classes` for modal links.

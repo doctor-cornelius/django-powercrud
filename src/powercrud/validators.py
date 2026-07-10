@@ -68,7 +68,7 @@ class PowerCRUDMixinValidator(BaseModel):
     column_value_formats: Optional[
         Dict[str, Literal["date", "time", "datetime"]]
     ] = None
-    default_datetime_value_format: Literal["date", "time", "datetime"] = "datetime"
+    default_datetime_value_format: Literal["date", "time", "datetime"] = "date"
     list_cell_tooltip_fields: Optional[Union[List[str], Dict[str, Any]]] = None
     list_cell_link_default_open_in: Optional[Literal["current", "new", "modal"]] = "new"
     link_fields: Optional[Dict[str, Union[str, Dict[str, Any]]]] = None

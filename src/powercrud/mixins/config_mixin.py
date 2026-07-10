@@ -113,7 +113,7 @@ class ConfigMixin:
     field_labels: dict[str, str] | None = None
     column_alignments: dict[str, str] | None = None
     column_value_formats: dict[str, str] | None = None
-    default_datetime_value_format: str = "datetime"
+    default_datetime_value_format: str = "date"
     list_cell_tooltip_fields: list[str] | dict[str, Any] | None = None
     list_cell_link_default_open_in: str = "new"
     link_fields: dict[str, Any] | None = None
@@ -1925,7 +1925,7 @@ class _ConfigShim:
         if name == "column_value_formats":
             return self._raw("column_value_formats", {}) or {}
         if name == "default_datetime_value_format":
-            return self._raw("default_datetime_value_format") or "datetime"
+            return self._raw("default_datetime_value_format") or "date"
         if name == "link_fields":
             return self._raw("link_fields", {}) or {}
         if name == "list_cell_link_default_open_in":

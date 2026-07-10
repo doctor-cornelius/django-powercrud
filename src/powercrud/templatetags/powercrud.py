@@ -1158,7 +1158,7 @@ def object_list(context, objects, view):
         view,
         method_name="get_default_datetime_value_format",
         attr_name="default_datetime_value_format",
-        default="datetime",
+        default="date",
     )
 
     configured_cell_tooltips = _resolve_view_option(

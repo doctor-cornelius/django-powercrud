@@ -80,12 +80,11 @@ class AsyncTaskRecordView(PowerCRUDMixin, CRUDView):
     use_htmx = True
     use_modal = True
     fields = ["task_name", "status", "user_label", "updated_at"]
-    default_datetime_value_format = "date"
     column_value_formats = {"updated_at": "time"}
     detail_fields = ["task_name", "status", "message", "progress_payload", "result_payload", "completed_at", "failed_at"]
 ```
 
-The list uses Django's temporal format settings. `default_datetime_value_format = "date"` keeps ordinary dashboard timestamps compact, while the named override shows `updated_at` as time-only. The detail view can poll the same progress endpoint to show live updates.
+The list uses Django's temporal format settings. PowerCRUD defaults datetime list columns to `date` for legacy compatibility, while the named override shows `updated_at` as time-only. Set `DATE_FORMAT`, `TIME_FORMAT`, and `DATETIME_FORMAT` in Django settings to control the resulting text. The detail view can poll the same progress endpoint to show live updates.
 
 ---
 

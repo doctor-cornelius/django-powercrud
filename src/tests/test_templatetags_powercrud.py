@@ -1077,7 +1077,6 @@ def test_object_list_renders_temporal_model_fields_with_defaults_and_overrides()
         model = AsyncTaskRecord
         fields = ["created_at", "updated_at", "completed_at", "failed_at"]
         properties = []
-        default_datetime_value_format = "date"
         column_value_formats = {
             "updated_at": "time",
             "completed_at": "datetime",
@@ -1116,8 +1115,8 @@ def test_object_list_renders_temporal_model_fields_with_defaults_and_overrides()
     TIME_FORMAT="H:i",
     DATETIME_FORMAT="d/m/Y H:i",
 )
-def test_object_list_uses_datetime_default_for_unconfigured_datetime_columns():
-    """Unconfigured datetime columns should use the documented datetime default."""
+def test_object_list_uses_date_default_for_unconfigured_datetime_columns():
+    """Unconfigured datetime columns should preserve the documented date default."""
 
     class TemporalViewStub(TemplateViewStub):
         model = AsyncTaskRecord
@@ -1136,8 +1135,8 @@ def test_object_list_uses_datetime_default_for_unconfigured_datetime_columns():
         TemporalViewStub(request),
     )
 
-    assert result["object_list"][0]["fields"] == ["11/07/2026 14:35"], (
-        "DateTimeField columns should use DATETIME_FORMAT when neither override is configured."
+    assert result["object_list"][0]["fields"] == ["11/07/2026"], (
+        "DateTimeField columns should use DATE_FORMAT when neither override is configured."
     )
 
 
