@@ -1,15 +1,16 @@
 from __future__ import annotations
 
-from datetime import date
+from datetime import UTC, date, datetime, time
 from types import SimpleNamespace
 
 import pytest
 from django.core.exceptions import ImproperlyConfigured
-from django.db.models import BooleanField
-from django.test import RequestFactory
+from django.db.models import BooleanField, TimeField
+from django.test import RequestFactory, override_settings
+from django.utils import timezone
 
 from powercrud.templatetags import powercrud
-from sample.models import Author, Book, Genre
+from sample.models import AsyncTaskRecord, Author, Book, Genre
 
 
 class DummySession(dict):
@@ -1059,6 +1060,125 @@ def test_object_list_renders_booleans_dates_and_selection():
     assert result["filter_params"] == "filter=1"
     assert "csrfmiddlewaretoken" not in result["filter_params"], (
         "Object-list filter params should not reflect CSRF tokens into sort/filter URLs."
+    )
+
+
+@pytest.mark.django_db
+@override_settings(
+    USE_I18N=False,
+    DATE_FORMAT="d/m/Y",
+    TIME_FORMAT="H:i",
+    DATETIME_FORMAT="d/m/Y H:i",
+)
+def test_object_list_renders_temporal_model_fields_with_defaults_and_overrides():
+    """Temporal model columns should honor the view default and named overrides."""
+
+    class TemporalViewStub(TemplateViewStub):
+        model = AsyncTaskRecord
+        fields = ["created_at", "updated_at", "completed_at", "failed_at"]
+        properties = []
+        column_value_formats = {
+            "updated_at": "time",
+            "completed_at": "datetime",
+        }
+
+    timestamp = datetime(2026, 7, 11, 4, 35, tzinfo=UTC)
+    record = AsyncTaskRecord.objects.create(task_name="temporal-list-format")
+    AsyncTaskRecord.objects.filter(pk=record.pk).update(
+        created_at=timestamp,
+        updated_at=timestamp,
+        completed_at=timestamp,
+        failed_at=timestamp,
+    )
+    record.refresh_from_db()
+    request = apply_session(RequestFactory().get("/"))
+
+    with timezone.override("Australia/Sydney"):
+        result = powercrud.object_list(
+            {"request": request, "use_htmx": True, "htmx_target": "#content"},
+            [record],
+            TemporalViewStub(request),
+        )
+
+    assert result["object_list"][0]["fields"] == [
+        "11/07/2026",
+        "14:35",
+        "11/07/2026 14:35",
+        "11/07/2026",
+    ], "Datetime columns should use named overrides first, then the configured view default."
+
+
+@pytest.mark.django_db
+@override_settings(
+    USE_I18N=False,
+    DATE_FORMAT="d/m/Y",
+    TIME_FORMAT="H:i",
+    DATETIME_FORMAT="d/m/Y H:i",
+)
+def test_object_list_uses_date_default_for_unconfigured_datetime_columns():
+    """Unconfigured datetime columns should preserve the documented date default."""
+
+    class TemporalViewStub(TemplateViewStub):
+        model = AsyncTaskRecord
+        fields = ["created_at"]
+        properties = []
+
+    timestamp = timezone.make_aware(datetime(2026, 7, 11, 14, 35))
+    record = AsyncTaskRecord.objects.create(task_name="temporal-datetime-default")
+    AsyncTaskRecord.objects.filter(pk=record.pk).update(created_at=timestamp)
+    record.refresh_from_db()
+    request = apply_session(RequestFactory().get("/"))
+
+    result = powercrud.object_list(
+        {"request": request, "use_htmx": True, "htmx_target": "#content"},
+        [record],
+        TemporalViewStub(request),
+    )
+
+    assert result["object_list"][0]["fields"] == ["11/07/2026"], (
+        "DateTimeField columns should use DATE_FORMAT when neither override is configured."
+    )
+
+
+@pytest.mark.django_db
+@override_settings(
+    USE_I18N=False,
+    DATE_FORMAT="d/m/Y",
+    TIME_FORMAT="H:i",
+    DATETIME_FORMAT="d/m/Y H:i",
+)
+def test_object_list_uses_natural_date_time_and_datetime_defaults():
+    """Date, time, and datetime values should use their natural list display modes."""
+
+    class TimeAnnotationViewStub(TemplateViewStub):
+        fields = ["published_date", "event_time"]
+        properties = []
+
+        def _get_queryset_annotation_output_field(self, field_name, queryset=None):
+            """Expose the typed time annotation used by this isolated list test."""
+            if field_name == "event_time":
+                return TimeField()
+            return None
+
+    author = Author.objects.create(name="Temporal Defaults")
+    book = Book.objects.create(
+        title="Natural Temporal Defaults",
+        author=author,
+        published_date=date(2026, 7, 11),
+        isbn="9781234567897",
+        pages=100,
+    )
+    book.event_time = time(14, 35)
+    request = apply_session(RequestFactory().get("/"))
+
+    result = powercrud.object_list(
+        {"request": request, "use_htmx": True, "htmx_target": "#content"},
+        [book],
+        TimeAnnotationViewStub(request),
+    )
+
+    assert result["object_list"][0]["fields"] == ["11/07/2026", "14:35"], (
+        "DateField and typed TimeField columns should use DATE_FORMAT and TIME_FORMAT by default."
     )
 
 

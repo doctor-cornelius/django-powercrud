@@ -1051,6 +1051,10 @@ class AsyncTaskRecordCRUDView(SampleCRUDMixin):
     use_htmx = True
     use_modal = True
     bulk_delete = True
+    column_value_formats = {
+        "updated_at": "time",
+        "completed_at": "datetime",
+    }
 
     fields = [
         "id",
@@ -1058,6 +1062,8 @@ class AsyncTaskRecordCRUDView(SampleCRUDMixin):
         "user_label",
         "status",
         "cleaned_up",
+        "created_at",
+        "updated_at",
         "completed_at",
         "failed_at",
     ]

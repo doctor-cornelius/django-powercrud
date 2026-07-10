@@ -200,6 +200,7 @@ Annotation fields are read-only field cells:
 - valid in `default_filterset_fields`
 - valid in `column_help_text`
 - valid in `column_alignments`
+- valid in `column_value_formats` when the annotation has an inferable `DateField`, `TimeField`, or `DateTimeField` `output_field`
 - valid in `list_cell_tooltip_fields`
 - valid in `link_fields`
 - invalid in `form_fields`

@@ -91,6 +91,44 @@ def test_powerfield_extracts_mapping_primitive_fragment():
     }, "PowerField should expose mapping-style primitive contributions for one field."
 
 
+def test_powerfield_extracts_temporal_value_format_primitive_fragment():
+    """PowerField temporal column metadata should compile to the Base API mapping."""
+    fragment = PowerField(
+        "completed_at",
+        list=True,
+        column={"value_format": "datetime"},
+    ).to_primitive_fragment()
+
+    assert fragment == {
+        "fields": ["completed_at"],
+        "column_value_formats": {"completed_at": "datetime"},
+    }, "PowerField value_format should compile to column_value_formats."
+
+
+def test_powerfield_compilation_merges_temporal_value_formats():
+    """The structured compiler should retain temporal column metadata for views."""
+    compiled = compile_powerfields(
+        [
+            PowerField("created_at", list=True),
+            PowerField(
+                "completed_at",
+                list=True,
+                column={"value_format": "datetime"},
+            ),
+        ]
+    )
+
+    assert compiled["column_value_formats"] == {"completed_at": "datetime"}, (
+        "Compiled PowerField configuration should expose temporal overrides to ConfigMixin."
+    )
+
+
+def test_powerfield_rejects_invalid_temporal_value_format():
+    """PowerField should reject unsupported temporal display mode literals."""
+    with pytest.raises(ValueError, match="value_format"):
+        PowerField("completed_at", list=True, column={"value_format": "DATE"})
+
+
 def test_powerfield_rejects_include_and_exclude_for_same_dimension():
     with pytest.raises(ValueError, match="include and exclude"):
         PowerField("status", form=True, exclude={"form": True})

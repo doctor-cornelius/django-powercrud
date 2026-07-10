@@ -65,6 +65,10 @@ class PowerCRUDMixinValidator(BaseModel):
     column_help_text: Optional[Dict[str, str]] = None
     field_labels: Optional[Dict[str, str]] = None
     column_alignments: Optional[Dict[str, Literal["left", "center", "right"]]] = None
+    column_value_formats: Optional[
+        Dict[str, Literal["date", "time", "datetime"]]
+    ] = None
+    default_datetime_value_format: Literal["date", "time", "datetime"] = "date"
     list_cell_tooltip_fields: Optional[Union[List[str], Dict[str, Any]]] = None
     list_cell_link_default_open_in: Optional[Literal["current", "new", "modal"]] = "new"
     link_fields: Optional[Dict[str, Union[str, Dict[str, Any]]]] = None
@@ -344,6 +348,7 @@ class PowerCRUDMixinValidator(BaseModel):
         "field_labels",
         "column_sort_fields_override",
         "column_alignments",
+        "column_value_formats",
     )
     @classmethod
     def validate_string_mapping(cls, v, info):

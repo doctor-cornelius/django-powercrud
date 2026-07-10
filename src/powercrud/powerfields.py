@@ -49,7 +49,7 @@ LIST_CELL_METADATA_OPTIONS = ("tooltip_hook", "tooltip_mode", "column", "link")
 
 TOOLTIP_MODES = {"eager", "lazy"}
 
-COLUMN_OPTIONS = {"help_text", "alignment"}
+COLUMN_OPTIONS = {"help_text", "alignment", "value_format"}
 
 COLUMN_ALIGNMENTS = {"left", "center", "right"}
 
@@ -161,13 +161,22 @@ class PowerField:
             ]
             if unknown_column_options:
                 raise ValueError(
-                    "PowerField.column supports only help_text and alignment; "
+                    "PowerField.column supports only help_text, alignment, and value_format; "
                     f"unknown options: {', '.join(sorted(unknown_column_options))}"
                 )
             alignment = self.column.get("alignment")
             if alignment is not None and alignment not in COLUMN_ALIGNMENTS:
                 raise ValueError(
                     "PowerField.column alignment must be 'left', 'center', or 'right'"
+                )
+            value_format = self.column.get("value_format")
+            if value_format is not None and value_format not in {
+                "date",
+                "time",
+                "datetime",
+            }:
+                raise ValueError(
+                    "PowerField.column value_format must be 'date', 'time', or 'datetime'"
                 )
 
         conflicting_dimensions = [
@@ -245,6 +254,12 @@ class PowerField:
             alignment = self.column.get("alignment")
             if alignment is not None:
                 fragment.setdefault("column_alignments", {})[self.name] = alignment
+
+            value_format = self.column.get("value_format")
+            if value_format is not None:
+                fragment.setdefault("column_value_formats", {})[
+                    self.name
+                ] = value_format
 
         if self.label is not None:
             fragment.setdefault("field_labels", {})[self.name] = self.label
