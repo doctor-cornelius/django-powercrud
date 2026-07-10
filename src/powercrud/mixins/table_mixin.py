@@ -261,6 +261,17 @@ class TableMixin:
             return dict(configured_alignments)
         return {}
 
+    def get_column_value_formats(self) -> dict[str, str]:
+        """Return optional temporal value-format overrides for list columns."""
+        configured_formats = resolve_config(self).column_value_formats
+        if isinstance(configured_formats, dict):
+            return dict(configured_formats)
+        return {}
+
+    def get_default_datetime_value_format(self) -> str:
+        """Return the view-wide display mode for unoverridden datetime columns."""
+        return resolve_config(self).default_datetime_value_format
+
     def get_list_cell_tooltip_fields(self) -> list[str] | dict[str, Any]:
         """
         Return rendered list fields/properties configured for semantic tooltips.

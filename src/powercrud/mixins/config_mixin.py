@@ -3,6 +3,7 @@ import warnings
 
 from django.conf import settings
 from django.core.exceptions import FieldDoesNotExist, ImproperlyConfigured
+from django.db import models
 from django.http import HttpResponseForbidden
 from django.db.models.fields.reverse_related import ManyToOneRel
 from typing import Any, Callable
@@ -78,6 +79,7 @@ FIELD_INTENT_CONFIG_FIELDS = {
     "field_labels",
     "column_help_text",
     "column_alignments",
+    "column_value_formats",
     "field_queryset_dependencies",
     "link_fields",
 }
@@ -110,6 +112,8 @@ class ConfigMixin:
     column_help_text: dict[str, str] | None = None
     field_labels: dict[str, str] | None = None
     column_alignments: dict[str, str] | None = None
+    column_value_formats: dict[str, str] | None = None
+    default_datetime_value_format: str = "datetime"
     list_cell_tooltip_fields: list[str] | dict[str, Any] | None = None
     list_cell_link_default_open_in: str = "new"
     link_fields: dict[str, Any] | None = None
@@ -366,6 +370,7 @@ class ConfigMixin:
         self._configure_detail_properties()
         self._configure_field_labels()
         self._configure_column_alignments()
+        self._configure_column_value_formats()
         self._configure_link_fields()
         self._configure_bulk_fields()
         self._configure_inline_edit_fields()
@@ -821,6 +826,129 @@ class ConfigMixin:
                 "queryset annotations, configured list fields, or properties "
                 f"in {self.model.__name__}: {', '.join(invalid_names)}"
             )
+
+    @staticmethod
+    def _get_allowed_temporal_value_formats(field: Any) -> set[str] | None:
+        """Return permitted list-value formats for a temporal Django field."""
+        if isinstance(field, models.DateTimeField):
+            return {"date", "time", "datetime"}
+        if isinstance(field, models.DateField):
+            return {"date"}
+        if isinstance(field, models.TimeField):
+            return {"time"}
+        return None
+
+    def _raise_invalid_column_value_format(
+        self,
+        field_name: str,
+        value_format: str,
+        field: Any | None,
+    ) -> None:
+        """Raise a clear configuration error for an unusable temporal format."""
+        if field is None:
+            raise ImproperlyConfigured(
+                f"{self.__class__.__name__}.column_value_formats[{field_name!r}] "
+                "must reference a model field or queryset annotation with an "
+                "inferable temporal output_field."
+            )
+
+        allowed_formats = self._get_allowed_temporal_value_formats(field)
+        field_type = field.get_internal_type()
+        if allowed_formats is None:
+            raise ImproperlyConfigured(
+                f"{self.__class__.__name__}.column_value_formats[{field_name!r}] "
+                f"cannot format {field_type}. Only DateField, TimeField, and "
+                "DateTimeField columns are supported."
+            )
+        if value_format not in allowed_formats:
+            allowed = ", ".join(sorted(allowed_formats))
+            raise ImproperlyConfigured(
+                f"{self.__class__.__name__}.column_value_formats[{field_name!r}] "
+                f"specifies {value_format!r}, but {field_name} is a {field_type}. "
+                f"Allowed formats: {allowed}."
+            )
+
+    def _validate_column_value_formats_against_queryset(
+        self,
+        queryset: Any | None = None,
+    ) -> None:
+        """Validate configured temporal list formats against available field metadata."""
+        for field_name, value_format in self.column_value_formats.items():
+            if field_name in self._get_all_properties():
+                raise ImproperlyConfigured(
+                    f"{self.__class__.__name__}.column_value_formats[{field_name!r}] "
+                    "cannot reference a property because its temporal type cannot be "
+                    "validated reliably."
+                )
+            model_field = None
+            try:
+                model_field = self.model._meta.get_field(field_name)
+            except FieldDoesNotExist:
+                pass
+            field = model_field or self._get_queryset_annotation_output_field(
+                field_name,
+                queryset=queryset,
+            )
+            self._raise_invalid_column_value_format(field_name, value_format, field)
+
+    def _configure_column_value_formats(self) -> None:
+        """Validate temporal list value-format configuration available at setup time."""
+        if self.column_value_formats is None:
+            self.column_value_formats = {}
+            return
+
+        if not isinstance(self.column_value_formats, dict):
+            raise ImproperlyConfigured(
+                "column_value_formats must be a dictionary when provided"
+            )
+
+        for field_name, value_format in self.column_value_formats.items():
+            if field_name in self._get_all_properties():
+                raise ImproperlyConfigured(
+                    f"{self.__class__.__name__}.column_value_formats[{field_name!r}] "
+                    "cannot reference a property because its temporal type cannot be "
+                    "validated reliably."
+                )
+
+            if self._is_model_field_name(field_name):
+                self._validate_column_value_format_for_name(
+                    field_name,
+                    value_format,
+                )
+                continue
+
+            if self._is_queryset_annotation_field(field_name):
+                self._validate_column_value_format_for_name(
+                    field_name,
+                    value_format,
+                )
+                continue
+
+            if self._can_defer_queryset_field_validation() and field_name in self.fields:
+                continue
+
+            raise ImproperlyConfigured(
+                f"{self.__class__.__name__}.column_value_formats[{field_name!r}] "
+                "must reference a model field or queryset annotation."
+            )
+
+    def _validate_column_value_format_for_name(
+        self,
+        field_name: str,
+        value_format: str,
+        queryset: Any | None = None,
+    ) -> None:
+        """Validate one temporal list-format entry against field metadata."""
+        model_field = None
+        try:
+            model_field = self.model._meta.get_field(field_name)
+        except FieldDoesNotExist:
+            pass
+        field = model_field or self._get_queryset_annotation_output_field(
+            field_name,
+            queryset=queryset,
+        )
+        self._raise_invalid_column_value_format(field_name, value_format, field)
 
     def _configure_field_labels(self) -> None:
         """
@@ -1794,6 +1922,10 @@ class _ConfigShim:
             return self._raw("column_sort_fields_override", {}) or {}
         if name == "column_alignments":
             return self._raw("column_alignments", {}) or {}
+        if name == "column_value_formats":
+            return self._raw("column_value_formats", {}) or {}
+        if name == "default_datetime_value_format":
+            return self._raw("default_datetime_value_format") or "datetime"
         if name == "link_fields":
             return self._raw("link_fields", {}) or {}
         if name == "list_cell_link_default_open_in":
@@ -1836,6 +1968,7 @@ class _ConfigShim:
             return ConfigMixin._dedupe_preserving_first(self._raw(name, []) or [])
         if name in {
             "column_alignments",
+            "column_value_formats",
             "column_sort_fields_override",
             "dropdown_sort_options",
             "field_queryset_dependencies",

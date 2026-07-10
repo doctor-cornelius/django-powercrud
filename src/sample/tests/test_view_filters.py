@@ -146,6 +146,31 @@ def test_profile_sample_view_exposes_centered_alignment_overrides():
 
 
 @pytest.mark.django_db
+def test_async_task_sample_view_demonstrates_temporal_list_formats():
+    """The async task sample should expose the documented temporal column example."""
+    view = sample_views.AsyncTaskRecordCRUDView()
+
+    assert view.default_datetime_value_format == "date", (
+        "The async task sample should make unoverridden datetime columns date-only."
+    )
+    assert view.column_value_formats == {
+        "updated_at": "time",
+        "completed_at": "datetime",
+    }, "The sample should override one datetime column to time-only and one to date-and-time."
+    assert view.fields == [
+        "id",
+        "task_name",
+        "user_label",
+        "status",
+        "cleaned_up",
+        "created_at",
+        "updated_at",
+        "completed_at",
+        "failed_at",
+    ], "The sample list should include all datetime columns needed to inspect defaults and overrides."
+
+
+@pytest.mark.django_db
 def test_book_sample_view_scopes_genres_queryset_for_regular_forms():
     """Book sample view should scope genres from the selected author in regular forms."""
     author_a = Author.objects.create(name="Author A")

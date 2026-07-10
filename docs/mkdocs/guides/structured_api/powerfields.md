@@ -112,7 +112,7 @@ That is the main readability win: the field's participation is visible in one pl
 
 `default_list=True` also adds the field to the underlying list allow-list. For property-backed columns, combine it with `property=True`.
 
-Start with the boolean kwargs for field roles. Add dict kwargs such as `column={...}`, `link={...}`, or `queryset_dependencies={...}` only when that field needs richer list-column, link, or choice-scoping behaviour.
+Start with the boolean kwargs for field roles. Add dict kwargs such as `column={...}`, `link={...}`, or `queryset_dependencies={...}` only when that field needs richer list-column, link, or choice-scoping behaviour. For a typed temporal list field, use `column={"value_format": "date"}`, `"time"`, or `"datetime"`; it compiles to Base API `column_value_formats`. Set view-level `default_datetime_value_format` when unoverridden datetime columns should not use the normal `datetime` default.
 
 PowerCRUD also supports repeating a field across multiple declarations. The compiler merges and de-duplicates the generated base lists, so this works:
 
@@ -269,7 +269,7 @@ def get_pages_tooltip(self, obj, request=None):
     return f"Page count: {obj.pages}"
 ```
 
-Use `column={"help_text": "..."}` for column-header help. Use `tooltip_hook="..."` only for row-specific list-cell tooltips.
+Use `column={"help_text": "..."}` for column-header help, `column={"value_format": "datetime"}` for typed temporal value output, and `tooltip_hook="..."` only for row-specific list-cell tooltips.
 
 `link={...}` accepts the same metadata supported by base `link_fields`. There is no `link=True` shorthand because PowerCRUD needs the link target metadata.
 

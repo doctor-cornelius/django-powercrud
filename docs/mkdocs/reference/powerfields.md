@@ -79,6 +79,7 @@ PowerField(
         |-------|---------------------------|---------|
         | `column={"help_text": "..."}` | `column_help_text` | Add header help text for the rendered field or property. |
         | `column={"alignment": "center"}` | `column_alignments` | Override rendered body-cell alignment. |
+        | `column={"value_format": "datetime"}` | `column_value_formats` | Select `date`, `time`, or `datetime` output for a typed temporal list column. |
         | `queryset_dependencies={...}` | `field_queryset_dependencies` | Attach declarative queryset scoping for form, inline, and bulk choices. |
         | `link={...}` | `link_fields` | Attach a declarative list-cell link using the base `link_fields` metadata contract. |
 
@@ -197,7 +198,7 @@ Invalid `power_fields` config raises `ImproperlyConfigured` when PowerCRUD resol
 
 A view inheritance chain can use Base Configuration API Field Intent or PowerField Field Intent, not both.
 
-Base Field Intent config includes attributes such as `fields`, `properties`, `detail_fields`, `detail_properties`, `form_fields`, `form_display_fields`, `form_disabled_fields`, `inline_edit_fields`, `bulk_fields`, `default_list_fields`, `field_labels`, `list_cell_tooltip_fields`, `column_help_text`, `column_alignments`, `field_queryset_dependencies`, and `link_fields`.
+Base Field Intent config includes attributes such as `fields`, `properties`, `detail_fields`, `detail_properties`, `form_fields`, `form_display_fields`, `form_disabled_fields`, `inline_edit_fields`, `bulk_fields`, `default_list_fields`, `field_labels`, `list_cell_tooltip_fields`, `column_help_text`, `column_alignments`, `column_value_formats`, `field_queryset_dependencies`, and `link_fields`.
 
 Non-Field-Intent settings can still be inherited or declared normally. For example, `model`, `namespace`, `base_template_path`, `use_htmx`, `use_modal`, `filterset_fields`, `bulk_delete`, `extra_actions`, and table classes remain ordinary view config.
 

@@ -251,6 +251,13 @@ class CoreMixin(ConfigMixin):
         """
         queryset = self.get_queryset()
         self.validate_list_fields_against_queryset(self.fields, queryset)
+        validate_column_value_formats = getattr(
+            self,
+            "_validate_column_value_formats_against_queryset",
+            None,
+        )
+        if callable(validate_column_value_formats):
+            validate_column_value_formats(queryset)
         filterset = self.get_filterset(queryset)
         if filterset is not None:
             queryset = filterset.qs

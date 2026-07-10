@@ -4,6 +4,7 @@ import pytest
 from django import forms
 from django.template.loader import render_to_string
 from django.test import RequestFactory
+from django.utils.formats import date_format
 
 from powercrud.mixins.form_mixin import FormMixin
 from powercrud.mixins.filtering_mixin import (
@@ -297,8 +298,9 @@ def test_object_list_formats_rows_and_headers():
 
     row = result["object_list"][0]["fields"]
     assert "Test Author" in row
-    # birth_date formatted dd/mm/YYYY
-    assert "01/01/2024" in row
+    assert date_format(author.birth_date, "DATE_FORMAT", use_l10n=False) in row, (
+        "DateField list values should use the project's configured DATE_FORMAT."
+    )
 
     # property renders truthy icon (contains svg markup)
     property_output = row[-1]

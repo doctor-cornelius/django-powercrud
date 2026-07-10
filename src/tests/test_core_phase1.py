@@ -1,11 +1,11 @@
 import re
 from pathlib import Path
 from types import SimpleNamespace
-from datetime import date
+from datetime import date, time
 
 import pytest
 from django.core.exceptions import ImproperlyConfigured
-from django.db.models import BooleanField, Case, Value, When
+from django.db.models import BooleanField, Case, TimeField, Value, When
 from django.template import Context, Template
 from django.urls import NoReverseMatch, reverse
 from django.test import RequestFactory
@@ -19,7 +19,7 @@ from powercrud.mixins.table_mixin import TableMixin
 from powercrud.mixins.paginate_mixin import PaginateMixin
 from powercrud.mixins.url_mixin import UrlMixin
 
-from sample.models import Author, Book, Genre, Profile
+from sample.models import AsyncTaskRecord, Author, Book, Genre, Profile
 from sample import views as sample_views
 
 
@@ -2012,6 +2012,162 @@ def test_core_mixin_rejects_invalid_column_alignment_values():
         column_alignments = {"name": "middle"}
 
     with pytest.raises(ImproperlyConfigured, match="column_alignments"):
+        BrokenView()
+
+
+@pytest.mark.django_db
+def test_core_mixin_accepts_temporal_column_value_formats():
+    """Temporal model fields should accept compatible configured display modes."""
+
+    class TemporalView(CoreMixin):
+        model = AsyncTaskRecord
+        fields = ["created_at", "updated_at", "completed_at"]
+        default_datetime_value_format = "date"
+        column_value_formats = {
+            "updated_at": "time",
+            "completed_at": "datetime",
+        }
+
+    view = TemporalView()
+
+    assert view.default_datetime_value_format == "date", (
+        "Temporal list views should retain their configured datetime default mode."
+    )
+    assert view.column_value_formats == {
+        "updated_at": "time",
+        "completed_at": "datetime",
+    }, "Compatible per-column temporal display modes should remain available to rendering."
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    ("field_name", "value_format", "match"),
+    [
+        ("published_date", "time", "DateField"),
+        ("title", "date", "Only DateField"),
+    ],
+)
+def test_core_mixin_rejects_incompatible_temporal_column_value_formats(
+    field_name,
+    value_format,
+    match,
+):
+    """Temporal display settings should fail loudly for incompatible model fields."""
+
+    class BrokenView(CoreMixin):
+        model = Book
+        fields = [field_name]
+        column_value_formats = {field_name: value_format}
+
+    with pytest.raises(ImproperlyConfigured, match=match):
+        BrokenView()
+
+
+@pytest.mark.django_db
+def test_core_mixin_rejects_property_temporal_column_value_format():
+    """Properties cannot safely participate because they lack validated field metadata."""
+
+    class BrokenView(CoreMixin):
+        model = Author
+        fields = ["name"]
+        properties = ["property_birth_date"]
+        column_value_formats = {"property_birth_date": "date"}
+
+    with pytest.raises(ImproperlyConfigured, match="cannot reference a property"):
+        BrokenView()
+
+
+@pytest.mark.django_db
+def test_core_mixin_rejects_unknown_temporal_column_value_format_name():
+    """Temporal display configuration should not silently ignore misspelled columns."""
+
+    class BrokenView(CoreMixin):
+        model = Book
+        fields = ["title"]
+        column_value_formats = {"missing_timestamp": "datetime"}
+
+    with pytest.raises(ImproperlyConfigured, match="must reference a model field"):
+        BrokenView()
+
+
+@pytest.mark.django_db
+def test_core_mixin_validates_typed_temporal_annotations():
+    """Typed queryset annotations should use their output_field for validation."""
+
+    class TypedAnnotationView(CoreMixin):
+        model = Book
+        fields = ["event_time"]
+        queryset = Book.objects.annotate(
+            event_time=Value(time(14, 35), output_field=TimeField())
+        )
+        column_value_formats = {"event_time": "time"}
+
+    view = TypedAnnotationView()
+
+    assert view.column_value_formats == {"event_time": "time"}, (
+        "A TimeField annotation should accept the matching temporal display mode."
+    )
+
+
+@pytest.mark.django_db
+def test_core_mixin_defers_dynamic_temporal_annotation_validation():
+    """Dynamic querysets should validate temporal annotation metadata before rendering."""
+
+    class DynamicAnnotationView(CoreMixin):
+        model = Book
+        fields = ["event_time"]
+        column_value_formats = {"event_time": "time"}
+
+        def get_queryset(self):
+            """Return the request-time annotation used by the list."""
+            return Book.objects.annotate(
+                event_time=Value(time(14, 35), output_field=TimeField())
+            )
+
+    view = DynamicAnnotationView()
+    view._validate_column_value_formats_against_queryset(view.get_queryset())
+
+
+@pytest.mark.django_db
+def test_core_mixin_rejects_dynamic_annotation_without_temporal_output_field():
+    """Dynamic annotations without usable metadata should fail before cell rendering."""
+
+    class DynamicAnnotationView(CoreMixin):
+        model = Book
+        fields = ["event_time"]
+        column_value_formats = {"event_time": "time"}
+
+        def get_queryset(self):
+            """Return an annotation whose output type cannot be inferred."""
+            return Book.objects.annotate(event_time=Value(None))
+
+    view = DynamicAnnotationView()
+
+    with pytest.raises(ImproperlyConfigured, match="inferable temporal output_field"):
+        view._validate_column_value_formats_against_queryset(view.get_queryset())
+
+
+def test_core_mixin_rejects_invalid_default_datetime_value_format():
+    """The view-wide datetime mode should be one of the documented lower-case values."""
+
+    class BrokenView(CoreMixin):
+        model = Book
+        fields = ["published_date"]
+        default_datetime_value_format = "DATE"
+
+    with pytest.raises(ImproperlyConfigured, match="default_datetime_value_format"):
+        BrokenView()
+
+
+def test_core_mixin_rejects_invalid_column_value_format_literal():
+    """Base API temporal overrides should reject unsupported upper-case literals."""
+
+    class BrokenView(CoreMixin):
+        model = Book
+        fields = ["published_date"]
+        column_value_formats = {"published_date": "DATE"}
+
+    with pytest.raises(ImproperlyConfigured, match="column_value_formats"):
         BrokenView()
 
 

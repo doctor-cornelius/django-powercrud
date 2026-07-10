@@ -686,6 +686,24 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
 
 Accepted values are `left`, `center`, and `right`. This is a semantic presentation override for rendered list body cells only; table headers keep their normal alignment, and any column not listed here continues to use PowerCRUD's built-in alignment heuristic.
 
+### Temporal list value formats
+
+Date, time, and datetime columns use Django's active `DATE_FORMAT`, `TIME_FORMAT`, and `DATETIME_FORMAT` settings. `DateField` defaults to date output, `TimeField` defaults to time output, and `DateTimeField` defaults to date-and-time output.
+
+Set `default_datetime_value_format` when most datetime columns on one screen should instead be date-only or time-only. Use `column_value_formats` for named `DateTimeField` or typed datetime-annotation overrides:
+
+```python
+class ProjectCRUDView(PowerCRUDMixin, CRUDView):
+    # ...
+    default_datetime_value_format = "date"
+    column_value_formats = {
+        "updated_at": "time",
+        "completed_at": "datetime",
+    }
+```
+
+The permitted lower-case modes are `date`, `time`, and `datetime`. `DateField` accepts only `date`; `TimeField` accepts only `time`; and `DateTimeField` accepts all three. PowerCRUD validates model fields at setup and typed annotations before rendering. Properties and annotations without an inferable temporal `output_field` are rejected with `ImproperlyConfigured`.
+
 ---
 
 ## 6. Verify the page

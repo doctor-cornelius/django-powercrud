@@ -13,11 +13,14 @@ Key components:
 The module adapts to different CSS frameworks and supports HTMX and modal functionality.
 """
 
-from datetime import date, datetime  # Import both date and datetime classes
+from datetime import date, datetime, time  # Import temporal value classes
 from typing import Any, Dict, List, Optional
 
 from django import template
 from django.core.exceptions import ImproperlyConfigured
+from django.db import models
+from django.utils.formats import date_format, time_format
+from django.utils.timezone import template_localtime
 from django.utils.html import conditional_escape
 from django.utils.safestring import mark_safe
 from django.utils.translation import gettext_lazy as _
@@ -135,6 +138,8 @@ def _format_list_field_value(
     cross_svg: str,
     *,
     is_model_field: bool,
+    value_format: str | None,
+    default_datetime_value_format: str,
 ):
     """
     Format a model-field or annotation value for list-cell display.
@@ -151,6 +156,21 @@ def _format_list_field_value(
         if value is False:
             return mark_safe(cross_svg)
         return ""
+
+    if isinstance(field, models.DateTimeField) and isinstance(value, datetime):
+        localized_value = template_localtime(value)
+        selected_format = value_format or default_datetime_value_format
+        if selected_format == "date":
+            return date_format(localized_value, "DATE_FORMAT", use_l10n=False)
+        if selected_format == "time":
+            return time_format(localized_value, "TIME_FORMAT", use_l10n=False)
+        return date_format(localized_value, "DATETIME_FORMAT", use_l10n=False)
+
+    if isinstance(field, models.DateField) and isinstance(value, date):
+        return date_format(value, "DATE_FORMAT", use_l10n=False)
+
+    if isinstance(field, models.TimeField) and isinstance(value, time):
+        return time_format(value, "TIME_FORMAT", use_l10n=False)
 
     if isinstance(value, (date, datetime)) and value is not None:
         return value.strftime("%d/%m/%Y")
@@ -1061,6 +1081,13 @@ def object_list(context, objects, view):
     validate_list_fields = getattr(view, "validate_list_fields_against_queryset", None)
     if callable(validate_list_fields) and hasattr(queryset, "query"):
         validate_list_fields(fields, queryset)
+    validate_column_value_formats = getattr(
+        view,
+        "_validate_column_value_formats_against_queryset",
+        None,
+    )
+    if callable(validate_column_value_formats) and hasattr(queryset, "query"):
+        validate_column_value_formats(queryset)
 
     list_column_state = context.get("list_column_state")
     if list_column_state and getattr(list_column_state, "enabled", False):
@@ -1119,6 +1146,20 @@ def object_list(context, objects, view):
     )
     if not isinstance(column_alignments, dict):
         column_alignments = {}
+    column_value_formats = _resolve_view_option(
+        view,
+        method_name="get_column_value_formats",
+        attr_name="column_value_formats",
+        default={},
+    )
+    if not isinstance(column_value_formats, dict):
+        column_value_formats = {}
+    default_datetime_value_format = _resolve_view_option(
+        view,
+        method_name="get_default_datetime_value_format",
+        attr_name="default_datetime_value_format",
+        default="datetime",
+    )
 
     configured_cell_tooltips = _resolve_view_option(
         view,
@@ -1381,6 +1422,8 @@ def object_list(context, objects, view):
                 TICK_SVG,
                 CROSS_SVG,
                 is_model_field=model_field is not None,
+                value_format=column_value_formats.get(f),
+                default_datetime_value_format=default_datetime_value_format,
             )
 
             if effective_field is not None:
