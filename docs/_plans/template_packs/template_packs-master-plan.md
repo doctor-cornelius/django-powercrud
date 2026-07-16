@@ -6,7 +6,7 @@ Active. Phases 0–8 and the Phase 7.10 API-contract hardening follow-up are int
 
 ## Next
 
-Resume Phase 9.3 for final post-cleanup authoring, publishing, customization, and testing guidance.
+Resume the remaining Phase 9.3 documentation and acceptance work, using the completed Phase 9.5 project-root selection and override-layer guidance.
 
 ## Phase 0: Establish The JavaScript Foundation
 
@@ -102,3 +102,5 @@ Resume Phase 9.3 for final post-cleanup authoring, publishing, customization, an
 2. [ ] Complete focused-override and custom-pack guidance against the permanent post-Phase-8 implementation.
 3. [ ] Publish final default, focused-override, and Bootstrap sample guidance.
 4. [ ] Validate the complete stable documentation and close or archive planning material after acceptance.
+5. [x] Add and document opt-in application-owned manual-static snapshots for supported pack assets without changing package runtime loading.
+6. [x] Add and document single-root project-pack copying, with a clear overview of the supported override layers.

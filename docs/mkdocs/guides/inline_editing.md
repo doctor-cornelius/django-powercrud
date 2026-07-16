@@ -48,7 +48,7 @@ class BookCRUDView(PowerCRUDMixin, CRUDView):
     - `…-inline-row` – swaps the display/form row and handles POST saves.
     - `…-inline-dependency` – rebuilds a single field widget for dependent dropdowns.
 
-The DaisyUI template already includes the triggers, Save/Cancel buttons, and `inline-row-*` events; no manual template work is required unless you are overriding the list partial.
+The selected pack's built-in list template already includes the triggers, Save/Cancel buttons, and `inline-row-*` events; no manual template work is required unless you are overriding the list partial.
 
 ### Styling the inline-edit affordance
 
@@ -184,7 +184,7 @@ When a guard fails:
 - Action buttons and extra per-row actions marked `lock_sensitive` are disabled automatically.
 - The list payload exposes `_blocked_reason` / `_blocked_label` so you can show tooltips or badges even before a user clicks.
 
-The DaisyUI template also disables Save/Cancel buttons and shows a spinner while HTMX POSTs are in-flight, matching the regular object form behaviour.
+The selected pack's built-in template also disables Save/Cancel buttons and shows a spinner while HTMX POSTs are in-flight, matching the regular object form behaviour.
 
 ---
 

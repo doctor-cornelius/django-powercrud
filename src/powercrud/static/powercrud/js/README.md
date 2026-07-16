@@ -100,6 +100,12 @@ Current-template DOM adapter code owns behaviour tied to today's HTML shape, sel
 
 Presentation-library adapter code owns behaviour tied to DaisyUI, Tippy, Tom Select, spinner markup/classes, icon classes, button classes, colour classes, or framework-specific modal APIs.
 
+## Application-Owned Asset Snapshots
+
+`pcrud_mktemplate app --assets` may copy the package-owned manual-static CSS and JavaScript tree into an application's static namespace. This is an opt-in snapshot for a project that needs to own pack presentation assets; it does not change the stable package entry, public globals, selector, or lifecycle contracts.
+
+The application must replace the package-owned PowerCRUD asset tags in its base template with the generated static tags. It must not load both entries: the duplicate-load guard means the first entry determines the active runtime. A copied snapshot has no file-by-file fallback to package assets, remains application and pack scoped rather than model scoped, and supports manual-static integration only. Vite users maintain their own frontend entry instead of combining it with a generated manual-static snapshot.
+
 ## Template-Pack Boundary
 
 The compatible DaisyUI presentation behavior is now split into private adapters and composed automatically by the stable `powercrud.js` entry. This extraction did not add a public adapter registry, pack selector, variant module, new setting, or `window.initPowercrudPack(fragment)` API.

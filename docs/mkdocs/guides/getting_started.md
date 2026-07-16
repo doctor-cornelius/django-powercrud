@@ -104,7 +104,7 @@ MIDDLEWARE = [
 
 # Optional: POWERCRUD_SETTINGS overrides (all keys are optional and have defaults)
 POWERCRUD_SETTINGS = {
-    "POWERCRUD_CSS_FRAMEWORK": "daisyui",  # built-in default
+    # Add only the settings your project needs.
 }
 ```
 
@@ -255,7 +255,7 @@ You can install PowerCRUD in two ways.
     - Load only the stable module entry; the browser follows PowerCRUD's internal module imports.
     - Load Tom Select's vendor CSS before `powercrud/css/powercrud.css` so the package can override Tom Select with daisyUI semantic colors.
     - Register the Tom Select `remove_button` plugin if you want multi-select remove buttons.
-    - If you use built-in daisyUI templates without the packaged bundle, you must provide your own daisyUI/Tailwind CSS stack.
+    - If you use the built-in DaisyUI templates without the packaged bundle, you must provide your own DaisyUI/Tailwind CSS stack.
 
     Do not load both integration modes on the same page:
 

@@ -12,6 +12,8 @@ from .config_mixin import (
     has_lazy_list_cell_tooltip_state,
     has_lazy_row_action_state,
     has_selection_aware_extra_buttons,
+    get_framework_template_path,
+    get_template_candidates,
     resolve_class_config,
     resolve_config,
 )
@@ -90,7 +92,9 @@ class UrlMixin:
                 f"{self.model._meta.app_label}/"
                 f"{self.model._meta.object_name.lower()}"
                 f"{self.template_name_suffix}.html",
-                f"{cfg.templates_path}/object{self.template_name_suffix}.html",
+                *get_template_candidates(
+                    cfg, f"object{self.template_name_suffix}.html"
+                ),
             ]
             return names
         msg = (
@@ -102,13 +106,13 @@ class UrlMixin:
     def get_focused_component_template_paths(self, component_name: str) -> list[str]:
         """Return model-specific and built-in candidates for one focused component."""
         cfg = resolve_config(self)
-        fallback = f"{cfg.templates_path}/partial/{component_name}.html"
+        fallback = get_template_candidates(cfg, f"partial/{component_name}.html")
         if self.model is None:
-            return [fallback]
+            return fallback
         return [
             f"{self.model._meta.app_label}/"
             f"{self.model._meta.object_name.lower()}_{component_name}.html",
-            fallback,
+            *fallback,
         ]
 
     def safe_reverse(self, viewname, kwargs=None):
@@ -427,7 +431,7 @@ class UrlMixin:
 
         # Add template and feature configuration
         kwargs["base_template_path"] = cfg.base_template_path
-        kwargs["framework_template_path"] = cfg.templates_path
+        kwargs["framework_template_path"] = get_framework_template_path(cfg)
         kwargs["pagination_template_paths"] = self.get_focused_component_template_paths(
             "pagination"
         )

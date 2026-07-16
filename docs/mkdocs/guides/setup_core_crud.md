@@ -481,7 +481,7 @@ By default, the help block uses the quiet `base` colour, aligns to the rendered 
 
 Most views should use either `view_instructions` for a short always-visible sentence or `view_help` for longer optional guidance. Use both only when the short description and expandable detail carry distinct information.
 
-The semantic and hex colour contract is supported by both first-party packs; see [Template Packs](../template_packs/index.md#presentation-contract) for pack boundaries.
+The semantic and hex colour contract is supported by both first-party packs; see [Testing and accepting a template pack](../template_packs/testing-and-acceptance.md) for pack boundaries.
 
 ### Field labels
 

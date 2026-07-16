@@ -14,7 +14,7 @@ DaisyUI is the compatibility baseline. Each supported pack must pass the applica
 
 Use targeted Playwright tests for browser-only risks such as HTMX reinitialisation, modal or dropdown ownership, focus, geometry, and responsive overflow. Cross-pack parity means equivalent supported behaviour and semantic outcomes, not identical DOM, classes, or pixels.
 
-See [Template Packs](../template_packs/index.md#supported-pack-validation) for the complete support matrix.
+See [Testing and accepting a template pack](../template_packs/testing-and-acceptance.md) for the complete support matrix.
 
 ## Test commands
 

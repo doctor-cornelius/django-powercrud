@@ -1,3 +1,7 @@
 title: Template Packs
 nav:
-  - Overview and Supported Packs: index.md
+  - Overview and supported packs: index.md
+  - Selecting and configuring: selecting-and-configuring.md
+  - Customising: customising.md
+  - Authoring and publishing: authoring-and-publishing.md
+  - Testing and acceptance: testing-and-acceptance.md

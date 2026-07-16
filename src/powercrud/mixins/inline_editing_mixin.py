@@ -15,7 +15,7 @@ from django.forms.forms import NON_FIELD_ERRORS
 
 from powercrud.templatetags import powercrud as powercrud_tags
 from powercrud.logging import get_logger
-from .config_mixin import resolve_config
+from .config_mixin import get_template_candidates, get_template_name, resolve_config
 
 log = get_logger(__name__)
 
@@ -215,7 +215,7 @@ class InlineEditingMixin:
         inline_field_template_paths = (
             component_paths_getter("inline_field")
             if callable(component_paths_getter)
-            else [f"{cfg.templates_path}/partial/inline_field.html"]
+            else get_template_candidates(cfg, "partial/inline_field.html")
         )
         widget_html = render_to_string(
             inline_field_template_paths,
@@ -393,7 +393,7 @@ class InlineEditingMixin:
         inline_row_form_template_paths = (
             component_paths_getter("inline_row_form")
             if callable(component_paths_getter)
-            else [f"{cfg.templates_path}/partial/inline_row_form.html"]
+            else get_template_candidates(cfg, "partial/inline_row_form.html")
         )
         row_payload = self._build_inline_row_payload(obj)
         inline_form = form or self.build_inline_form(instance=obj)
@@ -427,7 +427,7 @@ class InlineEditingMixin:
             "inline_row_form_template_paths": inline_row_form_template_paths,
         }
         return render_to_string(
-            f"{cfg.templates_path}/partial/list.html#inline_row_form",
+            get_template_name(cfg, "partial/list.html#inline_row_form"),
             context,
             request=self.request,
         )
@@ -508,12 +508,12 @@ class InlineEditingMixin:
         inline_row_display_template_paths = (
             component_paths_getter("inline_row_display")
             if callable(component_paths_getter)
-            else [f"{cfg.templates_path}/partial/inline_row_display.html"]
+            else get_template_candidates(cfg, "partial/inline_row_display.html")
         )
         bulk_selection_controls_template_paths = (
             component_paths_getter("bulk_selection_controls")
             if callable(component_paths_getter)
-            else [f"{cfg.templates_path}/partial/bulk_selection_controls.html"]
+            else get_template_candidates(cfg, "partial/bulk_selection_controls.html")
         )
         selection_controls_getter = getattr(self, "get_selection_controls_enabled", None)
         enable_selection_controls = (
@@ -534,7 +534,7 @@ class InlineEditingMixin:
             "bulk_selection_controls_template_paths": bulk_selection_controls_template_paths,
         }
         return render_to_string(
-            f"{cfg.templates_path}/partial/list.html#inline_row_display",
+            get_template_name(cfg, "partial/list.html#inline_row_display"),
             context,
             request=self.request,
         )

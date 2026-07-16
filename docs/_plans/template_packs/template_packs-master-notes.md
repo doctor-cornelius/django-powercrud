@@ -265,6 +265,10 @@ Phase 9 resumes after Phase 8 leaves the permanent pack architecture in its fina
 
 Final public guidance includes a dedicated page for authoring and testing a template pack: declaration, namespace, adapters, capabilities, assets, forms, selection, packaging, declaration validation, shared server behaviour, pack-specific sentinels, targeted Playwright coverage, and installed wheel/sdist resources. Focused downstream overrides and a concise implementation gallery connect those concepts to the maintained default, focused-override, and Bootstrap sample presentations without documenting the retired reference implementation as a supported choice.
 
+Phase 9.4 adds a bounded application-owned asset snapshot to the established plain-app copy command. It copies package-owned manual-static runtime and stylesheet files under the downstream app's static namespace without creating a selector, registry, per-view asset mode, Vite convention, or package-loading change. The generated snapshot is explicit complete ownership with no file-level fallback; model-specific template overrides remain independent of this application-level base-template choice.
+
+Phase 9.5 removes the artificial difference between model and project-root main-template copies. A project can now copy one selected root and retain package fallback for everything else. The customisation page starts with the scope and precedence of every supported override layer, while its collapsed project-command choices table directs detailed option reference back to Management Commands.
+
 The planning folder remains available for implementation history until the user chooses to archive it.
 
 Merge position: documentation follows shipped behaviour. Phase 9 may merge progressively, but it must not present future, retired, or partially landed capabilities as currently available. Archive planning material only after explicit user acceptance.

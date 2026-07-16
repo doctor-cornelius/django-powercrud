@@ -58,6 +58,8 @@ class PowerCRUDMixinValidator(BaseModel):
 
     # template parameters
     templates_path: Optional[str] = None
+    template_override_path: Optional[str] = None
+    template_override_complete: Optional[bool] = False
     base_template_path: Optional[str] = None
     view_title: Optional[str] = None
     view_instructions: Optional[str] = None

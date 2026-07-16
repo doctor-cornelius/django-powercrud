@@ -16,7 +16,7 @@ from powercrud.logging import get_logger
 from powercrud.contrib.bootstrap5.styles import get_bootstrap5_framework_styles
 from powercrud.packs.daisyui.styles import get_daisyui_framework_styles
 from powercrud.query_params import build_navigation_query_string
-from .config_mixin import resolve_config
+from .config_mixin import get_template_name, resolve_config
 
 log = get_logger(__name__)
 
@@ -290,12 +290,26 @@ class HtmxMixin:
         if self.request.htmx:
             if self.request.headers.get("X-Redisplay-Object-List"):
                 # Use object_list template
-                object_list_template = f"{resolve_config(self).templates_path}/object_list.html"
+                object_list_template = get_template_name(
+                    resolve_config(self), "object_list.html"
+                )
 
                 if self.request.headers.get("X-Filter-Sort-Request"):
-                    template_name = f"{object_list_template}#filtered_results"
+                    if isinstance(object_list_template, list):
+                        template_name = [
+                            f"{template_name}#filtered_results"
+                            for template_name in object_list_template
+                        ]
+                    else:
+                        template_name = f"{object_list_template}#filtered_results"
                 else:
-                    template_name = f"{object_list_template}#pcrud_content"
+                    if isinstance(object_list_template, list):
+                        template_name = [
+                            f"{template_name}#pcrud_content"
+                            for template_name in object_list_template
+                        ]
+                    else:
+                        template_name = f"{object_list_template}#pcrud_content"
             else:
                 # Use whatever template was determined normally
                 if self.request.headers.get("X-Filter-Sort-Request"):
@@ -305,7 +319,7 @@ class HtmxMixin:
 
             response = render(
                 request=self.request,
-                template_name=f"{template_name}",
+                template_name=template_name,
                 context=context,
             )
 

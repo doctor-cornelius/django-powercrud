@@ -13,6 +13,7 @@ from django.test import RequestFactory
 from neapolitan.views import Role
 
 from powercrud.actions import PowerAction, PowerButton
+from powercrud.mixins.config_mixin import get_framework_template_path
 from powercrud.mixins.core_mixin import CoreMixin
 from powercrud.mixins.list_options_mixin import ListOptionsMixin
 from powercrud.mixins.table_mixin import TableMixin
@@ -2657,6 +2658,48 @@ def test_url_mixin_get_template_names_uses_model_meta():
         "powercrud/daisyUI/object_list.html",
     ]
     assert view.get_template_names() == expected
+
+
+def test_url_mixin_prefers_project_template_override_before_selected_pack():
+    """Project copies should take precedence while retaining source-pack fallback."""
+
+    class UrlView(UrlMixin):
+        model = Author
+        template_name_suffix = "_list"
+        template_override_path = "sample/powercrud/daisyui"
+        templates_path = "powercrud/packs/daisyui"
+        template_name = None
+
+    view = UrlView()
+
+    assert view.get_template_names() == [
+        "sample/author_list.html",
+        "sample/powercrud/daisyui/object_list.html",
+        "powercrud/packs/daisyui/object_list.html",
+    ], "Model overrides should win, followed by project copies and then the selected pack."
+    assert view.get_focused_component_template_paths("pagination") == [
+        "sample/author_pagination.html",
+        "sample/powercrud/daisyui/partial/pagination.html",
+        "powercrud/packs/daisyui/partial/pagination.html",
+    ], "Components should use the same project-copy and selected-pack fallback order."
+
+
+def test_complete_project_override_uses_its_root_for_direct_nested_includes():
+    """A full copied pack should own direct nested includes as well as candidates."""
+    config = SimpleNamespace(
+        template_override_path="sample/powercrud/daisyui",
+        template_override_complete=True,
+        templates_path="powercrud/packs/daisyui",
+    )
+
+    assert get_framework_template_path(config) == "sample/powercrud/daisyui", (
+        "Complete project copies should be used by direct nested includes."
+    )
+
+    config.template_override_complete = False
+    assert get_framework_template_path(config) == "powercrud/packs/daisyui", (
+        "Core project copies must retain selected-pack fallback for direct includes."
+    )
 
 
 def test_url_mixin_focus_component_paths_prefer_model_override():

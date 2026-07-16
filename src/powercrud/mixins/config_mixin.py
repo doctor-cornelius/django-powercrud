@@ -32,6 +32,34 @@ DEFAULT_MODAL_BOX_CLASSES = "modal-box flex max-h-[calc(100dvh-2rem)] flex-col"
 DEFAULT_MODAL_BODY_CLASSES = "min-h-0 flex-1 overflow-y-auto py-4"
 
 
+def get_template_candidates(config: SimpleNamespace, relative_path: str) -> list[str]:
+    """Return project-override and selected-pack candidates for one template path."""
+    candidates = []
+    template_override_path = getattr(config, "template_override_path", None)
+    if template_override_path:
+        candidates.append(f"{template_override_path}/{relative_path}")
+    candidates.append(f"{config.templates_path}/{relative_path}")
+    return candidates
+
+
+def get_template_name(config: SimpleNamespace, relative_path: str) -> str | list[str]:
+    """Return a string normally, or fallback candidates for a project override."""
+    candidates = get_template_candidates(config, relative_path)
+    if getattr(config, "template_override_path", None):
+        return candidates
+    return candidates[0]
+
+
+def get_framework_template_path(config: SimpleNamespace) -> str:
+    """Return the root used by direct nested includes in a template pack."""
+    if (
+        getattr(config, "template_override_complete", False)
+        and getattr(config, "template_override_path", None)
+    ):
+        return config.template_override_path
+    return config.templates_path
+
+
 def has_selection_aware_extra_buttons(extra_buttons: Any) -> bool:
     """Return True when any extra button declares ``uses_selection=True``."""
     if not extra_buttons:
@@ -108,6 +136,8 @@ class ConfigMixin:
 
     # template parameters
     templates_path: str | None = None
+    template_override_path: str | None = None
+    template_override_complete: bool = False
     # base_template_path must always be provided by the project; there is no
     # built-in HTML shell. It should point at the app’s real base template.
     base_template_path: str | None = None

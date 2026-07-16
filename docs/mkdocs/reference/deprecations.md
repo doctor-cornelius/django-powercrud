@@ -2,18 +2,6 @@
 
 This page tracks public APIs that still work for compatibility but are no longer the preferred path.
 
-## Plain-App Whole-Tree Template Copying
-
-!!! warning "Deprecated: `pcrud_mktemplate myapp --all`"
-
-    The plain-app whole-tree copy command remains available for the DaisyUI pack during 0.x and emits `FutureWarning`. It will be removed in v1.0.
-
-The command creates an application-owned snapshot of the complete DaisyUI template tree. It does not receive later PowerCRUD template fixes automatically, and it is not available for Bootstrap.
-
-For ordinary customization, use focused `--component` overrides. Model-scoped root copying remains supported. When an application needs complete presentation ownership, create an explicitly owned custom template pack.
-
-See [Template Packs](../template_packs/index.md#customization) and [Management Commands](mgmt_commands.md).
-
 ## Legacy Modal Class Settings
 
 !!! warning "Deprecated: raw modal class settings"

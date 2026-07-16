@@ -24,6 +24,17 @@ def using_bootstrap_pack() -> bool:
     return settings.POWERCRUD_SETTINGS.get("POWERCRUD_TEMPLATE_PACK") == BOOTSTRAP_SELECTOR
 
 
+def wait_for_htmx_idle(page) -> None:
+    """Wait for the active HTMX request, swap, and settle lifecycle to finish."""
+    page.wait_for_function(
+        """
+        () => !document.querySelector(
+            '.htmx-request, .htmx-swapping, .htmx-settling'
+        )
+        """
+    )
+
+
 def open_column_chooser(page):
     """Open the compact list-column chooser."""
 
@@ -77,6 +88,7 @@ def test_book_list_header_sort_preserves_state_and_history(
     assert [text.strip() for text in title_cells.all_text_contents()] == expected_ascending, (
         "The first HTMX sort should render titles in ascending order."
     )
+    wait_for_htmx_idle(page)
 
     title_header = (
         page.locator("thead th[data-field-name='title'] a")
@@ -101,6 +113,7 @@ def test_book_list_header_sort_preserves_state_and_history(
     assert [text.strip() for text in title_cells.all_text_contents()] == expected_descending, (
         "The second HTMX sort should render titles in descending order."
     )
+    wait_for_htmx_idle(page)
 
     page.go_back()
     expect(page).to_have_url(re.compile(r"[?&]sort=title(?:&|$)"))
