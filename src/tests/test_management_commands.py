@@ -1385,7 +1385,7 @@ def test_mktemplate_project_asset_and_template_copy_wrap_os_errors(monkeypatch, 
         lambda *args, **kwargs: (_ for _ in ()).throw(OSError("disk full")),
     )
     with pytest.raises(CommandError, match="Failed to copy project assets: disk full"):
-        command._copy_project_assets(template_pack, tmp_path, "fake_app")
+        command._copy_project_assets(template_pack, tmp_path, "fake_app", "daisyui")
 
     monkeypatch.setattr(command, "get_template_source_dir", lambda _: source_dir)
     with pytest.raises(CommandError, match="Failed to copy project templates: disk full"):
