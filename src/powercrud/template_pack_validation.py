@@ -1,6 +1,6 @@
 """Development and CI validation for declared PowerCRUD template packs."""
 
-import json
+from importlib import import_module
 from importlib.resources import files
 from importlib.util import find_spec
 from pathlib import PurePosixPath
@@ -11,7 +11,12 @@ from django.contrib.staticfiles import finders
 from django.template import TemplateDoesNotExist, TemplateSyntaxError
 from django.template.loader import get_template
 
-from powercrud.template_packs import TEMPLATE_PACK_CONTRACT_VERSION, TemplatePack
+from powercrud.template_packs import (
+    BROWSER_ADAPTER_API_VERSION,
+    SERVER_ADAPTER_API_VERSION,
+    TEMPLATE_PACK_CONTRACT_VERSION,
+    TemplatePack,
+)
 
 
 BASELINE_CAPABILITIES = frozenset({"list", "form", "detail", "delete"})
@@ -152,14 +157,10 @@ CAPABILITY_FRAGMENT_PATHS = {
     ),
     "favourites": frozenset(),
 }
-CRISPY_TEMPLATE_PACK_DEPENDENCIES = {"bootstrap5": "crispy_bootstrap5", "tailwind": "crispy_tailwind"}
 CRISPY_TEMPLATE_PATHS = frozenset({"crispy_partials.html", "partial/form_fields.html"})
 CRISPY_FRAGMENT_PATHS = frozenset(
     {"crispy_partials.html#crispy_form", "crispy_partials.html#load_tags"}
 )
-SUPPORTED_FRAMEWORK_ADAPTERS = frozenset({"bootstrap5", "daisyui"})
-
-
 class TemplatePackValidationError(ImproperlyConfigured):
     """Report all deterministic contract failures for one template-pack declaration."""
 
@@ -220,57 +221,82 @@ def _validate_declaration(template_pack: TemplatePack, issues: list[str]) -> Non
                     f"{', '.join(missing_dependencies)}."
                 )
 
-    if template_pack.framework_adapter not in SUPPORTED_FRAMEWORK_ADAPTERS:
-        issues.append(
-            f"declares unsupported framework adapter {template_pack.framework_adapter!r}."
-        )
-    if template_pack.variant_adapter is not None:
-        issues.append(
-            f"declares unsupported variant adapter {template_pack.variant_adapter!r}."
-        )
-    if (
-        template_pack.framework_adapter != "bootstrap5"
-        and (template_pack.manual_assets or template_pack.vite_assets)
-    ):
-        issues.append("declares browser assets without the Bootstrap 5 adapter.")
+    _validate_server_adapter(template_pack, issues)
     if not template_pack.supports_native_forms:
         issues.append("must support native Django forms for its baseline form capability.")
 
     if template_pack.django_app is not None and not apps.is_installed(template_pack.django_app):
         issues.append(f"declares Django app {template_pack.django_app!r}, which is not installed.")
 
-    for crispy_template_pack in sorted(template_pack.crispy_template_packs):
-        dependency = CRISPY_TEMPLATE_PACK_DEPENDENCIES.get(crispy_template_pack)
-        if dependency is None:
+    for crispy_integration in template_pack.crispy_integrations:
+        dependency = crispy_integration.dependency
+        if dependency is not None and find_spec(dependency) is None:
             issues.append(
-                f"declares unsupported crispy template pack {crispy_template_pack!r}."
-            )
-        elif find_spec(dependency) is None:
-            issues.append(
-                f"declares crispy template pack {crispy_template_pack!r}, but dependency "
+                f"declares crispy template pack {crispy_integration.template_pack!r}, but dependency "
                 f"{dependency!r} is unavailable."
             )
 
 
-def _validate_assets(template_pack: TemplatePack, issues: list[str]) -> None:
-    """Validate declared package-owned manual and Vite asset references."""
-    for asset_path in template_pack.manual_assets:
-        if finders.find(asset_path) is None:
-            issues.append(f"declares missing manual asset {asset_path!r}.")
-
-    if not template_pack.vite_assets:
-        return
-
+def _validate_server_adapter(template_pack: TemplatePack, issues: list[str]) -> None:
+    """Validate the selected pack's declared public server adapter."""
+    module_name, _, attribute_name = template_pack.server_adapter.partition(":")
     try:
-        manifest_resource = files("powercrud").joinpath("assets", "manifest.json")
-        manifest = json.loads(manifest_resource.read_text(encoding="utf-8"))
-    except (FileNotFoundError, ModuleNotFoundError, json.JSONDecodeError) as exc:
-        issues.append(f"cannot validate Vite assets because the package manifest is unavailable: {exc}")
+        adapter = getattr(import_module(module_name), attribute_name)
+    except (AttributeError, ImportError, ValueError) as exc:
+        issues.append(
+            f"cannot import server_adapter {template_pack.server_adapter!r}: {exc}."
+        )
         return
+    if getattr(adapter, "api_version", None) != SERVER_ADAPTER_API_VERSION:
+        issues.append(
+            "server_adapter "
+            f"{template_pack.server_adapter!r} has api_version "
+            f"{getattr(adapter, 'api_version', None)!r}; expected "
+            f"{SERVER_ADAPTER_API_VERSION}."
+        )
+    if not callable(getattr(adapter, "get_presentation", None)):
+        issues.append(
+            f"server_adapter {template_pack.server_adapter!r} lacks callable get_presentation()."
+        )
 
-    for asset_key in template_pack.vite_assets:
-        if asset_key not in manifest:
-            issues.append(f"declares missing Vite asset {asset_key!r} in the package manifest.")
+
+def _validate_assets(template_pack: TemplatePack, issues: list[str]) -> None:
+    """Validate declared package-owned static and source resources."""
+    for asset_path in template_pack.assets.stylesheets:
+        if finders.find(asset_path) is None:
+            issues.append(f"declares missing stylesheet {asset_path!r}.")
+    for copy_root in template_pack.assets.copy_roots:
+        _validate_package_resource(copy_root, "copy root", issues, require_directory=True)
+    browser_adapter = template_pack.assets.browser_adapter
+    if browser_adapter is None:
+        return
+    if browser_adapter.api_version != BROWSER_ADAPTER_API_VERSION:
+        issues.append(
+            f"declares browser adapter API {browser_adapter.api_version}; expected "
+            f"{BROWSER_ADAPTER_API_VERSION}."
+        )
+    if finders.find(browser_adapter.static_path) is None:
+        issues.append(
+            f"declares missing browser adapter static path {browser_adapter.static_path!r}."
+        )
+    _validate_package_resource(browser_adapter.source, "browser adapter source", issues)
+
+
+def _validate_package_resource(resource, label: str, issues: list[str], *, require_directory: bool = False) -> None:
+    """Validate one declared importlib resource without source-checkout assumptions."""
+    try:
+        candidate = files(resource.package).joinpath(*PurePosixPath(resource.path).parts)
+    except ModuleNotFoundError:
+        issues.append(f"{label} package {resource.package!r} cannot be imported.")
+        return
+    if require_directory:
+        available = candidate.is_dir()
+    else:
+        available = candidate.is_file()
+    if not available:
+        issues.append(
+            f"declares missing {label} {resource.path!r} in package {resource.package!r}."
+        )
 
 
 def _get_required_paths(template_pack: TemplatePack) -> tuple[frozenset[str], frozenset[str]]:
@@ -282,7 +308,7 @@ def _get_required_paths(template_pack: TemplatePack) -> tuple[frozenset[str], fr
     ):
         template_paths.update(CAPABILITY_TEMPLATE_PATHS[capability])
         fragment_paths.update(CAPABILITY_FRAGMENT_PATHS[capability])
-    if template_pack.crispy_template_packs:
+    if template_pack.crispy_integrations:
         template_paths.update(CRISPY_TEMPLATE_PATHS)
         fragment_paths.update(CRISPY_FRAGMENT_PATHS)
     return frozenset(template_paths), frozenset(fragment_paths)

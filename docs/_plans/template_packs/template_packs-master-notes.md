@@ -269,6 +269,20 @@ Phase 9.4 adds a bounded application-owned asset snapshot to the established pla
 
 Phase 9.5 removes the artificial difference between model and project-root main-template copies. A project can now copy one selected root and retain package fallback for everything else. The customisation page starts with the scope and precedence of every supported override layer, while its collapsed project-command choices table directs detailed option reference back to Management Commands.
 
+Phase 9 is complete. It delivered the permanent five-page Template Packs section, project/model/focused override guidance, project-owned template and manual-static asset copying, and the current authoring boundary. The final focused command and asset-packaging gate passed 79 tests. One uninterrupted full regression passed 1,024 non-Playwright tests with 14 skips, followed by 84 Playwright tests with 5 skips. Michael retained local MkDocs rendering and visual review for his own handoff workflow, so no local MkDocs build is claimed here.
+
+The Phase 9 authoring discussion exposed a fundamental unmet product requirement: an independently published pack must be able to implement a new framework such as Bulma or Tailwind with Basecoat. The current internal adapter boundary does not yet provide that public capability. Phase 10 therefore takes priority over further authoring-guide expansion. The current authoring page remains a truthful statement of the present boundary; Phase 10 must replace it with a practical external-author journey once the public API exists.
+
+### Phase 10: Support Independent Framework Adapter Packages
+
+The active child work is [`phase10_external_adapter_api/phase10-external-adapter-api-plan.md`](phase10_external_adapter_api/phase10-external-adapter-api-plan.md), supported by its [notes](phase10_external_adapter_api/phase10-external-adapter-api-notes.md).
+
+Phase 10 adopts a pack-supplied adapter declaration as the architectural direction. An external package should be able to provide templates, server-side presentation translation, optional browser behaviour, CSS, JavaScript, capabilities, tests, and distribution metadata without editing PowerCRUD or obtaining a framework name in a PowerCRUD whitelist.
+
+DaisyUI and Bootstrap must consume the same public contract as third-party packs. Their migration is the compatibility proof, not a privileged exception. A separate independently packaged new-framework fixture must prove that the API works outside the PowerCRUD package and that its tests can live in the pack author's repository.
+
+Phase 10 begins with a planned read-only audit. No implementation audit has yet been performed and the child notes must not present proposed surfaces as findings. Detailed audit planning may assign bounded inventory work to weaker-model sub-agents later, but only after the audit plan defines evidence, output shape, overlap rules, and reconciliation ownership.
+
 The planning folder remains available for implementation history until the user chooses to archive it.
 
 Merge position: documentation follows shipped behaviour. Phase 9 may merge progressively, but it must not present future, retired, or partially landed capabilities as currently available. Archive planning material only after explicit user acceptance.

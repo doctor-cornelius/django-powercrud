@@ -13,9 +13,12 @@ from django.template.response import TemplateResponse
 import json
 from neapolitan.views import Role
 from powercrud.logging import get_logger
-from powercrud.contrib.bootstrap5.styles import get_bootstrap5_framework_styles
-from powercrud.packs.daisyui.styles import get_daisyui_framework_styles
 from powercrud.query_params import build_navigation_query_string
+from powercrud.template_packs import (
+    ServerAdapterContext,
+    get_selected_template_pack,
+    get_template_pack_server_adapter,
+)
 from .config_mixin import get_template_name, resolve_config
 
 log = get_logger(__name__)
@@ -28,15 +31,33 @@ class HtmxMixin:
 
     def get_framework_styles(self):
         """
-        Get framework-specific styles. Override this method and add
-        the new framework name as a key to the returned dictionary.
+        Get selected-pack presentation through the public server adapter.
 
         Returns:
             dict: Framework-specific style configurations
         """
+        context = ServerAdapterContext(
+            modal_id=self.get_modal_id(),
+            modal_target_id=self.get_modal_target(),
+            use_htmx=self.get_use_htmx(),
+            use_modal=self.get_use_modal(),
+        )
+        presentation = get_template_pack_server_adapter().get_presentation(context)
+        actions = presentation.actions
         return {
-            **get_daisyui_framework_styles(self),
-            **get_bootstrap5_framework_styles(self),
+            get_selected_template_pack().identity: {
+                "base": actions.base_classes,
+                "filter_attrs": presentation.filter_widget_attrs,
+                "actions": {
+                    "View": actions.role_classes.get("view", ""),
+                    "Edit": actions.role_classes.get("edit", ""),
+                    "Delete": actions.role_classes.get("delete", ""),
+                },
+                "action_group_item": actions.group_item_classes,
+                "extra_default": actions.extra_default_classes,
+                "list_cell_link_class": actions.list_cell_link_classes,
+                "modal_attrs": 'data-powercrud-modal-trigger="true"',
+            }
         }
 
     def get_original_target(self):

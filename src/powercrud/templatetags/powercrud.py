@@ -13,6 +13,7 @@ Key components:
 The module adapts to different CSS frameworks and supports HTMX and modal functionality.
 """
 
+import json
 import warnings
 from datetime import date, datetime, time  # Import temporal value classes
 from typing import Any, Dict, List, Optional
@@ -21,6 +22,7 @@ from django import template
 from django.db import models
 from django.template import TemplateDoesNotExist
 from django.template.loader import render_to_string
+from django.templatetags.static import static
 from django.utils.formats import date_format, time_format
 from django.utils.timezone import template_localtime
 from django.utils.html import conditional_escape
@@ -51,6 +53,7 @@ from powercrud.row_actions import (
     resolve_extra_action_permission_state as _resolve_extra_action_permission_state,
 )
 from powercrud.template_packs import (
+    get_selected_template_pack,
     get_template_pack_styles,
     get_template_pack_template_namespace,
 )
@@ -58,6 +61,44 @@ from powercrud.template_packs import (
 log = get_logger(__name__)
 
 register = template.Library()
+
+
+@register.simple_tag
+def powercrud_runtime_config() -> str:
+    """Emit the selected pack identity required by the stable browser entry."""
+    template_pack = get_selected_template_pack()
+    browser_adapter = template_pack.assets.browser_adapter
+    payload = json.dumps(
+        {
+            "identity": template_pack.identity,
+            "browser_adapter_required": browser_adapter is not None,
+            "api_version": browser_adapter.api_version if browser_adapter else 1,
+        },
+        separators=(",", ":"),
+    ).replace("<", "\\u003c").replace(">", "\\u003e").replace("&", "\\u0026")
+    return mark_safe(
+        '<script id="powercrud-runtime-config" type="application/json">'
+        f"{payload}"
+        "</script>"
+    )
+
+
+@register.simple_tag
+def powercrud_pack_assets() -> str:
+    """Emit package-owned manual-static tags after application vendor tags."""
+    template_pack = get_selected_template_pack()
+    browser_adapter = template_pack.assets.browser_adapter
+    stylesheet_paths = ("powercrud/css/powercrud.css", *template_pack.assets.stylesheets)
+    tags = [
+        f'<link rel="stylesheet" href="{static(path)}">'
+        for path in dict.fromkeys(stylesheet_paths)
+    ]
+    if browser_adapter is not None:
+        tags.append(
+            f'<script type="module" src="{static(browser_adapter.static_path)}"></script>'
+        )
+    tags.append(f'<script type="module" src="{static("powercrud/js/powercrud.js")}"></script>')
+    return mark_safe("\n".join(tags))
 
 
 class _SelectedPackTemplateNames:

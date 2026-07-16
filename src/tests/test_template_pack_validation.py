@@ -11,7 +11,14 @@ from powercrud.template_pack_validation import (
     TemplatePackValidationError,
     validate_template_pack,
 )
-from powercrud.template_packs import resolve_template_pack
+from powercrud.template_pack_testing import assert_template_pack_conforms
+from powercrud.template_packs import (
+    BrowserAdapterSpec,
+    CrispyIntegration,
+    PackAssets,
+    PackageResource,
+    resolve_template_pack,
+)
 
 
 BOOTSTRAP_SELECTOR = "powercrud.contrib.bootstrap5:template_pack"
@@ -36,12 +43,18 @@ def test_validator_reports_declaration_failures_together():
     template_pack = replace(
         resolve_template_pack("daisyui"),
         capabilities=frozenset({"list", "form", "detail", "async", "unknown"}),
-        framework_adapter="unsupported",
-        variant_adapter="compact",
-        manual_assets=("compact.js",),
-        vite_assets=("compact.js",),
+        server_adapter="tests.template_pack_fixtures:missing_adapter",
+        assets=PackAssets(
+            stylesheets=("compact.css",),
+            copy_roots=(PackageResource("tests", "template_packs/missing"),),
+            browser_adapter=BrowserAdapterSpec(
+                api_version=2,
+                static_path="compact.js",
+                source=PackageResource("tests", "template_packs/missing.js"),
+            ),
+        ),
         supports_native_forms=False,
-        crispy_template_packs=frozenset({"unknown"}),
+        crispy_integrations=(CrispyIntegration("unknown", "unknown_dependency"),),
     )
 
     with pytest.raises(TemplatePackValidationError) as error:
@@ -52,12 +65,14 @@ def test_validator_reports_declaration_failures_together():
         "unknown capabilities: unknown",
         "missing baseline capabilities: delete",
         "capability 'async' requires: bulk",
-        "unsupported framework adapter 'unsupported'",
-        "unsupported variant adapter 'compact'",
-        "missing manual asset 'compact.js'",
-        "missing Vite asset 'compact.js'",
+        "cannot import server_adapter",
+        "missing stylesheet 'compact.css'",
+        "missing copy root",
+        "browser adapter API 2",
+        "missing browser adapter static path 'compact.js'",
+        "missing browser adapter source",
         "must support native Django forms",
-        "unsupported crispy template pack 'unknown'",
+        "unknown_dependency",
     ):
         assert expected_fragment in message, (
             "The validator should report every independent declaration mistake in one "
@@ -124,3 +139,12 @@ def test_validator_reports_an_unavailable_declared_crispy_integration(monkeypatc
 
     with pytest.raises(TemplatePackValidationError, match="crispy_tailwind"):
         validate_template_pack(resolve_template_pack("daisyui"))
+
+
+def test_public_author_test_helper_returns_the_validated_declaration():
+    """External package tests can validate their declaration without test internals."""
+    template_pack = assert_template_pack_conforms(
+        "tests.template_pack_fixtures:same_adapter_template_pack"
+    )
+
+    assert template_pack.identity == "same-adapter-fixture"

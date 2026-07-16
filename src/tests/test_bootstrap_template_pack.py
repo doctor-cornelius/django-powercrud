@@ -17,7 +17,6 @@ from powercrud.template_pack_validation import validate_template_pack
 from powercrud.modal_presentation import modal_presentation_attributes
 from powercrud.template_packs import (
     TEMPLATE_PACK_CONTRACT_VERSION,
-    TemplatePack,
     get_configured_template_pack,
     get_selected_template_pack,
     resolve_template_pack,
@@ -88,28 +87,18 @@ def test_bootstrap_declaration_is_opt_in_with_completed_modal_lifecycle():
     """The Bootstrap declaration should advertise only completed capabilities."""
     template_pack = resolve_template_pack(BOOTSTRAP_SELECTOR)
 
-    assert template_pack == TemplatePack(
-        identity="bootstrap5",
-        contract_version=TEMPLATE_PACK_CONTRACT_VERSION,
-        template_namespace=BOOTSTRAP_NAMESPACE,
-        template_package="powercrud",
-        template_resource_root="contrib/bootstrap5/templates/powercrud/packs/bootstrap5",
-        legacy_copy_destination=None,
-        framework_adapter="bootstrap5",
-        variant_adapter=None,
-        capabilities=frozenset(
-            {"list", "form", "detail", "delete", "filters", "modal", "bulk", "async", "inline", "favourites"}
-        ),
-        supports_native_forms=True,
-        crispy_template_packs=frozenset({"bootstrap5"}),
-        django_app="powercrud.contrib.bootstrap5",
-        manual_assets=(
-            "powercrud/contrib/bootstrap5/css/bootstrap5.css",
-            "powercrud/contrib/bootstrap5/js/bootstrap5.js",
-        ),
-        vite_assets=("config/static/js/bootstrap5.js",),
-        unsupported_presentation_options=frozenset(),
-    ), "The selected Bootstrap declaration should describe every completed Bootstrap presentation capability."
+    assert template_pack.identity == "bootstrap5", (
+        "The optional declaration must retain its selected identity."
+    )
+    assert template_pack.contract_version == TEMPLATE_PACK_CONTRACT_VERSION, (
+        "Bootstrap must consume the same public v1 contract as external packs."
+    )
+    assert template_pack.server_adapter == "powercrud.contrib.bootstrap5.adapter:server_adapter", (
+        "Bootstrap must expose its server adapter through the public import path."
+    )
+    assert template_pack.assets.browser_adapter is not None, (
+        "Bootstrap must declare its browser adapter rather than relying on a privileged runtime path."
+    )
 
     with pytest.raises(ImproperlyConfigured, match="Unknown PowerCRUD template pack"):
         resolve_template_pack("bootstrap5")

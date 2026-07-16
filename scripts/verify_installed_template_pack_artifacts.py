@@ -22,17 +22,6 @@ PROBE_REQUIREMENTS = (
     "crispy-tailwind>=1.0.3,<2",
     "crispy-bootstrap5>=2026.3,<2027",
 )
-BOOTSTRAP_RUNTIME_FILES = (
-    "contrib/bootstrap5/static/powercrud/contrib/bootstrap5/css/bootstrap5.css",
-    "contrib/bootstrap5/static/powercrud/contrib/bootstrap5/js/bootstrap5.js",
-    "contrib/bootstrap5/static/powercrud/contrib/bootstrap5/js/runtime/bootstrap5-action-selection-adapter.js",
-    "contrib/bootstrap5/static/powercrud/contrib/bootstrap5/js/runtime/bootstrap5-composition.js",
-    "contrib/bootstrap5/static/powercrud/contrib/bootstrap5/js/runtime/bootstrap5-floating-panel-adapter.js",
-    "contrib/bootstrap5/static/powercrud/contrib/bootstrap5/js/runtime/bootstrap5-inline-presentation-adapter.js",
-    "contrib/bootstrap5/static/powercrud/contrib/bootstrap5/js/runtime/bootstrap5-modal-adapter.js",
-    "contrib/bootstrap5/static/powercrud/contrib/bootstrap5/js/runtime/bootstrap5-searchable-select-adapter.js",
-    "contrib/bootstrap5/static/powercrud/contrib/bootstrap5/js/runtime/bootstrap5-tooltip-adapter.js",
-)
 
 
 def _run(command: list[str]) -> None:
@@ -100,15 +89,6 @@ def _probe_installed_artifact(source_root: Path) -> None:
             f"{package_path}"
         )
 
-    package_root = files("powercrud")
-    for relative_path in BOOTSTRAP_RUNTIME_FILES:
-        resource = package_root.joinpath(*PurePosixPath(relative_path).parts)
-        if not resource.is_file():
-            raise SystemExit(
-                "Installed-resource probe could not find the Bootstrap runtime file: "
-                f"{relative_path}"
-            )
-
     class RequiredNameForm(forms.Form):
         """Expose native and crispy validation output from the installed package."""
 
@@ -117,6 +97,25 @@ def _probe_installed_artifact(source_root: Path) -> None:
     for selector in SELECTORS:
         template_pack = resolve_template_pack(selector)
         validate_template_pack(template_pack)
+        for copy_root in template_pack.assets.copy_roots:
+            resource = files(copy_root.package).joinpath(
+                *PurePosixPath(copy_root.path).parts
+            )
+            if not resource.is_dir():
+                raise SystemExit(
+                    "Installed-resource probe could not find declared asset copy root: "
+                    f"{copy_root.package}:{copy_root.path}"
+                )
+        browser_adapter = template_pack.assets.browser_adapter
+        if browser_adapter is not None:
+            resource = files(browser_adapter.source.package).joinpath(
+                *PurePosixPath(browser_adapter.source.path).parts
+            )
+            if not resource.is_file():
+                raise SystemExit(
+                    "Installed-resource probe could not find declared browser adapter source: "
+                    f"{browser_adapter.source.package}:{browser_adapter.source.path}"
+                )
         form = RequiredNameForm(data={"name": ""})
         form.helper = FormHelper()
         form.helper.form_tag = False
@@ -126,7 +125,11 @@ def _probe_installed_artifact(source_root: Path) -> None:
                 f"Installed-resource probe expected a bound validation error for {selector}"
             )
         settings.CRISPY_TEMPLATE_PACK = next(
-            iter(template_pack.crispy_template_packs), settings.CRISPY_TEMPLATE_PACK
+            (
+                integration.template_pack
+                for integration in template_pack.crispy_integrations
+            ),
+            settings.CRISPY_TEMPLATE_PACK,
         )
         for use_crispy, renderer_name in ((False, "native"), (True, "crispy")):
             rendered = render_to_string(

@@ -2,11 +2,11 @@
 
 ## Status
 
-The pre-cleanup contract is published and validated, Phase 8 has retired the temporary DaisyUI reference pack, the post-cleanup facts audit is complete, and the five-page Phase 9.3 documentation structure is accepted. DaisyUI remains the supported default; Bootstrap is a supported non-default pack.
+Complete — 2026-07-16. The permanent five-page documentation, downstream override tooling, and current authoring boundary are published. The newly identified requirement for independently supplied framework adapters is transferred to Phase 10 rather than being hidden inside documentation work.
 
 ## Next
 
-Reconcile the final Template Packs pages using the post-cleanup facts audit and the completed Phase 9.5 project-root selection guidance.
+Proceed to Phase 10 planning. Retain these Phase 9 records until Michael explicitly approves archival.
 
 ## Phase 9.1: Establish The Documentation Contract
 
@@ -29,18 +29,18 @@ Reconcile the final Template Packs pages using the post-cleanup facts audit and 
 
 ## Phase 9.3.2: Write And Reconcile The Final Documentation
 
-1. [ ] Retain `template_packs/index.md` as the cleaned-up overview and supported-pack contract.
-2. [ ] Add `selecting-and-configuring.md` for supported DaisyUI and Bootstrap application setup.
-3. [ ] Add `customising.md` for focused overrides, model-scoped roots, and custom-pack ownership.
-4. [ ] Add `authoring-and-publishing.md` for creating, packaging, and publishing a third-party pack.
-5. [ ] Add `testing-and-acceptance.md` for pack validation and release evidence.
-6. [ ] Reconcile existing configuration, reference, and sample guidance with the five-page section.
+1. [x] Retain `template_packs/index.md` as the cleaned-up overview and supported-pack contract.
+2. [x] Add `selecting-and-configuring.md` for supported DaisyUI and Bootstrap application setup.
+3. [x] Add `customising.md` for focused, model-scoped, project-root, and asset ownership.
+4. [x] Add `authoring-and-publishing.md` as a truthful statement of the current narrow authoring boundary, pending Phase 10's real external framework API.
+5. [x] Add `testing-and-acceptance.md` for current pack validation and release evidence.
+6. [x] Reconcile existing configuration, reference, and sample guidance with the five-page section.
 
 ## Phase 9.3.3: Validate And Finish
 
-1. [ ] Check terminology, examples, navigation, links, and retired-reference cleanup across the stable documentation.
-2. [ ] Pass the strict MkDocs build and any focused checks justified by the final documentation.
-3. [ ] Reconcile the Phase 9 and master planning material after acceptance; archive only with explicit approval.
+1. [x] Check terminology, examples, navigation, links, and retired-reference cleanup across the stable documentation.
+2. [x] Pass focused implementation tests and the normal full regression gate; leave local MkDocs rendering to Michael as instructed.
+3. [x] Reconcile the Phase 9 and master planning material after acceptance; retain it until explicit archive approval.
 
 ## Phase 9.4: Add Application-Owned Pack Assets
 

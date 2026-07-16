@@ -1,6 +1,7 @@
 import re
 
 import pytest
+from django.conf import settings
 
 pytest.importorskip("playwright.sync_api")
 from playwright.sync_api import expect
@@ -11,6 +12,10 @@ pytestmark = [
     pytest.mark.playwright,
     pytest.mark.django_db,
     pytest.mark.usefixtures("sample_manager_page"),
+    pytest.mark.skipif(
+        settings.SETTINGS_MODULE == "tests.settings_bootstrap",
+        reason="This module verifies DaisyUI's Tippy integration; Bootstrap uses its native tooltip adapter.",
+    ),
 ]
 
 

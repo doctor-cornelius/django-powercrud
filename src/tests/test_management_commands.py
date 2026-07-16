@@ -2,8 +2,12 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+import subprocess
+import sys
+import tarfile
 from types import SimpleNamespace
 import warnings
+import zipfile
 
 import pytest
 from django.core.management import call_command, CommandError
@@ -1216,8 +1220,8 @@ def test_mktemplate_assets_copies_daisyui_manual_static_snapshot(
     assert "fake_app/powercrud/css/powercrud.css" in output, (
         "DaisyUI asset output should name the copied stylesheet tag."
     )
-    assert "fake_app/powercrud/js/powercrud.js" in output, (
-        "DaisyUI asset output should name the copied module entry."
+    assert "fake_app/powercrud/js/daisyui-adapter.js" in output and "fake_app/powercrud/js/powercrud.js" in output, (
+        "DaisyUI asset output should load its adapter before the stable copied runtime."
     )
     assert "first runtime loaded wins" in output, (
         "Asset output should warn against loading the package and copied entries together."
@@ -1272,11 +1276,11 @@ def test_mktemplate_assets_copies_bootstrap_tree_with_shared_runtime(
     assert "fake_app/powercrud/contrib/bootstrap5/css/bootstrap5.css" in output, (
         "Bootstrap asset output should name the copied stylesheet tag."
     )
-    assert "fake_app/powercrud/contrib/bootstrap5/js/bootstrap5.js" in output, (
-        "Bootstrap asset output should name the copied module entry."
+    assert "fake_app/powercrud/contrib/bootstrap5/js/bootstrap5.js" in output and "fake_app/powercrud/js/powercrud.js" in output, (
+        "Bootstrap asset output should load its compatible public entry before the stable copied runtime."
     )
-    assert "Bootstrap CSS and bootstrap.bundle, HTMX, and Tom Select" in output, (
-        "Bootstrap asset output should preserve its vendor dependency guidance."
+    assert "Bootstrap 5: Framework styling and modal/tooltip behaviour" in output, (
+        "Bootstrap asset output should derive vendor dependency guidance from the declaration."
     )
     assert (
         '"POWERCRUD_TEMPLATE_PACK": "powercrud.contrib.bootstrap5:template_pack"'
@@ -1469,3 +1473,92 @@ def test_mktemplate_model_all_copies_exact_four_root_templates(
         assert f"From: {source_path}" in output and f"To: {target_path}" in output, (
             f"Model --all should report the paths for {target_name}."
         )
+
+
+def test_starttemplatepack_creates_a_standalone_public_contract_starter(tmp_path, capsys):
+    """The author command should produce a buildable package shape, not an internal fixture."""
+    destination = tmp_path / "example-pack"
+
+    call_command("pcrud_starttemplatepack", "example_powercrud_pack", str(destination))
+
+    package_root = destination / "src" / "example_powercrud_pack"
+    declaration = (package_root / "template_pack.py").read_text(encoding="utf-8")
+    adapter = (
+        package_root
+        / "static"
+        / "powercrud"
+        / "packs"
+        / "example-powercrud-pack"
+        / "js"
+        / "adapter.js"
+    )
+    assert (destination / "pyproject.toml").exists()
+    assert (destination / "tests" / "test_contract.py").exists()
+    assert (package_root / "templates" / "powercrud" / "packs" / "example-powercrud-pack" / "object_list.html").exists()
+    assert 'server_adapter="example_powercrud_pack.adapter:server_adapter"' in declaration
+    assert adapter.exists()
+    assert "apiVersion: 1" in adapter.read_text(encoding="utf-8")
+    assert "example_powercrud_pack.template_pack:template_pack" in capsys.readouterr().out
+
+    source_root = Path(mktemplate_cmd.__file__).resolve().parents[3]
+    probe = """
+import sys
+import types
+from django.conf import settings
+
+sys.path[:0] = [PACKAGE_SOURCE, POWERCRUD_SOURCE]
+urls = types.ModuleType('external_pack_probe_urls')
+urls.urlpatterns = []
+sys.modules[urls.__name__] = urls
+settings.configure(
+    SECRET_KEY='external-pack-probe',
+    INSTALLED_APPS=(
+        'django.contrib.auth',
+        'django.contrib.contenttypes',
+        'django.contrib.staticfiles',
+        'crispy_forms',
+        'crispy_tailwind',
+        'powercrud',
+        'example_powercrud_pack',
+    ),
+    TEMPLATES=({'BACKEND': 'django.template.backends.django.DjangoTemplates', 'APP_DIRS': True},),
+    ROOT_URLCONF=urls.__name__,
+    STATIC_URL='/static/',
+)
+import django
+django.setup()
+from powercrud.template_pack_testing import assert_template_pack_conforms
+pack = assert_template_pack_conforms('example_powercrud_pack.template_pack:template_pack')
+assert pack.identity == 'example-powercrud-pack'
+""".replace("PACKAGE_SOURCE", repr(str(package_root.parent))).replace(
+        "POWERCRUD_SOURCE", repr(str(source_root))
+    )
+    subprocess.run([sys.executable, "-c", probe], check=True, capture_output=True, text=True)
+
+    artifact_dir = tmp_path / "artifacts"
+    subprocess.run(
+        ["uv", "build", str(destination), "--out-dir", str(artifact_dir)],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    wheel = next(artifact_dir.glob("*.whl"))
+    with zipfile.ZipFile(wheel) as archive:
+        names = archive.namelist()
+    assert any(name.endswith("templates/powercrud/packs/example-powercrud-pack/object_list.html") for name in names)
+    assert any(name.endswith("static/powercrud/packs/example-powercrud-pack/js/adapter.js") for name in names)
+    source_distribution = next(artifact_dir.glob("*.tar.gz"))
+    with tarfile.open(source_distribution) as archive:
+        source_names = archive.getnames()
+    assert any(name.endswith("tests/test_contract.py") for name in source_names)
+    assert any(name.endswith("templates/powercrud/packs/example-powercrud-pack/object_list.html") for name in source_names)
+
+
+def test_starttemplatepack_refuses_to_overwrite_a_nonempty_destination(tmp_path):
+    """Starter generation must not silently replace a downstream package."""
+    destination = tmp_path / "example-pack"
+    destination.mkdir()
+    (destination / "keep.txt").write_text("keep", encoding="utf-8")
+
+    with pytest.raises(CommandError, match="must be new or empty"):
+        call_command("pcrud_starttemplatepack", "example_powercrud_pack", str(destination))

@@ -91,27 +91,30 @@ class Command(BaseCommand):
         """Return package-owned asset trees and their app-static destinations."""
         package_root = Path(files("powercrud"))
         shared_assets = package_root / "static" / "powercrud"
-        sources = (
+        sources: list[tuple[Path, Path]] = [
             (shared_assets / "css", Path("css")),
             (shared_assets / "js", Path("js")),
-        )
-        if template_pack.identity != "bootstrap5":
-            return sources
-
-        bootstrap_assets = (
-            package_root
-            / "contrib"
-            / "bootstrap5"
-            / "static"
-            / "powercrud"
-            / "contrib"
-            / "bootstrap5"
-        )
-        return (
-            *sources,
-            (bootstrap_assets / "css", Path("contrib/bootstrap5/css")),
-            (bootstrap_assets / "js", Path("contrib/bootstrap5/js")),
-        )
+        ]
+        for copy_root in template_pack.assets.copy_roots:
+            source_path = Path(
+                files(copy_root.package).joinpath(*Path(copy_root.path).parts)
+            )
+            path_parts = Path(copy_root.path).parts
+            try:
+                static_index = path_parts.index("static")
+            except ValueError as exc:
+                raise CommandError(
+                    f"Pack copy root {copy_root.path!r} must live below a static directory."
+                ) from exc
+            destination = Path(*path_parts[static_index + 1 :])
+            if not destination.parts:
+                raise CommandError(
+                    f"Pack copy root {copy_root.path!r} has no static namespace."
+                )
+            if destination.parts[0] == "powercrud":
+                destination = Path(*destination.parts[1:])
+            sources.append((source_path, destination))
+        return tuple(sources)
 
     def add_arguments(self, parser):
         # Main argument group
@@ -202,11 +205,11 @@ class Command(BaseCommand):
         )
         parser.add_argument(
             "--source-template-pack",
-            choices=tuple(self.project_template_pack_selectors),
             default=None,
             help=(
-                "Source pack for a plain app copy: daisyui (default) or bootstrap5. "
-                "The copied pack must match the pack selected at runtime."
+                "Source pack for a plain app copy: daisyui (default), bootstrap5, or "
+                "a module.path:attribute declaration. The copied pack must match the "
+                "pack selected at runtime."
             ),
         )
         parser.add_argument(
@@ -253,7 +256,13 @@ class Command(BaseCommand):
             )
             if options["assets"]:
                 self._copy_project_assets(
-                    source_template_pack, Path(app_config.path), app_name
+                    source_template_pack,
+                    Path(app_config.path),
+                    app_name,
+                    self.project_template_pack_selectors.get(
+                        options["source_template_pack"] or "daisyui",
+                        options["source_template_pack"] or "daisyui",
+                    ),
                 )
             return
 
@@ -568,6 +577,7 @@ class Command(BaseCommand):
         template_pack: TemplatePack,
         app_path: Path,
         app_name: str,
+        source_selector: str,
     ) -> None:
         """Copy a complete package-owned manual-static runtime snapshot for one app."""
         destination_root = app_path / "static" / app_name / "powercrud"
@@ -592,10 +602,9 @@ class Command(BaseCommand):
         except OSError as exc:
             raise CommandError(f"Failed to copy project assets: {exc}") from exc
 
-        css_path, script_path, dependency_guidance = self._get_asset_activation_guidance(
+        css_paths, script_paths, dependency_guidance = self._get_asset_activation_guidance(
             template_pack, app_name
         )
-        source_selector = self.project_template_pack_selectors[template_pack.identity]
         copied_lines = "\n".join(
             f"From: {source_path}\nTo: {destination_path}"
             for source_path, destination_path in copied_paths
@@ -609,9 +618,18 @@ class Command(BaseCommand):
                 "Load the selected pack's required vendor dependencies before this entry:\n"
                 f"{dependency_guidance}\n\n"
                 "Add these application-owned asset tags:\n"
-                "{% load static %}\n"
-                f"<link rel=\"stylesheet\" href=\"{{% static '{css_path}' %}}\">\n"
-                f"<script type=\"module\" src=\"{{% static '{script_path}' %}}\"></script>\n\n"
+                "{% load static powercrud %}\n"
+                "{% powercrud_runtime_config %}\n"
+                + "\n".join(
+                    f"<link rel=\"stylesheet\" href=\"{{% static '{css_path}' %}}\">"
+                    for css_path in css_paths
+                )
+                + "\n"
+                + "\n".join(
+                    f"<script type=\"module\" src=\"{{% static '{script_path}' %}}\"></script>"
+                    for script_path in script_paths
+                )
+                + "\n\n"
                 "This snapshot has no file-by-file fallback to package assets. Keep the "
                 "copied files needed by the selected entry. It supports manual-static "
                 "loading only; do not combine it with PowerCRUD's packaged Vite entry.\n"
@@ -624,23 +642,32 @@ class Command(BaseCommand):
 
     def _get_asset_activation_guidance(
         self, template_pack: TemplatePack, app_name: str
-    ) -> tuple[str, str, str]:
-        """Return pack-specific manual-static paths and dependency guidance."""
-        if template_pack.identity == "bootstrap5":
-            return (
-                f"{app_name}/powercrud/contrib/bootstrap5/css/bootstrap5.css",
-                f"{app_name}/powercrud/contrib/bootstrap5/js/bootstrap5.js",
-                "Bootstrap CSS and bootstrap.bundle, HTMX, and Tom Select.",
-            )
-        return (
+    ) -> tuple[tuple[str, ...], tuple[str, ...], str]:
+        """Return declaration-driven manual-static paths and vendor guidance."""
+        stylesheets = (
             f"{app_name}/powercrud/css/powercrud.css",
-            f"{app_name}/powercrud/js/powercrud.js",
-            "your DaisyUI/Tailwind assets, HTMX, Tom Select, and Tippy.",
+            *(
+                f"{app_name}/{path}" for path in template_pack.assets.stylesheets
+            ),
         )
+        adapter = template_pack.assets.browser_adapter
+        script_paths = (
+            *( (f"{app_name}/{adapter.static_path}",) if adapter is not None else () ),
+            f"{app_name}/powercrud/js/powercrud.js",
+        )
+        requirements = template_pack.assets.vendor_requirements
+        dependency_guidance = (
+            "\n".join(
+                f"- {item.name}: {item.purpose}. {item.manual_static_note}".strip()
+                for item in requirements
+            )
+            or "- No additional vendor dependencies are declared."
+        )
+        return stylesheets, script_paths, dependency_guidance
 
     def _get_project_source_template_pack(self, pack_name: str) -> TemplatePack:
-        """Resolve one first-party pack supported by project-level copying."""
-        selector = self.project_template_pack_selectors[pack_name]
+        """Resolve any declared source pack supported by project-level copying."""
+        selector = self.project_template_pack_selectors.get(pack_name, pack_name)
         try:
             return resolve_template_pack(selector)
         except Exception as exc:

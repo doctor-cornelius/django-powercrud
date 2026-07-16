@@ -77,7 +77,9 @@ Existing configuration and reference pages remain detailed authorities for their
 
 ### Phase 9.3.3: Validate And Finish
 
-Validate the section as one coherent user journey. Check terminology, examples, navigation, cross-links, and active documentation for stale reference-pack claims, then run the strict MkDocs build. Update the Phase 9 and master planning records only after Michael accepts the completed documentation, and do not archive historical plans without explicit approval.
+Complete. The section was reconciled as one user journey, and the later Phase 9.4 and 9.5 slices added project-owned asset snapshots, one-root project copies, and an override-layer overview. The final focused command and asset-packaging gate passed 79 tests. One uninterrupted full regression passed 1,024 non-Playwright tests with 14 skips, followed by 84 Playwright tests with 5 skips. Michael retained local MkDocs rendering and visual review for his own handoff workflow, so no local MkDocs build is claimed.
+
+The authoring discussion then established that independently supplied new-framework adapters are a fundamental product requirement rather than optional future polish. That architectural work is transferred to the dedicated Phase 10 plan. Phase 9 is complete as documentation of the current shipped boundary; its authoring page must be replaced with a practical external-author guide when Phase 10 makes that workflow real.
 
 ### Phase 9.4: Add Application-Owned Pack Assets
 

@@ -1,62 +1,52 @@
 {
-  "_lib-DI6lYqga.js": {
-    "file": "django_assets/lib-DI6lYqga.js",
-    "name": "lib",
+  "_preload-helper-SI-XEWU3.js": {
+    "file": "django_assets/preload-helper-SI-XEWU3.js",
+    "name": "preload-helper",
     "css": [
-      "django_assets/lib-dJhxz_Yn.css"
+      "django_assets/preload-helper-dJhxz_Yn.css"
     ]
   },
-  "_lib-dJhxz_Yn.css": {
-    "file": "django_assets/lib-dJhxz_Yn.css",
-    "src": "_lib-dJhxz_Yn.css"
-  },
-  "_powercrud-BGrvxTQB.js": {
-    "file": "django_assets/powercrud-BGrvxTQB.js",
-    "name": "powercrud",
-    "imports": [
-      "_searchable-selects-54NAyf2d.js"
-    ]
-  },
-  "_searchable-selects-54NAyf2d.js": {
-    "file": "django_assets/searchable-selects-54NAyf2d.js",
-    "name": "searchable-selects"
+  "_preload-helper-dJhxz_Yn.css": {
+    "file": "django_assets/preload-helper-dJhxz_Yn.css",
+    "src": "_preload-helper-dJhxz_Yn.css"
   },
   "config/static/js/bootstrap5.js": {
-    "file": "django_assets/bootstrap5-e5kDD0I_.js",
+    "file": "django_assets/bootstrap5-BsNwzJdu.js",
     "name": "bootstrap5",
     "src": "config/static/js/bootstrap5.js",
     "isEntry": true,
     "imports": [
-      "_lib-DI6lYqga.js",
-      "_searchable-selects-54NAyf2d.js"
+      "_preload-helper-SI-XEWU3.js"
     ],
     "dynamicImports": [
-      "_powercrud-BGrvxTQB.js"
+      "powercrud/static/powercrud/js/powercrud.js"
     ],
     "css": [
       "django_assets/bootstrap5-YLwHRyIC.css"
     ]
   },
   "config/static/js/main.js": {
-    "file": "django_assets/powercrud-CL-2PLw5.js",
+    "file": "django_assets/powercrud-B5p5EwET.js",
     "name": "powercrud",
     "src": "config/static/js/main.js",
     "isEntry": true,
     "imports": [
-      "_lib-DI6lYqga.js",
-      "_powercrud-BGrvxTQB.js"
+      "_preload-helper-SI-XEWU3.js"
+    ],
+    "dynamicImports": [
+      "powercrud/static/powercrud/js/powercrud.js"
     ],
     "css": [
       "django_assets/powercrud-CdypzY8l.css"
     ]
   },
   "powercrud/static/powercrud/js/powercrud.js": {
-    "file": "django_assets/powercrud-CpijXBZk.js",
+    "file": "django_assets/powercrud-CZSyUlp3.js",
     "name": "powercrud",
     "src": "powercrud/static/powercrud/js/powercrud.js",
     "isDynamicEntry": true,
     "imports": [
-      "_powercrud-BGrvxTQB.js"
+      "_preload-helper-SI-XEWU3.js"
     ]
   }
 }

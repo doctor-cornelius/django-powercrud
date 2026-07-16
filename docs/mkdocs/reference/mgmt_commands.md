@@ -33,7 +33,7 @@ python manage.py pcrud_mktemplate myapp --assets
 python manage.py pcrud_mktemplate myapp --source-template-pack bootstrap5 --all --assets
 ```
 
-`--source-template-pack` accepts `daisyui` and `bootstrap5`. If it is omitted, the command copies DaisyUI. It does not choose your runtime pack, install Bootstrap, configure Crispy Forms, or load framework assets. Configure those separately, and select the same pack that you copied with `POWERCRUD_TEMPLATE_PACK` in `POWERCRUD_SETTINGS`.
+`--source-template-pack` accepts `daisyui`, `bootstrap5`, or an installed pack's `module.path:attribute` selector. If it is omitted, the command copies DaisyUI. It does not choose your runtime pack, install a framework, configure Crispy Forms, or load vendor assets. Configure those separately, and select the same pack that you copied with `POWERCRUD_TEMPLATE_PACK` in `POWERCRUD_SETTINGS`.
 
 For example, a complete Bootstrap copy needs a Bootstrap runtime selection:
 
@@ -112,7 +112,7 @@ myapp/
                     js/
 ```
 
-For DaisyUI, this is the shared PowerCRUD runtime and stylesheet. For Bootstrap, it also includes the Bootstrap PowerCRUD entry, stylesheet, and private adapter modules. The command deliberately does not copy vendor dependencies such as DaisyUI, Bootstrap, HTMX, Tom Select, or Tippy.
+For DaisyUI, this is the shared PowerCRUD runtime and its adapter. For Bootstrap, it also includes the Bootstrap PowerCRUD stylesheet and adapter modules. An independently published pack contributes the paths declared by that pack. The command deliberately does not copy vendor dependencies such as DaisyUI, Bootstrap, HTMX, Tom Select, or Tippy.
 
 The command prints the exact `{% static %}` stylesheet and module-script tags for the selected pack. Replace the package-owned PowerCRUD tags in the base template with those application-owned tags; do not load both. The runtime uses a duplicate-load guard, so the first entry loaded determines the active presentation.
 
@@ -121,6 +121,23 @@ An asset snapshot is complete ownership with no file-by-file package fallback. I
 `--assets` supports manual-static loading only. It does not generate or modify a Vite entry or manifest. A project using PowerCRUD's packaged Vite entry must maintain its own custom frontend entry before it can own pack runtime assets; do not load the generated manual-static snapshot alongside the packaged Vite entry.
 
 Assets are application and pack scoped because the base template loads them. `app.Model` targets and `--component` cannot use `--assets`; app-level root selectors such as `myapp --list --assets` can. Model-specific template overrides continue to work with either the package-owned or app-owned runtime.
+
+## `pcrud_starttemplatepack` - Start an independent package
+
+Create a normal Python/Django package for a new CSS framework or presentation system. The command copies the full template tree from a maintained source and creates a declaration, neutral adapters, package-data configuration, and a small CSS/JavaScript entry point:
+
+```bash
+# Start from the default DaisyUI template tree.
+python manage.py pcrud_starttemplatepack my_powercrud_pack ../my-powercrud-pack
+
+# Start from the Bootstrap 5 template tree instead.
+python manage.py pcrud_starttemplatepack my_powercrud_pack ../my-powercrud-pack \
+  --source-template-pack bootstrap5
+```
+
+The first argument is the Python package name. The second is a new or empty destination directory; the command refuses to overwrite a populated directory. Use `--identity` only when the public pack identity should differ from the package name.
+
+The starter has no framework-name registration. Edit the copied templates and the optional adapter hooks, then test and publish it as a normal Python distribution. See [Authoring and publishing a template pack](../template_packs/authoring-and-publishing.md) for the complete workflow.
 
 ### Copy templates for one model
 
@@ -149,7 +166,7 @@ Choose the component name from the [focused component table](../template_packs/c
 - `target` - An app name (for example, `myapp`) or `app.Model` (for example, `myapp.Project`).
 - `--core` - With an app name, copy the four main CRUD templates. This is the default when no scope is supplied.
 - `--all` - With an app name, copy the complete source pack. With `app.Model`, copy the four main templates for that model.
-- `--source-template-pack {daisyui,bootstrap5}` - Choose the source for an app-level copy. The default is `daisyui`; this option is not used with `app.Model`.
+- `--source-template-pack SELECTOR` - Choose the source for an app-level copy. `SELECTOR` may be `daisyui`, `bootstrap5`, or an installed pack's `module.path:attribute` declaration selector. The default is `daisyui`; this option is not used with `app.Model`.
 - `--assets` - With an app name, copy the selected pack's PowerCRUD-owned manual-static CSS and JavaScript snapshot. It may be combined with any app-level template scope. This option is not available for `app.Model` or focused components.
 - `template_override_complete = True` - View setting used with an app-level `--all` copy. It makes direct nested includes use the copied complete root. Do not set it for a `--core` copy.
 - `--list` (`-l`) - With an app name, copy the selected pack's list root. With `app.Model`, copy that model's list template only.

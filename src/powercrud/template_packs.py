@@ -1,9 +1,9 @@
 """Public declarations and dynamic discovery for PowerCRUD template packs."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from importlib import import_module
 from pathlib import PurePosixPath
-from typing import Any, Mapping
+from typing import Any, Literal, Mapping, Protocol
 
 from django.core.exceptions import ImproperlyConfigured
 
@@ -11,10 +11,11 @@ from powercrud.conf import get_powercrud_setting
 
 
 TEMPLATE_PACK_CONTRACT_VERSION = 1
+SERVER_ADAPTER_API_VERSION = 1
+BROWSER_ADAPTER_API_VERSION = 1
 _BUILTIN_TEMPLATE_PACKS = {"daisyui": "powercrud.packs.daisyui:template_pack"}
 _UNCONFIGURED_SELECTOR = object()
 _FRAMEWORK_STYLE_KEYS = {"daisyui": "daisyUI"}
-_SUPPORTED_FRAMEWORK_ADAPTERS = frozenset({"bootstrap5", "daisyui"})
 
 # These options promise a presentation outcome across every first-party pack.
 # Framework-specific class strings remain deliberately portable only within the
@@ -60,42 +61,202 @@ class TemplatePackCompatibilityWarning(UserWarning):
 
 
 @dataclass(frozen=True, slots=True)
+class PackageResource:
+    """Identify one safe resource inside an importable Python package."""
+
+    package: str
+    path: str
+
+    def __post_init__(self):
+        """Validate package-resource metadata without importing the package."""
+        _require_dotted_identifier(self.package, "package")
+        _require_resource_root(self.path)
+
+
+@dataclass(frozen=True, slots=True)
+class VendorRequirement:
+    """Describe a frontend dependency supplied by the consuming application."""
+
+    name: str
+    purpose: str
+    global_name: str | None = None
+    vite_import: str | None = None
+    manual_static_note: str = ""
+
+    def __post_init__(self):
+        """Validate human-facing dependency guidance."""
+        _require_string(self.name, "name")
+        _require_string(self.purpose, "purpose")
+        _require_optional_string(self.global_name, "global_name")
+        _require_optional_string(self.vite_import, "vite_import")
+        if not isinstance(self.manual_static_note, str):
+            raise ValueError("manual_static_note must be a string.")
+
+
+@dataclass(frozen=True, slots=True)
+class BrowserAdapterSpec:
+    """Describe an optional pack-owned browser adapter module."""
+
+    api_version: int
+    static_path: str
+    source: PackageResource
+
+    def __post_init__(self):
+        """Validate one browser-adapter declaration."""
+        _require_positive_integer(self.api_version, "api_version")
+        _require_static_path(self.static_path, "static_path")
+        if not isinstance(self.source, PackageResource):
+            raise ValueError("source must be a PackageResource.")
+
+
+@dataclass(frozen=True, slots=True)
+class PackAssets:
+    """Describe pack-owned assets without installing third-party vendors."""
+
+    stylesheets: tuple[str, ...] = ()
+    copy_roots: tuple[PackageResource, ...] = ()
+    browser_adapter: BrowserAdapterSpec | None = None
+    vendor_requirements: tuple[VendorRequirement, ...] = ()
+
+    def __post_init__(self):
+        """Validate immutable asset metadata."""
+        _require_tuple_of_static_paths(self.stylesheets, "stylesheets")
+        if not isinstance(self.copy_roots, tuple) or not all(
+            isinstance(item, PackageResource) for item in self.copy_roots
+        ):
+            raise ValueError("copy_roots must be a tuple of PackageResource values.")
+        if self.browser_adapter is not None and not isinstance(
+            self.browser_adapter, BrowserAdapterSpec
+        ):
+            raise ValueError("browser_adapter must be a BrowserAdapterSpec or None.")
+        if not isinstance(self.vendor_requirements, tuple) or not all(
+            isinstance(item, VendorRequirement) for item in self.vendor_requirements
+        ):
+            raise ValueError(
+                "vendor_requirements must be a tuple of VendorRequirement values."
+            )
+
+
+@dataclass(frozen=True, slots=True)
+class CrispyIntegration:
+    """Describe one optional Crispy Forms integration owned by a pack."""
+
+    template_pack: str
+    dependency: str | None = None
+
+    def __post_init__(self):
+        """Validate one Crispy integration declaration."""
+        _require_string(self.template_pack, "template_pack")
+        _require_optional_string(self.dependency, "dependency")
+
+
+FilterWidgetKind = Literal["text", "select", "multiselect", "date", "number", "time", "default"]
+ActionRole = Literal["view", "edit", "delete", "extra"]
+
+
+@dataclass(frozen=True, slots=True)
+class ServerAdapterContext:
+    """Stable semantic context supplied to a server adapter for one view."""
+
+    modal_id: str
+    modal_target_id: str
+    use_htmx: bool
+    use_modal: bool
+
+
+@dataclass(frozen=True, slots=True)
+class ActionPresentation:
+    """Framework presentation for links and action controls."""
+
+    base_classes: str = ""
+    role_classes: Mapping[ActionRole, str] = field(default_factory=dict)
+    group_item_classes: str = ""
+    extra_default_classes: str = ""
+    list_cell_link_classes: str = ""
+
+
+@dataclass(frozen=True, slots=True)
+class ServerPresentation:
+    """Complete framework presentation returned for one view."""
+
+    filter_widget_attrs: Mapping[FilterWidgetKind, Mapping[str, str]] = field(
+        default_factory=dict
+    )
+    actions: ActionPresentation = field(default_factory=ActionPresentation)
+
+
+class PowerCRUDServerAdapter(Protocol):
+    """Public server-adapter interface for selectable packs."""
+
+    api_version: int
+
+    def get_presentation(self, context: ServerAdapterContext) -> ServerPresentation:
+        """Return framework presentation for one configured view."""
+
+    def get_view_help_variables(self, color: str) -> Mapping[str, str]:
+        """Return the documented PowerCRUD view-help CSS variables."""
+
+
+class BaseServerAdapter:
+    """Provide neutral server presentation defaults for simple template packs."""
+
+    api_version = SERVER_ADAPTER_API_VERSION
+
+    def get_presentation(self, context: ServerAdapterContext) -> ServerPresentation:
+        """Return presentation with no framework classes or widget attributes."""
+        del context
+        return ServerPresentation()
+
+    def get_view_help_variables(self, color: str) -> Mapping[str, str]:
+        """Return neutral CSS variables while preserving the requested colour."""
+        return {
+            "--pc-view-help-color": color,
+            "--pc-view-help-border-color": color,
+            "--pc-view-help-background-color": "transparent",
+            "--pc-view-help-text-color": "inherit",
+            "--pc-view-help-accent-color": color,
+        }
+
+
+@dataclass(frozen=True, slots=True)
 class TemplatePack:
-    """Describe one template pack without loading its templates or assets."""
+    """Describe one selectable pack and its public adapter resources."""
 
     identity: str
     contract_version: int
     template_namespace: str
     template_package: str
     template_resource_root: str
-    legacy_copy_destination: str | None
-    framework_adapter: str
-    variant_adapter: str | None
+    server_adapter: str
     capabilities: frozenset[str]
     supports_native_forms: bool
-    crispy_template_packs: frozenset[str]
     django_app: str | None
-    manual_assets: tuple[str, ...] = ()
-    vite_assets: tuple[str, ...] = ()
+    assets: PackAssets = field(default_factory=PackAssets)
+    crispy_integrations: tuple[CrispyIntegration, ...] = ()
     unsupported_presentation_options: frozenset[str] = frozenset()
+    legacy_copy_destination: str | None = None
 
     def __post_init__(self):
         """Validate the declaration shape without probing its environment."""
-        _require_string(self.identity, "identity")
+        _require_safe_identity(self.identity)
         _require_positive_integer(self.contract_version, "contract_version")
         _require_string(self.template_namespace, "template_namespace")
         _require_string(self.template_package, "template_package")
         _require_resource_root(self.template_resource_root)
-        _require_legacy_copy_destination(self.legacy_copy_destination)
-        _require_string(self.framework_adapter, "framework_adapter")
-        _require_optional_string(self.variant_adapter, "variant_adapter")
+        _require_selector_path(self.server_adapter, "server_adapter")
         _require_frozenset_of_strings(self.capabilities, "capabilities")
         if not isinstance(self.supports_native_forms, bool):
             raise ValueError("supports_native_forms must be a bool.")
-        _require_frozenset_of_strings(self.crispy_template_packs, "crispy_template_packs")
         _require_optional_string(self.django_app, "django_app")
-        _require_tuple_of_strings(self.manual_assets, "manual_assets")
-        _require_tuple_of_strings(self.vite_assets, "vite_assets")
+        if not isinstance(self.assets, PackAssets):
+            raise ValueError("assets must be a PackAssets value.")
+        if not isinstance(self.crispy_integrations, tuple) or not all(
+            isinstance(item, CrispyIntegration) for item in self.crispy_integrations
+        ):
+            raise ValueError(
+                "crispy_integrations must be a tuple of CrispyIntegration values."
+            )
+        _require_legacy_copy_destination(self.legacy_copy_destination)
         _require_frozenset_of_strings(
             self.unsupported_presentation_options,
             "unsupported_presentation_options",
@@ -149,10 +310,10 @@ def get_template_pack_template_namespace() -> str:
 
 
 def get_template_pack_style_key() -> str:
-    """Return the canonical pack-adapter key or the legacy style key."""
+    """Return the selected pack identity or the compatible legacy style key."""
     template_pack = get_configured_template_pack()
     if template_pack is not None:
-        return template_pack.framework_adapter
+        return template_pack.identity
     return get_powercrud_setting("POWERCRUD_CSS_FRAMEWORK")
 
 
@@ -170,16 +331,26 @@ def get_template_pack_styles(styles: Mapping[str, Any]) -> Any:
 
 
 def get_template_pack_copy_destination() -> str:
-    """Return the legacy whole-tree destination for the active pack."""
+    """Return the whole-tree destination for the active pack."""
     template_pack = get_configured_template_pack()
     if template_pack is None:
         return PurePosixPath(get_template_pack_template_namespace()).name
-    if template_pack.legacy_copy_destination is None:
+    return template_pack.legacy_copy_destination or template_pack.identity
+
+
+def get_template_pack_server_adapter() -> PowerCRUDServerAdapter:
+    """Resolve and validate the selected pack's public server adapter."""
+    template_pack = get_selected_template_pack()
+    adapter = _load_template_pack(template_pack.server_adapter, template_pack.identity)
+    api_version = getattr(adapter, "api_version", None)
+    get_presentation = getattr(adapter, "get_presentation", None)
+    if api_version != SERVER_ADAPTER_API_VERSION or not callable(get_presentation):
         raise ImproperlyConfigured(
-            f"PowerCRUD template pack {template_pack.identity!r} does not declare a "
-            "whole-tree copy destination."
+            f"PowerCRUD template pack {template_pack.identity!r} server_adapter "
+            f"{template_pack.server_adapter!r} must expose api_version "
+            f"{SERVER_ADAPTER_API_VERSION} and callable get_presentation()."
         )
-    return template_pack.legacy_copy_destination
+    return adapter
 
 
 def resolve_template_pack(selector: str) -> TemplatePack:
@@ -195,6 +366,34 @@ def _require_string(value: object, field_name: str) -> None:
     """Require a non-empty string without leading or trailing whitespace."""
     if not isinstance(value, str) or not value or value != value.strip():
         raise ValueError(f"{field_name} must be a non-empty, unpadded string.")
+
+
+def _require_dotted_identifier(value: object, field_name: str) -> None:
+    """Require a dotted Python identifier suitable for an importable package."""
+    _require_string(value, field_name)
+    if not _is_dotted_identifier(str(value)):
+        raise ValueError(f"{field_name} must be a dotted Python identifier.")
+
+
+def _require_safe_identity(value: object) -> None:
+    """Require an identity safe for diagnostics and project copy destinations."""
+    _require_string(value, "identity")
+    path = PurePosixPath(str(value))
+    if (
+        path.is_absolute()
+        or len(path.parts) != 1
+        or path.parts[0] in {".", ".."}
+        or "\\" in str(value)
+    ):
+        raise ValueError("identity must be one safe relative POSIX path segment.")
+
+
+def _require_selector_path(value: object, field_name: str) -> None:
+    """Require a module-path declaration reference without importing it."""
+    _require_string(value, field_name)
+    module_name, separator, attribute_name = str(value).partition(":")
+    if not separator or ":" in attribute_name or not _is_dotted_identifier(module_name) or not attribute_name.isidentifier():
+        raise ValueError(f"{field_name} must use 'module.path:attribute' syntax.")
 
 
 def _require_optional_string(value: object, field_name: str) -> None:
@@ -236,6 +435,14 @@ def _require_resource_root(value: object) -> None:
         )
 
 
+def _require_static_path(value: object, field_name: str) -> None:
+    """Require one safe Django staticfiles path."""
+    _require_string(value, field_name)
+    path = PurePosixPath(str(value))
+    if path.is_absolute() or ".." in path.parts or str(path) in {".", ""} or "\\" in str(value):
+        raise ValueError(f"{field_name} must be a safe relative static path.")
+
+
 def _require_frozenset_of_strings(value: object, field_name: str) -> None:
     """Require an immutable set of valid string values."""
     if not isinstance(value, frozenset) or not all(
@@ -250,6 +457,14 @@ def _require_tuple_of_strings(value: object, field_name: str) -> None:
         isinstance(item, str) and item and item == item.strip() for item in value
     ):
         raise ValueError(f"{field_name} must be a tuple of non-empty, unpadded strings.")
+
+
+def _require_tuple_of_static_paths(value: object, field_name: str) -> None:
+    """Require immutable safe staticfiles paths."""
+    if not isinstance(value, tuple):
+        raise ValueError(f"{field_name} must be a tuple of safe static paths.")
+    for item in value:
+        _require_static_path(item, field_name)
 
 
 def _validate_selector(selector: object) -> str:
@@ -305,7 +520,7 @@ def _load_template_pack(declaration_path: str, original_selector: object) -> obj
 
 
 def _validate_resolved_template_pack(template_pack: object, selector: object) -> None:
-    """Reject declarations unsupported by the Phase 4 runtime contract."""
+    """Reject malformed public declarations without whitelisting frameworks."""
     if not isinstance(template_pack, TemplatePack):
         raise ImproperlyConfigured(
             f"PowerCRUD template pack {selector!r} must resolve to a TemplatePack declaration."
@@ -323,23 +538,4 @@ def _validate_resolved_template_pack(template_pack: object, selector: object) ->
     if selector == "daisyui" and template_pack.identity != "daisyui":
         raise ImproperlyConfigured(
             "The built-in 'daisyui' selector must resolve PowerCRUD's DaisyUI declaration."
-        )
-    if template_pack.framework_adapter not in _SUPPORTED_FRAMEWORK_ADAPTERS:
-        raise ImproperlyConfigured(
-            f"PowerCRUD template pack {selector!r} requires unsupported framework adapter "
-            f"{template_pack.framework_adapter!r}; supported adapters are "
-            f"{', '.join(sorted(_SUPPORTED_FRAMEWORK_ADAPTERS))}."
-        )
-    if template_pack.variant_adapter is not None:
-        raise ImproperlyConfigured(
-            f"PowerCRUD template pack {selector!r} requires unsupported variant adapter "
-            f"{template_pack.variant_adapter!r}."
-        )
-    if (
-        template_pack.framework_adapter != "bootstrap5"
-        and (template_pack.manual_assets or template_pack.vite_assets)
-    ):
-        raise ImproperlyConfigured(
-            f"PowerCRUD template pack {selector!r} declares additional browser assets, which "
-            "are supported only by the Bootstrap 5 adapter."
         )

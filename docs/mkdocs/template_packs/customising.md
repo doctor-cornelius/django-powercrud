@@ -2,6 +2,14 @@
 
 Start with the smallest override that expresses the change. PowerCRUD keeps the surrounding behaviour, nested template selection, and JavaScript lifecycle until you explicitly take ownership of a wider layer.
 
+There are three different ownership levels, and they do not substitute for one another:
+
+1. **A model or view override** changes templates for selected screens. It can be as small as one component and does not copy CSS or JavaScript.
+2. **A project override** shares copied templates across views that opt into one `template_override_path`. `--all` makes that project tree a complete template copy; `--assets` separately makes the base-template runtime application-owned.
+3. **An independent template pack** is a publishable Django package that another project can select at startup. It owns its templates, optional adapters, and pack assets. It is the right choice for a new CSS framework, not for one project-specific layout change.
+
+The package remains the final template fallback unless you deliberately take complete ownership. Assets are always app/base-template-wide: they are never model-specific or view-specific.
+
 ## Choose the narrowest override layer
 
 These layers are deliberately different. Choose the row whose scope matches the change you need; copying a wider layer also means taking responsibility for more package markup during upgrades.
@@ -158,7 +166,7 @@ Use an app-level copy when several models need the same overall presentation, or
 
     | Choice | Allowed value or values | Result |
     | --- | --- | --- |
-    | Source pack | no flag / `daisyui`; `--source-template-pack bootstrap5` | Selects the files to copy. It must match `POWERCRUD_TEMPLATE_PACK` at runtime. |
+    | Source pack | no flag / `daisyui`; `--source-template-pack bootstrap5`; or `--source-template-pack module.path:attribute` for an installed pack | Selects the files to copy. It must match `POWERCRUD_TEMPLATE_PACK` at runtime. |
     | One root | `--list`, `--detail`, `--form` (also `--create` or `--update`), `--delete` | Copies only that root template. Other roots and components fall back to the selected pack. |
     | Four roots | no scope flag or `--core` | Copies list, detail, form, and delete roots; components still fall back. |
     | Complete templates | `--all` | Copies the full template tree. Set `template_override_complete = True` on views that use it. |
@@ -211,6 +219,13 @@ Assets apply to every page using that base template and selected pack. They are 
 
 Your application owns its base template and any copied override markup. PowerCRUD owns request handling, selection state, HTMX lifecycle, modal cleanup, and its JavaScript unless the generated override documentation says otherwise.
 
-Use `template_override_path` for an application-owned copy that should fall back to the selected pack. `templates_path` replaces the selected pack namespace entirely and is therefore a complete ownership decision, not a convenient way to make a one-line markup adjustment.
+??? info "Choose the right template-root setting"
+
+    | Setting | What it adds or replaces | When to use it |
+    | --- | --- | --- |
+    | `template_override_path` | Adds an application-owned candidate before the selected pack. Missing templates still fall back to the pack. | A project copy that is partial, or a complete `--all` copy that explicitly sets `template_override_complete = True`. |
+    | `templates_path` | Replaces the selected pack namespace. | A view that deliberately owns a complete template tree. |
+
+    Neither setting selects a pack or changes CSS/JavaScript. The base template's chosen frontend route owns those assets.
 
 For style settings, use classes that belong to the selected framework. Values such as `table_classes` and `action_button_classes` are passed through; they are not translated from DaisyUI to Bootstrap or the other way around.

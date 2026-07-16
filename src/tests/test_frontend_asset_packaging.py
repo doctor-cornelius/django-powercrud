@@ -90,7 +90,7 @@ def test_runtime_js_uses_stable_entry_with_internal_module_import() -> None:
         "./runtime/list-columns.js",
         "./runtime/bulk-actions.js",
         "./runtime/inline-edit.js",
-        "./runtime/daisyui-composition.js",
+        "./runtime/browser-adapter.js",
         "./runtime/current-template.js",
     ):
         assert module_import in runtime_js.read_text(encoding="utf-8"), (
@@ -114,9 +114,9 @@ def test_runtime_js_uses_stable_entry_with_internal_module_import() -> None:
         "export function installPowercrudGlobalListeners" in startup_js.read_text(encoding="utf-8")
     ), "Startup module should export the global listener installer."
     assert (
-        "import '../../../powercrud/static/powercrud/js/powercrud.js'"
+        "void import('../../../powercrud/static/powercrud/js/powercrud.js')"
         in sample_entry_js.read_text(encoding="utf-8")
-    ), "Sample bundle should keep importing the stable PowerCRUD runtime entry."
+    ), "Sample bundle should load the stable entry after its selected adapter and vendor globals."
 
     bootstrap_runtime_js = (
         package_root
@@ -135,13 +135,12 @@ def test_runtime_js_uses_stable_entry_with_internal_module_import() -> None:
     assert "export function installPowercrudRuntime" in runtime_source, (
         "The stable runtime should expose a private installer for pack-owned entries."
     )
-    assert "__powercrudPrivateDeferInstall" in bootstrap_runtime_source, (
-        "The Bootstrap entry should defer the default DaisyUI composition before installing its own."
+    assert "__powercrudPrivateDeferInstall" not in bootstrap_runtime_source, (
+        "The Bootstrap entry must no longer use the private defer-install protocol."
     )
-    assert (
-        "installPowercrudRuntime({ createComposition: createBootstrap5BaselineComposition })"
-        in bootstrap_runtime_source
-    ), "The Bootstrap entry should select its private composition without a public selector."
+    assert "import './adapter.js';" in bootstrap_runtime_source, (
+        "The Bootstrap entry should install its public adapter before the stable runtime."
+    )
     composition = bootstrap_composition_js.read_text(encoding="utf-8")
     for adapter_name in (
         "bootstrap5-modal-adapter.js",
@@ -328,13 +327,12 @@ def test_sample_templates_cover_vite_and_manual_static_loading_modes() -> None:
     assert '{% include "sample/_runtime_meta.html" %}' in manual_template, (
         "The manual-static sample base should include the shared runtime metadata footer."
     )
-    assert "{% static 'powercrud/css/powercrud.css' %}" in manual_template, (
-        "The manual-static sample base should load PowerCRUD CSS through Django static tags."
+    assert "{% powercrud_runtime_config %}" in manual_template and "{% powercrud_pack_assets %}" in manual_template, (
+        "The manual-static sample base should emit selected-pack configuration and declaration-driven assets."
     )
-    assert (
-        'script type="module" src="{% static \'powercrud/js/powercrud.js\' %}"'
-        in manual_template
-    ), "The manual-static sample base should load the stable PowerCRUD JS entry as a module."
+    assert "{% powercrud_pack_assets %}" in manual_template, (
+        "The manual-static asset tag must load the stable module after the selected adapter."
+    )
     assert "django_assets/" not in manual_template, (
         "The manual-static sample base should not hard-code Vite hashed asset filenames."
     )
