@@ -1,0 +1,27 @@
+<div class="hidden d-flex flex-wrap align-items-center justify-content-end gap-2 border-bottom pb-2 mb-2 pc-bootstrap-filter-panel-actions"
+     data-powercrud-add-filter-container>
+    {% if addable_filter_choices %}
+        <label class="visually-hidden" for="add-filter-select">Add filter</label>
+        <select id="add-filter-select" class="form-select form-select-sm"
+                data-powercrud-add-filter-select
+                data-powercrud-searchable-select="true"
+                data-powercrud-searchable-placeholder="Add filter...">
+            <option value="">Add filter…</option>
+            {% for option in addable_filter_choices %}
+                <option value="{{ option.name }}">{{ option.label }}</option>
+            {% endfor %}
+        </select>
+    {% endif %}
+    {% if not use_htmx %}
+        <button type="submit" form="filter-form"
+                class="btn btn-sm btn-primary {{ view.get_extra_button_classes }}"
+                data-powercrud-filter-panel-action>
+            Apply filters
+        </button>
+    {% endif %}
+    <a href="." class="btn btn-sm btn-outline-secondary {{ view.get_extra_button_classes }}"
+       {% if use_htmx %}hx-get="." hx-target="{{ original_target }}" hx-push-url="true"{% endif %}
+       data-powercrud-filter-panel-action data-powercrud-filter-reset>
+        Reset filters
+    </a>
+</div>

@@ -3,6 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass, replace
 from typing import Any
 
+from powercrud.modal_presentation import normalize_modal_presentation
+
 
 def _validate_non_empty_string(value: str, field_name: str, class_name: str) -> None:
     """Validate a required non-empty string field."""
@@ -78,6 +80,7 @@ class PowerAction:
     htmx_target: str | None = None
     display_modal: bool | None = None
     modal_box_classes: str | None = None
+    modal_presentation: dict[str, Any] | None = None
     hx_post: bool = False
     lock_sensitive: bool = False
     refresh_list_on_modal_close: bool = False
@@ -105,6 +108,15 @@ class PowerAction:
             "refresh_list_on_modal_close",
         ):
             _validate_bool(getattr(self, field_name), field_name, class_name)
+        if self.modal_box_classes is not None and self.modal_presentation is not None:
+            raise ValueError(
+                "PowerAction cannot combine modal_box_classes with modal_presentation"
+            )
+        normalized_modal_presentation = normalize_modal_presentation(
+            self.modal_presentation,
+            "PowerAction.modal_presentation",
+        )
+        object.__setattr__(self, "modal_presentation", normalized_modal_presentation)
         for field_name in (
             "hidden_if",
             "disabled_state",
@@ -163,6 +175,7 @@ class PowerAction:
                 "htmx_target": self.htmx_target,
                 "display_modal": self.display_modal,
                 "modal_box_classes": self.modal_box_classes,
+                "modal_presentation": self.modal_presentation,
                 "hx_post": self.hx_post,
                 "lock_sensitive": self.lock_sensitive,
                 "refresh_list_on_modal_close": self.refresh_list_on_modal_close,
@@ -191,6 +204,7 @@ class PowerButton:
     htmx_target: str | None = None
     display_modal: bool = False
     modal_box_classes: str | None = None
+    modal_presentation: dict[str, Any] | None = None
     refresh_list_on_modal_close: bool = False
     extra_attrs: str | None = None
     extra_class_attrs: str | None = None
@@ -216,6 +230,15 @@ class PowerButton:
             "uses_selection",
         ):
             _validate_bool(getattr(self, field_name), field_name, class_name)
+        if self.modal_box_classes is not None and self.modal_presentation is not None:
+            raise ValueError(
+                "PowerButton cannot combine modal_box_classes with modal_presentation"
+            )
+        normalized_modal_presentation = normalize_modal_presentation(
+            self.modal_presentation,
+            "PowerButton.modal_presentation",
+        )
+        object.__setattr__(self, "modal_presentation", normalized_modal_presentation)
         if self.clear_selection_on_success is not None:
             _validate_bool(
                 self.clear_selection_on_success,
@@ -259,6 +282,7 @@ class PowerButton:
             "htmx_target": self.htmx_target,
             "display_modal": self.display_modal,
             "modal_box_classes": self.modal_box_classes,
+            "modal_presentation": self.modal_presentation,
             "refresh_list_on_modal_close": self.refresh_list_on_modal_close,
             "extra_attrs": self.extra_attrs,
             "extra_class_attrs": self.extra_class_attrs,

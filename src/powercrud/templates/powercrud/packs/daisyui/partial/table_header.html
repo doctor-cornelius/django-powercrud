@@ -11,6 +11,7 @@
 
         {% for header in headers %}
         <th class="bg-neutral text-neutral-content text-center align-middle truncate table-column-width sticky-header"
+            data-field-name="{{ header.field_name }}"
             {% if header.is_sortable %}style="cursor: pointer;"{% endif %}
             {% if header.is_sortable %}
                 {% if use_htmx %}

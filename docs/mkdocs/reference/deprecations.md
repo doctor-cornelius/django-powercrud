@@ -2,6 +2,43 @@
 
 This page tracks public APIs that still work for compatibility but are no longer the preferred path.
 
+## Plain-App Whole-Tree Template Copying
+
+!!! warning "Deprecated: `pcrud_mktemplate myapp --all`"
+
+    The plain-app whole-tree copy command remains available for the DaisyUI pack during 0.x and emits `FutureWarning`. It will be removed in v1.0.
+
+The command creates an application-owned snapshot of the complete DaisyUI template tree. It does not receive later PowerCRUD template fixes automatically, and it is not available for Bootstrap.
+
+For ordinary customization, use focused `--component` overrides. Model-scoped root copying remains supported. When an application needs complete presentation ownership, create an explicitly owned custom template pack.
+
+See [Template Packs](../template_packs/index.md#customization) and [Management Commands](mgmt_commands.md).
+
+## Legacy Modal Class Settings
+
+!!! warning "Deprecated: raw modal class settings"
+
+    `modal_classes`, `modal_box_classes`, `modal_body_classes`, `bulk_modal_box_classes`, and per-trigger `modal_box_classes` are deprecated and targeted for removal in v1.0. Explicit use emits `FutureWarning`.
+
+These settings expose DaisyUI, Tailwind, Bootstrap, or application-specific class strings directly. They remain available only for existing framework-specific customisations and cannot promise a portable visual outcome across template packs.
+
+Use the semantic portable mapping instead:
+
+```python
+class ProjectCRUDView(PowerCRUDMixin, CRUDView):
+    use_htmx = True
+    use_modal = True
+    modal_presentation = {
+        "size": "wide",
+        "max_height": "viewport",
+        "scroll": "body",
+        "vertical_alignment": "center",
+    }
+    bulk_modal_presentation = {"size": "extra_wide"}
+```
+
+Modal `extra_actions`, `extra_buttons`, `PowerAction`, `PowerButton`, modal `link_fields`, and hook-returned modal links may set a partial `modal_presentation` mapping. Do not combine a presentation mapping with the corresponding legacy class option; PowerCRUD raises a configuration error rather than choosing one silently.
+
 ## Legacy Extra-Action Disabled Hooks
 
 !!! warning "Deprecated: `disabled_if` and `disabled_reason` on `extra_actions`"

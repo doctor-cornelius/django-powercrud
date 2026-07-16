@@ -1,0 +1,30 @@
+{% extends '../base.html' %}
+{% load powercrud_partials %}
+
+{% block content %}
+    {% partial pcrud_content %}
+{% endblock %}
+
+{% partialdef pcrud_content %}
+    <section class="card shadow-sm">
+        <div class="card-body">
+            <h2 class="h4 card-title">Annotated Selection Summary</h2>
+            {% if selected_count == 0 %}
+                <div class="alert alert-info mb-0">{{ selection_required_message }}</div>
+            {% else %}
+                <p class="small text-body-secondary">{{ selected_count }} selected annotated book{{ selected_count|pluralize }} will be passed to the custom endpoint.</p>
+                <ul class="list-group">
+                    {% for book in selected_books %}
+                        <li class="list-group-item">
+                            <div class="fw-semibold">{{ book.title }}</div>
+                            <div class="small text-body-secondary">
+                                {{ book.author }} &middot; {{ book.pages }} pages &middot; Long book:
+                                {% if book.long_book %}yes{% else %}no{% endif %}
+                            </div>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        </div>
+    </section>
+{% endpartialdef %}

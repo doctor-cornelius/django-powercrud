@@ -1,0 +1,19 @@
+<div class="p-3">
+    <h2 class="h4 mb-3">Bulk Edit {{ selected_count }} {{ model_name_plural }}</h2>
+    <form id="bulk-edit-form" method="post" hx-post="{{ request.path }}" hx-target="#{{ modal_target|default:'powercrudModalContent' }}" data-powercrud-form="bulk">
+        {% csrf_token %}<input type="hidden" name="bulk_submit" value="1">
+        {% for id in selected_ids %}<input type="hidden" name="selected_ids[]" value="{{ id }}">{% endfor %}
+        <div id="main-form-content">
+            {% if enable_bulk_update %}
+                {% if bulk_fields_template_paths %}{% include bulk_fields_template_paths %}{% else %}{% include framework_template_path|add:"/partial/bulk_fields.html" %}{% endif %}
+                <div class="text-end mt-4"><button type="submit" class="btn btn-primary" data-form-save>Apply Changes</button></div>
+            {% endif %}
+            {% if enable_bulk_delete %}
+                <div class="border-top pt-3 mt-4 text-center"><button type="button" class="btn btn-outline-danger" onclick="showDeleteConfirmation()">Delete All Selected Items</button><p class="form-text text-danger">This will permanently delete all selected items.</p></div>
+            {% endif %}
+        </div>
+        {% if enable_bulk_delete %}
+            <div id="delete-confirmation" class="d-none"><div class="border-top pt-3 mt-3"><h3 class="h5 text-danger">Confirm Deletion</h3><p>Are you sure you want to delete {{ selected_count }} selected {{ model_name_plural }}? This action cannot be undone.</p><div class="form-check"><input type="checkbox" id="confirm-delete-checkbox" class="form-check-input" onchange="toggleDeleteButton()"><label class="form-check-label" for="confirm-delete-checkbox">I understand this will permanently delete these items</label></div><div class="d-flex justify-content-end gap-2 mt-3"><button type="button" class="btn btn-outline-secondary" onclick="hideDeleteConfirmation()">Cancel</button><button type="button" id="confirm-delete-button" class="btn btn-danger" hx-post="{{ request.path }}" hx-target="#{{ modal_target|default:'powercrudModalContent' }}" hx-include="#bulk-edit-form" hx-vals='{"delete_selected": "1", "bulk_submit": "1"}' data-powercrud-bulk-delete-submit disabled>Delete Items</button></div></div></div>
+        {% endif %}
+    </form>
+</div>

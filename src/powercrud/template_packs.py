@@ -14,6 +14,49 @@ TEMPLATE_PACK_CONTRACT_VERSION = 1
 _BUILTIN_TEMPLATE_PACKS = {"daisyui": "powercrud.packs.daisyui:template_pack"}
 _UNCONFIGURED_SELECTOR = object()
 _FRAMEWORK_STYLE_KEYS = {"daisyui": "daisyUI"}
+_SUPPORTED_FRAMEWORK_ADAPTERS = frozenset({"bootstrap5", "daisyui"})
+
+# These options promise a presentation outcome across every first-party pack.
+# Framework-specific class strings remain deliberately portable only within the
+# framework they name; packs declare any values they cannot honour so runtime
+# configuration never becomes a silent no-op.
+PORTABLE_PRESENTATION_OPTIONS = frozenset(
+    {
+        "table_pixel_height_other_page_elements",
+        "table_max_height",
+        "table_max_col_width",
+        "table_header_min_wrap_width",
+        "column_alignments",
+        "extra_button_classes",
+        "inline_edit_highlight_accent",
+        "view_help.summary",
+        "view_help.details",
+        "view_help.default_open",
+        "view_help.color",
+        "view_help.min_width",
+        "view_help_default_color",
+        "view_help_min_width",
+        "modal_presentation",
+        "bulk_modal_presentation",
+    }
+)
+FRAMEWORK_SPECIFIC_PRESENTATION_OPTIONS = frozenset(
+    {
+        "table_classes",
+        "action_button_classes",
+        "modal_classes",
+        "modal_box_classes",
+        "modal_body_classes",
+        "bulk_modal_box_classes",
+    }
+)
+DECLARABLE_PRESENTATION_OPTIONS = (
+    PORTABLE_PRESENTATION_OPTIONS | FRAMEWORK_SPECIFIC_PRESENTATION_OPTIONS
+)
+
+
+class TemplatePackCompatibilityWarning(UserWarning):
+    """Report an explicit presentation setting a selected pack cannot honour."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -34,6 +77,7 @@ class TemplatePack:
     django_app: str | None
     manual_assets: tuple[str, ...] = ()
     vite_assets: tuple[str, ...] = ()
+    unsupported_presentation_options: frozenset[str] = frozenset()
 
     def __post_init__(self):
         """Validate the declaration shape without probing its environment."""
@@ -52,6 +96,28 @@ class TemplatePack:
         _require_optional_string(self.django_app, "django_app")
         _require_tuple_of_strings(self.manual_assets, "manual_assets")
         _require_tuple_of_strings(self.vite_assets, "vite_assets")
+        _require_frozenset_of_strings(
+            self.unsupported_presentation_options,
+            "unsupported_presentation_options",
+        )
+        unknown_presentation_options = (
+            self.unsupported_presentation_options - DECLARABLE_PRESENTATION_OPTIONS
+        )
+        if unknown_presentation_options:
+            unknown_values = ", ".join(sorted(unknown_presentation_options))
+            raise ValueError(
+                "unsupported_presentation_options contains unknown presentation "
+                f"options: {unknown_values}."
+            )
+        portable_exclusions = (
+            self.unsupported_presentation_options & PORTABLE_PRESENTATION_OPTIONS
+        )
+        if portable_exclusions:
+            excluded_values = ", ".join(sorted(portable_exclusions))
+            raise ValueError(
+                "unsupported_presentation_options cannot exclude portable presentation "
+                f"options: {excluded_values}."
+            )
 
 
 def get_selected_template_pack() -> TemplatePack:
@@ -258,18 +324,22 @@ def _validate_resolved_template_pack(template_pack: object, selector: object) ->
         raise ImproperlyConfigured(
             "The built-in 'daisyui' selector must resolve PowerCRUD's DaisyUI declaration."
         )
-    if template_pack.framework_adapter != "daisyui":
+    if template_pack.framework_adapter not in _SUPPORTED_FRAMEWORK_ADAPTERS:
         raise ImproperlyConfigured(
             f"PowerCRUD template pack {selector!r} requires unsupported framework adapter "
-            f"{template_pack.framework_adapter!r}; only 'daisyui' is supported in Phase 4."
+            f"{template_pack.framework_adapter!r}; supported adapters are "
+            f"{', '.join(sorted(_SUPPORTED_FRAMEWORK_ADAPTERS))}."
         )
     if template_pack.variant_adapter is not None:
         raise ImproperlyConfigured(
             f"PowerCRUD template pack {selector!r} requires unsupported variant adapter "
             f"{template_pack.variant_adapter!r}."
         )
-    if template_pack.manual_assets or template_pack.vite_assets:
+    if (
+        template_pack.framework_adapter != "bootstrap5"
+        and (template_pack.manual_assets or template_pack.vite_assets)
+    ):
         raise ImproperlyConfigured(
             f"PowerCRUD template pack {selector!r} declares additional browser assets, which "
-            "are unsupported in Phase 4."
+            "are supported only by the Bootstrap 5 adapter."
         )

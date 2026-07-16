@@ -1,8 +1,12 @@
-{# Tailwind source classes for runtime modal class defaults: max-h-[calc(100dvh-2rem)] min-h-0 flex flex-1 flex-col overflow-y-auto py-4 #}
-<dialog id="{{ modal_id }}" class="{{ modal_classes }}" data-powercrud-modal>
-    <div class="{{ modal_box_classes }}"
+{# Tailwind source classes for runtime portable modal defaults: modal-middle modal-top max-w-sm max-w-lg max-w-4xl max-w-6xl max-h-[calc(100dvh-2rem)] min-h-0 flex flex-1 flex-col overflow-y-auto py-4 h-dvh w-dvw max-w-none rounded-none #}
+<dialog id="{{ modal_id }}"
+        class="{{ modal_classes }}"
+        data-powercrud-modal
+        data-powercrud-default-modal-classes="{{ modal_classes }}">
+    <div class="{% if modal_uses_legacy_classes or not modal_presentation_attrs %}{{ modal_box_classes }}{% else %}modal-box flex max-h-[calc(100dvh-2rem)] flex-col{% endif %}"
          data-powercrud-modal-box
-         data-powercrud-default-modal-box-classes="{{ modal_box_classes }}">
+         data-powercrud-default-modal-box-classes="{{ modal_box_classes }}"
+         {% if not modal_uses_legacy_classes and modal_presentation_attrs %}{{ modal_presentation_attrs|safe }}{% endif %}>
         <form method="dialog">
             <button type="submit"
                     class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2"

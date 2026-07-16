@@ -194,10 +194,7 @@ class BookCRUDView(SampleCRUDMixin):
         "a_really_long_property_header_for_title": {
             "view_name": "sample:author-detail",
             "pk_attr": "author_id",
-            "modal_box_classes": (
-                "modal-box flex max-h-[calc(100dvh-2rem)] w-11/12 "
-                "max-w-6xl flex-col"
-            ),
+            "modal_presentation": {"size": "extra_wide"},
         },
         "pages": {
             "view_name": "sample:bigbook-detail",
@@ -270,7 +267,7 @@ class BookCRUDView(SampleCRUDMixin):
     # }
 
     table_pixel_height_other_page_elements = 100
-    table_max_height = 80
+    table_max_height = 100
     table_header_min_wrap_width = "15"  # characters
     table_max_col_width = "25"  # characters
 
@@ -328,7 +325,7 @@ class BookCRUDView(SampleCRUDMixin):
             "htmx_target": "content",
             "display_modal": True,  # NB if True then htmx_target is ignored
             "extra_class_attrs": "bg-warning",
-            "modal_box_classes": "modal-box flex max-h-[calc(100dvh-2rem)] w-11/12 max-w-3xl flex-col",
+            "modal_presentation": {"max_width": "48rem"},
         },
         {
             "url_name": "sample:bigbook-selected-summary",
@@ -369,7 +366,7 @@ class BookCRUDView(SampleCRUDMixin):
             "refresh_list_on_modal_close": True,
             "permission_check": "can_manage_books",
             "permission_behavior": "hide",
-            "modal_box_classes": "modal-box flex max-h-[calc(100dvh-2rem)] w-11/12 max-w-4xl flex-col",
+            "modal_presentation": {"size": "wide"},
         },
         {
             "url_name": "sample:bigbook-description-preview",
@@ -384,7 +381,7 @@ class BookCRUDView(SampleCRUDMixin):
             "hidden_if_mode": "lazy",
             "disabled_state": "get_description_preview_disabled_state",
             "disabled_state_mode": "lazy",
-            "modal_box_classes": "modal-box flex max-h-[calc(100dvh-2rem)] w-11/12 max-w-5xl flex-col",
+            "modal_presentation": {"max_width": "64rem"},
         },
     ]
 
@@ -693,10 +690,7 @@ class PowerFieldBookCRUDView(SampleCRUDMixin):
             link={
                 "view_name": "sample:author-detail",
                 "pk_attr": "author_id",
-                "modal_box_classes": (
-                    "modal-box flex max-h-[calc(100dvh-2rem)] w-11/12 "
-                    "max-w-6xl flex-col"
-                ),
+                "modal_presentation": {"size": "extra_wide"},
             },
         ),
         PowerField("uneditable_field", form_display=True),
@@ -734,7 +728,7 @@ class PowerFieldBookCRUDView(SampleCRUDMixin):
     }
     m2m_filter_and_logic = False
     table_pixel_height_other_page_elements = 100
-    table_max_height = 80
+    table_max_height = 100
     table_header_min_wrap_width = "15"
     table_max_col_width = "25"
     table_classes = "table-zebra table-sm"
@@ -761,10 +755,7 @@ class PowerFieldBookCRUDView(SampleCRUDMixin):
             button_class="btn-warning",
             display_modal=True,
             extra_class_attrs="bg-warning",
-            modal_box_classes=(
-                "modal-box flex max-h-[calc(100dvh-2rem)] w-11/12 "
-                "max-w-3xl flex-col"
-            ),
+            modal_presentation={"max_width": "48rem"},
         ),
         PowerButton(
             text="Selected Summary",
@@ -802,10 +793,7 @@ class PowerFieldBookCRUDView(SampleCRUDMixin):
         refresh_list_on_modal_close=True,
         permission_check="can_manage_books",
         permission_behavior="hide",
-        modal_box_classes=(
-            "modal-box flex max-h-[calc(100dvh-2rem)] w-11/12 "
-            "max-w-4xl flex-col"
-        ),
+        modal_presentation={"size": "wide"},
     )
     extra_actions = [
         _book_modal_action,
@@ -821,10 +809,7 @@ class PowerFieldBookCRUDView(SampleCRUDMixin):
             hidden_if_mode="lazy",
             disabled_state="get_description_preview_disabled_state",
             disabled_state_mode="lazy",
-            modal_box_classes=(
-                "modal-box flex max-h-[calc(100dvh-2rem)] w-11/12 "
-                "max-w-5xl flex-col"
-            ),
+            modal_presentation={"max_width": "64rem"},
         ),
     ]
 

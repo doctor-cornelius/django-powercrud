@@ -8,6 +8,8 @@ from powercrud.actions import PowerAction, PowerButton
 
 They are plain Python declarations. PowerCRUD compiles them to the same Base API dictionaries used by `extra_actions` and `extra_buttons`.
 
+Use `modal_presentation` for portable modal sizing and behaviour. The legacy `modal_box_classes` constructor parameter still works for framework-specific compatibility; PowerCRUD emits `FutureWarning` when the declaration is resolved on a view, it cannot be combined with `modal_presentation`, and it is targeted for removal in v1.0.
+
 ## PowerAction
 
 Use `PowerAction` inside `extra_actions` for row-level actions.
@@ -21,7 +23,7 @@ PowerAction(
     button_class=None,
     htmx_target=None,
     display_modal=None,
-    modal_box_classes=None,
+    modal_presentation=None,
     hx_post=False,
     lock_sensitive=False,
     refresh_list_on_modal_close=False,
@@ -46,7 +48,7 @@ PowerAction(
 | `button_class` | `None` | Styling class used when actions render as visible buttons. |
 | `htmx_target` | `None` | Custom HTMX target for non-modal or custom-target flows. |
 | `display_modal` | `None` | `True` opens in a modal. `None` preserves the base row-action fallback behavior. |
-| `modal_box_classes` | `None` | Replacement modal box classes for this modal action. |
+| `modal_presentation` | `None` | Partial portable modal presentation override for this modal action. |
 | `hx_post` | `False` | Render the action as an HTMX POST. |
 | `lock_sensitive` | `False` | Disable the action under PowerCRUD row-lock logic. |
 | `refresh_list_on_modal_close` | `False` | Refresh the list when this modal closes. |
@@ -70,7 +72,7 @@ ROW_MODAL = PowerAction(
     text="Workflow Action",
     url_name="cases:workflow-action",
     display_modal=True,
-    modal_box_classes="modal-box flex max-h-[calc(100dvh-2rem)] w-11/12 max-w-5xl flex-col",
+    modal_presentation={"max_width": "64rem"},
     hidden_if="should_hide_workflow_action",
     hidden_if_mode="lazy",
     disabled_state="get_workflow_action_disabled_state",
@@ -84,7 +86,7 @@ extra_actions = [
     ROW_MODAL.with_options(
         text="Timeline",
         url_name="cases:timeline",
-        modal_box_classes="modal-box flex max-h-[calc(100dvh-2rem)] w-11/12 max-w-7xl flex-col",
+        modal_presentation={"size": "extra_wide"},
         disabled_state=None,
     ),
 ]
@@ -103,7 +105,7 @@ PowerButton(
     button_class=None,
     htmx_target=None,
     display_modal=False,
-    modal_box_classes=None,
+    modal_presentation=None,
     refresh_list_on_modal_close=False,
     extra_attrs=None,
     extra_class_attrs=None,
@@ -127,7 +129,7 @@ PowerButton(
 | `button_class` | `None` | Styling class for the button. |
 | `htmx_target` | `None` | Custom HTMX target for non-modal or custom-target flows. |
 | `display_modal` | `False` | Open the response in the standard modal target. |
-| `modal_box_classes` | `None` | Replacement modal box classes for this modal button. |
+| `modal_presentation` | `None` | Partial portable modal presentation override for this modal button. |
 | `refresh_list_on_modal_close` | `False` | Refresh the list when this modal closes. |
 | `extra_attrs` | `None` | Raw HTML attributes appended to the button element. |
 | `extra_class_attrs` | `None` | Extra CSS classes appended after the standard button classes. |
@@ -175,7 +177,7 @@ extra_buttons = [
     SELECTED_MODAL.with_options(
         text="Selected Export",
         url_name="sample:book-selected-export",
-        modal_box_classes="modal-box flex max-h-[calc(100dvh-2rem)] w-11/12 max-w-7xl flex-col",
+        modal_presentation={"size": "extra_wide"},
         selection_min_reason="Select at least one row to export.",
     ),
 ]
@@ -193,6 +195,7 @@ extra_buttons = [
 - `PowerAction.disabled_state_mode` must be `"eager"` or `"lazy"` when set, and `"lazy"` requires `disabled_state`.
 - Lazy hidden and disabled state are supported for dropdown row actions. Base dictionaries use the same `hidden_if_mode` and `disabled_state_mode` keys.
 - `PowerAction.disabled_if` and `PowerAction.disabled_reason` are deprecated and targeted for removal in v1.0.
+- `modal_presentation` must be a partial mapping with only the documented portable modal keys. It requires a modal trigger and cannot be combined with deprecated `modal_box_classes`.
 - `PowerAction.disabled_reason` requires `disabled_if`; use `disabled_state` for the single-hook contract.
 - `PowerAction` and `PowerButton` cannot combine `permission` with `permission_check`.
 - `permission_behavior`, when set, must be `"hide"` or `"disable"`.

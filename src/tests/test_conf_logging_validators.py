@@ -91,10 +91,14 @@ def test_validator_accepts_valid_payload():
         table_pixel_height_other_page_elements=0,
         table_max_height=50,
         table_max_col_width=20,
+        table_header_min_wrap_width=15,
     )
     assert validator.hx_trigger == {"refresh": True}
     assert validator.modal_box_classes == "modal-box w-11/12 max-w-4xl", (
         "Modal class settings should be valid PowerCRUD configuration options."
+    )
+    assert validator.table_header_min_wrap_width == 15, (
+        "The validator should retain the configured header wrap width."
     )
     assert validator.view_help == {
         "summary": "About this screen",
@@ -177,6 +181,51 @@ def test_validator_accepts_view_help_min_width(min_width):
 def test_validator_rejects_invalid_view_help_min_width(min_width):
     with pytest.raises(ValueError):
         PowerCRUDMixinValidator(view_help_min_width=min_width)
+
+
+def test_validator_normalizes_portable_modal_presentations():
+    """Accept the portable modal schema without admitting arbitrary CSS."""
+    validator = PowerCRUDMixinValidator(
+        modal_presentation={
+            "size": "wide",
+            "max_width": "72REM",
+            "max_height": "80dvh",
+            "scroll": "modal",
+            "fullscreen": False,
+            "vertical_alignment": "top",
+        },
+        bulk_modal_presentation={"size": "extra_wide"},
+    )
+
+    assert validator.modal_presentation == {
+        "size": "wide",
+        "max_width": "72rem",
+        "max_height": "80dvh",
+        "scroll": "modal",
+        "fullscreen": False,
+        "vertical_alignment": "top",
+    }, "The validator should preserve every supported portable modal field."
+    assert validator.bulk_modal_presentation == {"size": "extra_wide"}, (
+        "Bulk presentation should remain a partial override until view resolution."
+    )
+
+
+@pytest.mark.parametrize(
+    "presentation",
+    [
+        {"size": "giant"},
+        {"max_width": "calc(100vw - 2rem)"},
+        {"max_height": "-10px"},
+        {"scroll": "dialog"},
+        {"fullscreen": "yes"},
+        {"vertical_alignment": "bottom"},
+        {"unknown": True},
+    ],
+)
+def test_validator_rejects_invalid_portable_modal_presentations(presentation):
+    """Fail closed for malformed presentation settings rather than ignoring them."""
+    with pytest.raises(ValueError):
+        PowerCRUDMixinValidator(modal_presentation=presentation)
 
 
 def test_validator_accepts_list_cell_link_default_open_in():

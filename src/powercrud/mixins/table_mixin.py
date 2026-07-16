@@ -3,6 +3,10 @@ from typing import Any
 
 from django.utils.text import capfirst
 
+from powercrud.contrib.bootstrap5.styles import get_bootstrap5_view_help_style
+from powercrud.packs.daisyui.styles import get_daisyui_view_help_style
+from powercrud.template_packs import get_template_pack_style_key
+
 from .config_mixin import resolve_config
 
 
@@ -37,36 +41,14 @@ class TableMixin:
     @classmethod
     def _view_help_style_vars(cls, color: str) -> str:
         """
-        Return CSS variables for the collapsed screen-help color theme.
+        Return selected-pack CSS variables for the portable view-help theme.
         """
         normalized = color.strip().lower()
-        if normalized == "base":
-            return (
-                "--pc-view-help-border: var(--color-base-300); "
-                "--pc-view-help-summary-bg: var(--color-base-100); "
-                "--pc-view-help-summary-fg: var(--color-base-content); "
-                "--pc-view-help-content-bg: var(--color-base-100); "
-                "--pc-view-help-content-fg: var(--color-base-content);"
-            )
-        if normalized in cls.VIEW_HELP_SEMANTIC_COLORS:
-            return (
-                f"--pc-view-help-border: color-mix(in srgb, var(--color-{normalized}) 35%, var(--color-base-300)); "
-                f"--pc-view-help-summary-bg: color-mix(in srgb, var(--color-{normalized}) 18%, var(--color-base-100)); "
-                "--pc-view-help-summary-fg: var(--color-base-content); "
-                f"--pc-view-help-content-bg: color-mix(in srgb, var(--color-{normalized}) 8%, var(--color-base-100)); "
-                "--pc-view-help-content-fg: var(--color-base-content);"
-            )
-        if not cls.VIEW_HELP_HEX_COLOR_RE.match(normalized):
-            return cls._view_help_style_vars("base")
-
-        hex_color = cls._normalize_hex_color(normalized)
-        return (
-            f"--pc-view-help-border: color-mix(in srgb, {hex_color} 35%, var(--color-base-300)); "
-            f"--pc-view-help-summary-bg: color-mix(in srgb, {hex_color} 18%, var(--color-base-100)); "
-            "--pc-view-help-summary-fg: var(--color-base-content); "
-            f"--pc-view-help-content-bg: color-mix(in srgb, {hex_color} 8%, var(--color-base-100)); "
-            "--pc-view-help-content-fg: var(--color-base-content);"
-        )
+        if normalized.startswith("#"):
+            normalized = cls._normalize_hex_color(normalized)
+        if get_template_pack_style_key() == "bootstrap5":
+            return get_bootstrap5_view_help_style(normalized)
+        return get_daisyui_view_help_style(normalized)
 
     def get_table_pixel_height_other_page_elements(self) -> str:
         """Returns the height of other elements on the page that the table is

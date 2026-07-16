@@ -10,11 +10,20 @@ from typing import Any, Callable
 
 from ..actions import PowerAction, PowerButton
 from ..cell_tooltips import has_lazy_list_cell_tooltip
+from ..modal_presentation import (
+    modal_presentation_attributes,
+    normalize_modal_presentation,
+    resolve_modal_presentation,
+)
 from ..powerfields import compile_powerfields
 from ..row_actions import is_lazy_row_action_state_action
 from ..validators import DEFAULT_PAGINATE_BY, PowerCRUDMixinValidator
 
-from powercrud.template_packs import get_template_pack_template_namespace
+from powercrud.template_packs import (
+    TemplatePackCompatibilityWarning,
+    get_configured_template_pack,
+    get_template_pack_template_namespace,
+)
 from powercrud.logging import get_logger
 
 log = get_logger(__name__)
@@ -182,6 +191,8 @@ class ConfigMixin:
     modal_box_classes: str | None = DEFAULT_MODAL_BOX_CLASSES
     modal_body_classes: str | None = DEFAULT_MODAL_BODY_CLASSES
     bulk_modal_box_classes: str | None = None
+    modal_presentation: dict[str, Any] | None = None
+    bulk_modal_presentation: dict[str, Any] | None = None
 
     # table display parameters
     table_pixel_height_other_page_elements: int | float = 0
@@ -361,6 +372,9 @@ class ConfigMixin:
         self._normalize_declared_string_lists()
         self._normalize_list_cell_tooltip_fields()
         self._warn_list_cell_tooltip_fields_legacy()
+        self._validate_modal_presentation_compatibility()
+        self._warn_legacy_modal_presentation()
+        self._warn_unsupported_presentation_options()
         self._configure_fields()
         self._configure_properties()
         self._configure_default_list_fields()
@@ -496,6 +510,153 @@ class ConfigMixin:
             FutureWarning,
             stacklevel=2,
         )
+
+    def _warn_unsupported_presentation_options(self) -> None:
+        """Warn when an explicit setting has no effect in the selected pack.
+
+        Pack declarations own this compatibility boundary. The default values
+        remain quiet so an application can select another pack without being
+        warned for PowerCRUD's baseline configuration.
+        """
+        template_pack = get_configured_template_pack()
+        if template_pack is None:
+            return
+
+        unsupported = template_pack.unsupported_presentation_options
+        configured_options: list[str] = []
+        view_help = getattr(self, "view_help", None)
+
+        if isinstance(view_help, dict):
+            if "view_help.color" in unsupported and view_help.get("color") is not None:
+                configured_options.append("view_help.color")
+            if "view_help.min_width" in unsupported and view_help.get("min_width") is not None:
+                configured_options.append("view_help.min_width")
+
+        defaults = {
+            "view_help_default_color": ConfigMixin.view_help_default_color,
+            "view_help_min_width": ConfigMixin.view_help_min_width,
+            "table_classes": ConfigMixin.table_classes,
+            "action_button_classes": ConfigMixin.action_button_classes,
+            "modal_classes": ConfigMixin.modal_classes,
+            "modal_box_classes": ConfigMixin.modal_box_classes,
+            "modal_body_classes": ConfigMixin.modal_body_classes,
+            "bulk_modal_box_classes": ConfigMixin.bulk_modal_box_classes,
+            "modal_presentation": None,
+            "bulk_modal_presentation": None,
+        }
+        for option_name, default_value in defaults.items():
+            if option_name in unsupported and getattr(self, option_name) != default_value:
+                configured_options.append(option_name)
+
+        for option_name in configured_options:
+            warnings.warn(
+                f"PowerCRUD template pack {template_pack.identity!r} does not support "
+                f"the configured presentation option {option_name!r}; the setting will "
+                "not affect this pack.",
+                TemplatePackCompatibilityWarning,
+                stacklevel=3,
+            )
+
+    def _uses_legacy_modal_presentation(self) -> bool:
+        """Return whether this view customizes a deprecated modal class setting."""
+        return any(
+            (
+                getattr(self, "modal_classes", ConfigMixin.modal_classes)
+                != ConfigMixin.modal_classes,
+                getattr(self, "modal_box_classes", ConfigMixin.modal_box_classes)
+                != ConfigMixin.modal_box_classes,
+                getattr(self, "modal_body_classes", ConfigMixin.modal_body_classes)
+                != ConfigMixin.modal_body_classes,
+                getattr(self, "bulk_modal_box_classes", None) is not None,
+            )
+        )
+
+    def _validate_modal_presentation_compatibility(self) -> None:
+        """Reject ambiguous combinations of semantic and legacy modal APIs."""
+        if self.modal_presentation is not None and any(
+            (
+                self.modal_classes != ConfigMixin.modal_classes,
+                self.modal_box_classes != ConfigMixin.modal_box_classes,
+                self.modal_body_classes != ConfigMixin.modal_body_classes,
+                self.bulk_modal_box_classes is not None,
+            )
+        ):
+            raise ImproperlyConfigured(
+                "modal_presentation cannot be combined with customized modal_classes, "
+                "modal_box_classes, or modal_body_classes."
+            )
+        if self.bulk_modal_presentation is not None and any(
+            (
+                self.modal_classes != ConfigMixin.modal_classes,
+                self.modal_box_classes != ConfigMixin.modal_box_classes,
+                self.modal_body_classes != ConfigMixin.modal_body_classes,
+                self.bulk_modal_box_classes is not None,
+            )
+        ):
+            raise ImproperlyConfigured(
+                "bulk_modal_presentation cannot be combined with customized deprecated "
+                "modal class settings."
+            )
+
+    def _warn_legacy_modal_presentation(self) -> None:
+        """Warn for explicit use of the deprecated framework-class modal API."""
+        legacy_options = []
+        if self.modal_classes != ConfigMixin.modal_classes:
+            legacy_options.append("modal_classes")
+        if self.modal_box_classes != ConfigMixin.modal_box_classes:
+            legacy_options.append("modal_box_classes")
+        if self.modal_body_classes != ConfigMixin.modal_body_classes:
+            legacy_options.append("modal_body_classes")
+        if self.bulk_modal_box_classes is not None:
+            legacy_options.append("bulk_modal_box_classes")
+        for option_name in legacy_options:
+            warnings.warn(
+                f"{option_name} is deprecated and targeted for removal in v1.0; "
+                "use modal_presentation or bulk_modal_presentation instead.",
+                FutureWarning,
+                stacklevel=3,
+            )
+
+    @staticmethod
+    def _normalize_item_modal_presentation(
+        item: dict[str, Any],
+        index: int,
+        config_name: str,
+        *,
+        show_modal: bool,
+    ) -> None:
+        """Validate one action, button, or link's modal presentation metadata."""
+        modal_presentation = item.get("modal_presentation")
+        modal_box_classes = item.get("modal_box_classes")
+        if modal_presentation is not None and modal_box_classes is not None:
+            raise ValueError(
+                f"{config_name}[{index}] cannot combine modal_presentation with "
+                "modal_box_classes"
+            )
+        if modal_presentation is not None:
+            if not show_modal:
+                raise ValueError(
+                    f"{config_name}[{index}].modal_presentation is only supported "
+                    "for modal triggers"
+                )
+            item["modal_presentation"] = normalize_modal_presentation(
+                modal_presentation,
+                f"{config_name}[{index}].modal_presentation",
+                allow_none=False,
+            )
+        if modal_box_classes is not None:
+            if not isinstance(modal_box_classes, str) or not modal_box_classes.strip():
+                raise ValueError(
+                    f"{config_name}[{index}].modal_box_classes must be a non-empty "
+                    "string when provided"
+                )
+            item["modal_box_classes"] = modal_box_classes.strip()
+            warnings.warn(
+                f"{config_name}[{index}].modal_box_classes is deprecated and targeted "
+                "for removal in v1.0; use modal_presentation instead.",
+                FutureWarning,
+                stacklevel=4,
+            )
 
     def _configure_fields(self):
         if (
@@ -1020,12 +1181,13 @@ class ConfigMixin:
                 "pk_attr",
                 "open_in",
                 "modal_box_classes",
+                "modal_presentation",
             }
             if unsupported_keys:
                 raise ValueError(
                     "link_fields dict values only support one of 'view_name' or "
                     "'url', plus optional 'pk_attr', 'open_in', and "
-                    "'modal_box_classes'. Unsupported keys: "
+                    "'modal_box_classes', or 'modal_presentation'. Unsupported keys: "
                     f"{', '.join(sorted(unsupported_keys))}"
                 )
 
@@ -1055,6 +1217,11 @@ class ConfigMixin:
                 normalized[name]["pk_attr"] = str(config["pk_attr"])
 
             modal_box_classes = config.get("modal_box_classes")
+            modal_presentation = config.get("modal_presentation")
+            if modal_box_classes is not None and modal_presentation is not None:
+                raise ValueError(
+                    "link_fields cannot combine modal_box_classes with modal_presentation"
+                )
             if modal_box_classes is not None:
                 if normalized[name]["open_in"] != "modal":
                     raise ValueError(
@@ -1070,6 +1237,28 @@ class ConfigMixin:
                         "when provided"
                     )
                 normalized[name]["modal_box_classes"] = modal_box_classes.strip()
+                warnings.warn(
+                    "link_fields.modal_box_classes is deprecated and targeted for "
+                    "removal in v1.0; use modal_presentation instead.",
+                    FutureWarning,
+                    stacklevel=3,
+                )
+            if modal_presentation is not None:
+                if normalized[name]["open_in"] != "modal":
+                    raise ValueError(
+                        "link_fields.modal_presentation is only supported when "
+                        "open_in is 'modal'"
+                    )
+                if self._uses_legacy_modal_presentation():
+                    raise ValueError(
+                        "link_fields.modal_presentation cannot be used when the view "
+                        "customizes deprecated modal class settings"
+                    )
+                normalized[name]["modal_presentation"] = normalize_modal_presentation(
+                    modal_presentation,
+                    "link_fields.modal_presentation",
+                    allow_none=False,
+                )
 
         self.link_fields = normalized
 
@@ -1315,6 +1504,22 @@ class ConfigMixin:
             normalized["clear_selection_on_success"] = clear_selection_on_success
             normalized["selection_min_count"] = selection_min_count
             normalized["selection_min_behavior"] = selection_min_behavior
+            self._normalize_item_modal_presentation(
+                normalized,
+                index,
+                "extra_buttons",
+                show_modal=bool(
+                    normalized.get("display_modal", False) and self.use_modal
+                ),
+            )
+            if (
+                normalized.get("modal_presentation") is not None
+                and self._uses_legacy_modal_presentation()
+            ):
+                raise ValueError(
+                    f"extra_buttons[{index}].modal_presentation cannot be used when "
+                    "the view customizes deprecated modal class settings"
+                )
             normalized["refresh_list_on_modal_close"] = (
                 self._normalize_extra_modal_close_refresh_flag(
                     normalized,
@@ -1577,6 +1782,24 @@ class ConfigMixin:
                 normalized.pop("disabled_state_mode", None)
             normalized["disabled_if"] = disabled_if
             normalized["disabled_reason"] = disabled_reason
+            display_modal = normalized.get("display_modal")
+            self._normalize_item_modal_presentation(
+                normalized,
+                index,
+                "extra_actions",
+                show_modal=bool(
+                    self.use_modal
+                    and (self.use_modal if display_modal is None else display_modal)
+                ),
+            )
+            if (
+                normalized.get("modal_presentation") is not None
+                and self._uses_legacy_modal_presentation()
+            ):
+                raise ValueError(
+                    f"extra_actions[{index}].modal_presentation cannot be used when "
+                    "the view customizes deprecated modal class settings"
+                )
             normalized["refresh_list_on_modal_close"] = (
                 self._normalize_extra_modal_close_refresh_flag(
                     normalized,
@@ -1688,6 +1911,20 @@ class ConfigMixin:
         config["bulk_modal_box_classes_resolved"] = (
             config.get("bulk_modal_box_classes")
             or config["modal_box_classes_resolved"]
+        )
+        config["modal_uses_legacy_classes"] = self._uses_legacy_modal_presentation()
+        config["modal_presentation_resolved"] = resolve_modal_presentation(
+            config.get("modal_presentation")
+        )
+        config["bulk_modal_presentation_resolved"] = resolve_modal_presentation(
+            config.get("modal_presentation"),
+            config.get("bulk_modal_presentation"),
+        )
+        config["modal_presentation_attrs"] = modal_presentation_attributes(
+            config["modal_presentation_resolved"]
+        )
+        config["bulk_modal_presentation_attrs"] = modal_presentation_attributes(
+            config["bulk_modal_presentation_resolved"]
         )
 
         # Table presentation helpers
@@ -1881,6 +2118,33 @@ class _ConfigShim:
             return (
                 self._raw("bulk_modal_box_classes")
                 or self.__getattr__("modal_box_classes_resolved")
+            )
+        if name == "modal_uses_legacy_classes":
+            return any(
+                (
+                    self._raw("modal_classes", ConfigMixin.modal_classes)
+                    != ConfigMixin.modal_classes,
+                    self._raw("modal_box_classes", ConfigMixin.modal_box_classes)
+                    != ConfigMixin.modal_box_classes,
+                    self._raw("modal_body_classes", ConfigMixin.modal_body_classes)
+                    != ConfigMixin.modal_body_classes,
+                    self._raw("bulk_modal_box_classes") is not None,
+                )
+            )
+        if name == "modal_presentation_resolved":
+            return resolve_modal_presentation(self._raw("modal_presentation"))
+        if name == "bulk_modal_presentation_resolved":
+            return resolve_modal_presentation(
+                self._raw("modal_presentation"),
+                self._raw("bulk_modal_presentation"),
+            )
+        if name == "modal_presentation_attrs":
+            return modal_presentation_attributes(
+                self.__getattr__("modal_presentation_resolved")
+            )
+        if name == "bulk_modal_presentation_attrs":
+            return modal_presentation_attributes(
+                self.__getattr__("bulk_modal_presentation_resolved")
             )
         if name == "table_pixel_height_px":
             value = self._raw("table_pixel_height_other_page_elements", 0) or 0

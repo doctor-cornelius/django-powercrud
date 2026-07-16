@@ -1,0 +1,13 @@
+<form id="page-size-form" class="d-flex align-items-center gap-2">
+    <label for="page-size-select" class="visually-hidden">Rows per page</label>
+    <select id="page-size-select" class="form-select form-select-sm w-auto" name="page_size"
+            data-powercrud-page-size-select="true" aria-label="Rows per page">
+        {% for size in page_size_options %}
+            <option value="{{ size }}"{% if request.GET.page_size == size or not request.GET.page_size and default_page_size == size %} selected{% endif %}>{{ size }}</option>
+        {% endfor %}
+        {% if page_size_all_enabled %}
+            <option value="all"{% if request.GET.page_size == 'all' or not request.GET.page_size and default_page_size is None %} selected{% endif %}>All</option>
+        {% endif %}
+    </select>
+    <span class="small text-body-secondary">per page</span>
+</form>

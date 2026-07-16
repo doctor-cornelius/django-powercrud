@@ -28,7 +28,8 @@ PowerCRUD extends [`Neapolitan`](https://github.com/carltongibson/neapolitan)’
 
 4. **Tune styling and behaviour**  
 
-    - [Styling & Tailwind](guides/styling_tailwind.md) covers framework options and safelists.  
+    - [Template Packs](template_packs/index.md) explains the DaisyUI default, supported Bootstrap option, and pack contract.
+    - [Styling & Tailwind](guides/styling_tailwind.md) covers DaisyUI/Tailwind controls and safelists.
     - [Customisation tips](guides/advanced/customisation_tips.md) shows template overrides, extra actions, and mixin hooks.
     - [PowerCRUD Concepts](guides/concepts.md) puts the setup guides in perspective and explains the mental model behind surfaces, field intent, actions, presentation, selection, bulk work, and async work.
     - [Structured API](guides/structured_api/index.md) explains when to use `PowerField`, `PowerAction`, and `PowerButton` for repeated field and action config.
@@ -48,7 +49,7 @@ PowerCRUD extends [`Neapolitan`](https://github.com/carltongibson/neapolitan)’
 - Reactive filtering and search with M2M logic and custom queryset handling
 - Bulk edit and delete operations with atomic transactions and async processing
 - Async task management with progress tracking, conflict locks, and lifecycle monitoring
-- daisyUI/Tailwind styling with template flexibility and framework extension points
+- DaisyUI/Tailwind default styling, a supported Bootstrap 5 pack, and explicit template-pack extension points
 - Crispy forms integration and HTML5 widgets
 - Management commands for template bootstrapping and asset utilities
 - Comprehensive sample app and Docker development setup

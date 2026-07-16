@@ -2,12 +2,14 @@
 
 from dataclasses import replace
 from importlib import import_module
+import warnings
 
 import pytest
 from django.core.exceptions import ImproperlyConfigured
 from django.test import override_settings
 
 from powercrud.template_packs import (
+    DECLARABLE_PRESENTATION_OPTIONS,
     TEMPLATE_PACK_CONTRACT_VERSION,
     TemplatePack,
     get_configured_template_pack,
@@ -79,6 +81,33 @@ def test_template_pack_is_immutable_and_validates_declaration_shape():
         replace(template_pack, capabilities={"list"})
     with pytest.raises(ValueError, match="manual_assets"):
         replace(template_pack, manual_assets=["pack.js"])
+    with pytest.raises(ValueError, match="unknown presentation"):
+        replace(
+            template_pack,
+            unsupported_presentation_options=frozenset({"unknown_option"}),
+        )
+
+
+def test_presentation_contract_separates_portable_and_framework_specific_options():
+    """First-party packs must use one explicit vocabulary for presentation limits."""
+    from powercrud.template_packs import (
+        FRAMEWORK_SPECIFIC_PRESENTATION_OPTIONS,
+        PORTABLE_PRESENTATION_OPTIONS,
+    )
+
+    assert PORTABLE_PRESENTATION_OPTIONS.isdisjoint(
+        FRAMEWORK_SPECIFIC_PRESENTATION_OPTIONS
+    ), "A presentation option must be either portable or framework-specific."
+    assert DECLARABLE_PRESENTATION_OPTIONS == (
+        PORTABLE_PRESENTATION_OPTIONS | FRAMEWORK_SPECIFIC_PRESENTATION_OPTIONS
+    ), "Pack declarations must validate against the complete public presentation vocabulary."
+
+    template_pack = resolve_template_pack("daisyui")
+    with pytest.raises(ValueError, match="cannot exclude portable"):
+        replace(
+            template_pack,
+            unsupported_presentation_options=frozenset({"modal_presentation"}),
+        )
 
 
 def test_unconfigured_selector_uses_builtin_without_adding_a_conf_default():
@@ -118,10 +147,19 @@ def test_explicit_builtin_and_third_party_selectors_resolve():
         builtin = get_selected_template_pack()
     with override_settings(POWERCRUD_SETTINGS={"POWERCRUD_TEMPLATE_PACK": FIXTURE_SELECTOR}):
         third_party = get_selected_template_pack()
+    with override_settings(
+        POWERCRUD_SETTINGS={
+            "POWERCRUD_TEMPLATE_PACK": "powercrud.contrib.bootstrap5:template_pack"
+        }
+    ):
+        bootstrap = get_selected_template_pack()
 
     assert builtin.identity == "daisyui", "An explicit built-in selector should resolve DaisyUI."
     assert third_party.identity == "fixture-pack", (
         "A module.path:attribute selector should resolve the third-party declaration."
+    )
+    assert bootstrap.identity == "bootstrap5", (
+        "A module.path:attribute selector should resolve the Bootstrap declaration."
     )
 
 
@@ -167,6 +205,81 @@ def test_config_mixin_resolves_selected_namespace_at_runtime():
         )
 
 
+def test_bootstrap_honours_portable_help_and_deprecates_legacy_modal_classes():
+    """Bootstrap should not misclassify portable settings as unsupported."""
+    from powercrud.mixins.config_mixin import ConfigMixin
+    from powercrud.template_packs import TemplatePackCompatibilityWarning
+    from sample.models import Book
+
+    class UnsupportedBootstrapPresentationView(ConfigMixin):
+        """Small configuration harness that opts into Bootstrap-incompatible styling."""
+
+        model = Book
+        view_help = {
+            "summary": "Help",
+        "details": "Bootstrap translates this styling through its own variables.",
+            "color": "info",
+            "min_width": "52rem",
+        }
+        modal_classes = "modal custom-shell"
+        modal_body_classes = "custom-body"
+
+    with override_settings(
+        POWERCRUD_SETTINGS={
+            "POWERCRUD_TEMPLATE_PACK": "powercrud.contrib.bootstrap5:template_pack"
+        }
+    ):
+        with warnings.catch_warnings(record=True) as recorded_warnings:
+            warnings.simplefilter("always")
+            UnsupportedBootstrapPresentationView()
+
+    compatibility_warnings = [
+        warning
+        for warning in recorded_warnings
+        if issubclass(warning.category, TemplatePackCompatibilityWarning)
+    ]
+    warning_messages = {str(item.message) for item in recorded_warnings}
+    assert not compatibility_warnings, (
+        "Portable Bootstrap help and legacy raw classes should not use the unsupported-option warning path."
+    )
+    assert any("modal_classes" in message for message in warning_messages), (
+        "An explicit Bootstrap modal shell class should emit its deprecation warning."
+    )
+    assert any("modal_body_classes" in message for message in warning_messages), (
+        "An explicit Bootstrap modal body class should emit its deprecation warning."
+    )
+
+
+def test_default_presentation_values_do_not_warn_for_bootstrap():
+    """Bootstrap should stay quiet when an application uses portable defaults only."""
+    from powercrud.mixins.config_mixin import ConfigMixin
+    from powercrud.template_packs import TemplatePackCompatibilityWarning
+    from sample.models import Book
+
+    class DefaultBootstrapPresentationView(ConfigMixin):
+        """Small configuration harness retaining every presentation default."""
+
+        model = Book
+
+    with override_settings(
+        POWERCRUD_SETTINGS={
+            "POWERCRUD_TEMPLATE_PACK": "powercrud.contrib.bootstrap5:template_pack"
+        }
+    ):
+        with warnings.catch_warnings(record=True) as recorded_warnings:
+            warnings.simplefilter("always")
+            DefaultBootstrapPresentationView()
+
+    compatibility_warnings = [
+        warning
+        for warning in recorded_warnings
+        if issubclass(warning.category, TemplatePackCompatibilityWarning)
+    ]
+    assert not compatibility_warnings, (
+        "Bootstrap defaults should not generate compatibility noise for every view."
+    )
+
+
 def test_explicit_daisyui_selection_preserves_legacy_style_overrides():
     """The selected adapter must remain compatible with existing style dictionaries."""
     from powercrud.mixins.htmx_mixin import HtmxMixin
@@ -199,27 +312,34 @@ def test_explicit_pack_style_lookup_prefers_the_canonical_adapter_key():
     )
 
 
-def test_default_framework_style_override_point_delegates_to_the_daisyui_pack(monkeypatch):
-    """HtmxMixin keeps its public override method while the built-in provider relocates."""
+def test_default_framework_style_override_point_delegates_to_pack_style_providers(monkeypatch):
+    """HtmxMixin keeps its public override method while exposing installed pack mappings."""
     from powercrud.mixins import htmx_mixin as htmx_module
 
     view = htmx_module.HtmxMixin()
     received_views = []
-    expected_styles = {"daisyUI": {"source": "pack"}}
+    expected_daisyui_styles = {"daisyUI": {"source": "daisyui-pack"}}
+    expected_bootstrap_styles = {"bootstrap5": {"source": "bootstrap-pack"}}
 
     def fake_pack_styles(received_view):
         """Capture the public mixin instance passed to the pack provider."""
         received_views.append(received_view)
-        return expected_styles
+        return expected_daisyui_styles
+
+    def fake_bootstrap_styles(received_view):
+        """Capture the public mixin instance passed to the Bootstrap provider."""
+        received_views.append(received_view)
+        return expected_bootstrap_styles
 
     monkeypatch.setattr(htmx_module, "get_daisyui_framework_styles", fake_pack_styles)
+    monkeypatch.setattr(htmx_module, "get_bootstrap5_framework_styles", fake_bootstrap_styles)
 
-    assert view.get_framework_styles() == expected_styles, (
-        "The established HtmxMixin override point should return the DaisyUI pack provider's "
-        "mapping by default."
+    assert view.get_framework_styles() == {**expected_daisyui_styles, **expected_bootstrap_styles}, (
+        "The established HtmxMixin override point should expose both built-in framework "
+        "mappings while selected-pack lookup remains downstream-overridable."
     )
-    assert received_views == [view], (
-        "The DaisyUI style provider should receive the view so modal attributes remain dynamic."
+    assert received_views == [view, view], (
+        "Both pack style providers should receive the view so their modal attributes remain dynamic."
     )
 
 

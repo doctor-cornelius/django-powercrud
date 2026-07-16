@@ -1,6 +1,7 @@
 nav:
   - index.md
   - guides
+  - Template Packs: template_packs
   - Structured API: guides/structured_api
   - Advanced Guides: guides/advanced
   - reference

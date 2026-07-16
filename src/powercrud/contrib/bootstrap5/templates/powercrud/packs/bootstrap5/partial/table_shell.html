@@ -1,0 +1,20 @@
+{% with inline_enabled=inline_edit.enabled %}
+<div class="table-responsive table-max-height" data-powercrud-table-scroll="true"{% if enable_selection_controls %} data-selection-key="{{ keyBase }}_{{ selection_key_suffix }}_selected"{% endif %}>
+    <table class="table table-striped table-hover align-middle {{ table_classes }}"{% if inline_enabled %} data-inline-enabled="true"{% endif %}>
+        {% if table_header_template_paths %}
+            {% include table_header_template_paths %}
+        {% else %}
+            {% include framework_template_path|add:"/partial/table_header.html" %}
+        {% endif %}
+        <tbody>
+            {% for row in object_list %}
+                {% if table_row_template_paths %}
+                    {% include table_row_template_paths %}
+                {% else %}
+                    {% include framework_template_path|add:"/partial/table_row.html" %}
+                {% endif %}
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endwith %}

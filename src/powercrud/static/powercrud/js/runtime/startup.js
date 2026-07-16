@@ -4,6 +4,7 @@ function getStartupInstallState(documentObject) {
     let state = startupInstallState.get(documentObject);
     if (!state) {
         state = {
+            domReadyHandled: false,
             listenersInstalled: false,
             styleInstalled: false,
         };
@@ -50,9 +51,17 @@ export function installPowercrudGlobalListeners({
     }
     state.listenersInstalled = true;
 
+    const handleDOMContentLoadedOnce = () => {
+        if (state.domReadyHandled) {
+            return;
+        }
+        state.domReadyHandled = true;
+        handlers.handleDOMContentLoaded();
+    };
+
     // Listener order is behavioural: capture-phase guards run before the
     // delegated bubble handlers, and HTMX teardown runs before re-init hooks.
-    documentObject.addEventListener('DOMContentLoaded', handlers.handleDOMContentLoaded);
+    documentObject.addEventListener('DOMContentLoaded', handleDOMContentLoadedOnce);
     globalObject.addEventListener('pageshow', handlers.handlePageShow);
     documentObject.addEventListener('pointerdown', handlers.handlePointerDownCapture, true);
     documentObject.addEventListener('click', handlers.handleDisabledActionClickCapture, true);
@@ -91,4 +100,11 @@ export function installPowercrudGlobalListeners({
     documentObject.body.addEventListener('inline-row-error', handlers.handleInlineRowError);
     globalObject.addEventListener('resize', handlers.handleWindowResize);
     globalObject.addEventListener('scroll', handlers.handleWindowScrollCapture, true);
+
+    // Bootstrap composition loads the stable runtime through a dynamic import.
+    // If that import finishes after DOMContentLoaded, initialize immediately;
+    // the once-only wrapper also avoids a duplicate when the event is pending.
+    if (documentObject.readyState !== 'loading') {
+        handleDOMContentLoadedOnce();
+    }
 }

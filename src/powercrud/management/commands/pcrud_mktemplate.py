@@ -1,4 +1,5 @@
 import shutil
+import warnings
 from importlib.resources import files
 from pathlib import Path
 
@@ -336,7 +337,8 @@ class Command(BaseCommand):
             )
         elif component == "modal-shell":
             contract_guidance = (
-                "Keep modal_id, modal_target, modal_classes, modal_box_classes, and modal_body_classes context. "
+                "Keep modal_id, modal_target, modal_classes, modal_box_classes, modal_body_classes, "
+                "modal_presentation_attrs, bulk_modal_presentation_attrs, and modal_uses_legacy_classes context. "
                 "Preserve the dialog and target IDs, data-powercrud-modal, data-powercrud-modal-box, "
                 "data-powercrud-default-modal-box-classes, HTML dialog close controls, backdrop, and retained viewport/scroll classes.\n"
                 "Continue delegating to modal_content_template_paths if focused content overrides should remain active. "
@@ -345,7 +347,8 @@ class Command(BaseCommand):
             )
         elif component == "modal-content":
             contract_guidance = (
-                "Keep modal_target and modal_body_classes context. Preserve the configured target ID and body classes, "
+                "Keep modal_target, modal_body_classes, modal_presentation_attrs, and modal_uses_legacy_classes context. "
+                "Preserve the configured target ID and body classes, "
                 "and keep this component as the empty host for HTMX inner-content replacement.\n"
                 "The dialog, modal box, close/backdrop controls, triggers, returned CRUD/bulk content, and lifecycle remain separately owned; "
                 "the legacy partial/modal.html direct target remains through 0.x, and no copied PowerCRUD JavaScript is required."
@@ -362,7 +365,7 @@ class Command(BaseCommand):
         elif component == "form-fields":
             contract_guidance = (
                 "Keep form, use_crispy, and framework_template_path context. Preserve native Django form rendering "
-                "and crispy-tailwind rendering through crispy_partials.html#crispy_form without adding a nested form tag.\n"
+                "and the selected pack's crispy rendering through crispy_partials.html#crispy_form without adding a nested form tag.\n"
                 "Legacy crispy_partials.html#load_tags and #crispy_form remain through 0.x; the form shell owns CSRF and transport, "
                 "and no copied PowerCRUD JavaScript is required."
             )
@@ -481,6 +484,13 @@ class Command(BaseCommand):
 
             # Copy the entire template structure
             framework_dir = get_template_pack_copy_destination()
+            warnings.warn(
+                "Plain-app whole-tree template copying is deprecated and will be removed "
+                "in v1.0. Use focused --component overrides for application "
+                "customization, or create an explicitly owned custom template pack.",
+                FutureWarning,
+                stacklevel=2,
+            )
             target_framework_dir = app_template_dir / framework_dir
 
             if target_framework_dir.exists():

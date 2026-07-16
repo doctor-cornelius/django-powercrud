@@ -65,9 +65,11 @@ Keep the concepts separate:
 
 Presentation controls where and how UI is rendered.
 
-Presentation options include `base_template_path`, `templates_path`, `use_htmx`, `default_htmx_target`, `hx_trigger`, `use_modal`, `modal_id`, `modal_target`, `modal_box_classes`, `bulk_modal_box_classes`, `list_cell_link_default_open_in`, and per-trigger modal settings.
+Presentation options include `base_template_path`, `templates_path`, `use_htmx`, `default_htmx_target`, `hx_trigger`, `use_modal`, `modal_id`, `modal_target`, portable `modal_presentation`, `bulk_modal_presentation`, `list_cell_link_default_open_in`, and per-trigger modal settings. Raw modal class settings remain deprecated framework-specific compatibility APIs.
 
 Presentation overlaps with field links and actions because both need a target. The important distinction is that a field or action describes what the user can do; presentation describes where the result opens.
+
+The selected template pack owns framework markup and assets. Portable semantic presentation settings have the same product meaning across supported packs; raw class strings are selected-framework inputs. See [Template Packs](../template_packs/index.md#presentation-contract) for the contract and explicit-support rule.
 
 ### Selection
 
@@ -83,7 +85,7 @@ Built-in bulk edit/delete and selection-aware toolbar buttons can both render se
 
 A Bulk operation applies work to multiple records.
 
-Bulk options and hooks include `bulk_fields`, `bulk_delete`, `bulk_full_clean`, `bulk_modal_box_classes`, `persist_bulk_update(...)`, `bulk_update_persistence_backend_path`, and `bulk_update_persistence_backend_config`.
+Bulk options and hooks include `bulk_fields`, `bulk_delete`, `bulk_full_clean`, `bulk_modal_presentation`, `persist_bulk_update(...)`, `bulk_update_persistence_backend_path`, and `bulk_update_persistence_backend_config`.
 
 Bulk configuration should stay explicit because bulk work has validation, permission, persistence, and feedback concerns that are different from single-object form saves.
 

@@ -1,0 +1,5 @@
+{% if detail_content_template_paths %}
+    {% include detail_content_template_paths %}
+{% else %}
+    {% include framework_template_path|add:"/partial/detail_content.html" %}
+{% endif %}

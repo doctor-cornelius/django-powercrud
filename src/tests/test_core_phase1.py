@@ -2244,6 +2244,80 @@ def test_core_mixin_uses_view_default_for_omitted_link_field_open_in():
     )
 
 
+@pytest.mark.django_db
+def test_core_mixin_resolves_portable_modal_presentations_for_view_bulk_and_links():
+    """Merge modal overrides without exposing a framework class contract."""
+    class LinkedView(CoreMixin):
+        model = Book
+        fields = "__all__"
+        use_htmx = True
+        use_modal = True
+        modal_presentation = {"size": "wide", "max_height": "80dvh"}
+        bulk_modal_presentation = {"size": "extra_wide"}
+        link_fields = {
+            "title": {
+                "view_name": "sample:bigbook-detail",
+                "open_in": "modal",
+                "modal_presentation": {"max_width": "60rem"},
+            },
+        }
+
+    view = LinkedView()
+    config = view.config()
+
+    assert config.modal_presentation_resolved == {
+        "size": "wide",
+        "max_width": None,
+        "max_height": "80dvh",
+        "scroll": "body",
+        "fullscreen": False,
+        "vertical_alignment": "center",
+    }, "View modal presentation should merge its partial override over portable defaults."
+    assert config.bulk_modal_presentation_resolved["size"] == "extra_wide", (
+        "Bulk presentation should override only the requested view-level field."
+    )
+    assert view.link_fields["title"]["modal_presentation"] == {
+        "max_width": "60rem"
+    }, "Modal list links should preserve their partial semantic override."
+    assert 'data-powercrud-modal-size="wide"' in config.modal_presentation_attrs and 'data-powercrud-modal-max-height="80dvh"' in config.modal_presentation_attrs, (
+        "The default-pack server context should expose the fully resolved view presentation."
+    )
+    assert 'data-powercrud-modal-size="extra_wide"' in config.bulk_modal_presentation_attrs, (
+        "The bulk trigger should receive the resolved bulk override rather than raw classes."
+    )
+
+
+@pytest.mark.django_db
+def test_core_mixin_rejects_mixed_view_modal_presentation_contracts():
+    """Reject class and semantic settings together rather than picking one silently."""
+    class BrokenView(CoreMixin):
+        model = Book
+        fields = "__all__"
+        modal_presentation = {"size": "wide"}
+        modal_box_classes = "modal-box max-w-4xl"
+
+    with pytest.raises(ImproperlyConfigured, match="modal_presentation cannot be combined"):
+        BrokenView()
+
+
+@pytest.mark.django_db
+def test_core_mixin_rejects_non_modal_link_presentation():
+    """A semantic modal override must not disappear on a non-modal link."""
+    class BrokenView(CoreMixin):
+        model = Book
+        fields = "__all__"
+        link_fields = {
+            "title": {
+                "view_name": "sample:bigbook-detail",
+                "open_in": "new",
+                "modal_presentation": {"size": "wide"},
+            }
+        }
+
+    with pytest.raises(ImproperlyConfigured, match="modal_presentation"):
+        BrokenView()
+
+
 def test_core_mixin_defaults_omitted_list_cell_link_open_in_to_new():
     class LinkedView(CoreMixin):
         model = Book
@@ -3619,11 +3693,11 @@ def test_book_list_filter_form_uses_compact_grid_layout(client):
     assert 'class="grid gap-x-2 gap-y-0"' in response_text, (
         "Book list filter form should keep compact grid spacing without fixed breakpoint column classes."
     )
-    assert "grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));" in response_text, (
-        "Book list filter form should auto-fit readable filter columns instead of hard-capping at three columns."
+    assert "grid-template-columns: repeat(3, minmax(0, 1fr));" in response_text, (
+        "Book list filter form should stop at three readable filter columns on wide viewports."
     )
-    assert "max-width: calc((20rem * 4) + (0.5rem * 3));" in response_text, (
-        "Book list filter form should cap the filter grid at four readable columns even when the table is very wide."
+    assert "grid-template-columns: repeat(2, minmax(0, 1fr));" in response_text, (
+        "Book list filter form should step down to two columns before its single-column mobile layout."
     )
     assert "filter-field form-control w-full min-w-0" in response_text, (
         "Book list filter fields should use the compact wrapper class within the grid layout."
@@ -3736,7 +3810,7 @@ def test_book_list_page_size_form_includes_only_page_size_and_filter_form(client
     assert 'data-tippy-content="Rows per page"' in response_text, (
         "Page-size control should expose a PowerCRUD tooltip."
     )
-    assert 'class="cursor-pointer" name="page_size"' in response_text, (
+    assert re.search(r'id="page-size-select"[^>]*class="[^"]*\bcursor-pointer\b[^"]*"', response_text), (
         "The page-size select should use a pointer cursor to match clickable toolbar controls."
     )
     assert re.search(r'<option value="25"\s+selected\s*>\s*25\s*</option>', response_text), (
@@ -3896,6 +3970,9 @@ def test_book_list_renders_custom_modal_context(client, monkeypatch):
         "bulk_modal_box_classes",
         "modal-box w-11/12 max-w-6xl",
     )
+    monkeypatch.setattr(sample_views.BookCRUDView, "link_fields", {})
+    monkeypatch.setattr(sample_views.BookCRUDView, "extra_buttons", [])
+    monkeypatch.setattr(sample_views.BookCRUDView, "extra_actions", [])
 
     response = client.get(reverse("sample:bigbook-list"))
     response_text = " ".join(response.content.decode().split())
@@ -3923,12 +4000,6 @@ def test_book_list_renders_custom_modal_context(client, monkeypatch):
     )
     assert 'data-powercrud-modal-box-classes="modal-box w-11/12 max-w-6xl"' in response_text, (
         "The built-in bulk edit trigger should expose configured bulk modal box classes."
-    )
-    assert (
-        'data-powercrud-modal-box-classes="modal-box flex max-h-[calc(100dvh-2rem)] '
-        'w-11/12 max-w-6xl flex-col"'
-    ) in response_text, (
-        "The sample modal list-cell link should expose its larger per-cell modal box classes."
     )
 
 
@@ -4011,11 +4082,8 @@ def test_book_list_renders_selection_aware_extra_button(client):
     assert "Home in Modal!" in response_text, (
         "Sample book list should keep a separate modal header button for per-button sizing."
     )
-    assert (
-        'data-powercrud-modal-box-classes="modal-box flex max-h-[calc(100dvh-2rem)] '
-        'w-11/12 max-w-3xl flex-col"'
-    ) in response_text, (
-        "Home in Modal should demonstrate per-button modal sizing without changing Selected Summary."
+    assert 'data-powercrud-modal-max-width="48rem"' in response_text, (
+        "Home in Modal should demonstrate a portable per-button width override without changing Selected Summary."
     )
 
 
@@ -4052,11 +4120,8 @@ def test_book_list_defers_lazy_disabled_extra_action_reason(client):
     assert "data-powercrud-row-action-states-url=" in response_text, (
         "Sample book list should render the row-state endpoint URL on the More trigger."
     )
-    assert (
-        "data-powercrud-modal-box-classes='modal-box flex max-h-[calc(100dvh-2rem)] "
-        "w-11/12 max-w-5xl flex-col'"
-    ) in response_text, (
-        "Sample modal extra action should demonstrate per-action modal sizing."
+    assert 'data-powercrud-modal-max-width="64rem"' in response_text, (
+        "Sample modal extra action should demonstrate a portable per-action width override."
     )
 
 

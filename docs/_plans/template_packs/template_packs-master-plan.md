@@ -2,11 +2,11 @@
 
 ## Status
 
-Active. Phases 0–4 are complete. Every later phase must keep the compatible default DaisyUI experience working on `staging/main` and protected `main`.
+Active. Phases 0–8 and the Phase 7.10 API-contract hardening follow-up are integrated into `staging/main`. The temporary DaisyUI reference pack is retired, leaving DaisyUI as the supported default and Bootstrap as the supported non-default production pack. Every later phase must keep the compatible default DaisyUI experience working on `staging/main` and protected `main`.
 
 ## Next
 
-When authorized, begin Phase 5's shared sample-presentation harness from the accepted child plan.
+Resume Phase 9.3 for final post-cleanup authoring, publishing, customization, and testing guidance.
 
 ## Phase 0: Establish The JavaScript Foundation
 
@@ -50,46 +50,55 @@ When authorized, begin Phase 5's shared sample-presentation harness from the acc
 
 ## Phase 5: Prove Reuse With A DaisyUI Variant
 
-1. [ ] Build a deliberately small, visibly different internal DaisyUI reference variant with meaningful structural changes rather than a theme-only treatment.
-2. [ ] Reuse the standard DaisyUI framework adapter without copying it.
-3. [ ] Use optional variant JavaScript only where stable hooks cannot support the interaction.
-4. [ ] Expose default, focused-override, and reference-pack variants of one shared sample-app feature catalogue.
-5. [ ] Keep sample navigation, data, and CRUD scenarios shared rather than duplicating each sample implementation.
-6. [ ] Refine the contracts from the reference-variant and sample-app findings.
-7. [ ] Keep the reference variant opt-in so merging it cannot change the default experience.
-8. [ ] Treat the reference variant as a provisional proof whose visible sample and implementation may be retired after the first serious alternative pack ships.
+1. [x] Build a deliberately small, visibly different internal DaisyUI reference variant with meaningful structural changes rather than a theme-only treatment.
+2. [x] Reuse the standard DaisyUI framework adapter without copying it.
+3. [x] Use optional variant JavaScript only where stable hooks cannot support the interaction.
+4. [x] Expose default, focused-override, and reference-pack variants of one shared sample-app feature catalogue.
+5. [x] Keep sample navigation, data, and CRUD scenarios shared rather than duplicating each sample implementation.
+6. [x] Refine the contracts from the reference-variant and sample-app findings.
+7. [x] Keep the reference variant opt-in so merging it cannot change the default experience.
+8. [x] Treat the reference variant as a provisional proof whose visible sample and implementation may be retired after the first serious alternative pack ships.
 
-## Phase 6: Complete Validation
+## Phase 6: Consolidate Reusable Pack Validation
 
-1. [ ] Add template-pack contract and capability validation.
-2. [ ] Validate wheel and sdist contents from clean installations.
-3. [ ] Validate manual-static and bundled/Vite asset modes.
-4. [ ] Run shared unit and browser behaviour across the default pack and reference variant through the applicable sample-app scenarios.
-5. [ ] Preserve a lightweight automated same-adapter reuse proof that can survive retirement of the visible reference variant.
-6. [ ] Merge validation improvements progressively as reusable gates for later slices.
+1. [x] Add one reusable validator for pack declarations, required templates and fragments, capabilities, adapters, forms, and assets.
+2. [x] Establish a shared behaviour-test matrix for the default and reference packs using the same sample scenarios.
+3. [x] Verify that selectable pack resources remain present and usable in clean wheel and sdist installations.
+4. [x] Preserve a small same-adapter fixture that survives any later retirement of the visible reference pack.
+5. [x] Reuse Phase 4 and Phase 5 evidence instead of repeating already-proven asset-mode and application behaviour checks.
+6. [x] Merge the bounded validation improvements as reusable gates for Bootstrap implementation.
 
-## Phase 7: Deliver The First Serious Alternative Pack
+## Phase 7: Deliver The Bootstrap 5 Pack
 
-1. [ ] Decide whether Bootstrap 5 or a Tailwind-only, shadcn-inspired design is the more valuable first serious alternative.
-2. [ ] Build the chosen optional co-distributed framework adapter and template pack.
-3. [ ] Deliver full CRUD feature parity through the shared contracts, including applicable native and maintained crispy form rendering.
-4. [ ] Refine the contracts from the chosen alternative's findings.
-5. [ ] Decide separately whether the completed alternative becomes a supported production pack.
-6. [ ] Keep the alternative optional so merging it cannot affect unconfigured projects.
-7. [ ] Add the alternative to the shared sample-app catalogue once it reaches the required feature parity.
-8. [ ] Review the Phase 5 reference variant for retirement while retaining sufficient automated proof that multiple packs can reuse one framework adapter.
+1. [x] Build an optional co-distributed Bootstrap 5 framework adapter and template pack.
+2. [x] Add a derived Bootstrap sample settings configuration and documented launch command while leaving the default DaisyUI settings unchanged.
+3. [x] Allow the shared sample to run as DaisyUI or Bootstrap on demand, including simultaneous processes on different ports, without runtime or per-view pack selection.
+4. [x] Keep Bootstrap components, assets, and JavaScript lifecycle independent of Tailwind CSS and DaisyUI.
+5. [x] Deliver full applicable CRUD parity through the existing shared contracts and sample scenarios.
+6. [x] Support native form rendering and the maintained `crispy-bootstrap5` integration.
+7. [x] Validate Bootstrap modals, dropdowns, forms, and repeated HTMX initialization and teardown.
+8. [x] Refine the pack contracts from genuine cross-framework findings without changing unconfigured projects.
+9. [x] Add Bootstrap to the shared sample catalogue after it reaches the required parity.
+10. [x] Decide separately whether Bootstrap becomes a supported production pack, then retain the temporary reference pack only until the Phase 8 cleanup gate.
 
-## Phase 8: Consider A Second Serious Alternative Pack
+## Pre-Phase-8 Documentation Gate
 
-1. [ ] Evaluate demand, architectural evidence, and maintenance cost for the Bootstrap-or-Tailwind alternative not selected in Phase 7.
-2. [ ] Record an explicit proceed-or-defer decision, proceeding only when another full-parity maintained pack is justified and separately approved.
-3. [ ] Reuse the established contracts, validation, and shared sample catalogue if the second alternative is authorized.
+1. [x] Inventory the stable documentation and settle the supported-pack, API, Crispy, validation, navigation, and whole-tree-copy decisions.
+2. [x] Publish and validate the pre-cleanup contract, DaisyUI whole-tree deprecation, support matrix, and linked references.
 
-## Phase 9: Promote Stable Documentation
+## Phase 8: Retire The Temporary DaisyUI Reference Pack
 
-1. [ ] Document downstream focused template overrides.
-2. [ ] Document pack selection, composition, adapters, assets, forms, and validation.
-3. [ ] Publish author guidance for framework packs and variants.
-4. [ ] Publish a sample-app implementation gallery for the default, focused-override, and supported alternative-pack variants.
-5. [ ] Archive temporary planning material when the stable documentation is complete.
-6. [ ] Document only capabilities that have already merged and remain compatible on `staging/main` and protected `main`.
+1. [x] Create the Phase 8 child plan from the published contract, mapping every proposed removal to the compatibility and validation surfaces that must remain.
+2. [x] Confirm Bootstrap has reached the required parity, accepted support status, and joined the shared sample catalogue.
+3. [x] Confirm the Phase 6 test-only fixture preserves same-adapter reuse without the visible reference implementation.
+4. [x] Remove the reference declaration, templates, sample settings, presentation metadata, and launch guidance.
+5. [x] Remove reference-specific server and browser tests while retaining reusable validators and shared behaviour tests.
+6. [x] Move the shared cross-pack behaviour matrix from default/reference coverage to default/Bootstrap coverage.
+7. [x] Pass the complete regression and installed-package gates after the reference implementation is removed.
+
+## Phase 9: Complete Template-Pack Documentation
+
+1. [ ] Publish a dedicated authoring-and-testing page for defining, packaging, and validating a new template pack against the permanent post-Phase-8 implementation.
+2. [ ] Complete focused-override and custom-pack guidance against the permanent post-Phase-8 implementation.
+3. [ ] Publish final default, focused-override, and Bootstrap sample guidance.
+4. [ ] Validate the complete stable documentation and close or archive planning material after acceptance.

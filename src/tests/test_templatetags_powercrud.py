@@ -1077,6 +1077,12 @@ def test_object_list_renders_booleans_dates_and_selection():
         "The isolated table context should retain model-first bulk-selection-control candidates."
     )
     assert result["filter_params"] == "filter=1"
+    assert result["table_max_col_width"] == "20ch", (
+        "The list template context should contain the resolved maximum column width."
+    )
+    assert result["table_header_min_wrap_width"] == "12ch", (
+        "The list template context should contain the resolved header wrapping width."
+    )
     assert "csrfmiddlewaretoken" not in result["filter_params"], (
         "Object-list filter params should not reflect CSRF tokens into sort/filter URLs."
     )

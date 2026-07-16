@@ -1,0 +1,22 @@
+{% load powercrud_bootstrap5 %}
+<thead class="table-dark">
+    <tr>
+        {% if enable_selection_controls %}
+            {% if bulk_selection_controls_template_paths %}{% include bulk_selection_controls_template_paths with selection_control="select_all" %}{% else %}{% include framework_template_path|add:"/partial/bulk_selection_controls.html" with selection_control="select_all" %}{% endif %}
+        {% endif %}
+        {% for header in headers %}
+            <th scope="col" class="pc-table-column-width text-{{ header.align|bootstrap5_text_alignment }}" data-field-name="{{ header.field_name }}">
+                {% if header.is_sortable %}
+                    <a class="link-light text-decoration-none" href="?sort={% if current_sort == header.field_name %}-{% elif current_sort == '-'|add:header.field_name %}{% else %}{% endif %}{{ header.field_name }}{% if request.GET.page_size %}&page_size={{ request.GET.page_size }}{% endif %}{% if filter_params %}&{{ filter_params }}{% endif %}"
+                       {% if use_htmx %}hx-get="?sort={% if current_sort == header.field_name %}-{% elif current_sort == '-'|add:header.field_name %}{% else %}{% endif %}{{ header.field_name }}{% if request.GET.page_size %}&page_size={{ request.GET.page_size }}{% endif %}{% if filter_params %}&{{ filter_params }}{% endif %}" hx-headers='{"X-Filter-Sort-Request": "true"}' hx-target="#filtered_results" hx-push-url="true"{% endif %}
+                       {% if header.help_text %}title="{{ header.help_text }}"{% endif %}>
+                        {{ header.label }}{% if current_sort == header.field_name %} ↓{% elif current_sort == '-'|add:header.field_name %} ↑{% endif %}
+                    </a>
+                {% else %}
+                    <span{% if header.help_text %} title="{{ header.help_text }}"{% endif %}>{{ header.label }}</span>
+                {% endif %}
+            </th>
+        {% endfor %}
+        {% if has_row_actions %}<th scope="col" class="pc-bootstrap-actions-column text-end">Actions</th>{% endif %}
+    </tr>
+</thead>

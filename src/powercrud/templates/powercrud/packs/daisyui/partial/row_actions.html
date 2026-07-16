@@ -8,6 +8,7 @@
            {% if action.use_htmx %}{% if action.hx_post %}hx-post='{{ action.href }}'{% else %}hx-get='{{ action.href }}'{% endif %}{% if action.target %} hx-target='{{ action.target }}'{% endif %}{% if action.use_history %} hx-replace-url='true' hx-push-url='true'{% endif %}{% endif %}
            {% if action.modal_attrs %}{{ action.modal_attrs|safe }}{% endif %}
            {% if action.modal_box_classes %}data-powercrud-modal-box-classes='{{ action.modal_box_classes }}'{% endif %}
+           {% if action.modal_presentation_attrs %}{{ action.modal_presentation_attrs|safe }}{% endif %}
            {% if action.refresh_list_on_modal_close %}data-powercrud-refresh-list-on-modal-close='true'{% endif %}
            {% if action.disable %}aria-disabled='true'{% endif %}
            data-inline-action='{{ action.inline_action }}'>{{ action.label_html|safe }}</a>
@@ -47,6 +48,7 @@
                                {% if action.use_htmx %}{% if action.hx_post %}hx-post='{{ action.href }}'{% else %}hx-get='{{ action.href }}'{% endif %}{% if action.target %} hx-target='{{ action.target }}'{% endif %}{% if action.use_history %} hx-replace-url='true' hx-push-url='true'{% endif %}{% endif %}
                                {% if action.modal_attrs %}{{ action.modal_attrs|safe }}{% endif %}
                                {% if action.modal_box_classes %}data-powercrud-modal-box-classes='{{ action.modal_box_classes }}'{% endif %}
+                               {% if action.modal_presentation_attrs %}{{ action.modal_presentation_attrs|safe }}{% endif %}
                                {% if action.refresh_list_on_modal_close %}data-powercrud-refresh-list-on-modal-close='true'{% endif %}
                                {% if action.disable %}aria-disabled='true'{% endif %}
                                {% if action.lazy_row_action_state %}data-powercrud-row-action-state-mode='lazy' data-powercrud-row-action-index='{{ action.action_index }}'{% if action.lazy_hidden_if %} data-powercrud-row-action-hidden-mode='lazy'{% endif %}{% endif %}
@@ -65,6 +67,7 @@
                {% if action.use_htmx %}{% if action.hx_post %}hx-post='{{ action.href }}'{% else %}hx-get='{{ action.href }}'{% endif %}{% if action.target %} hx-target='{{ action.target }}'{% endif %}{% if action.use_history %} hx-replace-url='true' hx-push-url='true'{% endif %}{% endif %}
                {% if action.modal_attrs %}{{ action.modal_attrs|safe }}{% endif %}
                {% if action.modal_box_classes %}data-powercrud-modal-box-classes='{{ action.modal_box_classes }}'{% endif %}
+               {% if action.modal_presentation_attrs %}{{ action.modal_presentation_attrs|safe }}{% endif %}
                {% if action.refresh_list_on_modal_close %}data-powercrud-refresh-list-on-modal-close='true'{% endif %}
                {% if action.disable %}aria-disabled='true'{% endif %}
                data-inline-action='{{ action.inline_action }}'>{{ action.text }}</a>

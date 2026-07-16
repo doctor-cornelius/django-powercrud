@@ -6,18 +6,11 @@
 
 <style>
     .table-max-height {
-        max-height: calc((100vh - {
-                        {
-                        table_pixel_height_other_page_elements
-                    }
-
-                }) * {
-                    {
-                    table_max_height
-                }
-            }
-
-            / 100);
+        max-height: calc((100vh - {{ table_pixel_height_other_page_elements }}) * {{ table_max_height }} / 100);
+        max-height: min(
+            calc((100dvh - {{ table_pixel_height_other_page_elements }}) * {{ table_max_height }} / 100),
+            var(--pc-table-available-height, 100dvh)
+        );
     }
 
     /* Add styles to match header text with table size */

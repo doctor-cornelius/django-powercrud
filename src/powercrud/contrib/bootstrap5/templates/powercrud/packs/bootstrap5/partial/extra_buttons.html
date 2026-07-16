@@ -1,0 +1,12 @@
+{% if extra_buttons_mode == "dropdown" %}
+<details class="dropdown" data-powercrud-extra-buttons-dropdown="true">
+    <summary class="btn btn-sm btn-outline-secondary dropdown-toggle {{ extra_button_classes }}" aria-label="More actions">More</summary>
+    <ul tabindex="0" class="dropdown-menu">
+        {% for button in extra_buttons %}
+            <li><a href="{{ button.href }}" class="dropdown-item {{ button.extra_class_attrs }} {{ extra_button_classes }} {{ button.button_class }}{% if button.disabled %} disabled opacity-50{% endif %}" {{ button.link_attrs|safe }} {{ button.disabled_attrs|safe }} {{ button.selection_attrs|safe }}{% if button.disabled_reason %} data-bs-title="{{ button.disabled_reason }}" data-powercrud-tooltip="semantic"{% endif %}>{{ button.text }}</a></li>
+        {% endfor %}
+    </ul>
+</details>
+{% else %}
+    {% for button in extra_buttons %}<a href="{{ button.href }}" class="btn btn-sm {{ button.extra_class_attrs }} {{ extra_button_classes }} {{ button.button_class }}{% if button.disabled %} disabled opacity-50{% endif %}" {{ button.link_attrs|safe }} {{ button.disabled_attrs|safe }} {{ button.selection_attrs|safe }}{% if button.disabled_reason %} data-bs-title="{{ button.disabled_reason }}" data-powercrud-tooltip="semantic"{% endif %}>{{ button.text }}</a>{% endfor %}
+{% endif %}

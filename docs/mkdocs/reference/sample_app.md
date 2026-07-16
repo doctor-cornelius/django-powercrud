@@ -4,6 +4,17 @@
 
 The `sample` app provides a comprehensive demonstration of django-powercrud features using a realistic book/author management system. It serves as both a testing environment during development and a reference implementation for developers learning the package.
 
+## Presentation variants
+
+The default sample uses the compatible DaisyUI pack. Its runtime metadata footer labels the active presentation. The focused-override presentation uses the same models, routes, data, permissions, and views, while prepending a small set of Book templates. The Bootstrap presentation uses that same sample application with the supported Bootstrap pack:
+
+```bash
+./manage.py runserver --settings=config.settings_focused_overrides 0:8001
+./manage.py runserver --settings=config.settings_bootstrap 0:8002
+```
+
+There is no in-application presentation switcher. Start the desired settings configuration explicitly; use different ports when running presentations side by side. Bootstrap is a supported non-default pack selected at process startup, while the unconfigured default remains DaisyUI. See [Template Packs](../template_packs/index.md).
+
 ## Models
 
 The sample app includes four interconnected models that showcase different relationship types and field configurations:
@@ -98,10 +109,7 @@ class BookCRUDView(PowerCRUDAsyncMixin, CRUDView):
         "a_really_long_property_header_for_title": {
             "view_name": "sample:author-detail",
             "pk_attr": "author_id",
-            "modal_box_classes": (
-                "modal-box flex max-h-[calc(100dvh-2rem)] w-11/12 "
-                "max-w-6xl flex-col"
-            ),
+            "modal_presentation": {"size": "extra_wide"},
         },
         "pages": {
             "view_name": "sample:bigbook-detail",
@@ -150,7 +158,7 @@ class BookCRUDView(PowerCRUDAsyncMixin, CRUDView):
 
 The sample `BookCRUDView` uses `view_title = "My List of Books"` plus `view_instructions = "Here you can edit books"` to demonstrate the narrow heading/helper-text overrides. It also sets `view_help` to demonstrate collapsed screen-level guidance with a one-line summary, escaped paragraph text, a subtle `info` colour tint, and table-aligned width. The Books list demonstrates restricted page-size controls with `page_size_options = [5, 10, 25, 50]` and `page_size_all_enabled = False`, so oversized `100` and `All` choices are not offered. The `column_help_text` mapping covers fields and properties so the sample list shows the header-help tooltip pattern; on linked demo columns, the header help explicitly says whether the link opens in the current page, a new tab/window, or the PowerCRUD modal. `list_cell_tooltip_fields` maps selected fields/properties to row-specific tooltip hooks for the inline-editable `title`, the visible non-inline `pages` field, and the boolean-like `isbn_empty` property cell. The `pages` tooltip uses `mode="lazy"` so its content is fetched only when the page-count cell is hovered or focused. The optional `description_empty` property column can be added through **Cols** when checking lazy row-action availability for books with no description. The sample `title` tooltip intentionally uses a newline so the demo shows multiline semantic list-cell tooltip rendering, while header-help tooltips and other tooltip surfaces keep their normal single-line behavior. That changes only the list surface above and inside the table; other UI copy such as the create button still comes from the model verbose names, and the instructions text, collapsed screen help, header help text, and semantic cell tooltip text are all rendered as plain escaped text rather than HTML.
 
-The same sample view now also demonstrates list-cell linking through the narrow declarative `link_fields` API. The live sample uses the non-inline property column `a_really_long_property_header_for_title` so the screen can keep its primary `title` and `author` columns reserved for inline-edit and dependency demos. That is deliberate: PowerCRUD never turns inline-editable cells into links. The sample sets `list_cell_link_default_open_in = "modal"` and uses the dict form with `pk_attr = "author_id"` plus `modal_box_classes`, so that existing non-inline link opens the related author detail through a noticeably larger PowerCRUD modal when the sample page is running with modal support. In views that omit `list_cell_link_default_open_in`, PowerCRUD assumes `"new"`. The sample links `pages` to the current book detail with explicit `open_in = "current"`, and keeps `isbn` out of `inline_edit_fields` so that visible field can link to a static external ISBN reference with explicit `open_in = "new"`.
+The same sample view now also demonstrates list-cell linking through the narrow declarative `link_fields` API. The live sample uses the non-inline property column `a_really_long_property_header_for_title` so the screen can keep its primary `title` and `author` columns reserved for inline-edit and dependency demos. That is deliberate: PowerCRUD never turns inline-editable cells into links. The sample sets `list_cell_link_default_open_in = "modal"` and uses the dict form with `pk_attr = "author_id"` plus `modal_presentation`, so that existing non-inline link opens the related author detail through a noticeably larger PowerCRUD modal when the sample page is running with modal support. In views that omit `list_cell_link_default_open_in`, PowerCRUD assumes `"new"`. The sample links `pages` to the current book detail with explicit `open_in = "current"`, and keeps `isbn` out of `inline_edit_fields` so that visible field can link to a static external ISBN reference with explicit `open_in = "new"`.
 
 The same sample view now also demonstrates progressive filter visibility:
 
@@ -235,7 +243,7 @@ The sample `BookCRUDView` now also demonstrates both custom action enhancements 
 - permission-hidden toolbar and row actions for the sample viewer user
 - a row-level `extra_action` that disables itself with a tooltip when the book has no description
 - an opt-in modal `extra_action` using `refresh_list_on_modal_close=True` to refresh the current list when its modal is closed
-- per-trigger modal sizing on a modal list-cell link, a modal `extra_button`, and modal `extra_actions` through `modal_box_classes`
+- portable per-trigger modal sizing on a modal list-cell link, a modal `extra_button`, and modal `extra_actions` through `modal_presentation`
 - semantic field-level list-cell tooltips on the inline `title`, non-inline `pages`, and `isbn_empty` property columns
 - session-backed list-column choices through **Cols**
 - declarative list-cell linking on `pages` (`current`), visible `isbn` (`new`), and the non-inline `Really Long Title` property column (`modal`)
@@ -528,7 +536,7 @@ extra_buttons = [
         "url_name": "home",
         "text": "Home in Modal!",
         "display_modal": True,
-        "modal_box_classes": "modal-box flex max-h-[calc(100dvh-2rem)] w-11/12 max-w-3xl flex-col",
+        "modal_presentation": {"max_width": "48rem"},
     },
     {
         "url_name": "sample:bigbook-selected-summary",
@@ -565,12 +573,12 @@ extra_actions = [
         "hidden_if_mode": "lazy",
         "disabled_state": "get_description_preview_disabled_state",
         "disabled_state_mode": "lazy",
-        "modal_box_classes": "modal-box flex max-h-[calc(100dvh-2rem)] w-11/12 max-w-5xl flex-col",
+        "modal_presentation": {"size": "extra_wide"},
     },
 ]
 ```
 
-That lets the sample app demonstrate permission-hidden header actions, default clear-on-success selection-aware header actions, an explicit selection-preserving opt-out, hidden row actions, conditionally disabled row actions, lazy dropdown hidden-state and disabled-state hydration, and per-trigger modal sizing in the same CRUD surface. `permission_check` omits actions before row or selection state is evaluated. `hidden_if` omits a row action when it is not applicable. `hidden_if_mode = "lazy"` keeps that relevance check out of the initial list render and resolves it when the row `More` menu opens. `disabled_state` is the single-hook disabled contract: return a non-empty string to disable the action and show that string as the reason. `disabled_state_mode = "lazy"` keeps that exact disabled reason out of the initial list render and resolves it when the row `More` menu opens. `Selected Summary` uses the view default modal width and demonstrates the default clear-on-success behavior, while `Selected Summary (Do Not Clear)` demonstrates `clear_selection_on_success=False`. `Home in Modal!` shows a header-button modal-width override. The `modal_box_classes` entries are full replacement strings: they keep the default viewport-height classes and add per-trigger width classes for those specific modal calls.
+That lets the sample app demonstrate permission-hidden header actions, default clear-on-success selection-aware header actions, an explicit selection-preserving opt-out, hidden row actions, conditionally disabled row actions, lazy dropdown hidden-state and disabled-state hydration, and per-trigger modal sizing in the same CRUD surface. `permission_check` omits actions before row or selection state is evaluated. `hidden_if` omits a row action when it is not applicable. `hidden_if_mode = "lazy"` keeps that relevance check out of the initial list render and resolves it when the row `More` menu opens. `disabled_state` is the single-hook disabled contract: return a non-empty string to disable the action and show that string as the reason. `disabled_state_mode = "lazy"` keeps that exact disabled reason out of the initial list render and resolves it when the row `More` menu opens. `Selected Summary` uses the view default modal width and demonstrates the default clear-on-success behavior, while `Selected Summary (Do Not Clear)` demonstrates `clear_selection_on_success=False`. `Home in Modal!` shows a header-button maximum-width override. The `modal_presentation` entries are portable partial mappings that merge with the supplied viewport-bounded defaults.
 
 The top-left sample login menu includes a viewer and manager:
 

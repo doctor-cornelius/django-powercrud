@@ -8,6 +8,14 @@ The project now uses a three-layer testing model:
 - Blocking CI browser coverage: run a curated `playwright_smoke` subset that covers core CRUD, inline editing, favourites, bulk selection, row actions, and tooltip reinitialisation.
 - Broader browser regression coverage: run the full Playwright suite separately from the smoke gate when you want deeper browser validation without making every nuanced browser interaction a merge blocker.
 
+## Supported template-pack acceptance
+
+DaisyUI is the compatibility baseline. Each supported pack must pass the applicable shared server behaviour matrix, pack-specific server tests for translated presentation and declared resources, and installed wheel/sdist resource checks.
+
+Use targeted Playwright tests for browser-only risks such as HTMX reinitialisation, modal or dropdown ownership, focus, geometry, and responsive overflow. Cross-pack parity means equivalent supported behaviour and semantic outcomes, not identical DOM, classes, or pixels.
+
+See [Template Packs](../template_packs/index.md#supported-pack-validation) for the complete support matrix.
+
 ## Test commands
 
 ```bash

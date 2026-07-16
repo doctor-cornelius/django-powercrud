@@ -1,0 +1,48 @@
+<div class="d-flex flex-wrap align-items-center gap-2 mb-3 pc-bootstrap-runtime-meta" data-sample-runtime-meta="true">
+    <div class="dropdown">
+        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+            {% if request.user.is_authenticated %}
+                {{ request.user.get_username }}
+            {% else %}
+                Login
+            {% endif %}
+        </button>
+        <ul class="dropdown-menu">
+            <li>
+                <form method="post" action="{% url 'sample:demo-login' 'viewer' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                    <button class="dropdown-item" type="submit">Login as viewer</button>
+                </form>
+            </li>
+            <li>
+                <form method="post" action="{% url 'sample:demo-login' 'manager' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                    <button class="dropdown-item" type="submit">Login as manager</button>
+                </form>
+            </li>
+            {% if request.user.is_authenticated %}
+                <li><hr class="dropdown-divider"></li>
+                <li>
+                    <form method="post" action="{% url 'sample:demo-logout' %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                        <button class="dropdown-item" type="submit">Logout</button>
+                    </form>
+                </li>
+            {% endif %}
+        </ul>
+    </div>
+    <div class="border rounded bg-body-tertiary px-3 py-2 small text-body-secondary pc-bootstrap-runtime-details">
+        <span class="fw-semibold">{{ sample_app_env }}</span>
+        <span class="mx-1 text-body-tertiary">&middot;</span>
+        <span>django-powercrud {{ sample_package_version }}</span>
+        <span class="mx-1 text-body-tertiary">&middot;</span>
+        <span>{{ sample_git_version }}</span>
+        <span class="mx-1 text-body-tertiary">&middot;</span>
+        <span>{{ sample_git_commit }}</span>
+        <span class="mx-1 text-body-tertiary">&middot;</span>
+        <span data-sample-presentation="true">{{ sample_presentation }}</span>
+    </div>
+</div>

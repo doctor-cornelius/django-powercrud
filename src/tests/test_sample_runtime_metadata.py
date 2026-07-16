@@ -5,6 +5,7 @@ from subprocess import CalledProcessError
 
 import pytest
 from django.urls import reverse
+from django.conf import settings
 from importlib import metadata
 
 from sample import context_processors
@@ -56,6 +57,11 @@ def test_sample_app_meta_prefers_explicit_environment_values(monkeypatch):
         "sample_package_version": "0.7.13",
         "sample_git_version": "0.8.0a1",
         "sample_git_commit": "abc1234",
+        "sample_presentation": getattr(
+            settings,
+            "SAMPLE_PRESENTATION",
+            "Standard DaisyUI",
+        ),
     }, "Explicit sample app metadata environment values should be exposed unchanged."
 
 
@@ -102,6 +108,11 @@ def test_sample_app_meta_falls_back_to_git_and_pyproject(monkeypatch, tmp_path):
     assert context["sample_git_commit"] == "abc1234", (
         "Local checkouts should expose the short git commit when available."
     )
+    assert context["sample_presentation"] == getattr(
+        settings,
+        "SAMPLE_PRESENTATION",
+        "Standard DaisyUI",
+    ), "Runtime metadata should expose the active sample presentation label."
 
 
 def test_sample_app_meta_uses_safe_fallbacks_when_git_and_package_fail(
@@ -131,6 +142,11 @@ def test_sample_app_meta_uses_safe_fallbacks_when_git_and_package_fail(
     assert context["sample_git_commit"] == "unknown", (
         "Failed git commit lookup should fall back to unknown."
     )
+    assert context["sample_presentation"] == getattr(
+        settings,
+        "SAMPLE_PRESENTATION",
+        "Standard DaisyUI",
+    ), "Presentation metadata should remain available when version lookups fail."
 
 
 def test_sample_runtime_meta_places_login_before_version_badge():
@@ -150,6 +166,9 @@ def test_sample_runtime_meta_places_login_before_version_badge():
     assert template.index('class="dropdown dropdown-start"') < template.index(
         "django-powercrud {{ sample_package_version }}"
     ), "The auth control should render immediately before the runtime version badge."
+    assert 'data-sample-presentation="true"' in template, (
+        "The runtime metadata footer should identify the active sample presentation."
+    )
 
 
 @pytest.mark.django_db
@@ -162,6 +181,14 @@ def test_sample_home_full_page_includes_runtime_metadata_footer(client):
     assert response_text.count('data-sample-runtime-meta="true"') == 1, (
         "The full-page sample home response should include exactly one metadata footer."
     )
+    expected_presentation = getattr(
+        settings,
+        "SAMPLE_PRESENTATION",
+        "Standard DaisyUI",
+    )
+    assert (
+        f'data-sample-presentation="true">{expected_presentation}<' in response_text
+    ), "The sample shell should identify the active presentation configuration."
 
 
 @pytest.mark.django_db

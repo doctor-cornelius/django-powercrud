@@ -1,0 +1,22 @@
+{% load powercrud %}
+
+<div class="flex flex-wrap items-center gap-2 rounded-box border border-primary/30 bg-base-200/80 p-2 shadow-sm"
+     data-sample-focused-component="list-actions">
+    {% if create_view_url %}
+        {% if use_htmx and htmx_target %}
+            <a class="btn btn-secondary {{ view.get_extra_button_classes }}" href="{{ create_view_url }}"
+               hx-get="{{ create_view_url }}"
+               hx-target="{{ htmx_target }}"
+               data-powercrud-modal-trigger="true"
+               onclick="document.getElementById('{{ modal_id }}').showModal()">
+                Create {{ object_verbose_name }}
+            </a>
+        {% else %}
+            <a class="btn btn-secondary {{ view.get_extra_button_classes }}" href="{{ create_view_url }}">
+                Create {{ object_verbose_name }}
+            </a>
+        {% endif %}
+    {% endif %}
+
+    {% extra_buttons view %}
+</div>

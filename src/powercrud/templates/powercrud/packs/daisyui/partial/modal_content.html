@@ -1,1 +1,4 @@
-<div id="{{ modal_target }}" class="{{ modal_body_classes }}"></div>
+<div id="{{ modal_target }}"
+     class="{% if modal_uses_legacy_classes or not modal_presentation_attrs %}{{ modal_body_classes }}{% else %}min-h-0 flex-1 overflow-y-auto py-4{% endif %}"
+     data-powercrud-modal-content
+     data-powercrud-default-modal-content-classes="{{ modal_body_classes }}"></div>

@@ -13,6 +13,7 @@ from django.template.response import TemplateResponse
 import json
 from neapolitan.views import Role
 from powercrud.logging import get_logger
+from powercrud.contrib.bootstrap5.styles import get_bootstrap5_framework_styles
 from powercrud.packs.daisyui.styles import get_daisyui_framework_styles
 from powercrud.query_params import build_navigation_query_string
 from .config_mixin import resolve_config
@@ -33,7 +34,10 @@ class HtmxMixin:
         Returns:
             dict: Framework-specific style configurations
         """
-        return get_daisyui_framework_styles(self)
+        return {
+            **get_daisyui_framework_styles(self),
+            **get_bootstrap5_framework_styles(self),
+        }
 
     def get_original_target(self):
         """
@@ -119,7 +123,19 @@ class HtmxMixin:
         """
         return str(resolve_config(self).bulk_modal_box_classes_resolved)
 
-    def get_modal_context(self) -> dict[str, str]:
+    def get_modal_presentation(self) -> dict:
+        """Return the normalized portable presentation for ordinary modals."""
+        return dict(resolve_config(self).modal_presentation_resolved)
+
+    def get_bulk_modal_presentation(self) -> dict:
+        """Return the normalized portable presentation for bulk-edit modals."""
+        return dict(resolve_config(self).bulk_modal_presentation_resolved)
+
+    def get_modal_uses_legacy_classes(self) -> bool:
+        """Return whether deprecated modal class settings control this view."""
+        return bool(resolve_config(self).modal_uses_legacy_classes)
+
+    def get_modal_context(self) -> dict[str, object]:
         """
         Return template context values needed to render and target the modal shell.
         """
@@ -130,6 +146,15 @@ class HtmxMixin:
             "modal_box_classes": self.get_modal_box_classes(),
             "modal_body_classes": self.get_modal_body_classes(),
             "bulk_modal_box_classes": self.get_bulk_modal_box_classes(),
+            "modal_presentation": self.get_modal_presentation(),
+            "bulk_modal_presentation": self.get_bulk_modal_presentation(),
+            "modal_presentation_attrs": resolve_config(self).modal_presentation_attrs,
+            "bulk_modal_presentation_attrs": resolve_config(
+                self
+            ).bulk_modal_presentation_attrs,
+            "modal_uses_legacy_classes": resolve_config(
+                self
+            ).modal_uses_legacy_classes,
         }
 
     def get_hx_trigger(self):

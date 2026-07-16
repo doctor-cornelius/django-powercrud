@@ -6,12 +6,11 @@ Once the basics are in place you may want to tailor templates, extend mixins, or
 
 ## 1. Copy and tweak templates
 
-Use the management command to copy PowerCRUD templates into your app:
+Use focused component overrides for ordinary template changes. They retain PowerCRUD-owned behaviour while giving your application a narrow markup boundary. See [Template Packs](../../template_packs/index.md#customization) for the pack-aware customization contract.
+
+Use the management command when a focused or model-root copy fits the change:
 
 ```bash
-# Copy entire structure
-python manage.py pcrud_mktemplate myapp --all
-
 # Just the CRUD templates for a model
 python manage.py pcrud_mktemplate myapp.Project --all
 
@@ -20,7 +19,9 @@ python manage.py pcrud_mktemplate myapp.Project --list
 python manage.py pcrud_mktemplate myapp.Project --form
 ```
 
-Model-root and focused copies land directly in `myapp/templates/myapp/` and are selected automatically before the packaged default, so removing one restores that default. App-wide `myapp --all` instead creates a cohesive `myapp/templates/myapp/{framework}/` tree; set `templates_path = "myapp/{framework}"` on the view to use it, and do not rely on arbitrary deleted files falling back outside that selected tree.
+Model-root and focused copies land directly in `myapp/templates/myapp/` and are selected automatically before the packaged default, so removing one restores that default.
+
+The plain-app `myapp --all` command is a deprecated DaisyUI-only 0.x compatibility path. It creates an application-owned snapshot and is unavailable for Bootstrap; use focused overrides, model roots, or an explicitly owned custom pack instead.
 
 ---
 

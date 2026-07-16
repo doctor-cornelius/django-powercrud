@@ -23,7 +23,8 @@ import { createInlineEditRuntime } from './runtime/inline-edit.js';
 import { createDaisyuiComposition } from './runtime/daisyui-composition.js';
 import { createCurrentTemplateRuntime } from './runtime/current-template.js';
 
-(function powercrudRuntime(global) {
+export function installPowercrudRuntime({ createComposition = createDaisyuiComposition } = {}) {
+    (function powercrudRuntime(global) {
     'use strict';
 
     // This file is the stable public entry. Internal modules are wired here so
@@ -79,7 +80,7 @@ import { createCurrentTemplateRuntime } from './runtime/current-template.js';
         });
     }
 
-    const daisyuiComposition = createDaisyuiComposition({
+    const daisyuiComposition = createComposition({
         global,
         documentObject: document,
         isElementVisible,
@@ -118,8 +119,10 @@ import { createCurrentTemplateRuntime } from './runtime/current-template.js';
         getHtmxInstance,
         initPowercrudTooltips,
         applyPowercrudModalTriggerClasses: modalAdapter.applyTriggerClasses,
+        bindPowercrudModalClose: modalAdapter.bindClose,
         cleanupDuplicatePowercrudModals: modalAdapter.cleanupDuplicates,
         closeAllPowercrudModals: modalAdapter.closeAll,
+        showPowercrudModal: modalAdapter.show,
         setRowActionLinkDisabled: actionSelectionAdapter.setRowActionDisabledPresentation,
         startButtonSpinner,
         stopButtonSpinner,
@@ -289,6 +292,7 @@ import { createCurrentTemplateRuntime } from './runtime/current-template.js';
         // markup, and clear detached body-level UI tied to the fragment.
         destroyPowercrudSearchableSelects(fragment);
         destroyPowercrudTooltips(fragment);
+        modalAdapter.dispose(fragment);
         inlineEdit.destroyInlineFieldErrorPopovers(fragment);
     }
 
@@ -441,6 +445,7 @@ import { createCurrentTemplateRuntime } from './runtime/current-template.js';
                     const root = getObjectListRoot(filterToggle);
                     if (root) {
                         toggleFilterVisibility(root);
+                        global.requestAnimationFrame(() => syncListToolbarWidth(root));
                     }
                     return;
                 }
@@ -515,6 +520,15 @@ import { createCurrentTemplateRuntime } from './runtime/current-template.js';
             },
             handleDocumentToggleCapture(event) {
                 const chooser = event.target instanceof Element ? event.target : null;
+                if (
+                    chooser instanceof HTMLDetailsElement
+                    && chooser.matches('[data-powercrud-view-help="true"]')
+                ) {
+                    const root = getObjectListRoot(chooser);
+                    if (root) {
+                        global.requestAnimationFrame(() => syncListToolbarWidth(root));
+                    }
+                }
                 if (
                     chooser instanceof HTMLDetailsElement
                     && chooser.matches('[data-powercrud-list-columns="true"]')
@@ -800,4 +814,9 @@ import { createCurrentTemplateRuntime } from './runtime/current-template.js';
     }
 
     installPowercrudRuntime(global);
-})(window);
+    })(window);
+}
+
+if (!window.__powercrudPrivateDeferInstall) {
+    installPowercrudRuntime({ createComposition: createDaisyuiComposition });
+}

@@ -1,20 +1,25 @@
 # Styling & Tailwind
 
-PowerCRUD ships with daisyUI/Tailwind defaults and a packaged frontend bundle, but you can still bring your own CSS framework or customise tables/buttons/layout. This chapter covers the common knobs and Tailwind integration; deeper options live in the reference.
+PowerCRUD ships with a DaisyUI/Tailwind default and a supported Bootstrap 5 template pack. This chapter covers common DaisyUI/Tailwind styling controls and integration; see [Template Packs](../template_packs/index.md) for pack selection, cross-pack contracts, and Bootstrap requirements.
 
 ---
 
-## 1. Choose a framework
+## 1. DaisyUI default and Bootstrap selection
 
 ```python
-# settings.py
+# Leave POWERCRUD_TEMPLATE_PACK unset for the DaisyUI default.
+#
+# To select Bootstrap, install powercrud.contrib.bootstrap5 and use:
 POWERCRUD_SETTINGS = {
-    "POWERCRUD_CSS_FRAMEWORK": "daisyui",   # default
+    "POWERCRUD_TEMPLATE_PACK": "powercrud.contrib.bootstrap5:template_pack",
 }
 ```
 
-- **daisyUI** (Tailwind v4) is the maintained path.
-- Custom frameworks are possible by copying templates (see [Customisation tips](advanced/customisation_tips.md)) and wiring in a new pack.
+- **DaisyUI** (Tailwind v4) is the compatible default.
+- **Bootstrap 5** is a supported non-default pack. It has its own frontend asset requirements.
+- Class settings such as `table_classes` are selected-framework inputs: write DaisyUI/Tailwind classes for the default, or Bootstrap classes when Bootstrap is selected. They are not translated between frameworks.
+
+Do not use `POWERCRUD_CSS_FRAMEWORK` to select Bootstrap; it is a legacy compatibility setting. For a framework beyond the supported packs, create a custom template pack rather than copying the package tree. See [Template Packs](../template_packs/index.md#customization).
 
 ---
 

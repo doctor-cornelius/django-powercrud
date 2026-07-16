@@ -156,11 +156,11 @@ Upgrade notes:
     - return `False` to suppress declarative `link_fields` for that cell
 - Supported dict keys:
     - `url` (required)
-    - `open_in`, `title`, `rel`, `classes`, `modal_box_classes` (optional)
+    - `open_in`, `title`, `rel`, `classes`, `modal_presentation` (optional)
 - Important note: Inline-editable cells are never linked. Inline click-to-edit always wins, even if the hook or `link_fields` would otherwise provide a link.
 - Important note: This hook can override or suppress declarative config row by row. That overlap is intentional and does not generate warnings.
 - Important note: Omitted `open_in` values use the view's optional `list_cell_link_default_open_in`. If the view omits that option too, PowerCRUD assumes `"new"`. Use `"current"` for a same-page anchor or `"modal"` for the normal PowerCRUD modal flow. If modal support is off, PowerCRUD keeps the link as a normal anchor.
-- Important note: `modal_box_classes` is only used with `open_in = "modal"`. It replaces the shared modal box classes for that clicked cell, so keep the default viewport-height classes when you only want to change width.
+- Important note: `modal_presentation` is only used with `open_in = "modal"`. It is a partial portable presentation mapping and merges with the view setting for that clicked cell. The legacy `modal_box_classes` key still works but emits `FutureWarning` and is targeted for removal in v1.0.
 - Short example:
 
     ```python
@@ -179,10 +179,7 @@ Upgrade notes:
             return {
                 "url": self.safe_reverse("projects:project-detail", kwargs={"pk": obj.pk}),
                 "open_in": "modal",
-                "modal_box_classes": (
-                    "modal-box flex max-h-[calc(100dvh-2rem)] "
-                    "w-11/12 max-w-5xl flex-col"
-                ),
+                "modal_presentation": {"size": "extra_wide"},
             }
         if field_name == "owner" and request and not request.user.has_perm("crm.view_owner"):
             return False

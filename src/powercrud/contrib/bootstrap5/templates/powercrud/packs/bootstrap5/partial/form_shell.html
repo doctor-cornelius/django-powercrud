@@ -1,0 +1,47 @@
+<h1 class="h2 mb-4">{% if object %}Edit {{ object_verbose_name }}{% else %}Create {{ object_verbose_name }}{% endif %}</h1>
+
+{% if form_display_items %}
+    <section class="mb-4" aria-label="Context">
+        <h2 class="h5">Context</h2>
+        <dl class="row mb-0">
+            {% for item in form_display_items %}
+                <dt class="col-sm-3">{{ item.label }}</dt>
+                <dd class="col-sm-9">{{ item.value|default:"-" }}</dd>
+            {% endfor %}
+        </dl>
+    </section>
+{% endif %}
+
+<div class="card">
+    <div class="card-body">
+        <form method="post"
+              {% if form.is_multipart %}enctype="multipart/form-data"{% endif %}
+              action="{% if object %}{{ update_view_url }}{% else %}{{ create_view_url }}{% endif %}"
+              data-powercrud-form="object"
+              {% if use_htmx and original_target %}
+                  hx-post="{% if object %}{{ update_view_url }}{% else %}{{ create_view_url }}{% endif %}"
+                  hx-target="{{ original_target }}"
+                  hx-push-url="{% if use_modal %}false{% else %}true{% endif %}"
+                  hx-headers='{"X-Redisplay-Object-List": "true"}'
+              {% endif %}>
+            {% csrf_token %}
+            {% for key, values in request.GET.lists %}
+                {% if key != "csrfmiddlewaretoken" and key != "page" %}
+                    {% for value in values %}
+                        <input type="hidden" name="_powercrud_filter_{{ key }}" value="{{ value }}">
+                    {% endfor %}
+                {% endif %}
+            {% endfor %}
+            {% if form_fields_template_paths %}
+                {% include form_fields_template_paths %}
+            {% else %}
+                {% include framework_template_path|add:"/partial/form_fields.html" %}
+            {% endif %}
+            {% if form_actions_template_paths %}
+                {% include form_actions_template_paths %}
+            {% else %}
+                {% include framework_template_path|add:"/partial/form_actions.html" %}
+            {% endif %}
+        </form>
+    </div>
+</div>

@@ -70,7 +70,7 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
         "owner": "crm:owner-detail",
         "reference_code": {
             "view_name": "projects:project-detail",
-            "modal_box_classes": "modal-box flex max-h-[calc(100dvh-2rem)] w-11/12 max-w-5xl flex-col",
+            "modal_presentation": {"size": "extra_wide"},
         },
         "is_overdue": {
             "url": "https://docs.example.com/projects",
@@ -86,8 +86,8 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
     default_htmx_target = "#content"
     modal_id = "projectModal"
     modal_target = "projectModalContent"
-    modal_box_classes = "modal-box flex max-h-[calc(100dvh-2rem)] w-11/12 max-w-4xl flex-col"
-    bulk_modal_box_classes = "modal-box flex max-h-[calc(100dvh-2rem)] w-11/12 max-w-6xl flex-col"
+    modal_presentation = {"size": "wide"}
+    bulk_modal_presentation = {"size": "extra_wide"}
     hx_trigger = {
         "projectsChanged": True,
         "refreshSidebar": True,
@@ -226,7 +226,7 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
             "permission_check": "can_view_project_report",
             "permission_behavior": "hide",
             "refresh_list_on_modal_close": True,
-            "modal_box_classes": "modal-box flex max-h-[calc(100dvh-2rem)] w-11/12 max-w-5xl flex-col",
+            "modal_presentation": {"size": "extra_wide"},
         },
     ]
 
@@ -253,7 +253,7 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
             "hidden_if": "should_hide_history_action",
             "disabled_state": "get_history_action_disabled_state",
             "refresh_list_on_modal_close": True,
-            "modal_box_classes": "modal-box flex max-h-[calc(100dvh-2rem)] w-11/12 max-w-5xl flex-col",
+            "modal_presentation": {"size": "extra_wide"},
         },
     ]
 
@@ -312,7 +312,7 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
             return {
                 "url": self.safe_reverse("crm:owner-detail", kwargs={"pk": obj.owner_id}),
                 "open_in": "modal",
-                "modal_box_classes": "modal-box flex max-h-[calc(100dvh-2rem)] w-11/12 max-w-5xl flex-col",
+                "modal_presentation": {"size": "extra_wide"},
             }
         return None
 ```
@@ -323,14 +323,14 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
 - `show_record_count` and `show_bulk_selection_meta` are separate toggles. You can show record counts without bulk-selection prompts, or vice versa.
 - `view_title` overrides only the visible list heading. It does not change create-button text, empty-state copy, or the model’s own verbose names.
 - `view_instructions` adds plain-text helper copy directly below the visible list heading. The content is escaped and does not accept HTML.
-- `view_help` adds collapsed plain-text screen help below `view_instructions` and above the list toolbar. The `summary` is always visible; blank lines in `details` create paragraphs; set `default_open = True` only when the help should start expanded. Help aligns to the table width, respects `view_help_min_width`, and can use `color` to apply a subtle daisyUI semantic or hex colour tint.
+- `view_help` adds collapsed plain-text screen help below `view_instructions` and above the list toolbar. The `summary` is always visible; blank lines in `details` create paragraphs; set `default_open = True` only when the help should start expanded. Help aligns to the table width, respects `view_help_min_width`, and can use `color` to apply a subtle pack-native semantic or hex colour tint.
 - `column_help_text` adds optional plain-text tooltips to specific header labels. The help trigger is a separate info icon, so sortable headers keep sorting behavior.
 - `column_alignments` lets you override list body-cell alignment for specific rendered fields or properties without changing the default heuristic for the rest of the table.
 - `default_datetime_value_format` controls the unconfigured list display of `DateTimeField` columns on this view; package default is `date` for legacy compatibility. `column_value_formats` then overrides individual typed temporal fields or annotations; values are `date`, `time`, or `datetime`. Set Django `DATE_FORMAT`, `TIME_FORMAT`, and `DATETIME_FORMAT` in `settings.py` to control their rendered appearance.
 - `list_cell_tooltip_fields` maps selected rendered columns to semantic list-cell tooltip hooks. Named hooks are only called for configured names that are actually visible in the current list, and returned plain text may include newline characters when the semantic cell tooltip should render on multiple lines.
 - `list_cell_link_default_open_in` is optional and sets the default opening mode for list-cell links on this view. If omitted, PowerCRUD assumes `"new"`. Use `"modal"` when internal drill-in links should preserve the current list context.
-- `link_fields` is intentionally narrow. Use it for the common cases where a visible column should reverse to a named detail page or use a static external URL. Dict values accept exactly one of `view_name` or `url`, plus optional `pk_attr`, `open_in`, and `modal_box_classes` for modal links.
-- `get_list_cell_link(...)` is the escape hatch for conditional or row-specific link behavior. Returning `None` falls back to `link_fields`; returning `False` suppresses declarative linking for that cell. Hook metadata can also set `open_in = "new"` or `open_in = "modal"`, and modal hook links can set `modal_box_classes`.
+- `link_fields` is intentionally narrow. Use it for the common cases where a visible column should reverse to a named detail page or use a static external URL. Dict values accept exactly one of `view_name` or `url`, plus optional `pk_attr`, `open_in`, and `modal_presentation` for modal links.
+- `get_list_cell_link(...)` is the escape hatch for conditional or row-specific link behavior. Returning `None` falls back to `link_fields`; returning `False` suppresses declarative linking for that cell. Hook metadata can also set `open_in = "new"` or `open_in = "modal"`, and modal hook links can set `modal_presentation`.
 - `needs_attention` is a queryset annotation field. Its public `annotate(...)` name is used directly in `fields` and `filterset_fields`, so it appears in list order and can filter/sort without becoming an editable model form field.
 - `list_options_enabled = True` shows **Cols** while keeping every allowed `fields` / `properties` entry available for the current session. `default_list_fields` makes the reset/default state narrower; leave it unset when every allowed list column should be visible by default.
 - Queryset annotation fields are read-only. Keep them out of `form_fields`, `inline_edit_fields`, and `bulk_fields`.
@@ -351,12 +351,12 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
 - `extra_button_selection_controls_disabled = True` is for cases where the button uses selected rows, but this list should not show checkboxes just because of that button.
 - This is mainly useful when the selected rows come from somewhere else, or when the page has its own custom way to choose rows. Bulk edit and bulk delete still show checkboxes because they need them.
 - `selection_min_behavior = "disable"` lets the frontend grey out a selection-aware header button until enough rows are selected, but the endpoint should still validate the selection server-side.
-- `modal_box_classes` on a modal `extra_buttons` item replaces the view-level modal box classes only while that button's modal is open. Keep `flex max-h-[calc(100dvh-2rem)] flex-col` in the string if you want the supplied viewport-bounded behavior plus a custom width.
-- `modal_box_classes` also works on list-cell links and hook-returned list-cell links when `open_in = "modal"`.
+- `modal_presentation` on a modal `extra_buttons` item merges with the view presentation only while that button's modal is open.
+- `modal_presentation` also works on list-cell links and hook-returned list-cell links when `open_in = "modal"`.
 - `hidden_if` lets row `extra_actions` omit themselves entirely when an action is not applicable to that row.
 - `disabled_state` lets row `extra_actions` disable themselves through one hook that returns a disabled reason string. The legacy `disabled_if` / `disabled_reason` pair remains available for compatibility but is deprecated.
 - Custom action and button endpoints should still enforce permissions server-side. PowerCRUD only enforces backend permission hooks for its own create, detail, update, delete, and inline-update flows.
-- `modal_box_classes` works the same way on modal `extra_actions`, including actions rendered inside the dropdown `More` menu.
+- `modal_presentation` works the same way on modal `extra_actions`, including actions rendered inside the dropdown `More` menu.
 - `inline_edit_fields` is the current inline-editing configuration. Older `inline_edit_enabled` usage is legacy and should not be used in new code.
 - `inline_edit_always_visible = True` is the current default, so editable cells keep a subtle resting hint unless you disable it.
 - `inline_edit_highlight_accent = "#14b8a6"` is the current default accent. PowerCRUD derives the lighter resting tint and stronger hover/focus tint from that single hex value.

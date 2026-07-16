@@ -5,6 +5,7 @@ from uuid import uuid4
 from urllib.parse import urlparse
 
 import pytest
+from django.conf import settings
 
 pytest.importorskip("playwright.sync_api")
 from playwright.sync_api import Page, expect
@@ -19,6 +20,13 @@ pytestmark = [
     pytest.mark.django_db,
     pytest.mark.usefixtures("sample_manager_page"),
 ]
+
+BOOTSTRAP_SELECTOR = "powercrud.contrib.bootstrap5:template_pack"
+
+
+def using_bootstrap_pack() -> bool:
+    """Return whether the active browser settings select Bootstrap."""
+    return settings.POWERCRUD_SETTINGS.get("POWERCRUD_TEMPLATE_PACK") == BOOTSTRAP_SELECTOR
 
 
 @pytest.fixture
@@ -463,7 +471,7 @@ def test_inline_actions_fit_reduced_profile_action_column(
             const saveBox = save.getBoundingClientRect();
             const cancelBox = cancel.getBoundingClientRect();
             const tableBox = cell.closest('table').getBoundingClientRect();
-            const scrollBox = cell.closest('.overflow-x-auto');
+            const scrollBox = cell.closest('.overflow-x-auto, .table-responsive');
             return {
                 previousCellLeft: previousBox.left,
                 previousCellRight: previousBox.right,
@@ -544,9 +552,10 @@ def test_inline_edit_display_truncates_long_values(page: Page, books_url: str, i
 
     open_books_page(page, books_url)
 
+    tooltip_attribute = "data-bs-title" if using_bootstrap_pack() else "data-tippy-content"
     overflow_label = page.locator(
         "td[data-field-name='author'] "
-        f".pc-inline-display-label[data-powercrud-tooltip='overflow'][data-tippy-content=\"{long_author_name}\"]"
+        f".pc-inline-display-label[data-powercrud-tooltip='overflow'][{tooltip_attribute}=\"{long_author_name}\"]"
     ).first
     expect(overflow_label).to_be_visible()
     assert overflow_label.evaluate("el => el.scrollWidth > el.clientWidth"), (

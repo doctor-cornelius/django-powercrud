@@ -736,7 +736,7 @@ class SampleBookUpdateGuardTests(TestCase):
         )
         self.assertContains(
             response,
-            'class="inline-edit-trigger w-full px-0 opacity-50 cursor-not-allowed',
+            'class="inline-edit-trigger w-full px-0 opacity-60 cursor-not-allowed',
             msg_prefix="The guarded sample book should render disabled inline edit affordances for editable cells.",
         )
 

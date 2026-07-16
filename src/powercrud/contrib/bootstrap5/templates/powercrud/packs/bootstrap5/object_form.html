@@ -1,0 +1,36 @@
+{% extends base_template_path %}
+{% load powercrud_partials %}
+
+{% if use_crispy %}
+    {% include framework_template_path|add:"/crispy_partials.html#load_tags" %}
+{% endif %}
+
+{% block content %}
+    {% partial pcrud_content %}
+{% endblock %}
+
+{% partialdef pcrud_content %}
+    <section class="{% if use_modal %}p-4{% else %}container py-4{% endif %}">
+        {% if conflict_detected %}
+            {% partial conflict_detected %}
+        {% else %}
+            {% partial normal_content %}
+        {% endif %}
+    </section>
+{% endpartialdef pcrud_content %}
+
+{% partialdef normal_content %}
+    {% if form_shell_template_paths %}
+        {% include form_shell_template_paths %}
+    {% else %}
+        {% include framework_template_path|add:"/partial/form_shell.html" %}
+    {% endif %}
+{% endpartialdef normal_content %}
+
+{% partialdef conflict_detected %}
+    {% if form_conflict_template_paths %}
+        {% include form_conflict_template_paths %}
+    {% else %}
+        {% include framework_template_path|add:"/partial/form_conflict.html" %}
+    {% endif %}
+{% endpartialdef conflict_detected %}

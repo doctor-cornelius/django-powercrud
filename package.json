@@ -4,6 +4,7 @@
   "description": "This is an opinionated extension package for the excellent [`neapolitan`](https://github.com/carltongibson/neapolitan/tree/main) package.",
   "devDependencies": {
     "@tailwindcss/vite": "^4.2.2",
+    "bootstrap": "^5.3.8",
     "daisyui": "^5.5.19",
     "htmx.org": "^2.0.8",
     "tailwindcss": "^4.2.2",

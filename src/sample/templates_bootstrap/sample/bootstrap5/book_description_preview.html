@@ -1,0 +1,20 @@
+{% extends '../base.html' %}
+{% load powercrud_partials %}
+
+{% block content %}
+    {% partial pcrud_content %}
+{% endblock %}
+
+{% partialdef pcrud_content %}
+    <section class="card shadow-sm">
+        <div class="card-body">
+            <h2 class="h4 card-title">{{ book.title }}</h2>
+            <p class="small text-body-secondary">Description Preview</p>
+            {% if has_description %}
+                <p class="mb-0">{{ book.description }}</p>
+            {% else %}
+                <div class="alert alert-info mb-0">This book does not have a description yet.</div>
+            {% endif %}
+        </div>
+    </section>
+{% endpartialdef %}

@@ -1,0 +1,27 @@
+{% load powercrud %}
+
+{% if is_paginated %}
+    <nav class="mt-3 pc-bootstrap-pagination" aria-label="Page navigation" data-powercrud-pagination="true">
+        <ul class="pagination pagination-sm justify-content-center mb-0">
+            {% if page_obj.has_previous %}
+                <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.page_size %}&page_size={{ request.GET.page_size }}{% endif %}"
+                   {% if use_htmx and original_target %}hx-get="?page={{ page_obj.previous_page_number }}" hx-vals="js:{...getCurrentFilters()}" hx-headers='{"X-Filter-Sort-Request": "true"}' hx-target="#filtered_results" hx-replace-url="true" hx-push-url="true"{% endif %}>Previous</a></li>
+            {% endif %}
+            {% get_proper_elided_page_range paginator page_obj.number as page_range %}
+            {% for page_number in page_range %}
+                {% if page_number == "..." %}
+                    <li class="page-item disabled"><span class="page-link">…</span></li>
+                {% else %}
+                    <li class="page-item{% if page_obj.number == page_number %} active{% endif %}"{% if page_obj.number == page_number %} aria-current="page"{% endif %}>
+                        <a class="page-link" href="?page={{ page_number }}{% if request.GET.page_size %}&page_size={{ request.GET.page_size }}{% endif %}"
+                           {% if use_htmx and original_target %}hx-get="?page={{ page_number }}" hx-vals="js:{...getCurrentFilters()}" hx-headers='{"X-Filter-Sort-Request": "true"}' hx-target="#filtered_results" hx-replace-url="true" hx-push-url="true"{% endif %}>{{ page_number }}</a>
+                    </li>
+                {% endif %}
+            {% endfor %}
+            {% if page_obj.has_next %}
+                <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.page_size %}&page_size={{ request.GET.page_size }}{% endif %}"
+                   {% if use_htmx and original_target %}hx-get="?page={{ page_obj.next_page_number }}" hx-vals="js:{...getCurrentFilters()}" hx-headers='{"X-Filter-Sort-Request": "true"}' hx-target="#filtered_results" hx-replace-url="true" hx-push-url="true"{% endif %}>Next</a></li>
+            {% endif %}
+        </ul>
+    </nav>
+{% endif %}

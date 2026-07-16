@@ -50,6 +50,33 @@ def test_poweraction_with_options_returns_changed_copy_without_mutating_original
     )
 
 
+def test_poweraction_serializes_portable_modal_presentation():
+    """Expose semantic modal overrides through the normal action dictionary path."""
+    action = PowerAction(
+        text="Preview",
+        url_name="sample:book-detail",
+        display_modal=True,
+        modal_presentation={"size": "wide", "max_width": "60rem"},
+    )
+
+    assert action.to_dict()["modal_presentation"] == {
+        "size": "wide",
+        "max_width": "60rem",
+    }, "PowerAction should carry a validated partial modal presentation to the view."
+
+
+def test_poweraction_rejects_legacy_and_portable_modal_overrides_together():
+    """Avoid choosing silently between two conflicting modal configuration styles."""
+    with pytest.raises(ValueError, match="cannot combine modal_box_classes"):
+        PowerAction(
+            text="Preview",
+            url_name="sample:book-detail",
+            display_modal=True,
+            modal_box_classes="modal-box max-w-5xl",
+            modal_presentation={"size": "wide"},
+        )
+
+
 def test_poweraction_rejects_mixed_disabled_state_styles():
     with pytest.raises(ValueError, match="disabled_state"):
         PowerAction(

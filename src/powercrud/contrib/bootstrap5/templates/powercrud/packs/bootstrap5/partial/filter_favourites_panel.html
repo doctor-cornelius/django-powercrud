@@ -1,0 +1,43 @@
+{% load powercrud_bootstrap5 %}
+<form method="post" class="pc-bootstrap-favourites-manage" data-powercrud-favourite-action-form="true">
+    {% csrf_token %}
+    <input type="hidden" name="view_key" value="{{ filter_favourites_view_key }}">
+    <input type="hidden" name="list_view_url" value="{{ list_view_url }}">
+    <input type="hidden" name="toolbar_dom_id" value="{{ filter_favourites_toolbar_dom_id }}">
+    <input type="hidden" name="current_state_json" value="{{ current_list_state_json|escape }}">
+    <input type="hidden" name="state_json" value="{{ current_list_state_json|escape }}">
+    <input type="hidden" name="original_target" value="{{ original_target }}">
+    <input type="hidden" name="selected_favourite_id" value="{{ selected_filter_favourite_id|default:'' }}">
+    <div class="d-flex align-items-start justify-content-between gap-3 mb-3">
+        <div>
+            <h2 class="h6 mb-1">Saved favourites</h2>
+            <p class="small text-body-secondary mb-0">Apply, update, or remove a saved list state.</p>
+        </div>
+    </div>
+    <label class="form-label small fw-semibold" for="favourite-select">Choose a favourite</label>
+    <select id="favourite-select" name="favourite_id" class="form-select form-select-sm" data-powercrud-favourite-select="true" data-powercrud-searchable-select="true" data-powercrud-searchable-placeholder="Saved favourite..." hx-get="{{ filter_favourites_apply_url }}" hx-include="closest form" hx-target="{{ original_target|default:'#content' }}" hx-swap="innerHTML" hx-push-url="false"{% if saved_filter_favourites %} required{% endif %}{% if not filter_favourites_can_manage or not saved_filter_favourites %} disabled{% endif %}>
+        <option value="">{% if saved_filter_favourites %}Saved favourite…{% else %}No saved favourites{% endif %}</option>
+        {% for favourite in saved_filter_favourites %}
+            <option value="{{ favourite.pk }}" data-powercrud-favourite-query-string="{{ favourite.powercrud_query_string|escape }}" data-powercrud-favourite-state-json="{{ favourite.powercrud_state_json|escape }}" data-powercrud-favourite-visible-filters='{{ favourite.powercrud_visible_filters_json|escapejs }}'{% if selected_filter_favourite_id == favourite.pk %} selected{% endif %}>{{ favourite.name }}</option>
+        {% endfor %}
+    </select>
+    <div class="d-flex flex-wrap gap-2 mt-3">
+        <button type="button" class="btn btn-sm btn-outline-secondary" data-powercrud-reset-view="true">Reset</button>
+        <button type="button" class="btn btn-sm btn-outline-secondary" hx-post="{{ filter_favourites_update_url }}" hx-include="closest form" hx-target="closest [data-powercrud-filter-favourites-panel='true']" hx-swap="innerHTML" data-powercrud-favourite-manage-action="true"{% if not filter_favourites_can_manage or not saved_filter_favourites %} disabled{% endif %}>Update</button>
+        <button type="button" class="btn btn-sm btn-outline-danger" hx-post="{{ filter_favourites_delete_url }}" hx-include="closest form" hx-target="closest [data-powercrud-filter-favourites-panel='true']" hx-swap="innerHTML" data-powercrud-favourite-manage-action="true"{% if not filter_favourites_can_manage or not saved_filter_favourites %} disabled{% endif %}>Delete</button>
+    </div>
+</form>
+{% if filter_favourite_save_form %}
+    <form method="post" class="pc-bootstrap-favourites-save-form border-top mt-3 pt-3" hx-post="{{ filter_favourites_save_url }}" hx-target="closest [data-powercrud-filter-favourites-panel='true']" hx-swap="innerHTML" data-powercrud-favourite-save-form="true">
+        {% csrf_token %}
+        {{ filter_favourite_save_form.view_key }}{{ filter_favourite_save_form.list_view_url }}{{ filter_favourite_save_form.toolbar_dom_id }}{{ filter_favourite_save_form.current_state_json }}{{ filter_favourite_save_form.original_target }}{{ filter_favourite_save_form.state_json }}{{ filter_favourite_save_form.selected_favourite_id }}
+        <label class="form-label small fw-semibold" for="{{ filter_favourite_save_form.name.id_for_label }}">Favourite name</label>
+        <div class="input-group">
+            {% bootstrap5_field filter_favourite_save_form.name small=True include_help=False %}
+            <button type="submit" class="btn btn-primary">Save favourite</button>
+        </div>
+        {% if filter_favourite_save_form.name.errors %}<div class="invalid-feedback d-block">{{ filter_favourite_save_form.name.errors|join:", " }}</div>{% endif %}
+        {% if filter_favourite_save_form.non_field_errors %}<div class="invalid-feedback d-block">{{ filter_favourite_save_form.non_field_errors|join:", " }}</div>{% endif %}
+    </form>
+{% endif %}
+{% if filter_favourites_requires_login %}<div class="small text-body-secondary mt-3">Sign in to save favourites.</div>{% endif %}

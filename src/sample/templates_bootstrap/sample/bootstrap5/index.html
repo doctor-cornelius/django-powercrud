@@ -1,0 +1,17 @@
+{% extends '../base.html' %}
+{% load powercrud_partials %}
+
+{% block content %}
+    {% partial content %}
+{% endblock content %}
+
+{% partialdef content %}
+    <title id="header_title">{{ header_title }}</title>
+    <h1 class="h2 my-3">powercrud Test Home Page</h1>
+    <p>This header and text are served from the Bootstrap 5 sample presentation.</p>
+    <div class="d-flex flex-wrap gap-2 mt-3">
+        <span class="badge text-bg-primary">Primary</span>
+        <span class="badge text-bg-secondary">Secondary</span>
+        <span class="badge text-bg-success">Success</span>
+    </div>
+{% endpartialdef content %}
