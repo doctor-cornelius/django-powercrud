@@ -21,7 +21,7 @@ PowerCRUD has two layers for forms:
 
 Every supported template pack renders native Django forms. Crispy Forms remains an application decision: DaisyUI is tested with the `tailwind` Crispy pack and Bootstrap 5 with `crispy-bootstrap5`. Configure `use_crispy` and the Crispy pack in your application; PowerCRUD does not silently choose or enable one.
 
-See [Template Packs](../template_packs/index.md#forms-and-crispy) for the supported combinations and boundaries.
+See [Selecting and configuring a template pack](../template_packs/selecting-and-configuring.md#configure-forms-deliberately) for the supported combinations and boundaries.
 
 When you do **not** set `form_class`, PowerCRUD generates a `ModelForm` for you and uses parameters such as `form_fields` and `form_fields_exclude` to decide which editable fields belong on that form.
 

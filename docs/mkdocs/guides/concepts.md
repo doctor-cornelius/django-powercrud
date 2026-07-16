@@ -69,7 +69,7 @@ Presentation options include `base_template_path`, `templates_path`, `use_htmx`,
 
 Presentation overlaps with field links and actions because both need a target. The important distinction is that a field or action describes what the user can do; presentation describes where the result opens.
 
-The selected template pack owns framework markup and assets. Portable semantic presentation settings have the same product meaning across supported packs; raw class strings are selected-framework inputs. See [Template Packs](../template_packs/index.md#presentation-contract) for the contract and explicit-support rule.
+The selected template pack owns framework markup and assets. Portable semantic presentation settings have the same product meaning across supported packs; raw class strings are selected-framework inputs. See [Testing and accepting a template pack](../template_packs/testing-and-acceptance.md) for the support rule.
 
 ### Selection
 

@@ -43,7 +43,8 @@ See the [full documentation](https://doctor-cornelius.github.io/django-powercrud
 - Bulk edit/delete with selection persistence and an optional async path.
 - Async infrastructure: conflict locks, progress cache, django-q2 workers, cleanup command, optional dashboard persistence.
 - Filtering, sorting, and pagination helpers backed by tuned templates.
-- Styling controls (daisyUI/Tailwind) plus template scaffolding and Tailwind safelist extraction.
+- Template-pack support: built-in DaisyUI, maintained Bootstrap 5, and a public contract for authors to create and publish compatible packs.
+- Styling controls, template and pack scaffolding, and Tailwind safelist extraction.
 - Extension hooks for custom actions, buttons, and templates, illustrated in the bundled sample app.
 - Two supported API styles: direct class-attribute configuration plus structured declarations for repeated field and action intent.
 - Tooling support: Dockerised dev environment, management commands, pytest + Playwright coverage.
@@ -108,12 +109,13 @@ Here async queueing is explicit: you opt in by using `PowerCRUDAsyncMixin`, enab
 - Continue with [Setup & Core CRUD basics](https://doctor-cornelius.github.io/django-powercrud/guides/setup_core_crud/) for the first full view configuration, then use [Filtering](https://doctor-cornelius.github.io/django-powercrud/guides/filtering/) for the dedicated filter guide.
 - Add [Inline editing](https://doctor-cornelius.github.io/django-powercrud/guides/inline_editing/) and [Bulk editing (synchronous)](https://doctor-cornelius.github.io/django-powercrud/guides/bulk_edit_sync/), then move to [Async Manager](https://doctor-cornelius.github.io/django-powercrud/guides/async_manager/) and [Bulk editing (async)](https://doctor-cornelius.github.io/django-powercrud/guides/bulk_edit_async/) when you need background work.
 - Use [Styling & Tailwind](https://doctor-cornelius.github.io/django-powercrud/guides/styling_tailwind/) and [Customisation tips](https://doctor-cornelius.github.io/django-powercrud/guides/advanced/customisation_tips/) to adapt templates.
+- See [Template Packs](https://doctor-cornelius.github.io/django-powercrud/template_packs/) to select DaisyUI or Bootstrap 5, customise a selected pack, or learn the compatible-pack contract.
 
 ## Tooling & References
 
 - **Sample app** – complete walkthrough of every feature.  
 - **Docker dev environment** – Django, Postgres, Redis, Vite, django-q2.  
-- **Management commands** – template scaffolding, Tailwind safelist extraction, async cleanup.  
+- **Management commands** – template and pack scaffolding, Tailwind safelist extraction, async cleanup.
 - **Testing** – pytest matrix, blocking Playwright smoke tests, and a fuller local browser regression suite.
 
 ## Supported Versions

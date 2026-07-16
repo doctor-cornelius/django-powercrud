@@ -2,8 +2,12 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+import subprocess
+import sys
+import tarfile
 from types import SimpleNamespace
 import warnings
+import zipfile
 
 import pytest
 from django.core.management import call_command, CommandError
@@ -62,7 +66,8 @@ def test_cleanup_async_json_output(monkeypatch, capsys):
     assert json.loads(out) == fake_summary
 
 
-def test_mktemplate_handle_calls_structure(monkeypatch, tmp_path):
+def test_mktemplate_plain_app_defaults_to_core_project_copy(monkeypatch, tmp_path):
+    """A plain app target should copy the four main templates by default."""
     fake_app_config = SimpleNamespace(path=str(tmp_path), name="fake_app")
     monkeypatch.setattr(
         mktemplate_cmd.apps, "get_app_config", lambda _: fake_app_config
@@ -71,16 +76,23 @@ def test_mktemplate_handle_calls_structure(monkeypatch, tmp_path):
     calls = {}
     monkeypatch.setattr(
         mktemplate_cmd.Command,
-        "_copy_template_structure",
-        lambda self, td, ad: calls.setdefault("structure", (td, ad)),
+        "_copy_project_template_pack",
+        lambda self, pack, td, ad, app_name, scope: calls.setdefault(
+            "project", (pack, td, ad, app_name, scope)
+        ),
     )
 
-    call_command("pcrud_mktemplate", "fake_app", "--all")
+    call_command("pcrud_mktemplate", "fake_app")
 
-    assert "structure" in calls
-    target_dir, app_template_dir = calls["structure"]
-    assert Path(target_dir) == tmp_path / "templates"
-    assert Path(app_template_dir) == tmp_path / "templates" / "fake_app"
+    assert "project" in calls, "A plain app target should use project-level copying."
+    pack, target_dir, app_template_dir, app_name, scope = calls["project"]
+    assert pack.identity == "daisyui", "The omitted source pack should be DaisyUI."
+    assert Path(target_dir) == tmp_path / "templates", "Project copies should use app/templates."
+    assert Path(app_template_dir) == tmp_path / "templates" / "fake_app", (
+        "Project copies should be namespaced under the target app."
+    )
+    assert app_name == "fake_app", "The generated override path should use the app label."
+    assert scope == "core", "An omitted scope should copy the four root templates."
 
 
 def test_mktemplate_handle_calls_single(monkeypatch, tmp_path):
@@ -1011,50 +1023,375 @@ def test_cleanup_async_plain_output(monkeypatch, capsys):
     assert "Skipped 1 active task(s)" in out
 
 
-def test_mktemplate_app_all_copies_complete_framework_tree_with_deprecation_warning(
+def test_mktemplate_plain_app_core_copies_four_root_templates(
     monkeypatch, tmp_path, capsys
 ):
-    """App-wide copying should preserve the 0.x tree while warning of v1.0 removal."""
+    """Plain app copying should create an isolated DaisyUI project override root."""
     fake_app_config = SimpleNamespace(path=str(tmp_path), name="fake_app")
     monkeypatch.setattr(
         mktemplate_cmd.apps, "get_app_config", lambda _: fake_app_config
     )
     command = mktemplate_cmd.Command()
-    source_dir = command.get_template_source_dir()
-    target_dir = (
+    source_dir = command.get_template_source_dir(command._get_project_source_template_pack("daisyui"))
+    target_dir = tmp_path / "templates" / "fake_app" / "powercrud" / "daisyui"
+
+    call_command("pcrud_mktemplate", "fake_app", "--core")
+
+    expected_names = set(command.project_core_template_names)
+    assert {path.name for path in target_dir.iterdir()} == expected_names, (
+        "Core project copying should create exactly the four root templates."
+    )
+    for template_name in expected_names:
+        assert (target_dir / template_name).read_bytes() == (source_dir / template_name).read_bytes(), (
+            f"Core project copying should preserve {template_name} exactly."
+        )
+    output = capsys.readouterr().out
+    assert f"From: {source_dir}" in output and f"To: {target_dir}" in output, (
+        "Core project copying should identify the exact source and destination."
+    )
+    assert 'template_override_path = "fake_app/powercrud/daisyui"' in output, (
+        "Core project copying should print the exact configuration path."
+    )
+
+
+@pytest.mark.parametrize(
+    ("option", "template_name"),
+    [
+        ("--list", "object_list.html"),
+        ("--detail", "object_detail.html"),
+        ("--form", "object_form.html"),
+        ("--create", "object_form.html"),
+        ("--update", "object_form.html"),
+        ("--delete", "object_confirm_delete.html"),
+    ],
+)
+def test_mktemplate_plain_app_copies_one_selected_root_template(
+    monkeypatch, tmp_path, capsys, option, template_name
+):
+    """A project root should support the same one-template choices as a model."""
+    fake_app_config = SimpleNamespace(path=str(tmp_path), name="fake_app")
+    monkeypatch.setattr(
+        mktemplate_cmd.apps, "get_app_config", lambda _: fake_app_config
+    )
+    command = mktemplate_cmd.Command()
+    template_pack = command._get_project_source_template_pack("daisyui")
+    source_path = command.get_template_source_dir(template_pack) / template_name
+    target_dir = tmp_path / "templates" / "fake_app" / "powercrud" / "daisyui"
+    target_path = target_dir / template_name
+
+    call_command("pcrud_mktemplate", "fake_app", option)
+
+    assert {path.name for path in target_dir.iterdir()} == {template_name}, (
+        "A single-root project copy should not create the other root templates."
+    )
+    assert target_path.read_bytes() == source_path.read_bytes(), (
+        "A single-root project copy should preserve the selected packaged template."
+    )
+    output = capsys.readouterr().out
+    assert f"From: {source_path}" in output and f"To: {target_path}" in output, (
+        "A single-root project copy should print its exact source and destination."
+    )
+    assert "missing templates and components continue to fall back" in output, (
+        "A single-root project copy should explain the remaining package fallback."
+    )
+
+
+def test_mktemplate_plain_app_single_root_uses_selected_pack_and_can_copy_assets(
+    monkeypatch, tmp_path, capsys
+):
+    """A project root selection should remain independent from a Bootstrap asset copy."""
+    fake_app_config = SimpleNamespace(path=str(tmp_path), name="fake_app")
+    monkeypatch.setattr(
+        mktemplate_cmd.apps, "get_app_config", lambda _: fake_app_config
+    )
+    command = mktemplate_cmd.Command()
+    template_pack = command._get_project_source_template_pack("bootstrap5")
+    source_path = command.get_template_source_dir(template_pack) / "object_detail.html"
+    target_path = (
         tmp_path
         / "templates"
         / "fake_app"
-        / mktemplate_cmd.get_template_pack_copy_destination()
+        / "powercrud"
+        / "bootstrap5"
+        / "object_detail.html"
     )
-    target_dir.mkdir(parents=True)
-    retained_file = target_dir / "application_only.html"
-    retained_file.write_text("retain me", encoding="utf-8")
-    first_source = next(path for path in source_dir.rglob("*") if path.is_file())
-    first_target = target_dir / first_source.relative_to(source_dir)
-    first_target.parent.mkdir(parents=True, exist_ok=True)
-    first_target.write_text("overwrite me", encoding="utf-8")
 
-    with pytest.warns(FutureWarning, match="whole-tree template copying.*v1.0"):
-        call_command("pcrud_mktemplate", "fake_app", "--all")
+    call_command(
+        "pcrud_mktemplate",
+        "fake_app",
+        "--detail",
+        "--source-template-pack",
+        "bootstrap5",
+        "--assets",
+    )
+
+    assert target_path.read_bytes() == source_path.read_bytes(), (
+        "A project root selection should copy from the explicitly selected Bootstrap pack."
+    )
+    assert (
+        tmp_path
+        / "static"
+        / "fake_app"
+        / "powercrud"
+        / "contrib"
+        / "bootstrap5"
+        / "js"
+        / "bootstrap5.js"
+    ).exists(), "Adding --assets should still copy the selected pack's runtime snapshot."
+    output = capsys.readouterr().out
+    assert "template_override_complete = True" not in output, (
+        "A single-root project copy should retain normal package fallback rather than claim completeness."
+    )
+
+
+def test_mktemplate_plain_app_all_copies_complete_bootstrap_pack(
+    monkeypatch, tmp_path, capsys
+):
+    """The full scope should copy every Bootstrap template into its own override root."""
+    fake_app_config = SimpleNamespace(path=str(tmp_path), name="fake_app")
+    monkeypatch.setattr(
+        mktemplate_cmd.apps, "get_app_config", lambda _: fake_app_config
+    )
+    command = mktemplate_cmd.Command()
+    template_pack = command._get_project_source_template_pack("bootstrap5")
+    source_dir = command.get_template_source_dir(template_pack)
+    target_dir = tmp_path / "templates" / "fake_app" / "powercrud" / "bootstrap5"
+
+    call_command(
+        "pcrud_mktemplate",
+        "fake_app",
+        "--source-template-pack",
+        "bootstrap5",
+        "--all",
+    )
 
     source_files = [path for path in source_dir.rglob("*") if path.is_file()]
-    assert source_files, "The packaged framework tree should contain template files."
+    assert source_files, "The packaged Bootstrap pack should contain template files."
     for source_path in source_files:
         target_path = target_dir / source_path.relative_to(source_dir)
         assert target_path.read_bytes() == source_path.read_bytes(), (
-            f"Whole-tree copy should preserve {source_path.relative_to(source_dir)} exactly."
+            "Full project copying should preserve every packaged Bootstrap template."
         )
+    assert "template_override_complete = True" in capsys.readouterr().out, (
+        "Full project copying should print the setting that enables copied nested includes."
+    )
+
+
+def test_mktemplate_assets_copies_daisyui_manual_static_snapshot(
+    monkeypatch, tmp_path, capsys
+):
+    """DaisyUI asset copies should preserve the shared manual-static runtime tree."""
+    fake_app_config = SimpleNamespace(path=str(tmp_path), name="fake_app")
+    monkeypatch.setattr(
+        mktemplate_cmd.apps, "get_app_config", lambda _: fake_app_config
+    )
+    command = mktemplate_cmd.Command()
+    template_pack = command._get_project_source_template_pack("daisyui")
+    source_dirs = command.get_project_asset_sources(template_pack)
+    destination_root = tmp_path / "static" / "fake_app" / "powercrud"
+    retained_file = destination_root / "js" / "application_only.js"
+    retained_file.parent.mkdir(parents=True)
+    retained_file.write_text("retain me", encoding="utf-8")
+    copied_entry = destination_root / "js" / "powercrud.js"
+    copied_entry.write_text("overwrite me", encoding="utf-8")
+
+    call_command("pcrud_mktemplate", "fake_app", "--assets")
+
+    for source_dir, relative_destination in source_dirs:
+        destination_dir = destination_root / relative_destination
+        assert destination_dir.exists(), (
+            "Asset copying should create every declared app-static destination."
+        )
+        for source_path in source_dir.rglob("*"):
+            if not source_path.is_file() or source_path.name in command.asset_copy_ignored_names:
+                continue
+            destination_path = destination_dir / source_path.relative_to(source_dir)
+            assert destination_path.read_bytes() == source_path.read_bytes(), (
+                "Asset copying should preserve package-owned DaisyUI asset files exactly."
+            )
     assert retained_file.read_text(encoding="utf-8") == "retain me", (
-        "Whole-tree copy should retain destination-only files for 0.x compatibility."
+        "Asset copying should retain destination-only application files."
+    )
+    assert "installPowercrudRuntime" in copied_entry.read_text(encoding="utf-8"), (
+        "Asset copying should overwrite a matching runtime entry with the package source."
+    )
+
+    output = capsys.readouterr().out
+    assert "fake_app/powercrud/css/powercrud.css" in output, (
+        "DaisyUI asset output should name the copied stylesheet tag."
+    )
+    assert "fake_app/powercrud/js/daisyui-adapter.js" in output and "fake_app/powercrud/js/powercrud.js" in output, (
+        "DaisyUI asset output should load its adapter before the stable copied runtime."
+    )
+    assert "first runtime loaded wins" in output, (
+        "Asset output should warn against loading the package and copied entries together."
+    )
+    assert "manual-static loading only" in output, (
+        "Asset output should state that generated assets do not configure Vite."
+    )
+    assert '"POWERCRUD_TEMPLATE_PACK": "daisyui"' in output, (
+        "DaisyUI asset output should print the matching runtime pack setting."
+    )
+
+
+def test_mktemplate_assets_copies_bootstrap_tree_with_shared_runtime(
+    monkeypatch, tmp_path, capsys
+):
+    """Bootstrap asset copying should preserve its relative import topology."""
+    fake_app_config = SimpleNamespace(path=str(tmp_path), name="fake_app")
+    monkeypatch.setattr(
+        mktemplate_cmd.apps, "get_app_config", lambda _: fake_app_config
+    )
+    command = mktemplate_cmd.Command()
+    template_pack = command._get_project_source_template_pack("bootstrap5")
+    source_dirs = command.get_project_asset_sources(template_pack)
+    destination_root = tmp_path / "static" / "fake_app" / "powercrud"
+
+    call_command(
+        "pcrud_mktemplate",
+        "fake_app",
+        "--source-template-pack",
+        "bootstrap5",
+        "--assets",
+    )
+
+    for source_dir, relative_destination in source_dirs:
+        destination_dir = destination_root / relative_destination
+        assert destination_dir.exists(), (
+            "Bootstrap asset copying should create every shared and pack-specific directory."
+        )
+        assert any(destination_dir.rglob("*")), (
+            "Bootstrap asset copying should populate every declared destination directory."
+        )
+
+    copied_entry = destination_root / "contrib" / "bootstrap5" / "js" / "bootstrap5.js"
+    copied_runtime = destination_root / "js" / "powercrud.js"
+    assert copied_runtime.exists(), (
+        "Bootstrap asset copying should include the shared runtime imported by its entry."
+    )
+    assert "../../../js/powercrud.js" in copied_entry.read_text(encoding="utf-8"), (
+        "Bootstrap's copied entry should retain its relative import to the copied shared runtime."
     )
     output = capsys.readouterr().out
-    assert "Files will be overwritten" in output, (
-        "An existing framework destination should retain the overwrite warning."
+    assert "fake_app/powercrud/contrib/bootstrap5/css/bootstrap5.css" in output, (
+        "Bootstrap asset output should name the copied stylesheet tag."
     )
-    assert f"From: {source_dir}" in output and f"To: {target_dir}" in output, (
-        "Whole-tree output should identify the exact source and destination."
+    assert "fake_app/powercrud/contrib/bootstrap5/js/bootstrap5.js" in output and "fake_app/powercrud/js/powercrud.js" in output, (
+        "Bootstrap asset output should load its compatible public entry before the stable copied runtime."
     )
+    assert "Bootstrap 5: Framework styling and modal/tooltip behaviour" in output, (
+        "Bootstrap asset output should derive vendor dependency guidance from the declaration."
+    )
+    assert (
+        '"POWERCRUD_TEMPLATE_PACK": "powercrud.contrib.bootstrap5:template_pack"'
+        in output
+    ), "Bootstrap asset output should print the matching runtime pack setting."
+
+
+@pytest.mark.parametrize(
+    "arguments",
+    [
+        ("fake_app.Book", "--all", "--assets"),
+        ("fake_app.Book", "--list", "--assets"),
+        ("fake_app.Book", "--component", "pagination", "--assets"),
+    ],
+)
+def test_mktemplate_rejects_assets_for_model_scoped_operations(
+    monkeypatch, tmp_path, arguments
+):
+    """Asset snapshots must remain app-level because the base template loads them."""
+    fake_app_config = SimpleNamespace(path=str(tmp_path), name="fake_app")
+    monkeypatch.setattr(
+        mktemplate_cmd.apps, "get_app_config", lambda _: fake_app_config
+    )
+
+    with pytest.raises(CommandError, match="assets is only available with a plain app target"):
+        call_command("pcrud_mktemplate", *arguments)
+
+
+def test_mktemplate_rejects_project_options_for_model_target(monkeypatch, tmp_path):
+    """Model-scoped copying must retain its established, source-pack-independent API."""
+    fake_app_config = SimpleNamespace(path=str(tmp_path), name="fake_app")
+    monkeypatch.setattr(
+        mktemplate_cmd.apps, "get_app_config", lambda _: fake_app_config
+    )
+
+    with pytest.raises(CommandError, match="source-template-pack is only available"):
+        call_command(
+            "pcrud_mktemplate",
+            "fake_app.Book",
+            "--source-template-pack",
+            "bootstrap5",
+            "--all",
+        )
+
+
+def test_mktemplate_project_copy_errors_are_actionable(monkeypatch, tmp_path):
+    """Project-copy failures should name the unsupported scope or missing resource."""
+    fake_app_config = SimpleNamespace(path=str(tmp_path), name="fake_app")
+    monkeypatch.setattr(
+        mktemplate_cmd.apps, "get_app_config", lambda _: fake_app_config
+    )
+    command = mktemplate_cmd.Command()
+    template_pack = command._get_project_source_template_pack("daisyui")
+
+    with pytest.raises(CommandError, match="model target is required"):
+        call_command("pcrud_mktemplate", "fake_app", "--component", "pagination")
+    with pytest.raises(CommandError, match="--core is only available"):
+        call_command("pcrud_mktemplate", "fake_app.Book", "--core")
+    with pytest.raises(CommandError, match="requires --all, a role option, or --component"):
+        call_command("pcrud_mktemplate", "fake_app.Book")
+
+    monkeypatch.setattr(
+        mktemplate_cmd, "resolve_template_pack", lambda _: (_ for _ in ()).throw(RuntimeError("broken pack"))
+    )
+    with pytest.raises(CommandError, match="Could not load source template pack 'daisyui': broken pack"):
+        command._get_project_source_template_pack("daisyui")
+
+    missing_source = tmp_path / "missing"
+    monkeypatch.setattr(command, "get_template_source_dir", lambda _: missing_source)
+    with pytest.raises(CommandError, match="Could not find template directory"):
+        command._copy_project_template_pack(
+            template_pack, tmp_path / "templates", tmp_path / "templates" / "fake_app", "fake_app", "core"
+        )
+
+    source_dir = tmp_path / "source"
+    source_dir.mkdir()
+    monkeypatch.setattr(command, "get_template_source_dir", lambda _: source_dir)
+    with pytest.raises(CommandError, match="Template not found"):
+        command._copy_project_template_pack(
+            template_pack, tmp_path / "templates", tmp_path / "templates" / "fake_app", "fake_app", "core"
+        )
+    with pytest.raises(CommandError, match="Unsupported project template scope"):
+        command._copy_project_template_pack(
+            template_pack, tmp_path / "templates", tmp_path / "templates" / "fake_app", "fake_app", "unknown"
+        )
+
+
+def test_mktemplate_project_asset_and_template_copy_wrap_os_errors(monkeypatch, tmp_path):
+    """Filesystem failures should remain command errors rather than raw OSErrors."""
+    command = mktemplate_cmd.Command()
+    template_pack = command._get_project_source_template_pack("daisyui")
+    source_dir = tmp_path / "source"
+    source_dir.mkdir()
+    monkeypatch.setattr(
+        command,
+        "get_project_asset_sources",
+        lambda _: ((source_dir, Path("css")),),
+    )
+    monkeypatch.setattr(
+        mktemplate_cmd.shutil,
+        "copytree",
+        lambda *args, **kwargs: (_ for _ in ()).throw(OSError("disk full")),
+    )
+    with pytest.raises(CommandError, match="Failed to copy project assets: disk full"):
+        command._copy_project_assets(template_pack, tmp_path, "fake_app", "daisyui")
+
+    monkeypatch.setattr(command, "get_template_source_dir", lambda _: source_dir)
+    with pytest.raises(CommandError, match="Failed to copy project templates: disk full"):
+        command._copy_project_template_pack(
+            template_pack, tmp_path / "templates", tmp_path / "templates" / "fake_app", "fake_app", "all"
+        )
 
 
 @pytest.mark.parametrize(
@@ -1136,3 +1473,93 @@ def test_mktemplate_model_all_copies_exact_four_root_templates(
         assert f"From: {source_path}" in output and f"To: {target_path}" in output, (
             f"Model --all should report the paths for {target_name}."
         )
+
+
+def test_starttemplatepack_creates_a_standalone_public_contract_starter(tmp_path, capsys):
+    """The author command should produce a buildable package shape, not an internal fixture."""
+    destination = tmp_path / "example-pack"
+
+    call_command("pcrud_starttemplatepack", "example_powercrud_pack", str(destination))
+
+    package_root = destination / "src" / "example_powercrud_pack"
+    declaration = (package_root / "template_pack.py").read_text(encoding="utf-8")
+    adapter = (
+        package_root
+        / "static"
+        / "powercrud"
+        / "packs"
+        / "example-powercrud-pack"
+        / "js"
+        / "adapter.js"
+    )
+    assert (destination / "pyproject.toml").exists()
+    assert (destination / "tests" / "test_contract.py").exists()
+    assert (package_root / "templates" / "powercrud" / "packs" / "example-powercrud-pack" / "object_list.html").exists()
+    assert 'server_adapter="example_powercrud_pack.adapter:server_adapter"' in declaration
+    assert adapter.exists()
+    assert "apiVersion: 1" in adapter.read_text(encoding="utf-8")
+    assert "example_powercrud_pack.template_pack:template_pack" in capsys.readouterr().out
+
+    source_root = Path(mktemplate_cmd.__file__).resolve().parents[3]
+    probe = """
+import sys
+import types
+import django
+from django.conf import settings
+
+sys.path[:0] = [PACKAGE_SOURCE, POWERCRUD_SOURCE]
+urls = types.ModuleType('external_pack_probe_urls')
+urls.urlpatterns = []
+sys.modules[urls.__name__] = urls
+settings.configure(
+    SECRET_KEY='external-pack-probe',
+    INSTALLED_APPS=(
+        'django.contrib.auth',
+        'django.contrib.contenttypes',
+        'django.contrib.staticfiles',
+        'crispy_forms',
+        'crispy_tailwind',
+        *(("template_partials",) if django.VERSION < (6, 0) else ()),
+        'powercrud',
+        'example_powercrud_pack',
+    ),
+    TEMPLATES=({'BACKEND': 'django.template.backends.django.DjangoTemplates', 'APP_DIRS': True},),
+    ROOT_URLCONF=urls.__name__,
+    STATIC_URL='/static/',
+)
+django.setup()
+from powercrud.template_pack_testing import assert_template_pack_conforms
+pack = assert_template_pack_conforms('example_powercrud_pack.template_pack:template_pack')
+assert pack.identity == 'example-powercrud-pack'
+""".replace("PACKAGE_SOURCE", repr(str(package_root.parent))).replace(
+        "POWERCRUD_SOURCE", repr(str(source_root))
+    )
+    subprocess.run([sys.executable, "-c", probe], check=True, capture_output=True, text=True)
+
+    artifact_dir = tmp_path / "artifacts"
+    subprocess.run(
+        ["uv", "build", str(destination), "--out-dir", str(artifact_dir)],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    wheel = next(artifact_dir.glob("*.whl"))
+    with zipfile.ZipFile(wheel) as archive:
+        names = archive.namelist()
+    assert any(name.endswith("templates/powercrud/packs/example-powercrud-pack/object_list.html") for name in names)
+    assert any(name.endswith("static/powercrud/packs/example-powercrud-pack/js/adapter.js") for name in names)
+    source_distribution = next(artifact_dir.glob("*.tar.gz"))
+    with tarfile.open(source_distribution) as archive:
+        source_names = archive.getnames()
+    assert any(name.endswith("tests/test_contract.py") for name in source_names)
+    assert any(name.endswith("templates/powercrud/packs/example-powercrud-pack/object_list.html") for name in source_names)
+
+
+def test_starttemplatepack_refuses_to_overwrite_a_nonempty_destination(tmp_path):
+    """Starter generation must not silently replace a downstream package."""
+    destination = tmp_path / "example-pack"
+    destination.mkdir()
+    (destination / "keep.txt").write_text("keep", encoding="utf-8")
+
+    with pytest.raises(CommandError, match="must be new or empty"):
+        call_command("pcrud_starttemplatepack", "example_powercrud_pack", str(destination))

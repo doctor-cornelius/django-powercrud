@@ -2,11 +2,12 @@
 
 ## Status
 
-Active. Phases 0–8 and the Phase 7.10 API-contract hardening follow-up are integrated into `staging/main`. The temporary DaisyUI reference pack is retired, leaving DaisyUI as the supported default and Bootstrap as the supported non-default production pack. Every later phase must keep the compatible default DaisyUI experience working on `staging/main` and protected `main`.
+Phase 10 is complete on `template_pack/10`, pending normal review and merge. Phases 0–9 and the Phase 7.10 API-contract hardening follow-up are integrated into `staging/main`. Phase 10 completed the fundamental requirement that independently published packs can provide new framework adapters and assets without PowerCRUD source changes.
 
 ## Next
 
-Resume Phase 9.3 for final post-cleanup authoring, publishing, customization, and testing guidance.
+Use the normal review and merge workflow for the completed Phase 10 branch. New
+template-pack capability should start from a new bounded phase.
 
 ## Phase 0: Establish The JavaScript Foundation
 
@@ -98,7 +99,19 @@ Resume Phase 9.3 for final post-cleanup authoring, publishing, customization, an
 
 ## Phase 9: Complete Template-Pack Documentation
 
-1. [ ] Publish a dedicated authoring-and-testing page for defining, packaging, and validating a new template pack against the permanent post-Phase-8 implementation.
-2. [ ] Complete focused-override and custom-pack guidance against the permanent post-Phase-8 implementation.
-3. [ ] Publish final default, focused-override, and Bootstrap sample guidance.
-4. [ ] Validate the complete stable documentation and close or archive planning material after acceptance.
+1. [x] Publish the current authoring-and-testing boundary against the permanent post-Phase-8 implementation.
+2. [x] Complete focused-override and project-owned template/asset guidance.
+3. [x] Publish final default, focused-override, and Bootstrap sample guidance.
+4. [x] Validate the changed implementation and documentation content, retaining planning material until explicit archive approval.
+5. [x] Add and document opt-in application-owned manual-static snapshots for supported pack assets without changing package runtime loading.
+6. [x] Add and document single-root project-pack copying, with a clear overview of the supported override layers.
+
+## Phase 10: Support Independent Framework Adapter Packages
+
+1. [x] Audit the server, browser, asset, validation, packaging, and testing surfaces that must become public extension contracts.
+2. [x] Define versioned, pack-supplied Python and JavaScript adapter APIs without framework-name whitelists.
+3. [x] Make pack-owned CSS and JavaScript loading framework-neutral, including an explicit downstream Vite contract.
+4. [x] Migrate DaisyUI and Bootstrap to the same public APIs available to third-party packs.
+5. [x] Prove the contract with an independently packaged new-framework fixture and reusable author test kit.
+6. [x] Publish plain-language authoring, testing, installation, and PyPI distribution guidance.
+7. [x] Preserve existing DaisyUI and Bootstrap behaviour, public runtime entry points, and compatibility paths throughout delivery.

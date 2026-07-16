@@ -3,6 +3,7 @@ import {
     RANGE_SELECT_SUPPRESS_CLASS,
     TOOLTIP_TRIGGER_SELECTOR,
 } from './runtime/selectors.js';
+import * as publicSelectors from './runtime/selectors.js';
 import {
     asElement,
     getAffectedObjectListRoots,
@@ -20,10 +21,41 @@ import { createFilterFavouritesRuntime } from './runtime/filter-favourites.js';
 import { createListColumnsRuntime } from './runtime/list-columns.js';
 import { createBulkActionsRuntime } from './runtime/bulk-actions.js';
 import { createInlineEditRuntime } from './runtime/inline-edit.js';
-import { createDaisyuiComposition } from './runtime/daisyui-composition.js';
+import { createCompositionFromBrowserAdapter } from './runtime/browser-adapter.js';
 import { createCurrentTemplateRuntime } from './runtime/current-template.js';
 
-export function installPowercrudRuntime({ createComposition = createDaisyuiComposition } = {}) {
+function readRuntimeConfig(documentObject) {
+    const element = documentObject.getElementById('powercrud-runtime-config');
+    if (!(element instanceof HTMLScriptElement)) return { browser_adapter_required: false };
+    try {
+        return JSON.parse(element.textContent || '{}');
+    } catch (error) {
+        throw new Error(`PowerCRUD adapter runtime configuration is invalid JSON: ${error.message}`);
+    }
+}
+
+function resolveBrowserAdapter(global, documentObject) {
+    const config = readRuntimeConfig(documentObject);
+    const adapter = global.PowerCRUDAdapter;
+    if (!adapter) {
+        if (config.browser_adapter_required) {
+            throw new Error(`PowerCRUD adapter ${config.identity || '(unknown)'} was required but did not load before powercrud/js/powercrud.js.`);
+        }
+        return null;
+    }
+    if (adapter.apiVersion !== 1 || typeof adapter.create !== 'function') {
+        throw new Error('PowerCRUD adapter must expose apiVersion: 1 and a callable create(context).');
+    }
+    if (config.identity && adapter.identity !== config.identity) {
+        throw new Error(`PowerCRUD adapter identity ${adapter.identity || '(missing)'} does not match selected pack ${config.identity}.`);
+    }
+    if (config.api_version && adapter.apiVersion !== config.api_version) {
+        throw new Error(`PowerCRUD adapter API ${adapter.apiVersion} does not match required API ${config.api_version}.`);
+    }
+    return adapter;
+}
+
+export function installPowercrudRuntime({ createComposition } = {}) {
     (function powercrudRuntime(global) {
     'use strict';
 
@@ -80,12 +112,25 @@ export function installPowercrudRuntime({ createComposition = createDaisyuiCompo
         });
     }
 
-    const daisyuiComposition = createComposition({
-        global,
-        documentObject: document,
-        isElementVisible,
-        warnMissingDependency,
-    });
+    let daisyuiComposition;
+    try {
+        daisyuiComposition = createComposition
+            ? createComposition({ global, documentObject: document, isElementVisible, warnMissingDependency })
+            : createCompositionFromBrowserAdapter(resolveBrowserAdapter(global, document), {
+                apiVersion: 1,
+                window: global,
+                document,
+                selectors: publicSelectors,
+                isElementVisible,
+                schedule: global.setTimeout.bind(global),
+                nextFrame: global.requestAnimationFrame.bind(global),
+                warnMissingDependency,
+            });
+    } catch (error) {
+        global.__powercrudRuntimeLoaded = false;
+        console.error(`PowerCRUD adapter error: ${error.message}`);
+        return;
+    }
     const {
         destroyPowercrudSearchableSelects,
         initPowercrudSearchableSelects,
@@ -99,6 +144,7 @@ export function installPowercrudRuntime({ createComposition = createDaisyuiCompo
         scheduleResizeInit: schedulePowercrudTooltipResizeRefresh,
     } = daisyuiComposition.tooltipAdapter;
     const {
+        fragmentAdapter,
         modalAdapter,
         actionSelectionAdapter,
         inlinePresentationAdapter,
@@ -285,11 +331,13 @@ export function installPowercrudRuntime({ createComposition = createDaisyuiCompo
         initPowercrudSearchableSelects(fragment);
         bootstrapObjectLists(fragment, options);
         initPowercrudTooltips(fragment);
+        fragmentAdapter?.init(fragment);
     }
 
     function destroyPowercrudFragment(fragment) {
         // Restore library-enhanced controls before HTMX removes their source
         // markup, and clear detached body-level UI tied to the fragment.
+        fragmentAdapter?.destroy(fragment);
         destroyPowercrudSearchableSelects(fragment);
         destroyPowercrudTooltips(fragment);
         modalAdapter.dispose(fragment);
@@ -817,6 +865,4 @@ export function installPowercrudRuntime({ createComposition = createDaisyuiCompo
     })(window);
 }
 
-if (!window.__powercrudPrivateDeferInstall) {
-    installPowercrudRuntime({ createComposition: createDaisyuiComposition });
-}
+installPowercrudRuntime();

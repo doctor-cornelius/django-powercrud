@@ -2,11 +2,11 @@
 
 ## Status
 
-The pre-cleanup contract is published and validated, and Phase 8 has retired the temporary DaisyUI reference pack. DaisyUI remains the supported default; Bootstrap is a supported non-default pack. The plain-app DaisyUI whole-tree copy is deprecated for v1.0 removal; model-scoped and focused copying remain supported.
+Complete — 2026-07-16. The permanent five-page documentation, downstream override tooling, and current authoring boundary are published. The newly identified requirement for independently supplied framework adapters is transferred to Phase 10 rather than being hidden inside documentation work.
 
 ## Next
 
-Resume Phase 9.3 against the accepted permanent DaisyUI and Bootstrap implementation.
+Proceed to Phase 10 planning. Retain these Phase 9 records until Michael explicitly approves archival.
 
 ## Phase 9.1: Establish The Documentation Contract
 
@@ -22,12 +22,36 @@ Resume Phase 9.3 against the accepted permanent DaisyUI and Bootstrap implementa
 4. [x] Reconcile the configuration, setup, styling, forms, customization, management-command, deprecation, testing, sample, and reference links with the authoritative contract.
 5. [x] Validate the changed behaviour and documentation, then hand the accepted contract to Phase 8 planning.
 
-## Phase 9.3: Complete Post-Cleanup Template-Pack Documentation
+## Phase 9.3.1: Verify The Post-Cleanup Documentation Facts
 
-1. [ ] Remove or revise stable guidance that referred to the retired temporary reference pack, and retain the current Template Packs page as the cleaned-up contract overview.
-2. [ ] Add a page for selecting and configuring the supported DaisyUI and Bootstrap packs, including assets, forms, Crispy ownership, and startup-only selection.
-3. [ ] Add a page for customizing an existing pack through focused overrides, model-scoped roots, and explicitly owned custom packs.
-4. [ ] Publish a definitive third-party authoring and publishing guide covering package structure, declarations, namespaces, templates and fragments, adapters, assets, capabilities, form integrations, selection, and distribution metadata.
-5. [ ] Add a dedicated testing and acceptance guide covering declaration validation, shared server behaviour, pack-specific tests, targeted Playwright coverage, and installed wheel/sdist resource validation.
-6. [ ] Reconcile the final default, focused-override, Bootstrap, configuration, reference, and sample guidance with the new multi-page section.
-7. [ ] Validate the complete stable documentation and update or archive planning material only after acceptance.
+1. [x] Check the permanent DaisyUI and Bootstrap configuration, customization, authoring, packaging, and validation facts needed by the public guides.
+2. [x] Identify stale or duplicated stable guidance, including any remaining active reference-pack wording.
+
+## Phase 9.3.2: Write And Reconcile The Final Documentation
+
+1. [x] Retain `template_packs/index.md` as the cleaned-up overview and supported-pack contract.
+2. [x] Add `selecting-and-configuring.md` for supported DaisyUI and Bootstrap application setup.
+3. [x] Add `customising.md` for focused, model-scoped, project-root, and asset ownership.
+4. [x] Add `authoring-and-publishing.md` as a truthful statement of the current narrow authoring boundary, pending Phase 10's real external framework API.
+5. [x] Add `testing-and-acceptance.md` for current pack validation and release evidence.
+6. [x] Reconcile existing configuration, reference, and sample guidance with the five-page section.
+
+## Phase 9.3.3: Validate And Finish
+
+1. [x] Check terminology, examples, navigation, links, and retired-reference cleanup across the stable documentation.
+2. [x] Pass focused implementation tests and the normal full regression gate; leave local MkDocs rendering to Michael as instructed.
+3. [x] Reconcile the Phase 9 and master planning material after acceptance; retain it until explicit archive approval.
+
+## Phase 9.4: Add Application-Owned Pack Assets
+
+1. [x] Add app-level `pcrud_mktemplate --assets` copying for the supported DaisyUI and Bootstrap manual-static runtime trees.
+2. [x] Preserve runtime contracts and existing package manual/Vite loading while rejecting model-scoped asset copies.
+3. [x] Document snapshot ownership, activation, no-fallback behaviour, and the Vite boundary.
+4. [x] Pass focused command/asset tests and the standard regression gate.
+
+## Phase 9.5: Clarify Override Layers And Project Root Selection
+
+1. [x] Allow a plain app target to copy one selected root template from the supported source pack.
+2. [x] Preserve app-level template fallback and independent asset-copy behaviour.
+3. [x] Document the override layers and concise project-command choices where developers make customization decisions.
+4. [x] Pass focused command tests and the standard regression gate.

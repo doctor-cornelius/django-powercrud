@@ -101,10 +101,21 @@ export function installPowercrudGlobalListeners({
     globalObject.addEventListener('resize', handlers.handleWindowResize);
     globalObject.addEventListener('scroll', handlers.handleWindowScrollCapture, true);
 
-    // Bootstrap composition loads the stable runtime through a dynamic import.
-    // If that import finishes after DOMContentLoaded, initialize immediately;
-    // the once-only wrapper also avoids a duplicate when the event is pending.
+    // A Vite entry can finish loading after DOMContentLoaded, while its module
+    // body still has vendor globals to assign. Queue the same once-only path so
+    // those assignments finish before adapter hooks initialise.
+    const initialiseWhenReady = () => {
+        if (documentObject.body) {
+            handleDOMContentLoadedOnce();
+        }
+    };
     if (documentObject.readyState !== 'loading') {
-        handleDOMContentLoadedOnce();
+        if (typeof globalObject.queueMicrotask === 'function') {
+            globalObject.queueMicrotask(initialiseWhenReady);
+        } else {
+            globalObject.setTimeout(initialiseWhenReady, 0);
+        }
+    } else {
+        globalObject.setTimeout(initialiseWhenReady, 0);
     }
 }

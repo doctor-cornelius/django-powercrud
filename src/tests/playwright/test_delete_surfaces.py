@@ -1,12 +1,22 @@
 from urllib.parse import urljoin
 
 import pytest
+from django.conf import settings
 from django.urls import reverse
 
 pytest.importorskip("playwright.sync_api")
 from playwright.sync_api import expect
 
 from sample.models import Book
+
+BOOTSTRAP_SELECTOR = "powercrud.contrib.bootstrap5:template_pack"
+
+
+def detail_heading(page):
+    """Return the pack-appropriate full-page delete heading."""
+    if settings.POWERCRUD_SETTINGS.get("POWERCRUD_TEMPLATE_PACK") == BOOTSTRAP_SELECTOR:
+        return page.get_by_role("heading", level=1)
+    return page.locator("h2.card-title")
 
 pytestmark = [
     pytest.mark.playwright,
@@ -25,7 +35,10 @@ def test_delete_renders_and_submits_in_page_and_modal(page, books_url, sample_bo
 
     page.goto(page_delete_url)
     expect(page.get_by_text("Are you sure you want to delete")).to_be_visible()
-    expect(page.locator("h2.card-title")).to_contain_text(page_book.title)
+    if settings.POWERCRUD_SETTINGS.get("POWERCRUD_TEMPLATE_PACK") == BOOTSTRAP_SELECTOR:
+        expect(page.get_by_text(page_book.title, exact=True)).to_be_visible()
+    else:
+        expect(detail_heading(page)).to_contain_text(page_book.title)
     page.get_by_role("button", name="Delete").click()
 
     page.wait_for_url("**/bigbook/")

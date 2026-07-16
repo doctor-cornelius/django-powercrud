@@ -52,6 +52,13 @@ def test_bulk_selection_toggle(page, books_url, sample_books):
     assert selected_summary.evaluate("el => window.getComputedStyle(el).pointerEvents") == "auto"
     assert selected_summary.evaluate("el => window.getComputedStyle(el).cursor") == "not-allowed"
     if not using_bootstrap_pack():
+        assert selected_summary.evaluate("el => typeof window.tippy") == "function", (
+            "The DaisyUI Vite entry should expose Tippy before PowerCRUD initialises tooltips."
+        )
+        assert selected_summary.evaluate("el => Boolean(el._tippy)"), (
+            "The selected-summary control should receive its DaisyUI tooltip during "
+            "initial PowerCRUD setup."
+        )
         selected_summary.hover()
         expect(page.locator("[data-tippy-root]")).to_be_visible()
 

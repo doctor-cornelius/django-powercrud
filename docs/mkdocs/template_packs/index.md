@@ -1,98 +1,56 @@
 # Template Packs
 
-PowerCRUD keeps CRUD behaviour in one framework-neutral core. A selected template pack supplies the templates, assets, form-rendering requirements, and framework presentation needed to render that behaviour.
+Template packs let PowerCRUD use a presentation system while keeping the CRUD behaviour, view configuration, and application ownership rules consistent.
 
-The compatible default is DaisyUI. Bootstrap 5 is a supported, opt-in alternative; selecting it does not change projects that keep the default configuration.
+DaisyUI is the built-in compatible default. Bootstrap 5 is an optional supported pack. Select a pack in Django settings before the process starts; it is not a per-request, per-view, or runtime switch.
 
-## Supported packs
+!!! warning "One complete pack per Django project/process"
 
-| Pack | Status | Forms | Customization |
+    A Django project normally selects one complete pack in its settings for all of its running processes. It can give individual models or view classes different template overrides, but it cannot select different complete packs, browser adapters, or pack assets for different views, tenants, or requests. Choose the complete pack once at Django startup.
+
+## What a pack provides
+
+A pack supplies the templates and presentation details for PowerCRUD's standard screens. That includes list, form, detail, delete, filtering, modal, bulk, async, inline-editing, and favourites surfaces.
+
+Your application still owns its base template. It decides the surrounding site layout and authentication chrome, and chooses the frontend route: PowerCRUD's packaged Vite entry, package-owned manual-static tags, or an application-owned entry. For the manual-static route, PowerCRUD can emit the selected pack's correctly ordered tags; it does not supply a complete HTML page shell or take over an application's frontend build.
+
+## Maintained packs
+
+| Pack | Status | Forms | Asset entry |
 | --- | --- | --- | --- |
-| DaisyUI | Supported default and compatibility baseline | Native Django forms and the tested Crispy Tailwind integration | Focused overrides; model-scoped roots; deprecated app-wide whole-tree copy during 0.x |
-| Bootstrap 5 | Supported non-default pack | Native Django forms and the tested crispy-bootstrap5 integration | Focused overrides and model-scoped roots |
+| DaisyUI | Built-in default | Native Django forms; Crispy `tailwind` | The usual `config/static/js/main.js` PowerCRUD entry |
+| Bootstrap 5 | Optional maintained pack | Native Django forms; Crispy `bootstrap5` | `config/static/js/bootstrap5.js`, or the documented manual assets |
 
-## Selecting Bootstrap
+Native Django form rendering is available with both packs. If you enable Crispy Forms, configure the Crispy template pack that matches the selected PowerCRUD pack; PowerCRUD does not choose it for you.
 
-Leave `POWERCRUD_TEMPLATE_PACK` unset to use the compatible DaisyUI default.
-
-To select Bootstrap 5 at process startup, install its optional Django app and set its declaration path:
-
-~~~python
-INSTALLED_APPS = [
-    # ...
-    "powercrud",
-    "powercrud.contrib.bootstrap5",
-]
-
-POWERCRUD_SETTINGS = {
-    "POWERCRUD_TEMPLATE_PACK": "powercrud.contrib.bootstrap5:template_pack",
-}
-~~~
-
-The Bootstrap pack requires its selected frontend assets. In bundled Vite mode, load its package entry:
-
-~~~django
-{% load django_vite %}
-{% vite_asset 'config/static/js/bootstrap5.js' %}
-~~~
-
-In manual mode, load Bootstrap's own CSS and JavaScript together with the package-owned Bootstrap CSS and module entry. See the sample Bootstrap base template for the complete manual-static arrangement.
-
-Pack selection happens at process startup. Runtime, query-parameter, and per-view framework switching are not supported.
-
-`POWERCRUD_CSS_FRAMEWORK` is retained for legacy compatibility and is not a substitute for selecting the Bootstrap template pack.
-
-## Forms and Crispy
-
-Every supported first-party pack supports native Django form rendering. Crispy remains an application choice:
-
-- DaisyUI has a tested `tailwind` Crispy integration.
-- Bootstrap has a tested `bootstrap5` integration using `crispy-bootstrap5`.
-
-Set `use_crispy` and your Crispy settings in the application. PowerCRUD does not silently enable Crispy, choose a Crispy pack on your behalf, or prevent you from trying another compatible integration.
-
-## Presentation contract
-
-PowerCRUD public presentation inputs fall into three categories:
-
-1. **Portable semantic settings** express product intent. Every supported pack implements them or rejects the configuration clearly.
-2. **Framework-translated settings** have shared meaning but use pack-native markup, CSS, or browser behaviour.
-3. **Framework-specific inputs** pass raw framework values to the selected pack and are never translated.
-
-Supported packs must not silently ignore accepted portable configuration. A genuine limitation must be explicit through configuration validation, a warning or error where appropriate, and documentation.
-
-| Surface | DaisyUI | Bootstrap 5 |
+| Selected PowerCRUD pack | Native forms | If the project uses Crispy Forms |
 | --- | --- | --- |
-| Core CRUD, filtering, favourites, bulk, async, inline editing, links, and tooltips | Supported | Supported through Bootstrap-native templates and lifecycle handling |
-| `modal_presentation`, `bulk_modal_presentation`, `view_help`, table geometry, and semantic alignment | Supported | Supported through framework translation |
-| Native forms | Supported | Supported |
-| Tested Crispy integration | `tailwind` | `bootstrap5` |
-| Raw table, action, and button classes; style-map values; deprecated raw modal classes | Selected-framework inputs | Selected-framework inputs |
-| Focused component and model-scoped root overrides | Supported | Supported |
-| Plain-app `pcrud_mktemplate myapp --all` tree copy | Deprecated during 0.x; removed in v1.0 | Unavailable |
-| Runtime, query-parameter, or per-view pack switching | Unsupported | Unsupported |
+| DaisyUI | Available | Configure Crispy's `tailwind` pack and its integration app. |
+| Bootstrap 5 | Available | Configure Crispy's `bootstrap5` pack and its integration app. |
+| Independently published pack | Available when the pack supports it | Follow that pack's documentation for its compatible Crispy integration, if any. |
 
-Raw classes are not portable settings. For example, a Tailwind class string passed to `table_classes` is accepted as a DaisyUI/Tailwind input; Bootstrap does not translate it into Bootstrap classes. Use semantic settings when a portable outcome is required.
+## Choose a route before changing anything
 
-Legacy raw modal class settings remain available only for framework-specific compatibility and emit `FutureWarning`. Use portable modal presentation for new configuration; see [Deprecations](../reference/deprecations.md).
+| Your goal | Start here | What you own |
+| --- | --- | --- |
+| Use the built-in DaisyUI presentation | Leave the setting unset, then use the packaged DaisyUI entry. | Only your base template and normal application markup. |
+| Use maintained Bootstrap 5 | Select Bootstrap and load its documented entry. | Your base template and Bootstrap's documented dependencies. |
+| Change one screen or component in one project | Use a model or view override. | Only the copied templates. |
+| Share copied templates across selected views | Use a project override with `template_override_path`. | The copied root templates; use `--all` only for complete template ownership. |
+| Change a maintained pack's PowerCRUD CSS or JavaScript locally | Add `--assets` to an app-level copy. | A complete manual-static asset snapshot in that app. |
+| Support a new CSS framework for multiple projects | Create and publish an independent pack. | The package's templates, adapters, assets, and release tests. |
 
-## Customization
+The first two rows choose a process-wide pack. The middle rows are local overrides of that selected pack. The last row creates another selectable pack. This distinction is the quickest way to avoid copying more than you need.
 
-Use focused component overrides for normal application customization. They preserve PowerCRUD-owned JavaScript, HTMX behaviour, and nested override boundaries while letting an application change targeted markup and classes.
+## Choose the right guide
 
-Model-scoped root copies remain supported where they meet the application's need. The app-wide DaisyUI whole-tree copy is a deprecated compatibility path: it creates an application-owned snapshot that does not receive later package template fixes. Use focused overrides for bounded changes, or create a custom template pack when the application needs complete presentation ownership.
+- [Selecting and configuring](selecting-and-configuring.md) covers the default, Bootstrap setup, assets, and form rendering.
+- [Customising](customising.md) explains focused template overrides and ownership boundaries.
+- [Authoring and publishing](authoring-and-publishing.md) shows how to create, test, publish, install, and select an independent pack for another CSS framework.
+- [Testing and acceptance](testing-and-acceptance.md) explains what makes a supported pack release-ready.
 
-See [Customisation tips](../guides/advanced/customisation_tips.md) and [Management Commands](../reference/mgmt_commands.md).
+## What does not change with a pack
 
-## Supported-pack validation
+Packs change presentation, not the core Django and PowerCRUD contracts. Your views, URLs, models, permissions, query behaviour, and application base template remain yours. Settings that accept CSS class strings are framework-specific inputs: write DaisyUI/Tailwind classes for DaisyUI or Bootstrap classes for Bootstrap. PowerCRUD does not translate class names between frameworks.
 
-The DaisyUI default is the compatibility baseline. A supported pack needs:
-
-1. the shared server behaviour matrix for applicable product behaviour;
-2. pack-specific server tests for framework translation, declared resources, forms, and explicit boundaries;
-3. targeted Playwright coverage for browser-only lifecycle, HTMX reinitialization, focus, modal/dropdown ownership, geometry, and responsive overflow; and
-4. installed wheel and sdist validation of declared templates, assets, adapters, and form requirements.
-
-Cross-pack parity means equivalent supported behaviour and truthful semantic outcomes. It does not require identical DOM, CSS classes, or pixels.
-
-See [Testing](../reference/testing.md) for the project test commands and supported-pack acceptance guidance.
+For the complete setting reference, see [Configuration options](../reference/config_options.md). For the sample application's default, focused-override, and Bootstrap configurations, see [Sample application](../reference/sample_app.md).

@@ -19,7 +19,7 @@ POWERCRUD_SETTINGS = {
 - **Bootstrap 5** is a supported non-default pack. It has its own frontend asset requirements.
 - Class settings such as `table_classes` are selected-framework inputs: write DaisyUI/Tailwind classes for the default, or Bootstrap classes when Bootstrap is selected. They are not translated between frameworks.
 
-Do not use `POWERCRUD_CSS_FRAMEWORK` to select Bootstrap; it is a legacy compatibility setting. For a framework beyond the supported packs, create a custom template pack rather than copying the package tree. See [Template Packs](../template_packs/index.md#customization).
+Do not use `POWERCRUD_CSS_FRAMEWORK` to select Bootstrap; it is a legacy compatibility setting. For a requirement beyond the supported packs, start with focused template overrides and discuss any maintained-pack work explicitly. See [Template Packs](../template_packs/index.md).
 
 ---
 
@@ -218,7 +218,7 @@ PowerCRUD does not ship a full HTML shell; instead, your project must define its
 
 | Setting | Default | Typical values | Purpose |
 |---------|---------|----------------|---------|
-| `POWERCRUD_CSS_FRAMEWORK` | `'daisyui'` | `'daisyui'`, custom pack name | Choose the styling stack. |
+| `POWERCRUD_CSS_FRAMEWORK` | `'daisyUI'` | legacy compatibility value | Retain the compatible DaisyUI styling path; use `POWERCRUD_TEMPLATE_PACK` to select a supported pack. |
 | `table_classes`, `action_button_classes`, `extra_button_classes` | `''` | CSS classes | Style tables and buttons. |
 | `table_max_col_width`, `table_header_min_wrap_width` | `25`, same as max | integers | Control column widths and truncation. |
 | `table_max_height`, `table_pixel_height_other_page_elements` | `70`, `0` | integers | Limit table height and scroll behaviour. |

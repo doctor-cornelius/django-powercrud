@@ -106,10 +106,15 @@ def test_bootstrap_manual_static_base_selects_only_bootstrap_vendor_assets():
     for asset in (
         "node_modules/bootstrap/dist/css/bootstrap.min.css",
         "node_modules/bootstrap/dist/js/bootstrap.bundle.min.js",
-        "powercrud/contrib/bootstrap5/css/bootstrap5.css",
-        "powercrud/contrib/bootstrap5/js/bootstrap5.js",
     ):
         assert asset in base, f"Bootstrap manual-static base should load {asset}."
+
+    assert "{% powercrud_runtime_config %}" in base, (
+        "Bootstrap manual-static base should identify the selected adapter to the stable runtime."
+    )
+    assert "{% powercrud_pack_assets %}" in base, (
+        "Bootstrap manual-static base should let the selected pack declare its own CSS and adapter modules."
+    )
 
     assert "django_vite" not in base, (
         "Bootstrap manual-static base should not load Vite template tags."

@@ -1,11 +1,19 @@
 import re
 
 import pytest
+from django.conf import settings
 
 pytest.importorskip("playwright.sync_api")
 from playwright.sync_api import expect
 
-pytestmark = [pytest.mark.playwright, pytest.mark.django_db]
+pytestmark = [
+    pytest.mark.playwright,
+    pytest.mark.django_db,
+    pytest.mark.skipif(
+        settings.SETTINGS_MODULE == "tests.settings_bootstrap",
+        reason="This module verifies the DaisyUI manual-static entry; Bootstrap has dedicated coverage.",
+    ),
+]
 
 
 def test_manual_static_sample_loads_powercrud_module_entry(
@@ -58,7 +66,10 @@ def test_manual_static_sample_loads_powercrud_module_entry(
         "hasDestroyTooltips": True,
         "hasCurrentFilters": True,
         "hasToggleFavouriteSaveForm": True,
-    }, "Expected manual static loading to expose vendor globals and PowerCRUD public helpers."
+    }, (
+        "Expected manual static loading to expose vendor globals and PowerCRUD public helpers. "
+        f"Console errors: {console_errors}; page errors: {page_errors}"
+    )
 
     page.wait_for_function(
         """

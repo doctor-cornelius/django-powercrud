@@ -1,6 +1,14 @@
 """Optional Bootstrap 5 template-pack declaration."""
 
-from powercrud.template_packs import TEMPLATE_PACK_CONTRACT_VERSION, TemplatePack
+from powercrud.template_packs import (
+    BrowserAdapterSpec,
+    CrispyIntegration,
+    PackAssets,
+    PackageResource,
+    TEMPLATE_PACK_CONTRACT_VERSION,
+    TemplatePack,
+    VendorRequirement,
+)
 
 
 template_pack = TemplatePack(
@@ -9,9 +17,7 @@ template_pack = TemplatePack(
     template_namespace="powercrud/packs/bootstrap5",
     template_package="powercrud",
     template_resource_root="contrib/bootstrap5/templates/powercrud/packs/bootstrap5",
-    legacy_copy_destination=None,
-    framework_adapter="bootstrap5",
-    variant_adapter=None,
+    server_adapter="powercrud.contrib.bootstrap5.adapter:server_adapter",
     capabilities=frozenset(
         {
             "list",
@@ -27,11 +33,37 @@ template_pack = TemplatePack(
         }
     ),
     supports_native_forms=True,
-    crispy_template_packs=frozenset({"bootstrap5"}),
     django_app="powercrud.contrib.bootstrap5",
-    manual_assets=(
-        "powercrud/contrib/bootstrap5/css/bootstrap5.css",
-        "powercrud/contrib/bootstrap5/js/bootstrap5.js",
+    assets=PackAssets(
+        stylesheets=("powercrud/contrib/bootstrap5/css/bootstrap5.css",),
+        copy_roots=(
+            PackageResource(
+                "powercrud",
+                "contrib/bootstrap5/static/powercrud/contrib/bootstrap5",
+            ),
+        ),
+        browser_adapter=BrowserAdapterSpec(
+            api_version=1,
+            # Preserve the established manual-static entry. It registers the
+            # public adapter before loading the stable PowerCRUD runtime.
+            static_path="powercrud/contrib/bootstrap5/js/bootstrap5.js",
+            source=PackageResource(
+                "powercrud",
+                "contrib/bootstrap5/static/powercrud/contrib/bootstrap5/js/bootstrap5.js",
+            ),
+        ),
+        vendor_requirements=(
+            VendorRequirement(
+                name="Bootstrap 5",
+                purpose="Framework styling and modal/tooltip behaviour",
+                global_name="bootstrap",
+                vite_import="bootstrap",
+            ),
+            VendorRequirement(
+                name="HTMX and Tom Select",
+                purpose="PowerCRUD interactive enhancements",
+            ),
+        ),
     ),
-    vite_assets=("config/static/js/bootstrap5.js",),
+    crispy_integrations=(CrispyIntegration("bootstrap5", "crispy_bootstrap5"),),
 )

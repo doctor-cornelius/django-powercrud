@@ -13,7 +13,7 @@ The default sample uses the compatible DaisyUI pack. Its runtime metadata footer
 ./manage.py runserver --settings=config.settings_bootstrap 0:8002
 ```
 
-There is no in-application presentation switcher. Start the desired settings configuration explicitly; use different ports when running presentations side by side. Bootstrap is a supported non-default pack selected at process startup, while the unconfigured default remains DaisyUI. See [Template Packs](../template_packs/index.md).
+There is no in-application presentation switcher. Start the desired settings configuration explicitly; use different ports when running presentations side by side. Bootstrap is a supported non-default pack selected at process startup, while the unconfigured default remains DaisyUI. See [Selecting and configuring a template pack](../template_packs/selecting-and-configuring.md).
 
 ## Models
 

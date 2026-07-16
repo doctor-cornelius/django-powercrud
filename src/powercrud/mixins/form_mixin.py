@@ -20,7 +20,7 @@ from powercrud.query_params import (
     build_navigation_query_string,
     build_navigation_querydict,
 )
-from .config_mixin import ConfigMixin, resolve_config
+from .config_mixin import ConfigMixin, get_template_name, resolve_config
 
 log = get_logger(__name__)
 
@@ -983,12 +983,12 @@ class FormMixin:
         ):
             # Set template to the form partial
             if self.object:  # Update form
-                self.template_name = (
-                    f"{resolve_config(self).templates_path}/object_form.html#pcrud_content"
+                self.template_name = get_template_name(
+                    resolve_config(self), "object_form.html#pcrud_content"
                 )
             else:  # Create form
-                self.template_name = (
-                    f"{resolve_config(self).templates_path}/object_form.html#pcrud_content"
+                self.template_name = get_template_name(
+                    resolve_config(self), "object_form.html#pcrud_content"
                 )
 
             # Render the response with the form template

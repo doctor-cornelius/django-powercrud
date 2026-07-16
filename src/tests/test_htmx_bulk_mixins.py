@@ -5,11 +5,14 @@ from types import SimpleNamespace
 
 import pytest
 from django.http import HttpResponse
+from django.template import TemplateDoesNotExist
 from django.test import RequestFactory, override_settings
 from django.contrib.sessions.middleware import SessionMiddleware
+from neapolitan.views import Role
 
 from powercrud.actions import PowerButton
 from powercrud.mixins.htmx_mixin import HtmxMixin
+from powercrud.mixins.config_mixin import get_template_name
 from powercrud.mixins.bulk_mixin import (
     SelectionMixin,
     MetadataMixin,
@@ -33,6 +36,58 @@ class DummyHtmxView(HtmxMixin):
         self.request = SimpleNamespace(
             htmx=SimpleNamespace(target=None), path="/example/"
         )
+
+
+@pytest.mark.parametrize(
+    ("filter_sort", "fragment"),
+    [(True, "filtered_results"), (False, "pcrud_content")],
+)
+def test_redisplayed_list_uses_project_override_before_selected_pack(
+    monkeypatch, filter_sort, fragment
+):
+    """HTMX list redisplay should preserve project-copy fallback candidates."""
+
+    class ProjectOverrideHtmxView(HtmxMixin):
+        template_override_path = "sample/powercrud/daisyui"
+        templates_path = "powercrud/packs/daisyui"
+        role = Role.LIST
+        hx_trigger = None
+
+        def get_template_names(self):
+            return ["missing.html", "fallback.html"]
+
+    request = RequestFactory().get(
+        "/books/",
+        HTTP_X_REDISPLAY_OBJECT_LIST="true",
+        **({"HTTP_X_FILTER_SORT_REQUEST": "true"} if filter_sort else {}),
+    )
+    request.htmx = True
+    view = ProjectOverrideHtmxView()
+    view.request = request
+
+    def fake_get_template(name):
+        if name == "missing.html":
+            raise TemplateDoesNotExist(name)
+        return object()
+
+    captured = {}
+    monkeypatch.setattr("django.template.loader.get_template", fake_get_template)
+    monkeypatch.setattr(
+        "powercrud.mixins.htmx_mixin.render",
+        lambda **kwargs: captured.update(kwargs) or HttpResponse(),
+    )
+
+    response = view.render_to_response({})
+
+    assert response.status_code == 200
+    assert captured["template_name"] == [
+        f"sample/powercrud/daisyui/object_list.html#{fragment}",
+        f"powercrud/packs/daisyui/object_list.html#{fragment}",
+    ]
+    assert get_template_name(
+        SimpleNamespace(template_override_path=None, templates_path="powercrud/packs/daisyui"),
+        "object_list.html",
+    ) == "powercrud/packs/daisyui/object_list.html"
 
 
 @pytest.mark.parametrize(

@@ -1,5 +1,4 @@
 import shutil
-import warnings
 from importlib.resources import files
 from pathlib import Path
 
@@ -7,14 +6,33 @@ from django.core.management.base import BaseCommand, CommandError
 from django.apps import apps
 
 from powercrud.template_packs import (
+    TemplatePack,
     get_configured_template_pack,
-    get_template_pack_copy_destination,
     get_template_pack_template_namespace,
+    resolve_template_pack,
 )
 
 
 class Command(BaseCommand):
     help = "Bootstrap CRUD templates, either individual templates or the complete framework structure."
+
+    project_template_pack_selectors = {
+        "daisyui": "daisyui",
+        "bootstrap5": "powercrud.contrib.bootstrap5:template_pack",
+    }
+    project_core_template_names = (
+        "object_list.html",
+        "object_detail.html",
+        "object_form.html",
+        "object_confirm_delete.html",
+    )
+    project_root_template_names = {
+        "list": "object_list.html",
+        "detail": "object_detail.html",
+        "form": "object_form.html",
+        "delete": "object_confirm_delete.html",
+    }
+    asset_copy_ignored_names = ("AGENTS.md", "README.md")
 
     focused_components = {
         "pagination": "pagination",
@@ -55,9 +73,9 @@ class Command(BaseCommand):
         """Return the selected namespace at command invocation time."""
         return get_template_pack_template_namespace()
 
-    def get_template_source_dir(self) -> Path:
-        """Return the selected pack's package-resource source directory."""
-        template_pack = get_configured_template_pack()
+    def get_template_source_dir(self, template_pack: TemplatePack | None = None) -> Path:
+        """Return a template pack's package-resource source directory."""
+        template_pack = template_pack or get_configured_template_pack()
         if template_pack is None:
             package_name = "powercrud"
             resource_root = f"templates/{self.template_prefix}"
@@ -67,6 +85,37 @@ class Command(BaseCommand):
         source_dir = files(package_name).joinpath(*Path(resource_root).parts)
         return Path(source_dir)
 
+    def get_project_asset_sources(
+        self, template_pack: TemplatePack
+    ) -> tuple[tuple[Path, Path], ...]:
+        """Return package-owned asset trees and their app-static destinations."""
+        package_root = Path(files("powercrud"))
+        shared_assets = package_root / "static" / "powercrud"
+        sources: list[tuple[Path, Path]] = [
+            (shared_assets / "css", Path("css")),
+            (shared_assets / "js", Path("js")),
+        ]
+        for copy_root in template_pack.assets.copy_roots:
+            source_path = Path(
+                files(copy_root.package).joinpath(*Path(copy_root.path).parts)
+            )
+            path_parts = Path(copy_root.path).parts
+            try:
+                static_index = path_parts.index("static")
+            except ValueError as exc:
+                raise CommandError(
+                    f"Pack copy root {copy_root.path!r} must live below a static directory."
+                ) from exc
+            destination = Path(*path_parts[static_index + 1 :])
+            if not destination.parts:
+                raise CommandError(
+                    f"Pack copy root {copy_root.path!r} has no static namespace."
+                )
+            if destination.parts[0] == "powercrud":
+                destination = Path(*destination.parts[1:])
+            sources.append((source_path, destination))
+        return tuple(sources)
+
     def add_arguments(self, parser):
         # Main argument group
         parser.add_argument(
@@ -75,12 +124,21 @@ class Command(BaseCommand):
             help="The target app name, or app.Model for templates",
         )
 
-        # Mutually exclusive group for template selection
-        group = parser.add_mutually_exclusive_group(required=True)
+        # Mutually exclusive group for template selection. A plain app target
+        # without a scope copies the four project-level root templates.
+        group = parser.add_mutually_exclusive_group()
+        group.add_argument(
+            "--core",
+            action="store_true",
+            help="Copy the four main CRUD templates for a plain app target.",
+        )
         group.add_argument(
             "--all",
             action="store_true",
-            help="Copy all templates (if app.Model specified: all CRUD templates for model, otherwise: entire template structure)",
+            help=(
+                "Copy all four model CRUD templates for app.Model, or the full "
+                "selected source pack for a plain app target."
+            ),
         )
         group.add_argument(
             "-l",
@@ -145,6 +203,23 @@ class Command(BaseCommand):
             type=str,
             help="The ModelName to bootstrap a template for (required except with --all).",
         )
+        parser.add_argument(
+            "--source-template-pack",
+            default=None,
+            help=(
+                "Source pack for a plain app copy: daisyui (default), bootstrap5, or "
+                "a module.path:attribute declaration. The copied pack must match the "
+                "pack selected at runtime."
+            ),
+        )
+        parser.add_argument(
+            "--assets",
+            action="store_true",
+            help=(
+                "Copy the selected pack's PowerCRUD-owned CSS and JavaScript "
+                "as an app-level manual-static snapshot."
+            ),
+        )
 
     def handle(self, *args, **options):
         try:
@@ -166,21 +241,52 @@ class Command(BaseCommand):
         target_dir = Path(app_config.path) / "templates"
         app_template_dir = target_dir / app_name
 
-        if options["all"]:
-            if is_model_specific:
-                self._copy_all_model_templates(model_name, target_dir, app_template_dir)
-            else:
-                self._copy_template_structure(target_dir, app_template_dir)
-        else:
-            if not is_model_specific:
-                raise CommandError(
-                    "Model must be specified for single template operations (e.g., 'sample.Book')"
-            )
-            options["model"] = model_name
+        if not is_model_specific:
             if options["component"]:
-                self._copy_focused_component(options, target_dir, app_template_dir)
-            else:
-                self._copy_single_template(options, target_dir, app_template_dir)
+                raise CommandError(
+                    "A model target is required for a focused component "
+                    "(for example, 'sample.Book --component pagination')."
+                )
+            source_template_pack = self._get_project_source_template_pack(
+                options["source_template_pack"] or "daisyui"
+            )
+            scope = "all" if options["all"] else options["role"] or "core"
+            self._copy_project_template_pack(
+                source_template_pack, target_dir, app_template_dir, app_name, scope
+            )
+            if options["assets"]:
+                self._copy_project_assets(
+                    source_template_pack,
+                    Path(app_config.path),
+                    app_name,
+                    self.project_template_pack_selectors.get(
+                        options["source_template_pack"] or "daisyui",
+                        options["source_template_pack"] or "daisyui",
+                    ),
+                )
+            return
+
+        if options["assets"]:
+            raise CommandError("--assets is only available with a plain app target.")
+        if options["core"]:
+            raise CommandError("--core is only available with a plain app target.")
+        if options["source_template_pack"]:
+            raise CommandError(
+                "--source-template-pack is only available with a plain app target."
+            )
+        if options["all"]:
+            self._copy_all_model_templates(model_name, target_dir, app_template_dir)
+            return
+        if not options["role"] and not options["component"]:
+            raise CommandError(
+                "A model target requires --all, a role option, or --component."
+            )
+
+        options["model"] = model_name
+        if options["component"]:
+            self._copy_focused_component(options, target_dir, app_template_dir)
+        else:
+            self._copy_single_template(options, target_dir, app_template_dir)
 
     def _copy_focused_component(self, options, target_dir, app_template_dir):
         """Copy one focused component into the model-specific override location."""
@@ -466,52 +572,185 @@ class Command(BaseCommand):
             )
         )
 
-    def _copy_template_structure(self, target_dir, app_template_dir):
-        """Copy the entire template structure to the target app."""
-        # Find the source template directory in the powercrud package
+    def _copy_project_assets(
+        self,
+        template_pack: TemplatePack,
+        app_path: Path,
+        app_name: str,
+        source_selector: str,
+    ) -> None:
+        """Copy a complete package-owned manual-static runtime snapshot for one app."""
+        destination_root = app_path / "static" / app_name / "powercrud"
+        copied_paths: list[tuple[Path, Path]] = []
+
         try:
-            source_dir = self.get_template_source_dir()
-
-            if not source_dir.exists():
-                raise CommandError(
-                    f"Could not find template directory: {source_dir}\n"
-                    f"Make sure powercrud is installed correctly and templates are available."
+            for source_dir, destination_relative_path in self.get_project_asset_sources(
+                template_pack
+            ):
+                if not source_dir.exists():
+                    raise CommandError(f"Pack asset directory not found: {source_dir}")
+                destination_dir = destination_root / destination_relative_path
+                shutil.copytree(
+                    source_dir,
+                    destination_dir,
+                    dirs_exist_ok=True,
+                    ignore=shutil.ignore_patterns(*self.asset_copy_ignored_names),
                 )
+                copied_paths.append((source_dir, destination_dir))
+        except CommandError:
+            raise
+        except OSError as exc:
+            raise CommandError(f"Failed to copy project assets: {exc}") from exc
 
-            # Create target directories if they don't exist
-            target_dir.mkdir(exist_ok=True)
-            app_template_dir.mkdir(exist_ok=True)
-
-            # Copy the entire template structure
-            framework_dir = get_template_pack_copy_destination()
-            warnings.warn(
-                "Plain-app whole-tree template copying is deprecated and will be removed "
-                "in v1.0. Use focused --component overrides for application "
-                "customization, or create an explicitly owned custom template pack.",
-                FutureWarning,
-                stacklevel=2,
+        css_paths, script_paths, dependency_guidance = self._get_asset_activation_guidance(
+            template_pack, app_name
+        )
+        copied_lines = "\n".join(
+            f"From: {source_path}\nTo: {destination_path}"
+            for source_path, destination_path in copied_paths
+        )
+        self.stdout.write(
+            self.style.SUCCESS(
+                f"Copied the {template_pack.identity} manual-static asset snapshot.\n"
+                f"{copied_lines}\n\n"
+                "Replace the package-owned PowerCRUD asset tags in your base template; "
+                "do not load both entries because the first runtime loaded wins.\n"
+                "Load the selected pack's required vendor dependencies before this entry:\n"
+                f"{dependency_guidance}\n\n"
+                "Add these application-owned asset tags:\n"
+                "{% load static powercrud %}\n"
+                "{% powercrud_runtime_config %}\n"
+                + "\n".join(
+                    f"<link rel=\"stylesheet\" href=\"{{% static '{css_path}' %}}\">"
+                    for css_path in css_paths
+                )
+                + "\n"
+                + "\n".join(
+                    f"<script type=\"module\" src=\"{{% static '{script_path}' %}}\"></script>"
+                    for script_path in script_paths
+                )
+                + "\n\n"
+                "This snapshot has no file-by-file fallback to package assets. Keep the "
+                "copied files needed by the selected entry. It supports manual-static "
+                "loading only; do not combine it with PowerCRUD's packaged Vite entry.\n"
+                "Use this matching runtime setting:\n"
+                "POWERCRUD_SETTINGS = {\n"
+                f"    \"POWERCRUD_TEMPLATE_PACK\": \"{source_selector}\",\n"
+                "}"
             )
-            target_framework_dir = app_template_dir / framework_dir
+        )
 
-            if target_framework_dir.exists():
-                self.stdout.write(
-                    self.style.WARNING(
-                        f"Target directory {target_framework_dir} already exists. Files will be overwritten."
-                    )
-                )
+    def _get_asset_activation_guidance(
+        self, template_pack: TemplatePack, app_name: str
+    ) -> tuple[tuple[str, ...], tuple[str, ...], str]:
+        """Return declaration-driven manual-static paths and vendor guidance."""
+        stylesheets = (
+            f"{app_name}/powercrud/css/powercrud.css",
+            *(
+                f"{app_name}/{path}" for path in template_pack.assets.stylesheets
+            ),
+        )
+        adapter = template_pack.assets.browser_adapter
+        script_paths = (
+            *( (f"{app_name}/{adapter.static_path}",) if adapter is not None else () ),
+            f"{app_name}/powercrud/js/powercrud.js",
+        )
+        requirements = template_pack.assets.vendor_requirements
+        dependency_guidance = (
+            "\n".join(
+                f"- {item.name}: {item.purpose}. {item.manual_static_note}".strip()
+                for item in requirements
+            )
+            or "- No additional vendor dependencies are declared."
+        )
+        return stylesheets, script_paths, dependency_guidance
 
-            shutil.copytree(source_dir, target_framework_dir, dirs_exist_ok=True)
+    def _get_project_source_template_pack(self, pack_name: str) -> TemplatePack:
+        """Resolve any declared source pack supported by project-level copying."""
+        selector = self.project_template_pack_selectors.get(pack_name, pack_name)
+        try:
+            return resolve_template_pack(selector)
+        except Exception as exc:
+            raise CommandError(
+                f"Could not load source template pack '{pack_name}': {exc}"
+            ) from exc
 
-            self.stdout.write(
-                self.style.SUCCESS(
-                    f"Successfully copied template structure:\n"
-                    f"From: {source_dir}\n"
-                    f"To: {target_framework_dir}"
-                )
+    def _copy_project_template_pack(
+        self,
+        template_pack: TemplatePack,
+        target_dir: Path,
+        app_template_dir: Path,
+        app_name: str,
+        scope: str,
+    ) -> None:
+        """Copy selected first-party pack templates into a project override root."""
+        source_dir = self.get_template_source_dir(template_pack)
+        if not source_dir.exists():
+            raise CommandError(
+                f"Could not find template directory: {source_dir}. "
+                "Make sure powercrud is installed correctly and templates are available."
             )
 
-        except Exception as e:
-            raise CommandError(f"Failed to copy template structure: {str(e)}")
+        target_dir.mkdir(exist_ok=True)
+        app_template_dir.mkdir(exist_ok=True)
+        destination_dir = app_template_dir / "powercrud" / template_pack.identity
+
+        try:
+            if scope == "all":
+                shutil.copytree(source_dir, destination_dir, dirs_exist_ok=True)
+                copied_description = "the complete template pack, including components"
+                copied_source = source_dir
+                copied_destination = destination_dir
+            elif scope == "core":
+                destination_dir.mkdir(parents=True, exist_ok=True)
+                for template_name in self.project_core_template_names:
+                    source_path = source_dir / template_name
+                    if not source_path.exists():
+                        raise CommandError(f"Template not found: {source_path}")
+                    shutil.copy2(source_path, destination_dir / template_name)
+                copied_description = "the four main CRUD templates"
+                copied_source = source_dir
+                copied_destination = destination_dir
+            else:
+                template_name = self.project_root_template_names.get(scope)
+                if template_name is None:
+                    raise CommandError(f"Unsupported project template scope: {scope}")
+                source_path = source_dir / template_name
+                if not source_path.exists():
+                    raise CommandError(f"Template not found: {source_path}")
+                destination_dir.mkdir(parents=True, exist_ok=True)
+                destination_path = destination_dir / template_name
+                shutil.copy2(source_path, destination_path)
+                copied_description = f"the {scope} root template ({template_name})"
+                copied_source = source_path
+                copied_destination = destination_path
+        except CommandError:
+            raise
+        except OSError as exc:
+            raise CommandError(f"Failed to copy project templates: {exc}") from exc
+
+        config_path = f"{app_name}/powercrud/{template_pack.identity}"
+        complete_override_setting = (
+            "    template_override_complete = True\n" if scope == "all" else ""
+        )
+        pack_guidance = (
+            "Keep POWERCRUD_TEMPLATE_PACK set to the same source pack so the "
+            "project copy and runtime assets stay aligned."
+            if scope == "all"
+            else "Keep POWERCRUD_TEMPLATE_PACK set to the same source pack so missing "
+            "templates and components continue to fall back to that pack."
+        )
+        self.stdout.write(
+            self.style.SUCCESS(
+                f"Copied {copied_description} from the {template_pack.identity} pack.\n"
+                f"From: {copied_source}\n"
+                f"To: {copied_destination}\n\n"
+                "Configure the views that should use these project overrides:\n"
+                f'    template_override_path = "{config_path}"\n'
+                f"{complete_override_setting}\n"
+                f"{pack_guidance}"
+            )
+        )
 
     def _copy_single_template(self, options, target_dir, app_template_dir):
         """Copy a single template file."""

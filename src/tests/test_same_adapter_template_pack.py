@@ -5,7 +5,7 @@ from django.test import override_settings
 
 from powercrud.template_pack_validation import validate_template_pack
 from powercrud.template_packs import (
-    get_template_pack_styles,
+    get_template_pack_server_adapter,
     resolve_template_pack,
 )
 
@@ -24,11 +24,11 @@ def test_same_adapter_fixture_has_distinct_resources_and_validates():
     assert fixture_pack.template_namespace != standard_pack.template_namespace, (
         "The durable fixture must keep independently addressable template resources."
     )
-    assert fixture_pack.framework_adapter == standard_pack.framework_adapter == "daisyui", (
-        "The distinct pack identities should reuse the one supported DaisyUI adapter."
+    assert fixture_pack.server_adapter == standard_pack.server_adapter, (
+        "The fixture should explicitly reuse the same public server adapter path."
     )
-    assert fixture_pack.variant_adapter is None and not fixture_pack.manual_assets and not fixture_pack.vite_assets, (
-        "The fixture must not copy an adapter, declare a variant, or add functional assets."
+    assert not fixture_pack.assets.stylesheets and fixture_pack.assets.browser_adapter is None, (
+        "The fixture must not claim its own stylesheet or browser adapter."
     )
 
     validate_template_pack(fixture_pack)
@@ -45,11 +45,11 @@ def test_same_adapter_fixture_has_distinct_resources_and_validates():
         get_template(f"{fixture_pack.template_namespace}/{template_name}")
 
 
-def test_same_adapter_fixture_selects_existing_daisyui_styles_without_sample_settings():
-    """Selection should retain existing adapter styles without becoming a visible pack."""
+def test_same_adapter_fixture_resolves_the_reused_public_server_adapter():
+    """Selection should import the explicitly declared reusable public adapter."""
     with override_settings(
         POWERCRUD_SETTINGS={"POWERCRUD_TEMPLATE_PACK": SAME_ADAPTER_SELECTOR}
     ):
-        assert get_template_pack_styles({"daisyui": "shared adapter styles"}) == "shared adapter styles", (
-            "The fixture should resolve the existing adapter style entry rather than a copied one."
+        assert get_template_pack_server_adapter().api_version == 1, (
+            "The fixture should resolve the declared DaisyUI server adapter without a framework registry."
         )

@@ -2,185 +2,178 @@
 
 powercrud provides several management commands to help with setup, template customization, and Tailwind CSS integration.
 
-## `pcrud_mktemplate` - Copy CRUD Templates
+## `pcrud_mktemplate` - Copy CRUD Templates And Assets
 
-Copy PowerCRUD templates to your project for customization. For pack selection and customization boundaries, see [Template Packs](../template_packs/index.md).
+Copy PowerCRUD templates and, when explicitly requested, pack assets to your project for customisation. For pack selection and customisation boundaries, see [Template Packs](../template_packs/index.md). To choose a focused `--component` value, use the [focused component table](../template_packs/customising.md#focused-component-overrides).
 
-### Usage
+### Copy a template pack for your project
+
+Use a plain app target to create a project-level override root. This is useful when several models need the same presentation change, or when your project needs to own a complete pack.
 
 ```bash
-# Copy all templates for an app
+# Copy the four main DaisyUI templates. This is the default scope.
+python manage.py pcrud_mktemplate myapp
+
+# The same command, with the scope stated explicitly.
+python manage.py pcrud_mktemplate myapp --core
+
+# Copy only the list root; all other roots and components fall back to DaisyUI.
+python manage.py pcrud_mktemplate myapp --list
+
+# Copy every DaisyUI template, including components.
 python manage.py pcrud_mktemplate myapp --all
 
-# Copy all CRUD templates for a specific model
+# Copy every Bootstrap 5 template, including components.
+python manage.py pcrud_mktemplate myapp --source-template-pack bootstrap5 --all
+
+# Copy the four main DaisyUI templates and an app-owned manual-static asset snapshot.
+python manage.py pcrud_mktemplate myapp --assets
+
+# Copy all Bootstrap 5 templates and its app-owned manual-static asset snapshot.
+python manage.py pcrud_mktemplate myapp --source-template-pack bootstrap5 --all --assets
+```
+
+`--source-template-pack` accepts `daisyui`, `bootstrap5`, or an installed pack's `module.path:attribute` selector. If it is omitted, the command copies DaisyUI. It does not choose your runtime pack, install a framework, configure Crispy Forms, or load vendor assets. Configure those separately, and select the same pack that you copied with `POWERCRUD_TEMPLATE_PACK` in `POWERCRUD_SETTINGS`.
+
+For example, a complete Bootstrap copy needs a Bootstrap runtime selection:
+
+```python
+POWERCRUD_SETTINGS = {
+    "POWERCRUD_TEMPLATE_PACK": "powercrud.contrib.bootstrap5:template_pack",
+}
+```
+
+The command writes to a pack-identified directory beneath the app's normal template directory. For `myapp` and DaisyUI, every app-level scope uses this root:
+
+```text
+myapp/
+    templates/
+        myapp/
+            powercrud/
+                daisyui/
+                    object_list.html             # default/--core/--all, or --list
+                    object_detail.html           # default/--core/--all, or --detail
+                    object_form.html             # default/--core/--all, or --form
+                    object_confirm_delete.html   # default/--core/--all, or --delete
+                    partial/                 # present with --all
+                    ...                      # other pack files with --all
+```
+
+It overwrites matching copied files but leaves files that exist only in the destination. Add the printed setting to every PowerCRUD view that should use the copy:
+
+```python
+class ProjectCRUDView(PowerCRUDMixin, CRUDView):
+    model = Project
+    template_override_path = "myapp/powercrud/daisyui"
+```
+
+PowerCRUD tries templates in this order: a model-specific override, the project-level `template_override_path`, then the selected pack. Therefore `--core` is safe: the four copied root templates are used, while any component or nested template that you did not copy comes from the selected runtime pack.
+
+### Copy one root template for a project
+
+Use a plain app target plus one root selector when all views configured with the same project root need one shared screen change:
+
+```bash
+python manage.py pcrud_mktemplate myapp --list
+python manage.py pcrud_mktemplate myapp --detail
+python manage.py pcrud_mktemplate myapp --form
+python manage.py pcrud_mktemplate myapp --delete
+```
+
+`--create` and `--update` are aliases for `--form`. Each command copies one `object_*.html` file to `myapp/templates/myapp/powercrud/daisyui/`. Use `--source-template-pack bootstrap5` to take that one root from Bootstrap instead. Missing roots, components, and nested templates continue to fall back to the selected runtime pack, so do not set `template_override_complete = True` for this scope.
+
+For a complete copy, add the second setting printed by the command:
+
+```python
+class ProjectCRUDView(PowerCRUDMixin, CRUDView):
+    model = Project
+    template_override_path = "myapp/powercrud/daisyui"
+    template_override_complete = True
+```
+
+This makes direct nested includes use the copied root as well. `--all` then gives the project an editable copy of every current template, but it also means the project must decide when to take future package template changes. Keep all files needed by the copied templates; `template_override_complete` is an explicit complete-ownership choice.
+
+Use a project-level override root for all views where you set `template_override_path`; it is not tied to one model. A model-specific copied template still takes precedence for every view using that model. For a one-view-only variation, use an explicit `get_template_names()` override as described in [Customising a template pack](../template_packs/customising.md#override-all-main-templates-for-one-model).
+
+### Copy a pack's manual-static assets
+
+Add `--assets` to a plain app command when the project needs to own the selected pack's PowerCRUD CSS and JavaScript. It can be combined with a one-root, default four-root, or `--all` template scope; it does not change template lookup. The command copies package-owned assets under the app's static namespace:
+
+```text
+myapp/
+    static/
+        myapp/
+            powercrud/
+                css/
+                js/
+                    runtime/
+                contrib/bootstrap5/     # Bootstrap only
+                    css/
+                    js/
+```
+
+For DaisyUI, this is the shared PowerCRUD runtime and its adapter. For Bootstrap, it also includes the Bootstrap PowerCRUD stylesheet and adapter modules. An independently published pack contributes the paths declared by that pack. The command deliberately does not copy vendor dependencies such as DaisyUI, Bootstrap, HTMX, Tom Select, or Tippy.
+
+The command prints the exact `{% static %}` stylesheet and module-script tags for the selected pack. Replace the package-owned PowerCRUD tags in the base template with those application-owned tags; do not load both. The runtime uses a duplicate-load guard, so the first entry loaded determines the active presentation.
+
+An asset snapshot is complete ownership with no file-by-file package fallback. If a copied CSS or JavaScript file is removed, restore it or deliberately change the base-template entry. Keep `POWERCRUD_TEMPLATE_PACK` aligned with the copied source pack.
+
+`--assets` supports manual-static loading only. It does not generate or modify a Vite entry or manifest. A project using PowerCRUD's packaged Vite entry must maintain its own custom frontend entry before it can own pack runtime assets; do not load the generated manual-static snapshot alongside the packaged Vite entry.
+
+Assets are application and pack scoped because the base template loads them. `app.Model` targets and `--component` cannot use `--assets`; app-level root selectors such as `myapp --list --assets` can. Model-specific template overrides continue to work with either the package-owned or app-owned runtime.
+
+## `pcrud_starttemplatepack` - Start an independent package
+
+Create a normal Python/Django package for a new CSS framework or presentation system. The command copies the full template tree from a maintained source and creates a declaration, neutral adapters, package-data configuration, and a small CSS/JavaScript entry point:
+
+```bash
+# Start from the default DaisyUI template tree.
+python manage.py pcrud_starttemplatepack my_powercrud_pack ../my-powercrud-pack
+
+# Start from the Bootstrap 5 template tree instead.
+python manage.py pcrud_starttemplatepack my_powercrud_pack ../my-powercrud-pack \
+  --source-template-pack bootstrap5
+```
+
+The first argument is the Python package name. The second is a new or empty destination directory; the command refuses to overwrite a populated directory. Use `--identity` only when the public pack identity should differ from the package name.
+
+The starter has no framework-name registration. Edit the copied templates and the optional adapter hooks, then test and publish it as a normal Python distribution. See [Authoring and publishing a template pack](../template_packs/authoring-and-publishing.md) for the complete workflow.
+
+### Copy templates for one model
+
+Use the dotted `app.Model` target when only one model needs an override:
+
+```bash
+# Copy all four main CRUD templates for Project.
 python manage.py pcrud_mktemplate myapp.Project --all
 
-# Copy specific templates for a model
+# Copy one main template for Project.
 python manage.py pcrud_mktemplate myapp.Project --list
-python manage.py pcrud_mktemplate myapp.Project --detail  
+python manage.py pcrud_mktemplate myapp.Project --detail
 python manage.py pcrud_mktemplate myapp.Project --form
 python manage.py pcrud_mktemplate myapp.Project --delete
 
-# Copy only the pagination navigation for a model
+# Copy one focused component for Project.
 python manage.py pcrud_mktemplate myapp.Project --component pagination
-
-# Copy only the page-size selector for a model
-python manage.py pcrud_mktemplate myapp.Project --component page-size
-
-# Copy only primary list actions for a model
-python manage.py pcrud_mktemplate myapp.Project --component list-actions
-
-# Copy only the filter trigger for a model
-python manage.py pcrud_mktemplate myapp.Project --component filter-toggle
-
-# Copy only filter-panel actions for a model
-python manage.py pcrud_mktemplate myapp.Project --component filter-panel-actions
-
-# Copy only the filter form for a model
-python manage.py pcrud_mktemplate myapp.Project --component filter-form
-
-# Copy only the list-column chooser for a model
-python manage.py pcrud_mktemplate myapp.Project --component list-columns
-
-# Copy only the row actions for a model
-python manage.py pcrud_mktemplate myapp.Project --component row-actions
-
-# Copy only the table header for a model
-python manage.py pcrud_mktemplate myapp.Project --component table-header
-
-# Copy only normal display rows for a model
-python manage.py pcrud_mktemplate myapp.Project --component table-row
-
-# Copy only the table shell for a model
-python manage.py pcrud_mktemplate myapp.Project --component table-shell
-
-# Copy only bulk-selection status and actions for a model
-python manage.py pcrud_mktemplate myapp.Project --component bulk-selection-status
-
-# Copy matching, select-all, and row-selection controls for a model
-python manage.py pcrud_mktemplate myapp.Project --component bulk-selection-controls
-
-# Copy the bulk form shell or only its update-field controls
-python manage.py pcrud_mktemplate myapp.Project --component bulk-form
-python manage.py pcrud_mktemplate myapp.Project --component bulk-fields
-
-# Copy bulk errors, conflicts, and queued-result presentation
-python manage.py pcrud_mktemplate myapp.Project --component bulk-outcomes
-
-# Copy the dialog shell for a model
-python manage.py pcrud_mktemplate myapp.Project --component modal-shell
-
-# Copy only the empty modal content host for a model
-python manage.py pcrud_mktemplate myapp.Project --component modal-content
-
-# Copy the create/update form shell for a model
-python manage.py pcrud_mktemplate myapp.Project --component form-shell
-
-# Copy only native/crispy form fields for a model
-python manage.py pcrud_mktemplate myapp.Project --component form-fields
-
-# Copy only the form save actions for a model
-python manage.py pcrud_mktemplate myapp.Project --component form-actions
-
-# Copy only edit-conflict presentation for a model
-python manage.py pcrud_mktemplate myapp.Project --component form-conflict
-
-# Copy the detail shell or its formatted table content
-python manage.py pcrud_mktemplate myapp.Project --component detail-shell
-python manage.py pcrud_mktemplate myapp.Project --component detail-content
-
-# Copy the delete shell or confirmation content
-python manage.py pcrud_mktemplate myapp.Project --component delete-shell
-python manage.py pcrud_mktemplate myapp.Project --component delete-content
-
-# Copy the destructive action or delete-conflict presentation
-python manage.py pcrud_mktemplate myapp.Project --component delete-actions
-python manage.py pcrud_mktemplate myapp.Project --component delete-conflict
-
-# Copy the canonical normal/returned inline display row
-python manage.py pcrud_mktemplate myapp.Project --component inline-row-display
-
-# Copy the active inline edit-form row
-python manage.py pcrud_mktemplate myapp.Project --component inline-row-form
-
-# Copy the dependency-refreshed inline field widget
-python manage.py pcrud_mktemplate myapp.Project --component inline-field
 ```
 
-### Arguments
+These files are written directly to `{app}/templates/{app}/`. Model `--all` creates `{model}_list.html`, `{model}_detail.html`, `{model}_form.html`, and `{model}_confirm_delete.html`; a focused component creates `{model}_{component}.html`. They apply to every PowerCRUD view whose `model` is that model, not merely to a class with a matching name.
 
-- `target` - App name (e.g., `myapp`) or app.Model (e.g., `myapp.Project`)
+Choose the component name from the [focused component table](../template_packs/customising.md#focused-component-overrides). The detailed sections below explain each generated template's context and preservation rules.
 
-Use a plain app target only with `--all`. Model-wide, single-template, and focused operations require the dotted `app.Model` target.
+### Arguments and options
 
-### Options
-
-- `--all` - Copy all templates (entire structure for app, or all CRUD templates for model)
-- `--list` (`-l`) - Copy list template only
-- `--detail` (`-d`) - Copy detail template only  
-- `--create` (`-c`), `--update` (`-u`), `--form` (`-f`) - Aliases that copy the same create/update form template
-- `--delete` - Copy delete template only
-- `--component NAME` - Copy one focused component override. Currently supports `pagination`, `page-size`, `list-actions`, `filter-toggle`, `filter-panel-actions`, `filter-form`, `list-columns`, `row-actions`, `table-header`, `table-row`, `table-shell`, `bulk-selection-status`, `bulk-selection-controls`, `bulk-form`, `bulk-fields`, `bulk-outcomes`, `modal-shell`, `modal-content`, `form-shell`, `form-fields`, `form-actions`, `form-conflict`, `detail-shell`, `detail-content`, `delete-shell`, `delete-content`, `delete-actions`, `delete-conflict`, `inline-row-display`, `inline-row-form`, and `inline-field`.
-
-### Examples
-
-```bash
-# Copy entire template structure to myapp
-python manage.py pcrud_mktemplate myapp --all
-
-# Copy all CRUD templates for Book model
-python manage.py pcrud_mktemplate library.Book --all
-
-# Copy just the list template for Book model
-python manage.py pcrud_mktemplate library.Book --list
-
-# Copy just the pagination navigation for Book model
-python manage.py pcrud_mktemplate library.Book --component pagination
-
-# Copy just the page-size selector for Book model
-python manage.py pcrud_mktemplate library.Book --component page-size
-
-# Copy just primary list actions for Book model
-python manage.py pcrud_mktemplate library.Book --component list-actions
-
-# Copy just the filter trigger for Book model
-python manage.py pcrud_mktemplate library.Book --component filter-toggle
-
-# Copy just filter-panel actions for Book model
-python manage.py pcrud_mktemplate library.Book --component filter-panel-actions
-
-# Copy just the filter form for Book model
-python manage.py pcrud_mktemplate library.Book --component filter-form
-
-# Copy just the list-column chooser for Book model
-python manage.py pcrud_mktemplate library.Book --component list-columns
-
-# Copy just the row actions for Book model
-python manage.py pcrud_mktemplate library.Book --component row-actions
-
-# Copy just the table header for Book model
-python manage.py pcrud_mktemplate library.Book --component table-header
-
-# Copy just normal display rows for Book model
-python manage.py pcrud_mktemplate library.Book --component table-row
-
-# Copy just the table shell for Book model
-python manage.py pcrud_mktemplate library.Book --component table-shell
-
-# Copy just bulk-selection status and actions for Book model
-python manage.py pcrud_mktemplate library.Book --component bulk-selection-status
-
-# Copy matching, select-all, and row-selection controls for Book model
-python manage.py pcrud_mktemplate library.Book --component bulk-selection-controls
-```
-
-### Template Locations
-
-`app.Model --all`, individual root selectors, and focused components create model-specific overrides directly under `{app}/templates/{app}/`. Model `--all` creates exactly the list, detail, form, and delete-confirmation roots. Existing files at those destinations are overwritten.
-
-Plain `app --all` copies the complete DaisyUI tree to `{app}/templates/{app}/daisyUI/`, overwriting matching files while retaining destination-only files. This compatibility command is deprecated during 0.x, emits `FutureWarning`, and will be removed in v1.0. It is not available for Bootstrap.
-
-Use focused `--component` overrides for normal customization. Model-specific root copies remain supported. If an application needs complete presentation ownership, create a custom template pack rather than relying on a copied package snapshot.
+- `target` - An app name (for example, `myapp`) or `app.Model` (for example, `myapp.Project`).
+- `--core` - With an app name, copy the four main CRUD templates. This is the default when no scope is supplied.
+- `--all` - With an app name, copy the complete source pack. With `app.Model`, copy the four main templates for that model.
+- `--source-template-pack SELECTOR` - Choose the source for an app-level copy. `SELECTOR` may be `daisyui`, `bootstrap5`, or an installed pack's `module.path:attribute` declaration selector. The default is `daisyui`; this option is not used with `app.Model`.
+- `--assets` - With an app name, copy the selected pack's PowerCRUD-owned manual-static CSS and JavaScript snapshot. It may be combined with any app-level template scope. This option is not available for `app.Model` or focused components.
+- `template_override_complete = True` - View setting used with an app-level `--all` copy. It makes direct nested includes use the copied complete root. Do not set it for a `--core` copy.
+- `--list` (`-l`) - With an app name, copy the selected pack's list root. With `app.Model`, copy that model's list template only.
+- `--detail` (`-d`) - With an app name, copy the selected pack's detail root. With `app.Model`, copy that model's detail template only.
+- `--create` (`-c`), `--update` (`-u`), `--form` (`-f`) - With an app name, copy the selected pack's form root. With `app.Model`, copy that model's create/update form template.
+- `--delete` - With an app name, copy the selected pack's delete root. With `app.Model`, copy that model's delete template only.
+- `--component NAME` - Copy one focused component for a model. Choose `NAME` from the [focused component table](../template_packs/customising.md#focused-component-overrides).
 
 `POWERCRUD_CSS_FRAMEWORK` remains a legacy compatibility setting; it does not select the optional Bootstrap pack.
 
@@ -390,7 +383,7 @@ The legacy `object_form.html#normal_content` and `#pcrud_content` fragments rema
 
 ### Focused Form Fields Override
 
-`--component form-fields` creates `{app}/templates/{app}/{model}_form_fields.html`. It receives `form`, `use_crispy`, and `framework_template_path` and renders either the native Django form or the existing crispy-tailwind fragment.
+`--component form-fields` creates `{app}/templates/{app}/{model}_form_fields.html`. It receives `form`, `use_crispy`, and `framework_template_path` and renders either the native Django form or the Crispy fragment for the selected pack.
 
 Preserve both rendering branches and do not add an outer form or CSRF token: those belong to the form shell. `crispy_partials.html#load_tags` and `#crispy_form` remain legacy compatibility fragments through 0.x. The focused copy contains no PowerCRUD JavaScript.
 

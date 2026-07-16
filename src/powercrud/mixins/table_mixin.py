@@ -3,9 +3,7 @@ from typing import Any
 
 from django.utils.text import capfirst
 
-from powercrud.contrib.bootstrap5.styles import get_bootstrap5_view_help_style
-from powercrud.packs.daisyui.styles import get_daisyui_view_help_style
-from powercrud.template_packs import get_template_pack_style_key
+from powercrud.template_packs import get_template_pack_server_adapter
 
 from .config_mixin import resolve_config
 
@@ -46,9 +44,8 @@ class TableMixin:
         normalized = color.strip().lower()
         if normalized.startswith("#"):
             normalized = cls._normalize_hex_color(normalized)
-        if get_template_pack_style_key() == "bootstrap5":
-            return get_bootstrap5_view_help_style(normalized)
-        return get_daisyui_view_help_style(normalized)
+        values = get_template_pack_server_adapter().get_view_help_variables(normalized)
+        return str(values.get("style", ""))
 
     def get_table_pixel_height_other_page_elements(self) -> str:
         """Returns the height of other elements on the page that the table is

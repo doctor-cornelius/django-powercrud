@@ -6,7 +6,7 @@ from django.shortcuts import render
 
 from powercrud.conf import get_powercrud_setting
 from powercrud.logging import get_logger
-from ..config_mixin import resolve_config
+from ..config_mixin import get_template_name, resolve_config
 
 log = get_logger(__name__)
 
@@ -168,7 +168,9 @@ class SelectionMixin:
         context = self.get_selection_status_context(request, selected_ids)
         response = render(
             request,
-            f"{resolve_config(self).templates_path}/object_list.html#bulk_selection_status",
+            get_template_name(
+                resolve_config(self), "object_list.html#bulk_selection_status"
+            ),
             context,
         )
         response["HX-Trigger"] = json.dumps({"refreshTable": True})
@@ -212,7 +214,9 @@ class SelectionMixin:
         context = self.get_selection_status_context(request, [])
         response = render(
             request,
-            f"{resolve_config(self).templates_path}/object_list.html#bulk_selection_status",
+            get_template_name(
+                resolve_config(self), "object_list.html#bulk_selection_status"
+            ),
             context,
         )
         response["HX-Trigger"] = json.dumps({"refreshTable": True})
@@ -296,7 +300,9 @@ class SelectionMixin:
 
         response = render(
             request,
-            f"{resolve_config(self).templates_path}/object_list.html#bulk_selection_status",
+            get_template_name(
+                resolve_config(self), "object_list.html#bulk_selection_status"
+            ),
             context,
         )
         response["HX-Trigger"] = json.dumps({"refreshTable": True})
@@ -375,7 +381,9 @@ class SelectionMixin:
         context = self.get_selection_status_context(request, selected_ids)
         response = render(
             request,
-            f"{resolve_config(self).templates_path}/object_list.html#bulk_selection_status",
+            get_template_name(
+                resolve_config(self), "object_list.html#bulk_selection_status"
+            ),
             context,
         )
         response["HX-Trigger"] = json.dumps({"refreshTable": True})

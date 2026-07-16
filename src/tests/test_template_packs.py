@@ -20,6 +20,7 @@ from powercrud.contrib.bootstrap5.templatetags.powercrud_bootstrap5 import (
 )
 from powercrud.template_packs import (
     DECLARABLE_PRESENTATION_OPTIONS,
+    PackAssets,
     TEMPLATE_PACK_CONTRACT_VERSION,
     TemplatePack,
     get_configured_template_pack,
@@ -39,35 +40,15 @@ def test_builtin_daisyui_declaration_describes_the_relocated_implementation():
     """The built-in declaration must describe the permanent pack source namespace."""
     template_pack = resolve_template_pack("daisyui")
 
-    assert template_pack == TemplatePack(
-        identity="daisyui",
-        contract_version=TEMPLATE_PACK_CONTRACT_VERSION,
-        template_namespace="powercrud/packs/daisyui",
-        template_package="powercrud",
-        template_resource_root="templates/powercrud/packs/daisyui",
-        legacy_copy_destination="daisyUI",
-        framework_adapter="daisyui",
-        variant_adapter=None,
-        capabilities=frozenset(
-            {
-                "list",
-                "form",
-                "detail",
-                "delete",
-                "filters",
-                "modal",
-                "bulk",
-                "async",
-                "inline",
-                "favourites",
-            }
-        ),
-        supports_native_forms=True,
-        crispy_template_packs=frozenset({"tailwind"}),
-        django_app="powercrud",
-    ), (
-        "The built-in declaration should exactly describe the relocated compatible DaisyUI "
-        "implementation and require no additional browser assets."
+    assert template_pack.identity == "daisyui", "The built-in identity must remain DaisyUI."
+    assert template_pack.contract_version == TEMPLATE_PACK_CONTRACT_VERSION, (
+        "The built-in declaration must use the public v1 contract."
+    )
+    assert template_pack.server_adapter == "powercrud.packs.daisyui.adapter:server_adapter", (
+        "The built-in declaration must use its public server adapter."
+    )
+    assert template_pack.assets.stylesheets == (), (
+        "DaisyUI relies on the application's compiled framework stylesheet, not a second pack CSS file."
     )
 
 
@@ -89,8 +70,8 @@ def test_template_pack_is_immutable_and_validates_declaration_shape():
         replace(template_pack, legacy_copy_destination="daisy\\ui")
     with pytest.raises(ValueError, match="capabilities"):
         replace(template_pack, capabilities={"list"})
-    with pytest.raises(ValueError, match="manual_assets"):
-        replace(template_pack, manual_assets=["pack.js"])
+    with pytest.raises(ValueError, match="stylesheets"):
+        replace(template_pack, assets=PackAssets(stylesheets=["pack.css"]))
     with pytest.raises(ValueError, match="unknown presentation"):
         replace(
             template_pack,
@@ -322,42 +303,44 @@ def test_explicit_pack_style_lookup_prefers_the_canonical_adapter_key():
     )
 
 
-def test_default_framework_style_override_point_delegates_to_pack_style_providers(monkeypatch):
-    """HtmxMixin keeps its public override method while exposing installed pack mappings."""
-    from powercrud.mixins import htmx_mixin as htmx_module
+def test_default_framework_style_override_point_uses_the_selected_public_adapter():
+    """HtmxMixin must expose the selected pack's adapter presentation only."""
+    from powercrud.mixins.htmx_mixin import HtmxMixin
 
-    view = htmx_module.HtmxMixin()
-    received_views = []
-    expected_daisyui_styles = {"daisyUI": {"source": "daisyui-pack"}}
-    expected_bootstrap_styles = {"bootstrap5": {"source": "bootstrap-pack"}}
+    class AdapterView(HtmxMixin):
+        """Provide the small configuration surface required by HtmxMixin."""
 
-    def fake_pack_styles(received_view):
-        """Capture the public mixin instance passed to the pack provider."""
-        received_views.append(received_view)
-        return expected_daisyui_styles
+        def get_modal_id(self):
+            """Return one stable modal identifier."""
+            return "#modal"
 
-    def fake_bootstrap_styles(received_view):
-        """Capture the public mixin instance passed to the Bootstrap provider."""
-        received_views.append(received_view)
-        return expected_bootstrap_styles
+        def get_modal_target(self):
+            """Return one stable modal target identifier."""
+            return "#modal-content"
 
-    monkeypatch.setattr(htmx_module, "get_daisyui_framework_styles", fake_pack_styles)
-    monkeypatch.setattr(htmx_module, "get_bootstrap5_framework_styles", fake_bootstrap_styles)
+        def get_use_htmx(self):
+            """Enable HTMX for the adapter context."""
+            return True
 
-    assert view.get_framework_styles() == {**expected_daisyui_styles, **expected_bootstrap_styles}, (
-        "The established HtmxMixin override point should expose both built-in framework "
-        "mappings while selected-pack lookup remains downstream-overridable."
+        def get_use_modal(self):
+            """Enable modal rendering for the adapter context."""
+            return True
+
+    styles = AdapterView().get_framework_styles()
+    assert set(styles) == {"daisyui"}, (
+        "The public adapter path must expose only the selected declaration identity."
     )
-    assert received_views == [view, view], (
-        "Both pack style providers should receive the view so their modal attributes remain dynamic."
+    assert styles["daisyui"]["modal_attrs"] == 'data-powercrud-modal-trigger="true"', (
+        "Modal triggers must now use the framework-neutral semantic hook."
     )
 
 
-def test_pack_without_legacy_copy_destination_cannot_request_whole_tree_copy():
-    """Phase 4 must not invent a third-party whole-tree destination convention."""
+def test_pack_without_legacy_copy_destination_uses_its_safe_identity():
+    """External packs use their own identity as the whole-tree copy destination."""
     with override_settings(POWERCRUD_SETTINGS={"POWERCRUD_TEMPLATE_PACK": FIXTURE_SELECTOR}):
-        with pytest.raises(ImproperlyConfigured, match="whole-tree copy destination"):
-            get_template_pack_copy_destination()
+        assert get_template_pack_copy_destination() == "fixture-pack", (
+            "A generic external pack must have a deterministic project copy destination."
+        )
 
 
 def test_selector_and_module_attribute_are_read_without_caching(monkeypatch):
@@ -418,14 +401,10 @@ def test_unavailable_or_invalid_third_party_declarations_fail_clearly(selector, 
     [
         ({"contract_version": TEMPLATE_PACK_CONTRACT_VERSION + 1}, "contract version"),
         ({"identity": "daisyui"}, "reserved"),
-        ({"framework_adapter": "bootstrap"}, "framework adapter"),
-        ({"variant_adapter": "compact"}, "variant adapter"),
-        ({"manual_assets": ("compact.js",)}, "browser assets"),
-        ({"vite_assets": ("compact.js",)}, "browser assets"),
     ],
 )
-def test_unsupported_declared_contracts_are_rejected(monkeypatch, replacement, message):
-    """Phase 4 rejects declarations that would require unavailable runtime support."""
+def test_invalid_declared_contracts_are_rejected(monkeypatch, replacement, message):
+    """Public v1 declarations reject malformed metadata without framework whitelists."""
     fixture_module = import_module("tests.template_pack_fixtures")
     monkeypatch.setattr(
         fixture_module,

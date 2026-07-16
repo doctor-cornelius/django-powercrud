@@ -8,7 +8,7 @@ from django.db import models
 
 from powercrud.conf import get_powercrud_setting
 from powercrud.logging import get_logger
-from ..config_mixin import resolve_config
+from ..config_mixin import get_template_name, resolve_config
 
 log = get_logger(__name__)
 
@@ -214,8 +214,8 @@ class ViewMixin:
         """
         self.request = request
         cfg = resolve_config(self)
-        template_name = f"{cfg.templates_path}/bulk_edit_form.html#full_form"
-        template_errors = f"{cfg.templates_path}/partial/bulk_edit_errors.html"
+        template_name = get_template_name(cfg, "bulk_edit_form.html#full_form")
+        template_errors = get_template_name(cfg, "partial/bulk_edit_errors.html")
         # Ensure HTMX is being used for both GET and POST
         if not hasattr(request, "htmx"):
             return HttpResponseBadRequest("Bulk edit only supported via HTMX requests.")
@@ -358,7 +358,7 @@ class ViewMixin:
         self.request = request
         cfg = resolve_config(self)
         field_info = self._get_bulk_field_info(bulk_fields)
-        template_errors = f"{cfg.templates_path}/partial/bulk_edit_errors.html"
+        template_errors = get_template_name(cfg, "partial/bulk_edit_errors.html")
         # extract necessary data from the request
         delete_selected = request.POST.get("delete_selected")
         if delete_selected:
@@ -453,7 +453,7 @@ class ViewMixin:
                     **self.get_modal_context(),
                 }
                 response = render(
-                    request, f"{cfg.templates_path}/bulk_edit_form.html", context
+                    request, get_template_name(cfg, "bulk_edit_form.html"), context
                 )
 
                 # Use formError trigger and include showModal to ensure the modal stays open
@@ -546,7 +546,7 @@ class ViewMixin:
                 **self.get_modal_context(),
             }
             response = render(
-                request, f"{cfg.templates_path}/bulk_edit_form.html", context
+                request, get_template_name(cfg, "bulk_edit_form.html"), context
             )
 
             # Use the same error handling as for delete errors

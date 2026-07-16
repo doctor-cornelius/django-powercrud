@@ -6,9 +6,9 @@ Once the basics are in place you may want to tailor templates, extend mixins, or
 
 ## 1. Copy and tweak templates
 
-Use focused component overrides for ordinary template changes. They retain PowerCRUD-owned behaviour while giving your application a narrow markup boundary. See [Template Packs](../../template_packs/index.md#customization) for the pack-aware customization contract.
+Use focused component overrides for ordinary template changes. They retain PowerCRUD-owned behaviour while giving your application a narrow markup boundary. See [Customising a template pack](../../template_packs/customising.md) for the pack-aware customisation contract.
 
-Use the management command when a focused or model-root copy fits the change:
+Use the management command when a focused component or a copy of all four main templates for one model fits the change:
 
 ```bash
 # Just the CRUD templates for a model
@@ -19,9 +19,9 @@ python manage.py pcrud_mktemplate myapp.Project --list
 python manage.py pcrud_mktemplate myapp.Project --form
 ```
 
-Model-root and focused copies land directly in `myapp/templates/myapp/` and are selected automatically before the packaged default, so removing one restores that default.
+Copies of all four main templates and focused components land directly in `myapp/templates/myapp/` and are selected automatically before the packaged default, so removing one restores that default.
 
-The plain-app `myapp --all` command is a deprecated DaisyUI-only 0.x compatibility path. It creates an application-owned snapshot and is unavailable for Bootstrap; use focused overrides, model roots, or an explicitly owned custom pack instead.
+The plain-app `myapp --all` command is a deprecated DaisyUI-only 0.x compatibility path. It creates an application-owned snapshot and is unavailable for Bootstrap; use focused overrides or `myapp.Model --all` for one model's four main templates instead. Treat a new maintained pack as an explicit compatibility discussion.
 
 ---
 
@@ -173,7 +173,7 @@ Use `--component modal-content` when only the empty HTMX content host needs diff
 
 Use `--component form-shell` to change the create/update heading, contextual display, form container, and transport attributes without copying the whole object-form template. Preserve the POST action, multipart and CSRF handling, retained list-query inputs, `data-powercrud-form="object"`, and normal/modal HTMX behavior. Keep delegating through `form_fields_template_paths` and `form_actions_template_paths` if their focused overrides should remain active. The copied shell contains no PowerCRUD JavaScript.
 
-Use `--component form-fields` when only native Django or crispy-tailwind field rendering should change. Keep both `use_crispy` branches unless the application intentionally standardizes on one renderer, and do not introduce another `<form>` or CSRF token. The shell continues to own transport and actions; the legacy crispy fragments remain available.
+Use `--component form-fields` when only native Django or Crispy field rendering should change. Keep both `use_crispy` branches unless the application intentionally standardises on one renderer, and do not introduce another `<form>` or CSRF token. The shell continues to own transport and actions; the legacy Crispy fragments remain available.
 
 Use `--component form-actions` to restyle or extend the Save control. Keep it as a submit control inside the surrounding shell and retain `data-form-save` for PowerCRUD's package-owned request spinner. Do not move action URLs, CSRF, or HTMX behavior into this leaf.
 

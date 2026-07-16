@@ -1,4 +1,4 @@
-{% load django_vite %}
+{% load django_vite powercrud %}
 
 <!DOCTYPE html>
 
@@ -10,6 +10,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     {% vite_hmr_client %}
+    {% powercrud_runtime_config %}
     {% vite_asset 'config/static/js/bootstrap5.js' %}
 
     {% block header_title %}

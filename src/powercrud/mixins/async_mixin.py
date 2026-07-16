@@ -9,7 +9,7 @@ from django.urls import reverse
 
 from ..async_manager import AsyncManager
 from powercrud.logging import get_logger
-from .config_mixin import resolve_config
+from .config_mixin import get_template_candidates, get_template_name, resolve_config
 
 log = get_logger(__name__)
 
@@ -260,15 +260,19 @@ class AsyncMixin:
         if callable(component_paths_getter):
             context[context_name] = component_paths_getter(component_name)
         else:
-            context[context_name] = [
-                f"{resolve_config(self).templates_path}/partial/{component_name}.html"
-            ]
+            context[context_name] = get_template_candidates(
+                resolve_config(self), f"partial/{component_name}.html"
+            )
 
         if hasattr(request, "htmx") and request.htmx:
             if operation == "delete":
-                template = f"{resolve_config(self).templates_path}/object_confirm_delete.html#conflict_detected"
+                template = get_template_name(
+                    resolve_config(self), "object_confirm_delete.html#conflict_detected"
+                )
             else:
-                template = f"{resolve_config(self).templates_path}/object_form.html#conflict_detected"
+                template = get_template_name(
+                    resolve_config(self), "object_form.html#conflict_detected"
+                )
             return render(request, template, context)
 
         # Fallback: simple HTTP response
@@ -291,7 +295,9 @@ class AsyncMixin:
         }
         return render(
             request,
-            f"{resolve_config(self).templates_path}/partial/bulk_edit_errors.html#bulk_edit_conflict",
+            get_template_name(
+                resolve_config(self), "partial/bulk_edit_errors.html#bulk_edit_conflict"
+            ),
             context,
         )
 
@@ -470,7 +476,9 @@ class AsyncMixin:
         self.clear_selection_from_session(request)
 
         # Return async success response with task_name for progress polling
-        template = f"{resolve_config(self).templates_path}/bulk_edit_form.html#async_queue_success"
+        template = get_template_name(
+            resolve_config(self), "bulk_edit_form.html#async_queue_success"
+        )
         progress_url = reverse("powercrud:async_progress")
         modal_context_getter = getattr(self, "get_modal_context", None)
         modal_context = (
@@ -516,7 +524,9 @@ class AsyncMixin:
         log.error(f"Async task queueing failed: {str(error)}", exc_info=True)
 
         # Return error response
-        template_errors = f"{resolve_config(self).templates_path}/partial/bulk_edit_errors.html"
+        template_errors = get_template_name(
+            resolve_config(self), "partial/bulk_edit_errors.html"
+        )
         component_context_getter = getattr(
             self, "get_bulk_form_component_context", None
         )
