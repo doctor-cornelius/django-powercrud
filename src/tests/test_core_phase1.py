@@ -2585,6 +2585,171 @@ def test_url_mixin_get_template_names_uses_model_meta():
     assert view.get_template_names() == expected
 
 
+def test_url_mixin_focus_component_paths_prefer_model_override():
+    """Focused components should prefer a model-specific downstream template."""
+
+    class UrlView(UrlMixin):
+        model = Author
+        templates_path = "powercrud/daisyUI"
+
+    view = UrlView()
+
+    assert view.get_focused_component_template_paths("pagination") == [
+        "sample/author_pagination.html",
+        "powercrud/daisyUI/partial/pagination.html",
+    ], "Pagination should resolve a downstream model override before the built-in component."
+
+    assert view.get_focused_component_template_paths("page_size_selector") == [
+        "sample/author_page_size_selector.html",
+        "powercrud/daisyUI/partial/page_size_selector.html",
+    ], "The page-size selector should resolve a downstream model override before the built-in component."
+
+    assert view.get_focused_component_template_paths("list_actions") == [
+        "sample/author_list_actions.html",
+        "powercrud/daisyUI/partial/list_actions.html",
+    ], "List actions should resolve a downstream model override before the built-in component."
+
+    assert view.get_focused_component_template_paths("filter_trigger") == [
+        "sample/author_filter_trigger.html",
+        "powercrud/daisyUI/partial/filter_trigger.html",
+    ], "The filter trigger should resolve a downstream model override before the built-in component."
+
+    assert view.get_focused_component_template_paths("filter_panel_actions") == [
+        "sample/author_filter_panel_actions.html",
+        "powercrud/daisyUI/partial/filter_panel_actions.html",
+    ], "Filter-panel actions should resolve a downstream model override before the built-in component."
+
+    assert view.get_focused_component_template_paths("filter_form") == [
+        "sample/author_filter_form.html",
+        "powercrud/daisyUI/partial/filter_form.html",
+    ], "The filter form should resolve a downstream model override before the built-in component."
+
+    assert view.get_focused_component_template_paths("list_columns") == [
+        "sample/author_list_columns.html",
+        "powercrud/daisyUI/partial/list_columns.html",
+    ], "The list-column chooser should resolve a downstream model override before the built-in component."
+
+    assert view.get_focused_component_template_paths("row_actions") == [
+        "sample/author_row_actions.html",
+        "powercrud/daisyUI/partial/row_actions.html",
+    ], "Row actions should resolve a downstream model override before the built-in component."
+
+    assert view.get_focused_component_template_paths("table_header") == [
+        "sample/author_table_header.html",
+        "powercrud/daisyUI/partial/table_header.html",
+    ], "The table header should resolve a downstream model override before the built-in component."
+
+    assert view.get_focused_component_template_paths("table_row") == [
+        "sample/author_table_row.html",
+        "powercrud/daisyUI/partial/table_row.html",
+    ], "Table rows should resolve a downstream model override before the built-in component."
+
+    assert view.get_focused_component_template_paths("table_shell") == [
+        "sample/author_table_shell.html",
+        "powercrud/daisyUI/partial/table_shell.html",
+    ], "The table shell should resolve a downstream model override before the built-in component."
+
+    assert view.get_focused_component_template_paths("bulk_selection_status") == [
+        "sample/author_bulk_selection_status.html",
+        "powercrud/daisyUI/partial/bulk_selection_status.html",
+    ], "Bulk-selection status should resolve a downstream model override before the built-in component."
+
+    assert view.get_focused_component_template_paths("bulk_selection_controls") == [
+        "sample/author_bulk_selection_controls.html",
+        "powercrud/daisyUI/partial/bulk_selection_controls.html",
+    ], "Bulk-selection controls should resolve one model override for all three control modes."
+
+    assert view.get_focused_component_template_paths("bulk_form") == [
+        "sample/author_bulk_form.html",
+        "powercrud/daisyUI/partial/bulk_form.html",
+    ], "The bulk form should resolve a downstream model override before the built-in shell."
+
+    assert view.get_focused_component_template_paths("bulk_fields") == [
+        "sample/author_bulk_fields.html",
+        "powercrud/daisyUI/partial/bulk_fields.html",
+    ], "Bulk fields should resolve a downstream model override before the built-in controls."
+
+    assert view.get_focused_component_template_paths("bulk_outcomes") == [
+        "sample/author_bulk_outcomes.html",
+        "powercrud/daisyUI/partial/bulk_outcomes.html",
+    ], "Bulk outcomes should resolve one model override for every feedback mode."
+
+    assert view.get_focused_component_template_paths("modal_shell") == [
+        "sample/author_modal_shell.html",
+        "powercrud/daisyUI/partial/modal_shell.html",
+    ], "The modal shell should resolve a downstream model override before the built-in dialog."
+
+    assert view.get_focused_component_template_paths("modal_content") == [
+        "sample/author_modal_content.html",
+        "powercrud/daisyUI/partial/modal_content.html",
+    ], "Modal content should resolve a downstream target wrapper before the built-in host."
+
+    assert view.get_focused_component_template_paths("form_shell") == [
+        "sample/author_form_shell.html",
+        "powercrud/daisyUI/partial/form_shell.html",
+    ], "The form shell should resolve a downstream model override before the built-in form structure."
+
+    assert view.get_focused_component_template_paths("form_fields") == [
+        "sample/author_form_fields.html",
+        "powercrud/daisyUI/partial/form_fields.html",
+    ], "Form fields should resolve a downstream model override before the built-in renderer."
+
+    assert view.get_focused_component_template_paths("form_actions") == [
+        "sample/author_form_actions.html",
+        "powercrud/daisyUI/partial/form_actions.html",
+    ], "Form actions should resolve a downstream model override before the built-in save control."
+
+    assert view.get_focused_component_template_paths("form_conflict") == [
+        "sample/author_form_conflict.html",
+        "powercrud/daisyUI/partial/form_conflict.html",
+    ], "Form conflicts should resolve a downstream model override before the built-in presentation."
+
+    assert view.get_focused_component_template_paths("detail_shell") == [
+        "sample/author_detail_shell.html",
+        "powercrud/daisyUI/partial/detail_shell.html",
+    ], "The detail shell should resolve a downstream model override before the built-in card."
+
+    assert view.get_focused_component_template_paths("detail_content") == [
+        "sample/author_detail_content.html",
+        "powercrud/daisyUI/partial/detail_content.html",
+    ], "Detail content should resolve a downstream model override before the built-in table."
+
+    assert view.get_focused_component_template_paths("delete_shell") == [
+        "sample/author_delete_shell.html",
+        "powercrud/daisyUI/partial/delete_shell.html",
+    ], "The delete shell should resolve a downstream model override before the built-in card."
+
+    assert view.get_focused_component_template_paths("delete_content") == [
+        "sample/author_delete_content.html",
+        "powercrud/daisyUI/partial/delete_content.html",
+    ], "Delete content should resolve a downstream model override before the built-in confirmation."
+
+    assert view.get_focused_component_template_paths("delete_actions") == [
+        "sample/author_delete_actions.html",
+        "powercrud/daisyUI/partial/delete_actions.html",
+    ], "Delete actions should resolve a downstream model override before the built-in submit control."
+
+    assert view.get_focused_component_template_paths("delete_conflict") == [
+        "sample/author_delete_conflict.html",
+        "powercrud/daisyUI/partial/delete_conflict.html",
+    ], "Delete conflicts should resolve a downstream model override before the built-in presentation."
+
+    assert view.get_focused_component_template_paths("inline_row_display") == [
+        "sample/author_inline_row_display.html",
+        "powercrud/daisyUI/partial/inline_row_display.html",
+    ], "Inline display rows should resolve a downstream model override before the built-in row."
+
+    assert view.get_focused_component_template_paths("inline_row_form") == [
+        "sample/author_inline_row_form.html",
+        "powercrud/daisyUI/partial/inline_row_form.html",
+    ], "Inline form rows should resolve a downstream model override before the built-in edit row."
+
+    assert view.get_focused_component_template_paths("inline_field") == [
+        "sample/author_inline_field.html",
+        "powercrud/daisyUI/partial/inline_field.html",
+    ], "Inline fields should resolve a downstream model override before the built-in dependency widget."
+
+
 def test_safe_reverse_handles_no_reverse_match(monkeypatch):
     from django.urls import NoReverseMatch
     from powercrud.mixins import url_mixin as url_module
@@ -3217,7 +3382,7 @@ def test_book_list_renders_custom_inline_edit_highlight_css_variables(
 @pytest.mark.django_db
 def test_book_list_inline_edit_display_uses_truncating_label_wrapper():
     """Keep the truncating wrapper and tooltip hook in the inline list template."""
-    template_text = (
+    list_template_text = (
         Path(__file__).resolve().parents[1]
         / "powercrud"
         / "templates"
@@ -3226,18 +3391,27 @@ def test_book_list_inline_edit_display_uses_truncating_label_wrapper():
         / "partial"
         / "list.html"
     ).read_text(encoding="utf-8")
+    inline_display_template_text = (
+        Path(__file__).resolve().parents[1]
+        / "powercrud"
+        / "templates"
+        / "powercrud"
+        / "daisyUI"
+        / "partial"
+        / "inline_row_display.html"
+    ).read_text(encoding="utf-8")
 
-    assert ".pc-inline-display-label" in template_text, (
+    assert ".pc-inline-display-label" in list_template_text, (
         "Inline-edit list markup should define the dedicated truncation wrapper styles."
     )
-    assert 'class="pc-inline-display-label' in template_text, (
+    assert 'class="pc-inline-display-label' in inline_display_template_text, (
         "Display-state inline edit cells should render the truncating label wrapper around their text."
     )
-    assert 'data-powercrud-tooltip="overflow"' in template_text, (
+    assert 'data-powercrud-tooltip="overflow"' in inline_display_template_text, (
         "Inline display labels should keep the overflow-tooltip hook on the truncating wrapper."
     )
-    assert "text-right" in template_text, (
-        "List template should include explicit right-alignment branches so column_alignments can render right-aligned cells."
+    assert "text-right" in inline_display_template_text, (
+        "Inline display template should include explicit right-alignment branches so column_alignments can render right-aligned cells."
     )
 
 

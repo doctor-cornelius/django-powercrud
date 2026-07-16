@@ -139,6 +139,19 @@ class ViewMixin:
                 )
         return context
 
+    def get_bulk_form_component_context(self) -> Dict[str, Any]:
+        """Return model-first focused candidates for bulk form rendering."""
+        focused_paths_getter = getattr(
+            self, "get_focused_component_template_paths", None
+        )
+        if not callable(focused_paths_getter):
+            return {}
+        return {
+            "bulk_form_template_paths": focused_paths_getter("bulk_form"),
+            "bulk_fields_template_paths": focused_paths_getter("bulk_fields"),
+            "bulk_outcomes_template_paths": focused_paths_getter("bulk_outcomes"),
+        }
+
     def _render_bulk_edit_error(
         self, request, template_errors: str, error_message: str
     ) -> HttpResponse:
@@ -156,7 +169,7 @@ class ViewMixin:
         return render(
             request,
             f"{template_errors}#bulk_edit_error",
-            {"error": error_message},
+            {"error": error_message, **self.get_bulk_form_component_context()},
         )
 
     def _validate_bulk_fields_to_update(
@@ -282,6 +295,7 @@ class ViewMixin:
                 "conflict_message": f"Another bulk operation is already running on {self.model._meta.verbose_name_plural}. Please try again later.",
                 "selected_count": len(selected_ids),
                 "model_name_plural": self.model._meta.verbose_name_plural,
+                **self.get_bulk_form_component_context(),
             }
             return render(request, f"{template_errors}#bulk_edit_conflict", context)
 
@@ -311,6 +325,7 @@ class ViewMixin:
             "field_info": self._get_bulk_field_info(bulk_fields),
             "storage_key": self.get_storage_key(),
             "original_target": self.get_original_target(),
+            **self.get_bulk_form_component_context(),
             **self.get_modal_context(),
         }
         # Render the bulk edit form
@@ -434,6 +449,7 @@ class ViewMixin:
                     "field_info": field_info,
                     "storage_key": self.get_storage_key(),
                     "original_target": self.get_original_target(),
+                    **self.get_bulk_form_component_context(),
                     **self.get_modal_context(),
                 }
                 response = render(
@@ -526,6 +542,7 @@ class ViewMixin:
                 "field_info": field_info,
                 "storage_key": self.get_storage_key(),
                 "original_target": self.get_original_target(),
+                **self.get_bulk_form_component_context(),
                 **self.get_modal_context(),
             }
             response = render(

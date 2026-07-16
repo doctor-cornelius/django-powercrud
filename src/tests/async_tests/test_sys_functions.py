@@ -1242,7 +1242,25 @@ class TestSingleRecordConflicts(AsyncManagerTestMixin, TestCase):
         request = RequestFactory().get("/book/1/edit/", HTTP_HX_REQUEST="true")
         request.htmx = True
         self.view.object = book
-        response = self.view._render_conflict_response(request, book.pk, "update")
+        candidate_paths = [
+            "sample/book_form_conflict.html",
+            "powercrud/daisyUI/partial/form_conflict.html",
+        ]
+        self.view.get_focused_component_template_paths = Mock(
+            return_value=candidate_paths
+        )
+        with patch("powercrud.mixins.async_mixin.render") as render_mock:
+            render_mock.return_value.status_code = 200
+            render_mock.return_value.content = b"Edit Conflict Please try again later"
+            response = self.view._render_conflict_response(request, book.pk, "update")
+
+        render_context = render_mock.call_args.args[2]
+        self.assertEqual(
+            render_context["form_conflict_template_paths"], candidate_paths
+        )
+        self.view.get_focused_component_template_paths.assert_called_once_with(
+            "form_conflict"
+        )
 
         self.assertEqual(response.status_code, 200)
         content = response.content.decode()

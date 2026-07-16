@@ -1,0 +1,79 @@
+<details class="dropdown dropdown-end" data-powercrud-list-columns="true">
+    <summary class="btn btn-outline btn-secondary {{ view.get_extra_button_classes }}"
+             data-powercrud-list-columns-trigger="true"
+             data-powercrud-tooltip="semantic"
+             data-tippy-content="Choose visible columns"
+             aria-expanded="false">
+        <span>Cols {{ list_column_state.active_columns|length }}/{{ list_column_state.allowed_columns|length }}</span>
+        <svg xmlns="http://www.w3.org/2000/svg"
+             viewBox="0 0 20 20"
+             fill="currentColor"
+             class="h-4 w-4"
+             aria-hidden="true">
+            <path fill-rule="evenodd"
+                  d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 11.168l3.71-3.938a.75.75 0 1 1 1.08 1.04l-4.25 4.5a.75.75 0 0 1-1.08 0l-4.25-4.5a.75.75 0 0 1 .02-1.06Z"
+                  clip-rule="evenodd" />
+        </svg>
+    </summary>
+    <div hidden data-powercrud-list-columns-template="true">
+        <div class="dropdown-content z-[1200] mt-2 w-72 max-w-[calc(100vw-2rem)] rounded-box border border-base-300 bg-base-100 p-3 shadow"
+             data-powercrud-list-columns-panel="true">
+            <form method="post"
+                  action="{{ list_options_url }}"
+                  {% if use_htmx %}
+                      hx-post="{{ list_options_url }}"
+                      hx-target="{{ original_target }}"
+                      hx-swap="innerHTML"
+                  {% endif %}
+                  class="space-y-3">
+                {% csrf_token %}
+                <input type="hidden" name="list_view_url" value="{{ list_view_url }}">
+                {% for key, values in request.GET.lists %}
+                    {% if key != 'csrfmiddlewaretoken' and key != 'page' %}
+                        {% for value in values %}
+                            <input type="hidden" name="{{ key }}" value="{{ value }}">
+                        {% endfor %}
+                    {% endif %}
+                {% endfor %}
+                <div class="max-h-72 space-y-0 overflow-y-auto pr-1 text-sm">
+                    {% for column in list_column_state.choices %}
+                        <label class="flex cursor-pointer items-center justify-between gap-2 rounded px-2 py-0.5 hover:bg-base-200"
+                               data-powercrud-list-column-option="true">
+                            <span class="min-w-0 leading-5">
+                                <span class="block truncate">
+                                    {{ column.label }}{% if column.is_default %}<span class="ml-1 align-super text-xs font-semibold text-base-content/60"
+                                          title="Default column"
+                                          aria-label="Default column">*</span>{% endif %}
+                                </span>
+                            </span>
+                            <input type="checkbox"
+                                   class="checkbox checkbox-xs"
+                                   name="visible_columns"
+                                   value="{{ column.name }}"
+                                   data-powercrud-list-column-checkbox="true"
+                                   data-powercrud-initial-checked="{% if column.is_active %}true{% else %}false{% endif %}"
+                                   {% if column.is_active %}checked{% endif %}>
+                        </label>
+                    {% endfor %}
+                </div>
+                <div class="flex items-center justify-between gap-2 border-t border-base-300 pt-3">
+                    <span class="text-xs text-base-content/60">* = Default</span>
+                    <div class="flex justify-end gap-2">
+                        <button type="submit"
+                                name="list_columns_action"
+                                value="reset"
+                                class="btn btn-outline btn-sm">
+                            Reset
+                        </button>
+                        <button type="submit"
+                                name="list_columns_action"
+                                value="apply"
+                                class="btn btn-primary btn-sm">
+                            Save
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</details>

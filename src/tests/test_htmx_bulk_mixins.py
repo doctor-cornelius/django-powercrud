@@ -164,6 +164,26 @@ def test_selection_session_helpers_roundtrip():
     view = DummyBulkView(request)
 
     assert view.get_selected_ids_from_session(request) == []
+
+
+@pytest.mark.django_db
+def test_selection_status_context_forwards_focused_component_candidates():
+    """Direct selection responses should retain model-first component resolution."""
+    request = make_request(RequestFactory())
+    view = DummyBulkView(request)
+    view.get_focused_component_template_paths = lambda name: [
+        f"sample/book_{name}.html",
+        f"powercrud/daisyUI/partial/{name}.html",
+    ]
+
+    context = view.get_selection_status_context(request, [1, 2])
+
+    assert context["bulk_selection_status_template_paths"] == [
+        "sample/book_bulk_selection_status.html",
+        "powercrud/daisyUI/partial/bulk_selection_status.html",
+    ], (
+        "Endpoint-driven selection-status swaps should keep the same model-first override candidates as the initial list render."
+    )
     view.save_selected_ids_to_session(request, [1, 2])
     assert view.get_selected_ids_from_session(request) == ["1", "2"]
 

@@ -1,0 +1,5 @@
+{% if use_crispy %}
+    {% include framework_template_path|add:"/crispy_partials.html#crispy_form" %}
+{% else %}
+    {{ form }}
+{% endif %}

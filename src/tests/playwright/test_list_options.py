@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 from datetime import date
+from urllib.parse import parse_qs, urlsplit
 
 import pytest
 
@@ -24,6 +25,67 @@ def open_column_chooser(page):
     panel = page.locator("[data-powercrud-list-columns-floating-panel='true']")
     expect(panel).to_be_visible()
     return panel
+
+
+def test_book_list_header_sort_preserves_state_and_history(
+    page, books_url, sample_books
+):
+    """HTMX header sorting should toggle direction and preserve list history state."""
+    expected_ascending = sorted(book.title for book in sample_books)
+    expected_descending = list(reversed(expected_ascending))
+    page.goto(
+        f"{books_url}?page_size=5&author={sample_books[0].author_id}&visible_filters=author"
+    )
+    page.wait_for_load_state("networkidle")
+
+    title_header = page.get_by_role("columnheader").filter(has_text="Title").first
+    title_cells = page.locator("tbody td[data-field-name='title']")
+    expect(title_cells).to_have_count(2)
+
+    with page.expect_request(
+        lambda request: request.headers.get("x-filter-sort-request") == "true"
+    ) as ascending_request:
+        title_header.dispatch_event("click")
+
+    ascending_query = parse_qs(urlsplit(ascending_request.value.url).query)
+    assert ascending_query["sort"] == ["title"], (
+        "The first header click should request ascending title order."
+    )
+    assert ascending_query["page_size"] == ["5", "5"] and ascending_query["author"] == [str(sample_books[0].author_id)], (
+        "Header sorting should preserve the current page size and author filter exactly."
+    )
+    assert ascending_query["visible_filters"] == ["author"], (
+        "Header sorting should preserve optional-filter visibility state."
+    )
+    expect(page).to_have_url(re.compile(r"[?&]sort=title(?:&|$)"))
+    expect(title_cells.first).to_contain_text(expected_ascending[0])
+    assert [text.strip() for text in title_cells.all_text_contents()] == expected_ascending, (
+        "The first HTMX sort should render titles in ascending order."
+    )
+
+    title_header = page.get_by_role("columnheader").filter(has_text="Title").first
+    expect(title_header).to_have_attribute("hx-get", re.compile(r"[?]sort=-title"))
+    with page.expect_request(
+        lambda request: request.headers.get("x-filter-sort-request") == "true"
+    ) as descending_request:
+        title_header.dispatch_event("click")
+
+    descending_query = parse_qs(urlsplit(descending_request.value.url).query)
+    assert descending_query["sort"] == ["-title"], (
+        "The second header click should request descending title order."
+    )
+    expect(page).to_have_url(re.compile(r"[?&]sort=-title(?:&|$)"))
+    expect(title_cells.first).to_contain_text(expected_descending[0])
+    assert [text.strip() for text in title_cells.all_text_contents()] == expected_descending, (
+        "The second HTMX sort should render titles in descending order."
+    )
+
+    page.go_back()
+    expect(page).to_have_url(re.compile(r"[?&]sort=title(?:&|$)"))
+    expect(title_cells.first).to_contain_text(expected_ascending[0])
+    assert [text.strip() for text in title_cells.all_text_contents()] == expected_ascending, (
+        "Browser history should restore the ascending HTMX list state."
+    )
 
 
 def test_book_list_column_chooser_saves_and_resets_columns(

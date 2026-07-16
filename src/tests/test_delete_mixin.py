@@ -378,6 +378,12 @@ def test_async_delete_conflict_short_circuits_before_delete(rf, fake_async_rende
     assert response.template_name.endswith("#conflict_detected"), (
         "Async delete conflicts should keep using the existing conflict response template."
     )
+    assert response.context_data["delete_conflict_template_paths"] == [
+        "sample/book_delete_conflict.html",
+        "powercrud/daisyUI/partial/delete_conflict.html",
+    ], (
+        "Direct HTMX delete conflicts should carry model-first focused candidates."
+    )
     assert obj.delete_calls == 0, (
         "Async delete conflict detection should short-circuit before the shared delete path attempts to delete the object."
     )

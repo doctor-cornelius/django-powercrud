@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from datetime import date
 from types import SimpleNamespace
 
 import pytest
@@ -588,6 +589,125 @@ def test_bulk_field_info_flags_searchable_select_only_for_eligible_fields(rf):
     assert (
         field_info["bestseller"]["searchable_select"] is False
     ), "Boolean bulk fields should remain native selects and not use searchable-select enhancement."
+
+
+@pytest.mark.django_db
+def test_bulk_edit_get_forwards_focused_form_candidates(rf, monkeypatch):
+    """Direct bulk-form responses should retain model-first focused candidates."""
+    author = Author.objects.create(name="Focused Bulk Author")
+    book = Book.objects.create(
+        title="Focused Bulk Book",
+        author=author,
+        published_date=date(2024, 1, 1),
+        bestseller=False,
+        isbn="9780000000097",
+        pages=1,
+    )
+    request = make_htmx_request(rf)
+    view = HarnessView(request)
+    view.get_focused_component_template_paths = lambda name: [
+        f"sample/book_{name}.html",
+        f"powercrud/daisyUI/partial/{name}.html",
+    ]
+    view.save_selected_ids_to_session(request, [book.pk])
+    monkeypatch.setattr(
+        "powercrud.mixins.bulk_mixin.view_mixin.render",
+        lambda request, template, context: DummyResponse(template, context),
+    )
+
+    response = view.bulk_edit(request)
+
+    assert response.context_data["bulk_form_template_paths"] == [
+        "sample/book_bulk_form.html",
+        "powercrud/daisyUI/partial/bulk_form.html",
+    ], "Bulk GET responses should retain model-first form-shell candidates."
+    assert response.context_data["bulk_fields_template_paths"] == [
+        "sample/book_bulk_fields.html",
+        "powercrud/daisyUI/partial/bulk_fields.html",
+    ], "Bulk GET responses should retain model-first field candidates."
+
+
+def test_bulk_form_and_fields_components_preserve_script_free_contract(rf):
+    """Focused bulk components should retain form hooks without functional scripts."""
+    request = rf.get("/bulk-edit/")
+    fields = render_to_string(
+        "powercrud/daisyUI/partial/bulk_fields.html",
+        {
+            "field_info": {
+                "author": {
+                    "type": "ForeignKey",
+                    "is_relation": True,
+                    "is_m2m": False,
+                    "verbose_name": "Author",
+                    "null": True,
+                    "bulk_choices": [Author(pk=1, name="Ada")],
+                    "searchable_select": True,
+                }
+            }
+        },
+    )
+    form = render_to_string(
+        "powercrud/daisyUI/partial/bulk_form.html",
+        {
+            "request": request,
+            "selected_count": 1,
+            "selected_ids": ["7"],
+            "model_name_plural": "books",
+            "enable_bulk_update": True,
+            "enable_bulk_delete": True,
+            "modal_target": "bulkModalContent",
+            "bulk_fields_template_paths": [
+                "powercrud/daisyUI/partial/bulk_fields.html"
+            ],
+            "field_info": {},
+        },
+        request=request,
+    )
+
+    assert 'id="bulk-edit-form"' in form and 'name="selected_ids[]" value="7"' in form, (
+        "The focused form should retain its form identity and selected-ID payload."
+    )
+    assert 'hx-target="#bulkModalContent"' in form and "data-powercrud-bulk-delete-submit" in form, (
+        "The focused form should retain modal targeting and delete submission hooks."
+    )
+    assert 'name="fields_to_update" value="author"' in fields and 'data-powercrud-searchable-select="true"' in fields, (
+        "Focused fields should retain submitted names and searchable-select metadata."
+    )
+    assert "<script" not in form + fields, (
+        "Focused bulk form and field copies should not contain PowerCRUD functional JavaScript."
+    )
+
+
+@pytest.mark.parametrize(
+    ("mode", "context", "expected"),
+    [
+        ("operation_errors", {"errors": [("author", ["Invalid author"])]}, "Invalid author"),
+        ("error", {"error": "No records selected"}, "No records selected"),
+        (
+            "conflict",
+            {"conflict_message": "Operation running", "selected_count": 2, "model_name_plural": "books"},
+            "Operation running",
+        ),
+        (
+            "queued",
+            {"task_name": "task-1", "progress_url": "/progress/", "modal_id": "bulkModal"},
+            "Bulk Operation Queued",
+        ),
+    ],
+)
+def test_bulk_outcomes_component_renders_script_free_modes(mode, context, expected):
+    """One focused outcome component should render every legacy feedback state."""
+    rendered = render_to_string(
+        "powercrud/daisyUI/partial/bulk_outcomes.html",
+        {"bulk_outcome": mode, **context},
+    )
+
+    assert expected in rendered, "The selected bulk outcome should render its supplied feedback."
+    assert "<script" not in rendered, "Focused bulk outcome copies should not contain functional scripts."
+    if mode == "queued":
+        assert 'hx-get="/progress/"' in rendered and '"task_name": "task-1"' in rendered, (
+            "Queued outcomes should retain declarative progress polling context."
+        )
 
 
 @pytest.mark.django_db

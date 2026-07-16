@@ -250,6 +250,19 @@ class AsyncMixin:
             "conflict_message": conflict_message,
             "object": getattr(self, "object", None),
         }
+        component_name = (
+            "delete_conflict" if operation == "delete" else "form_conflict"
+        )
+        context_name = f"{component_name}_template_paths"
+        component_paths_getter = getattr(
+            self, "get_focused_component_template_paths", None
+        )
+        if callable(component_paths_getter):
+            context[context_name] = component_paths_getter(component_name)
+        else:
+            context[context_name] = [
+                f"{self.templates_path}/partial/{component_name}.html"
+            ]
 
         if hasattr(request, "htmx") and request.htmx:
             if operation == "delete":
@@ -263,11 +276,18 @@ class AsyncMixin:
 
     def _render_bulk_conflict_response(self, request, selected_ids, delete_selected):
         """Render conflict response for bulk operations"""
+        component_context_getter = getattr(
+            self, "get_bulk_form_component_context", None
+        )
+        component_context = (
+            component_context_getter() if callable(component_context_getter) else {}
+        )
         context = {
             "conflict_detected": True,
             "conflict_message": f"Another bulk operation is already running on {self.model._meta.verbose_name_plural}. Please try again later.",
             "selected_count": len(selected_ids),
             "model_name_plural": self.model._meta.verbose_name_plural,
+            **component_context,
         }
         return render(
             request,
@@ -456,6 +476,12 @@ class AsyncMixin:
         modal_context = (
             modal_context_getter() if callable(modal_context_getter) else {}
         )
+        component_context_getter = getattr(
+            self, "get_bulk_form_component_context", None
+        )
+        component_context = (
+            component_context_getter() if callable(component_context_getter) else {}
+        )
         response = render(
             request,
             template,
@@ -464,6 +490,7 @@ class AsyncMixin:
                 "selected_count": len(selected_ids),
                 "model_name_plural": self.model._meta.verbose_name_plural,
                 "progress_url": progress_url,
+                **component_context,
                 **modal_context,
             },
         )
@@ -490,12 +517,19 @@ class AsyncMixin:
 
         # Return error response
         template_errors = f"{self.templates_path}/partial/bulk_edit_errors.html"
+        component_context_getter = getattr(
+            self, "get_bulk_form_component_context", None
+        )
+        component_context = (
+            component_context_getter() if callable(component_context_getter) else {}
+        )
 
         response = render(
             request,
             f"{template_errors}#bulk_edit_error",
             context={
                 "error": f"Failed to queue background task for {len(selected_ids)} {self.model._meta.verbose_name_plural}:\n\n{str(error)}",
+                **component_context,
             },
         )
         response["HX-ReTarget"] = self.get_modal_target()

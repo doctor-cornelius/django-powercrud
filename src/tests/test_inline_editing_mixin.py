@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from copy import deepcopy
 import json
 from datetime import date
 from types import SimpleNamespace
@@ -7,7 +8,8 @@ from types import SimpleNamespace
 import pytest
 from django import forms
 from django.contrib.sessions.middleware import SessionMiddleware
-from django.test import RequestFactory
+from django.conf import settings
+from django.test import RequestFactory, override_settings
 from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
 
@@ -357,6 +359,132 @@ def test_inline_get_renders_form_html(sample_book):
     assert (
         b"pc-inline-editable" not in response.content
     ), "Active inline form rows should not reuse the display-state editable marker class."
+    assert b'name="pk"' in response.content and b'name="csrfmiddlewaretoken"' in response.content, (
+        "Inline form rows should retain object identity and CSRF fields."
+    )
+    assert b"data-inline-save" in response.content and b"data-inline-cancel" in response.content, (
+        "Inline form rows should retain Save and Cancel runtime hooks."
+    )
+    assert b'hx-post="/sample/bigbook/' in response.content and b'hx-include="#pc-row-' in response.content, (
+        "Save should retain the row endpoint and include every named row field."
+    )
+    assert b'hx-vals=\'{"inline_display": true}\'' in response.content and b'hx-swap="outerHTML"' in response.content, (
+        "Cancel should retain display-mode and outer-row swap semantics."
+    )
+
+
+@pytest.mark.django_db
+def test_inline_form_response_uses_focused_model_row_for_get_and_invalid_post(
+    sample_book, sample_author, tmp_path
+):
+    """Entry and invalid save responses should select the same model form row."""
+    override_path = tmp_path / "sample"
+    override_path.mkdir()
+    (override_path / "book_inline_row_form.html").write_text(
+        '<tr id="{{ row.row_id }}" data-inline-row="true" data-inline-active="true" data-custom-inline-form>'
+        '<td>{{ form.title }}{% if form.title.errors %}{{ form.title.errors|join:", " }}{% endif %}</td>'
+        '<td data-hidden-count="{{ inline_hidden_fields|length }}">{{ action_button_classes }} {{ inline_save_url }} {{ inline_cancel_url }}</td>'
+        "</tr>"
+    )
+    template_settings = deepcopy(settings.TEMPLATES)
+    template_settings[0]["DIRS"] = [str(tmp_path), *template_settings[0]["DIRS"]]
+
+    def focused_paths(component):
+        if component == "inline_row_form":
+            return [
+                "sample/book_inline_row_form.html",
+                "powercrud/daisyUI/partial/inline_row_form.html",
+            ]
+        return [f"powercrud/daisyUI/partial/{component}.html"]
+
+    get_request = _make_request("get")
+    get_view = InlineTestView(get_request, sample_book)
+    get_view.get_focused_component_template_paths = focused_paths
+    invalid_request = _make_request(
+        "post",
+        data={
+            "title": "",
+            "author": str(sample_author.pk),
+            "published_date": "2024-01-01",
+            "isbn": "9780000000011",
+            "pages": "123",
+            "bestseller": "",
+        },
+    )
+    invalid_view = InlineTestView(invalid_request, sample_book)
+    invalid_view.get_focused_component_template_paths = focused_paths
+
+    with override_settings(TEMPLATES=template_settings):
+        get_response = get_view._dispatch_inline_row(get_request, pk=sample_book.pk)
+        invalid_response = invalid_view._dispatch_inline_row(
+            invalid_request, pk=sample_book.pk
+        )
+
+    assert b"data-custom-inline-form" in get_response.content and b"Original Title" in get_response.content, (
+        "Ordinary entry should select the model form row with the bound instance."
+    )
+    assert b"data-hidden-count=" in get_response.content and b"/sample/bigbook/" in get_response.content, (
+        "The model form row should receive hidden fields, classes, and save/cancel URLs."
+    )
+    assert b"data-custom-inline-form" in invalid_response.content and b"This field is required" in invalid_response.content, (
+        "Invalid saves should retain the same model override and bound validation state."
+    )
+    assert b"<script" not in get_response.content + invalid_response.content, (
+        "A focused inline form row should not need copied PowerCRUD JavaScript."
+    )
+
+
+@pytest.mark.django_db
+def test_inline_form_row_preserves_disabled_selection_column(sample_book):
+    """Active editing should retain one disabled selection cell when enabled."""
+    request = _make_request("get")
+    view = InlineTestView(request, sample_book)
+    view.get_selection_controls_enabled = lambda: True
+
+    response = view._dispatch_inline_row(request, pk=sample_book.pk)
+
+    assert response.content.count(b"row-select-checkbox") == 1, (
+        "The active form row should retain exactly one selection-column placeholder."
+    )
+    assert b'data-id="' + str(sample_book.pk).encode() + b'"' in response.content and b"disabled" in response.content, (
+        "The selection placeholder should retain the row ID and remain disabled while editing."
+    )
+
+
+@pytest.mark.django_db
+def test_inline_display_response_uses_focused_model_row(sample_book, tmp_path):
+    """Cancel/display requests should render the model-first canonical display row."""
+    override_path = tmp_path / "sample"
+    override_path.mkdir()
+    (override_path / "book_inline_row_display.html").write_text(
+        '<tr id="{{ row.row_id }}" data-inline-row="true" data-custom-inline-display><td>{{ row.cells.0.value }}</td></tr>'
+    )
+    template_settings = deepcopy(settings.TEMPLATES)
+    template_settings[0]["DIRS"] = [str(tmp_path), *template_settings[0]["DIRS"]]
+    request = _make_request("get", path="/inline/?inline_display=true")
+    view = InlineTestView(request, sample_book)
+
+    def focused_paths(component):
+        if component == "inline_row_display":
+            return [
+                "sample/book_inline_row_display.html",
+                "powercrud/daisyUI/partial/inline_row_display.html",
+            ]
+        return [f"powercrud/daisyUI/partial/{component}.html"]
+
+    view.get_focused_component_template_paths = focused_paths
+    with override_settings(TEMPLATES=template_settings):
+        response = view._dispatch_inline_row(request, pk=sample_book.pk)
+
+    assert response.status_code == 200, (
+        "An inline display request should return a replacement row."
+    )
+    assert b"data-custom-inline-display" in response.content and sample_book.title.encode() in response.content, (
+        "The direct response should select the model display row with row payload context."
+    )
+    assert b'data-inline-active="true"' not in response.content and b"<script" not in response.content, (
+        "Display responses should remain non-active and require no copied JavaScript."
+    )
 
 
 @pytest.mark.django_db
@@ -856,6 +984,12 @@ def test_inline_guard_blocks_locked_state(sample_book, monkeypatch):
     assert response.status_code == 423
     assert payload["inline-row-locked"]["message"] == "Row locked"
     assert payload["inline-row-locked"]["lock"]["label"] == "Busy"
+    assert b'data-inline-status="locked"' in response.content, (
+        "Locked responses should return display-row status metadata."
+    )
+    assert b'aria-disabled="true"' in response.content and b"pc-inline-editable" not in response.content, (
+        "Locked rows should show a disabled affordance rather than an editable trigger."
+    )
 
 
 @pytest.mark.django_db
@@ -871,6 +1005,9 @@ def test_inline_guard_blocks_get_when_update_guard_denies_row(sample_book):
     )
     assert payload["inline-row-forbidden"]["message"] == "Editing locked by policy.", (
         "Inline GET should reuse the configured update-guard reason when blocking the row."
+    )
+    assert b'data-inline-status="forbidden"' in response.content and b'aria-disabled="true"' in response.content, (
+        "Forbidden responses should return a disabled display row with status metadata."
     )
 
 
@@ -1024,6 +1161,56 @@ def test_inline_dependency_endpoint_renders_widget(sample_book):
     assert (
         b'data-inline-field="title"' in response.content
     ), "Dependency widget response should preserve the inline field marker after swap."
+
+
+@pytest.mark.django_db
+def test_inline_dependency_prefers_model_inline_field_override(sample_book, tmp_path):
+    """Dependency responses should select the model field component with isolated context."""
+    override_path = tmp_path / "sample"
+    override_path.mkdir()
+    (override_path / "book_inline_field.html").write_text(
+        '<div data-custom-inline-field data-name="{{ field_name }}" '
+        'data-endpoint="{{ field_dependency.endpoint_url|default:dependency_endpoint_url }}">{{ field }}</div>'
+    )
+    template_settings = deepcopy(settings.TEMPLATES)
+    template_settings[0]["DIRS"] = [str(tmp_path), *template_settings[0]["DIRS"]]
+    request = _make_request(
+        "post",
+        path="/inline-dependency/",
+        data={
+            "field": "title",
+            "title": sample_book.title,
+            "author": str(sample_book.author_id),
+            "published_date": "2024-01-01",
+            "isbn": sample_book.isbn,
+            "pages": str(sample_book.pages),
+            "bestseller": "",
+        },
+    )
+    view = InlineDependencyMetadataView(request, sample_book)
+
+    def focused_paths(component):
+        assert component == "inline_field", (
+            "The dependency endpoint should resolve only the inline-field component."
+        )
+        return [
+            "sample/book_inline_field.html",
+            "powercrud/daisyUI/partial/inline_field.html",
+        ]
+
+    view.get_focused_component_template_paths = focused_paths
+    with override_settings(TEMPLATES=template_settings):
+        response = view._dispatch_inline_dependency(request, pk=sample_book.pk)
+
+    assert b"data-custom-inline-field" in response.content and b'data-name="title"' in response.content, (
+        "The model override should receive the bound field and field name."
+    )
+    assert b'data-endpoint="/sample/bigbook/inline-dependency/"' in response.content, (
+        "The model override should receive resolved dependency metadata and fallback context."
+    )
+    assert sample_book.title.encode() in response.content and b"<script" not in response.content, (
+        "The model override should render the bound value without copied JavaScript."
+    )
 
 
 @pytest.mark.django_db

@@ -1,10 +1,5 @@
-<table class="table w-full border border-base-300">
-    <tbody>
-        {% for label, value in object %}
-        <tr class="border border-base-300">
-            <td class="font-bold w-1/3 py-1 border border-base-300">{{ label }}</td>
-            <td class="py-1 border border-base-300">{{ value }}</td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
+{% if detail_content_template_paths %}
+    {% include detail_content_template_paths %}
+{% else %}
+    {% include "powercrud/daisyUI/partial/detail_content.html" %}
+{% endif %}

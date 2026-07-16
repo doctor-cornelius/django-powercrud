@@ -60,6 +60,24 @@ def test_author_list_shows_add_more_cta_when_cap_limits_expansion(client):
 
 
 @pytest.mark.django_db
+@override_settings(POWERCRUD_SETTINGS={"BULK_MAX_SELECTED_RECORDS": 1})
+def test_author_list_shows_selection_limit_message_when_cap_is_reached(client):
+    """Explain why matching records cannot be added once the cap is full."""
+    authors = [Author.objects.create(name=f"Limit Author {index}") for index in range(2)]
+    set_bulk_selection(client, "author", [authors[0].pk])
+
+    response = client.get(reverse("sample:author-list"))
+    response_text = normalize_html_text(response.content.decode())
+
+    assert "Selection limit reached (1 records)" in response_text, (
+        "The list should render the configured selection-limit explanation."
+    )
+    assert "Select all 2 matching records" not in response_text, (
+        "A matching-selection action should not render when no capacity remains."
+    )
+
+
+@pytest.mark.django_db
 def test_author_list_hides_bulk_selection_meta_when_disabled(client, monkeypatch):
     """Allow views to disable the bulk-selection metadata row independently of record-count display."""
     monkeypatch.setattr(

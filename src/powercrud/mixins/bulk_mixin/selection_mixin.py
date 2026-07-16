@@ -106,6 +106,13 @@ class SelectionMixin:
             "list_view_url": list_view_url,
             "view": self,
         }
+        focused_paths_getter = getattr(
+            self, "get_focused_component_template_paths", None
+        )
+        if callable(focused_paths_getter):
+            context["bulk_selection_status_template_paths"] = focused_paths_getter(
+                "bulk_selection_status"
+            )
         modal_context_getter = getattr(self, "get_modal_context", None)
         if callable(modal_context_getter):
             context.update(modal_context_getter())
