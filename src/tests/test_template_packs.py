@@ -5,9 +5,19 @@ from importlib import import_module
 import warnings
 
 import pytest
+from django import forms
 from django.core.exceptions import ImproperlyConfigured
 from django.test import override_settings
 
+from powercrud.contrib.bootstrap5.apps import PowercrudBootstrap5Config
+from powercrud.contrib.bootstrap5.styles import (
+    get_bootstrap5_framework_styles,
+    get_bootstrap5_view_help_style,
+)
+from powercrud.contrib.bootstrap5.templatetags.powercrud_bootstrap5 import (
+    bootstrap5_field,
+    bootstrap5_text_alignment,
+)
 from powercrud.template_packs import (
     DECLARABLE_PRESENTATION_OPTIONS,
     TEMPLATE_PACK_CONTRACT_VERSION,
@@ -438,3 +448,47 @@ def test_builtin_alias_cannot_resolve_a_declaration_with_another_identity(monkey
 
     with pytest.raises(ImproperlyConfigured, match="must resolve"):
         resolve_template_pack("daisyui")
+
+
+def test_bootstrap_helpers_cover_the_optional_pack_public_surface():
+    """Bootstrap helpers should render the supported widgets and semantic styles."""
+
+    class BootstrapForm(forms.Form):
+        """Exercise the native widgets exposed by the Bootstrap template tags."""
+
+        name = forms.CharField(help_text="Shown to collaborators")
+        enabled = forms.BooleanField(required=False)
+        category = forms.ChoiceField(choices=(("fiction", "Fiction"),))
+        attachment = forms.FileField(required=False)
+
+    invalid_form = BootstrapForm(data={"name": "", "category": "fiction"})
+    assert not invalid_form.is_valid()
+    invalid_name = bootstrap5_field(invalid_form["name"])
+    assert "form-control is-invalid" in invalid_name
+    assert 'aria-describedby="id_name_help id_name_errors"' in invalid_name
+    assert 'aria-invalid="true"' in invalid_name
+
+    valid_form = BootstrapForm(data={"name": "Example", "category": "fiction"})
+    assert valid_form.is_valid()
+    assert "form-check-input pc-inline-checkbox" in bootstrap5_field(valid_form["enabled"], small=True)
+    assert "form-select form-select-sm" in bootstrap5_field(valid_form["category"], small=True)
+    assert "form-control" in bootstrap5_field(valid_form["attachment"], include_help=False)
+
+    assert [bootstrap5_text_alignment(value) for value in ("left", "center", "right", "unknown", None)] == [
+        "start",
+        "center",
+        "end",
+        "start",
+        "start",
+    ]
+    assert "--pc-view-help-border: var(--bs-border-color)" in get_bootstrap5_view_help_style("base")
+    assert "rgb(var(--bs-danger-rgb))" in get_bootstrap5_view_help_style("error")
+    assert "#123abc" in get_bootstrap5_view_help_style("#123abc")
+
+    first_styles = get_bootstrap5_framework_styles(object())
+    first_styles["bootstrap5"]["actions"]["View"] = "changed"
+    assert get_bootstrap5_framework_styles(object())["bootstrap5"]["actions"]["View"] == "btn-info"
+
+    config = PowercrudBootstrap5Config("powercrud.contrib.bootstrap5", import_module("powercrud.contrib.bootstrap5"))
+    assert config.name == "powercrud.contrib.bootstrap5"
+    assert config.verbose_name == "PowerCRUD Bootstrap 5 pack"
