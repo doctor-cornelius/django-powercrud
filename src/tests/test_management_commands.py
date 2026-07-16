@@ -1322,6 +1322,74 @@ def test_mktemplate_rejects_project_options_for_model_target(monkeypatch, tmp_pa
         )
 
 
+def test_mktemplate_project_copy_errors_are_actionable(monkeypatch, tmp_path):
+    """Project-copy failures should name the unsupported scope or missing resource."""
+    fake_app_config = SimpleNamespace(path=str(tmp_path), name="fake_app")
+    monkeypatch.setattr(
+        mktemplate_cmd.apps, "get_app_config", lambda _: fake_app_config
+    )
+    command = mktemplate_cmd.Command()
+    template_pack = command._get_project_source_template_pack("daisyui")
+
+    with pytest.raises(CommandError, match="model target is required"):
+        call_command("pcrud_mktemplate", "fake_app", "--component", "pagination")
+    with pytest.raises(CommandError, match="--core is only available"):
+        call_command("pcrud_mktemplate", "fake_app.Book", "--core")
+    with pytest.raises(CommandError, match="requires --all, a role option, or --component"):
+        call_command("pcrud_mktemplate", "fake_app.Book")
+
+    monkeypatch.setattr(
+        mktemplate_cmd, "resolve_template_pack", lambda _: (_ for _ in ()).throw(RuntimeError("broken pack"))
+    )
+    with pytest.raises(CommandError, match="Could not load source template pack 'daisyui': broken pack"):
+        command._get_project_source_template_pack("daisyui")
+
+    missing_source = tmp_path / "missing"
+    monkeypatch.setattr(command, "get_template_source_dir", lambda _: missing_source)
+    with pytest.raises(CommandError, match="Could not find template directory"):
+        command._copy_project_template_pack(
+            template_pack, tmp_path / "templates", tmp_path / "templates" / "fake_app", "fake_app", "core"
+        )
+
+    source_dir = tmp_path / "source"
+    source_dir.mkdir()
+    monkeypatch.setattr(command, "get_template_source_dir", lambda _: source_dir)
+    with pytest.raises(CommandError, match="Template not found"):
+        command._copy_project_template_pack(
+            template_pack, tmp_path / "templates", tmp_path / "templates" / "fake_app", "fake_app", "core"
+        )
+    with pytest.raises(CommandError, match="Unsupported project template scope"):
+        command._copy_project_template_pack(
+            template_pack, tmp_path / "templates", tmp_path / "templates" / "fake_app", "fake_app", "unknown"
+        )
+
+
+def test_mktemplate_project_asset_and_template_copy_wrap_os_errors(monkeypatch, tmp_path):
+    """Filesystem failures should remain command errors rather than raw OSErrors."""
+    command = mktemplate_cmd.Command()
+    template_pack = command._get_project_source_template_pack("daisyui")
+    source_dir = tmp_path / "source"
+    source_dir.mkdir()
+    monkeypatch.setattr(
+        command,
+        "get_project_asset_sources",
+        lambda _: ((source_dir, Path("css")),),
+    )
+    monkeypatch.setattr(
+        mktemplate_cmd.shutil,
+        "copytree",
+        lambda *args, **kwargs: (_ for _ in ()).throw(OSError("disk full")),
+    )
+    with pytest.raises(CommandError, match="Failed to copy project assets: disk full"):
+        command._copy_project_assets(template_pack, tmp_path, "fake_app")
+
+    monkeypatch.setattr(command, "get_template_source_dir", lambda _: source_dir)
+    with pytest.raises(CommandError, match="Failed to copy project templates: disk full"):
+        command._copy_project_template_pack(
+            template_pack, tmp_path / "templates", tmp_path / "templates" / "fake_app", "fake_app", "all"
+        )
+
+
 @pytest.mark.parametrize(
     ("option", "suffix"),
     [
