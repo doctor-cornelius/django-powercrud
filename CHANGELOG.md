@@ -6,6 +6,18 @@ During the `0.x` series, breaking changes can occur, although we try to minimise
 
 Version numbers below correspond to published git tags. The more important releases include a little extra narrative and upgrade context; smaller patch releases remain deliberately brief. For full detail between any two versions, use the GitHub compare view for the matching tags.
 
+## 0.9.0 (2026-07-16)
+
+- **Feature (template-packs): public template-pack architecture.** 
+  
+  PowerCRUD now separates its stable CRUD behaviour from the presentation layer. DaisyUI remains the default pack, and Bootstrap 5 is now a supported alternative. A project selects one complete pack at Django startup; packs are not selected per view, tenant, or request.
+
+  Projects can make presentation changes at the right level: replace a focused component, override templates for a model or view, copy a complete pack’s templates into the application, or take ownership of its manual-static CSS and JavaScript. The `pcrud_mktemplate` command supports these copy and asset-ownership routes.
+
+  PowerCRUD also now defines a public contract for independently distributed template packs. Pack authors can publish a conformant Django package with templates, presentation adapters, assets, and documented dependencies; `pcrud_starttemplatepack` provides a starter package. DaisyUI and Bootstrap 5 use the same public adapter boundary available to external packs.
+
+  Manual-static loading is supported for application-owned assets. Vite remains application-owned: projects and independent-pack authors configure their own entry points, dependencies, aliases, and manifest rather than relying on PowerCRUD to infer a frontend build.
+
 ## 0.8.6 (2026-07-10)
 - **Feature (powercrud)**: add temporal list column formats
   
