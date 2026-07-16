@@ -1504,6 +1504,7 @@ def test_starttemplatepack_creates_a_standalone_public_contract_starter(tmp_path
     probe = """
 import sys
 import types
+import django
 from django.conf import settings
 
 sys.path[:0] = [PACKAGE_SOURCE, POWERCRUD_SOURCE]
@@ -1518,6 +1519,7 @@ settings.configure(
         'django.contrib.staticfiles',
         'crispy_forms',
         'crispy_tailwind',
+        *(("template_partials",) if django.VERSION < (6, 0) else ()),
         'powercrud',
         'example_powercrud_pack',
     ),
@@ -1525,7 +1527,6 @@ settings.configure(
     ROOT_URLCONF=urls.__name__,
     STATIC_URL='/static/',
 )
-import django
 django.setup()
 from powercrud.template_pack_testing import assert_template_pack_conforms
 pack = assert_template_pack_conforms('example_powercrud_pack.template_pack:template_pack')
