@@ -65,9 +65,10 @@ function build_assets {
 }
 
 if [ "${#TEST_PATHS[@]}" -gt 0 ]; then
-    # Explicit test-path mode: suite flags should force the normal test
-    # settings, while plain path mode may still respect an explicit override.
-    if [ "$MODE" != "all" ] || [ -z "${DJANGO_SETTINGS_MODULE:-}" ] || [ "${DJANGO_SETTINGS_MODULE:-}" = "config.settings" ]; then
+    # An explicit settings module selects an intentional presentation-specific
+    # test environment, including for focused Playwright coverage. Fall back
+    # to the normal test settings only when the caller has not selected one.
+    if [ -z "${DJANGO_SETTINGS_MODULE:-}" ] || [ "${DJANGO_SETTINGS_MODULE:-}" = "config.settings" ]; then
         use_minimal_settings="false"
         use_default_settings="false"
         for test_path in "${TEST_PATHS[@]}"; do

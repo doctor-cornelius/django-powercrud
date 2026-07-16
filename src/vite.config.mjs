@@ -27,7 +27,8 @@ export default defineConfig({
     assetsDir: "django_assets",
     rollupOptions: {
       input: {
-        powercrud: resolve('config/static/js/main.js')
+        powercrud: resolve('config/static/js/main.js'),
+        bootstrap5: resolve('config/static/js/bootstrap5.js')
       }
     }
   },
@@ -35,4 +36,3 @@ export default defineConfig({
     tailwindcss(),
   ],
 })
-

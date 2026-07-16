@@ -1,0 +1,90 @@
+{% load django_vite %}
+
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    {% vite_hmr_client %}
+    {% vite_asset 'config/static/js/bootstrap5.js' %}
+
+    {% block header_title %}
+    <title id="header_title">{{ header_title }}</title>
+    {% endblock header_title %}
+
+    {% block extra_head %}{% endblock extra_head %}
+</head>
+
+<body hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+    {% block app_content %}{% endblock app_content %}
+
+    <main class="container-fluid px-3 py-3">
+        <header class="pc-bootstrap-header mb-4">
+            {% include "sample/_runtime_meta.html" %}
+
+        <nav class="d-flex flex-wrap align-items-center gap-2 pc-bootstrap-navigation" aria-label="Sample navigation">
+            <a class="btn btn-sm btn-primary" href="{% url 'home' %}">Home</a>
+            <div class="btn-group" role="group" aria-label="Book List buttons">
+                <a class="btn btn-sm btn-secondary" hx-get="{% url 'sample:bigbook-list' %}" hx-target="#content"
+                    hx-swap="innerHTML" hx-replace-url="true" hx-push-url="true"
+                    aria-label="Load books with HTMX">Books</a>
+                <a class="btn btn-sm btn-outline-secondary" href="{% url 'sample:bigbook-list' %}"
+                    aria-label="Full page reload for books"><span aria-hidden="true">&#8635;</span></a>
+            </div>
+            <div class="btn-group" role="group" aria-label="Annotated Book List buttons">
+                <a class="btn btn-sm btn-secondary" hx-get="{% url 'sample:annotated-book-list' %}" hx-target="#content"
+                    hx-swap="innerHTML" hx-replace-url="true" hx-push-url="true"
+                    aria-label="Load annotated books with HTMX">Annotated Books</a>
+                <a class="btn btn-sm btn-outline-secondary" href="{% url 'sample:annotated-book-list' %}"
+                    aria-label="Full page reload for annotated books"><span aria-hidden="true">&#8635;</span></a>
+            </div>
+            <div class="btn-group" role="group" aria-label="PowerField Book List buttons">
+                <a class="btn btn-sm btn-secondary" hx-get="{% url 'sample:powerfield-book-list' %}" hx-target="#content"
+                    hx-swap="innerHTML" hx-replace-url="true" hx-push-url="true"
+                    aria-label="Load PowerField books with HTMX">PowerField Books</a>
+                <a class="btn btn-sm btn-outline-secondary" href="{% url 'sample:powerfield-book-list' %}"
+                    aria-label="Full page reload for PowerField books"><span aria-hidden="true">&#8635;</span></a>
+            </div>
+            <div class="btn-group" role="group" aria-label="Author List buttons">
+                <a class="btn btn-sm btn-secondary" hx-get="{% url 'sample:author-list' %}" hx-target="#content"
+                    hx-swap="innerHTML" hx-replace-url="true" hx-push-url="true"
+                    aria-label="Load authors with HTMX">Authors</a>
+                <a class="btn btn-sm btn-outline-secondary" href="{% url 'sample:author-list' %}"
+                    aria-label="Full page reload for authors"><span aria-hidden="true">&#8635;</span></a>
+            </div>
+            <div class="btn-group" role="group" aria-label="Profile buttons">
+                <a class="btn btn-sm btn-secondary" hx-get="{% url 'sample:profile-list' %}" hx-target="#content"
+                    hx-swap="innerHTML" hx-replace-url="true" hx-push-url="true"
+                    aria-label="Load profiles with HTMX">Profiles</a>
+                <a class="btn btn-sm btn-outline-secondary" href="{% url 'sample:profile-list' %}"
+                    aria-label="Full page reload for profiles"><span aria-hidden="true">&#8635;</span></a>
+            </div>
+            <div class="btn-group" role="group" aria-label="Genre List buttons">
+                <a class="btn btn-sm btn-secondary" hx-get="{% url 'sample:genre-list' %}" hx-target="#content"
+                    hx-swap="innerHTML" hx-replace-url="true" hx-push-url="true"
+                    aria-label="Load genres with HTMX">Genres</a>
+                <a class="btn btn-sm btn-outline-secondary" href="{% url 'sample:genre-list' %}"
+                    aria-label="Full page reload for genres"><span aria-hidden="true">&#8635;</span></a>
+            </div>
+            <div class="btn-group" role="group" aria-label="Async dashboard buttons">
+                <a class="btn btn-sm btn-secondary" hx-get="{% url 'sample:asynctaskrecord-list' %}" hx-target="#content"
+                    hx-swap="innerHTML" hx-replace-url="true" hx-push-url="true"
+                    aria-label="Load async dashboard with HTMX">Async</a>
+                <a class="btn btn-sm btn-outline-secondary" href="{% url 'sample:asynctaskrecord-list' %}"
+                    aria-label="Full page reload for async dashboard"><span aria-hidden="true">&#8635;</span></a>
+            </div>
+        </nav>
+        </header>
+
+        <div id="content" class="pc-bootstrap-content">
+            {% block content %}{% endblock content %}
+            <div id="powercrud"></div>
+        </div>
+    </main>
+</body>
+
+</html>

@@ -19,8 +19,10 @@ export function createCurrentTemplateRuntime(context) {
         initPowercrudTooltips,
         requestModalCloseListRefresh,
         applyPowercrudModalTriggerClasses,
+        bindPowercrudModalClose,
         cleanupDuplicatePowercrudModals,
         closeAllPowercrudModals,
+        showPowercrudModal,
         setRowActionLinkDisabled,
         startButtonSpinner,
         stopButtonSpinner,
@@ -62,10 +64,7 @@ export function createCurrentTemplateRuntime(context) {
     }
 
     function armModalCloseListRefresh(modalTrigger, modal, root) {
-        if (
-            !(modal instanceof HTMLDialogElement)
-            || modalTrigger.getAttribute('data-powercrud-refresh-list-on-modal-close') !== 'true'
-        ) {
+        if (modalTrigger.getAttribute('data-powercrud-refresh-list-on-modal-close') !== 'true') {
             return;
         }
 
@@ -79,15 +78,17 @@ export function createCurrentTemplateRuntime(context) {
             return;
         }
 
-        MODAL_CLOSE_REFRESH_LISTENERS.add(modal);
-        modal.addEventListener('close', () => {
+        if (!bindPowercrudModalClose(modal, () => {
             const pendingRoot = MODAL_CLOSE_REFRESH_ROOTS.get(modal);
             MODAL_CLOSE_REFRESH_ROOTS.delete(modal);
             if (!(pendingRoot instanceof Element) || !pendingRoot.isConnected) {
                 return;
             }
             requestModalCloseListRefresh?.(pendingRoot);
-        });
+        })) {
+            return;
+        }
+        MODAL_CLOSE_REFRESH_LISTENERS.add(modal);
     }
 
     function closePowercrudModals() {
@@ -98,12 +99,20 @@ export function createCurrentTemplateRuntime(context) {
 
     function handleModalTriggerBeforeRequest(trigger) {
         applyPowercrudModalClasses(trigger);
+        const modalTrigger = trigger?.closest?.('[data-powercrud-modal-trigger="true"]');
+        if (!(modalTrigger instanceof Element)) {
+            return;
+        }
+        const root = getObjectListRoot(modalTrigger) || documentObject;
+        const modal = root.querySelector('[data-powercrud-modal]') || documentObject.querySelector('[data-powercrud-modal]');
+        showPowercrudModal(modal);
     }
 
     function syncListToolbarWidth(root) {
         if (!(root instanceof Element)) {
             return;
         }
+        syncTableViewportHeight(root);
         const toolbar = root.querySelector(LIST_TOOLBAR_SELECTOR);
         const filterCollapse = root.querySelector('#filterCollapse');
         const pagination = root.querySelector(PAGINATION_SELECTOR);
@@ -165,6 +174,57 @@ export function createCurrentTemplateRuntime(context) {
             }
             toolbar.removeAttribute('data-powercrud-toolbar-wrapped');
         });
+    }
+
+    function syncTableViewportHeight(root) {
+        const tableScroll = root.querySelector('[data-powercrud-table-scroll="true"]');
+        if (!(tableScroll instanceof HTMLElement)) {
+            return;
+        }
+
+        const currentViewportCap = tableScroll.style.getPropertyValue(
+            '--pc-table-available-height',
+        );
+        const documentOverflow = documentObject.documentElement.scrollHeight - global.innerHeight;
+        if (documentOverflow <= 1 && !currentViewportCap) {
+            return;
+        }
+        if (
+            documentOverflow <= 1
+            && tableScroll.scrollHeight <= tableScroll.clientHeight + 1
+        ) {
+            tableScroll.style.removeProperty('--pc-table-available-height');
+            return;
+        }
+
+        const pagination = root.querySelector(PAGINATION_SELECTOR);
+        let paginationHeight = 0;
+        if (pagination instanceof HTMLElement) {
+            const paginationStyle = global.getComputedStyle(pagination);
+            paginationHeight = pagination.getBoundingClientRect().height
+                + (Number.parseFloat(paginationStyle.marginTop) || 0)
+                + (Number.parseFloat(paginationStyle.marginBottom) || 0);
+        }
+
+        // Preserve the page shell's real trailing space (padding, margins, or a
+        // footer) as well as pagination. The configured table height remains
+        // the upper cap, while the table absorbs the page's vertical overflow.
+        const trailingAnchor = pagination instanceof HTMLElement ? pagination : tableScroll;
+        const trailingSpace = Math.max(
+            0,
+            documentObject.documentElement.scrollHeight
+                - (trailingAnchor.getBoundingClientRect().bottom + global.scrollY),
+        );
+        const availableHeight = Math.floor(
+            global.innerHeight
+            - Math.max(tableScroll.getBoundingClientRect().top, 0)
+            - paginationHeight
+            - trailingSpace,
+        );
+        tableScroll.style.setProperty(
+            '--pc-table-available-height',
+            `${Math.max(160, availableHeight)}px`,
+        );
     }
 
     function syncListToolbarWidths(scope = documentObject) {

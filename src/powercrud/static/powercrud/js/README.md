@@ -68,6 +68,11 @@ The runtime has two lifecycle layers:
 1. Once-only listener registration in `runtime/startup.js`.
 2. Repeatable per-fragment initialization through `initPowercrud(fragment)`.
 
+The startup installer also handles late private composition imports. If the
+document has already left its loading state before listener installation, it
+runs the DOM-ready bootstrap immediately through the same once-only guard. This
+keeps initial full-page behaviour aligned with later HTMX fragment behaviour.
+
 The core fragment initialization order is:
 
 1. Initialize searchable selects.

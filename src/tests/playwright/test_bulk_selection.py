@@ -2,6 +2,7 @@ import re
 from datetime import date
 
 import pytest
+from django.conf import settings
 
 pytest.importorskip("playwright.sync_api")
 from playwright.sync_api import expect
@@ -14,6 +15,23 @@ pytestmark = [
     pytest.mark.usefixtures("sample_manager_page"),
 ]
 
+BOOTSTRAP_SELECTOR = "powercrud.contrib.bootstrap5:template_pack"
+
+
+def using_bootstrap_pack() -> bool:
+    """Return whether the active browser settings select Bootstrap."""
+    return settings.POWERCRUD_SETTINGS.get("POWERCRUD_TEMPLATE_PACK") == BOOTSTRAP_SELECTOR
+
+
+def expect_current_page(pagination, page_number: str) -> None:
+    """Assert the selected page using the active pack's semantic marker."""
+    if using_bootstrap_pack():
+        expect(pagination.locator("li.active").get_by_role("link", name=page_number, exact=True)).to_be_visible()
+        return
+    expect(pagination.get_by_role("link", name=page_number, exact=True)).to_have_class(
+        re.compile(r"\bbtn-active\b")
+    )
+
 
 def test_bulk_selection_toggle(page, books_url, sample_books):
     page.goto(books_url)
@@ -23,16 +41,19 @@ def test_bulk_selection_toggle(page, books_url, sample_books):
     dropdown.locator("> summary").click()
     selected_summary = page.get_by_role("link", name="Selected Summary", exact=True)
     expect(selected_summary).to_have_attribute("aria-disabled", "true")
-    expect(selected_summary).to_have_class(re.compile(r"\bbtn-disabled\b"))
+    expect(selected_summary).to_have_class(
+        re.compile(r"\bdisabled\b" if using_bootstrap_pack() else r"\bbtn-disabled\b")
+    )
     expect(selected_summary).to_have_class(re.compile(r"\bopacity-50\b"))
     expect(selected_summary).to_have_attribute(
-        "data-tippy-content",
+        "data-bs-title" if using_bootstrap_pack() else "data-tippy-content",
         "Select at least one book first.",
     )
     assert selected_summary.evaluate("el => window.getComputedStyle(el).pointerEvents") == "auto"
     assert selected_summary.evaluate("el => window.getComputedStyle(el).cursor") == "not-allowed"
-    selected_summary.hover()
-    expect(page.locator("[data-tippy-root]")).to_be_visible()
+    if not using_bootstrap_pack():
+        selected_summary.hover()
+        expect(page.locator("[data-tippy-root]")).to_be_visible()
 
     page.evaluate(
         """
@@ -57,9 +78,14 @@ def test_bulk_selection_toggle(page, books_url, sample_books):
     expect(page.locator("#selected-items-counter")).to_have_text("1")
     selected_summary = page.get_by_role("link", name="Selected Summary", exact=True)
     expect(selected_summary).not_to_have_attribute("aria-disabled", "true")
-    expect(selected_summary).not_to_have_class(re.compile(r"\bbtn-disabled\b"))
+    expect(selected_summary).not_to_have_class(
+        re.compile(r"\bdisabled\b" if using_bootstrap_pack() else r"\bbtn-disabled\b")
+    )
     expect(selected_summary).not_to_have_class(re.compile(r"\bopacity-50\b"))
-    expect(selected_summary).not_to_have_attribute("data-tippy-content", re.compile(".+"))
+    expect(selected_summary).not_to_have_attribute(
+        "data-bs-title" if using_bootstrap_pack() else "data-tippy-content",
+        re.compile(".+"),
+    )
 
     bulk_container.locator("button", has_text="Clear Selection").click()
 
@@ -69,7 +95,9 @@ def test_bulk_selection_toggle(page, books_url, sample_books):
     )
     selected_summary = page.get_by_role("link", name="Selected Summary", exact=True)
     expect(selected_summary).to_have_attribute("aria-disabled", "true")
-    expect(selected_summary).to_have_class(re.compile(r"\bbtn-disabled\b"))
+    expect(selected_summary).to_have_class(
+        re.compile(r"\bdisabled\b" if using_bootstrap_pack() else r"\bbtn-disabled\b")
+    )
 
 
 test_bulk_selection_toggle = pytest.mark.playwright_smoke(test_bulk_selection_toggle)
@@ -384,9 +412,10 @@ def test_bulk_edit_refresh_reapplies_active_filters(
 
     form.locator("input.field-toggle[value='bestseller']").check()
     form.locator("select[name='bestseller']").select_option("true")
+    spinner_selector = ".spinner-border" if using_bootstrap_pack() else ".loading-spinner"
     page.evaluate(
         """
-        () => {
+        (spinnerSelector) => {
             const bulkForm = document.querySelector('#bulk-edit-form');
             const saveButton = bulkForm.querySelector('[data-form-save]');
             window.__powercrudBulkFormSpinner = {
@@ -401,7 +430,7 @@ def test_bulk_edit_refresh_reapplies_active_filters(
                 window.__powercrudBulkFormSpinner.beforeRequest = {
                     disabled: saveButton.disabled,
                     width: saveButton.style.width,
-                    hasSpinner: Boolean(saveButton.querySelector('.loading-spinner')),
+                    hasSpinner: Boolean(saveButton.querySelector(spinnerSelector)),
                 };
             });
             document.addEventListener('htmx:responseError', event => {
@@ -411,12 +440,13 @@ def test_bulk_edit_refresh_reapplies_active_filters(
                 window.__powercrudBulkFormSpinner.afterError = {
                     disabled: saveButton.disabled,
                     width: saveButton.style.width,
-                    hasSpinner: Boolean(saveButton.querySelector('.loading-spinner')),
+                    hasSpinner: Boolean(saveButton.querySelector(spinnerSelector)),
                     html: saveButton.innerHTML,
                 };
             });
         }
-        """
+        """,
+        spinner_selector,
     )
     bulk_path = form.get_attribute("hx-post")
     assert bulk_path
@@ -537,23 +567,17 @@ def test_pagination_controls_advance_across_multiple_pages(
     pagination.get_by_role("link", name="Next", exact=True).click()
     page.wait_for_load_state("networkidle")
     expect(page).to_have_url(re.compile(r"[?&]page=2(?:&|$)"))
-    expect(pagination.get_by_role("link", name="2", exact=True)).to_have_class(
-        re.compile(r"\bbtn-active\b")
-    )
+    expect_current_page(pagination, "2")
 
     pagination.get_by_role("link", name="Next", exact=True).click()
     page.wait_for_load_state("networkidle")
     expect(page).to_have_url(re.compile(r"[?&]page=3(?:&|$)"))
-    expect(pagination.get_by_role("link", name="3", exact=True)).to_have_class(
-        re.compile(r"\bbtn-active\b")
-    )
+    expect_current_page(pagination, "3")
 
     pagination.get_by_role("link", name="1", exact=True).click()
     page.wait_for_load_state("networkidle")
     expect(page).not_to_have_url(re.compile(r"[?&]page=3(?:&|$)"))
-    expect(pagination.get_by_role("link", name="1", exact=True)).to_have_class(
-        re.compile(r"\bbtn-active\b")
-    )
+    expect_current_page(pagination, "1")
 
 
 def test_filter_multiselect_searchable_select_applies_immediately(

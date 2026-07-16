@@ -44,6 +44,21 @@ def test_package_runtime_assets_exist() -> None:
         assert module_path.is_file(), f"Expected packaged runtime module at {module_path}"
     assert runtime_css.is_file(), "Expected packaged runtime CSS at powercrud/static/powercrud/css/powercrud.css"
 
+    bootstrap_runtime = (
+        package_root
+        / "contrib"
+        / "bootstrap5"
+        / "static"
+        / "powercrud"
+        / "contrib"
+        / "bootstrap5"
+        / "js"
+        / "bootstrap5.js"
+    )
+    bootstrap_css = bootstrap_runtime.parents[1] / "css" / "bootstrap5.css"
+    assert bootstrap_runtime.is_file(), "Expected the package-owned Bootstrap runtime module."
+    assert bootstrap_css.is_file(), "Expected the package-owned Bootstrap integration CSS."
+
 
 def test_runtime_js_uses_stable_entry_with_internal_module_import() -> None:
     """The stable runtime entry should import internal modules without changing the public path."""
@@ -103,6 +118,43 @@ def test_runtime_js_uses_stable_entry_with_internal_module_import() -> None:
         in sample_entry_js.read_text(encoding="utf-8")
     ), "Sample bundle should keep importing the stable PowerCRUD runtime entry."
 
+    bootstrap_runtime_js = (
+        package_root
+        / "contrib"
+        / "bootstrap5"
+        / "static"
+        / "powercrud"
+        / "contrib"
+        / "bootstrap5"
+        / "js"
+        / "bootstrap5.js"
+    )
+    runtime_source = runtime_js.read_text(encoding="utf-8")
+    bootstrap_runtime_source = bootstrap_runtime_js.read_text(encoding="utf-8")
+    bootstrap_composition_js = bootstrap_runtime_js.parent / "runtime" / "bootstrap5-composition.js"
+    assert "export function installPowercrudRuntime" in runtime_source, (
+        "The stable runtime should expose a private installer for pack-owned entries."
+    )
+    assert "__powercrudPrivateDeferInstall" in bootstrap_runtime_source, (
+        "The Bootstrap entry should defer the default DaisyUI composition before installing its own."
+    )
+    assert (
+        "installPowercrudRuntime({ createComposition: createBootstrap5BaselineComposition })"
+        in bootstrap_runtime_source
+    ), "The Bootstrap entry should select its private composition without a public selector."
+    composition = bootstrap_composition_js.read_text(encoding="utf-8")
+    for adapter_name in (
+        "bootstrap5-modal-adapter.js",
+        "bootstrap5-searchable-select-adapter.js",
+        "bootstrap5-tooltip-adapter.js",
+        "bootstrap5-action-selection-adapter.js",
+        "bootstrap5-floating-panel-adapter.js",
+        "bootstrap5-inline-presentation-adapter.js",
+    ):
+        assert adapter_name in composition, (
+            f"The Bootstrap composition should own its private {adapter_name} lifecycle adapter."
+        )
+
 
 def test_runtime_js_exposes_shared_fragment_initializer() -> None:
     """The stable runtime should expose a single per-fragment initialisation helper."""
@@ -135,6 +187,9 @@ def test_runtime_js_exposes_shared_fragment_initializer() -> None:
     assert (
         "destroyPowercrudSearchableSelects(fragment);" in js
     ), "Shared fragment teardown should restore searchable selects before removal."
+    assert "modalAdapter.dispose(fragment);" in js, (
+        "Shared fragment teardown should delegate framework-owned modal instance disposal."
+    )
     assert (
         "global.initPowercrudSearchableSelects = initPowercrudSearchableSelects;" in js
     ), "Runtime JS should preserve the public searchable-select initializer."
@@ -181,8 +236,12 @@ def test_runtime_startup_centralises_once_only_listener_registration() -> None:
         "const startupInstallState = new WeakMap();" in startup
     ), "Startup runtime should keep an idempotent install state per document."
     assert (
-        "documentObject.addEventListener('DOMContentLoaded', handlers.handleDOMContentLoaded);" in startup
-    ), "Startup runtime should register DOMContentLoaded through the shared installer."
+        "documentObject.addEventListener('DOMContentLoaded', handleDOMContentLoadedOnce);" in startup
+    ), "Startup runtime should register DOMContentLoaded through its once-only wrapper."
+    assert (
+        "documentObject.readyState !== 'loading'" in startup
+        and "handlers.handleDOMContentLoaded();" in startup
+    ), "Late runtime composition should still run the initial DOM-ready bootstrap."
     assert (
         "documentObject.addEventListener('htmx:beforeRequest', handlers.handleHtmxBeforeRequest);" in startup
     ), "Startup runtime should preserve the first HTMX beforeRequest listener."
@@ -323,6 +382,9 @@ def test_bundle_manifest_keeps_existing_entry_key() -> None:
     assert (
         "config/static/js/main.js" in manifest
     ), "Expected manifest entry 'config/static/js/main.js' for backwards compatibility"
+    assert "config/static/js/bootstrap5.js" in manifest, (
+        "Expected a separately selectable Bootstrap Vite manifest entry."
+    )
 
 
 def test_runtime_css_themes_tomselect_with_daisyui_semantic_tokens() -> None:

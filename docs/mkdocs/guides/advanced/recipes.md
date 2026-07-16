@@ -328,7 +328,7 @@ class BookCRUDView(PowerCRUDMixin, CRUDView):
             "view_name": "library:author-detail",
             "pk_attr": "author_id",
             "open_in": "modal",
-            "modal_box_classes": "modal-box flex max-h-[calc(100dvh-2rem)] w-11/12 max-w-4xl flex-col",
+            "modal_presentation": {"size": "wide"},
         },
     }
 ```

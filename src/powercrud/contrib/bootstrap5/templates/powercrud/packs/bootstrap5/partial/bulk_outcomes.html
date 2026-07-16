@@ -1,0 +1,9 @@
+{% if bulk_outcome == "operation_errors" %}
+    <div class="alert alert-danger mb-3"><ul class="mb-0">{% for error_scope, error_list in errors %}{% for error in error_list %}<li>{% if error_scope and error_scope != "general" %}<strong>{{ error_scope|capfirst }}:</strong> {% endif %}{{ error }}</li>{% endfor %}{% endfor %}</ul></div>
+{% elif bulk_outcome == "error" %}
+    <div class="p-3 text-center" data-powercrud-bulk-outcome="error"><div class="alert alert-danger"><h3 class="h5">Bulk Edit Error</h3></div><p class="mb-0 text-danger">{{ error }}</p></div>
+{% elif bulk_outcome == "conflict" %}
+    <div class="p-3 text-center" data-powercrud-bulk-outcome="conflict"><div class="alert alert-warning"><h3 class="h5">Bulk Operation Conflict</h3></div><p>{{ conflict_message }}</p><p class="small text-body-secondary mb-0">Selected {{ selected_count }} {{ model_name_plural }} cannot be processed right now.</p></div>
+{% elif bulk_outcome == "queued" %}
+    <div class="p-3 text-center" data-powercrud-bulk-outcome="queued"><h2 id="async-status-heading" class="h4">Bulk Operation Queued</h2><p>{{ message }}</p><p class="small text-body-secondary">Your bulk operation is being processed in the background.</p><div id="progress-container"><div id="progress-display" hx-get="{{ progress_url }}" hx-vals='{"task_name": "{{ task_name }}"}' hx-trigger="every 1s" hx-target="#progress-display" hx-swap="innerHTML" class="border rounded p-3"><div class="spinner-border" role="status"><span class="visually-hidden">Loading</span></div><p class="mt-2 mb-0">Starting...</p></div></div><button type="button" class="btn btn-outline-secondary mt-3" data-bs-dismiss="modal">Close</button></div>
+{% endif %}

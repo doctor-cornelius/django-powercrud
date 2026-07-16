@@ -1,0 +1,12 @@
+{% if extra_buttons_mode == "dropdown" %}
+<details class='dropdown' data-powercrud-extra-buttons-dropdown='true'>
+    <summary class='{{ styles.base }} {{ extra_button_classes }} btn-outline btn-secondary gap-1 list-none' aria-label='More actions'>More<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='currentColor' stroke-width='1.75' class='h-4 w-4 shrink-0' aria-hidden='true'><path stroke-linecap='round' stroke-linejoin='round' d='m6 8 4 4 4-4' /></svg></summary>
+    <ul tabindex='0' class='dropdown-content menu bg-base-100 rounded-box z-20 mt-2 min-w-44 p-2 shadow border border-base-300'>
+        {% for button in extra_buttons %}
+            <li><a href='{{ button.href }}' class='{{ button.extra_class_attrs }} justify-start whitespace-nowrap {{ extra_button_classes }} {{ button.button_class }}{% if button.disabled %} btn-disabled opacity-50{% endif %}' {{ button.link_attrs|safe }} {{ button.disabled_attrs|safe }} {{ button.selection_attrs|safe }}{% if button.disabled_reason %} data-tippy-content='{{ button.disabled_reason }}' data-powercrud-tooltip='semantic'{% endif %}>{{ button.text }}</a></li>
+        {% endfor %}
+    </ul>
+</details>
+{% else %}
+    {% for button in extra_buttons %}<a href='{{ button.href }}' class='{{ button.extra_class_attrs }} {{ styles.base }} {{ extra_button_classes }} {{ button.button_class }}{% if button.disabled %} btn-disabled opacity-50{% endif %}' {{ button.link_attrs|safe }} {{ button.disabled_attrs|safe }} {{ button.selection_attrs|safe }}{% if button.disabled_reason %} data-tippy-content='{{ button.disabled_reason }}' data-powercrud-tooltip='semantic'{% endif %}>{{ button.text }}</a>{% endfor %}
+{% endif %}

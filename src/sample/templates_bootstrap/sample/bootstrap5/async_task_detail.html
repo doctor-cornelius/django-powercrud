@@ -1,0 +1,67 @@
+{% extends '../base.html' %}
+{% load powercrud_partials %}
+
+{% block content %}
+    {% partial pcrud_content %}
+{% endblock %}
+
+{% partialdef pcrud_content %}
+    <section class="card shadow-sm">
+        <div class="card-body">
+            <h2 class="h4 card-title">Task {{ record.task_name }}</h2>
+            <div id="task-progress" class="border rounded bg-body-tertiary p-3" hx-get="{{ progress_url }}"
+                hx-vals='{"task_name": "{{ record.task_name }}"}' hx-trigger="load, every 1s" hx-target="#task-progress" hx-swap="innerHTML">
+                <div class="d-flex justify-content-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading…</span></div></div>
+                <p class="mt-2 mb-0">{{ record.message|default:'Waiting for progress…' }}</p>
+            </div>
+            <dl class="row mt-4 mb-0 small">
+                <dt class="col-sm-3">Task Name</dt><dd class="col-sm-9 font-monospace">{{ record.task_name }}</dd>
+                <dt class="col-sm-3">Status</dt><dd class="col-sm-9">{{ record.get_status_display }}</dd>
+                <dt class="col-sm-3">Message</dt><dd class="col-sm-9">{{ record.message|default:'—' }}</dd>
+                <dt class="col-sm-3">Progress Payload</dt><dd class="col-sm-9"><pre class="mb-0 text-wrap">{{ record.progress_payload|default:'—' }}</pre></dd>
+                <dt class="col-sm-3">User</dt><dd class="col-sm-9">{{ record.user_label|default:'—' }}</dd>
+                <dt class="col-sm-3">Affected Objects</dt><dd class="col-sm-9"><pre class="mb-0 text-wrap">{{ record.affected_objects|default:'—' }}</pre></dd>
+                <dt class="col-sm-3">Task kwargs</dt><dd class="col-sm-9"><pre class="mb-0 text-wrap">{{ record.task_kwargs|default:'—' }}</pre></dd>
+                <dt class="col-sm-3">Task args</dt><dd class="col-sm-9"><pre class="mb-0 text-wrap">{{ record.task_args|default:'—' }}</pre></dd>
+                <dt class="col-sm-3">Result payload</dt><dd class="col-sm-9"><pre class="mb-0 text-wrap">{{ record.result_payload|default:'—' }}</pre></dd>
+                <dt class="col-sm-3">Cleaned up</dt><dd class="col-sm-9">{{ record.cleaned_up|yesno:"Yes,No" }}</dd>
+                <dt class="col-sm-3">Created</dt><dd class="col-sm-9">{{ record.created_at|date:'Y-m-d H:i' }}</dd>
+                <dt class="col-sm-3">Updated</dt><dd class="col-sm-9">{{ record.updated_at|date:'Y-m-d H:i' }}</dd>
+                <dt class="col-sm-3">Completed</dt><dd class="col-sm-9">{{ record.completed_at|date:'Y-m-d H:i'|default:'—' }}</dd>
+                <dt class="col-sm-3">Failed</dt><dd class="col-sm-9">{{ record.failed_at|date:'Y-m-d H:i'|default:'—' }}</dd>
+            </dl>
+        </div>
+    </section>
+    <script>
+        document.body.addEventListener('htmx:afterSwap', function (event) {
+            if (!event.detail.target || event.detail.target.id !== 'task-progress') {
+                return;
+            }
+
+            try {
+                const data = JSON.parse(event.detail.xhr.responseText);
+                const trigger = event.detail.elt;
+                const progress = data.progress || 'In progress…';
+
+                if (['success', 'completed'].includes((data.status || '').toLowerCase())) {
+                    event.detail.target.innerHTML = `<div class="alert alert-success mb-0">${progress}</div>`;
+                    trigger.removeAttribute('hx-trigger');
+                } else if (data.status === 'failed') {
+                    event.detail.target.innerHTML = `<div class="alert alert-danger mb-0">${progress}</div>`;
+                    trigger.removeAttribute('hx-trigger');
+                } else if (data.status === 'pending') {
+                    event.detail.target.innerHTML = `<div class="d-flex justify-content-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading…</span></div></div><p class="mt-2 mb-0">${progress}</p>`;
+                } else {
+                    event.detail.target.innerHTML = `<p class="mb-0">${progress}</p>`;
+                }
+
+                if (data.poll_interval && data.poll_interval !== 1000) {
+                    trigger.setAttribute('hx-trigger', `every ${data.poll_interval}ms`);
+                }
+            } catch (error) {
+                console.error('Error parsing progress response', error);
+                event.detail.target.innerHTML = '<p class="text-danger mb-0">Error loading progress.</p>';
+            }
+        });
+    </script>
+{% endpartialdef %}

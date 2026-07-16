@@ -2,6 +2,8 @@ from pydantic import BaseModel, Field, field_validator, model_validator, ConfigD
 from typing import Union, Optional, List, Literal, Dict, Any, Callable
 import re
 
+from powercrud.modal_presentation import normalize_modal_presentation
+
 
 DEFAULT_PAGINATE_BY = 25
 
@@ -120,6 +122,8 @@ class PowerCRUDMixinValidator(BaseModel):
     modal_box_classes: Optional[str] = None
     modal_body_classes: Optional[str] = None
     bulk_modal_box_classes: Optional[str] = None
+    modal_presentation: Optional[Dict[str, Any]] = None
+    bulk_modal_presentation: Optional[Dict[str, Any]] = None
 
     # table display parameters
     table_pixel_height_other_page_elements: Optional[Union[int, float]] = Field(
@@ -127,6 +131,7 @@ class PowerCRUDMixinValidator(BaseModel):
     )
     table_max_height: Optional[int] = Field(default=None, ge=0, le=100)
     table_max_col_width: Optional[int] = Field(default=None, gt=0)
+    table_header_min_wrap_width: Optional[int] = Field(default=None, gt=0)
     table_classes: Optional[str] = None
     action_button_classes: Optional[str] = None
     extra_button_classes: Optional[str] = None
@@ -343,6 +348,12 @@ class PowerCRUDMixinValidator(BaseModel):
             raise ValueError("view_help_min_width must be a string")
         return validate_view_help_min_width(v, "view_help_min_width")
 
+    @field_validator("modal_presentation", "bulk_modal_presentation")
+    @classmethod
+    def validate_modal_presentation(cls, value, info):
+        """Validate a partial portable modal-presentation mapping."""
+        return normalize_modal_presentation(value, info.field_name)
+
     @field_validator(
         "column_help_text",
         "field_labels",
@@ -412,12 +423,13 @@ class PowerCRUDMixinValidator(BaseModel):
                 "pk_attr",
                 "open_in",
                 "modal_box_classes",
+                "modal_presentation",
             }
             if unsupported_keys:
                 raise ValueError(
                     "link_fields dict values only support one of 'view_name' or "
                     "'url', plus optional 'pk_attr', 'open_in', and "
-                    "'modal_box_classes'. Unsupported keys: "
+                    "'modal_box_classes', or 'modal_presentation'. Unsupported keys: "
                     f"{', '.join(sorted(unsupported_keys))}"
                 )
 
@@ -462,6 +474,11 @@ class PowerCRUDMixinValidator(BaseModel):
                 normalized_value["open_in"] = open_in.strip()
 
             modal_box_classes = value.get("modal_box_classes")
+            modal_presentation = value.get("modal_presentation")
+            if modal_box_classes is not None and modal_presentation is not None:
+                raise ValueError(
+                    "link_fields cannot combine modal_box_classes with modal_presentation"
+                )
             if modal_box_classes is not None:
                 if normalized_value.get("open_in") not in {None, "modal"}:
                     raise ValueError(
@@ -477,6 +494,17 @@ class PowerCRUDMixinValidator(BaseModel):
                         "when provided"
                     )
                 normalized_value["modal_box_classes"] = modal_box_classes.strip()
+            if modal_presentation is not None:
+                if normalized_value.get("open_in") not in {None, "modal"}:
+                    raise ValueError(
+                        "link_fields.modal_presentation is only supported when "
+                        "open_in is 'modal'"
+                    )
+                normalized_value["modal_presentation"] = normalize_modal_presentation(
+                    modal_presentation,
+                    "link_fields.modal_presentation",
+                    allow_none=False,
+                )
 
             normalized[field_name] = normalized_value
 

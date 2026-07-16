@@ -247,6 +247,12 @@ class StubView:
     def get_table_max_height(self):
         return 70
 
+    def get_table_max_col_width(self):
+        return None
+
+    def get_table_header_min_wrap_width(self):
+        return None
+
     def get_table_classes(self):
         return "table"
 
@@ -1086,13 +1092,13 @@ def test_legacy_modal_template_delegates_to_focused_shell():
         },
     )
 
-    assert '<dialog id="customModal" class="modal custom-modal" data-powercrud-modal>' in rendered, (
+    assert 'id="customModal"' in rendered and 'class="modal custom-modal"' in rendered and 'data-powercrud-modal' in rendered, (
         "The legacy façade should retain configured dialog identity and hooks."
     )
     assert 'data-powercrud-modal-box' in rendered and 'data-powercrud-default-modal-box-classes="modal-box max-w-4xl"' in rendered, (
         "The focused shell should retain modal-box sizing restoration metadata."
     )
-    assert 'id="customModalContent" class="overflow-y-auto py-4"' in rendered, (
+    assert 'id="customModalContent"' in rendered and 'class="overflow-y-auto py-4"' in rendered, (
         "The focused shell should retain the configured content target."
     )
     assert 'aria-label="Close modal"' in rendered and 'class="modal-backdrop"' in rendered, (
@@ -1140,8 +1146,8 @@ def test_modal_content_component_preserves_empty_target_contract():
         },
     )
 
-    assert rendered.strip() == '<div id="customModalContent" class="min-h-0 overflow-y-auto"></div>', (
-        "The focused modal content should contain only the configured empty target."
+    assert 'id="customModalContent"' in rendered and 'class="min-h-0 overflow-y-auto"' in rendered and 'data-powercrud-modal-content' in rendered, (
+        "The focused modal content should retain its empty configured target and modal lifecycle marker."
     )
 
 
@@ -1645,7 +1651,9 @@ def test_list_actions_fragment_renders_focused_component():
     assert 'data-powercrud-modal-trigger="true"' in rendered and "powercrudBaseModal" in rendered, (
         "The focused component should retain the Create modal trigger and opener."
     )
-    assert "Review authors" in rendered and 'href="/authors/review/"' in rendered, (
+    assert "Review authors" in rendered and (
+        'href="/authors/review/"' in rendered or "href='/authors/review/'" in rendered
+    ), (
         "The focused component should retain PowerCRUD-rendered extra actions."
     )
 
@@ -2431,11 +2439,11 @@ def test_table_shell_component_preserves_geometry_state_and_delegation(tmp_path)
             },
         )
 
-    assert 'class="box-border w-full max-w-full overflow-x-auto table-max-height"' in rendered, (
-        "The shell should retain its responsive overflow and height classes."
+    assert 'class="box-border w-fit max-w-full overflow-x-auto table-max-height"' in rendered, (
+        "The shell should keep overflow local while shrink-wrapping tables that fit."
     )
-    assert 'style="overflow-y: auto; padding-right: 20px;"' in rendered, (
-        "The shell should retain its vertical scrolling and padding geometry."
+    assert 'style="overflow-y: auto;"' in rendered, (
+        "The shell should retain table-local vertical scrolling without a trailing gutter."
     )
     assert 'data-selection-key="sample_book_staff_selected"' in rendered, (
         "The shell should retain its selection-key metadata expression."

@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 from types import SimpleNamespace
+import warnings
 
 import pytest
 from django.core.management import call_command, CommandError
@@ -110,7 +111,9 @@ def test_mktemplate_copies_focused_pagination_component(monkeypatch, tmp_path, c
         mktemplate_cmd.apps, "get_app_config", lambda _: fake_app_config
     )
 
-    call_command("pcrud_mktemplate", "fake_app.Book", "--component", "pagination")
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", FutureWarning)
+        call_command("pcrud_mktemplate", "fake_app.Book", "--component", "pagination")
 
     copied_file = tmp_path / "templates" / "fake_app" / "book_pagination.html"
     assert copied_file.exists(), (
@@ -704,6 +707,12 @@ def test_mktemplate_copies_focused_form_fields_component(monkeypatch, tmp_path, 
     assert "form, use_crispy" in output and "crispy_partials.html#load_tags" in output, (
         "The command should explain fields context and both legacy crispy fragments."
     )
+    assert "selected pack's crispy rendering" in output, (
+        "The command guidance should not hardcode a different pack's crispy integration."
+    )
+    assert "crispy-tailwind" not in output, (
+        "The selected-pack command guidance must remain framework-neutral."
+    )
     assert "form shell owns CSRF" in output and "no copied PowerCRUD JavaScript is required" in output, (
         "The command should explain the shell boundary and package-owned behavior."
     )
@@ -1002,10 +1011,10 @@ def test_cleanup_async_plain_output(monkeypatch, capsys):
     assert "Skipped 1 active task(s)" in out
 
 
-def test_mktemplate_app_all_copies_complete_framework_tree(
+def test_mktemplate_app_all_copies_complete_framework_tree_with_deprecation_warning(
     monkeypatch, tmp_path, capsys
 ):
-    """App-wide copying should preserve the complete 0.x framework-tree mode."""
+    """App-wide copying should preserve the 0.x tree while warning of v1.0 removal."""
     fake_app_config = SimpleNamespace(path=str(tmp_path), name="fake_app")
     monkeypatch.setattr(
         mktemplate_cmd.apps, "get_app_config", lambda _: fake_app_config
@@ -1026,7 +1035,8 @@ def test_mktemplate_app_all_copies_complete_framework_tree(
     first_target.parent.mkdir(parents=True, exist_ok=True)
     first_target.write_text("overwrite me", encoding="utf-8")
 
-    call_command("pcrud_mktemplate", "fake_app", "--all")
+    with pytest.warns(FutureWarning, match="whole-tree template copying.*v1.0"):
+        call_command("pcrud_mktemplate", "fake_app", "--all")
 
     source_files = [path for path in source_dir.rglob("*") if path.is_file()]
     assert source_files, "The packaged framework tree should contain template files."
@@ -1110,7 +1120,9 @@ def test_mktemplate_model_all_copies_exact_four_root_templates(
         "book_confirm_delete.html": source_dir / "object_confirm_delete.html",
     }
 
-    call_command("pcrud_mktemplate", "fake_app.Book", "--all")
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", FutureWarning)
+        call_command("pcrud_mktemplate", "fake_app.Book", "--all")
 
     assert {path.name for path in target_dir.iterdir()} == set(expected), (
         "Model --all should create exactly the four established root override names."

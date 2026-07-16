@@ -1,0 +1,565 @@
+/* Bootstrap-pack additions stay separate from the default DaisyUI runtime CSS. */
+
+.pc-bootstrap-shell {
+    max-width: 96rem;
+}
+
+.pc-bootstrap-header {
+    padding: .75rem;
+    border: var(--bs-border-width) solid var(--bs-border-color);
+    border-radius: var(--bs-border-radius-lg);
+    background: var(--bs-tertiary-bg);
+    box-shadow: 0 .125rem .25rem rgba(0, 0, 0, .035);
+}
+
+.pc-bootstrap-runtime-meta {
+    margin-bottom: .75rem !important;
+}
+
+.pc-bootstrap-runtime-meta .dropdown-toggle,
+.pc-bootstrap-navigation .btn {
+    min-height: 2.125rem;
+    display: inline-flex;
+    align-items: center;
+}
+
+.pc-bootstrap-runtime-details {
+    max-width: 100%;
+    line-height: 1.35;
+}
+
+/* Bootstrap's dropdown menu needs its .show class, while PowerCRUD uses the
+ * native details state so the shared runtime can close it deterministically. */
+[data-powercrud-extra-buttons-dropdown="true"][open] > .dropdown-menu {
+    display: block;
+}
+
+.pc-bootstrap-navigation .btn-group > .btn:first-child {
+    font-weight: 600;
+}
+
+.pc-bootstrap-navigation .btn-group > .btn:last-child {
+    min-width: 2.125rem;
+    padding-inline: .5rem;
+}
+
+.pc-bootstrap-content {
+    min-width: 0;
+}
+
+[data-powercrud-object-list="true"].pc-bootstrap-list-workspace {
+    min-width: 0;
+}
+
+[data-powercrud-object-list="true"] .pc-bootstrap-list-title {
+    margin-top: .25rem;
+    font-size: 1.25rem;
+    font-weight: 700;
+    letter-spacing: -.025em;
+}
+
+[data-powercrud-object-list="true"] .pc-bootstrap-list-instructions {
+    font-size: .875rem;
+    line-height: 1.25;
+}
+
+[data-powercrud-object-list="true"] .pc-bootstrap-list-help {
+    padding: .75rem .875rem;
+    border: var(--bs-border-width) solid var(--pc-view-help-border, var(--bs-info-border-subtle));
+    border-radius: var(--bs-border-radius);
+    background: var(--pc-view-help-summary-bg, var(--bs-info-bg-subtle));
+    color: var(--pc-view-help-summary-fg, var(--bs-emphasis-color));
+    font-size: .875rem;
+    min-width: min(var(--pc-view-help-min-width, 40rem), 100%);
+    max-width: 100%;
+}
+
+[data-powercrud-object-list="true"] .pc-bootstrap-list-help summary {
+    cursor: pointer;
+    font-weight: 600;
+}
+
+[data-powercrud-object-list="true"] .pc-bootstrap-list-help > div {
+    color: var(--pc-view-help-content-fg, var(--bs-secondary-color)) !important;
+    background: var(--pc-view-help-content-bg, transparent);
+}
+
+[data-powercrud-object-list="true"] .pc-bootstrap-list-toolbar {
+    min-height: 2rem;
+    margin-block: .75rem !important;
+    padding-block: .125rem;
+}
+
+[data-powercrud-object-list="true"] .pc-bootstrap-list-toolbar .btn,
+[data-powercrud-object-list="true"] [data-powercrud-view-controls] .btn,
+[data-powercrud-object-list="true"] [data-powercrud-view-controls] summary {
+    min-height: 2rem;
+}
+
+[data-powercrud-object-list="true"] .pc-bootstrap-toolbar-icon-button {
+    width: 2rem;
+    min-width: 2rem;
+    height: 2rem;
+    min-height: 2rem;
+    padding-inline: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+[data-powercrud-object-list="true"] .pc-bootstrap-toolbar-icon {
+    display: block;
+    width: .875rem;
+    height: .875rem;
+}
+
+[data-powercrud-object-list="true"] .pc-bootstrap-filter-panel-actions .powercrud-bootstrap-tomselect {
+    width: min(18rem, 100%);
+}
+
+[data-powercrud-object-list="true"] .pc-bootstrap-filter-panel {
+    padding: .625rem .75rem;
+    background-color: var(--bs-secondary-bg) !important;
+}
+
+[data-powercrud-object-list="true"] .pc-bootstrap-filter-panel-actions {
+    min-height: 2rem;
+}
+
+[data-powercrud-object-list="true"] .pc-bootstrap-filter-panel-actions .btn,
+[data-powercrud-object-list="true"] .pc-bootstrap-filter-panel-actions .form-select,
+[data-powercrud-object-list="true"] .pc-bootstrap-filter-panel-actions .ts-control {
+    min-height: 2rem;
+    font-size: .8125rem;
+}
+
+[data-powercrud-object-list="true"] .pc-bootstrap-filter-panel-actions .ts-control {
+    padding-block: .25rem;
+}
+
+[data-powercrud-object-list="true"] .pc-bootstrap-filter-form .filter-field {
+    min-width: 0;
+}
+
+[data-powercrud-object-list="true"] .pc-bootstrap-filter-field-shell {
+    display: grid;
+    grid-template-columns: minmax(5.5rem, 6.75rem) minmax(0, 1fr) auto;
+    align-items: center;
+    gap: .5rem;
+    min-width: 0;
+}
+
+[data-powercrud-object-list="true"] .pc-bootstrap-filter-field-shell .form-label {
+    font-size: .75rem;
+    font-weight: 500;
+    line-height: 1.15;
+    text-align: end;
+}
+
+[data-powercrud-object-list="true"] .pc-bootstrap-filter-field-shell .input-group {
+    min-width: 0;
+    flex-wrap: nowrap;
+}
+
+[data-powercrud-object-list="true"] .pc-bootstrap-filter-field-shell .form-control,
+[data-powercrud-object-list="true"] .pc-bootstrap-filter-field-shell .form-select,
+[data-powercrud-object-list="true"] .pc-bootstrap-filter-field-shell .ts-control {
+    min-height: 2rem;
+    font-size: .8125rem;
+}
+
+[data-powercrud-object-list="true"] .pc-bootstrap-filter-field-shell .powercrud-bootstrap-tomselect {
+    min-width: 0;
+    width: 1%;
+    flex: 1 1 auto;
+}
+
+[data-powercrud-object-list="true"] .pc-bootstrap-filter-field-shell .ts-control {
+    padding-block: .25rem;
+}
+
+[data-powercrud-object-list="true"] .pc-bootstrap-filter-remove {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.5rem;
+    min-width: 1.5rem;
+    height: 1.5rem;
+    min-height: 1.5rem;
+    padding: 0;
+    border: 0;
+    border-radius: var(--bs-border-radius-sm);
+    color: rgba(var(--bs-danger-rgb), .55);
+    background: transparent;
+}
+
+[data-powercrud-object-list="true"] .pc-bootstrap-filter-remove:hover,
+[data-powercrud-object-list="true"] .pc-bootstrap-filter-remove:focus-visible {
+    color: var(--bs-danger);
+    background: rgba(var(--bs-danger-rgb), .1);
+}
+
+[data-powercrud-object-list="true"] .pc-bootstrap-filter-remove svg {
+    width: .875rem;
+    height: .875rem;
+}
+
+@media (max-width: 767.98px) {
+    [data-powercrud-object-list="true"] .pc-bootstrap-filter-field-shell {
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: .25rem;
+    }
+
+    [data-powercrud-object-list="true"] .pc-bootstrap-filter-field-shell .form-label {
+        grid-column: 1;
+        text-align: start;
+    }
+
+    [data-powercrud-object-list="true"] .pc-bootstrap-filter-field-shell .input-group {
+        grid-column: 1 / -1;
+    }
+
+    [data-powercrud-object-list="true"] .pc-bootstrap-filter-remove {
+        grid-column: 2;
+        grid-row: 1;
+    }
+}
+
+.pc-bootstrap-favourites-menu {
+    min-width: min(28rem, calc(100vw - 2rem));
+    max-width: calc(100vw - 2rem);
+    border-color: var(--bs-border-color);
+}
+
+.pc-bootstrap-favourites-panel {
+    padding: 1rem;
+}
+
+.pc-bootstrap-favourites-panel .powercrud-bootstrap-tomselect {
+    width: 100%;
+}
+
+.pc-bootstrap-favourites-save-form .input-group > .form-control {
+    min-width: 0;
+}
+
+[data-powercrud-object-list="true"] .table-responsive {
+    max-width: 100%;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    border: var(--bs-border-width) solid var(--bs-border-color);
+    border-radius: var(--bs-border-radius);
+    background: var(--bs-body-bg);
+}
+
+[data-powercrud-object-list="true"] .table-responsive > .table {
+    width: max-content;
+    min-width: 0;
+    margin-bottom: 0;
+}
+
+[data-powercrud-object-list="true"] .pc-bootstrap-selection-column {
+    width: 2.5rem;
+    min-width: 2.5rem;
+    max-width: 2.5rem;
+    text-align: center;
+}
+
+[data-powercrud-object-list="true"] .table-responsive > .table > :not(caption) > * > * {
+    padding: .2rem .375rem;
+}
+
+[data-powercrud-object-list="true"] .table-responsive > .table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    font-size: .8125rem;
+    font-weight: 700;
+    letter-spacing: .01em;
+}
+
+[data-powercrud-object-list="true"] .pc-bootstrap-pagination .page-link {
+    color: var(--bs-emphasis-color);
+    background-color: var(--bs-secondary-bg);
+    border-color: var(--bs-secondary-bg);
+}
+
+[data-powercrud-object-list="true"] .pc-bootstrap-pagination .page-link:hover,
+[data-powercrud-object-list="true"] .pc-bootstrap-pagination .page-link:focus {
+    color: var(--bs-emphasis-color);
+    background-color: var(--bs-border-color);
+    border-color: var(--bs-border-color);
+}
+
+[data-powercrud-object-list="true"] .pc-bootstrap-pagination .page-item.active > .page-link {
+    color: var(--bs-emphasis-color);
+    background-color: var(--bs-border-color);
+    border-color: var(--bs-border-color);
+}
+
+[data-powercrud-object-list="true"] .pc-bootstrap-pagination .page-item.disabled > .page-link {
+    color: var(--bs-secondary-color);
+    background-color: var(--bs-secondary-bg);
+    border-color: var(--bs-secondary-bg);
+}
+
+[data-powercrud-object-list="true"] .table-responsive > .table tbody td {
+    color: var(--bs-secondary-color);
+    font-size: .75rem;
+    line-height: 1.25;
+}
+
+[data-powercrud-object-list="true"] .hidden {
+    display: none !important;
+}
+
+/* Keep the compact toolbar controls actionable when a detached chooser panel
+   overlaps their narrow-screen row. */
+[data-powercrud-object-list="true"] [data-powercrud-view-controls] {
+    position: relative;
+    z-index: 1081;
+}
+
+[data-powercrud-object-list="true"] .pc-table-column-width {
+    width: fit-content;
+    max-width: var(--pc-table-column-width, 14rem);
+}
+
+[data-powercrud-object-list="true"] .pc-bootstrap-actions-column,
+[data-powercrud-object-list="true"] [data-inline-actions="true"] {
+    width: 1%;
+    min-width: max-content;
+    white-space: nowrap;
+}
+
+/* Bootstrap tables use their content width by default. Bound ordinary text
+   columns so a long title cannot crowd the useful fields from a narrow view. */
+[data-powercrud-object-list="true"] th.pc-table-column-width {
+    min-width: var(--pc-table-header-min-wrap-width, var(--pc-table-column-width, 14rem));
+    white-space: normal;
+}
+
+[data-powercrud-object-list="true"] thead th + th {
+    border-inline-start: var(--bs-border-width) solid rgba(255, 255, 255, .16);
+}
+
+[data-powercrud-object-list="true"] .pc-action-icon {
+    width: 1rem;
+    height: 1rem;
+    flex: 0 0 auto;
+}
+
+[data-powercrud-object-list="true"] .pc-boolean-icon {
+    display: inline-block;
+    width: 1rem;
+    height: 1rem;
+    vertical-align: middle;
+}
+
+[data-powercrud-object-list="true"] tbody td a:not(.btn) {
+    text-decoration: none;
+}
+
+[data-powercrud-object-list="true"] tbody td a:not(.btn):hover,
+[data-powercrud-object-list="true"] tbody td a:not(.btn):focus-visible {
+    text-decoration: underline;
+}
+
+[data-powercrud-object-list="true"] .pc-inline-display-control {
+    min-height: 1.25rem;
+    padding: 0 .2rem;
+    font-size: .75rem;
+    font-weight: 500;
+    line-height: 1.25;
+    color: var(--bs-body-color);
+    background: var(--pc-inline-rest-bg, var(--bs-tertiary-bg));
+    border-color: var(--pc-inline-rest-border, var(--bs-border-color));
+    box-shadow: inset 0 0 0 1px var(--pc-inline-rest-border, transparent);
+}
+
+[data-powercrud-object-list="true"] .pc-inline-display-control[aria-disabled="true"] {
+    color: var(--bs-secondary-color);
+    cursor: not-allowed;
+    opacity: .6;
+}
+
+[data-powercrud-object-list="true"] .pc-inline-editable:hover,
+[data-powercrud-object-list="true"] .pc-inline-editable:focus-visible {
+    color: var(--bs-body-color);
+    background: var(--pc-inline-hover-bg, var(--bs-body-bg));
+    border-color: var(--pc-inline-hover-border, var(--bs-primary));
+    box-shadow: inset 0 0 0 1px var(--pc-inline-hover-border, var(--bs-primary));
+}
+
+[data-powercrud-object-list="true"] .pc-inline-row-active > td {
+    --bs-table-bg-state: var(--pc-inline-active-row-bg, rgba(var(--bs-primary-rgb), .06));
+    background-color: var(--bs-table-bg-state) !important;
+    box-shadow: inset 0 0 0 999px var(--pc-inline-active-row-overlay, transparent);
+}
+
+[data-powercrud-object-list="true"] .pc-inline-row-active {
+    outline: 2px solid var(--pc-inline-active-row-outline, var(--bs-primary));
+    outline-offset: -2px;
+}
+
+[data-powercrud-object-list="true"] .pc-inline-row-active .inline-field-widget {
+    background-color: var(--pc-inline-active-widget-bg, transparent);
+    border-radius: var(--bs-border-radius-sm);
+    box-shadow: inset 0 0 0 1px var(--pc-inline-active-widget-border, transparent);
+}
+
+[data-powercrud-object-list="true"] .pc-inline-row-invalid > td {
+    --bs-table-bg-state: rgba(var(--bs-danger-rgb), .08);
+    background-color: var(--bs-table-bg-state) !important;
+}
+
+[data-powercrud-object-list="true"] .pc-inline-row-active .pc-inline-checkbox {
+    margin-top: .15rem;
+}
+
+.pc-inline-error-popover {
+    position: absolute;
+    z-index: 1090;
+    max-width: min(24rem, calc(100vw - 1rem));
+}
+
+[data-powercrud-object-list="true"] .pc-action-label {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    padding: 0 !important;
+    margin: -1px !important;
+    overflow: hidden !important;
+    clip: rect(0, 0, 0, 0) !important;
+    white-space: nowrap !important;
+    border: 0 !important;
+}
+
+[data-powercrud-object-list="true"] .pc-bootstrap-row-action-group {
+    display: inline-flex;
+    vertical-align: middle;
+}
+
+[data-powercrud-object-list="true"] .pc-bootstrap-row-actions .btn {
+    min-width: 1.75rem;
+    min-height: 1.5rem;
+    height: 1.5rem;
+    padding: .125rem .35rem;
+    padding-block: 0 !important;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+[data-powercrud-object-list="true"] .pc-bootstrap-row-actions .dropdown {
+    display: inline-flex;
+}
+
+[data-powercrud-object-list="true"] .pc-bootstrap-row-actions-more {
+    min-width: 4rem !important;
+    font-size: .75rem;
+    line-height: 1 !important;
+    gap: .35rem;
+    font-weight: 600;
+}
+
+[data-powercrud-object-list="true"] .pc-bootstrap-inline-action-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.75rem;
+    min-width: 1.75rem;
+    height: 1.75rem;
+    min-height: 1.75rem;
+    padding: 0;
+}
+
+[data-powercrud-object-list="true"] .pc-bootstrap-inline-action-button svg {
+    width: 1rem;
+    height: 1rem;
+}
+
+[data-powercrud-object-list="true"] .pc-bootstrap-row-actions-caret {
+    width: 0;
+    height: 0;
+    border-top: .3rem solid currentColor;
+    border-inline: .25rem solid transparent;
+}
+
+[data-powercrud-object-list="true"] .pc-table-column-width > * {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* The inline label sits inside the edit trigger, so it needs its own block
+   constraint for long values to truncate within the table cell. */
+[data-powercrud-object-list="true"] .pc-inline-display-label {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Bootstrap's ms-auto utility wins by specificity. Reset it once the toolbar
+   wraps so the controls start a new compact row instead of floating right. */
+[data-powercrud-object-list="true"] [data-powercrud-list-toolbar][data-powercrud-toolbar-wrapped="true"] [data-powercrud-view-controls] {
+    margin-left: 0 !important;
+    margin-inline-start: 0 !important;
+    width: 100%;
+}
+
+.powercrud-bootstrap-tomselect .ts-control {
+    border-color: var(--bs-border-color);
+    border-radius: var(--bs-border-radius);
+    box-shadow: none;
+    min-height: calc(1.5em + .75rem + calc(var(--bs-border-width) * 2));
+}
+
+.powercrud-bootstrap-tomselect .ts-control.focus {
+    border-color: #86b7fe;
+    box-shadow: 0 0 0 .25rem rgba(13, 110, 253, .25);
+}
+
+.powercrud-bootstrap-tomselect .ts-dropdown {
+    border-color: var(--bs-border-color);
+    border-radius: var(--bs-border-radius);
+}
+
+.powercrud-bootstrap-tomselect .ts-dropdown .active {
+    background: var(--bs-tertiary-bg);
+    color: var(--bs-body-color);
+}
+
+.ts-dropdown.powercrud-inline-single-dropdown {
+    z-index: 1090;
+    max-width: calc(100vw - 2rem) !important;
+}
+
+.ts-dropdown.powercrud-filter-favourite-select-dropdown {
+    z-index: 1090;
+}
+
+/* The loaded fragment supplies the operation heading. Keep the Bootstrap host
+   name available to assistive technology without showing a duplicate heading. */
+[data-powercrud-modal] .modal-content {
+    position: relative;
+    max-height: var(--pc-modal-max-height, none);
+}
+
+[data-powercrud-modal-box].modal-dialog-scrollable .modal-content {
+    height: var(--pc-modal-max-height, auto);
+}
+
+[data-powercrud-modal-box].pc-bootstrap-modal-scroll-shell .modal-content {
+    overflow-y: auto;
+}
+
+[data-powercrud-modal] .modal-header {
+    position: absolute;
+    inset: .5rem .5rem auto auto;
+    z-index: 1;
+    padding: 0;
+    border: 0;
+}

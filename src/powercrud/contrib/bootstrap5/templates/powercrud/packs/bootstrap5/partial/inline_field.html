@@ -1,0 +1,2 @@
+{% load powercrud_bootstrap5 %}
+<div class="inline-field-widget w-100" data-inline-field="{{ field_name }}"{% if field_dependency %} data-inline-dependent="true"{% if field_dependency.depends_on %} data-inline-depends-on="{{ field_dependency.depends_on|join:',' }}"{% endif %} data-inline-endpoint="{{ field_dependency.endpoint_url|default:dependency_endpoint_url }}"{% endif %}>{% bootstrap5_field field small=True error_suffix="_inline_error" include_help=False %}</div>

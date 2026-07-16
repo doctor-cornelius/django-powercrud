@@ -1,0 +1,157 @@
+{% extends base_template_path %}
+{% load powercrud powercrud_partials %}
+
+{% block content %}
+    {% partial pcrud_content %}
+{% endblock %}
+
+{% partialdef pcrud_content %}
+    <title id="header_title">{{ header_title }}</title>
+        <section
+             class="d-inline-flex flex-column mw-100 pc-bootstrap-list-workspace"
+             style="--pc-table-column-width: {{ table_max_col_width }}; --pc-table-header-min-wrap-width: {{ table_header_min_wrap_width }};"
+             data-powercrud-object-list="true"
+             data-powercrud-list-url="{{ list_view_url }}"
+             data-powercrud-original-target="{{ original_target }}">
+        <h1 class="h2 mb-2 pc-bootstrap-list-title">{{ view.get_view_title }}</h1>
+        {% if view.get_view_instructions %}
+            <p class="text-body-secondary mb-0 pc-bootstrap-list-instructions">{{ view.get_view_instructions }}</p>
+        {% endif %}
+        {% with view_help=view.get_view_help view_help_paragraphs=view.get_view_help_detail_paragraphs %}
+            {% if view_help %}
+                <details class="mt-3 pc-bootstrap-list-help"
+                         data-powercrud-view-help="true"
+                         data-powercrud-view-help-min-width="{{ view_help.min_width }}"
+                         style="{{ view_help.style }} --pc-view-help-min-width: {{ view_help.min_width }};"
+                         {% if view_help.default_open %} open{% endif %}>
+                    <summary class="fw-semibold">{{ view_help.summary }}</summary>
+                    <div class="mt-3 text-body-secondary">
+                        {% for paragraph in view_help_paragraphs %}
+                            <p{% if not forloop.last %} class="mb-2"{% endif %}>{{ paragraph }}</p>
+                        {% endfor %}
+                    </div>
+                </details>
+            {% endif %}
+        {% endwith %}
+        <div class="d-flex flex-wrap align-items-center gap-2 my-3 pc-bootstrap-list-toolbar" data-powercrud-list-toolbar="true">
+            <div class="d-flex flex-wrap align-items-center gap-2" data-powercrud-action-controls>
+                {% if enable_selection_controls %}
+                    {% partial bulk_selection_status %}
+                {% endif %}
+                {% partial list_actions %}
+            </div>
+            <div class="d-flex flex-wrap align-items-center gap-2 ms-md-auto" data-powercrud-view-controls>
+                {% if filter_favourites_enabled %}
+                    {% include framework_template_path|add:"/partial/filter_favourites.html" %}
+                {% endif %}
+                {% if filterset %}
+                    {% partial filter_trigger %}
+                {% endif %}
+                {% if list_options_url and list_column_state.enabled %}
+                    {% partial list_columns %}
+                {% endif %}
+                {% partial page_size_selector %}
+            </div>
+        </div>
+        {% if filterset %}
+            <div class="hidden mt-3" id="filterCollapse">
+                <div class="card card-body bg-body-tertiary pc-bootstrap-filter-panel">
+                    {% partial filter_panel_actions %}
+                    {% partial filter_form %}
+                </div>
+            </div>
+        {% endif %}
+        <div id="filtered_results">
+            {% partial filtered_results %}
+        </div>
+    </section>
+    {% partial modal %}
+{% endpartialdef pcrud_content %}
+
+{% partialdef filtered_results %}
+    {% if show_record_count or show_bulk_selection_meta %}
+        <div class="small text-body-secondary mb-2 d-flex flex-wrap align-items-center gap-2" data-powercrud-results-meta="true">
+            {% if show_record_count %}
+            <span>
+            {% if is_paginated and record_count_total > 0 %}
+                Showing {{ record_count_start }}-{{ record_count_end }} of {{ record_count_total }}
+            {% else %}
+                {{ record_count_total }}
+            {% endif %}
+            {% if record_count_has_active_filters %}matching{% else %}total{% endif %}
+            record{{ record_count_total|pluralize }}</span>
+            {% endif %}
+            {% if show_bulk_selection_meta %}
+                {% if bulk_selection_controls_template_paths %}{% include bulk_selection_controls_template_paths with selection_control="matching" %}{% else %}{% include framework_template_path|add:"/partial/bulk_selection_controls.html" with selection_control="matching" %}{% endif %}
+            {% endif %}
+        </div>
+    {% endif %}
+    {% if object_list %}
+        {% object_list object_list view %}
+        {% partial pagination %}
+    {% else %}
+        <p class="alert alert-info mt-3 mb-0">
+            There are no {{ object_verbose_name_plural }}.{% if create_view_url %} Create one now?{% endif %}
+        </p>
+    {% endif %}
+{% endpartialdef filtered_results %}
+
+{% partialdef modal %}
+    {% include framework_template_path|add:"/partial/modal.html" %}
+{% endpartialdef modal %}
+
+{% partialdef list_actions %}
+    {% if list_actions_template_paths %}
+        {% include list_actions_template_paths %}
+    {% else %}
+        {% include framework_template_path|add:"/partial/list_actions.html" %}
+    {% endif %}
+{% endpartialdef list_actions %}
+
+{% partialdef bulk_selection_status %}
+{% if bulk_selection_status_template_paths %}{% include bulk_selection_status_template_paths %}{% else %}{% include framework_template_path|add:"/partial/bulk_selection_status.html" %}{% endif %}
+{% endpartialdef bulk_selection_status %}
+
+{% partialdef list_columns %}
+{% if list_columns_template_paths %}{% include list_columns_template_paths %}{% else %}{% include framework_template_path|add:"/partial/list_columns.html" %}{% endif %}
+{% endpartialdef list_columns %}
+
+{% partialdef filter_trigger %}
+    {% if filter_trigger_template_paths %}
+        {% include filter_trigger_template_paths %}
+    {% else %}
+        {% include framework_template_path|add:"/partial/filter_trigger.html" %}
+    {% endif %}
+{% endpartialdef filter_trigger %}
+
+{% partialdef filter_panel_actions %}
+    {% if filter_panel_actions_template_paths %}
+        {% include filter_panel_actions_template_paths %}
+    {% else %}
+        {% include framework_template_path|add:"/partial/filter_panel_actions.html" %}
+    {% endif %}
+{% endpartialdef filter_panel_actions %}
+
+{% partialdef filter_form %}
+    {% if filter_form_template_paths %}
+        {% include filter_form_template_paths %}
+    {% else %}
+        {% include framework_template_path|add:"/partial/filter_form.html" %}
+    {% endif %}
+{% endpartialdef filter_form %}
+
+{% partialdef pagination %}
+    {% if pagination_template_paths %}
+        {% include pagination_template_paths %}
+    {% else %}
+        {% include framework_template_path|add:"/partial/pagination.html" %}
+    {% endif %}
+{% endpartialdef pagination %}
+
+{% partialdef page_size_selector %}
+    {% if page_size_selector_template_paths %}
+        {% include page_size_selector_template_paths %}
+    {% else %}
+        {% include framework_template_path|add:"/partial/page_size_selector.html" %}
+    {% endif %}
+{% endpartialdef page_size_selector %}

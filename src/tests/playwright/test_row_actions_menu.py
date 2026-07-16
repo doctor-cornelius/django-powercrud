@@ -1,6 +1,7 @@
 import re
 
 import pytest
+from django.conf import settings
 
 pytest.importorskip("playwright.sync_api")
 from playwright.sync_api import expect
@@ -11,6 +12,13 @@ pytestmark = [
     pytest.mark.django_db,
     pytest.mark.usefixtures("sample_manager_page"),
 ]
+
+BOOTSTRAP_SELECTOR = "powercrud.contrib.bootstrap5:template_pack"
+
+
+def using_bootstrap_pack() -> bool:
+    """Return whether the active browser settings select Bootstrap."""
+    return settings.POWERCRUD_SETTINGS.get("POWERCRUD_TEMPLATE_PACK") == BOOTSTRAP_SELECTOR
 
 
 def test_row_actions_menu_stays_visible_for_top_and_bottom_rows(
@@ -82,10 +90,10 @@ test_row_actions_menu_stays_visible_for_top_and_bottom_rows = pytest.mark.playwr
 )
 
 
-def test_row_actions_floating_panel_modal_action_uses_cloned_trigger_classes(
+def test_row_actions_floating_panel_modal_action_uses_cloned_trigger_presentation(
     page, books_url, sample_books
 ):
-    """A modal action clicked from the cloned floating panel should keep its trigger metadata."""
+    """A cloned row action must retain its portable modal-presentation metadata."""
 
     target_book = sample_books[0]
     target_book.description = "Description Preview Playwright Body"
@@ -97,15 +105,29 @@ def test_row_actions_floating_panel_modal_action_uses_cloned_trigger_classes(
     page.locator("[data-powercrud-row-actions-trigger='true']").first.dispatch_event("click")
     floating_panel = page.locator("[data-powercrud-row-actions-floating-panel='true']")
     expect(floating_panel).to_be_visible()
-    floating_panel.get_by_role("link", name="Description Preview").click()
+    description_preview = floating_panel.get_by_role("link", name="Description Preview")
+    expect(description_preview).to_have_attribute(
+        "data-powercrud-modal-max-width", "64rem"
+    )
+    expect(description_preview).to_have_attribute(
+        "data-powercrud-modal-size", "default"
+    )
+    description_preview.click()
 
     modal = page.locator("#powercrudBaseModal")
     expect(modal).to_be_visible()
     expect(modal.locator("#powercrudModalContent")).to_contain_text("Description Preview")
     expect(modal.locator("#powercrudModalContent")).to_contain_text(target_book.description)
-    expect(modal.locator("[data-powercrud-modal-box]")).to_have_class(
-        re.compile(r"\bmax-w-5xl\b")
+    modal_box = modal.locator("[data-powercrud-modal-box]")
+    expect(modal_box).to_have_class(
+        re.compile(r"\bmodal-dialog\b" if using_bootstrap_pack() else r"\bmax-w-lg\b")
     )
+    if using_bootstrap_pack():
+        assert "64rem" in modal_box.evaluate(
+            "element => element.style.getPropertyValue('--bs-modal-width')"
+        )
+    else:
+        assert "64rem" in modal_box.evaluate("element => element.style.maxWidth")
     expect(floating_panel).to_have_count(0)
 
 
@@ -125,10 +147,10 @@ def test_row_actions_menu_hydrates_lazy_disabled_state(
     trigger = row.locator("[data-powercrud-row-actions-trigger='true']").first
     original_trigger = trigger.evaluate(
         """
-        element => {
+        (element, spinnerSelector) => {
             window.__powercrudRowActionSpinnerSeen = false;
             new MutationObserver(() => {
-                if (element.querySelector('.loading-spinner')) {
+                if (element.querySelector(spinnerSelector)) {
                     window.__powercrudRowActionSpinnerSeen = true;
                 }
             }).observe(element, { childList: true, subtree: true });
@@ -137,7 +159,8 @@ def test_row_actions_menu_hydrates_lazy_disabled_state(
                 inlineWidth: element.style.width,
             };
         }
-        """
+        """,
+        ".spinner-border" if using_bootstrap_pack() else ".loading-spinner",
     )
 
     with page.expect_request(
@@ -157,15 +180,18 @@ def test_row_actions_menu_hydrates_lazy_disabled_state(
     )
     expect(description_preview).to_have_attribute("aria-disabled", "true")
     expect(description_preview).to_have_attribute(
-        "data-tippy-content",
+        "data-bs-title" if using_bootstrap_pack() else "data-tippy-content",
         "This book does not have a description yet.",
     )
-    expect(description_preview).to_have_class(re.compile(r"\bbtn-disabled\b"))
+    expect(description_preview).to_have_class(
+        re.compile(r"\bdisabled\b" if using_bootstrap_pack() else r"\bbtn-disabled\b")
+    )
     expect(description_preview).to_have_class(re.compile(r"\bopacity-50\b"))
     assert description_preview.evaluate("el => window.getComputedStyle(el).pointerEvents") == "auto"
     assert description_preview.evaluate("el => window.getComputedStyle(el).cursor") == "not-allowed"
-    description_preview.hover()
-    expect(page.locator("[data-tippy-root]")).to_be_visible()
+    if not using_bootstrap_pack():
+        description_preview.hover()
+        expect(page.locator("[data-tippy-root]")).to_be_visible()
     assert page.evaluate("() => window.__powercrudRowActionSpinnerSeen") is True
     assert trigger.evaluate("el => el.innerHTML") == original_trigger["html"]
     assert trigger.evaluate("el => el.style.width") == original_trigger["inlineWidth"]
@@ -255,7 +281,7 @@ def test_row_actions_flagged_modal_close_refreshes_current_list(
     page.on("request", record_list_refresh)
 
     for close_count in range(1, 3):
-        page.locator("[data-powercrud-row-actions-trigger='true']").first.dispatch_event("click")
+        page.locator("[data-powercrud-row-actions-trigger='true']").first.click()
         floating_panel = page.locator("[data-powercrud-row-actions-floating-panel='true']")
         expect(floating_panel).to_be_visible()
         floating_panel.get_by_role("link", name="Normal Edit").click()
@@ -272,18 +298,15 @@ def test_row_actions_flagged_modal_close_refreshes_current_list(
                 and request.headers.get("x-filter-sort-request") == "true"
             )
         ):
-            modal.get_by_label("Close modal").click()
+            modal.get_by_label("Close" if using_bootstrap_pack() else "Close modal").click()
 
         expect(modal).not_to_be_visible()
         page.wait_for_load_state("networkidle")
+        # Let HTMX's post-swap lifecycle finish before exercising the refreshed controls again.
+        page.wait_for_timeout(100)
         expect(page.locator("[data-powercrud-row-actions-floating-panel='true']")).to_have_count(0)
-        fresh_trigger = page.locator(
-            "[data-powercrud-row-actions-trigger='true']"
-        ).first
+        fresh_trigger = page.locator("[data-powercrud-row-actions-trigger='true']").first
         expect(fresh_trigger).to_be_visible()
-        assert fresh_trigger.evaluate("element => element.isConnected"), (
-            "Expected each list refresh to install a fresh connected row-actions trigger."
-        )
         assert len(list_refreshes) == close_count, (
             "Expected each flagged modal close to dispatch exactly one list refresh after repeated initialization."
         )

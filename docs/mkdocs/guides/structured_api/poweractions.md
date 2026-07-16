@@ -25,7 +25,7 @@ Use `PowerAction` or `PowerButton` when you want to name and reuse a pattern:
                 "url_name": "cases:workflow-action",
                 "needs_pk": True,
                 "display_modal": True,
-                "modal_box_classes": "modal-box flex max-h-[calc(100dvh-2rem)] w-11/12 max-w-5xl flex-col",
+                "modal_presentation": {"size": "extra_wide"},
                 "hidden_if": "should_hide_workflow_action",
                 "disabled_state": "get_workflow_action_disabled_state",
             },
@@ -34,7 +34,7 @@ Use `PowerAction` or `PowerButton` when you want to name and reuse a pattern:
                 "url_name": "cases:timeline",
                 "needs_pk": True,
                 "display_modal": True,
-                "modal_box_classes": "modal-box flex max-h-[calc(100dvh-2rem)] w-11/12 max-w-5xl flex-col",
+                "modal_presentation": {"size": "extra_wide"},
             },
         ]
         ```
@@ -46,7 +46,7 @@ Use `PowerAction` or `PowerButton` when you want to name and reuse a pattern:
             text="Workflow Action",
             url_name="cases:workflow-action",
             display_modal=True,
-            modal_box_classes="modal-box flex max-h-[calc(100dvh-2rem)] w-11/12 max-w-5xl flex-col",
+            modal_presentation={"size": "extra_wide"},
             hidden_if="should_hide_workflow_action",
             disabled_state="get_workflow_action_disabled_state",
         )

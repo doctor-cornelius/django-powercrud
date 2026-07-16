@@ -78,7 +78,7 @@ Use this when row actions share the same modal, disabled-state, or sizing behavi
             "url_name": "cases:workflow-action",
             "needs_pk": True,
             "display_modal": True,
-            "modal_box_classes": "modal-box flex max-h-[calc(100dvh-2rem)] w-11/12 max-w-5xl flex-col",
+            "modal_presentation": {"size": "extra_wide"},
             "disabled_state": "get_workflow_action_disabled_state",
         },
         {
@@ -86,7 +86,7 @@ Use this when row actions share the same modal, disabled-state, or sizing behavi
             "url_name": "cases:timeline",
             "needs_pk": True,
             "display_modal": True,
-            "modal_box_classes": "modal-box flex max-h-[calc(100dvh-2rem)] w-11/12 max-w-5xl flex-col",
+            "modal_presentation": {"size": "extra_wide"},
         },
     ]
     ```
@@ -101,7 +101,7 @@ Use this when row actions share the same modal, disabled-state, or sizing behavi
         text="Workflow Action",
         url_name="cases:workflow-action",
         display_modal=True,
-        modal_box_classes="modal-box flex max-h-[calc(100dvh-2rem)] w-11/12 max-w-5xl flex-col",
+        modal_presentation={"size": "extra_wide"},
         disabled_state="get_workflow_action_disabled_state",
     )
 

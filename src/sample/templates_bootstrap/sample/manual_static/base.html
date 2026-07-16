@@ -1,0 +1,40 @@
+{% load static %}
+
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link rel="stylesheet" href="{% static 'node_modules/bootstrap/dist/css/bootstrap.min.css' %}">
+    <link rel="stylesheet" href="{% static 'node_modules/tom-select/dist/css/tom-select.default.min.css' %}">
+    <link rel="stylesheet" href="{% static 'powercrud/contrib/bootstrap5/css/bootstrap5.css' %}">
+
+    <script src="{% static 'node_modules/htmx.org/dist/htmx.min.js' %}"></script>
+    <script src="{% static 'node_modules/tom-select/dist/js/tom-select.complete.min.js' %}"></script>
+    <script src="{% static 'node_modules/bootstrap/dist/js/bootstrap.bundle.min.js' %}"></script>
+    <script type="module" src="{% static 'powercrud/contrib/bootstrap5/js/bootstrap5.js' %}"></script>
+
+    {% block header_title %}
+    <title id="header_title">{{ header_title }}</title>
+    {% endblock header_title %}
+
+    {% block extra_head %}{% endblock extra_head %}
+</head>
+
+<body hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+    {% block app_content %}{% endblock app_content %}
+
+    <main class="container-fluid px-3 py-3">
+        {% include "sample/_runtime_meta.html" %}
+        <div id="content" class="overflow-auto">
+            {% block content %}{% endblock content %}
+            <div id="powercrud"></div>
+        </div>
+    </main>
+</body>
+
+</html>

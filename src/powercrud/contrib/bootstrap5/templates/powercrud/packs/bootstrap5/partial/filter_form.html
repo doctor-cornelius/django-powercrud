@@ -1,0 +1,39 @@
+<form id="filter-form" method="get" class="row g-2 pc-bootstrap-filter-form" hx-target="#filtered_results"
+      hx-push-url="true" hx-replace-url="true"
+      hx-headers='{"X-Filter-Sort-Request": "true", "X-Filter-Setting-Request": "true"}'
+      action="{{ request.path }}" data-powercrud-filter-form="true">
+    <div class="hidden" data-powercrud-visible-filters-state>
+        {% for field_name in persisted_optional_filter_names %}
+            <input type="hidden" name="{{ visible_filter_param_name }}" value="{{ field_name }}">
+        {% endfor %}
+    </div>
+    {% for field in visible_filter_fields %}
+        <div class="col-12 col-md-6 col-xl-4 filter-field">
+            <div class="pc-bootstrap-filter-field-shell">
+                <label class="form-label mb-0 text-body-secondary" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                <div class="input-group input-group-sm">
+                    {{ field }}
+                </div>
+                {% if field.name in persisted_optional_filter_names %}
+                    <button type="button"
+                            class="pc-bootstrap-filter-remove"
+                            data-powercrud-remove-filter="{{ field.name }}"
+                            data-powercrud-tooltip="semantic"
+                            data-tippy-content="Remove {{ field.label }} filter"
+                            aria-label="Remove {{ field.label }} filter">
+                        <svg xmlns="http://www.w3.org/2000/svg"
+                             viewBox="0 0 16 16"
+                             fill="none"
+                             stroke="currentColor"
+                             stroke-width="1.75"
+                             stroke-linecap="round"
+                             stroke-linejoin="round"
+                             aria-hidden="true">
+                            <path d="M4 4l8 8M12 4l-8 8"></path>
+                        </svg>
+                    </button>
+                {% endif %}
+            </div>
+        </div>
+    {% endfor %}
+</form>

@@ -1,0 +1,13 @@
+{% load powercrud_partials %}
+
+{% partialdef pcrud_content %}
+    {% include "powercrud/packs/daisyui/object_list.html#pcrud_content" %}
+{% endpartialdef pcrud_content %}
+
+{% partialdef filtered_results %}
+    {% include "powercrud/packs/daisyui/object_list.html#filtered_results" %}
+{% endpartialdef filtered_results %}
+
+{% partialdef pagination %}
+    {% include "powercrud/packs/daisyui/object_list.html#pagination" %}
+{% endpartialdef pagination %}

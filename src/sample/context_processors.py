@@ -7,6 +7,8 @@ from pathlib import Path
 import subprocess
 import tomllib
 
+from django.conf import settings
+
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
@@ -19,6 +21,11 @@ def app_meta(request):
         "sample_package_version": _package_version(),
         "sample_git_version": os.environ.get("APP_VERSION") or _git_describe(),
         "sample_git_commit": os.environ.get("APP_COMMIT") or _git_commit(),
+        "sample_presentation": getattr(
+            settings,
+            "SAMPLE_PRESENTATION",
+            "Standard DaisyUI",
+        ),
     }
 
 

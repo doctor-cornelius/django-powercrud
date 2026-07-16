@@ -1,0 +1,18 @@
+<div class="alert alert-warning" role="alert">
+    <h1 class="alert-heading h4">Edit Conflict</h1>
+    <p>{{ conflict_message }}</p>
+    <p class="mb-0"><strong>{{ object }}</strong></p>
+</div>
+{% if not use_modal %}
+    <div class="d-flex justify-content-end">
+        {% if use_htmx %}
+            <button type="button" class="btn btn-outline-secondary"
+                    hx-get="{{ list_view_url }}{% if request.GET.page_size %}?page_size={{ request.GET.page_size }}{% endif %}{% if filter_params %}&{{ filter_params }}{% endif %}"
+                    hx-target="{{ original_target }}" hx-push-url="true">
+                Return to List
+            </button>
+        {% else %}
+            <a href="{{ list_view_url }}" class="btn btn-outline-secondary">Return to List</a>
+        {% endif %}
+    </div>
+{% endif %}

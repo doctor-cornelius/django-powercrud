@@ -2,6 +2,7 @@ import re
 from uuid import uuid4
 
 import pytest
+from django.conf import settings
 
 pytest.importorskip("playwright.sync_api")
 from playwright.sync_api import expect
@@ -13,6 +14,13 @@ pytestmark = [
     pytest.mark.django_db,
     pytest.mark.usefixtures("sample_manager_page"),
 ]
+
+BOOTSTRAP_SELECTOR = "powercrud.contrib.bootstrap5:template_pack"
+
+
+def using_bootstrap_pack() -> bool:
+    """Return whether the active browser settings select Bootstrap."""
+    return settings.POWERCRUD_SETTINGS.get("POWERCRUD_TEMPLATE_PACK") == BOOTSTRAP_SELECTOR
 
 
 def select_single_value(page, form, field_name: str, option_label: str, option_value: str):
@@ -89,7 +97,8 @@ def test_create_book_via_modal(page, books_url, sample_author, sample_genre):
 
     modal = page.locator("#powercrudBaseModal")
     form = None
-    if modal.count() and modal.is_visible():
+    if modal.count():
+        expect(modal).to_be_visible()
         modal_content = modal.locator("#powercrudModalContent")
         form = modal_content.locator("form")
         expect(form).to_be_visible()
@@ -132,16 +141,15 @@ def test_create_book_via_modal(page, books_url, sample_author, sample_genre):
 test_create_book_via_modal = pytest.mark.playwright_smoke(test_create_book_via_modal)
 
 
-def test_per_trigger_modal_box_classes_are_restored(page, books_url):
-    """Per-trigger DaisyUI modal classes should apply only to the clicked trigger."""
+def test_portable_per_trigger_modal_presentation_is_applied_and_reset(page, books_url):
+    """Both pack adapters must apply semantic trigger settings without leaking them."""
 
     page.goto(books_url)
     page.wait_for_load_state("networkidle")
 
     modal = page.locator("#powercrudBaseModal")
     modal_box = modal.locator("[data-powercrud-modal-box]")
-    default_classes = modal_box.get_attribute("data-powercrud-default-modal-box-classes")
-    assert default_classes
+    modal_selector = "#powercrudBaseModal[data-powercrud-modal]"
 
     modal.evaluate(
         """
@@ -152,15 +160,41 @@ def test_per_trigger_modal_box_classes_are_restored(page, books_url):
         }
         """
     )
-    expect(page.locator("dialog#powercrudBaseModal[data-powercrud-modal]")).to_have_count(2)
+    expect(page.locator(modal_selector)).to_have_count(2)
 
     page.locator("[data-powercrud-extra-buttons-dropdown='true'] summary").click()
-    page.get_by_role("link", name="Home in Modal!").click()
+    trigger = page.locator(
+        "[data-powercrud-extra-buttons-dropdown='true'] a",
+        has_text="Home in Modal!",
+    ).first
+    trigger.evaluate(
+        """
+        element => {
+            element.dataset.powercrudModalSize = 'wide';
+            element.dataset.powercrudModalMaxWidth = '60rem';
+            element.dataset.powercrudModalMaxHeight = '75dvh';
+            element.dataset.powercrudModalScroll = 'modal';
+            element.dataset.powercrudModalFullscreen = 'false';
+            element.dataset.powercrudModalVerticalAlignment = 'top';
+        }
+        """
+    )
+    trigger.click()
 
-    expect(page.locator("dialog#powercrudBaseModal[data-powercrud-modal]")).to_have_count(1)
+    expect(page.locator(modal_selector)).to_have_count(1)
     expect(modal).to_be_visible()
     expect(modal.locator("#powercrudModalContent")).to_contain_text("Home")
-    expect(modal_box).to_have_class(re.compile(r"\bmax-w-3xl\b"))
+    if using_bootstrap_pack():
+        expect(modal_box).to_have_class(re.compile(r"\bmodal-lg\b"))
+        expect(modal_box).to_have_class(re.compile(r"\bpc-bootstrap-modal-scroll-shell\b"))
+        assert modal_box.evaluate("element => element.style.getPropertyValue('--bs-modal-width')")
+        assert modal_box.evaluate("element => element.style.getPropertyValue('--pc-modal-max-height')")
+    else:
+        expect(modal).to_have_class(re.compile(r"\bmodal-top\b"))
+        expect(modal_box).to_have_class(re.compile(r"\bmax-w-4xl\b"))
+        assert modal_box.evaluate("element => element.style.maxWidth")
+        assert modal_box.evaluate("element => element.style.maxHeight")
+        assert modal_box.evaluate("element => element.style.overflowY") == "auto"
     page.wait_for_load_state("networkidle")
 
     modal.evaluate(
@@ -173,19 +207,43 @@ def test_per_trigger_modal_box_classes_are_restored(page, books_url):
         }
         """
     )
-    expect(page.locator("dialog#powercrudBaseModal[data-powercrud-modal]")).to_have_count(2)
+    expect(page.locator(modal_selector)).to_have_count(2)
     page.evaluate("() => window.initPowercrud(document)")
-    expect(page.locator("dialog#powercrudBaseModal[data-powercrud-modal]")).to_have_count(1)
+    expect(page.locator(modal_selector)).to_have_count(1)
     expect(modal).to_be_visible()
     expect(page.locator("[data-powercrud-test-closed-duplicate='true']")).to_have_count(0)
 
-    page.keyboard.press("Escape")
+    if using_bootstrap_pack():
+        modal.get_by_role("button", name="Close").click()
+    else:
+        page.keyboard.press("Escape")
     expect(modal).not_to_be_visible()
 
     page.get_by_role("link", name=re.compile("create", re.I)).click()
     expect(modal).to_be_visible()
     expect(modal.locator("#powercrudModalContent form")).to_be_visible()
-    expect(modal_box).to_have_attribute(
-        "class",
-        default_classes,
+    if using_bootstrap_pack():
+        expect(modal_box).to_have_class(re.compile(r"\bmodal-dialog-centered\b"))
+        expect(modal_box).to_have_class(re.compile(r"\bmodal-dialog-scrollable\b"))
+        assert not modal_box.evaluate("element => element.style.getPropertyValue('--bs-modal-width')")
+    else:
+        expect(modal).to_have_class(re.compile(r"\bmodal-middle\b"))
+        expect(modal_box).to_have_class(re.compile(r"\bmax-w-lg\b"))
+        assert not modal_box.evaluate("element => element.style.maxWidth")
+
+    if using_bootstrap_pack():
+        modal.get_by_role("button", name="Close").click()
+    else:
+        page.keyboard.press("Escape")
+    expect(modal).not_to_be_visible()
+    page.locator("[data-powercrud-extra-buttons-dropdown='true'] summary").click()
+    trigger.evaluate(
+        """element => { element.dataset.powercrudModalFullscreen = 'true'; }"""
     )
+    trigger.click()
+    expect(modal).to_be_visible()
+    if using_bootstrap_pack():
+        expect(modal_box).to_have_class(re.compile(r"\bmodal-fullscreen\b"))
+    else:
+        assert modal_box.evaluate("element => element.style.width") == "100dvw"
+        assert modal_box.evaluate("element => element.style.height") == "100dvh"

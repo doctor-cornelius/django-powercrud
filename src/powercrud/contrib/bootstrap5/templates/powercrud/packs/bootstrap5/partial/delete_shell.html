@@ -1,0 +1,9 @@
+<div class="card border-danger">
+    <div class="card-body">
+        {% if delete_content_template_paths %}
+            {% include delete_content_template_paths %}
+        {% else %}
+            {% include framework_template_path|add:"/partial/delete_content.html" %}
+        {% endif %}
+    </div>
+</div>

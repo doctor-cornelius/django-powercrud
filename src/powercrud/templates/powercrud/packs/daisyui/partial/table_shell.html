@@ -1,7 +1,8 @@
 {% with inline_enabled=inline_edit.enabled %}
 
-<div class="box-border w-full max-w-full overflow-x-auto table-max-height"
-    style="overflow-y: auto; padding-right: 20px;"
+<div class="box-border w-fit max-w-full overflow-x-auto table-max-height"
+    style="overflow-y: auto;"
+    data-powercrud-table-scroll="true"
     {% if enable_selection_controls %}data-selection-key="{{ keyBase }}_{{ selection_key_suffix }}_selected"{% endif %}
     >
     <table class="table {{ table_classes }} w-auto min-w-max"

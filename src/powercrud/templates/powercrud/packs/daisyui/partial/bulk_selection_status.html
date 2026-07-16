@@ -12,7 +12,7 @@
            hx-target="#{{ modal_target|default:'powercrudModalContent' }}"
            hx-swap="innerHTML"
            data-powercrud-modal-trigger="true"
-           data-powercrud-modal-box-classes="{{ bulk_modal_box_classes|default:'modal-box flex max-h-[calc(100dvh-2rem)] flex-col' }}"
+           {% if modal_uses_legacy_classes or not bulk_modal_presentation_attrs %}data-powercrud-modal-box-classes="{{ bulk_modal_box_classes|default:'modal-box flex max-h-[calc(100dvh-2rem)] flex-col' }}"{% else %}{{ bulk_modal_presentation_attrs|safe }}{% endif %}
            onclick="document.getElementById('{{ modal_id|default:'powercrudBaseModal' }}').showModal();">
             Bulk Edit <span id="selected-items-counter">{{ selected_count }}</span>
         </a>

@@ -13,11 +13,13 @@ Key components:
 The module adapts to different CSS frameworks and supports HTMX and modal functionality.
 """
 
+import warnings
 from datetime import date, datetime, time  # Import temporal value classes
 from typing import Any, Dict, List, Optional
 
 from django import template
 from django.db import models
+from django.template import TemplateDoesNotExist
 from django.template.loader import render_to_string
 from django.utils.formats import date_format, time_format
 from django.utils.timezone import template_localtime
@@ -31,6 +33,11 @@ from powercrud.cell_tooltips import (
 )
 from powercrud.labels import resolve_field_label, resolve_property_label
 from powercrud.logging import get_logger
+from powercrud.modal_presentation import (
+    modal_presentation_attributes,
+    normalize_modal_presentation,
+    resolve_modal_presentation,
+)
 from powercrud.query_params import (
     build_navigation_query_string,
     build_navigation_querydict,
@@ -67,26 +74,26 @@ class _SelectedPackTemplateNames:
 STANDARD_ACTION_ICONS = {
     "View": (
         "<svg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' "
-        "stroke-width='1.5' stroke='currentColor' class='h-4 w-4' aria-hidden='true'>"
+        "stroke-width='1.5' stroke='currentColor' class='pc-action-icon h-4 w-4' aria-hidden='true'>"
         "<path stroke-linecap='round' stroke-linejoin='round' "
         "d='M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.964-7.178Z' />"
         "<path stroke-linecap='round' stroke-linejoin='round' "
         "d='M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z' />"
-        "</svg><span class='sr-only'>View</span>"
+        "</svg><span class='pc-action-label sr-only'>View</span>"
     ),
     "Edit": (
         "<svg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' "
-        "stroke-width='1.5' stroke='currentColor' class='h-4 w-4' aria-hidden='true'>"
+        "stroke-width='1.5' stroke='currentColor' class='pc-action-icon h-4 w-4' aria-hidden='true'>"
         "<path stroke-linecap='round' stroke-linejoin='round' "
         "d='m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L6.832 19.82a4.5 4.5 0 0 1-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Zm0 0L19.5 7.125' />"
-        "</svg><span class='sr-only'>Edit</span>"
+        "</svg><span class='pc-action-label sr-only'>Edit</span>"
     ),
     "Delete": (
         "<svg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' "
-        "stroke-width='1.5' stroke='currentColor' class='h-4 w-4' aria-hidden='true'>"
+        "stroke-width='1.5' stroke='currentColor' class='pc-action-icon h-4 w-4' aria-hidden='true'>"
         "<path stroke-linecap='round' stroke-linejoin='round' "
         "d='m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673A2.25 2.25 0 0 1 15.916 21H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0' />"
-        "</svg><span class='sr-only'>Delete</span>"
+        "</svg><span class='pc-action-label sr-only'>Delete</span>"
     ),
 }
 
@@ -390,6 +397,7 @@ def _resolve_action_presentation(
     use_htmx: bool,
     query_string: str,
     modal_box_classes: str | None = None,
+    modal_presentation_attrs: str = "",
     refresh_list_on_modal_close: bool = False,
     label_html: str | None = None,
 ) -> dict[str, Any]:
@@ -428,6 +436,7 @@ def _resolve_action_presentation(
         "show_modal": show_modal,
         "modal_attrs": modal_attrs if show_modal else "",
         "modal_box_classes": modal_box_classes if show_modal else "",
+        "modal_presentation_attrs": modal_presentation_attrs if show_modal else "",
         "refresh_list_on_modal_close": (
             show_modal and refresh_list_on_modal_close
         ),
@@ -457,6 +466,39 @@ def _resolve_view_option(
     if attr_name:
         return getattr(view, attr_name, default)
     return default
+
+
+def _resolve_trigger_modal_presentation_attributes(
+    view: Any,
+    presentation: Any,
+) -> str:
+    """Return complete semantic modal data attributes for one trigger override."""
+    if presentation is None:
+        return ""
+    if bool(_resolve_view_option(
+        view,
+        method_name="get_modal_uses_legacy_classes",
+        attr_name="modal_uses_legacy_classes",
+        default=False,
+    )):
+        raise ValueError(
+            "modal_presentation cannot be used by a trigger when the view uses "
+            "customized deprecated modal class settings"
+        )
+    normalized_presentation = normalize_modal_presentation(
+        presentation,
+        "modal_presentation",
+        allow_none=False,
+    )
+    base_presentation = _resolve_view_option(
+        view,
+        method_name="get_modal_presentation",
+        attr_name="modal_presentation",
+        default=None,
+    )
+    return modal_presentation_attributes(
+        resolve_modal_presentation(base_presentation, normalized_presentation)
+    )
 
 
 def _resolve_list_cell_tooltip(
@@ -517,6 +559,7 @@ def _resolve_list_cell_modal_metadata(
     view: Any,
     open_in: str,
     modal_box_classes: Any = None,
+    modal_presentation: Any = None,
 ) -> dict[str, str]:
     """
     Resolve HTMX/modal metadata for a linked list cell when requested.
@@ -550,6 +593,16 @@ def _resolve_list_cell_modal_metadata(
         modal_box_classes = str(modal_box_classes).strip()
         if modal_box_classes:
             metadata["modal_box_classes"] = modal_box_classes
+    if modal_presentation is not None:
+        if modal_box_classes is not None:
+            raise ValueError(
+                "Modal list-cell metadata cannot combine modal_box_classes with "
+                "modal_presentation"
+            )
+        metadata["modal_presentation_attrs"] = _resolve_trigger_modal_presentation_attributes(
+            view,
+            modal_presentation,
+        )
     return metadata
 
 
@@ -574,10 +627,24 @@ def _normalize_list_cell_link_result(result: Any, *, view: Any) -> dict[str, Any
         result.get("open_in"),
         default=_resolve_list_cell_default_open_in(view),
     )
+    if result.get("modal_presentation") is not None and open_in != "modal":
+        raise ValueError("modal_presentation is only supported for modal list-cell links")
+    if result.get("modal_box_classes") is not None:
+        warnings.warn(
+            "get_list_cell_link modal_box_classes is deprecated and targeted for "
+            "removal in v1.0; use modal_presentation instead.",
+            FutureWarning,
+            stacklevel=3,
+        )
 
     normalized: dict[str, Any] = {
         "url": url,
-        "classes": str(result.get("classes") or "link link-info").strip(),
+        "classes": str(
+            result.get("classes")
+            or get_template_pack_styles(view.get_framework_styles()).get(
+                "list_cell_link_class", "link link-info"
+            )
+        ).strip(),
         "open_in": open_in,
     }
     for key in ("title", "rel"):
@@ -595,6 +662,7 @@ def _normalize_list_cell_link_result(result: Any, *, view: Any) -> dict[str, Any
             view=view,
             open_in=open_in,
             modal_box_classes=result.get("modal_box_classes"),
+            modal_presentation=result.get("modal_presentation"),
         )
     )
     return normalized
@@ -666,7 +734,11 @@ def _resolve_declarative_list_cell_link(
 
     normalized: dict[str, Any] = {
         "url": url,
-        "classes": "link link-info",
+        "classes": str(
+            get_template_pack_styles(view.get_framework_styles()).get(
+                "list_cell_link_class", "link link-info"
+            )
+        ).strip(),
         "open_in": open_in,
     }
     if open_in == "new":
@@ -677,6 +749,7 @@ def _resolve_declarative_list_cell_link(
             view=view,
             open_in=open_in,
             modal_box_classes=config.get("modal_box_classes"),
+            modal_presentation=config.get("modal_presentation"),
         )
     )
     return normalized
@@ -761,6 +834,8 @@ def _resolve_row_action_context(view: Any, object: Any) -> dict[str, Any]:
         dict: Resolved action metadata ready for template rendering.
     """
     styles: Dict[str, Any] = get_template_pack_styles(view.get_framework_styles())
+    action_group_item = str(styles.get("action_group_item", "join-item")).strip()
+    action_group_item_class = f" {action_group_item}" if action_group_item else ""
     action_button_classes = view.get_action_button_classes()
 
     prefix: str = view.get_prefix()
@@ -837,6 +912,7 @@ def _resolve_row_action_context(view: Any, object: Any) -> dict[str, Any]:
                 "show_modal": use_modal,
                 "modal_attrs": styles["modal_attrs"],
                 "modal_box_classes": "",
+                "modal_presentation_attrs": "",
                 "refresh_list_on_modal_close": False,
                 "disable": disable,
                 "disabled_reason": disabled_reason,
@@ -891,6 +967,14 @@ def _resolve_row_action_context(view: Any, object: Any) -> dict[str, Any]:
             modal_box_classes: str = (
                 str(action.get("modal_box_classes") or "") if show_modal else ""
             )
+            modal_presentation_attrs = (
+                _resolve_trigger_modal_presentation_attributes(
+                    view,
+                    action.get("modal_presentation"),
+                )
+                if show_modal
+                else ""
+            )
 
             lazy_disabled_state = False
             lazy_row_action_state = lazy_hidden_if
@@ -926,6 +1010,7 @@ def _resolve_row_action_context(view: Any, object: Any) -> dict[str, Any]:
                     "show_modal": show_modal,
                     "modal_attrs": modal_attrs,
                     "modal_box_classes": modal_box_classes,
+                    "modal_presentation_attrs": modal_presentation_attrs,
                     "refresh_list_on_modal_close": bool(
                         action.get("refresh_list_on_modal_close", False)
                     ),
@@ -944,7 +1029,7 @@ def _resolve_row_action_context(view: Any, object: Any) -> dict[str, Any]:
             anchor_text=action["text"],
             label_html=action["label_html"],
             class_name=(
-                f"{styles['base']} join-item justify-center px-3 {action['button_class']} {action_button_classes}"
+                f"{styles['base']}{action_group_item_class} justify-center px-3 {action['button_class']} {action_button_classes}"
             ),
             target=action["target"],
             hx_post=action["hx_post"],
@@ -955,6 +1040,7 @@ def _resolve_row_action_context(view: Any, object: Any) -> dict[str, Any]:
             use_htmx=use_htmx,
             query_string=query_string,
             modal_box_classes=action["modal_box_classes"],
+            modal_presentation_attrs=action["modal_presentation_attrs"],
             refresh_list_on_modal_close=action["refresh_list_on_modal_close"],
         )
         for action in standard_action_items
@@ -976,6 +1062,7 @@ def _resolve_row_action_context(view: Any, object: Any) -> dict[str, Any]:
                 use_htmx=use_htmx,
                 query_string=query_string,
                 modal_box_classes=action["modal_box_classes"],
+                modal_presentation_attrs=action["modal_presentation_attrs"],
                 refresh_list_on_modal_close=action["refresh_list_on_modal_close"],
             )
             presentation.update(
@@ -994,7 +1081,7 @@ def _resolve_row_action_context(view: Any, object: Any) -> dict[str, Any]:
                 url=action["url"],
                 anchor_text=action["text"],
                 class_name=(
-                    f"{styles['base']} join-item {action['button_class']} {action_button_classes}"
+                    f"{styles['base']}{action_group_item_class} {action['button_class']} {action_button_classes}"
                 ),
                 target=action["target"],
                 hx_post=action["hx_post"],
@@ -1005,6 +1092,7 @@ def _resolve_row_action_context(view: Any, object: Any) -> dict[str, Any]:
                 use_htmx=use_htmx,
                 query_string=query_string,
                 modal_box_classes=action["modal_box_classes"],
+                modal_presentation_attrs=action["modal_presentation_attrs"],
                 refresh_list_on_modal_close=action["refresh_list_on_modal_close"],
             )
             for action in extra_action_items
@@ -1027,7 +1115,7 @@ def _resolve_row_action_context(view: Any, object: Any) -> dict[str, Any]:
             else None
         ),
         "dropdown_trigger_class": (
-            f"{styles['base']} join-item {styles['extra_default']} "
+            f"{styles['base']}{action_group_item_class} {styles['extra_default']} "
             f"{action_button_classes} gap-1"
         ),
     }
@@ -1230,8 +1318,8 @@ def object_list(context, objects, view):
             }
         )
 
-    TICK_SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="green" class="size-4 inline-block"><path fill-rule="evenodd" d="M8 15A7 7 0 1 0 8 1a7 7 0 0 0 0 14Zm3.844-8.791a.75.75 0 0 0-1.188-.918l-3.7 4.79-1.649-1.833a.75.75 0 1 0-1.114 1.004l2.25 2.5a.75.75 0 0 0 1.15-.043l4.25-5.5Z" clip-rule="evenodd" /></svg>'
-    CROSS_SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="crimson" class="size-4 inline-block"><path fill-rule="evenodd" d="M8 15A7 7 0 1 0 8 1a7 7 0 0 0 0 14Zm2.78-4.22a.75.75 0 0 1-1.06 0L8 9.06l-1.72 1.72a.75.75 0 1 1-1.06-1.06L6.94 8 5.22 6.28a.75.75 0 0 1 1.06-1.06L8 6.94l1.72-1.72a.75.75 0 1 1 1.06 1.06L9.06 8l1.72 1.72a.75.75 0 0 1 0 1.06Z" clip-rule="evenodd" /></svg>'
+    TICK_SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="green" class="pc-boolean-icon size-4 inline-block"><path fill-rule="evenodd" d="M8 15A7 7 0 1 0 8 1a7 7 0 0 0 0 14Zm3.844-8.791a.75.75 0 0 0-1.188-.918l-3.7 4.79-1.649-1.833a.75.75 0 1 0-1.114 1.004l2.25 2.5a.75.75 0 0 0 1.15-.043l4.25-5.5Z" clip-rule="evenodd" /></svg>'
+    CROSS_SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="crimson" class="pc-boolean-icon size-4 inline-block"><path fill-rule="evenodd" d="M8 15A7 7 0 1 0 8 1a7 7 0 0 0 0 14Zm2.78-4.22a.75.75 0 0 1-1.06 0L8 9.06l-1.72 1.72a.75.75 0 1 1-1.06-1.06L6.94 8 5.22 6.28a.75.75 0 0 1 1.06-1.06L8 6.94l1.72-1.72a.75.75 0 1 1 1.06 1.06L9.06 8l1.72 1.72a.75.75 0 0 1 0 1.06Z" clip-rule="evenodd" /></svg>'
 
     objects = list(objects)
     bottom_row_count_for_upward_dropdown = _resolve_view_option(
@@ -1577,6 +1665,8 @@ def object_list(context, objects, view):
         "original_target": original_target,
         "table_pixel_height_other_page_elements": view.get_table_pixel_height_other_page_elements(),
         "table_max_height": view.get_table_max_height(),
+        "table_max_col_width": view.get_table_max_col_width(),
+        "table_header_min_wrap_width": view.get_table_header_min_wrap_width(),
         "table_classes": view.get_table_classes(),
         "htmx_target": htmx_target,
         "has_row_actions": has_row_actions,
@@ -1668,7 +1758,7 @@ def extra_buttons(context: Dict[str, Any], view: Any) -> str:
         default="buttons",
     )
 
-    buttons: List[str] = []
+    button_models: List[Dict[str, Any]] = []
     for button in extra_buttons:
         display_modal = button.get("display_modal", False) and use_modal
         modal_attrs = ""
@@ -1721,6 +1811,11 @@ def extra_buttons(context: Dict[str, Any], view: Any) -> str:
                             'data-powercrud-modal-box-classes="'
                             f'{escaped_modal_box_classes}"'
                         )
+                    if button.get("modal_presentation") is not None:
+                        modal_box_attrs = (
+                            f"{modal_box_attrs} "
+                            f"{_resolve_trigger_modal_presentation_attributes(view, button['modal_presentation'])}"
+                        ).strip()
                     if button.get("refresh_list_on_modal_close", False):
                         modal_box_attrs = (
                             f'{modal_box_attrs} '
@@ -1741,10 +1836,10 @@ def extra_buttons(context: Dict[str, Any], view: Any) -> str:
             htmx_attrs_str = " ".join(htmx_attrs)
 
             button_class = button.get("button_class", styles["extra_default"])
-            disabled_classes = ""
+            is_disabled = disable_permission or selection_state["disable"]
             disabled_attrs: list[str] = []
-            if disable_permission or selection_state["disable"]:
-                disabled_classes = " btn-disabled opacity-50"
+            disabled_reason = None
+            if is_disabled:
                 disabled_attrs.append('aria-disabled="true"')
                 disabled_attrs.append(
                     'style="pointer-events: auto !important; cursor: not-allowed;"'
@@ -1754,76 +1849,69 @@ def extra_buttons(context: Dict[str, Any], view: Any) -> str:
                     if disable_permission
                     else selection_state["disabled_reason"]
                 )
-                if disabled_reason:
-                    disabled_attrs.append(
-                        f'data-tippy-content="{disabled_reason}"'
-                    )
-                    disabled_attrs.append('data-powercrud-tooltip="semantic"')
 
+            selection_attrs: list[str] = []
             if not disable_permission and selection_state["uses_selection"]:
-                disabled_attrs.append('data-powercrud-selection-aware="true"')
+                selection_attrs.append('data-powercrud-selection-aware="true"')
                 if button.get("clear_selection_on_success", False):
-                    disabled_attrs.append(
+                    selection_attrs.append(
                         'data-powercrud-clear-selection-on-success="true"'
                     )
-                disabled_attrs.append(
+                selection_attrs.append(
                     f'data-powercrud-selection-min-count="{selection_state["selection_min_count"]}"'
                 )
-                disabled_attrs.append(
+                selection_attrs.append(
                     f'data-powercrud-selection-min-behavior="{selection_state["selection_min_behavior"]}"'
                 )
                 if button.get("selection_min_reason"):
-                    disabled_attrs.append(
+                    selection_attrs.append(
                         f'data-powercrud-selection-min-reason="{button["selection_min_reason"]}"'
                     )
 
-            inline_classes = (
-                f"{extra_class_attrs} {styles['base']} {extra_button_classes} "
-                f"{button_class}{disabled_classes}"
-            )
-            dropdown_classes = (
-                f"{extra_class_attrs} justify-start whitespace-nowrap "
-                f"{extra_button_classes} {button_class}{disabled_classes}"
-            )
             link_attrs = (
                 f"{extra_attrs} {htmx_attrs_str} "
-                f"{' '.join(disabled_attrs)} {modal_attrs} {modal_box_attrs}"
+                f"{modal_attrs} {modal_box_attrs}"
             )
 
-            if extra_buttons_mode == "dropdown":
-                new_button = (
-                    "<li>"
-                    f'<a href="{url}" class="{dropdown_classes}" {link_attrs}>'
-                    f"{button['text']}</a></li>"
-                )
-            else:
-                new_button = (
-                    f'<a href="{url}" class="{inline_classes}" {link_attrs}>'
-                    f"{button['text']}</a>"
-                )
-
-            buttons.append(new_button)
-
-    if buttons:
-        if extra_buttons_mode == "dropdown":
-            return mark_safe(
-                "<details class='dropdown' data-powercrud-extra-buttons-dropdown='true'>"
-                f"<summary class='{styles['base']} {extra_button_classes} "
-                "btn-outline btn-secondary gap-1' aria-label='More actions'>"
-                "More"
-                "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' "
-                "fill='currentColor' class='h-4 w-4' aria-hidden='true'>"
-                "<path fill-rule='evenodd' "
-                "d='M5.23 7.21a.75.75 0 0 1 1.06.02L10 11.168l3.71-3.938a.75.75 0 1 1 1.08 1.04l-4.25 4.5a.75.75 0 0 1-1.08 0l-4.25-4.5a.75.75 0 0 1 .02-1.06Z' "
-                "clip-rule='evenodd' /></svg>"
-                "</summary>"
-                "<ul tabindex='0' class='dropdown-content menu bg-base-100 "
-                "rounded-box z-20 mt-2 min-w-44 p-2 shadow border border-base-300'>"
-                + "".join(buttons)
-                + "</ul></details>"
+            button_models.append(
+                {
+                    "href": url,
+                    "text": button["text"],
+                    "button_class": button_class,
+                    "extra_class_attrs": extra_class_attrs,
+                    "disabled": is_disabled,
+                    "disabled_reason": disabled_reason,
+                    "disabled_attrs": mark_safe(" ".join(disabled_attrs)),
+                    "selection_attrs": mark_safe(" ".join(selection_attrs)),
+                    "link_attrs": mark_safe(link_attrs),
+                }
             )
-        return mark_safe(" ".join(buttons))
-    return ""
+
+    if not button_models:
+        return ""
+
+    template_namespace = (
+        context.get("framework_template_path") or get_template_pack_template_namespace()
+    )
+    template_context = {
+        "extra_buttons": button_models,
+        "extra_buttons_mode": extra_buttons_mode,
+        "extra_button_classes": extra_button_classes,
+        "styles": styles,
+    }
+    try:
+        rendered = render_to_string(
+            f"{template_namespace}/partial/extra_buttons.html",
+            template_context,
+            request=request,
+        )
+    except TemplateDoesNotExist:
+        rendered = render_to_string(
+            "powercrud/packs/daisyui/partial/extra_buttons.html",
+            template_context,
+            request=request,
+        )
+    return mark_safe(rendered.strip())
 
 
 @register.simple_tag(takes_context=True)

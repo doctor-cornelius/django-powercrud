@@ -710,11 +710,8 @@ def test_book_sample_list_renders_external_link_field_attrs(client: Client):
     assert 'data-tippy-content="Demo link: opens the related author detail in a larger PowerCRUD modal."' in response_text, (
         "Book sample Really Long Title header should explain the modal link demo."
     )
-    assert (
-        'data-powercrud-modal-box-classes="modal-box flex max-h-[calc(100dvh-2rem)] '
-        'w-11/12 max-w-6xl flex-col"'
-    ) in response_text, (
-        "Book sample modal list-cell link should request the larger per-cell modal box."
+    assert 'data-powercrud-modal-size="extra_wide"' in response_text, (
+        "Book sample modal list-cell link should request the larger portable modal preset."
     )
     assert 'target="_blank"' in response_text, (
         "Book sample external URL demo should request a new browser context."

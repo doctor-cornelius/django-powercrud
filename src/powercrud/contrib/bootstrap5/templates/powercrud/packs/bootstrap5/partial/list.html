@@ -1,0 +1,35 @@
+<style>
+    .table-max-height {
+        max-height: calc((100vh - {{ table_pixel_height_other_page_elements }}) * {{ table_max_height }} / 100);
+        max-height: min(
+            calc((100dvh - {{ table_pixel_height_other_page_elements }}) * {{ table_max_height }} / 100),
+            var(--pc-table-available-height, 100dvh)
+        );
+    }
+
+    table[data-inline-enabled="true"] {
+        --pc-inline-rest-bg: {% if inline_edit_always_visible %}{{ inline_edit_highlight_palette.rest_bg }}{% else %}transparent{% endif %};
+        --pc-inline-rest-border: {% if inline_edit_always_visible %}{{ inline_edit_highlight_palette.rest_border }}{% else %}transparent{% endif %};
+        --pc-inline-hover-bg: {{ inline_edit_highlight_palette.hover_bg }};
+        --pc-inline-hover-border: {{ inline_edit_highlight_palette.hover_border }};
+        --pc-inline-active-row-outline: {{ inline_edit_highlight_palette.active_row_outline }};
+        --pc-inline-active-row-bg: {{ inline_edit_highlight_palette.active_row_bg }};
+        --pc-inline-active-row-overlay: {{ inline_edit_highlight_palette.active_row_overlay }};
+        --pc-inline-active-widget-bg: {{ inline_edit_highlight_palette.active_widget_bg }};
+        --pc-inline-active-widget-border: {{ inline_edit_highlight_palette.active_widget_border }};
+    }
+</style>
+
+{% if table_shell_template_paths %}
+    {% include table_shell_template_paths %}
+{% else %}
+    {% include framework_template_path|add:"/partial/table_shell.html" %}
+{% endif %}
+
+{% partialdef inline_row_display %}
+{% if inline_row_display_template_paths %}{% include inline_row_display_template_paths %}{% else %}{% include framework_template_path|add:"/partial/inline_row_display.html" %}{% endif %}
+{% endpartialdef inline_row_display %}
+
+{% partialdef inline_row_form %}
+{% if inline_row_form_template_paths %}{% include inline_row_form_template_paths %}{% else %}{% include framework_template_path|add:"/partial/inline_row_form.html" %}{% endif %}
+{% endpartialdef inline_row_form %}

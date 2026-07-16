@@ -1,10 +1,11 @@
 <form id="page-size-form" class="inline-flex items-center gap-1 whitespace-nowrap">
     <label for="page-size-select" class="sr-only">Page size</label>
-    <label class="select select-bordered select-sm w-[10ch] cursor-pointer"
+    <label class="relative inline-flex w-[10ch] cursor-pointer"
            data-powercrud-tooltip="semantic"
            data-tippy-content="Rows per page">
         <select id="page-size-select"
-                class="cursor-pointer"
+                class="select select-bordered select-sm w-full cursor-pointer"
+                style="background-image: none;"
                 name="page_size"
                 data-powercrud-page-size-select="true">
             {% for size in page_size_options %}
@@ -20,6 +21,14 @@
                     All</option>
             {% endif %}
         </select>
+        <svg class="pointer-events-none absolute right-3 top-1/2 h-3 w-3 -translate-y-1/2"
+             viewBox="0 0 12 12"
+             fill="none"
+             stroke="currentColor"
+             stroke-width="1.75"
+             aria-hidden="true">
+            <path d="m2.25 4.25 3.75 3.5 3.75-3.5" stroke-linecap="round" stroke-linejoin="round"></path>
+        </svg>
     </label>
     <span class="text-xs text-base-content/70">per page</span>
 </form>

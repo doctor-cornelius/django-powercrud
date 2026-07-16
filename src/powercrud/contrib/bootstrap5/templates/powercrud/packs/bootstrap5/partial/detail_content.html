@@ -1,0 +1,6 @@
+<dl class="row mb-0">
+    {% for label, value in object %}
+        <dt class="col-sm-3 border-bottom py-2">{{ label }}</dt>
+        <dd class="col-sm-9 border-bottom py-2">{{ value }}</dd>
+    {% endfor %}
+</dl>

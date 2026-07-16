@@ -1,0 +1,23 @@
+<div id="{{ modal_id }}"
+     class="modal fade{% if modal_uses_legacy_classes or not modal_presentation_attrs %} {{ modal_classes }}{% endif %}"
+     tabindex="-1"
+     aria-labelledby="{{ modal_id }}Label"
+     aria-hidden="true"
+     data-powercrud-modal>
+    <div class="modal-dialog{% if modal_uses_legacy_classes or not modal_presentation_attrs %} {{ modal_box_classes }}{% endif %}"
+         data-powercrud-modal-box
+         data-powercrud-default-modal-box-classes="modal-dialog{% if modal_uses_legacy_classes or not modal_presentation_attrs %} {{ modal_box_classes }}{% endif %}"
+         {% if not modal_uses_legacy_classes and modal_presentation_attrs %}{{ modal_presentation_attrs|safe }}{% endif %}>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="{{ modal_id }}Label" class="modal-title visually-hidden">{{ object_verbose_name|default:"PowerCRUD"|capfirst }}</h2>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            {% if modal_content_template_paths %}
+                {% include modal_content_template_paths %}
+            {% else %}
+                {% include "powercrud/packs/bootstrap5/partial/modal_content.html" %}
+            {% endif %}
+        </div>
+    </div>
+</div>

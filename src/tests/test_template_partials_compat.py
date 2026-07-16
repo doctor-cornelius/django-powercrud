@@ -104,8 +104,8 @@ def test_relocated_daisyui_sources_and_legacy_facades_have_matching_inventory():
         for path in legacy_root.rglob("*.html")
     }
 
-    assert len(source_paths) == 45, (
-        "The relocated compatible DaisyUI pack should contain the characterized 45 templates."
+    assert len(source_paths) == 46, (
+        "The relocated compatible DaisyUI pack should contain the characterized 46 templates."
     )
     assert legacy_paths == source_paths, (
         "Every relocated template should retain its matching powercrud/daisyUI compatibility path."

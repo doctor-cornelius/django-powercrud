@@ -1,0 +1,24 @@
+{% load powercrud_bootstrap5 %}
+{% with inline_enabled=inline_edit.enabled %}
+<tr{% if row.row_id %} id="{{ row.row_id }}"{% endif %} class="{% if row.is_selected %}table-active{% endif %}" data-inline-row="true"{% if row.inline_blocked_reason %} data-inline-status="{{ row.inline_blocked_reason }}"{% endif %}{% if row.inline_url %} data-inline-row-url="{{ row.inline_url }}"{% endif %}>
+    {% if enable_selection_controls %}{% if bulk_selection_controls_template_paths %}{% include bulk_selection_controls_template_paths with selection_control="row" %}{% else %}{% include framework_template_path|add:"/partial/bulk_selection_controls.html" with selection_control="row" %}{% endif %}{% endif %}
+    {% for cell in row.cells %}
+        {% with value_str=cell.value|stringformat:"s" %}
+        <td class="pc-table-column-width text-{{ cell.align|bootstrap5_text_alignment }} {% if forloop.first %}fw-semibold{% endif %}" data-field-name="{{ cell.name }}"{% if cell.is_inline_editable %} data-inline-cell="true"{% endif %}{% if cell.dependency %} data-inline-dependent-field="{{ cell.name }}"{% if cell.dependency.depends_on %} data-inline-depends-on="{{ cell.dependency.depends_on|join:',' }}"{% endif %} data-inline-endpoint="{{ cell.dependency.endpoint_url|default:inline_edit.dependency_endpoint_url }}"{% endif %}>
+            {% if inline_enabled and row.inline_allowed and cell.is_inline_editable %}
+                <button type="button" class="inline-edit-trigger pc-inline-editable pc-inline-display-control btn btn-sm btn-light border w-100 text-{{ cell.align|bootstrap5_text_alignment }}" data-inline-field="{{ cell.name }}"{% if row.inline_url %} hx-get="{{ row.inline_url }}" hx-target="#{{ row.row_id }}" hx-swap="outerHTML"{% endif %} hx-trigger="click, keyup[key=='Enter'], keyup[key==' ']">
+                    <span class="pc-inline-display-label"{% if cell.tooltip_text %} data-bs-title="{{ cell.tooltip_text }}" data-powercrud-tooltip="semantic-cell"{% elif cell.tooltip_url %} data-bs-title="" data-powercrud-tooltip="semantic-cell" data-powercrud-tooltip-mode="lazy" data-powercrud-tooltip-url="{{ cell.tooltip_url }}"{% elif value_str|slice:":1" != "<" %} data-bs-title="{{ cell.value }}" data-powercrud-tooltip="overflow"{% endif %}>{{ cell.value }}</span>
+                </button>
+            {% elif inline_enabled and row.inline_blocked_label and cell.is_inline_editable %}
+                <button type="button" class="inline-edit-trigger pc-inline-display-control btn btn-sm btn-light border text-muted w-100 text-{{ cell.align|bootstrap5_text_alignment }}" aria-disabled="true" tabindex="-1" data-bs-title="{{ row.inline_blocked_label }}" data-powercrud-tooltip="semantic"><span class="pc-inline-display-label">{{ cell.value }}</span></button>
+            {% elif cell.link %}
+                <a href="{{ cell.link.url }}" class="{{ cell.link.classes }} d-block text-{{ cell.align|bootstrap5_text_alignment }}"{% if cell.link.hx_method == 'get' %} hx-get="{{ cell.link.url }}"{% endif %}{% if cell.link.hx_target %} hx-target="{{ cell.link.hx_target }}"{% endif %}{% if cell.link.title %} title="{{ cell.link.title }}"{% endif %}{% if cell.link.target %} target="{{ cell.link.target }}"{% endif %}{% if cell.link.rel %} rel="{{ cell.link.rel }}"{% endif %} {{ cell.link.modal_attrs|safe }}{% if cell.link.modal_box_classes %} data-powercrud-modal-box-classes="{{ cell.link.modal_box_classes }}"{% endif %}{% if cell.link.modal_presentation_attrs %} {{ cell.link.modal_presentation_attrs|safe }}{% endif %}{% if cell.tooltip_text %} data-bs-title="{{ cell.tooltip_text }}" data-powercrud-tooltip="semantic-cell"{% elif cell.tooltip_url %} data-bs-title="" data-powercrud-tooltip="semantic-cell" data-powercrud-tooltip-mode="lazy" data-powercrud-tooltip-url="{{ cell.tooltip_url }}"{% elif value_str|slice:":1" != "<" %} data-bs-title="{{ cell.value }}" data-powercrud-tooltip="overflow"{% endif %}>{{ cell.value }}</a>
+            {% else %}
+                <div class="text-{{ cell.align|bootstrap5_text_alignment }}"{% if cell.tooltip_text %} data-bs-title="{{ cell.tooltip_text }}" data-powercrud-tooltip="semantic-cell"{% elif cell.tooltip_url %} data-bs-title="" data-powercrud-tooltip="semantic-cell" data-powercrud-tooltip-mode="lazy" data-powercrud-tooltip-url="{{ cell.tooltip_url }}"{% elif value_str|slice:":1" != "<" %} data-bs-title="{{ cell.value }}" data-powercrud-tooltip="overflow"{% endif %}>{{ cell.value }}</div>
+            {% endif %}
+        </td>
+        {% endwith %}
+    {% endfor %}
+    {% if has_row_actions %}<td class="text-end text-nowrap" data-inline-actions="true"><div class="pc-actions-default pc-bootstrap-row-actions">{{ row.actions }}</div></td>{% endif %}
+</tr>
+{% endwith %}

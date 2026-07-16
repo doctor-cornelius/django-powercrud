@@ -1,0 +1,1 @@
+import{t as e}from"./powercrud-BGrvxTQB.js";export{e as installPowercrudRuntime};

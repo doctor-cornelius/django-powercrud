@@ -1,0 +1,34 @@
+{% extends base_template_path %}
+{% load powercrud_partials %}
+
+{% block content %}
+    {% partial pcrud_content %}
+{% endblock %}
+
+{% partialdef pcrud_content %}
+    <section class="{% if use_modal %}p-4{% else %}container py-4{% endif %}">
+        {% if conflict_detected %}
+            {% partial conflict_detected %}
+        {% elif delete_shell_template_paths %}
+            {% include delete_shell_template_paths %}
+        {% else %}
+            {% include framework_template_path|add:"/partial/delete_shell.html" %}
+        {% endif %}
+    </section>
+{% endpartialdef pcrud_content %}
+
+{% partialdef normal_content %}
+    {% if delete_content_template_paths %}
+        {% include delete_content_template_paths %}
+    {% else %}
+        {% include framework_template_path|add:"/partial/delete_content.html" %}
+    {% endif %}
+{% endpartialdef normal_content %}
+
+{% partialdef conflict_detected %}
+    {% if delete_conflict_template_paths %}
+        {% include delete_conflict_template_paths %}
+    {% else %}
+        {% include framework_template_path|add:"/partial/delete_conflict.html" %}
+    {% endif %}
+{% endpartialdef conflict_detected %}

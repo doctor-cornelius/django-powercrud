@@ -4,7 +4,7 @@ powercrud provides several management commands to help with setup, template cust
 
 ## `pcrud_mktemplate` - Copy CRUD Templates
 
-Copy powercrud templates to your project for customization.
+Copy PowerCRUD templates to your project for customization. For pack selection and customization boundaries, see [Template Packs](../template_packs/index.md).
 
 ### Usage
 
@@ -178,9 +178,11 @@ python manage.py pcrud_mktemplate library.Book --component bulk-selection-contro
 
 `app.Model --all`, individual root selectors, and focused components create model-specific overrides directly under `{app}/templates/{app}/`. Model `--all` creates exactly the list, detail, form, and delete-confirmation roots. Existing files at those destinations are overwritten.
 
-Plain `app --all` copies the complete packaged `powercrud/{framework}` tree to `{app}/templates/{app}/{framework}/`, overwriting matching files while retaining destination-only files. Set the view's `templates_path` to `{app}/{framework}` to use that cohesive tree. Unlike model-specific and focused overrides, deleting an arbitrary file from the selected whole tree is not a supported per-file fallback mechanism.
+Plain `app --all` copies the complete DaisyUI tree to `{app}/templates/{app}/daisyUI/`, overwriting matching files while retaining destination-only files. This compatibility command is deprecated during 0.x, emits `FutureWarning`, and will be removed in v1.0. It is not available for Bootstrap.
 
-`{framework}` is determined by `POWERCRUD_CSS_FRAMEWORK`.
+Use focused `--component` overrides for normal customization. Model-specific root copies remain supported. If an application needs complete presentation ownership, create a custom template pack rather than relying on a copied package snapshot.
+
+`POWERCRUD_CSS_FRAMEWORK` remains a legacy compatibility setting; it does not select the optional Bootstrap pack.
 
 ### Focused Pagination Override
 
@@ -330,7 +332,7 @@ The legacy `partial/list.html` remains the 0.x inclusion-tag façade and still o
 
 For example, `library.Book` produces `library/templates/library/book_bulk_selection_status.html`. PowerCRUD selects this file for that model before its built-in bulk-selection-status component, including after direct selection-status HTMX swaps.
 
-You can change the arrangement, classes, labels, and icons without copying PowerCRUD JavaScript or the whole list template. Keep `selected_count`, `enable_bulk_edit`, `list_view_url`, `view`, `modal_target`, `modal_id`, and `bulk_modal_box_classes` available. Preserve `#bulk-actions-container`, `#selected-items-counter`, `data-powercrud-bulk-actions`, `data-powercrud-clear-selection`, the existing HTMX outer-swap endpoints, and modal trigger metadata for the behavior you retain.
+You can change the arrangement, classes, labels, and icons without copying PowerCRUD JavaScript or the whole list template. Keep `selected_count`, `enable_bulk_edit`, `list_view_url`, `view`, `modal_target`, `modal_id`, `bulk_modal_presentation_attrs`, `modal_uses_legacy_classes`, and the legacy `bulk_modal_box_classes` available. Preserve `#bulk-actions-container`, `#selected-items-counter`, `data-powercrud-bulk-actions`, `data-powercrud-clear-selection`, the existing HTMX outer-swap endpoints, and modal trigger metadata for the behavior you retain.
 
 The toolbar feature guard and matching-record selection prompt remain owned by `object_list.html`. Its legacy `#bulk_selection_status` fragment remains available during the 0.x compatibility period.
 
@@ -366,7 +368,7 @@ The existing operation-error surface, `bulk_edit_errors.html#bulk_edit_error`, `
 
 ### Focused Modal Shell Override
 
-`--component modal-shell` creates `{app}/templates/{app}/{model}_modal_shell.html`. It receives `modal_id`, `modal_target`, `modal_classes`, `modal_box_classes`, and `modal_body_classes`.
+`--component modal-shell` creates `{app}/templates/{app}/{model}_modal_shell.html`. It receives `modal_id`, `modal_target`, the legacy class values, `modal_presentation_attrs`, `bulk_modal_presentation_attrs`, and `modal_uses_legacy_classes`.
 
 Preserve the configured dialog and content-target IDs, `data-powercrud-modal`, `data-powercrud-modal-box`, `data-powercrud-default-modal-box-classes`, native `method="dialog"` close controls, backdrop, and any viewport/scroll classes needed by your presentation. Modal triggers and the form, detail, delete, or bulk content loaded into the target remain separately owned.
 
@@ -374,7 +376,7 @@ The direct `partial/modal.html` template remains the 0.x compatibility façade. 
 
 ### Focused Modal Content Override
 
-`--component modal-content` creates `{app}/templates/{app}/{model}_modal_content.html`. It receives only `modal_target` and `modal_body_classes` and remains the empty host for HTMX inner-content replacement. Preserve the configured target ID and applicable body classes.
+`--component modal-content` creates `{app}/templates/{app}/{model}_modal_content.html`. It receives `modal_target`, `modal_body_classes`, `modal_presentation_attrs`, and `modal_uses_legacy_classes` and remains the empty host for HTMX inner-content replacement. Preserve the configured target ID, semantic attributes, and applicable body classes.
 
 The dialog, box, close/backdrop controls, triggers, returned CRUD/bulk markup, tooltip lifecycle, and refresh-on-close remain separate. A custom `modal-shell` override must continue delegating through `modal_content_template_paths` if the nested model override should remain active. The direct `partial/modal.html` compatibility façade remains available through 0.x.
 

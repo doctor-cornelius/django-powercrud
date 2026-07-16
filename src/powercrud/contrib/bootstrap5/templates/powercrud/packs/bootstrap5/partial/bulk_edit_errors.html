@@ -1,0 +1,17 @@
+{% load powercrud_partials %}
+
+{% partialdef bulk_edit_error %}
+{% if bulk_outcomes_template_paths %}
+    {% include bulk_outcomes_template_paths with bulk_outcome="error" %}
+{% else %}
+    {% include framework_template_path|add:"/partial/bulk_outcomes.html" with bulk_outcome="error" %}
+{% endif %}
+{% endpartialdef bulk_edit_error %}
+
+{% partialdef bulk_edit_conflict %}
+{% if bulk_outcomes_template_paths %}
+    {% include bulk_outcomes_template_paths with bulk_outcome="conflict" %}
+{% else %}
+    {% include framework_template_path|add:"/partial/bulk_outcomes.html" with bulk_outcome="conflict" %}
+{% endif %}
+{% endpartialdef bulk_edit_conflict %}
