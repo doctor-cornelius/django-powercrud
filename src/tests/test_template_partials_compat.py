@@ -4,6 +4,30 @@ import django
 from pathlib import Path
 from django.conf import settings
 from django.template import Context, Template
+from django.template.loader import get_template
+
+
+LEGACY_NAMED_PARTIALS = {
+    "object_list.html": (
+        "pcrud_content",
+        "bulk_selection_status",
+        "filtered_results",
+        "list_actions",
+        "filter_trigger",
+        "filter_panel_actions",
+        "filter_form",
+        "list_columns",
+        "pagination",
+        "page_size_selector",
+    ),
+    "object_form.html": ("pcrud_content", "conflict_detected", "normal_content"),
+    "object_detail.html": ("pcrud_content",),
+    "object_confirm_delete.html": ("pcrud_content", "conflict_detected", "normal_content"),
+    "bulk_edit_form.html": ("full_form", "async_queue_success"),
+    "crispy_partials.html": ("load_tags", "crispy_form"),
+    "partial/list.html": ("inline_row_display", "inline_row_form"),
+    "partial/bulk_edit_errors.html": ("bulk_edit_error", "bulk_edit_conflict"),
+}
 
 
 def test_powercrud_partials_tag_loads_and_renders_partial():
@@ -64,3 +88,57 @@ def test_templates_using_partials_load_powercrud_partials():
         "Templates using partial tags must load powercrud_partials explicitly: "
         f"{', '.join(missing_loads)}"
     )
+
+
+def test_relocated_daisyui_sources_and_legacy_facades_have_matching_inventory():
+    """The atomic move retains every historic path without two editable source trees."""
+    templates_root = Path(settings.BASE_DIR) / "powercrud" / "templates" / "powercrud"
+    source_root = templates_root / "packs" / "daisyui"
+    legacy_root = templates_root / "daisyUI"
+    source_paths = {
+        path.relative_to(source_root).as_posix()
+        for path in source_root.rglob("*.html")
+    }
+    legacy_paths = {
+        path.relative_to(legacy_root).as_posix()
+        for path in legacy_root.rglob("*.html")
+    }
+
+    assert len(source_paths) == 45, (
+        "The relocated compatible DaisyUI pack should contain the characterized 45 templates."
+    )
+    assert legacy_paths == source_paths, (
+        "Every relocated template should retain its matching powercrud/daisyUI compatibility path."
+    )
+    stale_references = [
+        path.relative_to(source_root).as_posix()
+        for path in source_root.rglob("*.html")
+        if "powercrud/daisyUI" in path.read_text(encoding="utf-8")
+    ]
+    assert stale_references == [], (
+        "The permanent source tree must not include the legacy namespace: "
+        f"{', '.join(stale_references)}"
+    )
+
+
+def test_relocated_daisyui_templates_and_legacy_named_partials_compile():
+    """Both namespaces must load every root and server-addressable named fragment."""
+    templates_root = Path(settings.BASE_DIR) / "powercrud" / "templates" / "powercrud"
+    source_root = templates_root / "packs" / "daisyui"
+    relative_paths = sorted(
+        path.relative_to(source_root).as_posix()
+        for path in source_root.rglob("*.html")
+    )
+
+    for namespace in ("powercrud/packs/daisyui", "powercrud/daisyUI"):
+        for relative_path in relative_paths:
+            template_name = f"{namespace}/{relative_path}"
+            assert get_template(template_name) is not None, (
+                f"The {template_name} template should compile through its supported namespace."
+            )
+        for relative_path, partial_names in LEGACY_NAMED_PARTIALS.items():
+            for partial_name in partial_names:
+                template_name = f"{namespace}/{relative_path}#{partial_name}"
+                assert get_template(template_name) is not None, (
+                    f"The {template_name} named partial should remain server-addressable."
+                )

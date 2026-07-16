@@ -189,12 +189,33 @@ def test_inline_edit_validation_error_recovers(
     title_input = active_row.locator("input[name='title']")
     title_input.fill("")
 
-    active_row.locator("[data-inline-save]").click()
+    inline_save = active_row.locator("[data-inline-save]")
+    original_save_html = inline_save.evaluate(
+        """
+        element => {
+            window.__powercrudInlineSaveSpinnerSeen = false;
+            new MutationObserver(() => {
+                if (element.querySelector('.loading-spinner')) {
+                    window.__powercrudInlineSaveSpinnerSeen = true;
+                }
+            }).observe(element, { childList: true, subtree: true });
+            return element.innerHTML;
+        }
+        """
+    )
+
+    inline_save.click()
     error_payload = wait_for_inline_event(page, "inline-row-error")
     assert error_payload.get("pk") == book.pk
 
     active_row = page.locator(INLINE_ACTIVE_SELECTOR)
     expect(active_row).to_have_count(1)
+    assert page.evaluate("() => window.__powercrudInlineSaveSpinnerSeen") is True
+    replacement_save = active_row.locator("[data-inline-save]")
+    expect(replacement_save).to_be_enabled()
+    expect(replacement_save.locator(".loading-spinner")).to_have_count(0)
+    assert replacement_save.evaluate("el => el.style.width") == ""
+    assert replacement_save.evaluate("el => el.innerHTML") == original_save_html
     inline_error_text = active_row.locator("[data-inline-error-text='true']")
     expect(inline_error_text).to_contain_text("This field is required")
     expect(inline_error_text).to_have_attribute("data-inline-error-text-hidden", "true")
@@ -393,6 +414,10 @@ def test_inline_searchable_select_focus_opens_dropdown(
         """
     )
 
+    expect(active_row.locator(".ts-wrapper")).to_have_count(1)
+    assert select.evaluate(
+        "el => document.activeElement === el.tomselect.control_input"
+    ), "Inline searchable select should route focus to the Tom Select control input."
     assert select.evaluate(
         "el => el.tomselect.isOpen === true"
     ), "Inline searchable select should open its dropdown when the author field enters edit mode."

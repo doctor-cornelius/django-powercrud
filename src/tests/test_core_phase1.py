@@ -3385,19 +3385,21 @@ def test_book_list_inline_edit_display_uses_truncating_label_wrapper():
     list_template_text = (
         Path(__file__).resolve().parents[1]
         / "powercrud"
-        / "templates"
-        / "powercrud"
-        / "daisyUI"
-        / "partial"
-        / "list.html"
+            / "templates"
+            / "powercrud"
+            / "packs"
+            / "daisyui"
+            / "partial"
+            / "list.html"
     ).read_text(encoding="utf-8")
     inline_display_template_text = (
         Path(__file__).resolve().parents[1]
         / "powercrud"
-        / "templates"
-        / "powercrud"
-        / "daisyUI"
-        / "partial"
+            / "templates"
+            / "powercrud"
+            / "packs"
+            / "daisyui"
+            / "partial"
         / "inline_row_display.html"
     ).read_text(encoding="utf-8")
 

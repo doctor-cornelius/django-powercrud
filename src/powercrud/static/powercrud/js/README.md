@@ -18,7 +18,7 @@ Bundled/Vite users continue through `src/config/static/js/main.js`, which import
 
 ## Runtime Shape
 
-`powercrud.js` is the public entry and composition shell. It imports internal modules from `runtime/`, builds the feature runtimes, exposes compatibility globals, and registers the once-only page listeners.
+`powercrud.js` is the public entry and composition shell. It imports internal modules from `runtime/`, builds the feature runtimes, exposes compatibility globals, and registers the once-only page listeners. Its private `runtime/daisyui-composition.js` factory constructs the supported DaisyUI presentation adapters before the entry wires them into durable feature runtimes.
 
 The runtime modules have these broad responsibilities:
 
@@ -29,9 +29,18 @@ The runtime modules have these broad responsibilities:
 5. `runtime/list-columns.js`: visible-column chooser state, save/reset request payloads, and last-visible-column guard.
 6. `runtime/bulk-actions.js`: row selection, select-all state, selection persistence, selection-aware action semantics, and bulk success/queued events.
 7. `runtime/inline-edit.js`: inline row lifecycle, save/cancel/error handling, dependencies, focus recovery, and inline validation payloads.
-8. `runtime/searchable-selects.js`: Tom Select enhancement for `data-powercrud-searchable-*` controls.
-9. `runtime/current-template.js`: current-template DOM adapter and presentation-library behaviour such as DaisyUI dialogs, Tippy, floating panels, toolbar geometry, spinners, and visual classes.
-10. `runtime/selectors.js`: shared selectors, attribute names, storage prefixes, and class constants.
+8. `runtime/searchable-selects.js`: semantic discovery and value synchronization for `data-powercrud-searchable-*` controls.
+9. `runtime/daisyui-composition.js`: private ordered construction of the DaisyUI adapters and adapter-wired searchable-select runtime.
+10. `runtime/daisyui-searchable-select-adapter.js`: private Tom Select construction, presentation, native restoration, and destruction.
+11. `runtime/daisyui-tooltip-adapter.js`: private Tippy presentation lifecycle for semantic, overflow, and lazy tooltips.
+12. `runtime/daisyui-modal-adapter.js`: private native-dialog classes, duplicate cleanup, and close presentation.
+13. `runtime/daisyui-action-selection-adapter.js`: private dynamic disabled-action visuals and generic request spinners.
+14. `runtime/daisyui-inline-presentation-adapter.js`: private inline focus routing, error popovers, and save-spinner presentation.
+15. `runtime/daisyui-list-column-presentation-adapter.js`: private list-column chooser shell, placement, focus, and disabled visuals.
+16. `runtime/daisyui-filter-favourites-presentation-adapter.js`: private filter-panel display plus favourites shell, geometry, initialization, and icon visuals.
+17. `runtime/daisyui-row-action-menu-presentation-adapter.js`: private row-action menu shell cloning, fixed placement, and reveal.
+18. `runtime/current-template.js`: current-template DOM coordinator for modal lifecycle, lazy row actions, and shared toolbar geometry.
+19. `runtime/selectors.js`: shared selectors, attribute names, storage prefixes, and class constants.
 
 ## Public Contracts
 
@@ -88,15 +97,8 @@ Presentation-library adapter code owns behaviour tied to DaisyUI, Tippy, Tom Sel
 
 ## Template-Pack Boundary
 
-There is no `window.initPowercrudPack(fragment)` yet.
+The compatible DaisyUI presentation behavior is now split into private adapters and composed automatically by the stable `powercrud.js` entry. This extraction did not add a public adapter registry, pack selector, variant module, new setting, or `window.initPowercrudPack(fragment)` API.
 
-Template-pack hook creation is deferred until template-pack extraction or extraction-prep starts. The boundary decision record is `docs/_plans/js_cleanup/phase6-boundary-findings.md`.
+Core runtime modules continue to own durable state, requests, HTMX decisions, public globals, events, storage, semantic hooks, and listener ordering. The private adapters own only the characterized library and presentation behavior listed above. `current-template.js` remains the coordinator for shared toolbar geometry, modal refresh behavior, and lazy row-action semantics that do not belong to a presentation adapter.
 
-Future extraction should not move whole files by name. It should move behaviours by ownership:
-
-1. Keep core semantics in the shared runtime.
-2. Move current-template DOM behaviour behind a current-template or pack adapter.
-3. Move presentation-library behaviour behind a presentation adapter.
-4. Add characterization tests before moving under-covered behaviour.
-
-Likely future hook points include runtime initialization ordering, row-action floating menus, favourites panel presentation, filter panel display, list-column chooser presentation, selection-aware visuals, bulk modal success handling, inline error presentation, searchable selects, and tooltips.
+Phase 4 may package and select the default DaisyUI pack using these proven internal seams. Any public composition or selection contract must be designed there; Phase 3 deliberately leaves existing projects on the same automatic loading path. The earlier boundary rationale remains archived in `docs/_plans/_archive/js_cleanup/phase6-boundary-findings.md`.

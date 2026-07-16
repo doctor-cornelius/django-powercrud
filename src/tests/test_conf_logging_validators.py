@@ -18,6 +18,13 @@ def test_get_powercrud_setting_falls_back_to_default():
         assert get_powercrud_setting("CACHE_NAME") == DEFAULTS["CACHE_NAME"]
 
 
+def test_template_pack_selector_remains_absent_without_a_conf_default():
+    with override_settings(POWERCRUD_SETTINGS={}):
+        assert get_powercrud_setting("POWERCRUD_TEMPLATE_PACK") is None, (
+            "The new selector must remain absent so Phase 4.2 can distinguish legacy fallback."
+        )
+
+
 def test_get_powercrud_setting_uses_bulk_selection_cap_default():
     with override_settings(POWERCRUD_SETTINGS={}):
         assert get_powercrud_setting("BULK_MAX_SELECTED_RECORDS") == 1000, (

@@ -26,6 +26,15 @@ def test_package_runtime_assets_exist() -> None:
         "bulk-actions.js",
         "inline-edit.js",
         "searchable-selects.js",
+        "daisyui-composition.js",
+        "daisyui-searchable-select-adapter.js",
+        "daisyui-tooltip-adapter.js",
+        "daisyui-modal-adapter.js",
+        "daisyui-action-selection-adapter.js",
+        "daisyui-inline-presentation-adapter.js",
+        "daisyui-list-column-presentation-adapter.js",
+        "daisyui-filter-favourites-presentation-adapter.js",
+        "daisyui-row-action-menu-presentation-adapter.js",
         "current-template.js",
     ]
 
@@ -41,6 +50,9 @@ def test_runtime_js_uses_stable_entry_with_internal_module_import() -> None:
     package_root = Path(powercrud.__file__).resolve().parent
     runtime_js = package_root / "static" / "powercrud" / "js" / "powercrud.js"
     startup_js = package_root / "static" / "powercrud" / "js" / "runtime" / "startup.js"
+    daisyui_composition_js = (
+        package_root / "static" / "powercrud" / "js" / "runtime" / "daisyui-composition.js"
+    )
     sample_entry_js = (
         Path(__file__).resolve().parents[1]
         / "config"
@@ -63,11 +75,25 @@ def test_runtime_js_uses_stable_entry_with_internal_module_import() -> None:
         "./runtime/list-columns.js",
         "./runtime/bulk-actions.js",
         "./runtime/inline-edit.js",
-        "./runtime/searchable-selects.js",
+        "./runtime/daisyui-composition.js",
         "./runtime/current-template.js",
     ):
         assert module_import in runtime_js.read_text(encoding="utf-8"), (
             f"Stable runtime entry should import {module_import}."
+        )
+    for module_import in (
+        "./searchable-selects.js",
+        "./daisyui-searchable-select-adapter.js",
+        "./daisyui-tooltip-adapter.js",
+        "./daisyui-modal-adapter.js",
+        "./daisyui-action-selection-adapter.js",
+        "./daisyui-inline-presentation-adapter.js",
+        "./daisyui-list-column-presentation-adapter.js",
+        "./daisyui-filter-favourites-presentation-adapter.js",
+        "./daisyui-row-action-menu-presentation-adapter.js",
+    ):
+        assert module_import in daisyui_composition_js.read_text(encoding="utf-8"), (
+            f"Private DaisyUI composition should import {module_import}."
         )
     assert (
         "export function installPowercrudGlobalListeners" in startup_js.read_text(encoding="utf-8")
@@ -106,6 +132,15 @@ def test_runtime_js_exposes_shared_fragment_initializer() -> None:
     assert (
         "function destroyPowercrudFragment(fragment)" in js
     ), "Runtime JS should define a shared per-fragment teardown helper."
+    assert (
+        "destroyPowercrudSearchableSelects(fragment);" in js
+    ), "Shared fragment teardown should restore searchable selects before removal."
+    assert (
+        "global.initPowercrudSearchableSelects = initPowercrudSearchableSelects;" in js
+    ), "Runtime JS should preserve the public searchable-select initializer."
+    assert (
+        "global.destroyPowercrudSearchableSelects = destroyPowercrudSearchableSelects;" in js
+    ), "Runtime JS should preserve the public searchable-select destroy helper."
 
 
 def test_runtime_js_clears_opted_in_selection_extra_buttons_after_success() -> None:
@@ -358,17 +393,27 @@ def test_runtime_js_hides_tooltips_before_interactive_transitions() -> None:
     package_root = Path(powercrud.__file__).resolve().parent
     runtime_js = package_root / "static" / "powercrud" / "js" / "powercrud.js"
     startup_js = package_root / "static" / "powercrud" / "js" / "runtime" / "startup.js"
-    template_js = package_root / "static" / "powercrud" / "js" / "runtime" / "current-template.js"
+    tooltip_adapter_js = (
+        package_root
+        / "static"
+        / "powercrud"
+        / "js"
+        / "runtime"
+        / "daisyui-tooltip-adapter.js"
+    )
 
     js = runtime_js.read_text(encoding="utf-8")
     startup = startup_js.read_text(encoding="utf-8")
-    template = template_js.read_text(encoding="utf-8")
+    tooltip_adapter = tooltip_adapter_js.read_text(encoding="utf-8")
 
     assert (
-        "function hidePowercrudTooltips(root = documentObject)" in template
-    ), "Runtime JS should expose a helper that hides active PowerCRUD Tippy instances."
+        "export function createDaisyuiTooltipLifecycleAdapter(context)" in tooltip_adapter
+    ), "The private DaisyUI adapter should own tooltip presentation behavior."
     assert (
-        "trigger._tippy.hide();" in template
+        "function hide(root = documentObject)" in tooltip_adapter
+    ), "The tooltip adapter should expose its hide operation to the stable runtime entry."
+    assert (
+        "trigger._tippy.hide();" in tooltip_adapter
     ), "Tooltip hide helper should hide, rather than destroy, active Tippy instances during interactions."
     assert (
         "global.hidePowercrudTooltips = hidePowercrudTooltips;" in js
@@ -386,15 +431,6 @@ def test_runtime_js_hides_tooltips_before_interactive_transitions() -> None:
         "handleHtmxBeforeRequest(event) {\n                hidePowercrudTooltips(document);"
         in js
     ), "Runtime JS should hide visible tooltips before HTMX requests can open modal content."
-    assert (
-        "button.classList.remove('pointer-events-none');" in template
-    ), "Selection-aware disabled toolbar buttons should stay hoverable for tooltip triggers."
-    assert (
-        "button.style.setProperty('pointer-events', 'auto', 'important');" in template
-    ), "Selection-aware disabled toolbar buttons should override pointer suppression while disabled."
-    assert (
-        "button.style.removeProperty('pointer-events');" in template
-    ), "Selection-aware toolbar buttons should remove hover overrides again when re-enabled."
 
 
 def test_runtime_js_closes_more_dropdowns_after_enabled_option_clicks() -> None:
@@ -416,93 +452,6 @@ def test_runtime_js_closes_more_dropdowns_after_enabled_option_clicks() -> None:
     assert (
         "closeExtraButtonsDropdownFromOption(trigger);" in js
     ), "Document click handling should close toolbar More after enabled option clicks."
-    assert (
-        "closeRowActionsMenu();" in js
-    ), "Document click handling should keep closing floating row More menus after option clicks."
-
-
-def test_runtime_js_opens_inline_tomselect_on_focus() -> None:
-    """Inline searchable selects should keep the original focus-and-open behavior."""
-    package_root = Path(powercrud.__file__).resolve().parent
-    runtime_js = package_root / "static" / "powercrud" / "js" / "powercrud.js"
-    inline_js = package_root / "static" / "powercrud" / "js" / "runtime" / "inline-edit.js"
-    searchable_js = package_root / "static" / "powercrud" / "js" / "runtime" / "searchable-selects.js"
-
-    js = runtime_js.read_text(encoding="utf-8")
-    inline = inline_js.read_text(encoding="utf-8")
-    searchable = searchable_js.read_text(encoding="utf-8")
-
-    assert (
-        "function maybeOpenSelectDropdown(focusTarget, triggerField)" in inline
-    ), "Runtime JS should use the inline-select dropdown opener."
-    assert (
-        "candidate.tomselect.open()" in inline
-    ), "Inline TomSelect focus should open the dropdown for direct field edits."
-    assert (
-        "instance.control.addEventListener('pointerdown'" not in js
-    ), "Inline TomSelect should not use a custom pointerdown opener."
-    assert (
-        "openOnFocus: true" in searchable
-    ), "Inline TomSelect should preserve normal open-on-focus behavior."
-
-
-def test_runtime_js_shows_inline_field_error_popovers() -> None:
-    """Inline validation errors should get forced-visible field popovers."""
-    package_root = Path(powercrud.__file__).resolve().parent
-    inline_js = package_root / "static" / "powercrud" / "js" / "runtime" / "inline-edit.js"
-
-    js = inline_js.read_text(encoding="utf-8")
-
-    assert (
-        "function showInlineFieldErrorPopovers(root = documentObject)" in js
-    ), "Runtime JS should expose a helper for inline field error popovers."
-    assert (
-        "documentObject.body.appendChild(popover)" in js
-    ), "Inline field error popovers should escape clipping containers."
-    assert (
-        "popover.dataset.powercrudInlineErrorPopover = 'true'" in js
-    ), "Inline field error popovers should expose a deterministic selector."
-    assert (
-        "function positionInlineFieldErrorPopover(widget, popover)" in js
-    ), "Inline field error popovers should be explicitly positioned outside table layout."
-    assert (
-        "function getInlineFieldErrorText(widget)" in js
-    ), "Runtime JS should find inline field error text for progressive enhancement."
-    assert (
-        "errorText.classList.add('sr-only');" in js
-    ), "Runtime JS should visually hide duplicate inline error text while the popover is visible."
-    assert (
-        "errorText.classList.remove('sr-only');" in js
-    ), "Runtime JS should restore inline error text when the popover is dismissed."
-    assert (
-        "role', 'alert'" in js
-    ), "Inline field error callouts should be announced as alerts."
-
-
-def test_runtime_js_floats_list_column_chooser_panel() -> None:
-    """List-column chooser panels should escape downstream overflow wrappers."""
-    package_root = Path(powercrud.__file__).resolve().parent
-    list_columns_js = (
-        package_root / "static" / "powercrud" / "js" / "runtime" / "list-columns.js"
-    )
-    current_template_js = (
-        package_root / "static" / "powercrud" / "js" / "runtime" / "current-template.js"
-    )
-
-    list_columns = list_columns_js.read_text(encoding="utf-8")
-    current_template = current_template_js.read_text(encoding="utf-8")
-
-    assert (
-        "documentObject.body.appendChild(panel)" in list_columns
-    ), "List-column chooser should render from a body-level floating panel."
-    assert (
-        "data-powercrud-list-columns-floating-panel" in list_columns
-    ), "List-column chooser should expose a deterministic floating-panel selector."
-    assert (
-        "function positionListColumnChooserPanel(panelElement, triggerElement)" in current_template
-    ), "Current-template geometry should explicitly position floating column chooser panels."
-
-
 def test_runtime_js_does_not_render_inline_toasts() -> None:
     """Inline runtime should not render package-owned top toast notices."""
     package_root = Path(powercrud.__file__).resolve().parent

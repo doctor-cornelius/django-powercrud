@@ -19,8 +19,12 @@ export function createListViewStateRuntime(context) {
         getRootSwapTarget,
         getVisibleListColumnNames,
         buildListColumnResetRequest,
-        initPowercrudSearchableSelects,
         schedulePowercrudTooltipRefresh,
+        scheduleFilterPanelInitialisation,
+        setFilterPanelOpen,
+        showFavouritesToolbar,
+        syncAddFilterVisibility: syncAddFilterVisibilityPresentation,
+        syncFilterToggleVisualState,
         getFilterFavouritesContainer,
         getSelectedFilterFavouriteViewContext,
         markSelectedFilterFavouriteDirty,
@@ -45,13 +49,29 @@ export function createListViewStateRuntime(context) {
                 getFilterPanelRenderKey(root),
                 Date.now() + FILTER_PANEL_PRESERVE_MS,
             );
+            ensureObjectListState(root).filterPanelRefreshPending = true;
         }
     }
 
     function clearFilterPanelOpenPreservation(root) {
         if (root instanceof Element) {
             filterPanelOpenPreserveUntil.delete(getFilterPanelRenderKey(root));
+            ensureObjectListState(root).filterPanelRefreshPending = false;
         }
+    }
+
+    function prepareFilterPanelForSwap(root) {
+        // Retain panel state only for the list refresh that requested it.
+        if (!(root instanceof Element)) {
+            return;
+        }
+
+        const state = ensureObjectListState(root);
+        if (state.filterPanelRefreshPending) {
+            state.filterPanelRefreshPending = false;
+            return;
+        }
+        clearFilterPanelOpenPreservation(root);
     }
 
     function shouldPreserveFilterPanelOpen(root) {
@@ -131,14 +151,7 @@ export function createListViewStateRuntime(context) {
         filterBtn.setAttribute('aria-label', label);
         filterBtn.setAttribute('data-tippy-content', label);
         filterBtn.setAttribute('data-powercrud-filters-active', hasActiveFilters ? 'true' : 'false');
-        const outlineIcon = filterBtn.querySelector('[data-powercrud-filter-toggle-icon-outline="true"]');
-        const filledIcon = filterBtn.querySelector('[data-powercrud-filter-toggle-icon-filled="true"]');
-        if (outlineIcon instanceof HTMLElement || outlineIcon instanceof SVGElement) {
-            outlineIcon.classList.toggle('hidden', hasActiveFilters);
-        }
-        if (filledIcon instanceof HTMLElement || filledIcon instanceof SVGElement) {
-            filledIcon.classList.toggle('hidden', !hasActiveFilters);
-        }
+        syncFilterToggleVisualState?.(filterBtn, hasActiveFilters);
         schedulePowercrudTooltipRefresh(root);
     }
 
@@ -152,10 +165,7 @@ export function createListViewStateRuntime(context) {
             return;
         }
 
-        addFilterContainer.classList.toggle('hidden', !isOpen);
-        if (isOpen) {
-            global.setTimeout(() => initPowercrudSearchableSelects(addFilterContainer), 0);
-        }
+        syncAddFilterVisibilityPresentation?.(addFilterContainer, isOpen);
     }
 
     function syncFilterFavouritesVisibility(root, _isOpen) {
@@ -164,7 +174,7 @@ export function createListViewStateRuntime(context) {
             return;
         }
 
-        favouritesContainer.classList.remove('hidden');
+        showFavouritesToolbar?.(favouritesContainer);
     }
 
     function getVisibleFilterStateContainer(root) {
@@ -616,12 +626,12 @@ export function createListViewStateRuntime(context) {
         }
 
         const shouldOpen = shouldPreserveFilterPanelOpen(root);
-        filterCollapse.classList.toggle('hidden', !shouldOpen);
+        setFilterPanelOpen?.(filterCollapse, shouldOpen);
         syncFilterToggleLabel(root);
         syncAddFilterVisibility(root, shouldOpen);
         syncFilterFavouritesVisibility(root, shouldOpen);
         if (shouldOpen) {
-            global.setTimeout(() => initPowercrudSearchableSelects(filterCollapse), 0);
+            scheduleFilterPanelInitialisation?.(filterCollapse);
         }
     }
 
@@ -630,8 +640,8 @@ export function createListViewStateRuntime(context) {
         if (!filterCollapse) {
             return;
         }
-        filterCollapse.classList.toggle('hidden');
-        const isOpen = !filterCollapse.classList.contains('hidden');
+        const isOpen = filterCollapse.classList.contains('hidden');
+        setFilterPanelOpen?.(filterCollapse, isOpen);
         if (!isOpen) {
             clearFilterPanelOpenPreservation(root);
         }
@@ -639,7 +649,7 @@ export function createListViewStateRuntime(context) {
         syncAddFilterVisibility(root, isOpen);
         syncFilterFavouritesVisibility(root, isOpen);
         if (isOpen) {
-            global.setTimeout(() => initPowercrudSearchableSelects(filterCollapse), 0);
+            scheduleFilterPanelInitialisation?.(filterCollapse);
         }
     }
 
@@ -651,6 +661,7 @@ export function createListViewStateRuntime(context) {
         dedupeFilterNames,
         getCurrentFilters,
         isFilterValueField,
+        prepareFilterPanelForSwap,
         removeEmptyFields,
         removeOptionalFilter,
         requestObjectListRefresh,

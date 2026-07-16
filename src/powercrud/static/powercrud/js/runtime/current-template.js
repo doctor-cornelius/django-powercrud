@@ -1,15 +1,11 @@
 import {
-    DEFAULT_MODAL_BOX_CLASSES,
     LIST_TOOLBAR_SELECTOR,
     PAGINATION_SELECTOR,
-    TOOLTIP_TRIGGER_SELECTOR,
     VIEW_HELP_SELECTOR,
 } from './selectors.js';
 import {
     getAffectedObjectListRoots,
     getObjectListRoot,
-    isElementVisible,
-    queryAllWithSelf,
 } from './dom.js';
 
 // Current-template adapter: this module owns today's DOM geometry and
@@ -19,52 +15,27 @@ export function createCurrentTemplateRuntime(context) {
     const {
         global,
         documentObject,
-        warnMissingDependency,
         getHtmxInstance,
+        initPowercrudTooltips,
         requestModalCloseListRefresh,
+        applyPowercrudModalTriggerClasses,
+        cleanupDuplicatePowercrudModals,
+        closeAllPowercrudModals,
+        setRowActionLinkDisabled,
+        startButtonSpinner,
+        stopButtonSpinner,
+        cloneRowActionFloatingMenu,
+        positionRowActionFloatingMenu,
+        prepareRowActionFloatingMenu,
+        showRowActionFloatingMenu,
     } = context;
 
-    const FORM_SPINNER_STATE = new WeakMap();
-    const BUTTON_SPINNER_STATE = new WeakMap();
     const MODAL_CLOSE_REFRESH_ROOTS = new WeakMap();
     const MODAL_CLOSE_REFRESH_LISTENERS = new WeakSet();
     const ROW_ACTION_STATE_REQUESTS = new WeakMap();
-    const LAZY_CELL_TOOLTIP_REQUESTS = new WeakMap();
     const ROW_ACTION_STATE_UNAVAILABLE_MESSAGE = 'Unable to validate current availability.';
-    let tooltipResizeTimer = null;
     let activeRowActionsMenu = null;
     let activeRowActionsTrigger = null;
-
-    function cleanupDuplicatePowercrudModals() {
-        // HTMX swaps can leave an old dialog and a new dialog with the same id;
-        // keep the open instance, otherwise keep the newest rendered instance.
-        const modalsById = new Map();
-        documentObject.querySelectorAll('[data-powercrud-modal]').forEach(modal => {
-            if (!(modal instanceof HTMLDialogElement) || !modal.id) {
-                return;
-            }
-
-            const existingModal = modalsById.get(modal.id);
-            if (!(existingModal instanceof HTMLDialogElement)) {
-                modalsById.set(modal.id, modal);
-                return;
-            }
-
-            if (existingModal.open && !modal.open) {
-                modal.remove();
-                return;
-            }
-
-            if (!existingModal.open && modal.open) {
-                existingModal.remove();
-                modalsById.set(modal.id, modal);
-                return;
-            }
-
-            existingModal.remove();
-            modalsById.set(modal.id, modal);
-        });
-    }
 
     function applyPowercrudModalClasses(trigger) {
         if (!(trigger instanceof Element)) {
@@ -77,13 +48,9 @@ export function createCurrentTemplateRuntime(context) {
         cleanupDuplicatePowercrudModals();
         const root = getObjectListRoot(modalTrigger) || documentObject;
         const modal = root.querySelector('[data-powercrud-modal]') || documentObject.querySelector('[data-powercrud-modal]');
-        const modalBox = modal?.querySelector('[data-powercrud-modal-box]');
-        if (!(modalBox instanceof HTMLElement)) {
+        if (!applyPowercrudModalTriggerClasses(modalTrigger, modal)) {
             return;
         }
-        const defaultClasses = modalBox.dataset.powercrudDefaultModalBoxClasses || DEFAULT_MODAL_BOX_CLASSES;
-        const requestedClasses = modalTrigger.getAttribute('data-powercrud-modal-box-classes');
-        modalBox.className = requestedClasses || defaultClasses;
         armModalCloseListRefresh(modalTrigger, modal, root);
     }
 
@@ -124,226 +91,13 @@ export function createCurrentTemplateRuntime(context) {
     }
 
     function closePowercrudModals() {
-        documentObject.querySelectorAll('[data-powercrud-modal]').forEach(modal => {
-            if (modal instanceof HTMLDialogElement && typeof modal.close === 'function') {
-                MODAL_CLOSE_REFRESH_ROOTS.delete(modal);
-                modal.close();
-            }
+        closeAllPowercrudModals(modal => {
+            MODAL_CLOSE_REFRESH_ROOTS.delete(modal);
         });
-        cleanupDuplicatePowercrudModals();
     }
 
     function handleModalTriggerBeforeRequest(trigger) {
         applyPowercrudModalClasses(trigger);
-    }
-
-    function getTippyCtor() {
-        const ctor = global.tippy;
-        if (typeof ctor !== 'function') {
-            warnMissingDependency('tippy', 'window.tippy. Load Tippy.js before powercrud/js/powercrud.js');
-            return null;
-        }
-        return ctor;
-    }
-
-    function isTooltipOverflowTarget(trigger) {
-        return trigger?.dataset?.powercrudTooltip === 'overflow';
-    }
-
-    function isTooltipSemanticTarget(trigger) {
-        return trigger?.dataset?.powercrudTooltip === 'semantic';
-    }
-
-    function isTooltipSemanticCellTarget(trigger) {
-        return trigger?.dataset?.powercrudTooltip === 'semantic-cell';
-    }
-
-    function isLazyCellTooltipTarget(trigger) {
-        return (
-            isTooltipSemanticCellTarget(trigger)
-            && trigger?.dataset?.powercrudTooltipMode === 'lazy'
-        );
-    }
-
-    function isTooltipTriggerActive(trigger) {
-        return (
-            trigger instanceof HTMLElement
-            && trigger.isConnected
-            && (
-                trigger.matches(':hover')
-                || trigger.matches(':focus')
-                || trigger.matches(':focus-within')
-            )
-        );
-    }
-
-    function getTooltipTheme(trigger) {
-        if (isTooltipSemanticCellTarget(trigger)) {
-            return 'powercrud-semantic-cell';
-        }
-        return 'powercrud';
-    }
-
-    function isTruncated(trigger) {
-        if (!(trigger instanceof HTMLElement) || !isElementVisible(trigger)) {
-            return false;
-        }
-        return (
-            (trigger.scrollWidth - trigger.clientWidth) > 1
-            || (trigger.scrollHeight - trigger.clientHeight) > 1
-        );
-    }
-
-    function destroyPowercrudTooltips(root = documentObject) {
-        queryAllWithSelf(root, TOOLTIP_TRIGGER_SELECTOR).forEach(trigger => {
-            if (trigger._tippy) {
-                trigger._tippy.destroy();
-            }
-            LAZY_CELL_TOOLTIP_REQUESTS.delete(trigger);
-        });
-    }
-
-    function hidePowercrudTooltips(root = documentObject) {
-        queryAllWithSelf(root, TOOLTIP_TRIGGER_SELECTOR).forEach(trigger => {
-            if (trigger._tippy) {
-                trigger._tippy.hide();
-            }
-        });
-    }
-
-    function initPowercrudTooltips(root = documentObject) {
-        const tippyCtor = getTippyCtor();
-        if (!tippyCtor) {
-            return;
-        }
-
-        // Tippy instances are presentation-only and are recreated after swaps
-        // because the same semantic tooltip attributes can land on new nodes.
-        queryAllWithSelf(root, TOOLTIP_TRIGGER_SELECTOR).forEach(trigger => {
-            if (!(trigger instanceof HTMLElement)) {
-                return;
-            }
-            if (trigger._tippy) {
-                trigger._tippy.destroy();
-            }
-            const isOverflowTarget = isTooltipOverflowTarget(trigger);
-            const isSemanticTarget = isTooltipSemanticTarget(trigger);
-            const isSemanticCellTarget = isTooltipSemanticCellTarget(trigger);
-            const isLazyCellTarget = isLazyCellTooltipTarget(trigger);
-            if (!isOverflowTarget && !isSemanticTarget && !isSemanticCellTarget) {
-                return;
-            }
-            tippyCtor(trigger, {
-                theme: getTooltipTheme(trigger),
-                placement: 'top',
-                onShow(instance) {
-                    if (isLazyCellTarget) {
-                        return handleLazyCellTooltipShow(instance);
-                    }
-                    if (!isOverflowTarget) {
-                        return true;
-                    }
-                    return isTruncated(instance.reference);
-                },
-            });
-        });
-    }
-
-    function handleLazyCellTooltipShow(instance) {
-        const trigger = instance.reference;
-        if (!(trigger instanceof HTMLElement)) {
-            return false;
-        }
-        if (trigger.dataset.powercrudTooltipLazyReplay === 'true') {
-            delete trigger.dataset.powercrudTooltipLazyReplay;
-            return true;
-        }
-        if (trigger.dataset.powercrudTooltipLazyState === 'loaded') {
-            return Boolean(trigger.getAttribute('data-tippy-content'));
-        }
-        if (trigger.dataset.powercrudTooltipLazyState === 'empty') {
-            return false;
-        }
-
-        hydrateLazyCellTooltip(instance);
-        return false;
-    }
-
-    async function hydrateLazyCellTooltip(instance) {
-        const trigger = instance.reference;
-        if (!(trigger instanceof HTMLElement) || !trigger.isConnected) {
-            return;
-        }
-
-        const url = trigger.dataset.powercrudTooltipUrl || '';
-        if (!url) {
-            trigger.dataset.powercrudTooltipLazyState = 'empty';
-            return;
-        }
-
-        let request = LAZY_CELL_TOOLTIP_REQUESTS.get(trigger);
-        if (!request) {
-            trigger.dataset.powercrudTooltipLazyState = 'loading';
-            request = global.fetch(url, {
-                method: 'GET',
-                credentials: 'same-origin',
-                headers: {
-                    Accept: 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest',
-                },
-            }).then(response => {
-                if (!response.ok) {
-                    throw new Error(`Lazy tooltip request failed with ${response.status}`);
-                }
-                return response.json();
-            }).finally(() => {
-                LAZY_CELL_TOOLTIP_REQUESTS.delete(trigger);
-            });
-            LAZY_CELL_TOOLTIP_REQUESTS.set(trigger, request);
-        }
-
-        try {
-            const payload = await request;
-            if (!(trigger instanceof HTMLElement) || !trigger.isConnected) {
-                return;
-            }
-            const tooltip = typeof payload?.tooltip === 'string' ? payload.tooltip.trim() : '';
-            if (!tooltip) {
-                trigger.dataset.powercrudTooltipLazyState = 'empty';
-                trigger.setAttribute('data-tippy-content', '');
-                instance.setContent('');
-                return;
-            }
-            trigger.dataset.powercrudTooltipLazyState = 'loaded';
-            trigger.setAttribute('data-tippy-content', tooltip);
-            instance.setContent(tooltip);
-            if (!isTooltipTriggerActive(trigger)) {
-                instance.hide();
-                return;
-            }
-            hidePowercrudTooltips(documentObject);
-            trigger.dataset.powercrudTooltipLazyReplay = 'true';
-            instance.show();
-        } catch {
-            if (trigger instanceof HTMLElement && trigger.isConnected) {
-                trigger.dataset.powercrudTooltipLazyState = 'empty';
-                trigger.setAttribute('data-tippy-content', '');
-                instance.setContent('');
-            }
-        }
-    }
-
-    function schedulePowercrudTooltipRefresh(root = documentObject, delay = 0) {
-        global.setTimeout(() => {
-            initPowercrudTooltips(root);
-        }, delay);
-    }
-
-    function schedulePowercrudTooltipResizeRefresh(root = documentObject, delay = 100) {
-        if (tooltipResizeTimer) {
-            global.clearTimeout(tooltipResizeTimer);
-        }
-        tooltipResizeTimer = global.setTimeout(() => initPowercrudTooltips(root), delay);
     }
 
     function syncListToolbarWidth(root) {
@@ -444,38 +198,6 @@ export function createCurrentTemplateRuntime(context) {
         activeRowActionsTrigger = null;
     }
 
-    function positionRowActionsMenu(menuElement, triggerElement) {
-        if (!(menuElement instanceof HTMLElement) || !(triggerElement instanceof HTMLElement)) {
-            return;
-        }
-
-        const viewportPadding = 8;
-        const menuGap = 4;
-        const triggerRect = triggerElement.getBoundingClientRect();
-        const menuRect = menuElement.getBoundingClientRect();
-
-        const spaceBelow = global.innerHeight - triggerRect.bottom - viewportPadding;
-        const spaceAbove = triggerRect.top - viewportPadding;
-        const shouldOpenUpward = menuRect.height > spaceBelow && spaceAbove > spaceBelow;
-
-        let top = shouldOpenUpward
-            ? triggerRect.top - menuRect.height - menuGap
-            : triggerRect.bottom + menuGap;
-        let left = triggerRect.right - menuRect.width;
-
-        top = Math.max(
-            viewportPadding,
-            Math.min(top, global.innerHeight - menuRect.height - viewportPadding),
-        );
-        left = Math.max(
-            viewportPadding,
-            Math.min(left, global.innerWidth - menuRect.width - viewportPadding),
-        );
-
-        menuElement.style.top = `${top}px`;
-        menuElement.style.left = `${left}px`;
-    }
-
     function getLazyRowActionLinks(menuElement) {
         if (!(menuElement instanceof HTMLElement)) {
             return [];
@@ -509,30 +231,6 @@ export function createCurrentTemplateRuntime(context) {
             menuElement instanceof HTMLElement
             && Boolean(menuElement.querySelector('li'))
         );
-    }
-
-    function setRowActionLinkDisabled(link, disabled, reason = '') {
-        if (!(link instanceof HTMLElement)) {
-            return;
-        }
-        link.classList.toggle('btn-disabled', disabled);
-        link.classList.toggle('opacity-50', disabled);
-        link.classList.remove('pointer-events-none');
-        if (disabled) {
-            link.setAttribute('aria-disabled', 'true');
-            link.style.setProperty('pointer-events', 'auto', 'important');
-            link.style.setProperty('cursor', 'not-allowed');
-            if (reason) {
-                link.setAttribute('data-tippy-content', reason);
-                link.setAttribute('data-powercrud-tooltip', 'semantic');
-            }
-            return;
-        }
-        link.removeAttribute('aria-disabled');
-        link.style.removeProperty('pointer-events');
-        link.style.removeProperty('cursor');
-        link.removeAttribute('data-tippy-content');
-        link.removeAttribute('data-powercrud-tooltip');
     }
 
     function disableUnresolvedLazyRowActions(menuElement) {
@@ -624,7 +322,7 @@ export function createCurrentTemplateRuntime(context) {
 
         // Row actions render from hidden in-row markup but execute from a
         // body-level clone so the menu can escape table overflow clipping.
-        const menuElement = template.firstElementChild?.cloneNode(true);
+        const menuElement = cloneRowActionFloatingMenu?.(template);
         if (!(menuElement instanceof HTMLElement)) {
             return;
         }
@@ -647,9 +345,7 @@ export function createCurrentTemplateRuntime(context) {
         }
 
         menuElement.dataset.powercrudRowActionsFloatingPanel = 'true';
-        menuElement.style.position = 'fixed';
-        menuElement.style.visibility = 'hidden';
-        menuElement.style.pointerEvents = 'none';
+        prepareRowActionFloatingMenu?.(menuElement);
 
         documentObject.body.appendChild(menuElement);
 
@@ -659,10 +355,8 @@ export function createCurrentTemplateRuntime(context) {
         }
         initPowercrudTooltips(menuElement);
 
-        positionRowActionsMenu(menuElement, trigger);
-
-        menuElement.style.visibility = '';
-        menuElement.style.pointerEvents = '';
+        positionRowActionFloatingMenu?.(menuElement, trigger);
+        showRowActionFloatingMenu?.(menuElement);
 
         trigger.setAttribute('aria-expanded', 'true');
         activeRowActionsMenu = menuElement;
@@ -682,347 +376,14 @@ export function createCurrentTemplateRuntime(context) {
         openRowActionsMenu(trigger);
     }
 
-    function startFormSpinner(form) {
-        if (!form || FORM_SPINNER_STATE.has(form)) {
-            return;
-        }
-        const saveBtn = form.querySelector('[data-form-save]');
-        if (!saveBtn) {
-            return;
-        }
-        // Spinner markup/classes are presentation-library details; the stored
-        // HTML lets request handlers restore the exact original button.
-        FORM_SPINNER_STATE.set(form, {
-            button: saveBtn,
-            html: saveBtn.innerHTML,
-        });
-        saveBtn.disabled = true;
-        saveBtn.style.width = `${saveBtn.offsetWidth}px`;
-        saveBtn.innerHTML = '<span class="loading loading-spinner loading-sm text-center mx-auto"></span>';
-    }
-
-    function stopFormSpinner(form) {
-        const state = FORM_SPINNER_STATE.get(form);
-        if (!state) {
-            return;
-        }
-        state.button.disabled = false;
-        state.button.innerHTML = state.html;
-        state.button.style.width = '';
-        FORM_SPINNER_STATE.delete(form);
-    }
-
-    function startButtonSpinner(button) {
-        if (!button || BUTTON_SPINNER_STATE.has(button)) {
-            return;
-        }
-        BUTTON_SPINNER_STATE.set(button, {
-            html: button.innerHTML,
-        });
-        button.disabled = true;
-        button.style.width = `${button.offsetWidth}px`;
-        button.innerHTML = '<span class="loading loading-spinner loading-sm text-center mx-auto"></span>';
-    }
-
-    function stopButtonSpinner(button) {
-        const state = BUTTON_SPINNER_STATE.get(button);
-        if (!state) {
-            return;
-        }
-        button.disabled = false;
-        button.innerHTML = state.html;
-        button.style.width = '';
-        BUTTON_SPINNER_STATE.delete(button);
-    }
-
-    function applyListColumnOptionVisualState(option, isLastChecked) {
-        if (!(option instanceof HTMLElement)) {
-            return;
-        }
-        option.classList.toggle('cursor-not-allowed', isLastChecked);
-        option.classList.toggle('opacity-70', isLastChecked);
-    }
-
-    function syncListColumnChooserPlacement(container) {
-        if (!(container instanceof HTMLDetailsElement) || !container.open) {
-            return;
-        }
-
-        const trigger = container.querySelector('[data-powercrud-list-columns-trigger="true"]');
-        if (!(trigger instanceof HTMLElement)) {
-            return;
-        }
-
-        // Placement is current-template geometry. Core list-column state only
-        // decides which columns are visible.
-        container.dataset.powercrudListColumnsPlacement = 'end';
-        global.requestAnimationFrame(() => {
-            if (!container.open) {
-                return;
-            }
-            const triggerRect = trigger.getBoundingClientRect();
-            const panelWidth = Math.min(288, documentObject.documentElement.clientWidth - 16);
-            const margin = 8;
-            const endLeft = triggerRect.right - panelWidth;
-            const shouldOpenStart = endLeft < margin;
-            container.dataset.powercrudListColumnsPlacement = shouldOpenStart ? 'start' : 'end';
-        });
-    }
-
-    function clearListColumnChooserPlacement(container) {
-        if (container instanceof HTMLElement) {
-            delete container.dataset.powercrudListColumnsPlacement;
-        }
-    }
-
-    function prepareListColumnChooserFloatingPanel(panelElement, container) {
-        if (!(panelElement instanceof HTMLElement)) {
-            return false;
-        }
-        panelElement.dataset.powercrudListColumnsFloatingPanel = 'true';
-        panelElement.dataset.powercrudListColumnsDomId = container?.id || '';
-        panelElement.style.position = 'fixed';
-        panelElement.style.visibility = 'hidden';
-        panelElement.style.pointerEvents = 'none';
-        return true;
-    }
-
-    function positionListColumnChooserPanel(panelElement, triggerElement) {
-        if (!(panelElement instanceof HTMLElement) || !(triggerElement instanceof HTMLElement)) {
-            return;
-        }
-
-        const viewportPadding = 8;
-        const panelGap = 8;
-        const triggerRect = triggerElement.getBoundingClientRect();
-        const panelRect = panelElement.getBoundingClientRect();
-        const spaceBelow = global.innerHeight - triggerRect.bottom - viewportPadding;
-        const spaceAbove = triggerRect.top - viewportPadding;
-        const shouldOpenUpward = panelRect.height > spaceBelow && spaceAbove > spaceBelow;
-        const container = triggerElement.closest('[data-powercrud-list-columns="true"]');
-
-        const endLeft = triggerRect.right - panelRect.width;
-        const shouldOpenStart = endLeft < viewportPadding;
-        let left = shouldOpenStart ? triggerRect.left : endLeft;
-        let top = shouldOpenUpward
-            ? triggerRect.top - panelRect.height - panelGap
-            : triggerRect.bottom + panelGap;
-
-        top = Math.max(
-            viewportPadding,
-            Math.min(top, global.innerHeight - panelRect.height - viewportPadding),
-        );
-        left = Math.max(
-            viewportPadding,
-            Math.min(left, global.innerWidth - panelRect.width - viewportPadding),
-        );
-
-        panelElement.style.top = `${top}px`;
-        panelElement.style.left = `${left}px`;
-        if (container instanceof HTMLElement) {
-            container.dataset.powercrudListColumnsPlacement = shouldOpenStart ? 'start' : 'end';
-        }
-    }
-
-    function syncSelectionAwareButtonVisualState(button, options = {}) {
-        if (!(button instanceof HTMLElement)) {
-            return;
-        }
-        const { disable = false, reason = '' } = options;
-
-        // Selection rules live in bulk-actions; this adapter only renders the
-        // disabled visual treatment and optional tooltip reason.
-        button.classList.toggle('btn-disabled', disable);
-        button.classList.toggle('opacity-50', disable);
-        button.classList.remove('pointer-events-none');
-
-        if (disable) {
-            button.setAttribute('aria-disabled', 'true');
-            button.style.setProperty('pointer-events', 'auto', 'important');
-            button.style.setProperty('cursor', 'not-allowed');
-            if (reason) {
-                button.setAttribute('data-tippy-content', reason);
-                button.setAttribute('data-powercrud-tooltip', 'semantic');
-            }
-            return;
-        }
-
-        button.removeAttribute('aria-disabled');
-        button.style.removeProperty('pointer-events');
-        button.style.removeProperty('cursor');
-        if (button.dataset.powercrudSelectionMinReason) {
-            button.removeAttribute('data-tippy-content');
-            button.removeAttribute('data-powercrud-tooltip');
-        }
-    }
-
-    function syncFilterFavouritesTriggerPresentation(options = {}) {
-        const {
-            toolbar,
-            trigger,
-            triggerLabel,
-            selectedLabel = '',
-            defaultLabel = 'Favourites',
-            isDirty = false,
-        } = options;
-
-        if (triggerLabel instanceof Element) {
-            const displayLabel = selectedLabel && isDirty
-                ? `${selectedLabel} (edited)`
-                : selectedLabel;
-            triggerLabel.textContent = displayLabel || defaultLabel;
-        }
-
-        if (trigger instanceof HTMLElement) {
-            if (trigger._tippy) {
-                trigger._tippy.destroy();
-            }
-
-            if (selectedLabel) {
-                const displayLabel = isDirty ? `${selectedLabel} (edited)` : selectedLabel;
-                trigger.dataset.powercrudFilterFavouritesSelected = 'true';
-                trigger.dataset.powercrudFilterFavouritesDirty = isDirty ? 'true' : 'false';
-                trigger.setAttribute('aria-label', `Saved favourite: ${displayLabel}`);
-                trigger.setAttribute('data-powercrud-tooltip', 'semantic');
-                trigger.setAttribute('data-tippy-content', displayLabel);
-            } else {
-                trigger.dataset.powercrudFilterFavouritesSelected = 'false';
-                trigger.dataset.powercrudFilterFavouritesDirty = 'false';
-                trigger.setAttribute('aria-label', defaultLabel);
-                trigger.setAttribute('data-powercrud-tooltip', 'semantic');
-                trigger.setAttribute('data-tippy-content', defaultLabel);
-            }
-
-            const outlineIcon = trigger.querySelector('[data-powercrud-filter-favourites-icon-outline="true"]');
-            const filledIcon = trigger.querySelector('[data-powercrud-filter-favourites-icon-filled="true"]');
-            if (outlineIcon instanceof HTMLElement) {
-                outlineIcon.classList.toggle('hidden', Boolean(selectedLabel));
-            }
-            if (filledIcon instanceof HTMLElement) {
-                filledIcon.classList.toggle('hidden', !selectedLabel);
-                filledIcon.classList.toggle('text-primary', Boolean(selectedLabel) && !isDirty);
-                filledIcon.classList.toggle('text-warning', Boolean(selectedLabel) && isDirty);
-            }
-        }
-
-        if (selectedLabel && toolbar instanceof Element) {
-            schedulePowercrudTooltipRefresh(toolbar);
-        }
-    }
-
-    function setFilterFavouritesDropdownOpen(toolbar, isOpen) {
-        if (!(toolbar instanceof Element)) {
-            return;
-        }
-        toolbar.classList.toggle('dropdown-open', Boolean(isOpen));
-    }
-
-    function prepareFilterFavouritesFloatingPanel(panelShell, toolbar) {
-        if (!(panelShell instanceof HTMLElement)) {
-            return false;
-        }
-        // Favourites state remains in filter-favourites; this body-level panel
-        // is current-template presentation to avoid toolbar overflow clipping.
-        panelShell.dataset.powercrudFilterFavouritesFloatingPanel = 'true';
-        panelShell.dataset.powercrudToolbarDomId = toolbar?.id || '';
-        panelShell.style.position = 'fixed';
-        panelShell.style.visibility = 'hidden';
-        panelShell.style.pointerEvents = 'none';
-        return true;
-    }
-
-    function positionFilterFavouritesPanel(panelElement, triggerElement) {
-        if (!(panelElement instanceof HTMLElement) || !(triggerElement instanceof HTMLElement)) {
-            return;
-        }
-
-        const viewportPadding = 8;
-        const panelGap = 8;
-        const triggerRect = triggerElement.getBoundingClientRect();
-        const panelRect = panelElement.getBoundingClientRect();
-        const spaceBelow = global.innerHeight - triggerRect.bottom - viewportPadding;
-        const spaceAbove = triggerRect.top - viewportPadding;
-        const shouldOpenUpward = panelRect.height > spaceBelow && spaceAbove > spaceBelow;
-
-        let top = shouldOpenUpward
-            ? triggerRect.top - panelRect.height - panelGap
-            : triggerRect.bottom + panelGap;
-        let left = triggerRect.left;
-
-        top = Math.max(
-            viewportPadding,
-            Math.min(top, global.innerHeight - panelRect.height - viewportPadding),
-        );
-        left = Math.max(
-            viewportPadding,
-            Math.min(left, global.innerWidth - panelRect.width - viewportPadding),
-        );
-
-        panelElement.style.top = `${top}px`;
-        panelElement.style.left = `${left}px`;
-    }
-
-    function showPreparedFloatingPanel(panelShell) {
-        if (!(panelShell instanceof HTMLElement)) {
-            return;
-        }
-        panelShell.style.visibility = '';
-        panelShell.style.pointerEvents = '';
-    }
-
-    function toggleInlineSaveSpinner(row, isSaving) {
-        if (!row) {
-            return;
-        }
-        const saveBtn = row.querySelector('[data-inline-save]');
-        if (!saveBtn) {
-            return;
-        }
-        saveBtn.disabled = isSaving;
-        if (isSaving) {
-            saveBtn.dataset.originalLabel = saveBtn.innerHTML;
-            saveBtn.dataset.originalWidth = saveBtn.offsetWidth;
-            saveBtn.style.width = `${saveBtn.dataset.originalWidth}px`;
-            saveBtn.innerHTML = '<span class="loading loading-spinner loading-xs text-center mx-auto"></span>';
-        } else if (saveBtn.dataset.originalLabel) {
-            saveBtn.innerHTML = saveBtn.dataset.originalLabel;
-            if (saveBtn.dataset.originalWidth) {
-                saveBtn.style.width = '';
-                delete saveBtn.dataset.originalWidth;
-            }
-            delete saveBtn.dataset.originalLabel;
-        }
-    }
-
     return {
-        applyListColumnOptionVisualState,
         applyPowercrudModalClasses,
         cleanupDuplicatePowercrudModals,
-        clearListColumnChooserPlacement,
         closePowercrudModals,
         closeRowActionsMenu,
-        destroyPowercrudTooltips,
         handleModalTriggerBeforeRequest,
-        hidePowercrudTooltips,
-        initPowercrudTooltips,
-        positionListColumnChooserPanel,
-        positionFilterFavouritesPanel,
-        prepareListColumnChooserFloatingPanel,
-        prepareFilterFavouritesFloatingPanel,
-        schedulePowercrudTooltipRefresh,
-        schedulePowercrudTooltipResizeRefresh,
-        setFilterFavouritesDropdownOpen,
-        showPreparedFloatingPanel,
-        startButtonSpinner,
-        startFormSpinner,
-        stopButtonSpinner,
-        stopFormSpinner,
-        syncFilterFavouritesTriggerPresentation,
-        syncListColumnChooserPlacement,
         syncListToolbarWidth,
         syncListToolbarWidths,
-        syncSelectionAwareButtonVisualState,
-        toggleInlineSaveSpinner,
         toggleRowActionsMenu,
     };
 }

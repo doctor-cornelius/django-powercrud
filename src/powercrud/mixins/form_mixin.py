@@ -984,11 +984,11 @@ class FormMixin:
             # Set template to the form partial
             if self.object:  # Update form
                 self.template_name = (
-                    f"{self.templates_path}/object_form.html#pcrud_content"
+                    f"{resolve_config(self).templates_path}/object_form.html#pcrud_content"
                 )
             else:  # Create form
                 self.template_name = (
-                    f"{self.templates_path}/object_form.html#pcrud_content"
+                    f"{resolve_config(self).templates_path}/object_form.html#pcrud_content"
                 )
 
             # Render the response with the form template

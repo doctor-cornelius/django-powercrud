@@ -1,16 +1,20 @@
 import shutil
+from importlib.resources import files
 from pathlib import Path
 
 from django.core.management.base import BaseCommand, CommandError
 from django.apps import apps
 
-from powercrud.conf import get_powercrud_setting
+from powercrud.template_packs import (
+    get_configured_template_pack,
+    get_template_pack_copy_destination,
+    get_template_pack_template_namespace,
+)
 
 
 class Command(BaseCommand):
     help = "Bootstrap CRUD templates, either individual templates or the complete framework structure."
 
-    template_prefix = f"powercrud/{get_powercrud_setting('POWERCRUD_CSS_FRAMEWORK')}"
     focused_components = {
         "pagination": "pagination",
         "page-size": "page_size_selector",
@@ -44,6 +48,23 @@ class Command(BaseCommand):
         "inline-row-form": "inline_row_form",
         "inline-field": "inline_field",
     }
+
+    @property
+    def template_prefix(self) -> str:
+        """Return the selected namespace at command invocation time."""
+        return get_template_pack_template_namespace()
+
+    def get_template_source_dir(self) -> Path:
+        """Return the selected pack's package-resource source directory."""
+        template_pack = get_configured_template_pack()
+        if template_pack is None:
+            package_name = "powercrud"
+            resource_root = f"templates/{self.template_prefix}"
+        else:
+            package_name = template_pack.template_package
+            resource_root = template_pack.template_resource_root
+        source_dir = files(package_name).joinpath(*Path(resource_root).parts)
+        return Path(source_dir)
 
     def add_arguments(self, parser):
         # Main argument group
@@ -171,14 +192,7 @@ class Command(BaseCommand):
             )
 
         model = options["model"]
-        powercrud_dir = Path(__file__).resolve().parent.parent.parent
-        source_path = (
-            powercrud_dir
-            / "templates"
-            / self.template_prefix
-            / "partial"
-            / f"{template_component}.html"
-        )
+        source_path = self.get_template_source_dir() / "partial" / f"{template_component}.html"
         if not source_path.exists():
             raise CommandError(f"Template component not found: {source_path}")
 
@@ -453,9 +467,7 @@ class Command(BaseCommand):
         """Copy the entire template structure to the target app."""
         # Find the source template directory in the powercrud package
         try:
-            # Get the powercrud package directory
-            powercrud_dir = Path(__file__).resolve().parent.parent.parent
-            source_dir = powercrud_dir / "templates" / self.template_prefix
+            source_dir = self.get_template_source_dir()
 
             if not source_dir.exists():
                 raise CommandError(
@@ -468,7 +480,7 @@ class Command(BaseCommand):
             app_template_dir.mkdir(exist_ok=True)
 
             # Copy the entire template structure
-            framework_dir = Path(self.template_prefix).name
+            framework_dir = get_template_pack_copy_destination()
             target_framework_dir = app_template_dir / framework_dir
 
             if target_framework_dir.exists():
@@ -508,11 +520,7 @@ class Command(BaseCommand):
         template_name = f"{model.lower()}{suffix}"
 
         try:
-            # Get the powercrud package directory
-            powercrud_dir = Path(__file__).resolve().parent.parent.parent
-            source_path = (
-                powercrud_dir / "templates" / f"{self.template_prefix}/object{suffix}"
-            )
+            source_path = self.get_template_source_dir() / f"object{suffix}"
 
             if not source_path.exists():
                 raise CommandError(f"Template not found: {source_path}")
@@ -550,13 +558,7 @@ class Command(BaseCommand):
 
         for template_type, suffix in templates.items():
             try:
-                # Get the powercrud package directory
-                powercrud_dir = Path(__file__).resolve().parent.parent.parent
-                source_path = (
-                    powercrud_dir
-                    / "templates"
-                    / f"{self.template_prefix}/object{suffix}"
-                )
+                source_path = self.get_template_source_dir() / f"object{suffix}"
 
                 if not source_path.exists():
                     self.stdout.write(

@@ -261,14 +261,14 @@ class AsyncMixin:
             context[context_name] = component_paths_getter(component_name)
         else:
             context[context_name] = [
-                f"{self.templates_path}/partial/{component_name}.html"
+                f"{resolve_config(self).templates_path}/partial/{component_name}.html"
             ]
 
         if hasattr(request, "htmx") and request.htmx:
             if operation == "delete":
-                template = f"{self.templates_path}/object_confirm_delete.html#conflict_detected"
+                template = f"{resolve_config(self).templates_path}/object_confirm_delete.html#conflict_detected"
             else:
-                template = f"{self.templates_path}/object_form.html#conflict_detected"
+                template = f"{resolve_config(self).templates_path}/object_form.html#conflict_detected"
             return render(request, template, context)
 
         # Fallback: simple HTTP response
@@ -291,7 +291,7 @@ class AsyncMixin:
         }
         return render(
             request,
-            f"{self.templates_path}/partial/bulk_edit_errors.html#bulk_edit_conflict",
+            f"{resolve_config(self).templates_path}/partial/bulk_edit_errors.html#bulk_edit_conflict",
             context,
         )
 
@@ -470,7 +470,7 @@ class AsyncMixin:
         self.clear_selection_from_session(request)
 
         # Return async success response with task_name for progress polling
-        template = f"{self.templates_path}/bulk_edit_form.html#async_queue_success"
+        template = f"{resolve_config(self).templates_path}/bulk_edit_form.html#async_queue_success"
         progress_url = reverse("powercrud:async_progress")
         modal_context_getter = getattr(self, "get_modal_context", None)
         modal_context = (
@@ -516,7 +516,7 @@ class AsyncMixin:
         log.error(f"Async task queueing failed: {str(error)}", exc_info=True)
 
         # Return error response
-        template_errors = f"{self.templates_path}/partial/bulk_edit_errors.html"
+        template_errors = f"{resolve_config(self).templates_path}/partial/bulk_edit_errors.html"
         component_context_getter = getattr(
             self, "get_bulk_form_component_context", None
         )

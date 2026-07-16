@@ -19,6 +19,34 @@ def test_bulk_selection_toggle(page, books_url, sample_books):
     page.goto(books_url)
     page.wait_for_load_state("networkidle")
 
+    dropdown = page.locator("[data-powercrud-extra-buttons-dropdown='true']")
+    dropdown.locator("> summary").click()
+    selected_summary = page.get_by_role("link", name="Selected Summary", exact=True)
+    expect(selected_summary).to_have_attribute("aria-disabled", "true")
+    expect(selected_summary).to_have_class(re.compile(r"\bbtn-disabled\b"))
+    expect(selected_summary).to_have_class(re.compile(r"\bopacity-50\b"))
+    expect(selected_summary).to_have_attribute(
+        "data-tippy-content",
+        "Select at least one book first.",
+    )
+    assert selected_summary.evaluate("el => window.getComputedStyle(el).pointerEvents") == "auto"
+    assert selected_summary.evaluate("el => window.getComputedStyle(el).cursor") == "not-allowed"
+    selected_summary.hover()
+    expect(page.locator("[data-tippy-root]")).to_be_visible()
+
+    page.evaluate(
+        """
+        () => {
+            window.__powercrudDisabledSelectionRequests = 0;
+            document.addEventListener('htmx:beforeRequest', () => {
+                window.__powercrudDisabledSelectionRequests += 1;
+            });
+        }
+        """
+    )
+    selected_summary.dispatch_event("click")
+    assert page.evaluate("() => window.__powercrudDisabledSelectionRequests") == 0
+
     checkbox = page.locator("input.row-select-checkbox").first
     expect(checkbox).to_be_visible()
     checkbox.click()
@@ -27,6 +55,11 @@ def test_bulk_selection_toggle(page, books_url, sample_books):
     bulk_container = page.locator("#bulk-actions-container").first
     expect(bulk_container).to_be_visible()
     expect(page.locator("#selected-items-counter")).to_have_text("1")
+    selected_summary = page.get_by_role("link", name="Selected Summary", exact=True)
+    expect(selected_summary).not_to_have_attribute("aria-disabled", "true")
+    expect(selected_summary).not_to_have_class(re.compile(r"\bbtn-disabled\b"))
+    expect(selected_summary).not_to_have_class(re.compile(r"\bopacity-50\b"))
+    expect(selected_summary).not_to_have_attribute("data-tippy-content", re.compile(".+"))
 
     bulk_container.locator("button", has_text="Clear Selection").click()
 
@@ -34,6 +67,9 @@ def test_bulk_selection_toggle(page, books_url, sample_books):
     expect(page.locator("#bulk-actions-container").first).to_have_class(
         re.compile(r"\bhidden\b")
     )
+    selected_summary = page.get_by_role("link", name="Selected Summary", exact=True)
+    expect(selected_summary).to_have_attribute("aria-disabled", "true")
+    expect(selected_summary).to_have_class(re.compile(r"\bbtn-disabled\b"))
 
 
 test_bulk_selection_toggle = pytest.mark.playwright_smoke(test_bulk_selection_toggle)
@@ -348,6 +384,67 @@ def test_bulk_edit_refresh_reapplies_active_filters(
 
     form.locator("input.field-toggle[value='bestseller']").check()
     form.locator("select[name='bestseller']").select_option("true")
+    page.evaluate(
+        """
+        () => {
+            const bulkForm = document.querySelector('#bulk-edit-form');
+            const saveButton = bulkForm.querySelector('[data-form-save]');
+            window.__powercrudBulkFormSpinner = {
+                originalHtml: saveButton.innerHTML,
+                beforeRequest: null,
+                afterError: null,
+            };
+            document.addEventListener('htmx:beforeRequest', event => {
+                if (event.detail?.elt !== bulkForm) {
+                    return;
+                }
+                window.__powercrudBulkFormSpinner.beforeRequest = {
+                    disabled: saveButton.disabled,
+                    width: saveButton.style.width,
+                    hasSpinner: Boolean(saveButton.querySelector('.loading-spinner')),
+                };
+            });
+            document.addEventListener('htmx:responseError', event => {
+                if (event.detail?.elt !== bulkForm) {
+                    return;
+                }
+                window.__powercrudBulkFormSpinner.afterError = {
+                    disabled: saveButton.disabled,
+                    width: saveButton.style.width,
+                    hasSpinner: Boolean(saveButton.querySelector('.loading-spinner')),
+                    html: saveButton.innerHTML,
+                };
+            });
+        }
+        """
+    )
+    bulk_path = form.get_attribute("hx-post")
+    assert bulk_path
+    page.route(
+        f"**{bulk_path}",
+        lambda route: route.fulfill(status=500, content_type="text/html", body="Request failed"),
+        times=1,
+    )
+    with page.expect_response(lambda response: response.status == 500):
+        form.get_by_role("button", name=re.compile("apply changes", re.I)).click()
+    page.wait_for_function(
+        "() => Boolean(window.__powercrudBulkFormSpinner.afterError)"
+    )
+
+    spinner_lifecycle = page.evaluate("() => window.__powercrudBulkFormSpinner")
+    before_request = spinner_lifecycle["beforeRequest"]
+    assert before_request["disabled"] is True
+    assert before_request["hasSpinner"] is True
+    assert before_request["width"], (
+        "Expected the bulk save button width to be pinned while its spinner is visible."
+    )
+    assert spinner_lifecycle["afterError"] == {
+        "disabled": False,
+        "width": "",
+        "hasSpinner": False,
+        "html": spinner_lifecycle["originalHtml"],
+    }
+
     form.get_by_role("button", name=re.compile("apply changes", re.I)).click()
 
     expect(modal).not_to_be_visible()

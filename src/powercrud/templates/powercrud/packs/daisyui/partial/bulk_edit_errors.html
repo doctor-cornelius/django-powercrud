@@ -1,0 +1,19 @@
+{% load powercrud_partials %}
+
+{# partial to show errors related to bulk ops #}
+{% partialdef bulk_edit_error %}
+{% if bulk_outcomes_template_paths %}
+    {% include bulk_outcomes_template_paths with bulk_outcome="error" %}
+{% else %}
+    {% include "powercrud/packs/daisyui/partial/bulk_outcomes.html" with bulk_outcome="error" %}
+{% endif %}
+{% endpartialdef bulk_edit_error %}
+
+{# partial to show conflict with running async #}
+{% partialdef bulk_edit_conflict %}
+{% if bulk_outcomes_template_paths %}
+    {% include bulk_outcomes_template_paths with bulk_outcome="conflict" %}
+{% else %}
+    {% include "powercrud/packs/daisyui/partial/bulk_outcomes.html" with bulk_outcome="conflict" %}
+{% endif %}
+{% endpartialdef bulk_edit_conflict %}

@@ -1,15 +1,3 @@
-{% extends base_template_path %}
-{% load powercrud %}
 {% load powercrud_partials %}
-
-{% block content %}
-    {% partial pcrud_content %}
-{% endblock %}
-
-{% partialdef pcrud_content %}
-    {% if detail_shell_template_paths %}
-        {% include detail_shell_template_paths %}
-    {% else %}
-        {% include "powercrud/daisyUI/partial/detail_shell.html" %}
-    {% endif %}
-{% endpartialdef pcrud_content %}
+{% partialdef pcrud_content %}{% include "powercrud/packs/daisyui/object_detail.html#pcrud_content" %}{% endpartialdef pcrud_content %}
+{% include "powercrud/packs/daisyui/object_detail.html" %}

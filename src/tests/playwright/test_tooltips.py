@@ -66,6 +66,54 @@ def wait_for_tippy_instance(page, selector: str):
     )
 
 
+def wait_for_automatic_tippy_instance(page, selector: str):
+    """Wait for automatic tooltip composition without invoking the public initializer."""
+    page.wait_for_function(
+        """
+        (tooltipSelector) => {
+            const element = document.querySelector(tooltipSelector);
+            return element instanceof HTMLElement && Boolean(element._tippy);
+        }
+        """,
+        arg=selector,
+    )
+
+
+def install_deferred_lazy_tooltip_fetch(page):
+    """Install one controllable lazy-tooltip fetch without fixed timing delays."""
+    page.add_init_script(
+        """
+        window.__powercrudLazyTooltipText = '';
+        window.__powercrudLazyTooltipFetchStarted = false;
+        window.__powercrudResolveLazyTooltipFetch = null;
+        const originalFetch = window.fetch.bind(window);
+        window.fetch = (input, init) => {
+            const url = typeof input === 'string' ? input : (input?.url || '');
+            if (!url.includes('/cell-tooltip/pages/')) {
+                return originalFetch(input, init);
+            }
+            window.__powercrudLazyTooltipFetchStarted = true;
+            let resolveFetch;
+            const pendingFetch = new Promise((resolve) => {
+                resolveFetch = resolve;
+            });
+            window.__powercrudResolveLazyTooltipFetch = async () => {
+                resolveFetch(new Response(
+                    JSON.stringify({ tooltip: window.__powercrudLazyTooltipText }),
+                    {
+                        status: 200,
+                        headers: { 'Content-Type': 'application/json' },
+                    },
+                ));
+                await pendingFetch;
+                await new Promise((resolve) => setTimeout(resolve, 0));
+            };
+            return pendingFetch;
+        };
+        """
+    )
+
+
 def wait_for_overflow_truncation(page, selector: str):
     """Wait until the tooltip target is visibly truncated."""
     page.wait_for_function(
@@ -84,8 +132,57 @@ def wait_for_overflow_truncation(page, selector: str):
 
 def test_toolbar_controls_use_powercrud_tooltips(page, books_url):
     """Toolbar controls should use top-placed PowerCRUD tooltips, not native titles."""
+    requested_urls = []
+    console_errors = []
+    page_errors = []
+    page.on("request", lambda request: requested_urls.append(request.url))
+    page.on(
+        "console",
+        lambda message: console_errors.append(message.text)
+        if message.type == "error"
+        else None,
+    )
+    page.on("pageerror", lambda error: page_errors.append(str(error)))
+
     page.goto(books_url)
     page.wait_for_load_state("networkidle")
+
+    runtime_ready = page.evaluate(
+        """
+        () => ({
+            loaded: window.__powercrudRuntimeLoaded === true,
+            hasHtmx: Boolean(window.htmx),
+            hasTomSelect: Boolean(window.TomSelect),
+            hasTippy: Boolean(window.tippy),
+            hasInitPowercrud: typeof window.initPowercrud === 'function',
+            hasSearchableSelects: typeof window.initPowercrudSearchableSelects === 'function',
+            hasDestroySearchableSelects: typeof window.destroyPowercrudSearchableSelects === 'function',
+            hasInitTooltips: typeof window.initPowercrudTooltips === 'function',
+            hasHideTooltips: typeof window.hidePowercrudTooltips === 'function',
+            hasDestroyTooltips: typeof window.destroyPowercrudTooltips === 'function',
+            hasCurrentFilters: typeof window.getCurrentFilters === 'function',
+            hasToggleFavouriteSaveForm: typeof window.powercrudToggleFavouriteSaveForm === 'function',
+        })
+        """
+    )
+    assert runtime_ready == {
+        "loaded": True,
+        "hasHtmx": True,
+        "hasTomSelect": True,
+        "hasTippy": True,
+        "hasInitPowercrud": True,
+        "hasSearchableSelects": True,
+        "hasDestroySearchableSelects": True,
+        "hasInitTooltips": True,
+        "hasHideTooltips": True,
+        "hasDestroyTooltips": True,
+        "hasCurrentFilters": True,
+        "hasToggleFavouriteSaveForm": True,
+    }, "Expected the Vite-backed sample to expose vendor globals and stable PowerCRUD helpers."
+    assert any(
+        re.search(r"/static/django_assets/powercrud-[^/]+\.js(?:\?|$)", url)
+        for url in requested_urls
+    ), "Expected the normal sample to request the built Vite PowerCRUD entry."
 
     tooltip_selectors = [
         "[data-powercrud-filter-favourites-trigger='true'][data-tippy-content='Saved favourites']",
@@ -112,6 +209,8 @@ def test_toolbar_controls_use_powercrud_tooltips(page, books_url):
     assert page_size_select.evaluate("el => window.getComputedStyle(el).cursor") == "pointer", (
         "Expected the page-size select to show pointer cursor on hoverable devices."
     )
+    assert console_errors == [], f"Expected no Vite sample console errors, got: {console_errors}"
+    assert page_errors == [], f"Expected no Vite sample page errors, got: {page_errors}"
 
 
 def test_searchable_select_and_tooltip_initializers_are_idempotent_after_htmx_refresh(
@@ -158,6 +257,36 @@ def test_searchable_select_and_tooltip_initializers_are_idempotent_after_htmx_re
     assert page.locator("#filter-form select[name='author'] + .ts-wrapper").count() == 1
     assert page.locator("[data-powercrud-filter-toggle]").first.evaluate("el => Boolean(el._tippy)")
 
+    page.evaluate(
+        """
+        () => {
+            const oldSelect = document.querySelector("#filter-form select[name='author']");
+            const oldInstance = oldSelect.tomselect;
+            const oldWrapper = oldInstance.wrapper;
+            window.__powercrudSearchableLifecycle = {
+                oldSelect,
+                oldInstance,
+                oldWrapper,
+                beforeSwap: null,
+            };
+            const captureRestoredSelect = event => {
+                const lifecycle = window.__powercrudSearchableLifecycle;
+                lifecycle.beforeSwap = {
+                    instanceDestroyed: !oldSelect.tomselect,
+                    wrapperDisconnected: !oldWrapper.isConnected,
+                    hidden: oldSelect.hidden,
+                    ariaHidden: oldSelect.hasAttribute('aria-hidden'),
+                    hiddenClass: oldSelect.classList.contains('ts-hidden-accessible'),
+                    nativeStyleStored: oldSelect.hasAttribute('data-powercrud-native-style'),
+                    nativeTabindexStored: oldSelect.hasAttribute('data-powercrud-native-tabindex'),
+                };
+                document.removeEventListener('htmx:beforeSwap', captureRestoredSelect);
+            };
+            document.addEventListener('htmx:beforeSwap', captureRestoredSelect);
+        }
+        """
+    )
+
     select_single_value(
         page=page,
         container=page.locator("#filter-form"),
@@ -187,6 +316,37 @@ def test_searchable_select_and_tooltip_initializers_are_idempotent_after_htmx_re
         arg=str(sample_author.pk),
     )
     wait_for_tippy_instance(page, "[data-powercrud-filter-toggle]")
+    lifecycle = page.evaluate(
+        """
+        () => {
+            const state = window.__powercrudSearchableLifecycle;
+            const newSelect = document.querySelector("#filter-form select[name='author']");
+            state.freshInstance = newSelect.tomselect;
+            return {
+                beforeSwap: state.beforeSwap,
+                oldSelectDisconnected: !state.oldSelect.isConnected,
+                freshSelect: newSelect !== state.oldSelect,
+                freshInstance: newSelect.tomselect !== state.oldInstance,
+                freshWrapper: newSelect.tomselect.wrapper !== state.oldWrapper,
+            };
+        }
+        """
+    )
+    assert lifecycle == {
+        "beforeSwap": {
+            "instanceDestroyed": True,
+            "wrapperDisconnected": True,
+            "hidden": False,
+            "ariaHidden": False,
+            "hiddenClass": False,
+            "nativeStyleStored": False,
+            "nativeTabindexStored": False,
+        },
+        "oldSelectDisconnected": True,
+        "freshSelect": True,
+        "freshInstance": True,
+        "freshWrapper": True,
+    }, "Expected HTMX teardown to restore the old native select before creating one fresh replacement."
     for _ in range(2):
         page.evaluate(
             """
@@ -199,6 +359,12 @@ def test_searchable_select_and_tooltip_initializers_are_idempotent_after_htmx_re
 
     assert author_select.evaluate("el => Boolean(el.tomselect)")
     assert page.locator("#filter-form select[name='author'] + .ts-wrapper").count() == 1
+    assert page.evaluate(
+        """
+        () => document.querySelector("#filter-form select[name='author']").tomselect
+            === window.__powercrudSearchableLifecycle.freshInstance
+        """
+    ), "Expected repeated public initialization to retain the fresh Tom Select instance."
     assert page.locator("[data-powercrud-filter-toggle]").first.evaluate("el => Boolean(el._tippy)")
 
 
@@ -326,13 +492,47 @@ def test_semantic_list_cell_tooltips_reinitialize_after_htmx_refresh(
     semantic_selector = "td[data-field-name='title'] [data-powercrud-tooltip='semantic-cell']"
     semantic_trigger = page.locator(semantic_selector).first
     expect(semantic_trigger).to_be_visible()
-    wait_for_tippy_instance(page, semantic_selector)
+    wait_for_automatic_tippy_instance(page, semantic_selector)
     assert semantic_trigger.get_attribute("data-tippy-content") == semantic_tooltip, (
         "Expected the sample semantic title tooltip trigger to keep the multiline tooltip text after initial page load."
     )
     assert semantic_trigger.evaluate("el => Boolean(el._tippy)"), (
         "Expected the configured semantic title tooltip to have a Tippy instance on initial page load."
     )
+
+    page.evaluate(
+        """
+        (selector) => {
+            const trigger = document.querySelector(selector);
+            for (let index = 0; index < 3; index += 1) {
+                window.initPowercrudTooltips(trigger.closest('#filtered_results'));
+                window.initPowercrud(trigger.closest('#filtered_results'));
+            }
+            const instance = trigger._tippy;
+            window.__powercrudTooltipLifecycle = {
+                oldTrigger: trigger,
+                oldInstance: instance,
+                oldPopper: instance.popper,
+                beforeSwapObserved: false,
+                destroyedDuringBeforeSwap: false,
+                triggerConnectedDuringBeforeSwap: false,
+                popperDisconnectedDuringBeforeSwap: false,
+            };
+            document.addEventListener('htmx:beforeSwap', () => {
+                const record = window.__powercrudTooltipLifecycle;
+                record.beforeSwapObserved = true;
+                record.destroyedDuringBeforeSwap = record.oldInstance.state.isDestroyed === true;
+                record.triggerConnectedDuringBeforeSwap = record.oldTrigger.isConnected;
+                record.popperDisconnectedDuringBeforeSwap = !record.oldPopper.isConnected;
+            }, { once: true });
+        }
+        """,
+        semantic_selector,
+    )
+    semantic_trigger.hover()
+    expect(
+        page.locator("[data-tippy-root] .tippy-content", has_text=semantic_tooltip)
+    ).to_have_count(1)
 
     page.get_by_role("button", name=re.compile("filters", re.I)).click()
     select_single_value(
@@ -353,13 +553,57 @@ def test_semantic_list_cell_tooltips_reinitialize_after_htmx_refresh(
 
     semantic_trigger = page.locator(semantic_selector).first
     expect(semantic_trigger).to_be_visible()
-    wait_for_tippy_instance(page, semantic_selector)
+    wait_for_automatic_tippy_instance(page, semantic_selector)
     assert semantic_trigger.get_attribute("data-tippy-content") == semantic_tooltip, (
         "Expected the sample semantic title tooltip trigger to keep the multiline tooltip text after the filtered HTMX refresh."
     )
     assert semantic_trigger.evaluate("el => Boolean(el._tippy)"), (
         "Expected the configured semantic title tooltip to regain its Tippy instance after HTMX refreshed the filtered results."
     )
+    lifecycle = page.evaluate(
+        """
+        (selector) => {
+            const record = window.__powercrudTooltipLifecycle;
+            const replacement = document.querySelector(selector);
+            return {
+                beforeSwapObserved: record.beforeSwapObserved,
+                destroyedDuringBeforeSwap: record.destroyedDuringBeforeSwap,
+                triggerConnectedDuringBeforeSwap: record.triggerConnectedDuringBeforeSwap,
+                popperDisconnectedDuringBeforeSwap: record.popperDisconnectedDuringBeforeSwap,
+                oldTriggerDisconnected: !record.oldTrigger.isConnected,
+                oldInstanceDestroyed: record.oldInstance.state.isDestroyed === true,
+                oldPopperDisconnected: !record.oldPopper.isConnected,
+                replacementIsFresh: replacement !== record.oldTrigger,
+                replacementInstanceIsFresh: replacement._tippy !== record.oldInstance,
+                replacementInstanceAlive: replacement._tippy.state.isDestroyed === false,
+            };
+        }
+        """,
+        semantic_selector,
+    )
+    assert lifecycle == {
+        "beforeSwapObserved": True,
+        "destroyedDuringBeforeSwap": True,
+        "triggerConnectedDuringBeforeSwap": True,
+        "popperDisconnectedDuringBeforeSwap": True,
+        "oldTriggerDisconnected": True,
+        "oldInstanceDestroyed": True,
+        "oldPopperDisconnected": True,
+        "replacementIsFresh": True,
+        "replacementInstanceIsFresh": True,
+        "replacementInstanceAlive": True,
+    }, "Expected HTMX replacement to destroy the prior Tippy instance before installing one fresh instance."
+    semantic_trigger.hover()
+    expect(
+        page.locator("[data-tippy-root] .tippy-content", has_text=semantic_tooltip)
+    ).to_have_count(1)
+
+
+test_semantic_list_cell_tooltips_reinitialize_after_htmx_refresh = (
+    pytest.mark.playwright_smoke(
+        test_semantic_list_cell_tooltips_reinitialize_after_htmx_refresh
+    )
+)
 
 
 def test_semantic_list_cell_tooltips_preserve_multiline_text(
@@ -488,32 +732,7 @@ def test_lazy_semantic_list_cell_tooltip_does_not_replay_after_pointer_leaves(
         "td[data-field-name='pages'] "
         "[data-powercrud-tooltip='semantic-cell'][data-powercrud-tooltip-mode='lazy']"
     )
-    page.add_init_script(
-        """
-        window.__powercrudLazyTooltipText = '';
-        window.__powercrudLazyTooltipFetchStarted = false;
-        window.__powercrudResolveLazyTooltipFetch = null;
-        const originalFetch = window.fetch.bind(window);
-        window.fetch = (input, init) => {
-            const url = typeof input === 'string' ? input : (input?.url || '');
-            if (!url.includes('/cell-tooltip/pages/')) {
-                return originalFetch(input, init);
-            }
-            window.__powercrudLazyTooltipFetchStarted = true;
-            return new Promise((resolve) => {
-                window.__powercrudResolveLazyTooltipFetch = () => {
-                    resolve(new Response(
-                        JSON.stringify({ tooltip: window.__powercrudLazyTooltipText }),
-                        {
-                            status: 200,
-                            headers: { 'Content-Type': 'application/json' },
-                        },
-                    ));
-                };
-            });
-        };
-        """
-    )
+    install_deferred_lazy_tooltip_fetch(page)
     page.set_viewport_size({"width": 900, "height": 900})
     page.goto(books_url)
     page.wait_for_load_state("networkidle")
@@ -543,6 +762,98 @@ def test_lazy_semantic_list_cell_tooltip_does_not_replay_after_pointer_leaves(
         arg={"selector": lazy_selector, "expected": expected_tooltip},
     )
 
+    stale_tooltip = page.locator(
+        "[data-tippy-root] .tippy-content",
+        has_text=expected_tooltip,
+    )
+    expect(stale_tooltip).to_have_count(0)
+
+
+def test_lazy_semantic_list_cell_tooltip_does_not_replay_after_htmx_detaches_trigger(
+    page, books_url, sample_author, sample_books
+):
+    """A delayed lazy response should not revive a tooltip whose source was swapped out."""
+    target_book = sample_books[0]
+    expected_tooltip = f"Detached page count: {target_book.pages}"
+    lazy_selector = (
+        "td[data-field-name='pages'] "
+        "[data-powercrud-tooltip='semantic-cell'][data-powercrud-tooltip-mode='lazy']"
+    )
+    install_deferred_lazy_tooltip_fetch(page)
+    page.set_viewport_size({"width": 900, "height": 900})
+    page.goto(books_url)
+    page.wait_for_load_state("networkidle")
+    page.evaluate(
+        "(tooltip) => { window.__powercrudLazyTooltipText = tooltip; }",
+        expected_tooltip,
+    )
+
+    lazy_trigger = page.locator(lazy_selector).first
+    expect(lazy_trigger).to_be_visible()
+    wait_for_automatic_tippy_instance(page, lazy_selector)
+    page.evaluate(
+        """
+        (selector) => {
+            const trigger = document.querySelector(selector);
+            window.__powercrudDetachedLazyTooltip = {
+                trigger,
+                instance: trigger._tippy,
+            };
+        }
+        """,
+        lazy_selector,
+    )
+    lazy_trigger.hover()
+    page.wait_for_function(
+        "() => window.__powercrudLazyTooltipFetchStarted === true"
+    )
+
+    page.get_by_role("button", name=re.compile("filters", re.I)).click()
+    select_single_value(
+        page=page,
+        container=page.locator("#filter-form"),
+        field_name="author",
+        option_value=str(sample_author.pk),
+    )
+    page.wait_for_function(
+        """
+        () => {
+            const record = window.__powercrudDetachedLazyTooltip;
+            return !record.trigger.isConnected && record.instance.state.isDestroyed === true;
+        }
+        """
+    )
+    replacement_trigger = page.locator(lazy_selector).first
+    expect(replacement_trigger).to_be_visible()
+    wait_for_automatic_tippy_instance(page, lazy_selector)
+
+    page.evaluate("async () => { await window.__powercrudResolveLazyTooltipFetch(); }")
+
+    detached_state = page.evaluate(
+        """
+        (selector) => {
+            const record = window.__powercrudDetachedLazyTooltip;
+            const replacement = document.querySelector(selector);
+            return {
+                oldTriggerDisconnected: !record.trigger.isConnected,
+                oldInstanceDestroyed: record.instance.state.isDestroyed === true,
+                oldStateLoaded: record.trigger.dataset.powercrudTooltipLazyState === 'loaded',
+                replacementIsFresh: replacement !== record.trigger,
+                replacementState: replacement.dataset.powercrudTooltipLazyState || '',
+                replacementContent: replacement.getAttribute('data-tippy-content') || '',
+            };
+        }
+        """,
+        lazy_selector,
+    )
+    assert detached_state == {
+        "oldTriggerDisconnected": True,
+        "oldInstanceDestroyed": True,
+        "oldStateLoaded": False,
+        "replacementIsFresh": True,
+        "replacementState": "",
+        "replacementContent": "",
+    }, "Expected the detached lazy response to leave both the old and replacement triggers unresolved."
     stale_tooltip = page.locator(
         "[data-tippy-root] .tippy-content",
         has_text=expected_tooltip,

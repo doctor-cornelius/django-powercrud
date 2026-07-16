@@ -143,12 +143,41 @@ def test_per_trigger_modal_box_classes_are_restored(page, books_url):
     default_classes = modal_box.get_attribute("data-powercrud-default-modal-box-classes")
     assert default_classes
 
+    modal.evaluate(
+        """
+        element => {
+            const duplicate = element.cloneNode(true);
+            duplicate.dataset.powercrudTestDuplicate = 'true';
+            element.after(duplicate);
+        }
+        """
+    )
+    expect(page.locator("dialog#powercrudBaseModal[data-powercrud-modal]")).to_have_count(2)
+
     page.locator("[data-powercrud-extra-buttons-dropdown='true'] summary").click()
     page.get_by_role("link", name="Home in Modal!").click()
 
+    expect(page.locator("dialog#powercrudBaseModal[data-powercrud-modal]")).to_have_count(1)
     expect(modal).to_be_visible()
     expect(modal.locator("#powercrudModalContent")).to_contain_text("Home")
     expect(modal_box).to_have_class(re.compile(r"\bmax-w-3xl\b"))
+    page.wait_for_load_state("networkidle")
+
+    modal.evaluate(
+        """
+        element => {
+            const duplicate = element.cloneNode(true);
+            duplicate.removeAttribute('open');
+            duplicate.dataset.powercrudTestClosedDuplicate = 'true';
+            element.after(duplicate);
+        }
+        """
+    )
+    expect(page.locator("dialog#powercrudBaseModal[data-powercrud-modal]")).to_have_count(2)
+    page.evaluate("() => window.initPowercrud(document)")
+    expect(page.locator("dialog#powercrudBaseModal[data-powercrud-modal]")).to_have_count(1)
+    expect(modal).to_be_visible()
+    expect(page.locator("[data-powercrud-test-closed-duplicate='true']")).to_have_count(0)
 
     page.keyboard.press("Escape")
     expect(modal).not_to_be_visible()

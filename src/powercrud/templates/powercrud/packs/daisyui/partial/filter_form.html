@@ -1,0 +1,54 @@
+<form id="filter-form" method="get" class="grid gap-x-2 gap-y-0" hx-target="#filtered_results" hx-push-url="true"
+      hx-replace-url="true" hx-headers='{"X-Filter-Sort-Request": "true", "X-Filter-Setting-Request": "true"}'
+      action="{{ request.path }}"
+      data-powercrud-filter-form="true">
+    <div class="hidden" data-powercrud-visible-filters-state>
+        {% for field_name in persisted_optional_filter_names %}
+            <input type="hidden" name="{{ visible_filter_param_name }}" value="{{ field_name }}">
+        {% endfor %}
+    </div>
+    {% for field in visible_filter_fields %}
+    <div class="filter-field form-control w-full min-w-0">
+        <div class="filter-field-shell">
+        <label class="filter-field-label label">
+            <span class="label-text block w-full text-xs font-medium text-base-content/80">{{ field.label }}</span>
+        </label>
+        <div class="filter-field-input">
+            {{ field }}
+        </div>
+            {% if field.name in persisted_optional_filter_names %}
+                <button type="button"
+                        class="filter-field-action btn btn-ghost btn-xs text-error/45 hover:bg-error/10 hover:text-error"
+                        data-powercrud-remove-filter="{{ field.name }}"
+                        aria-label="Remove {{ field.label }} filter"
+                        title="Remove {{ field.label }} filter">
+                    <svg xmlns="http://www.w3.org/2000/svg"
+                         viewBox="0 0 16 16"
+                         fill="none"
+                         stroke="currentColor"
+                         stroke-width="1.75"
+                         stroke-linecap="round"
+                         stroke-linejoin="round"
+                         aria-hidden="true">
+                        <path d="M4 4l8 8M12 4l-8 8"/>
+                    </svg>
+                    <span class="sr-only">Remove {{ field.label }} filter</span>
+                </button>
+            {% else %}
+                <span class="filter-field-action btn btn-ghost btn-xs invisible pointer-events-none"
+                      aria-hidden="true">
+                    <svg xmlns="http://www.w3.org/2000/svg"
+                         viewBox="0 0 16 16"
+                         fill="none"
+                         stroke="currentColor"
+                         stroke-width="1.75"
+                         stroke-linecap="round"
+                         stroke-linejoin="round">
+                        <path d="M4 4l8 8M12 4l-8 8"/>
+                    </svg>
+                </span>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+</form>

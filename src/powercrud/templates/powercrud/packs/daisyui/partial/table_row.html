@@ -1,0 +1,5 @@
+{% if inline_row_display_template_paths %}
+    {% include inline_row_display_template_paths %}
+{% else %}
+    {% include "powercrud/packs/daisyui/partial/inline_row_display.html" %}
+{% endif %}

@@ -1,9 +1,4 @@
 {% load powercrud_partials %}
-
-{% partialdef load_tags %}
-{% load crispy_forms_tags %}
-{% endpartialdef load_tags %}
-
-{%  partialdef crispy_form %}
-{% crispy form %}
-{% endpartialdef crispy_form %}
+{% partialdef load_tags %}{% include "powercrud/packs/daisyui/crispy_partials.html#load_tags" %}{% endpartialdef load_tags %}
+{% partialdef crispy_form %}{% include "powercrud/packs/daisyui/crispy_partials.html#crispy_form" %}{% endpartialdef crispy_form %}
+{% include "powercrud/packs/daisyui/crispy_partials.html" %}

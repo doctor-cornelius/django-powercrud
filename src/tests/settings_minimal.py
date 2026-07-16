@@ -54,6 +54,9 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "powercrud",
     "neapolitan",
+    # Synchronous PowerCRUD integration tests use the sample models, while
+    # optional async apps and POWERCRUD_SETTINGS remain deliberately absent.
+    "sample",
 ]
 
 # IMPORTANT:

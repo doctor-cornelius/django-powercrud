@@ -11,12 +11,14 @@ export function createListColumnsRuntime(context) {
         getObjectListRoot,
         getHtmxInstance,
         initPowercrudTooltips,
-        applyListColumnOptionVisualState,
-        clearListColumnChooserPlacement,
-        positionListColumnChooserPanel,
-        prepareListColumnChooserFloatingPanel,
-        showPreparedFloatingPanel,
-        syncListColumnChooserPlacement,
+        applyListColumnOptionDisabledState,
+        clearListColumnContainerPlacement,
+        cloneListColumnFloatingPanel,
+        focusFirstListColumnOption,
+        positionListColumnFloatingPanel,
+        prepareListColumnFloatingPanel,
+        showListColumnFloatingPanel,
+        syncListColumnContainerPlacement,
     } = context;
 
     const LIST_COLUMNS_FLOATING_SELECTOR = '[data-powercrud-list-columns-floating-panel="true"]';
@@ -93,7 +95,7 @@ export function createListColumnsRuntime(context) {
             checkbox.setAttribute('aria-disabled', isLastChecked ? 'true' : 'false');
             checkbox.dataset.powercrudLastVisibleColumn = isLastChecked ? 'true' : 'false';
             const option = checkbox.closest('[data-powercrud-list-column-option="true"]');
-            applyListColumnOptionVisualState?.(option, isLastChecked);
+            applyListColumnOptionDisabledState?.(option, isLastChecked);
         });
     }
 
@@ -120,7 +122,7 @@ export function createListColumnsRuntime(context) {
 
         if (activeContainer instanceof HTMLDetailsElement) {
             activeContainer.open = false;
-            clearListColumnChooserPlacement?.(activeContainer);
+            clearListColumnContainerPlacement?.(activeContainer);
         }
         if (activeTrigger instanceof HTMLElement) {
             activeTrigger.setAttribute('aria-expanded', 'false');
@@ -137,7 +139,7 @@ export function createListColumnsRuntime(context) {
     function syncListColumnChoosers(root = documentObject) {
         queryAllWithSelf(root, LIST_COLUMNS_SELECTOR).forEach(container => {
             syncListColumnChooser(container);
-            syncListColumnChooserPlacement(container);
+            syncListColumnContainerPlacement?.(container);
         });
     }
 
@@ -154,13 +156,6 @@ export function createListColumnsRuntime(context) {
         syncListColumnChooser(container);
     }
 
-    function focusFirstListColumnCheckbox(container) {
-        const firstCheckbox = getListColumnCheckboxes(container)[0];
-        if (firstCheckbox instanceof HTMLInputElement) {
-            global.setTimeout(() => firstCheckbox.focus(), 0);
-        }
-    }
-
     function openListColumnChooser(container) {
         if (!(container instanceof HTMLDetailsElement)) {
             return;
@@ -174,13 +169,17 @@ export function createListColumnsRuntime(context) {
 
         closeActiveListColumnChooser();
 
-        const panel = template.firstElementChild?.cloneNode(true);
+        const panel = cloneListColumnFloatingPanel?.(template);
         if (!(panel instanceof HTMLElement)) {
             return;
         }
 
         ensureListColumnContainerId(container);
-        prepareListColumnChooserFloatingPanel?.(panel, container);
+        // These association hooks are stable core identity used to recover the
+        // source chooser from interactions inside its detached presentation.
+        panel.dataset.powercrudListColumnsFloatingPanel = 'true';
+        panel.dataset.powercrudListColumnsDomId = container.id || '';
+        prepareListColumnFloatingPanel?.(panel);
 
         documentObject.body.appendChild(panel);
 
@@ -190,14 +189,14 @@ export function createListColumnsRuntime(context) {
         }
         initPowercrudTooltips?.(panel);
         syncListColumnChooser(panel);
-        positionListColumnChooserPanel?.(panel, trigger);
-        showPreparedFloatingPanel?.(panel);
+        positionListColumnFloatingPanel?.(panel, trigger);
+        showListColumnFloatingPanel?.(panel);
         trigger.setAttribute('aria-expanded', 'true');
 
         activePanel = panel;
         activeContainer = container;
         activeTrigger = trigger;
-        focusFirstListColumnCheckbox(panel);
+        focusFirstListColumnOption?.(panel, LIST_COLUMN_CHECKBOX_SELECTOR);
     }
 
     function closeListColumnChoosers(scope = documentObject, focusTrigger = false) {
@@ -208,7 +207,7 @@ export function createListColumnsRuntime(context) {
             }
             container.open = false;
             resetListColumnChooserDraft(container);
-            clearListColumnChooserPlacement?.(container);
+            clearListColumnContainerPlacement?.(container);
             const trigger = getListColumnTrigger(container);
             if (trigger instanceof HTMLElement) {
                 trigger.setAttribute('aria-expanded', 'false');
@@ -288,7 +287,7 @@ export function createListColumnsRuntime(context) {
         if (activeContainer === chooser) {
             closeActiveListColumnChooser();
         } else {
-            clearListColumnChooserPlacement?.(chooser);
+            clearListColumnContainerPlacement?.(chooser);
             resetListColumnChooserDraft(chooser);
             const trigger = getListColumnTrigger(chooser);
             trigger?.setAttribute('aria-expanded', 'false');

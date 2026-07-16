@@ -1,0 +1,7 @@
+<div class="card bg-base-100 shadow-xl">
+    {% if delete_content_template_paths %}
+        {% include delete_content_template_paths %}
+    {% else %}
+        {% include "powercrud/packs/daisyui/partial/delete_content.html" %}
+    {% endif %}
+</div>
