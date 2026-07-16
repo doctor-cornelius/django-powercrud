@@ -1,35 +1,5 @@
-{% extends base_template_path %}
-{% load powercrud %}
 {% load powercrud_partials %}
-
-{% block content %}
-    {% partial pcrud_content %}
-{% endblock %}
-
-{% partialdef pcrud_content %}
-    {% if conflict_detected %}
-        <div class="card bg-base-100 shadow-xl">
-            {% partial conflict_detected %}
-        </div>
-    {% elif delete_shell_template_paths %}
-        {% include delete_shell_template_paths %}
-    {% else %}
-        {% include "powercrud/daisyUI/partial/delete_shell.html" %}
-    {% endif %}
-{% endpartialdef pcrud_content %}
-
-{% partialdef conflict_detected %}
-{% if delete_conflict_template_paths %}
-    {% include delete_conflict_template_paths %}
-{% else %}
-    {% include "powercrud/daisyUI/partial/delete_conflict.html" %}
-{% endif %}
-{% endpartialdef conflict_detected %}
-
-{% partialdef normal_content %}
-{% if delete_content_template_paths %}
-    {% include delete_content_template_paths %}
-{% else %}
-    {% include "powercrud/daisyUI/partial/delete_content.html" %}
-{% endif %}
-{% endpartialdef normal_content %}
+{% partialdef pcrud_content %}{% include "powercrud/packs/daisyui/object_confirm_delete.html#pcrud_content" %}{% endpartialdef pcrud_content %}
+{% partialdef conflict_detected %}{% include "powercrud/packs/daisyui/object_confirm_delete.html#conflict_detected" %}{% endpartialdef conflict_detected %}
+{% partialdef normal_content %}{% include "powercrud/packs/daisyui/object_confirm_delete.html#normal_content" %}{% endpartialdef normal_content %}
+{% include "powercrud/packs/daisyui/object_confirm_delete.html" %}

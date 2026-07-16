@@ -1011,16 +1011,12 @@ def test_mktemplate_app_all_copies_complete_framework_tree(
         mktemplate_cmd.apps, "get_app_config", lambda _: fake_app_config
     )
     command = mktemplate_cmd.Command()
-    source_dir = (
-        Path(mktemplate_cmd.__file__).resolve().parents[2]
-        / "templates"
-        / command.template_prefix
-    )
+    source_dir = command.get_template_source_dir()
     target_dir = (
         tmp_path
         / "templates"
         / "fake_app"
-        / Path(command.template_prefix).name
+        / mktemplate_cmd.get_template_pack_copy_destination()
     )
     target_dir.mkdir(parents=True)
     retained_file = target_dir / "application_only.html"

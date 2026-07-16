@@ -25,7 +25,6 @@ from django.utils.html import conditional_escape
 from django.utils.safestring import mark_safe
 from django.utils.translation import gettext_lazy as _
 
-from powercrud.conf import get_powercrud_setting
 from powercrud.cell_tooltips import (
     normalize_list_cell_tooltip_specs,
     resolve_list_cell_tooltip,
@@ -44,10 +43,26 @@ from powercrud.row_actions import (
     resolve_extra_action_hidden_state as _resolve_extra_action_hidden_state,
     resolve_extra_action_permission_state as _resolve_extra_action_permission_state,
 )
+from powercrud.template_packs import (
+    get_template_pack_styles,
+    get_template_pack_template_namespace,
+)
 
 log = get_logger(__name__)
 
 register = template.Library()
+
+
+class _SelectedPackTemplateNames:
+    """Provide a render-time inclusion-tag candidate for the active namespace."""
+
+    def __init__(self, relative_template_name: str):
+        """Store the pack-relative template path without resolving settings."""
+        self.relative_template_name = relative_template_name
+
+    def __iter__(self):
+        """Yield the selected-pack template candidate for the current render."""
+        yield f"{get_template_pack_template_namespace()}/{self.relative_template_name}"
 
 STANDARD_ACTION_ICONS = {
     "View": (
@@ -516,8 +531,7 @@ def _resolve_list_cell_modal_metadata(
     if not use_htmx() or not use_modal_enabled():
         return {}
 
-    framework = get_powercrud_setting("POWERCRUD_CSS_FRAMEWORK")
-    styles = view.get_framework_styles()[framework]
+    styles = get_template_pack_styles(view.get_framework_styles())
     target = _resolve_view_option(
         view,
         method_name="get_modal_target",
@@ -719,8 +733,9 @@ def _get_focused_component_template_paths(
     resolver = getattr(view, "get_focused_component_template_paths", None)
     if callable(resolver):
         return resolver(component_name)
-    framework = get_powercrud_setting("POWERCRUD_CSS_FRAMEWORK")
-    return [f"powercrud/{framework}/partial/{component_name}.html"]
+    return [
+        f"{get_template_pack_template_namespace()}/partial/{component_name}.html"
+    ]
 
 
 def _render_row_actions(view: Any, context: dict[str, Any]) -> str:
@@ -745,8 +760,7 @@ def _resolve_row_action_context(view: Any, object: Any) -> dict[str, Any]:
     Returns:
         dict: Resolved action metadata ready for template rendering.
     """
-    framework: str = get_powercrud_setting("POWERCRUD_CSS_FRAMEWORK")
-    styles: Dict[str, Any] = view.get_framework_styles()[framework]
+    styles: Dict[str, Any] = get_template_pack_styles(view.get_framework_styles())
     action_button_classes = view.get_action_button_classes()
 
     prefix: str = view.get_prefix()
@@ -1028,9 +1042,7 @@ def action_links(view: Any, object: Any) -> str:
     return _render_row_actions(view, _resolve_row_action_context(view, object))
 
 
-@register.inclusion_tag(
-    f"powercrud/{get_powercrud_setting('POWERCRUD_CSS_FRAMEWORK')}/partial/detail.html"
-)
+@register.inclusion_tag(_SelectedPackTemplateNames("partial/detail.html"))
 def object_detail(object, view):
     """
     Display both fields and properties for an object detail view.
@@ -1060,8 +1072,7 @@ def object_detail(object, view):
             yield (name, value)
 
     global_content_path = (
-        f"powercrud/{get_powercrud_setting('POWERCRUD_CSS_FRAMEWORK')}"
-        "/partial/detail_content.html"
+        f"{get_template_pack_template_namespace()}/partial/detail_content.html"
     )
     component_paths_getter = getattr(
         view, "get_focused_component_template_paths", None
@@ -1081,8 +1092,7 @@ def object_detail(object, view):
 
 
 @register.inclusion_tag(
-    f"powercrud/{get_powercrud_setting('POWERCRUD_CSS_FRAMEWORK')}/partial/list.html",
-    takes_context=True,
+    _SelectedPackTemplateNames("partial/list.html"), takes_context=True
 )
 def object_list(context, objects, view):
     """
@@ -1638,8 +1648,7 @@ def extra_buttons(context: Dict[str, Any], view: Any) -> str:
     Returns:
         str: HTML string of extra buttons
     """
-    framework: str = get_powercrud_setting("POWERCRUD_CSS_FRAMEWORK")
-    styles: Dict[str, Any] = view.get_framework_styles()[framework]
+    styles: Dict[str, Any] = get_template_pack_styles(view.get_framework_styles())
 
     use_htmx: bool = view.get_use_htmx()
     use_modal: bool = view.get_use_modal()

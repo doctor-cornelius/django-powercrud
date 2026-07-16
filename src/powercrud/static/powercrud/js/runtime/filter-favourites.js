@@ -21,13 +21,15 @@ export function createFilterFavouritesRuntime(context) {
         global,
         documentObject,
         getHtmxInstance,
-        initPowercrudSearchableSelects,
-        initPowercrudTooltips,
-        prepareFilterFavouritesFloatingPanel,
-        positionFilterFavouritesPanel,
-        setFilterFavouritesDropdownOpen,
-        showPreparedFloatingPanel,
-        syncFilterFavouritesTriggerPresentation,
+        destroyPowercrudTooltips,
+        schedulePowercrudTooltipRefresh,
+        cloneFavouritesFloatingPanel,
+        initialiseFavouritesFloatingPanel,
+        positionFavouritesFloatingPanel,
+        prepareFavouritesFloatingPanel,
+        setFavouritesDropdownOpen,
+        showFavouritesFloatingPanel,
+        syncFavouritesTriggerVisualState,
         getListViewStateApi,
         isInlineEditRequest,
     } = context;
@@ -141,16 +143,31 @@ export function createFilterFavouritesRuntime(context) {
             && selectedFavouriteId
             && isSelectedFilterFavouriteDirty(root, toolbar, selectedFavouriteId)
         );
-        // The selected/dirty semantics are core; the icon, colour, label, and
-        // tooltip treatment remain current-template presentation callbacks.
-        syncFilterFavouritesTriggerPresentation?.({
-            toolbar,
-            trigger,
-            triggerLabel,
-            selectedLabel,
-            defaultLabel,
-            isDirty,
-        });
+        const displayLabel = selectedLabel && isDirty
+            ? `${selectedLabel} (edited)`
+            : selectedLabel;
+        triggerLabel.textContent = displayLabel || defaultLabel;
+
+        if (trigger instanceof HTMLElement) {
+            destroyPowercrudTooltips?.(trigger);
+            trigger.dataset.powercrudFilterFavouritesSelected = selectedLabel ? 'true' : 'false';
+            trigger.dataset.powercrudFilterFavouritesDirty = isDirty ? 'true' : 'false';
+            trigger.setAttribute(
+                'aria-label',
+                selectedLabel ? `Saved favourite: ${displayLabel}` : defaultLabel,
+            );
+            trigger.setAttribute('data-powercrud-tooltip', 'semantic');
+            trigger.setAttribute('data-tippy-content', displayLabel || defaultLabel);
+            syncFavouritesTriggerVisualState?.({
+                trigger,
+                selectedLabel,
+                isDirty,
+            });
+        }
+
+        if (selectedLabel) {
+            schedulePowercrudTooltipRefresh?.(toolbar);
+        }
     }
 
     function getSelectedFavouriteOption(selectElement) {
@@ -305,7 +322,7 @@ export function createFilterFavouritesRuntime(context) {
                 && toolbar === exceptToolbar
                 && activeFilterFavouritesPanel instanceof HTMLElement
             );
-            setFilterFavouritesDropdownOpen?.(toolbar, shouldRemainOpen);
+            setFavouritesDropdownOpen?.(toolbar, shouldRemainOpen);
         });
 
         if (exceptToolbar instanceof Element && activeFilterFavouritesTrigger instanceof HTMLElement) {
@@ -995,14 +1012,16 @@ export function createFilterFavouritesRuntime(context) {
 
         closeFilterFavouritesDropdowns();
 
-        const panelShell = template.firstElementChild?.cloneNode(true);
+        const panelShell = cloneFavouritesFloatingPanel?.(template);
         if (!(panelShell instanceof HTMLElement)) {
             return;
         }
 
-        // Panel geometry and HTMX processing are adapter work; favourite state
-        // is synced before the cloned panel is shown.
-        prepareFilterFavouritesFloatingPanel?.(panelShell, toolbar);
+        // These stable association hooks let core resolve detached events back
+        // to the source toolbar and therefore remain outside presentation.
+        panelShell.dataset.powercrudFilterFavouritesFloatingPanel = 'true';
+        panelShell.dataset.powercrudToolbarDomId = toolbar.id || '';
+        prepareFavouritesFloatingPanel?.(panelShell);
 
         const panel = panelShell.querySelector('[data-powercrud-filter-favourites-panel="true"]');
         if (!(panel instanceof HTMLElement)) {
@@ -1017,11 +1036,10 @@ export function createFilterFavouritesRuntime(context) {
         if (global.htmx?.process) {
             global.htmx.process(panelShell);
         }
-        initPowercrudSearchableSelects(panelShell);
-        initPowercrudTooltips(panelShell);
-        positionFilterFavouritesPanel?.(panelShell, trigger);
-        showPreparedFloatingPanel?.(panelShell);
-        setFilterFavouritesDropdownOpen?.(toolbar, true);
+        initialiseFavouritesFloatingPanel?.(panelShell);
+        positionFavouritesFloatingPanel?.(panelShell, trigger);
+        showFavouritesFloatingPanel?.(panelShell);
+        setFavouritesDropdownOpen?.(toolbar, true);
         trigger.setAttribute('aria-expanded', 'true');
         activeFilterFavouritesPanel = panelShell;
         activeFilterFavouritesTrigger = trigger;

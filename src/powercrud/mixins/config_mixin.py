@@ -14,7 +14,7 @@ from ..powerfields import compile_powerfields
 from ..row_actions import is_lazy_row_action_state_action
 from ..validators import DEFAULT_PAGINATE_BY, PowerCRUDMixinValidator
 
-from powercrud.conf import get_powercrud_setting
+from powercrud.template_packs import get_template_pack_template_namespace
 from powercrud.logging import get_logger
 
 log = get_logger(__name__)
@@ -98,9 +98,7 @@ class ConfigMixin:
     namespace: str | None = None
 
     # template parameters
-    templates_path: str = (
-        f"powercrud/{get_powercrud_setting('POWERCRUD_CSS_FRAMEWORK')}"
-    )
+    templates_path: str | None = None
     # base_template_path must always be provided by the project; there is no
     # built-in HTML shell. It should point at the app’s real base template.
     base_template_path: str | None = None
@@ -1630,6 +1628,10 @@ class ConfigMixin:
                     value = value.copy()
                 config[attr] = value
 
+        config["templates_path"] = (
+            config.get("templates_path") or get_template_pack_template_namespace()
+        )
+
         # Ensure resolved field lists are captured post-configuration
         config["fields"] = list(getattr(self, "fields", []))
         config["properties"] = list(getattr(self, "properties", []))
@@ -1903,7 +1905,7 @@ class _ConfigShim:
         if name == "templates_path":
             return (
                 self._raw("templates_path")
-                or f"powercrud/{get_powercrud_setting('POWERCRUD_CSS_FRAMEWORK')}"
+                or get_template_pack_template_namespace()
             )
         if name == "inline_edit_always_visible":
             value = self._raw("inline_edit_always_visible")

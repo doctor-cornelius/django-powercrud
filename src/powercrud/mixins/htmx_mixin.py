@@ -13,6 +13,7 @@ from django.template.response import TemplateResponse
 import json
 from neapolitan.views import Role
 from powercrud.logging import get_logger
+from powercrud.packs.daisyui.styles import get_daisyui_framework_styles
 from powercrud.query_params import build_navigation_query_string
 from .config_mixin import resolve_config
 
@@ -32,55 +33,7 @@ class HtmxMixin:
         Returns:
             dict: Framework-specific style configurations
         """
-
-        return {
-            "daisyUI": {
-                # base class for all buttons
-                "base": "btn ",
-                # attributes for filter form fields
-                "filter_attrs": {
-                    "text": {
-                        "class": "input input-bordered input-sm w-full text-xs h-10 min-h-10"
-                    },
-                    "select": {
-                        "class": "select select-bordered select-sm w-full text-xs h-10 min-h-10"
-                    },
-                    "multiselect": {
-                        "class": "select select-bordered select-sm w-full text-xs",
-                        "size": "5",
-                        "style": "min-height: 8rem; max-height: 8rem; overflow-y: auto;",
-                    },
-                    "date": {
-                        "class": "input input-bordered input-sm w-full text-xs h-10 min-h-10",
-                        "type": "date",
-                    },
-                    "number": {
-                        "class": "input input-bordered input-sm w-full text-xs h-10 min-h-10",
-                        "step": "any",
-                    },
-                    "time": {
-                        "class": "input input-bordered input-sm w-full text-xs h-10 min-h-10",
-                        "type": "time",
-                    },
-                    "default": {
-                        "class": "input input-bordered input-sm w-full text-xs h-10 min-h-10"
-                    },
-                },
-                # set colours for the action buttons
-                "actions": {
-                    "View": "btn-info",
-                    "Edit": "btn-primary",
-                    "Delete": "btn-error",
-                },
-                # default colour for extra action buttons
-                "extra_default": "btn-accent",
-                # modal class attributes
-                "modal_attrs": (
-                    'data-powercrud-modal-trigger="true" '
-                    f"onclick=\"document.getElementById('{self.get_modal_id()[1:]}').showModal()\""
-                ),
-            },
-        }
+        return get_daisyui_framework_styles(self)
 
     def get_original_target(self):
         """
@@ -312,7 +265,7 @@ class HtmxMixin:
         if self.request.htmx:
             if self.request.headers.get("X-Redisplay-Object-List"):
                 # Use object_list template
-                object_list_template = f"{self.templates_path}/object_list.html"
+                object_list_template = f"{resolve_config(self).templates_path}/object_list.html"
 
                 if self.request.headers.get("X-Filter-Sort-Request"):
                     template_name = f"{object_list_template}#filtered_results"

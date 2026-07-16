@@ -501,10 +501,10 @@ def test_unsaved_filter_state_does_not_restore_after_shell_return(
     )
 
 
-def test_unsaved_optional_filter_visibility_does_not_restore_after_shell_return(
+def test_filter_panel_refresh_state_is_cleared_on_shell_return(
     page, books_url
 ):
-    """Temporary optional filter fields should not be replayed on return."""
+    """A list-refresh panel state must not survive an unrelated shell return."""
 
     install_htmx_init_script(page)
     page.goto(books_url)
@@ -681,19 +681,63 @@ def test_toolbar_transient_dropdowns_are_mutually_exclusive(
     expect(filter_panel).not_to_have_class(re.compile(r"\bhidden\b"))
 
     open_favourites_dropdown(page)
-    expect(page.locator("[data-powercrud-filter-favourites-floating-panel='true']")).to_have_count(1)
+    favourites_panel = page.locator(
+        "[data-powercrud-filter-favourites-floating-panel='true']"
+    )
+    favourites_trigger = page.locator(
+        "[data-powercrud-filter-favourites-trigger='true']:visible"
+    ).first
+    favourites_toolbar = page.locator(
+        "[data-powercrud-filter-favourites-toolbar='true']:has("
+        "[data-powercrud-filter-favourites-trigger='true'])"
+    ).first
+    expect(favourites_panel).to_have_count(1)
+    assert favourites_panel.evaluate("element => element.parentElement === document.body"), (
+        "The favourites shell should be detached directly under the document body."
+    )
+    assert favourites_panel.evaluate("element => getComputedStyle(element).position") == "fixed", (
+        "The detached favourites shell should use fixed viewport positioning."
+    )
+    panel_box = favourites_panel.bounding_box()
+    viewport = page.viewport_size
+    assert panel_box is not None and viewport is not None, (
+        "The visible favourites panel and browser viewport should expose geometry."
+    )
+    assert panel_box["x"] >= -2 and panel_box["y"] >= -2, (
+        "The favourites panel should not overflow the viewport's top or left edge."
+    )
+    assert panel_box["x"] + panel_box["width"] <= viewport["width"] + 2, (
+        "The favourites panel should not overflow the viewport's right edge."
+    )
+    assert panel_box["y"] + panel_box["height"] <= viewport["height"] + 2, (
+        "The favourites panel should not overflow the viewport's bottom edge."
+    )
+    expect(favourites_trigger).to_have_attribute("aria-expanded", "true")
+    expect(favourites_toolbar).to_have_class(re.compile(r"\bdropdown-open\b"))
 
     column_panel = open_column_chooser(page)
-    expect(page.locator("[data-powercrud-filter-favourites-floating-panel='true']")).to_have_count(0)
+    expect(favourites_panel).to_have_count(0)
+    expect(favourites_trigger).to_have_attribute("aria-expanded", "false")
+    expect(favourites_toolbar).not_to_have_class(re.compile(r"\bdropdown-open\b"))
     expect(column_panel).to_be_visible()
     expect(filter_panel).not_to_have_class(re.compile(r"\bhidden\b"))
 
     open_favourites_dropdown(page)
     expect(page.locator("[data-powercrud-list-columns-floating-panel='true']")).to_have_count(0)
-    expect(page.locator("[data-powercrud-filter-favourites-floating-panel='true']")).to_have_count(1)
+    expect(favourites_panel).to_have_count(1)
+
+    page.keyboard.press("Escape")
+    expect(favourites_panel).to_have_count(0)
+    expect(favourites_trigger).to_have_attribute("aria-expanded", "false")
+    expect(favourites_toolbar).not_to_have_class(re.compile(r"\bdropdown-open\b"))
+
+    open_favourites_dropdown(page)
+    expect(favourites_panel).to_have_count(1)
 
     page.locator("#page-size-select").click(force=True)
-    expect(page.locator("[data-powercrud-filter-favourites-floating-panel='true']")).to_have_count(0)
+    expect(favourites_panel).to_have_count(0)
+    expect(favourites_trigger).to_have_attribute("aria-expanded", "false")
+    expect(favourites_toolbar).not_to_have_class(re.compile(r"\bdropdown-open\b"))
     expect(filter_panel).not_to_have_class(re.compile(r"\bhidden\b"))
 
     column_panel = open_column_chooser(page)
@@ -815,6 +859,10 @@ def test_changing_favourite_populated_filter_applies_immediately(
 
     expect(page.locator("#filtered_results")).to_contain_text(replacement_book.title)
     expect(page.locator("#filtered_results")).not_to_contain_text(target_book.title)
+    expect_filters_panel_open_after_repeated_init(page)
+    expect(
+        page.locator("[data-powercrud-add-filter-container]")
+    ).not_to_have_class(re.compile(r"\bhidden\b"))
     assert parse_qs(urlparse(page.url).query).get("title") == [replacement_book.title], (
         "The filter form should push the edited title into browser history after the HTMX refresh."
     )
@@ -1205,6 +1253,16 @@ def test_updating_dirty_selected_favourite_refreshes_heart_state(
     expect(trigger).to_have_attribute("data-powercrud-filter-favourites-selected", "true")
     expect(trigger).to_have_attribute("data-powercrud-filter-favourites-dirty", "true")
     expect(trigger).to_have_attribute("data-tippy-content", "Clean my heart (edited)")
+    filled_icon = trigger.locator(
+        "[data-powercrud-filter-favourites-icon-filled='true']"
+    )
+    outline_icon = trigger.locator(
+        "[data-powercrud-filter-favourites-icon-outline='true']"
+    )
+    expect(filled_icon).not_to_have_class(re.compile(r"\bhidden\b"))
+    expect(filled_icon).to_have_class(re.compile(r"\btext-warning\b"))
+    expect(filled_icon).not_to_have_class(re.compile(r"\btext-primary\b"))
+    expect(outline_icon).to_have_class(re.compile(r"\bhidden\b"))
 
     open_favourites_dropdown(page)
     panel = get_open_favourites_panel(page)
@@ -1223,6 +1281,16 @@ def test_updating_dirty_selected_favourite_refreshes_heart_state(
     expect(trigger).to_have_attribute("data-powercrud-filter-favourites-selected", "true")
     expect(trigger).to_have_attribute("data-powercrud-filter-favourites-dirty", "false")
     expect(trigger).to_have_attribute("data-tippy-content", "Clean my heart")
+    filled_icon = trigger.locator(
+        "[data-powercrud-filter-favourites-icon-filled='true']"
+    )
+    outline_icon = trigger.locator(
+        "[data-powercrud-filter-favourites-icon-outline='true']"
+    )
+    expect(filled_icon).not_to_have_class(re.compile(r"\bhidden\b"))
+    expect(filled_icon).to_have_class(re.compile(r"\btext-primary\b"))
+    expect(filled_icon).not_to_have_class(re.compile(r"\btext-warning\b"))
+    expect(outline_icon).to_have_class(re.compile(r"\bhidden\b"))
     dirty_after_update = page.evaluate(
         "(dirtyKey) => window.sessionStorage.getItem(dirtyKey)",
         DIRTY_FAVOURITE_STORAGE_KEY,
@@ -1288,7 +1356,20 @@ def test_filter_favourite_can_be_saved_inline_without_opening_modal(
         "Expected inline favourites save to persist a saved favourite instead of failing CSRF validation."
     )
 
+    source_template = page.locator(
+        "[data-powercrud-filter-favourites-template='true']"
+    )
+    expect(
+        source_template.locator("option", has_text="Inline saved favourite")
+    ).to_have_count(1)
+    expect(source_template.locator(".ts-wrapper")).to_have_count(0)
+
     open_favourites_dropdown(page)
+    reopened_panel = get_open_favourites_panel(page)
+    expect(
+        reopened_panel.locator("option", has_text="Inline saved favourite")
+    ).to_have_count(1)
+    expect(reopened_panel.locator(".ts-wrapper")).to_have_count(1)
     click_saved_favourite(page, "Existing favourite")
     page.wait_for_load_state("networkidle")
 
@@ -2019,7 +2100,7 @@ def test_stale_dirty_remembered_favourite_auto_applies_after_shell_return(
     )
     target_book = sample_books[0]
     other_book = sample_books[1]
-    favourite = SavedFilterFavourite.objects.create(
+    SavedFilterFavourite.objects.create(
         user=user,
         view_key=BOOK_VIEW_KEY,
         name="Stale dirty shell trip",

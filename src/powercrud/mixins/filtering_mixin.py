@@ -15,8 +15,8 @@ from django_filters import (
 from django.db import models
 from django.utils.text import capfirst
 
-from powercrud.conf import get_powercrud_setting
 from powercrud.logging import get_logger
+from powercrud.template_packs import get_template_pack_styles
 from .config_mixin import ConfigMixin, resolve_config
 from .form_mixin import is_boolean_like_select_field
 
@@ -282,8 +282,7 @@ class FilteringMixin:
         this helper chooses the same framework attrs from the bound field/widget
         shape directly.
         """
-        framework = get_powercrud_setting("POWERCRUD_CSS_FRAMEWORK")
-        base_attrs = self.get_framework_styles()[framework]["filter_attrs"]
+        base_attrs = get_template_pack_styles(self.get_framework_styles())["filter_attrs"]
         widget = field.widget
 
         if isinstance(widget, forms.SelectMultiple):
@@ -702,8 +701,7 @@ class FilteringMixin:
 
         if filterset_class is None and filterset_fields is not None:
             use_htmx = self.get_use_htmx()
-            framework = get_powercrud_setting("POWERCRUD_CSS_FRAMEWORK")
-            base_attrs = self.get_framework_styles()[framework]["filter_attrs"]
+            base_attrs = get_template_pack_styles(self.get_framework_styles())["filter_attrs"]
             declared_filters = {}
             filter_form_order = []
 

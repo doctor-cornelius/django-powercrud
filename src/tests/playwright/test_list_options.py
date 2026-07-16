@@ -109,12 +109,21 @@ def test_book_list_column_chooser_saves_and_resets_columns(
     panel.locator("input[name='visible_columns'][value='uneditable_field']").check()
     with page.expect_response(re.compile(r"/sample/bigbook/")):
         panel.get_by_role("button", name="Save").click()
+    expect(page.locator("[data-powercrud-list-columns-floating-panel='true']")).to_have_count(0)
     expect(trigger).to_contain_text(re.compile(r"Cols\s+10/13"))
     expect(page.locator("td[data-field-name='genres']").first).to_be_visible()
     expect(page.locator("td[data-field-name='genres']").first).to_contain_text(
         sample_genre.name
     )
     expect(page.locator("td[data-field-name='uneditable_field']").first).to_be_visible()
+
+    panel = open_column_chooser(page)
+    expect(page.locator("[data-powercrud-list-columns-floating-panel='true']")).to_have_count(1)
+    expect(
+        panel.locator("input[name='visible_columns'][value='uneditable_field']")
+    ).to_be_checked()
+    page.keyboard.press("Escape")
+    expect(page.locator("[data-powercrud-list-columns-floating-panel='true']")).to_have_count(0)
 
     page.reload()
     page.wait_for_load_state("networkidle")
@@ -155,10 +164,22 @@ def test_book_list_column_chooser_guards_last_visible_column(
             panel.locator(f"input[name='visible_columns'][value='{value}']").uncheck()
 
     title_checkbox = panel.locator("input[name='visible_columns'][value='title']")
+    title_option = panel.locator(
+        "[data-powercrud-list-column-option='true']:has("
+        "input[name='visible_columns'][value='title'])"
+    )
     expect(title_checkbox).to_be_checked()
     expect(title_checkbox).to_have_attribute("aria-disabled", "true")
+    expect(title_option).to_have_class(re.compile(r"\bcursor-not-allowed\b"))
+    expect(title_option).to_have_class(re.compile(r"\bopacity-70\b"))
     title_checkbox.click(force=True)
     expect(title_checkbox).to_be_checked()
+
+    isbn_checkbox = panel.locator("input[name='visible_columns'][value='isbn']")
+    isbn_checkbox.check()
+    expect(title_checkbox).to_have_attribute("aria-disabled", "false")
+    expect(title_option).not_to_have_class(re.compile(r"\bcursor-not-allowed\b"))
+    expect(title_option).not_to_have_class(re.compile(r"\bopacity-70\b"))
 
 
 def test_book_list_column_chooser_discards_unsaved_draft_on_close(
@@ -169,7 +190,9 @@ def test_book_list_column_chooser_discards_unsaved_draft_on_close(
     page.goto(books_url)
     page.wait_for_load_state("networkidle")
 
+    trigger = page.locator("[data-powercrud-list-columns='true'] summary")
     panel = open_column_chooser(page)
+    expect(panel.locator("input[name='visible_columns']").first).to_be_focused()
     uneditable_checkbox = panel.locator(
         "input[name='visible_columns'][value='uneditable_field']"
     )
@@ -177,7 +200,10 @@ def test_book_list_column_chooser_discards_unsaved_draft_on_close(
     uneditable_checkbox.check()
     expect(uneditable_checkbox).to_be_checked()
 
-    page.locator("[data-powercrud-list-columns='true'] summary").click()
+    page.keyboard.press("Escape")
+    expect(page.locator("[data-powercrud-list-columns-floating-panel='true']")).to_have_count(0)
+    expect(trigger).to_have_attribute("aria-expanded", "false")
+    expect(trigger).to_be_focused()
     panel = open_column_chooser(page)
     expect(
         panel.locator("input[name='visible_columns'][value='uneditable_field']")
@@ -228,6 +254,10 @@ def test_book_list_column_controls_fit_table_or_viewport(
     assert panel_box["x"] >= -2, "Column chooser panel should not spill off the left viewport edge."
     assert panel_box["x"] + panel_box["width"] <= 642, (
         "Column chooser panel should not spill off the right viewport edge."
+    )
+    assert panel_box["y"] >= -2, "Column chooser panel should not spill above the viewport."
+    assert panel_box["y"] + panel_box["height"] <= 722, (
+        "Column chooser panel should not spill below the viewport."
     )
 
     page.get_by_role("button", name=re.compile("filters", re.I)).click()

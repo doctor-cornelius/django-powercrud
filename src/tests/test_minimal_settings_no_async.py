@@ -32,6 +32,17 @@ def test_powercrud_mixin_imports_without_async_stack():
     assert hasattr(mixins_module, "PowerCRUDMixin")
 
 
+def test_builtin_template_pack_resolves_without_powercrud_settings():
+    """The dormant default declaration must not require optional project configuration."""
+    from powercrud.template_packs import get_selected_template_pack
+
+    template_pack = get_selected_template_pack()
+
+    assert template_pack.identity == "daisyui", (
+        "Minimal projects without POWERCRUD_SETTINGS should select the compatible pack."
+    )
+
+
 def _attach_session(request):
     SessionMiddleware(lambda req: None).process_request(request)
     request.session.save()

@@ -26,12 +26,21 @@ def test_row_actions_menu_stays_visible_for_top_and_bottom_rows(
     expect(row_action_triggers).to_have_count(2)
 
     for index in range(2):
-        row_action_triggers.nth(index).dispatch_event("click")
+        trigger = row_action_triggers.nth(index)
+        trigger.dispatch_event("click")
 
         floating_panel = page.locator(
             "[data-powercrud-row-actions-floating-panel='true']"
         )
+        expect(floating_panel).to_have_count(1)
         expect(floating_panel).to_be_visible()
+        expect(trigger).to_have_attribute("aria-expanded", "true")
+        assert floating_panel.evaluate("element => element.parentElement === document.body"), (
+            "Expected the row-actions shell to be cloned directly under the document body."
+        )
+        assert floating_panel.evaluate("element => getComputedStyle(element).position") == "fixed", (
+            "Expected the detached row-actions shell to use fixed viewport positioning."
+        )
         expect(floating_panel).to_contain_text("Normal Edit")
         expect(floating_panel).to_contain_text("Description Preview")
 
@@ -52,6 +61,20 @@ def test_row_actions_menu_stays_visible_for_top_and_bottom_rows(
             "Expected floating row-actions panel to stay inside the bottom of the viewport "
             f"for visible row index {index}, but its bottom was {panel_box['y'] + panel_box['height']} while the viewport height was {viewport['height']}."
         )
+        assert panel_box["x"] >= -1, (
+            "Expected the floating row-actions panel to stay inside the viewport's left edge."
+        )
+        assert panel_box["x"] + panel_box["width"] <= viewport["width"] + 1, (
+            "Expected the floating row-actions panel to stay inside the viewport's right edge."
+        )
+        if index:
+            expect(row_action_triggers.nth(index - 1)).to_have_attribute(
+                "aria-expanded", "false"
+            )
+
+    page.keyboard.press("Escape")
+    expect(page.locator("[data-powercrud-row-actions-floating-panel='true']")).to_have_count(0)
+    expect(row_action_triggers.last).to_have_attribute("aria-expanded", "false")
 
 
 test_row_actions_menu_stays_visible_for_top_and_bottom_rows = pytest.mark.playwright_smoke(
@@ -83,7 +106,7 @@ def test_row_actions_floating_panel_modal_action_uses_cloned_trigger_classes(
     expect(modal.locator("[data-powercrud-modal-box]")).to_have_class(
         re.compile(r"\bmax-w-5xl\b")
     )
-    expect(floating_panel).not_to_be_visible()
+    expect(floating_panel).to_have_count(0)
 
 
 def test_row_actions_menu_hydrates_lazy_disabled_state(
@@ -100,6 +123,22 @@ def test_row_actions_menu_hydrates_lazy_disabled_state(
 
     row = page.get_by_role("row").filter(has_text=target_book.title)
     trigger = row.locator("[data-powercrud-row-actions-trigger='true']").first
+    original_trigger = trigger.evaluate(
+        """
+        element => {
+            window.__powercrudRowActionSpinnerSeen = false;
+            new MutationObserver(() => {
+                if (element.querySelector('.loading-spinner')) {
+                    window.__powercrudRowActionSpinnerSeen = true;
+                }
+            }).observe(element, { childList: true, subtree: true });
+            return {
+                html: element.innerHTML,
+                inlineWidth: element.style.width,
+            };
+        }
+        """
+    )
 
     with page.expect_request(
         lambda request: (
@@ -121,6 +160,17 @@ def test_row_actions_menu_hydrates_lazy_disabled_state(
         "data-tippy-content",
         "This book does not have a description yet.",
     )
+    expect(description_preview).to_have_class(re.compile(r"\bbtn-disabled\b"))
+    expect(description_preview).to_have_class(re.compile(r"\bopacity-50\b"))
+    assert description_preview.evaluate("el => window.getComputedStyle(el).pointerEvents") == "auto"
+    assert description_preview.evaluate("el => window.getComputedStyle(el).cursor") == "not-allowed"
+    description_preview.hover()
+    expect(page.locator("[data-tippy-root]")).to_be_visible()
+    assert page.evaluate("() => window.__powercrudRowActionSpinnerSeen") is True
+    assert trigger.evaluate("el => el.innerHTML") == original_trigger["html"]
+    assert trigger.evaluate("el => el.style.width") == original_trigger["inlineWidth"]
+    expect(trigger).to_be_enabled()
+    expect(trigger).not_to_have_attribute("aria-busy", "true")
 
 
 def test_row_actions_menu_removes_lazy_hidden_action(
@@ -192,22 +242,48 @@ def test_row_actions_flagged_modal_close_refreshes_current_list(
     page.goto(f"{books_url}?page_size=5")
     page.wait_for_load_state("networkidle")
 
-    page.locator("[data-powercrud-row-actions-trigger='true']").first.dispatch_event("click")
-    floating_panel = page.locator("[data-powercrud-row-actions-floating-panel='true']")
-    expect(floating_panel).to_be_visible()
-    floating_panel.get_by_role("link", name="Normal Edit").click()
+    list_refreshes = []
 
-    modal = page.locator("#powercrudBaseModal")
-    expect(modal).to_be_visible()
-    expect(modal.locator("#powercrudModalContent form")).to_be_visible()
-
-    with page.expect_request(
-        lambda request: (
+    def record_list_refresh(request):
+        if (
             request.method == "GET"
             and "/sample/bigbook/" in request.url
             and request.headers.get("x-filter-sort-request") == "true"
-        )
-    ):
-        modal.get_by_label("Close modal").click()
+        ):
+            list_refreshes.append(request.url)
 
-    expect(modal).not_to_be_visible()
+    page.on("request", record_list_refresh)
+
+    for close_count in range(1, 3):
+        page.locator("[data-powercrud-row-actions-trigger='true']").first.dispatch_event("click")
+        floating_panel = page.locator("[data-powercrud-row-actions-floating-panel='true']")
+        expect(floating_panel).to_be_visible()
+        floating_panel.get_by_role("link", name="Normal Edit").click()
+        expect(floating_panel).to_have_count(0)
+
+        modal = page.locator("#powercrudBaseModal")
+        expect(modal).to_be_visible()
+        expect(modal.locator("#powercrudModalContent form")).to_be_visible()
+
+        with page.expect_request(
+            lambda request: (
+                request.method == "GET"
+                and "/sample/bigbook/" in request.url
+                and request.headers.get("x-filter-sort-request") == "true"
+            )
+        ):
+            modal.get_by_label("Close modal").click()
+
+        expect(modal).not_to_be_visible()
+        page.wait_for_load_state("networkidle")
+        expect(page.locator("[data-powercrud-row-actions-floating-panel='true']")).to_have_count(0)
+        fresh_trigger = page.locator(
+            "[data-powercrud-row-actions-trigger='true']"
+        ).first
+        expect(fresh_trigger).to_be_visible()
+        assert fresh_trigger.evaluate("element => element.isConnected"), (
+            "Expected each list refresh to install a fresh connected row-actions trigger."
+        )
+        assert len(list_refreshes) == close_count, (
+            "Expected each flagged modal close to dispatch exactly one list refresh after repeated initialization."
+        )

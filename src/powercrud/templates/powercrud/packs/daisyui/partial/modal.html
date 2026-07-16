@@ -1,0 +1,5 @@
+{% if modal_shell_template_paths %}
+    {% include modal_shell_template_paths %}
+{% else %}
+    {% include "powercrud/packs/daisyui/partial/modal_shell.html" %}
+{% endif %}

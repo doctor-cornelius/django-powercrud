@@ -1,41 +1,5 @@
-{% extends base_template_path %}
-{% load powercrud %}
 {% load powercrud_partials %}
-
-{% if use_crispy %}
-    {% include framework_template_path|add:"/crispy_partials.html#load_tags" %}
-{% endif %}
-
-{% block content %}
-    {% partial pcrud_content %}
-{% endblock %}
-
-{% partialdef pcrud_content %}
-<div class="is-flex is-flex-direction-column m-2 p-2">
-    {% if conflict_detected %}
-        {% partial conflict_detected %}
-    {% else %}
-        {% partial normal_content %}
-    {% endif %}
-</div>
-{% endpartialdef pcrud_content %}
-
-{% partialdef conflict_detected %}
-{% if form_conflict_template_paths %}
-    {% include form_conflict_template_paths %}
-{% else %}
-    {% include "powercrud/daisyUI/partial/form_conflict.html" %}
-{% endif %}
-{% endpartialdef conflict_detected %}
-
-{% partialdef normal_content %}
-{% if form_shell_template_paths %}
-    {% include form_shell_template_paths %}
-{% else %}
-    {% include "powercrud/daisyUI/partial/form_shell.html" %}
-{% endif %}
-{% endpartialdef normal_content %}
-
-{% block extra_js %}
-    {{ block.super }}
-{% endblock %}
+{% partialdef pcrud_content %}{% include "powercrud/packs/daisyui/object_form.html#pcrud_content" %}{% endpartialdef pcrud_content %}
+{% partialdef conflict_detected %}{% include "powercrud/packs/daisyui/object_form.html#conflict_detected" %}{% endpartialdef conflict_detected %}
+{% partialdef normal_content %}{% include "powercrud/packs/daisyui/object_form.html#normal_content" %}{% endpartialdef normal_content %}
+{% include "powercrud/packs/daisyui/object_form.html" %}

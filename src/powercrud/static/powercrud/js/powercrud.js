@@ -20,7 +20,7 @@ import { createFilterFavouritesRuntime } from './runtime/filter-favourites.js';
 import { createListColumnsRuntime } from './runtime/list-columns.js';
 import { createBulkActionsRuntime } from './runtime/bulk-actions.js';
 import { createInlineEditRuntime } from './runtime/inline-edit.js';
-import { createSearchableSelectRuntime } from './runtime/searchable-selects.js';
+import { createDaisyuiComposition } from './runtime/daisyui-composition.js';
 import { createCurrentTemplateRuntime } from './runtime/current-template.js';
 
 (function powercrudRuntime(global) {
@@ -41,6 +41,7 @@ import { createCurrentTemplateRuntime } from './runtime/current-template.js';
 
     const ensureObjectListState = createWeakStateStore(() => ({
         filterRefreshTimer: null,
+        filterPanelRefreshPending: false,
         lastRowSelectionAnchorId: null,
         selectionRequestVersion: 0,
     }));
@@ -78,23 +79,54 @@ import { createCurrentTemplateRuntime } from './runtime/current-template.js';
         });
     }
 
-    const searchableSelects = createSearchableSelectRuntime({
+    const daisyuiComposition = createDaisyuiComposition({
         global,
         documentObject: document,
-        warnMissingDependency,
         isElementVisible,
+        warnMissingDependency,
     });
     const {
         destroyPowercrudSearchableSelects,
         initPowercrudSearchableSelects,
         syncTomSelectValues,
-    } = searchableSelects;
+    } = daisyuiComposition.searchableSelects;
+    const {
+        init: initPowercrudTooltips,
+        hide: hidePowercrudTooltips,
+        destroy: destroyPowercrudTooltips,
+        scheduleInit: schedulePowercrudTooltipRefresh,
+        scheduleResizeInit: schedulePowercrudTooltipResizeRefresh,
+    } = daisyuiComposition.tooltipAdapter;
+    const {
+        modalAdapter,
+        actionSelectionAdapter,
+        inlinePresentationAdapter,
+        listColumnPresentationAdapter,
+        filterFavouritesPresentationAdapter,
+        rowActionMenuPresentationAdapter,
+    } = daisyuiComposition;
+    const {
+        startButtonSpinner,
+        startFormSpinner,
+        stopButtonSpinner,
+        stopFormSpinner,
+    } = actionSelectionAdapter;
 
     const currentTemplate = createCurrentTemplateRuntime({
         global,
         documentObject: document,
-        warnMissingDependency,
         getHtmxInstance,
+        initPowercrudTooltips,
+        applyPowercrudModalTriggerClasses: modalAdapter.applyTriggerClasses,
+        cleanupDuplicatePowercrudModals: modalAdapter.cleanupDuplicates,
+        closeAllPowercrudModals: modalAdapter.closeAll,
+        setRowActionLinkDisabled: actionSelectionAdapter.setRowActionDisabledPresentation,
+        startButtonSpinner,
+        stopButtonSpinner,
+        cloneRowActionFloatingMenu: rowActionMenuPresentationAdapter.cloneFloatingMenu,
+        positionRowActionFloatingMenu: rowActionMenuPresentationAdapter.positionFloatingMenu,
+        prepareRowActionFloatingMenu: rowActionMenuPresentationAdapter.prepareFloatingMenu,
+        showRowActionFloatingMenu: rowActionMenuPresentationAdapter.showFloatingMenu,
         requestModalCloseListRefresh(root) {
             if (root instanceof Element) {
                 bulkActions.refreshTable(root);
@@ -105,16 +137,7 @@ import { createCurrentTemplateRuntime } from './runtime/current-template.js';
         applyPowercrudModalClasses,
         cleanupDuplicatePowercrudModals,
         closeRowActionsMenu,
-        destroyPowercrudTooltips,
         handleModalTriggerBeforeRequest,
-        hidePowercrudTooltips,
-        initPowercrudTooltips,
-        schedulePowercrudTooltipRefresh,
-        schedulePowercrudTooltipResizeRefresh,
-        startButtonSpinner,
-        startFormSpinner,
-        stopButtonSpinner,
-        stopFormSpinner,
         syncListToolbarWidth,
         syncListToolbarWidths,
         toggleRowActionsMenu,
@@ -126,12 +149,14 @@ import { createCurrentTemplateRuntime } from './runtime/current-template.js';
         getObjectListRoot,
         getHtmxInstance,
         initPowercrudTooltips,
-        applyListColumnOptionVisualState: currentTemplate.applyListColumnOptionVisualState,
-        clearListColumnChooserPlacement: currentTemplate.clearListColumnChooserPlacement,
-        positionListColumnChooserPanel: currentTemplate.positionListColumnChooserPanel,
-        prepareListColumnChooserFloatingPanel: currentTemplate.prepareListColumnChooserFloatingPanel,
-        showPreparedFloatingPanel: currentTemplate.showPreparedFloatingPanel,
-        syncListColumnChooserPlacement: currentTemplate.syncListColumnChooserPlacement,
+        applyListColumnOptionDisabledState: listColumnPresentationAdapter.applyOptionDisabledState,
+        clearListColumnContainerPlacement: listColumnPresentationAdapter.clearContainerPlacement,
+        cloneListColumnFloatingPanel: listColumnPresentationAdapter.cloneFloatingPanel,
+        focusFirstListColumnOption: listColumnPresentationAdapter.focusFirstOption,
+        positionListColumnFloatingPanel: listColumnPresentationAdapter.positionFloatingPanel,
+        prepareListColumnFloatingPanel: listColumnPresentationAdapter.prepareFloatingPanel,
+        showListColumnFloatingPanel: listColumnPresentationAdapter.showFloatingPanel,
+        syncListColumnContainerPlacement: listColumnPresentationAdapter.syncContainerPlacement,
     });
 
     const inlineEdit = createInlineEditRuntime({
@@ -140,7 +165,13 @@ import { createCurrentTemplateRuntime } from './runtime/current-template.js';
         getHtmxInstance,
         initPowercrudSearchableSelects,
         syncTomSelectValues,
-        toggleInlineSaveSpinner: currentTemplate.toggleInlineSaveSpinner,
+        toggleInlineSaveSpinner: inlinePresentationAdapter.toggleSaveSpinner,
+        resolveInlineFocusTarget: inlinePresentationAdapter.resolveInlineFocusTarget,
+        presentInlineFocus: inlinePresentationAdapter.presentInlineFocus,
+        showInlineFieldErrorPopovers: inlinePresentationAdapter.showFieldErrorPopovers,
+        destroyInlineFieldErrorPopovers: inlinePresentationAdapter.destroyFieldErrorPopovers,
+        removeOrphanedInlineFieldErrorPopovers: inlinePresentationAdapter.removeOrphanedFieldErrorPopovers,
+        repositionInlineFieldErrorPopovers: inlinePresentationAdapter.repositionFieldErrorPopovers,
     });
 
     // Favourites need list-view state helpers, while list-view state also needs
@@ -151,14 +182,15 @@ import { createCurrentTemplateRuntime } from './runtime/current-template.js';
         global,
         documentObject: document,
         getHtmxInstance,
-        initPowercrudSearchableSelects,
-        initPowercrudTooltips,
         schedulePowercrudTooltipRefresh,
-        prepareFilterFavouritesFloatingPanel: currentTemplate.prepareFilterFavouritesFloatingPanel,
-        positionFilterFavouritesPanel: currentTemplate.positionFilterFavouritesPanel,
-        setFilterFavouritesDropdownOpen: currentTemplate.setFilterFavouritesDropdownOpen,
-        showPreparedFloatingPanel: currentTemplate.showPreparedFloatingPanel,
-        syncFilterFavouritesTriggerPresentation: currentTemplate.syncFilterFavouritesTriggerPresentation,
+        destroyPowercrudTooltips,
+        cloneFavouritesFloatingPanel: filterFavouritesPresentationAdapter.cloneFavouritesFloatingPanel,
+        initialiseFavouritesFloatingPanel: filterFavouritesPresentationAdapter.initialiseFavouritesFloatingPanel,
+        positionFavouritesFloatingPanel: filterFavouritesPresentationAdapter.positionFavouritesFloatingPanel,
+        prepareFavouritesFloatingPanel: filterFavouritesPresentationAdapter.prepareFavouritesFloatingPanel,
+        setFavouritesDropdownOpen: filterFavouritesPresentationAdapter.setFavouritesDropdownOpen,
+        showFavouritesFloatingPanel: filterFavouritesPresentationAdapter.showFavouritesFloatingPanel,
+        syncFavouritesTriggerVisualState: filterFavouritesPresentationAdapter.syncFavouritesTriggerVisualState,
         getListViewStateApi: () => listViewStateApi,
         isInlineEditRequest: inlineEdit.isInlineEditRequest,
     });
@@ -172,8 +204,12 @@ import { createCurrentTemplateRuntime } from './runtime/current-template.js';
         getRootSwapTarget,
         getVisibleListColumnNames: listColumns.getVisibleListColumnNames,
         buildListColumnResetRequest: listColumns.buildListColumnResetRequest,
-        initPowercrudSearchableSelects,
         schedulePowercrudTooltipRefresh,
+        scheduleFilterPanelInitialisation: filterFavouritesPresentationAdapter.scheduleFilterPanelInitialisation,
+        setFilterPanelOpen: filterFavouritesPresentationAdapter.setFilterPanelOpen,
+        showFavouritesToolbar: filterFavouritesPresentationAdapter.showFavouritesToolbar,
+        syncAddFilterVisibility: filterFavouritesPresentationAdapter.syncAddFilterVisibility,
+        syncFilterToggleVisualState: filterFavouritesPresentationAdapter.syncFilterToggleVisualState,
         getFilterFavouritesContainer: filterFavourites.getFilterFavouritesContainer,
         getSelectedFilterFavouriteViewContext: filterFavourites.getSelectedFilterFavouriteViewContext,
         markSelectedFilterFavouriteDirty: filterFavourites.markSelectedFilterFavouriteDirty,
@@ -190,6 +226,7 @@ import { createCurrentTemplateRuntime } from './runtime/current-template.js';
         dedupeFilterNames,
         getCurrentFilters,
         isFilterValueField,
+        prepareFilterPanelForSwap,
         removeEmptyFields,
         removeOptionalFilter,
         requestObjectListRefresh,
@@ -209,7 +246,7 @@ import { createCurrentTemplateRuntime } from './runtime/current-template.js';
         getAffectedObjectListRoots,
         getCurrentFilters,
         closePowercrudModals: currentTemplate.closePowercrudModals,
-        syncSelectionAwareButtonVisualState: currentTemplate.syncSelectionAwareButtonVisualState,
+        syncSelectionAwareButtonVisualState: actionSelectionAdapter.syncSelectionAwareButtonVisualState,
     });
 
     function bootstrapObjectList(root, options = {}) {
@@ -653,6 +690,13 @@ import { createCurrentTemplateRuntime } from './runtime/current-template.js';
                 }
 
                 filterFavourites.handleHtmxBeforeSwap(event);
+                const affectedListRoots = new Set();
+                getHtmxEventRoots(event).forEach(root => {
+                    getAffectedObjectListRoots(root).forEach(listRoot => {
+                        affectedListRoots.add(listRoot);
+                    });
+                });
+                affectedListRoots.forEach(prepareFilterPanelForSwap);
                 getHtmxEventRoots(event).forEach(destroyPowercrudFragment);
                 closeRowActionsMenu();
                 listColumns.closeListColumnChoosers(document);

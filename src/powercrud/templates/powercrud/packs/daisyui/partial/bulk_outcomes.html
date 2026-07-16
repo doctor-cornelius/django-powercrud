@@ -1,0 +1,56 @@
+{% if bulk_outcome == "operation_errors" %}
+    <div class="alert alert-error mb-4">
+        <ul>
+            {% for error_scope, error_list in errors %}
+                {% for error in error_list %}
+                    <li>
+                        {% if error_scope and error_scope != "general" %}
+                            <strong>{{ error_scope|capfirst }}:</strong>
+                        {% endif %}
+                        {{ error }}
+                    </li>
+                {% endfor %}
+            {% endfor %}
+        </ul>
+    </div>
+{% elif bulk_outcome == "error" %}
+    <div class="p-4" data-powercrud-bulk-outcome="error">
+        <div class="bg-error text-error-content px-4 py-2 rounded-lg mb-4 text-center">
+            <h3 class="text-lg font-semibold">Bulk Edit Error</h3>
+        </div>
+        <p class="text-lg text-center text-error">{{ error }}</p>
+    </div>
+{% elif bulk_outcome == "conflict" %}
+    <div class="p-4" data-powercrud-bulk-outcome="conflict">
+        <div class="bg-warning text-warning-content px-4 py-2 rounded-lg mb-4 text-center">
+            <h3 class="text-lg font-semibold">Bulk Operation Conflict</h3>
+        </div>
+        <p class="text-lg text-center">{{ conflict_message }}</p>
+        <p class="text-sm text-center opacity-70 mt-2">
+            Selected {{ selected_count }} {{ model_name_plural }} cannot be processed right now.
+        </p>
+    </div>
+{% elif bulk_outcome == "queued" %}
+    <div class="p-4 text-center" data-powercrud-bulk-outcome="queued">
+        <h2 id="async-status-heading" class="text-xl font-bold mb-4">Bulk Operation Queued</h2>
+        <p class="text-lg mb-4">{{ message }}</p>
+        <p class="text-sm text-base-content/70 mb-4">
+            Your bulk operation is being processed in the background.
+        </p>
+        <div id="progress-container">
+            <div id="progress-display"
+                 hx-get="{{ progress_url }}"
+                 hx-vals='{"task_name": "{{ task_name }}"}'
+                 hx-trigger="every 1s"
+                 hx-target="#progress-display"
+                 hx-swap="innerHTML"
+                 class="mb-4 p-4 bg-base-200 rounded-box">
+                <div class="loading loading-spinner loading-lg mx-auto"></div>
+                <p class="mt-2">Starting...</p>
+            </div>
+        </div>
+        <button type="button" class="btn btn-outline" onclick="document.getElementById('{{ modal_id|default:'powercrudBaseModal' }}').close()">
+            Close
+        </button>
+    </div>
+{% endif %}
