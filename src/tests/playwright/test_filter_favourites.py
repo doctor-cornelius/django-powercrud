@@ -2,7 +2,7 @@ import json
 import re
 from datetime import date
 from pathlib import Path
-from urllib.parse import urlencode
+from urllib.parse import parse_qs, urlencode, urlparse
 
 import pytest
 
@@ -803,10 +803,21 @@ def test_changing_favourite_populated_filter_applies_immediately(
     title_filter = page.locator("#filter-form input[name='title']")
     title_filter.click()
     page.keyboard.press("Control+A")
-    page.keyboard.type(replacement_book.title)
+    with page.expect_request(
+        lambda request: "/sample/bigbook/" in request.url
+    ) as filter_request_info:
+        title_filter.fill(replacement_book.title)
+
+    filter_request = filter_request_info.value
+    assert parse_qs(urlparse(filter_request.url).query).get("title") == [
+        replacement_book.title
+    ], "The filter request should carry the edited title value."
 
     expect(page.locator("#filtered_results")).to_contain_text(replacement_book.title)
     expect(page.locator("#filtered_results")).not_to_contain_text(target_book.title)
+    assert parse_qs(urlparse(page.url).query).get("title") == [replacement_book.title], (
+        "The filter form should push the edited title into browser history after the HTMX refresh."
+    )
 
 
 def test_changing_favourite_populated_choice_filter_applies_immediately(

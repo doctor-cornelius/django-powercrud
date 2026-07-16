@@ -53,6 +53,7 @@ def inline_dependency_books(db):
 
     return {
         "focus_book": focus_book,
+        "author_a": author_a,
         "author_b": author_b,
         "genre_a": genre_a,
         "genre_b": genre_b,
@@ -94,6 +95,7 @@ def test_inline_dependency_refreshes_genre_options_without_save(
     page: Page, books_url: str, inline_dependency_books
 ):
     focus_book = inline_dependency_books["focus_book"]
+    author_a = inline_dependency_books["author_a"]
     author_b = inline_dependency_books["author_b"]
     genre_a_name = inline_dependency_books["genre_a"].name
     genre_b_name = inline_dependency_books["genre_b"].name
@@ -156,6 +158,46 @@ def test_inline_dependency_refreshes_genre_options_without_save(
     assert (
         genre_a_name not in option_set
     ), "Dependent genre options should exclude values from the previously selected author."
+
+    author_select.evaluate(
+        """
+        (el, value) => {
+            if (el.tomselect) {
+                el.tomselect.setValue(String(value));
+            } else {
+                el.value = String(value);
+                el.dispatchEvent(new Event('change', {bubbles: true}));
+            }
+        }
+        """,
+        str(author_a.pk),
+    )
+    page.wait_for_function(
+        """
+        ({rowId, wanted, unwanted}) => {
+            const row = document.getElementById(rowId);
+            const select = row && row.querySelector('select[name="genres"]');
+            if (!select || select.disabled) return false;
+            const options = Array.from(select.options).map(option => option.textContent.trim());
+            return options.includes(wanted) && !options.includes(unwanted);
+        }
+        """,
+        arg={
+            "rowId": row_id,
+            "wanted": genre_a_name,
+            "unwanted": genre_b_name,
+        },
+        timeout=15000,
+    )
+    refreshed_options = active_row.locator(
+        "select[name='genres'] option"
+    ).all_text_contents()
+    refreshed_option_set = {
+        text.strip() for text in refreshed_options if text.strip()
+    }
+    assert genre_a_name in refreshed_option_set and genre_b_name not in refreshed_option_set, (
+        "A second dependency swap should replace the child with the restored parent choices."
+    )
 
 
 test_inline_dependency_refreshes_genre_options_without_save = pytest.mark.playwright_smoke(

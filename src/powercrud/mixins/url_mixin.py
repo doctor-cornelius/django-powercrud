@@ -99,6 +99,18 @@ class UrlMixin:
         )
         raise ImproperlyConfigured(msg % self.__class__.__name__)
 
+    def get_focused_component_template_paths(self, component_name: str) -> list[str]:
+        """Return model-specific and built-in candidates for one focused component."""
+        cfg = resolve_config(self)
+        fallback = f"{cfg.templates_path}/partial/{component_name}.html"
+        if self.model is None:
+            return [fallback]
+        return [
+            f"{self.model._meta.app_label}/"
+            f"{self.model._meta.object_name.lower()}_{component_name}.html",
+            fallback,
+        ]
+
     def safe_reverse(self, viewname, kwargs=None):
         """
         Safely attempt to reverse a URL, returning None if it fails.
@@ -416,6 +428,99 @@ class UrlMixin:
         # Add template and feature configuration
         kwargs["base_template_path"] = cfg.base_template_path
         kwargs["framework_template_path"] = cfg.templates_path
+        kwargs["pagination_template_paths"] = self.get_focused_component_template_paths(
+            "pagination"
+        )
+        kwargs[
+            "page_size_selector_template_paths"
+        ] = self.get_focused_component_template_paths("page_size_selector")
+        kwargs["list_actions_template_paths"] = (
+            self.get_focused_component_template_paths("list_actions")
+        )
+        kwargs["filter_trigger_template_paths"] = (
+            self.get_focused_component_template_paths("filter_trigger")
+        )
+        kwargs["filter_panel_actions_template_paths"] = (
+            self.get_focused_component_template_paths("filter_panel_actions")
+        )
+        kwargs["filter_form_template_paths"] = (
+            self.get_focused_component_template_paths("filter_form")
+        )
+        kwargs["list_columns_template_paths"] = (
+            self.get_focused_component_template_paths("list_columns")
+        )
+        kwargs["row_actions_template_paths"] = (
+            self.get_focused_component_template_paths("row_actions")
+        )
+        kwargs["table_header_template_paths"] = (
+            self.get_focused_component_template_paths("table_header")
+        )
+        kwargs["table_row_template_paths"] = (
+            self.get_focused_component_template_paths("table_row")
+        )
+        kwargs["table_shell_template_paths"] = (
+            self.get_focused_component_template_paths("table_shell")
+        )
+        kwargs["bulk_selection_status_template_paths"] = (
+            self.get_focused_component_template_paths("bulk_selection_status")
+        )
+        kwargs["bulk_selection_controls_template_paths"] = (
+            self.get_focused_component_template_paths("bulk_selection_controls")
+        )
+        kwargs["bulk_form_template_paths"] = self.get_focused_component_template_paths(
+            "bulk_form"
+        )
+        kwargs["bulk_fields_template_paths"] = (
+            self.get_focused_component_template_paths("bulk_fields")
+        )
+        kwargs["bulk_outcomes_template_paths"] = (
+            self.get_focused_component_template_paths("bulk_outcomes")
+        )
+        kwargs["modal_shell_template_paths"] = (
+            self.get_focused_component_template_paths("modal_shell")
+        )
+        kwargs["modal_content_template_paths"] = (
+            self.get_focused_component_template_paths("modal_content")
+        )
+        kwargs["form_shell_template_paths"] = (
+            self.get_focused_component_template_paths("form_shell")
+        )
+        kwargs["form_fields_template_paths"] = (
+            self.get_focused_component_template_paths("form_fields")
+        )
+        kwargs["form_actions_template_paths"] = (
+            self.get_focused_component_template_paths("form_actions")
+        )
+        kwargs["form_conflict_template_paths"] = (
+            self.get_focused_component_template_paths("form_conflict")
+        )
+        kwargs["detail_shell_template_paths"] = (
+            self.get_focused_component_template_paths("detail_shell")
+        )
+        kwargs["detail_content_template_paths"] = (
+            self.get_focused_component_template_paths("detail_content")
+        )
+        kwargs["delete_shell_template_paths"] = (
+            self.get_focused_component_template_paths("delete_shell")
+        )
+        kwargs["delete_content_template_paths"] = (
+            self.get_focused_component_template_paths("delete_content")
+        )
+        kwargs["delete_actions_template_paths"] = (
+            self.get_focused_component_template_paths("delete_actions")
+        )
+        kwargs["delete_conflict_template_paths"] = (
+            self.get_focused_component_template_paths("delete_conflict")
+        )
+        kwargs["inline_row_display_template_paths"] = (
+            self.get_focused_component_template_paths("inline_row_display")
+        )
+        kwargs["inline_row_form_template_paths"] = (
+            self.get_focused_component_template_paths("inline_row_form")
+        )
+        kwargs["inline_field_template_paths"] = (
+            self.get_focused_component_template_paths("inline_field")
+        )
         kwargs["use_crispy"] = self.get_use_crispy()
         kwargs["use_htmx"] = self.get_use_htmx()
         kwargs["use_modal"] = self.get_use_modal()

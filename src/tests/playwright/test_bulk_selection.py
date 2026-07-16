@@ -199,6 +199,51 @@ def test_bulk_selection_shift_click_can_clear_visible_range(
         expect(checkboxes.nth(idx)).not_to_be_checked()
 
 
+def test_page_select_all_expands_to_matching_records_and_persists(
+    page, books_url, sample_author, sample_books
+):
+    """Page and queryset selection controls should coordinate through list refreshes."""
+    for idx in range(2, 17):
+        Book.objects.create(
+            title=f"Matching Selection Book {idx:02d}",
+            author=sample_author,
+            published_date=date(2024, 3, min(idx, 28)),
+            bestseller=False,
+            isbn=f"97876543{idx:05d}",
+            pages=200 + idx,
+            description="Created for matching-selection persistence coverage",
+        )
+    matching_count = Book.objects.count()
+
+    page.goto(f"{books_url}?page_size=5")
+    page.wait_for_load_state("networkidle")
+
+    visible_rows = page.locator("input.row-select-checkbox")
+    expect(visible_rows).to_have_count(5)
+    select_all = page.locator('[data-powercrud-select-all="true"]').first
+    select_all.click()
+
+    expect(page.locator("#selected-items-counter")).to_have_text("5")
+    for index in range(5):
+        expect(visible_rows.nth(index)).to_be_checked()
+    expect(select_all).to_be_checked()
+
+    matching_action = page.get_by_role(
+        "button", name=f"Select all {matching_count} matching records"
+    )
+    expect(matching_action).to_be_visible()
+    matching_action.click()
+
+    expect(page.locator("#selected-items-counter")).to_have_text(str(matching_count))
+    page.get_by_role("link", name="Next").click()
+    page.wait_for_load_state("networkidle")
+
+    expect(page.locator("input.row-select-checkbox")).to_have_count(5)
+    for index in range(5):
+        expect(page.locator("input.row-select-checkbox").nth(index)).to_be_checked()
+    expect(page.locator('[data-powercrud-select-all="true"]').first).to_be_checked()
+
+
 def select_single_value(page, container, field_name: str, option_label: str, option_value: str):
     select = container.locator(f"select[name='{field_name}']")
     tomselect_ready = select.evaluate("el => Boolean(el.tomselect)")

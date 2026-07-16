@@ -287,23 +287,7 @@
             {% partial bulk_selection_status %}
             {% endif %}
 
-            {% if create_view_url %}
-                {% if use_htmx and htmx_target %}
-                    <a class="btn btn-primary {{ view.get_extra_button_classes }}" href="{{ create_view_url }}"
-                        hx-get="{{ create_view_url }}"
-                        hx-target="{{htmx_target}}"
-                        data-powercrud-modal-trigger="true"
-                        onclick="document.getElementById('{{ modal_id }}').showModal()">
-                        Create {{ object_verbose_name }}
-                    </a>
-                {% else %}
-                    <a class="btn btn-primary {{ view.get_extra_button_classes }}" href="{{ create_view_url }}">
-                        Create {{ object_verbose_name }}
-                    </a>
-                {% endif %}
-            {% endif %}
-
-            {% extra_buttons view %}
+            {% partial list_actions %}
             </div>
 
             <div class="flex flex-wrap items-center gap-2 sm:ml-auto"
@@ -315,155 +299,15 @@
             {% if filterset %}
                 <div class="flex flex-wrap items-center gap-2"
                      data-powercrud-filter-toolbar>
-                    <button class="btn btn-outline btn-secondary {{ view.get_extra_button_classes }}" type="button"
-                            data-powercrud-filter-toggle
-                            id="filterToggleBtn"
-                            aria-controls="filterCollapse"
-                            aria-expanded="false"
-                            aria-label="Show filters"
-                            data-powercrud-tooltip="semantic"
-                            data-tippy-content="Show filters">
-                        <svg xmlns="http://www.w3.org/2000/svg"
-                             width="16"
-                             height="16"
-                             fill="currentColor"
-                             class="bi bi-funnel text-secondary"
-                             data-powercrud-filter-toggle-icon-outline="true"
-                             viewBox="0 0 16 16"
-                             aria-hidden="true">
-                            <path d="M1.5 1.5A.5.5 0 0 1 2 1h12a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-.128.334L10 8.692V13.5a.5.5 0 0 1-.342.474l-3 1A.5.5 0 0 1 6 14.5V8.692L1.628 3.834A.5.5 0 0 1 1.5 3.5zm1 .5v1.308l4.372 4.858A.5.5 0 0 1 7 8.5v5.306l2-.666V8.5a.5.5 0 0 1 .128-.334L13.5 3.308V2z"/>
-                        </svg>
-                        <svg xmlns="http://www.w3.org/2000/svg"
-                             width="16"
-                             height="16"
-                             fill="currentColor"
-                             class="bi bi-funnel-fill hidden text-primary"
-                             data-powercrud-filter-toggle-icon-filled="true"
-                             viewBox="0 0 16 16"
-                             aria-hidden="true">
-                            <path d="M1.5 1.5A.5.5 0 0 1 2 1h12a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-.128.334L10 8.692V13.5a.5.5 0 0 1-.342.474l-3 1A.5.5 0 0 1 6 14.5V8.692L1.628 3.834A.5.5 0 0 1 1.5 3.5z"/>
-                        </svg>
-                        <svg xmlns="http://www.w3.org/2000/svg"
-                             viewBox="0 0 20 20"
-                             fill="currentColor"
-                             class="h-4 w-4"
-                             aria-hidden="true">
-                            <path fill-rule="evenodd"
-                                  d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 11.168l3.71-3.938a.75.75 0 1 1 1.08 1.04l-4.25 4.5a.75.75 0 0 1-1.08 0l-4.25-4.5a.75.75 0 0 1 .02-1.06Z"
-                                  clip-rule="evenodd" />
-                        </svg>
-                    </button>
+                    {% partial filter_trigger %}
                 </div>
             {% endif %}
 
             {% if list_options_url and list_column_state.enabled %}
-                <details class="dropdown dropdown-end" data-powercrud-list-columns="true">
-                    <summary class="btn btn-outline btn-secondary {{ view.get_extra_button_classes }}"
-                             data-powercrud-list-columns-trigger="true"
-                             data-powercrud-tooltip="semantic"
-                             data-tippy-content="Choose visible columns"
-                             aria-expanded="false">
-                        <span>Cols {{ list_column_state.active_columns|length }}/{{ list_column_state.allowed_columns|length }}</span>
-                        <svg xmlns="http://www.w3.org/2000/svg"
-                             viewBox="0 0 20 20"
-                             fill="currentColor"
-                             class="h-4 w-4"
-                             aria-hidden="true">
-                            <path fill-rule="evenodd"
-                                  d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 11.168l3.71-3.938a.75.75 0 1 1 1.08 1.04l-4.25 4.5a.75.75 0 0 1-1.08 0l-4.25-4.5a.75.75 0 0 1 .02-1.06Z"
-                                  clip-rule="evenodd" />
-                        </svg>
-                    </summary>
-                    <div hidden data-powercrud-list-columns-template="true">
-                        <div class="dropdown-content z-[1200] mt-2 w-72 max-w-[calc(100vw-2rem)] rounded-box border border-base-300 bg-base-100 p-3 shadow"
-                             data-powercrud-list-columns-panel="true">
-                            <form method="post"
-                                  action="{{ list_options_url }}"
-                                  {% if use_htmx %}
-                                      hx-post="{{ list_options_url }}"
-                                      hx-target="{{ original_target }}"
-                                      hx-swap="innerHTML"
-                                  {% endif %}
-                                  class="space-y-3">
-                                {% csrf_token %}
-                                <input type="hidden" name="list_view_url" value="{{ list_view_url }}">
-                                {% for key, values in request.GET.lists %}
-                                    {% if key != 'csrfmiddlewaretoken' and key != 'page' %}
-                                        {% for value in values %}
-                                            <input type="hidden" name="{{ key }}" value="{{ value }}">
-                                        {% endfor %}
-                                    {% endif %}
-                                {% endfor %}
-                                <div class="max-h-72 space-y-0 overflow-y-auto pr-1 text-sm">
-                                    {% for column in list_column_state.choices %}
-                                        <label class="flex cursor-pointer items-center justify-between gap-2 rounded px-2 py-0.5 hover:bg-base-200"
-                                               data-powercrud-list-column-option="true">
-                                            <span class="min-w-0 leading-5">
-                                                <span class="block truncate">
-                                                    {{ column.label }}{% if column.is_default %}<span class="ml-1 align-super text-xs font-semibold text-base-content/60"
-                                                          title="Default column"
-                                                          aria-label="Default column">*</span>{% endif %}
-                                                </span>
-                                            </span>
-                                            <input type="checkbox"
-                                                   class="checkbox checkbox-xs"
-                                                   name="visible_columns"
-                                                   value="{{ column.name }}"
-                                                   data-powercrud-list-column-checkbox="true"
-                                                   data-powercrud-initial-checked="{% if column.is_active %}true{% else %}false{% endif %}"
-                                                   {% if column.is_active %}checked{% endif %}>
-                                        </label>
-                                    {% endfor %}
-                                </div>
-                                <div class="flex items-center justify-between gap-2 border-t border-base-300 pt-3">
-                                    <span class="text-xs text-base-content/60">* = Default</span>
-                                    <div class="flex justify-end gap-2">
-                                        <button type="submit"
-                                                name="list_columns_action"
-                                                value="reset"
-                                                class="btn btn-outline btn-sm">
-                                            Reset
-                                        </button>
-                                        <button type="submit"
-                                                name="list_columns_action"
-                                                value="apply"
-                                                class="btn btn-primary btn-sm">
-                                            Save
-                                        </button>
-                                    </div>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                </details>
+                {% partial list_columns %}
             {% endif %}
 
-            <!-- Page Size Selector -->
-            <form id="page-size-form" class="inline-flex items-center gap-1 whitespace-nowrap">
-                <label for="page-size-select" class="sr-only">Page size</label>
-                <label class="select select-bordered select-sm w-[10ch] cursor-pointer"
-                       data-powercrud-tooltip="semantic"
-                       data-tippy-content="Rows per page">
-                    <select id="page-size-select"
-                            class="cursor-pointer"
-                            name="page_size"
-                            data-powercrud-page-size-select="true">
-                        {% for size in page_size_options %}
-                            <option value="{{ size }}"
-                                {% if request.GET.page_size == size %}
-                                    selected
-                                {% elif not request.GET.page_size and default_page_size == size %}
-                                    selected
-                                {% endif %}>{{ size }}</option>
-                        {% endfor %}
-                        {% if page_size_all_enabled %}
-                            <option value="all" {% if request.GET.page_size == 'all' or not request.GET.page_size and default_page_size is None %}selected{% endif %}>
-                                All</option>
-                        {% endif %}
-                    </select>
-                </label>
-                <span class="text-xs text-base-content/70">per page</span>
-            </form>
+            {% partial page_size_selector %}
             </div>
         </div>
     
@@ -471,92 +315,8 @@
         <div class="hidden py-2"
              id="filterCollapse">
             <div class="filter-panel-shell rounded-box border border-base-300 bg-base-300 shadow-sm">
-            <div class="hidden border-b border-base-200 px-3 py-2"
-                 data-powercrud-add-filter-container>
-                {% if addable_filter_choices %}
-                <label class="select select-bordered min-h-10 w-full max-w-xs border-base-content/20 bg-base-200 text-sm text-base-content shadow-sm">
-                    <select data-powercrud-add-filter-select
-                            data-powercrud-searchable-select="true"
-                            data-powercrud-searchable-placeholder="Add filter…">
-                        <option value="">Add filter…</option>
-                        {% for option in addable_filter_choices %}
-                            <option value="{{ option.name }}">{{ option.label }}</option>
-                        {% endfor %}
-                    </select>
-                </label>
-                {% endif %}
-                {% if not use_htmx %}
-                    <button type="submit"
-                            form="filter-form"
-                            class="btn btn-info btn-sm {{ view.get_extra_button_classes }}"
-                            data-powercrud-filter-panel-action>
-                        Filter
-                    </button>
-                {% endif %}
-                <a href="."
-                   class="btn btn-outline btn-sm {{ view.get_extra_button_classes }}"
-                   hx-get="."
-                   hx-target="{{ original_target }}"
-                   hx-push-url="true"
-                   data-powercrud-filter-panel-action
-                   data-powercrud-filter-reset>
-                    Reset filters
-                </a>
-            </div>
-            <form id="filter-form" method="get" class="grid gap-x-2 gap-y-0" hx-target="#filtered_results" hx-push-url="true"
-                hx-replace-url="true" hx-headers='{"X-Filter-Sort-Request": "true", "X-Filter-Setting-Request": "true"}'
-                action="{{ request.path }}"
-                data-powercrud-filter-form="true">
-                <div class="hidden" data-powercrud-visible-filters-state>
-                    {% for field_name in persisted_optional_filter_names %}
-                        <input type="hidden" name="{{ visible_filter_param_name }}" value="{{ field_name }}">
-                    {% endfor %}
-                </div>
-                {% for field in visible_filter_fields %}
-                <div class="filter-field form-control w-full min-w-0">
-                    <div class="filter-field-shell">
-                    <label class="filter-field-label label">
-                        <span class="label-text block w-full text-xs font-medium text-base-content/80">{{ field.label }}</span>
-                    </label>
-                    <div class="filter-field-input">
-                        {{ field }}
-                    </div>
-                        {% if field.name in persisted_optional_filter_names %}
-                            <button type="button"
-                                    class="filter-field-action btn btn-ghost btn-xs text-error/45 hover:bg-error/10 hover:text-error"
-                                    data-powercrud-remove-filter="{{ field.name }}"
-                                    aria-label="Remove {{ field.label }} filter"
-                                    title="Remove {{ field.label }} filter">
-                                <svg xmlns="http://www.w3.org/2000/svg"
-                                     viewBox="0 0 16 16"
-                                     fill="none"
-                                     stroke="currentColor"
-                                     stroke-width="1.75"
-                                     stroke-linecap="round"
-                                     stroke-linejoin="round"
-                                     aria-hidden="true">
-                                    <path d="M4 4l8 8M12 4l-8 8"/>
-                                </svg>
-                                <span class="sr-only">Remove {{ field.label }} filter</span>
-                            </button>
-                        {% else %}
-                            <span class="filter-field-action btn btn-ghost btn-xs invisible pointer-events-none"
-                                  aria-hidden="true">
-                                <svg xmlns="http://www.w3.org/2000/svg"
-                                     viewBox="0 0 16 16"
-                                     fill="none"
-                                     stroke="currentColor"
-                                     stroke-width="1.75"
-                                     stroke-linecap="round"
-                                     stroke-linejoin="round">
-                                    <path d="M4 4l8 8M12 4l-8 8"/>
-                                </svg>
-                            </span>
-                        {% endif %}
-                    </div>
-                </div>
-                {% endfor %}
-            </form>
+            {% partial filter_panel_actions %}
+            {% partial filter_form %}
             </div>
         </div>
         {% endif %}
@@ -584,36 +344,11 @@
 {% endpartialdef pcrud_content %}
 
 {% partialdef bulk_selection_status %}
-<!-- Bulk actions container - show/hide based on selection count -->
-<div id="bulk-actions-container" 
-    class="join {% if selected_count == 0 %}hidden{% endif %}" 
-    data-powercrud-bulk-actions="true"
-    hx-target="this" 
-    hx-swap="outerHTML" 
-    hx-trigger="bulkSelectionChanged from:body">
-    {% if enable_bulk_edit %}
-        <a href="{{ list_view_url }}bulk-edit/" class="join-item btn btn-sm btn-primary {{ view.get_extra_button_classes }}"
-            hx-get="{{ list_view_url }}bulk-edit/"
-            hx-target="#{{ modal_target|default:'powercrudModalContent' }}"
-            hx-swap="innerHTML"
-            data-powercrud-modal-trigger="true"
-            data-powercrud-modal-box-classes="{{ bulk_modal_box_classes|default:'modal-box flex max-h-[calc(100dvh-2rem)] flex-col' }}"
-            onclick="document.getElementById('{{ modal_id|default:'powercrudBaseModal' }}').showModal();">
-            Bulk Edit <span id="selected-items-counter">{{ selected_count }}</span>
-        </a>
-    {% else %}
-        <span class="join-item btn btn-sm btn-neutral no-animation cursor-default {{ view.get_extra_button_classes }}">
-            Selected <span id="selected-items-counter">{{ selected_count }}</span>
-        </span>
-    {% endif %}
-    <button class="join-item btn btn-sm btn-outline btn-error {{ view.get_extra_button_classes }}"
-            data-powercrud-clear-selection
-            hx-post="{{ list_view_url }}clear-selection/"
-            hx-target="#bulk-actions-container"
-            hx-swap="outerHTML">
-        Clear Selection
-    </button>
-</div>
+{% if bulk_selection_status_template_paths %}
+    {% include bulk_selection_status_template_paths %}
+{% else %}
+    {% include "powercrud/daisyUI/partial/bulk_selection_status.html" %}
+{% endif %}
 {% endpartialdef bulk_selection_status %}
 
 {% partialdef filtered_results %}
@@ -634,21 +369,11 @@
                 </div>
             {% endif %}
             {% if show_bulk_selection_meta %}
-                <div class="flex items-center gap-2">
-                    {% if show_select_all_matching %}
-                        <button type="button"
-                                class="link link-primary text-sm font-medium"
-                                hx-post="{{ list_view_url }}select-all-matching/{% if request.GET %}?{{ request.GET.urlencode }}{% endif %}"
-                                hx-target="#bulk-actions-container"
-                                hx-swap="outerHTML">
-                            {{ select_all_matching_label }}
-                        </button>
-                    {% elif show_select_all_matching_limit %}
-                        <span class="text-xs text-base-content/70">
-                            {{ bulk_selection_meta_message }}
-                        </span>
-                    {% endif %}
-                </div>
+                {% if bulk_selection_controls_template_paths %}
+                    {% include bulk_selection_controls_template_paths with selection_control="matching" %}
+                {% else %}
+                    {% include "powercrud/daisyUI/partial/bulk_selection_controls.html" with selection_control="matching" %}
+                {% endif %}
             {% endif %}
         </div>
     {% endif %}
@@ -662,61 +387,72 @@
     {% endif %}
 {% endpartialdef filtered_results %}
 
+{% partialdef list_actions %}
+{% if list_actions_template_paths %}
+    {% include list_actions_template_paths %}
+{% elif framework_template_path %}
+    {% include framework_template_path|add:"/partial/list_actions.html" %}
+{% else %}
+    {% include "powercrud/daisyUI/partial/list_actions.html" %}
+{% endif %}
+{% endpartialdef list_actions %}
+
+{% partialdef filter_trigger %}
+{% if filter_trigger_template_paths %}
+    {% include filter_trigger_template_paths %}
+{% elif framework_template_path %}
+    {% include framework_template_path|add:"/partial/filter_trigger.html" %}
+{% else %}
+    {% include "powercrud/daisyUI/partial/filter_trigger.html" %}
+{% endif %}
+{% endpartialdef filter_trigger %}
+
+{% partialdef filter_panel_actions %}
+{% if filter_panel_actions_template_paths %}
+    {% include filter_panel_actions_template_paths %}
+{% elif framework_template_path %}
+    {% include framework_template_path|add:"/partial/filter_panel_actions.html" %}
+{% else %}
+    {% include "powercrud/daisyUI/partial/filter_panel_actions.html" %}
+{% endif %}
+{% endpartialdef filter_panel_actions %}
+
+{% partialdef filter_form %}
+{% if filter_form_template_paths %}
+    {% include filter_form_template_paths %}
+{% elif framework_template_path %}
+    {% include framework_template_path|add:"/partial/filter_form.html" %}
+{% else %}
+    {% include "powercrud/daisyUI/partial/filter_form.html" %}
+{% endif %}
+{% endpartialdef filter_form %}
+
+{% partialdef list_columns %}
+{% if list_columns_template_paths %}
+    {% include list_columns_template_paths %}
+{% elif framework_template_path %}
+    {% include framework_template_path|add:"/partial/list_columns.html" %}
+{% else %}
+    {% include "powercrud/daisyUI/partial/list_columns.html" %}
+{% endif %}
+{% endpartialdef list_columns %}
 
 {% partialdef pagination %}
-{% if is_paginated %}
-<nav aria-label="Page navigation" class="mt-4" data-powercrud-pagination="true">
-    <ul class="join flex justify-center">
-        {% if page_obj.has_previous %}
-        <li>
-            <a class="join-item btn btn-sm"
-                href="?page={{ page_obj.previous_page_number }}{% if request.GET.page_size %}&page_size={{ request.GET.page_size }}{% endif %}"
-                {% if use_htmx and original_target %} 
-                    hx-get="?page={{ page_obj.previous_page_number }}"
-                    hx-vals="js:{...getCurrentFilters()}" hx-headers='{"X-Filter-Sort-Request": "true"}'
-                    hx-target="#filtered_results" 
-                    hx-replace-url="true" hx-push-url="true" 
-                {% endif %}>Previous
-            </a>
-        </li>
-        
-        {% endif %}
-
-        {% get_proper_elided_page_range paginator page_obj.number as page_range %}
-        {% for i in page_range %}
-            {% if i == "..." %}
-            <li><span class="join-item btn btn-sm btn-disabled">…</span></li>
-            {% else %}
-            <li>
-                <a class="join-item btn btn-sm {% if page_obj.number == i %}btn-active{% endif %}"
-                    href="?page={{ i }}{% if request.GET.page_size %}&page_size={{ request.GET.page_size }}{% endif %}"
-                    {% if use_htmx and original_target %}
-                        hx-get="?page={{ i }}" 
-                        hx-vals="js:{...getCurrentFilters()}" hx-headers='{"X-Filter-Sort-Request": "true"}' 
-                        hx-target="#filtered_results" 
-                        hx-replace-url="true" hx-push-url="true" 
-                    {% endif %}>{{ i }}
-                </a>
-            </li>
-            
-            {% endif %}
-        {% endfor %}
-
-        {% if page_obj.has_next %}
-        <li>
-            <a class="join-item btn btn-sm"
-                href="?page={{ page_obj.next_page_number }}{% if request.GET.page_size %}&page_size={{ request.GET.page_size }}{% endif %}"
-                {% if use_htmx and original_target %} 
-                    hx-get="?page={{ page_obj.next_page_number }}"
-                    hx-vals="js:{...getCurrentFilters()}" hx-headers='{"X-Filter-Sort-Request": "true"}' 
-                    hx-target="#filtered_results" 
-                    hx-replace-url="true" hx-push-url="true" 
-                {%endif %}>Next
-            </a>
-        </li>
-        {%endif %}
-
-    </ul>
-</nav>
+{% if pagination_template_paths %}
+    {% include pagination_template_paths %}
+{% elif framework_template_path %}
+    {% include framework_template_path|add:"/partial/pagination.html" %}
+{% else %}
+    {% include "powercrud/daisyUI/partial/pagination.html" %}
 {% endif %}
 {% endpartialdef pagination %}
+
+{% partialdef page_size_selector %}
+{% if page_size_selector_template_paths %}
+    {% include page_size_selector_template_paths %}
+{% elif framework_template_path %}
+    {% include framework_template_path|add:"/partial/page_size_selector.html" %}
+{% else %}
+    {% include "powercrud/daisyUI/partial/page_size_selector.html" %}
+{% endif %}
+{% endpartialdef page_size_selector %}

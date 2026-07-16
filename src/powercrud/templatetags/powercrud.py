@@ -17,14 +17,13 @@ from datetime import date, datetime, time  # Import temporal value classes
 from typing import Any, Dict, List, Optional
 
 from django import template
-from django.core.exceptions import ImproperlyConfigured
 from django.db import models
+from django.template.loader import render_to_string
 from django.utils.formats import date_format, time_format
 from django.utils.timezone import template_localtime
 from django.utils.html import conditional_escape
 from django.utils.safestring import mark_safe
 from django.utils.translation import gettext_lazy as _
-from django.db import models
 
 from powercrud.conf import get_powercrud_setting
 from powercrud.cell_tooltips import (
@@ -362,7 +361,7 @@ def _get_selection_button_state(
     }
 
 
-def _render_action_anchor(
+def _resolve_action_presentation(
     *,
     url: str,
     anchor_text: str,
@@ -378,26 +377,16 @@ def _render_action_anchor(
     modal_box_classes: str | None = None,
     refresh_list_on_modal_close: bool = False,
     label_html: str | None = None,
-    extra_attrs: list[str] | None = None,
-) -> str:
+) -> dict[str, Any]:
     """
-    Render a single row-action anchor with HTMX and disabled metadata.
+    Resolve presentation-only metadata for one row-action anchor.
     """
     resolved_url = _resolve_modal_action_url(url, query_string, show_modal)
     disabled_classes = " btn-disabled opacity-50" if disable else ""
-
-    attrs = [
-        f"href='{resolved_url}'",
-        f"class='{class_name}{disabled_classes}'",
-    ]
     style_declarations = []
+    tooltip_text = None
     if label_html:
-        attrs.append(f"aria-label='{anchor_text}'")
-        attrs.append(
-            "data-tippy-content="
-            f"'{conditional_escape(str(lock_label if disable and lock_label else anchor_text))}'"
-        )
-        attrs.append("data-powercrud-tooltip='semantic'")
+        tooltip_text = lock_label if disable and lock_label else anchor_text
         style_declarations.append("min-width: 2.5rem;")
 
     if disable:
@@ -408,38 +397,29 @@ def _render_action_anchor(
             ]
         )
 
-    if style_declarations:
-        attrs.append(f"style='{' '.join(style_declarations)}'")
-
-    if use_htmx:
-        attrs.append(f"hx-{'post' if hx_post else 'get'}='{resolved_url}'")
-        if target:
-            attrs.append(f"hx-target='{target}'")
-        if not show_modal:
-            attrs.append("hx-replace-url='true'")
-            attrs.append("hx-push-url='true'")
-
-    if show_modal and modal_attrs:
-        attrs.append(modal_attrs)
-        if modal_box_classes:
-            attrs.append(
-                "data-powercrud-modal-box-classes="
-                f"'{conditional_escape(str(modal_box_classes))}'"
-            )
-        if refresh_list_on_modal_close:
-            attrs.append("data-powercrud-refresh-list-on-modal-close='true'")
-
-    if disable:
-        attrs.append("aria-disabled='true'")
     if disable and lock_label and not label_html:
-        attrs.append(f"data-tippy-content='{lock_label}'")
-        attrs.append("data-powercrud-tooltip='semantic'")
+        tooltip_text = lock_label
 
-    if extra_attrs:
-        attrs.extend(extra_attrs)
-
-    attrs.append(f"data-inline-action='{anchor_text.lower()}'")
-    return f"<a {' '.join(attrs)}>{label_html or anchor_text}</a>"
+    return {
+        "href": resolved_url,
+        "text": anchor_text,
+        "class_name": f"{class_name}{disabled_classes}",
+        "label_html": label_html,
+        "style": " ".join(style_declarations),
+        "use_htmx": use_htmx,
+        "hx_post": hx_post,
+        "target": target,
+        "use_history": use_htmx and not show_modal,
+        "show_modal": show_modal,
+        "modal_attrs": modal_attrs if show_modal else "",
+        "modal_box_classes": modal_box_classes if show_modal else "",
+        "refresh_list_on_modal_close": (
+            show_modal and refresh_list_on_modal_close
+        ),
+        "disable": disable,
+        "tooltip_text": tooltip_text,
+        "inline_action": anchor_text.lower(),
+    }
 
 
 def _resolve_view_option(
@@ -732,16 +712,38 @@ def _resolve_list_cell_link(
     )
 
 
-def action_links(view: Any, object: Any) -> str:
+def _get_focused_component_template_paths(
+    view: Any, component_name: str
+) -> list[str]:
+    """Return model-specific and built-in focused-component candidates."""
+    resolver = getattr(view, "get_focused_component_template_paths", None)
+    if callable(resolver):
+        return resolver(component_name)
+    framework = get_powercrud_setting("POWERCRUD_CSS_FRAMEWORK")
+    return [f"powercrud/{framework}/partial/{component_name}.html"]
+
+
+def _render_row_actions(view: Any, context: dict[str, Any]) -> str:
+    """Render resolved row-action metadata through the focused component."""
+    request = getattr(view, "request", None)
+    rendered = render_to_string(
+        _get_focused_component_template_paths(view, "row_actions"),
+        context,
+        request=request,
+    )
+    return mark_safe(rendered.strip())
+
+
+def _resolve_row_action_context(view: Any, object: Any) -> dict[str, Any]:
     """
-    Generate HTML for action links (buttons) for a given object.
+    Resolve authorized row actions into presentation-only template context.
 
     Args:
         view: The view instance
         object: The object for which actions are being generated
 
     Returns:
-        str: HTML string of action buttons
+        dict: Resolved action metadata ready for template rendering.
     """
     framework: str = get_powercrud_setting("POWERCRUD_CSS_FRAMEWORK")
     styles: Dict[str, Any] = view.get_framework_styles()[framework]
@@ -922,8 +924,8 @@ def action_links(view: Any, object: Any) -> str:
                 }
             )
 
-    standard_links = [
-        _render_action_anchor(
+    standard_presentations = [
+        _resolve_action_presentation(
             url=action["url"],
             anchor_text=action["text"],
             label_html=action["label_html"],
@@ -944,10 +946,10 @@ def action_links(view: Any, object: Any) -> str:
         for action in standard_action_items
     ]
 
-    if extra_actions_mode == "dropdown" and extra_action_items:
-        dropdown_items = [
-            "<li>"
-            + _render_action_anchor(
+    if extra_actions_mode == "dropdown":
+        extra_presentations = []
+        for action in extra_action_items:
+            presentation = _resolve_action_presentation(
                 url=action["url"],
                 anchor_text=action["text"],
                 class_name="justify-start whitespace-nowrap",
@@ -961,48 +963,20 @@ def action_links(view: Any, object: Any) -> str:
                 query_string=query_string,
                 modal_box_classes=action["modal_box_classes"],
                 refresh_list_on_modal_close=action["refresh_list_on_modal_close"],
-                extra_attrs=(
-                    [
-                        "data-powercrud-row-action-state-mode='lazy'",
-                        "data-powercrud-row-action-index="
-                        f"'{conditional_escape(str(action['action_index']))}'",
-                    ]
-                    + (
-                        ["data-powercrud-row-action-hidden-mode='lazy'"]
-                        if action.get("lazy_hidden_if")
-                        else []
-                    )
-                    if action.get("lazy_row_action_state")
-                    else None
-                ),
             )
-            + "</li>"
-            for action in extra_action_items
-        ]
-        extra_links = [
-            "<div class='relative' data-powercrud-row-actions-dropdown='true'>"
-            f"<button type='button' class='{styles['base']} join-item {styles['extra_default']} {action_button_classes} gap-1' aria-label='More actions' aria-expanded='false' data-inline-action='more' data-powercrud-row-actions-trigger='true'"
-            + (
-                " data-powercrud-row-action-states-url="
-                f"'{conditional_escape(str(row_action_states_url))}'"
-                if any(
-                    action.get("lazy_row_action_state") for action in extra_action_items
-                )
-                and row_action_states_url
-                else ""
+            presentation.update(
+                {
+                    "lazy_row_action_state": action.get(
+                        "lazy_row_action_state", False
+                    ),
+                    "action_index": action["action_index"],
+                    "lazy_hidden_if": action.get("lazy_hidden_if", False),
+                }
             )
-            + ">More"
-            "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='currentColor' class='h-3.5 w-3.5' aria-hidden='true'>"
-            "<path fill-rule='evenodd' d='M5.23 7.21a.75.75 0 0 1 1.06.02L10 11.168l3.71-3.938a.75.75 0 1 1 1.08 1.04l-4.25 4.5a.75.75 0 0 1-1.08 0l-4.25-4.5a.75.75 0 0 1 .02-1.06Z' clip-rule='evenodd' />"
-            "</svg></button>"
-            "<div hidden data-powercrud-row-actions-template='true'>"
-            "<ul tabindex='0' role='menu' class='menu bg-base-100 rounded-box z-[1200] min-w-40 p-2 shadow border border-base-300' data-powercrud-row-actions-panel='true'>"
-            + "".join(dropdown_items)
-            + "</ul></div></div>"
-        ]
+            extra_presentations.append(presentation)
     else:
-        extra_links = [
-            _render_action_anchor(
+        extra_presentations = [
+            _resolve_action_presentation(
                 url=action["url"],
                 anchor_text=action["text"],
                 class_name=(
@@ -1022,9 +996,36 @@ def action_links(view: Any, object: Any) -> str:
             for action in extra_action_items
         ]
 
-    links: List[str] = ["<div class='join'>" + " ".join(standard_links + extra_links) + "</div>"]
+    has_lazy_presentation = any(
+        action.get("lazy_row_action_state") for action in extra_presentations
+    )
+    row_actions = {
+        "has_actions": bool(standard_presentations or extra_presentations),
+        "standard_actions": standard_presentations,
+        "extra_actions": extra_presentations,
+        "extra_actions_mode": extra_actions_mode,
+        "show_extra_dropdown": bool(
+            extra_actions_mode == "dropdown" and extra_presentations
+        ),
+        "row_action_states_url": (
+            row_action_states_url
+            if has_lazy_presentation and row_action_states_url
+            else None
+        ),
+        "dropdown_trigger_class": (
+            f"{styles['base']} join-item {styles['extra_default']} "
+            f"{action_button_classes} gap-1"
+        ),
+    }
+    return {
+        "object": object,
+        "row_actions": row_actions,
+    }
 
-    return mark_safe(" ".join(links))
+
+def action_links(view: Any, object: Any) -> str:
+    """Return compatible safe HTML for one object's resolved row actions."""
+    return _render_row_actions(view, _resolve_row_action_context(view, object))
 
 
 @register.inclusion_tag(
@@ -1058,8 +1059,24 @@ def object_detail(object, view):
             name = prop.replace("_", " ").title()
             yield (name, value)
 
+    global_content_path = (
+        f"powercrud/{get_powercrud_setting('POWERCRUD_CSS_FRAMEWORK')}"
+        "/partial/detail_content.html"
+    )
+    component_paths_getter = getattr(
+        view, "get_focused_component_template_paths", None
+    )
+    detail_content_template_paths = (
+        list(component_paths_getter("detail_content"))
+        if callable(component_paths_getter)
+        else []
+    )
+    if global_content_path not in detail_content_template_paths:
+        detail_content_template_paths.append(global_content_path)
+
     return {
         "object": iter(),
+        "detail_content_template_paths": detail_content_template_paths,
     }
 
 
@@ -1387,8 +1404,9 @@ def object_list(context, objects, view):
                 "tooltip_url": None,
             }
 
-        actions_html = action_links(view, obj)
-        has_actions = "data-inline-action=" in str(actions_html)
+        row_action_context = _resolve_row_action_context(view, obj)
+        actions_html = _render_row_actions(view, row_action_context)
+        has_actions = row_action_context["row_actions"]["has_actions"]
 
         record = {
             "object": obj,
@@ -1555,15 +1573,36 @@ def object_list(context, objects, view):
         "request": request,
         # add bulk selection context
         "selected_ids": selected_ids,
+        "all_selected": context.get("all_selected", False),
+        "some_selected": context.get("some_selected", False),
         # Add bulk edit related context
         "enable_bulk_edit": enable_bulk_edit,
         "enable_selection_controls": enable_selection_controls,
         "selected_count": len(selected_ids) if enable_selection_controls else 0,
         "model_name": view.model.__name__.lower() if hasattr(view, "model") else "",
         "selection_key_suffix": selection_key_suffix,
+        "keyBase": context.get("keyBase", ""),
         "inline_edit": inline_config,
         "inline_edit_always_visible": inline_edit_always_visible,
         "inline_edit_highlight_palette": inline_edit_highlight_palette,
+        "table_header_template_paths": context.get(
+            "table_header_template_paths"
+        )
+        or _get_focused_component_template_paths(view, "table_header"),
+        "table_row_template_paths": context.get("table_row_template_paths")
+        or _get_focused_component_template_paths(view, "table_row"),
+        "inline_row_display_template_paths": context.get(
+            "inline_row_display_template_paths"
+        )
+        or _get_focused_component_template_paths(view, "inline_row_display"),
+        "table_shell_template_paths": context.get(
+            "table_shell_template_paths"
+        )
+        or _get_focused_component_template_paths(view, "table_shell"),
+        "bulk_selection_controls_template_paths": context.get(
+            "bulk_selection_controls_template_paths"
+        )
+        or _get_focused_component_template_paths(view, "bulk_selection_controls"),
     }
 
 

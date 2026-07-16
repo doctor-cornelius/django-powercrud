@@ -209,8 +209,16 @@ class InlineEditingMixin:
                 resolved_dependency_endpoint_url
                 or field_dependency_context.get("endpoint_url")
             )
+        component_paths_getter = getattr(
+            self, "get_focused_component_template_paths", None
+        )
+        inline_field_template_paths = (
+            component_paths_getter("inline_field")
+            if callable(component_paths_getter)
+            else [f"{cfg.templates_path}/partial/inline_field.html"]
+        )
         widget_html = render_to_string(
-            f"{cfg.templates_path}/partial/inline_field.html",
+            inline_field_template_paths,
             {
                 "field": form[field],
                 "field_name": field,
@@ -379,6 +387,14 @@ class InlineEditingMixin:
         self, obj, form=None, error_summary: str | None = None
     ) -> str:
         cfg = resolve_config(self)
+        component_paths_getter = getattr(
+            self, "get_focused_component_template_paths", None
+        )
+        inline_row_form_template_paths = (
+            component_paths_getter("inline_row_form")
+            if callable(component_paths_getter)
+            else [f"{cfg.templates_path}/partial/inline_row_form.html"]
+        )
         row_payload = self._build_inline_row_payload(obj)
         inline_form = form or self.build_inline_form(instance=obj)
         self._ensure_inline_row_cell_labels(row_payload, inline_form)
@@ -408,6 +424,7 @@ class InlineEditingMixin:
             "selected_ids": self._get_selected_ids(),
             "list_view_url": self._get_list_url(),
             "action_button_classes": self.get_action_button_classes(),
+            "inline_row_form_template_paths": inline_row_form_template_paths,
         }
         return render_to_string(
             f"{cfg.templates_path}/partial/list.html#inline_row_form",
@@ -476,9 +493,28 @@ class InlineEditingMixin:
             hidden_fields.append(form[field_name])
         return hidden_fields
 
-    def _render_inline_row_display(self, obj) -> str:
+    def _render_inline_row_display(
+        self, obj, inline_state: dict[str, Any] | None = None
+    ) -> str:
         cfg = resolve_config(self)
         row_payload = self._build_inline_row_payload(obj)
+        if inline_state and inline_state.get("status") != "ok":
+            row_payload["inline_allowed"] = False
+            row_payload["inline_blocked_reason"] = inline_state.get("status")
+            row_payload["inline_blocked_label"] = inline_state.get("message")
+        component_paths_getter = getattr(
+            self, "get_focused_component_template_paths", None
+        )
+        inline_row_display_template_paths = (
+            component_paths_getter("inline_row_display")
+            if callable(component_paths_getter)
+            else [f"{cfg.templates_path}/partial/inline_row_display.html"]
+        )
+        bulk_selection_controls_template_paths = (
+            component_paths_getter("bulk_selection_controls")
+            if callable(component_paths_getter)
+            else [f"{cfg.templates_path}/partial/bulk_selection_controls.html"]
+        )
         selection_controls_getter = getattr(self, "get_selection_controls_enabled", None)
         enable_selection_controls = (
             selection_controls_getter()
@@ -488,10 +524,14 @@ class InlineEditingMixin:
         context = {
             "row": row_payload,
             "inline_config": self.get_inline_context(),
+            "inline_edit": self.get_inline_context(),
             "enable_bulk_edit": self.get_bulk_edit_enabled(),
             "enable_selection_controls": enable_selection_controls,
             "selected_ids": self._get_selected_ids(),
             "list_view_url": self._get_list_url(),
+            "has_row_actions": row_payload.get("has_actions", False),
+            "inline_row_display_template_paths": inline_row_display_template_paths,
+            "bulk_selection_controls_template_paths": bulk_selection_controls_template_paths,
         }
         return render_to_string(
             f"{cfg.templates_path}/partial/list.html#inline_row_display",
@@ -908,7 +948,7 @@ class InlineEditingMixin:
             payload["lock"] = state["lock"]
 
         # Render display row so the UI falls back to read-only state
-        html = self._render_inline_row_display(obj)
+        html = self._render_inline_row_display(obj, inline_state=state)
         status_code = 423 if state.get("status") == "locked" else 403
         response = HttpResponse(html, status=status_code)
         response["HX-Trigger"] = json.dumps(

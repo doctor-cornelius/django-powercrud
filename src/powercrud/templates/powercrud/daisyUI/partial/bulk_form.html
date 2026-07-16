@@ -1,0 +1,78 @@
+<div class="p-4">
+    <h2 class="text-xl font-bold mb-4">Bulk Edit {{ selected_count }} {{ model_name_plural }}</h2>
+
+    <form id="bulk-edit-form" method="post" hx-post="{{ request.path }}" hx-target="#{{ modal_target|default:'powercrudModalContent' }}"
+        data-powercrud-form="bulk">
+        {% csrf_token %}
+        <input type="hidden" name="bulk_submit" value="1">
+
+        <!-- Hidden field for selected IDs -->
+        {% for id in selected_ids %}
+        <input type="hidden" name="selected_ids[]" value="{{ id }}">
+        {% endfor %}
+
+        <!-- Main form content -->
+        <div id="main-form-content">
+            {% if enable_bulk_update %}
+{% if bulk_fields_template_paths %}
+                {% include bulk_fields_template_paths %}
+            {% else %}
+                {% include "powercrud/daisyUI/partial/bulk_fields.html" %}
+            {% endif %}
+
+            <!-- Submit button for changes -->
+            <div class="flex justify-end mt-6 pt-4">
+                <button type="submit" class="btn btn-primary mx-auto"
+                    data-form-save>
+                    Apply Changes
+                </button>
+            </div>
+            {% endif %}
+
+            <!-- Delete section -->
+            {% if enable_bulk_delete %}
+                <div class="form-control mt-6 border-t pt-4 text-center">
+                    <button type="button" class="btn btn-error mx-auto" onclick="showDeleteConfirmation()">
+                        Delete All Selected Items
+                    </button>
+                    <p class="text-sm text-error/70 mt-2 text-center">
+                        This will permanently delete all selected items.
+                    </p>
+                </div>
+            {% endif %}
+        </div>
+
+        {% if enable_bulk_delete %}
+            <!-- Delete confirmation section (initially hidden) -->
+            <div id="delete-confirmation" class="hidden">
+                <div class="p-4 border-t mt-2">
+                    <h3 class="text-lg font-bold text-error">Confirm Deletion</h3>
+                    <p class="my-4">
+                        Are you sure you want to delete {{ selected_count }} selected {{ model_name_plural }}?
+                        This action cannot be undone.
+                    </p>
+
+                    <div class="form-control">
+                        <label class="cursor-pointer label justify-start gap-4">
+                            <input type="checkbox" id="confirm-delete-checkbox" class="checkbox checkbox-error"
+                                onchange="toggleDeleteButton()">
+                            <span class="label-text">I understand this will permanently delete these items</span>
+                        </label>
+                    </div>
+
+                    <div class="flex justify-end gap-4 mt-4">
+                        <button type="button" class="btn btn-outline" onclick="hideDeleteConfirmation()">
+                            Cancel
+                        </button>
+                        <button type="button" id="confirm-delete-button" class="btn btn-error" hx-post="{{ request.path }}"
+                            hx-target="#{{ modal_target|default:'powercrudModalContent' }}" hx-include="#bulk-edit-form"
+                            hx-vals='{"delete_selected": "1", "bulk_submit": "1"}'
+                            data-powercrud-bulk-delete-submit disabled>
+                            Delete Items
+                        </button>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+    </form>
+</div>

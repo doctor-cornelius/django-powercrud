@@ -1038,6 +1038,10 @@ def test_object_list_renders_booleans_dates_and_selection():
         "use_htmx": True,
         "original_target": "#content",
         "htmx_target": "#content",
+        "bulk_selection_controls_template_paths": [
+            "sample/book_bulk_selection_controls.html",
+            "powercrud/daisyUI/partial/bulk_selection_controls.html",
+        ],
     }
     result = powercrud.object_list(context, [book], view)
 
@@ -1057,9 +1061,58 @@ def test_object_list_renders_booleans_dates_and_selection():
     assert genre.name in row["fields"][4]
     assert result["selected_ids"] == ["1"]
     assert result["selected_count"] == 1
+    assert result["all_selected"] is False, (
+        "The isolated list inclusion context should retain initial select-all state."
+    )
+    assert result["some_selected"] is False, (
+        "The isolated list inclusion context should retain initial indeterminate state."
+    )
+    assert result["keyBase"] == "", (
+        "The default inclusion context should preserve the inert leading-underscore legacy selection metadata."
+    )
+    assert result["bulk_selection_controls_template_paths"] == [
+        "sample/book_bulk_selection_controls.html",
+        "powercrud/daisyUI/partial/bulk_selection_controls.html",
+    ], (
+        "The isolated table context should retain model-first bulk-selection-control candidates."
+    )
     assert result["filter_params"] == "filter=1"
     assert "csrfmiddlewaretoken" not in result["filter_params"], (
         "Object-list filter params should not reflect CSRF tokens into sort/filter URLs."
+    )
+
+
+@pytest.mark.django_db
+def test_object_list_forwards_truthful_page_selection_state():
+    """The table header should receive server-computed page selection state."""
+    author = Author.objects.create(name="Selection State Author")
+    book = Book.objects.create(
+        title="Selection State Book",
+        author=author,
+        published_date=date(2024, 1, 1),
+        bestseller=False,
+        isbn="9780000000011",
+        pages=1,
+    )
+    request = apply_session(RequestFactory().get("/"))
+    view = TemplateViewStub(request)
+
+    result = powercrud.object_list(
+        {
+            "request": request,
+            "all_selected": False,
+            "some_selected": True,
+            "keyBase": "sample_book",
+        },
+        [book],
+        view,
+    )
+
+    assert result["all_selected"] is False and result["some_selected"] is True, (
+        "The inclusion tag should forward truthful partial-page selection state instead of resetting it."
+    )
+    assert result["keyBase"] == "sample_book", (
+        "Custom callers that already provide legacy keyBase metadata should retain it."
     )
 
 
@@ -1284,6 +1337,12 @@ def test_object_list_filters_headers_and_cells_through_list_column_state():
     )
     assert row["has_actions"] is True, (
         "List options should not remove row action/system columns."
+    )
+    assert hasattr(row["actions"], "__html__"), (
+        "Legacy row.actions should remain safe rendered HTML after metadata resolution."
+    )
+    assert "data-inline-action='view'" in row["actions"], (
+        "Legacy row.actions should retain the existing action markup contract."
     )
 
 
