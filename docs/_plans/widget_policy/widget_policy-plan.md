@@ -7,12 +7,14 @@
 - ✅ Separate the behaviour-preserving widget-policy work from the later visible M2M improvement.
 - ✅ Implement the clean pack-contract replacement and both first-party policies.
 - ✅ Complete the behaviour-preserving migration and the inline M2M proof.
+- 🔳 Correct generated datetime form and auto-filter controls in a focused follow-up.
 
 ## Next
 
 1. ✅ Interpret the inventory into stable semantic widget categories and ownership decisions.
 2. ✅ Resolve the recorded runtime ambiguities and capture the current pack behaviour baseline.
 3. ✅ Lock the ownership and precedence rules in the implemented contract.
+4. 🔳 Correct the deferred generated datetime date-only behaviour.
 
 ## ✅ Phase 1: Lock the Current Contract and Baseline
 
@@ -55,3 +57,9 @@
 4. ✅ Preserve normal Django multi-value submission, validation, queryset dependency, and HTMX lifecycle behaviour.
 5. ✅ Add focused server and browser coverage under both packs.
 6. ✅ Document the visible M2M improvement and the supported application override boundary.
+
+## Phase 6: Correct Generated Datetime Controls
+
+1. 🔳 Render generated `DateTimeField` form and inline controls as true date-and-time inputs through the selected pack policy.
+2. 🔳 Render automatically generated `DateTimeField` filters as true datetime filters without changing temporal list-value formatting.
+3. 🔳 Verify parsing, timezone, validation, HTMX lifecycle, and DaisyUI and Bootstrap presentation.

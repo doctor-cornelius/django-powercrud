@@ -164,6 +164,10 @@ Use shared server, browser, contract, and packaging acceptance evidence to prove
 
 Use the new policy to introduce the first deliberate visible improvement: a compact inline ManyToMany control implemented by both first-party packs without adding a generic special case.
 
+### Phase 6: Correct Generated Datetime Controls
+
+Correct the deferred date-only `DateTimeField` form and auto-filter behaviour through the selected pack policy. Keep this separate from the 0.8.6 temporal list-value formatting feature and preserve Django parsing, timezone, validation, and HTMX semantics.
+
 ## Implementation Evidence
 
 The completed implementation replaces the old `filter_widget_attrs` adapter
