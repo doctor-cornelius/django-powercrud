@@ -298,11 +298,45 @@ variants, retain explicit Django fallback and application overrides, and use the
 same rich multiselect family across all four surfaces with a compact inline
 variant.
 
-### Phase 10: Update Documentation
+### Phase 10: Complete the Shared Multiselect UX
+
+After Phase 9 establishes the final resolution route, improve the shared Tom
+Select multiselect rather than adding another surface-specific widget. Both
+first-party packs will import and register Tom Select's standard
+`checkbox_options` plugin. Multiselects will keep selected options visible in
+the dropdown, show their checked state, and let an option click add or remove
+that value while the dropdown remains open.
+
+The standard multiselect interaction will be shared across applicable
+surfaces. Pack adapters remain responsible for DaisyUI or Bootstrap styling.
+Roomier surfaces may retain ordinary selected-item presentation; the inline
+variant will show a compact selected count rather than clipped partial chips.
+The existing non-editing overflow tooltip remains unchanged, and no additional
+inline-edit tooltip is required.
+
+The current adapters register only Tom Select's `remove_button` plugin. With
+`hideSelected` false, selected options therefore remain listed without a clear
+selected indicator, and clicking an already-selected option does not toggle it
+off. The checkbox plugin supplies the intended standard toggle behaviour. Any
+failure to add an unselected option is treated as a separate regression and
+must be covered by the same browser proof.
+
+Successful inline save currently destroys Tom Select during HTMX teardown and
+briefly restores the underlying native Django multi-select before the old row
+is removed. Outgoing-fragment teardown must keep that native control hidden
+until replacement while preserving normal native restoration for explicit or
+non-swap destruction.
+
+Acceptance evidence must cover DaisyUI and Bootstrap initial checked state,
+mouse and keyboard add/remove behaviour, selected-count updates, Django POST
+values, upward and downward viewport placement, HTMX reinitialisation, and the
+absence of a native-control flash during save.
+
+### Phase 11: Update Documentation
 
 Promote the settled datetime, silent-custom-form, pack-default, surface-variant,
-fallback, and bulk-integration rules into stable documentation, then reconcile
-these temporary notes with the final boundary.
+fallback, bulk-integration, and multiselect behaviour into stable documentation,
+then reconcile these temporary notes with the final boundary.
 
 ## Implementation Evidence
 
