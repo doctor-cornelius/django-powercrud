@@ -70,6 +70,48 @@ export function createBootstrap5SearchableSelectAdapter({ global, documentObject
         select.tomselect.dropdown.classList.add('powercrud-filter-favourite-select-dropdown');
     }
 
+    function positionInlineMultiselectDropdown(instance) {
+        const controlRect = instance.control.getBoundingClientRect();
+        const dropdown = instance.dropdown;
+        const dropdownContent = instance.dropdown_content;
+        const viewportHeight = documentObject.documentElement.clientHeight || global.innerHeight;
+        const viewportWidth = documentObject.documentElement.clientWidth || global.innerWidth;
+        const viewportEdge = 8;
+        const dropdownGap = 4;
+        const spaceAbove = Math.max(0, controlRect.top - viewportEdge - dropdownGap);
+        const spaceBelow = Math.max(0, viewportHeight - controlRect.bottom - viewportEdge - dropdownGap);
+        const renderedHeight = dropdown.getBoundingClientRect().height;
+        const opensUpward = spaceBelow < renderedHeight && spaceAbove >= spaceBelow;
+        const availableSpace = opensUpward ? spaceAbove : spaceBelow;
+        const contentHeight = dropdownContent.getBoundingClientRect().height;
+        const dropdownChrome = Math.max(0, renderedHeight - contentHeight);
+        const maxContentHeight = Math.max(0, Math.floor(availableSpace - dropdownChrome));
+        const maxWidth = Math.max(0, viewportWidth - (viewportEdge * 2));
+        const width = Math.min(controlRect.width, maxWidth);
+        const left = Math.max(
+            viewportEdge,
+            Math.min(controlRect.left, viewportWidth - width - viewportEdge),
+        );
+
+        dropdownContent.style.maxHeight = `${maxContentHeight}px`;
+        dropdown.style.margin = '0';
+        dropdown.style.width = `${width}px`;
+        dropdown.style.left = `${global.scrollX + left}px`;
+        dropdown.classList.toggle('powercrud-inline-dropdown-upward', opensUpward);
+
+        const positionedHeight = dropdown.getBoundingClientRect().height;
+        const top = opensUpward
+            ? controlRect.top - positionedHeight - dropdownGap
+            : controlRect.bottom + dropdownGap;
+        dropdown.style.top = `${global.scrollY + top}px`;
+    }
+
+    function enableInlineMultiselectDropdownPlacement(instance) {
+        instance.on('dropdown_open', () => {
+            global.requestAnimationFrame(() => positionInlineMultiselectDropdown(instance));
+        });
+    }
+
     function syncDisabled(select) {
         if (!select.tomselect) {
             return;
@@ -154,6 +196,7 @@ export function createBootstrap5SearchableSelectAdapter({ global, documentObject
         if (isInlineSelect && multiple) {
             instance.wrapper.classList.add('powercrud-inline-multiselect');
             instance.dropdown.classList.add('powercrud-inline-multiselect-dropdown');
+            enableInlineMultiselectDropdownPlacement(instance);
         }
         syncDisabled(select);
         hideNativeSelect(select);

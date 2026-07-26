@@ -554,6 +554,12 @@
     max-width: calc(100vw - 2rem) !important;
 }
 
+.ts-dropdown.powercrud-inline-multiselect-dropdown.powercrud-inline-dropdown-upward {
+    border-top: var(--bs-border-width) solid var(--bs-border-color);
+    border-bottom: 0;
+    border-radius: var(--bs-border-radius) var(--bs-border-radius) 0 0;
+}
+
 .ts-dropdown.powercrud-filter-favourite-select-dropdown {
     z-index: 1090;
 }

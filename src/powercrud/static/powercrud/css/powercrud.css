@@ -329,3 +329,9 @@ select.ts-hidden-accessible {
     z-index: 1090;
     max-width: calc(100vw - 2rem) !important;
 }
+
+.ts-dropdown.powercrud-inline-multiselect-dropdown.powercrud-inline-dropdown-upward {
+    border-top: var(--pc-ts-border-width) solid var(--pc-ts-border-color);
+    border-bottom: 0;
+    border-radius: var(--radius-field) var(--radius-field) 0 0;
+}

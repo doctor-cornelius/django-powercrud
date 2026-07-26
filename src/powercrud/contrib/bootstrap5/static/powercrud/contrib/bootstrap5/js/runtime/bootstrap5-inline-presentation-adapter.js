@@ -23,12 +23,11 @@ export function createBootstrap5InlinePresentationAdapter({ global, documentObje
     }
 
     function presentInlineFocus(target, triggerField) {
-        target?.focus();
+        target?.focus({ preventScroll: true });
         const widget = target?.closest('.inline-field-widget');
         const select = widget?.querySelector('select');
         if (triggerField && select?.tomselect) {
             global.requestAnimationFrame(() => {
-                select.tomselect.focus();
                 select.tomselect.open();
             });
         }

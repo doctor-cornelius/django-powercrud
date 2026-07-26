@@ -72,7 +72,6 @@ export function createDaisyuiInlinePresentationAdapter(context) {
         }
         global.requestAnimationFrame(() => {
             if (candidate.tomselect) {
-                candidate.tomselect.focus();
                 candidate.tomselect.open();
                 return;
             }
@@ -120,7 +119,7 @@ export function createDaisyuiInlinePresentationAdapter(context) {
     }
 
     function presentInlineFocus(focusTarget, triggerField, shouldHighlight) {
-        focusTarget.focus();
+        focusTarget.focus({ preventScroll: true });
         maybeOpenSelectDropdown(focusTarget, triggerField);
         maybeSelectInputValue(focusTarget, shouldHighlight);
     }
