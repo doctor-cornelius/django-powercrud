@@ -36,11 +36,27 @@ Hidden inputs, CSRF fields, preserved values, selected identifiers, and similar 
 
 ## Explicitly Out of Scope
 
-Application-supplied custom forms and their widget choices are out of scope.
+Application-supplied custom forms and their widget choices were outside the
+initial Phase 1–5 scope.
 
-If an application provides a custom `form_class`, this project does not attempt to replace, restyle, normalize, or provide new guarantees for its widgets. The work is concerned only with controls that PowerCRUD or a template pack specifies. Existing compatibility must not be broken accidentally, but custom-form widget policy is not a deliverable.
+If an application provides a custom `form_class`, the initial work does not
+attempt to replace, restyle, normalize, or provide new guarantees for its
+widgets. Existing compatibility must not be broken accidentally.
 
 The first architectural phase also does not introduce new rich text editors, JSON editors, colour pickers, drag-and-drop uploads, date-range pickers, or a mutable application-wide widget registry.
+
+## Scoped Follow-up: Silent Custom ModelForm Fields
+
+Phase 7 narrows the custom-form boundary without making custom forms generally
+pack-owned. Where a custom `ModelForm` leaves a model-backed, non-hidden field
+on Django's default widget, PowerCRUD may apply the selected pack's normal
+presentation policy. This lets the sample `BookForm` receive the compact inline
+ManyToMany treatment for `genres`, even though the form does not explicitly
+configure that widget.
+
+An application remains authoritative if it declares a form field, supplies a
+`Meta.widgets` entry, replaces Django's default widget class at runtime, or
+uses a non-model or hidden control. Those fields stay outside the pack policy.
 
 ## Ownership Boundary
 
@@ -137,7 +153,8 @@ For the in-scope generated-control path, the intended resolution is:
 3. Where that policy explicitly leaves the widget class unchanged, Django's
    normal default widget remains in use.
 
-Application-supplied custom forms and view-level widget customization do not enter this resolution path.
+Phase 7 additionally permits a custom ModelForm's silent default widgets to
+enter this path. Explicit application widget choices remain outside it.
 
 ## Plan Phases
 
@@ -168,6 +185,23 @@ Use the new policy to introduce the first deliberate visible improvement: a comp
 
 Correct the deferred date-only `DateTimeField` form and auto-filter behaviour through the selected pack policy. Keep this separate from the 0.8.6 temporal list-value formatting feature and preserve Django parsing, timezone, validation, and HTMX semantics.
 
+### Phase 7: Apply Policy to Silent Custom ModelForm Widgets
+
+Extend the selected-pack default only to model-backed fields for which a custom
+ModelForm has not itself selected a widget. The sample `BookForm` is the proof:
+its default `genres` multi-select may receive the inline pack enhancement, but
+its explicit `published_date` widget remains untouched.
+
+### Phase 8: Verify the Follow-up Behaviour
+
+Validate both first-party packs across server and browser paths, including
+datetime input/filter round-tripping and the custom-form ownership boundary.
+
+### Phase 9: Update Documentation
+
+Promote the settled datetime and silent-custom-form rules into the stable
+documentation, then reconcile these temporary notes with the final boundary.
+
 ## Implementation Evidence
 
 The completed implementation replaces the old `filter_widget_attrs` adapter
@@ -177,10 +211,11 @@ pack. Ordinary generated form controls retain Django widgets when the pack
 explicitly returns neutral presentation. Existing bulk controls remain literal
 pack templates and therefore were not given a new generic metadata field.
 
-The deliberate visible change is limited to generated inline ManyToMany fields:
+The deliberate visible change in Phase 5 is limited to generated inline ManyToMany fields:
 the selected pack requests the existing Tom Select multi-value enhancement and
-adds compact inline control/dropdown styling. Application-owned custom forms do
-not enter that route.
+adds compact inline control/dropdown styling. Phase 7 separately extends that
+route to silent default widgets in custom ModelForms; application-owned widget
+choices still do not enter it.
 
 Focused validation passed in separate successful gates:
 
@@ -191,6 +226,14 @@ Focused validation passed in separate successful gates:
 4. The compact generated inline M2M browser proof under DaisyUI and Bootstrap.
 5. Fresh `uv build` wheel and sdist validation through the isolated installed
    template-pack artifact harness.
+
+The completed Phase 6–8 follow-up has separate successful evidence:
+
+1. 115 focused form, filter, and dependency tests under the default DaisyUI
+   settings.
+2. The datetime and custom-form ownership proofs under Bootstrap settings.
+3. The real sample `BookForm` inline M2M browser proof, including save, under
+   both DaisyUI and Bootstrap settings.
 
 Two attempted broad runs overlapped on the shared test database; they are not
 used as evidence. An explicit all-tests Bootstrap invocation is also not a

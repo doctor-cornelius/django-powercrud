@@ -6,6 +6,7 @@ from django_filters import (
     CharFilter,
     ChoiceFilter,
     DateFilter,
+    DateTimeFilter,
     NumberFilter,
     BooleanFilter,
     ModelChoiceFilter,
@@ -670,6 +671,11 @@ class FilteringMixin:
                         lookup_expr="icontains",
                         label=self._get_filter_label(model_field or field_name),
                         widget=forms.TextInput(attrs=field_attrs),
+                    )
+                elif isinstance(field_to_check, models.DateTimeField):
+                    declared_filters[field_name] = DateTimeFilter(
+                        label=self._get_filter_label(model_field or field_name),
+                        widget=forms.DateTimeInput(attrs=field_attrs),
                     )
                 elif isinstance(field_to_check, models.DateField):
                     if "type" not in field_attrs:

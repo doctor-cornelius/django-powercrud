@@ -4,7 +4,7 @@ from typing import Any
 from django import forms
 from django.forms import models as form_models
 from django.db import models as db_models
-from django.core.exceptions import ImproperlyConfigured
+from django.core.exceptions import FieldDoesNotExist, ImproperlyConfigured
 from django.http import HttpResponseRedirect, QueryDict
 from django.shortcuts import render
 from django.urls import reverse
@@ -188,16 +188,16 @@ class FormMixin:
                 attrs.pop("data-powercrud-searchable-select", None)
         return form
 
-    def _get_generated_form_widget_policy_context(
+    def _get_form_widget_policy_context(
         self,
         *,
         field_name: str,
         field: forms.Field,
+        model_field: db_models.Field,
         inline: bool,
         dependency_fields: set[str],
     ) -> WidgetPolicyContext:
-        """Build neutral presentation facts for one generated model-form field."""
-        model_field = self.model._meta.get_field(field_name)
+        """Build neutral presentation facts for one eligible model-form field."""
         widget = field.widget
         is_multiple = isinstance(widget, forms.SelectMultiple)
         searchable_requested = False
@@ -223,11 +223,12 @@ class FormMixin:
             searchable_requested=searchable_requested,
         )
 
-    def _apply_generated_form_widget_policy(
+    def _apply_form_widget_policy(
         self, form: forms.BaseForm, *, inline: bool
     ) -> forms.BaseForm:
-        """Apply the selected pack's policy to PowerCRUD-generated model forms."""
-        if not getattr(form, "_powercrud_generated", False):
+        """Apply selected-pack policy to fields eligible for PowerCRUD presentation."""
+        field_names = self._get_widget_policy_field_names(form)
+        if not field_names:
             return form
 
         dependencies = self.get_field_queryset_dependencies(
@@ -235,14 +236,69 @@ class FormMixin:
         )
         adapter = get_template_pack_server_adapter()
         for field_name, field in form.fields.items():
-            context = self._get_generated_form_widget_policy_context(
+            if field_name not in field_names:
+                continue
+            model_field = self._get_model_form_field(form, field_name)
+            if model_field is None:
+                continue
+            context = self._get_form_widget_policy_context(
                 field_name=field_name,
                 field=field,
+                model_field=model_field,
                 inline=inline,
                 dependency_fields=set(dependencies),
             )
             apply_widget_presentation(field, adapter.get_widget_presentation(context))
         return form
+
+    def _get_model_form_field(
+        self, form: forms.BaseForm, field_name: str
+    ) -> db_models.Field | None:
+        """Return the backing model field for one ModelForm field when available."""
+        model = getattr(getattr(form, "_meta", None), "model", None)
+        if model is None:
+            return None
+        try:
+            return model._meta.get_field(field_name)
+        except FieldDoesNotExist:
+            return None
+
+    def _custom_form_field_uses_default_widget(
+        self, form: forms.BaseForm, field_name: str, field: forms.Field
+    ) -> bool:
+        """Return whether a custom ModelForm field leaves widget choice to Django."""
+        if isinstance(field.widget, forms.HiddenInput):
+            return False
+
+        form_meta = getattr(form, "_meta", None)
+        meta_widgets = getattr(form_meta, "widgets", None) or {}
+        if field_name in meta_widgets:
+            return False
+        if field_name in getattr(form.__class__, "declared_fields", {}):
+            return False
+
+        model_field = self._get_model_form_field(form, field_name)
+        if model_field is None:
+            return False
+        try:
+            default_form_field = model_field.formfield()
+        except (AttributeError, TypeError, ValueError):
+            return False
+        if default_form_field is None:
+            return False
+        return type(field.widget) is type(default_form_field.widget)
+
+    def _get_widget_policy_field_names(self, form: forms.BaseForm) -> set[str]:
+        """Return fields for which PowerCRUD may request pack presentation."""
+        if getattr(form, "_powercrud_generated", False):
+            return set(form.fields)
+        if not isinstance(form, forms.ModelForm):
+            return set()
+        return {
+            field_name
+            for field_name, field in form.fields.items()
+            if self._custom_form_field_uses_default_widget(form, field_name, field)
+        }
 
     def _apply_disabled_form_fields(self, form: forms.BaseForm) -> forms.BaseForm:
         """
@@ -632,7 +688,8 @@ class FormMixin:
             form = self._apply_disabled_form_fields(form)
         form = self._apply_field_queryset_dependencies(form)
         if getattr(form, "_powercrud_generated", False):
-            return self._apply_generated_form_widget_policy(form, inline=inline)
+            return self._apply_form_widget_policy(form, inline=inline)
+        form = self._apply_form_widget_policy(form, inline=inline)
         return self._apply_searchable_select_attrs(form)
 
     def get_context_data(self, **kwargs):

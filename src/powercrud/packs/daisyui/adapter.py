@@ -16,6 +16,16 @@ from powercrud.template_packs import (
 )
 
 
+class DaisyUIDateTimeLocalInput(forms.DateTimeInput):
+    """Render datetime values in the browser's native local datetime control."""
+
+    input_type = "datetime-local"
+
+    def __init__(self, attrs=None):
+        """Keep seconds in rendered values so datetime editing round-trips exactly."""
+        super().__init__(attrs=attrs, format="%Y-%m-%dT%H:%M:%S")
+
+
 class DaisyUIServerAdapter(BaseServerAdapter):
     """Translate PowerCRUD's semantic presentation requests into DaisyUI classes."""
 
@@ -39,7 +49,7 @@ class DaisyUIServerAdapter(BaseServerAdapter):
 
     def get_widget_presentation(
         self, context: WidgetPolicyContext) -> WidgetPresentation:
-        """Return DaisyUI's current generated-filter presentation without changing UI."""
+        """Return DaisyUI presentation for one generated widget."""
         if context.surface in {"form", "inline"}:
             temporal_presentation = {
                 "date": WidgetPresentation(
@@ -47,8 +57,8 @@ class DaisyUIServerAdapter(BaseServerAdapter):
                     attrs={"type": "date", "class": "form-control"},
                 ),
                 "datetime": WidgetPresentation(
-                    widget_class=forms.DateInput,
-                    attrs={"type": "date", "class": "form-control"},
+                    widget_class=DaisyUIDateTimeLocalInput,
+                    attrs={"step": "1", "class": "form-control"},
                 ),
                 "time": WidgetPresentation(
                     widget_class=forms.TimeInput,
@@ -88,7 +98,7 @@ class DaisyUIServerAdapter(BaseServerAdapter):
             },
             "datetime": {
                 "class": "input input-bordered input-sm w-full text-xs h-10 min-h-10",
-                "type": "date",
+                "step": "1",
             },
             "number": {
                 "class": "input input-bordered input-sm w-full text-xs h-10 min-h-10",
@@ -113,7 +123,11 @@ class DaisyUIServerAdapter(BaseServerAdapter):
                 else "searchable-select"
             )
         return WidgetPresentation(
-            attrs=attributes_by_kind.get(context.kind, {}), enhancement=enhancement
+            widget_class=(
+                DaisyUIDateTimeLocalInput if context.kind == "datetime" else None
+            ),
+            attrs=attributes_by_kind.get(context.kind, {}),
+            enhancement=enhancement,
         )
 
     def get_view_help_variables(self, color: str):

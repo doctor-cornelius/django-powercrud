@@ -11,8 +11,6 @@ pytest.importorskip("playwright.sync_api")
 from playwright.sync_api import Page, expect
 
 from sample.models import Author
-from sample.views import BookCRUDView
-
 INLINE_ROW_SELECTOR = 'tr[data-inline-row="true"]'
 INLINE_ACTIVE_SELECTOR = f'{INLINE_ROW_SELECTOR}[data-inline-active="true"]'
 
@@ -370,26 +368,11 @@ def test_inline_edit_searchable_select_updates_author(
 
 
 def test_inline_m2m_uses_compact_pack_multiselect(
-    page: Page, books_url: str, inline_ready_books, monkeypatch
+    page: Page, books_url: str, inline_ready_books
 ):
-    """Both packs should enhance generated inline M2M controls without losing saves."""
+    """Both packs should enhance the sample custom form's silent inline M2M widget."""
     book = inline_ready_books[0]
     row_path = build_inline_row_path(books_url, book.pk)
-    monkeypatch.setattr(BookCRUDView, "form_class", None)
-    monkeypatch.setattr(
-        BookCRUDView,
-        "form_fields",
-        [
-            "title",
-            "author",
-            "genres",
-            "published_date",
-            "bestseller",
-            "isbn",
-            "pages",
-            "description",
-        ],
-    )
 
     open_books_page(page, books_url)
     watch_inline_event(page, "inline-row-saved")

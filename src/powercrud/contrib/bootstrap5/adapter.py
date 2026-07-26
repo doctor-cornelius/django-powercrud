@@ -16,6 +16,16 @@ from powercrud.template_packs import (
 )
 
 
+class Bootstrap5DateTimeLocalInput(forms.DateTimeInput):
+    """Render datetime values in the browser's native local datetime control."""
+
+    input_type = "datetime-local"
+
+    def __init__(self, attrs=None):
+        """Keep seconds in rendered values so datetime editing round-trips exactly."""
+        super().__init__(attrs=attrs, format="%Y-%m-%dT%H:%M:%S")
+
+
 class Bootstrap5ServerAdapter(BaseServerAdapter):
     """Translate PowerCRUD's semantic presentation requests into Bootstrap classes."""
 
@@ -40,7 +50,7 @@ class Bootstrap5ServerAdapter(BaseServerAdapter):
 
     def get_widget_presentation(
         self, context: WidgetPolicyContext) -> WidgetPresentation:
-        """Return Bootstrap's current generated-filter presentation without changing UI."""
+        """Return Bootstrap presentation for one generated widget."""
         if context.surface in {"form", "inline"}:
             temporal_presentation = {
                 "date": WidgetPresentation(
@@ -48,8 +58,8 @@ class Bootstrap5ServerAdapter(BaseServerAdapter):
                     attrs={"type": "date", "class": "form-control"},
                 ),
                 "datetime": WidgetPresentation(
-                    widget_class=forms.DateInput,
-                    attrs={"type": "date", "class": "form-control"},
+                    widget_class=Bootstrap5DateTimeLocalInput,
+                    attrs={"step": "1", "class": "form-control"},
                 ),
                 "time": WidgetPresentation(
                     widget_class=forms.TimeInput,
@@ -74,7 +84,7 @@ class Bootstrap5ServerAdapter(BaseServerAdapter):
             "select": {"class": "form-select form-select-sm"},
             "multiselect": {"class": "form-select form-select-sm", "size": "5"},
             "date": {"class": "form-control form-control-sm", "type": "date"},
-            "datetime": {"class": "form-control form-control-sm", "type": "date"},
+            "datetime": {"class": "form-control form-control-sm", "step": "1"},
             "number": {"class": "form-control form-control-sm", "step": "any"},
             "time": {"class": "form-control form-control-sm", "type": "time"},
             "boolean": {"class": "form-select form-select-sm"},
@@ -88,7 +98,11 @@ class Bootstrap5ServerAdapter(BaseServerAdapter):
                 else "searchable-select"
             )
         return WidgetPresentation(
-            attrs=attributes_by_kind.get(context.kind, {}), enhancement=enhancement
+            widget_class=(
+                Bootstrap5DateTimeLocalInput if context.kind == "datetime" else None
+            ),
+            attrs=attributes_by_kind.get(context.kind, {}),
+            enhancement=enhancement,
         )
 
     def get_view_help_variables(self, color: str):

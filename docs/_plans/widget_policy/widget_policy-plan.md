@@ -7,14 +7,17 @@
 - ✅ Separate the behaviour-preserving widget-policy work from the later visible M2M improvement.
 - ✅ Implement the clean pack-contract replacement and both first-party policies.
 - ✅ Complete the behaviour-preserving migration and the inline M2M proof.
-- 🔳 Correct generated datetime form and auto-filter controls in a focused follow-up.
+- ✅ Correct generated datetime form and auto-filter controls in a focused follow-up.
+- ✅ Apply the selected-pack policy to silent default widgets in custom ModelForms.
 
 ## Next
 
 1. ✅ Interpret the inventory into stable semantic widget categories and ownership decisions.
 2. ✅ Resolve the recorded runtime ambiguities and capture the current pack behaviour baseline.
 3. ✅ Lock the ownership and precedence rules in the implemented contract.
-4. 🔳 Correct the deferred generated datetime date-only behaviour.
+4. ✅ Correct the deferred generated datetime date-only behaviour.
+5. ✅ Apply pack defaults to silent custom-ModelForm fields while preserving application-owned widgets.
+6. 🔳 Update the stable documentation from the completed implementation evidence.
 
 ## ✅ Phase 1: Lock the Current Contract and Baseline
 
@@ -58,8 +61,24 @@
 5. ✅ Add focused server and browser coverage under both packs.
 6. ✅ Document the visible M2M improvement and the supported application override boundary.
 
-## Phase 6: Correct Generated Datetime Controls
+## ✅ Phase 6: Correct Generated Datetime Controls
 
-1. 🔳 Render generated `DateTimeField` form and inline controls as true date-and-time inputs through the selected pack policy.
-2. 🔳 Render automatically generated `DateTimeField` filters as true datetime filters without changing temporal list-value formatting.
-3. 🔳 Verify parsing, timezone, validation, HTMX lifecycle, and DaisyUI and Bootstrap presentation.
+1. ✅ Render generated `DateTimeField` form and inline controls as true date-and-time inputs through the selected pack policy.
+2. ✅ Render automatically generated `DateTimeField` filters as true datetime filters without changing temporal list-value formatting.
+3. ✅ Verify parsing, timezone, validation, HTMX lifecycle, and DaisyUI and Bootstrap presentation.
+
+## ✅ Phase 7: Apply Policy to Silent Custom ModelForm Widgets
+
+1. ✅ Apply selected-pack presentation only where a custom ModelForm leaves the model-backed widget at Django's default.
+2. ✅ Preserve fields declared by the application, `Meta.widgets`, hidden controls, and non-model fields without pack replacement.
+3. ✅ Use the sample `BookForm` inline M2M field as the end-to-end proof while retaining its explicit `published_date` widget.
+
+## ✅ Phase 8: Verify the Follow-up Behaviour
+
+1. ✅ Prove datetime form, inline, and filter parsing and presentation under DaisyUI and Bootstrap.
+2. ✅ Prove silent custom-form fallback, explicit-widget preservation, dependencies, validation, and inline save behaviour under both packs.
+
+## Phase 9: Update Documentation
+
+1. 🔳 Update stable form-control and template-pack documentation for the datetime correction and silent custom-ModelForm fallback.
+2. 🔳 Reconcile these plan notes with the final supported custom-form boundary and record the focused validation evidence.

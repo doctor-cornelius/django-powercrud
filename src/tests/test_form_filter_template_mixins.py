@@ -1,5 +1,5 @@
 from copy import deepcopy
-from datetime import date
+from datetime import date, datetime
 import re
 
 import pytest
@@ -11,6 +11,7 @@ from django.template.loader import render_to_string
 from django.test import RequestFactory, override_settings
 from django.utils.formats import date_format
 from django.utils.safestring import mark_safe
+from django.utils import timezone
 
 from powercrud.mixins.form_mixin import FormMixin
 from powercrud.mixins.filtering_mixin import (
@@ -50,10 +51,10 @@ def test_form_mixin_generates_modelform_with_sorted_dropdown():
 
 
 @pytest.mark.django_db
-def test_generated_datetime_form_and_filter_preserve_current_date_only_baseline(
+def test_generated_datetime_form_and_filter_use_true_datetime_controls(
     rf: RequestFactory,
 ):
-    """The widget-policy extraction must not silently correct the deferred datetime defect."""
+    """Generated datetime form and filter paths must retain date-and-time values."""
 
     class DateTimeView(HtmxMixin, FormMixin, FilteringMixin):
         """Provide generated form and filter paths for the temporal parity check."""
@@ -68,23 +69,44 @@ def test_generated_datetime_form_and_filter_preserve_current_date_only_baseline(
             """Keep the characterization on the native renderer path."""
             return False
 
+    completed_at = timezone.make_aware(datetime(2026, 3, 2, 14, 5, 6))
+    record = AsyncTaskRecord.objects.create(
+        task_name="datetime-widget-proof", completed_at=completed_at
+    )
     view = DateTimeView()
-    view.request = rf.get("/")
+    view.request = rf.get("/", {"completed_at": "2026-03-02T14:05:06"})
 
     form_class = view.get_form_class()
+    inline_form = view.build_inline_form(instance=record)
     filterset = view.get_filterset(AsyncTaskRecord.objects.all())
 
-    assert isinstance(form_class.base_fields["completed_at"].widget, forms.DateInput), (
-        "The generated DateTimeField form must retain its current DateField-first widget."
+    form_widget = form_class.base_fields["completed_at"].widget
+    inline_widget = inline_form.fields["completed_at"].widget
+    filter_widget = filterset.form.fields["completed_at"].widget
+    assert isinstance(form_widget, forms.DateTimeInput), (
+        "Generated DateTimeField forms must use a DateTimeInput-compatible widget."
     )
-    assert form_class.base_fields["completed_at"].widget.input_type == "date", (
-        "The deferred datetime correction must not be folded into the policy refactor."
+    assert form_widget.input_type == "datetime-local", (
+        "Generated DateTimeField forms must render a browser datetime-local control."
     )
-    assert isinstance(filterset.form.fields["completed_at"].widget, forms.DateInput), (
-        "Generated DateTimeField filters must retain their current date-only widget."
+    assert inline_widget.input_type == "datetime-local", (
+        "Generated DateTimeField inline forms must render a browser datetime-local control."
     )
-    assert filterset.form.fields["completed_at"].widget.input_type == "date", (
-        "The generated datetime filter remains a separately tracked correction."
+    assert "2026-03-02T14:05:06" in inline_form["completed_at"].as_widget(), (
+        "Generated datetime inline controls must render the complete local date-and-time value."
+    )
+    assert isinstance(filter_widget, forms.DateTimeInput), (
+        "Generated DateTimeField filters must use a DateTimeInput-compatible widget."
+    )
+    assert filter_widget.input_type == "datetime-local", (
+        "Generated DateTimeField filters must render a browser datetime-local control."
+    )
+    assert form_widget.format == "%Y-%m-%dT%H:%M:%S", (
+        "Generated datetime controls must preserve seconds in their browser value."
+    )
+    assert filterset.is_valid(), "A datetime-local filter value must validate."
+    assert list(filterset.qs) == [record], (
+        "A datetime-local filter value must select the matching DateTimeField record."
     )
 
 
