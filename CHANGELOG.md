@@ -1,15 +1,20 @@
 # Changelog
 
-PowerCRUD adopts a loose semantic versioning approach at this stage. Essentially while on major version `0`, almost every release is a patch release. Minor releases occur periodically if we feel the cumulative functionality is major, or if the patch suffix number is getting to a ridiculous number. 
+PowerCRUD adopts a loose semantic versioning approach at this stage. Essentially while on major version `0`, almost every release is a patch release. Minor releases occur periodically if we feel the cumulative functionality is major, or if the patch suffix number is getting to a ridiculous number.
 
 During the `0.x` series, breaking changes can occur, although we try to minimise them. Once we move to major release `1` the intention is to be more disciplined.
 
 Version numbers below correspond to published git tags. The more important releases include a little extra narrative and upgrade context; smaller patch releases remain deliberately brief. For full detail between any two versions, use the GitHub compare view for the matching tags.
 
+## 0.9.1 (2026-07-26)
+
+- **Fix**: flip sort indicator direction on table headers. Now `▲` means sorted in ascending order and `▼`means descending order.
+- **Chore**: speed Docker rebuilds
+
 ## 0.9.0 (2026-07-16)
 
-- **Feature (template-packs): public template-pack architecture.** 
-  
+- **Feature (template-packs): public template-pack architecture.**
+
   PowerCRUD now separates its stable CRUD behaviour from the presentation layer. DaisyUI remains the default pack, and Bootstrap 5 is now a supported alternative. A project selects one complete pack at Django startup; packs are not selected per view, tenant, or request.
 
   Projects can make presentation changes at the right level: replace a focused component, override templates for a model or view, copy a complete pack’s templates into the application, or take ownership of its manual-static CSS and JavaScript. The `pcrud_mktemplate` command supports these copy and asset-ownership routes.
@@ -19,96 +24,117 @@ Version numbers below correspond to published git tags. The more important relea
   Manual-static loading is supported for application-owned assets. Vite remains application-owned: projects and independent-pack authors configure their own entry points, dependencies, aliases, and manifest rather than relying on PowerCRUD to infer a frontend build.
 
 ## 0.8.6 (2026-07-10)
+
 - **Feature (powercrud)**: add temporal list column formats
-  
-  PowerCRUD now supports configurable list rendering for `DateField`, `TimeField`, and `DateTimeField` values. `DateField` and `TimeField` use `DATE_FORMAT` and `TIME_FORMAT`, while unconfigured `DateTimeField` columns retain the legacy date-only default and use `DATE_FORMAT`; set `default_datetime_value_format` on a view to change that default, or use `column_value_formats` (or `PowerField(column={"value_format": ...})`) for individual columns. 
-  
+
+  PowerCRUD now supports configurable list rendering for `DateField`, `TimeField`, and `DateTimeField` values. `DateField` and `TimeField` use `DATE_FORMAT` and `TIME_FORMAT`, while unconfigured `DateTimeField` columns retain the legacy date-only default and use `DATE_FORMAT`; set `default_datetime_value_format` on a view to change that default, or use `column_value_formats` (or `PowerField(column={"value_format": ...})`) for individual columns.
+
   Legacy projects that need to preserve their existing `DD/MM/YYYY` appearance should explicitly set `DATE_FORMAT = "d/m/Y"` in Django settings; projects using time-only or date-and-time output should also define `TIME_FORMAT` and `DATETIME_FORMAT`. If these settings are omitted, Django’s own defaults apply.
 
 ## 0.8.5 (2026-07-08)
 
 Maintenance release with internal-only or tooling-only changes; no curated user-facing changelog entries.
+
 ## 0.8.4 (2026-07-08)
+
 - **Fix (favourites)**: guard auto-apply during modal swaps
 
 ## 0.8.3 (2026-07-06)
+
 - **Feature (pagination)**: add page size controls
-  
+
   Adds configurable page-size options for list views, allowing projects to replace the default choices and disable the `All` option where unbounded result sets are inappropriate. The sample app now demonstrates a constrained pagination menu, and the new settings are documented in the configuration reference and examples.
 
 ## 0.8.2 (2026-06-26)
+
 - **Feature (favourites)**: add filter favourite owner resolver
 
 ## 0.8.2b1 (2026-06-25)
-- **Feature (row-actions)**: add lazy `hidden_if` row actions
-  
-  Dropdown row-action menus can now defer `hidden_if` checks until the user opens the row `More` menu. This keeps expensive or state-sensitive visibility checks out of the initial list render while still removing hidden actions before the user can choose them.
 
+- **Feature (row-actions)**: add lazy `hidden_if` row actions
+
+  Dropdown row-action menus can now defer `hidden_if` checks until the user opens the row `More` menu. This keeps expensive or state-sensitive visibility checks out of the initial list render while still removing hidden actions before the user can choose them.
 - **Feature (selection)**: clear selection-aware extra buttons after successful actions
 - **Fix (tooltips)**: prevent stale lazy tooltip replay
 - **Fix (ui)**: close toolbar `More` menus after option selection
 
 ## 0.8.1 (2026-06-25)
+
 - **Feature (tooltips)**: add lazy row state and cell tooltips
 
 ## 0.8.0 (2026-06-24)
+
 - **Feature (permissions)**: add permission-aware affordances
 
   PowerCRUD can now hide or disable operations that the current user is not allowed to use, while keeping permission checks separate from row/workflow state checks. Built-in hooks cover the standard PowerCRUD-owned create, detail, update, delete, inline-update, bulk update, and bulk delete flows, with matching backend enforcement for direct requests. Custom `extra_actions` and `extra_buttons`, including `PowerAction` and `PowerButton`, now support `permission`, `permission_check`, `permission_behavior`, and `permission_denied_reason` so applications can present truthful row actions and toolbar buttons without folding authorization into `hidden_if`, `disabled_state`, or selection-state logic. Defaults remain open for existing views; downstream custom action endpoints still need to enforce their own permissions.
-
 - **Feature (config)**: default list pagination to 25 rows
 
 ## 0.7.15 (2026-06-18)
+
 - **Feature (fields)**: add labels and choice filters
 
 ## 0.7.14 (2026-06-18)
+
 - **Fix (release)**: finalize prereleases without new commits
 
 ## 0.7.14b1 (2026-06-18)
+
 - **Feature (release)**: surface sample runtime metadata
 
 ## 0.7.13 (2026-06-17)
+
 - **Fix (filters)**: handle null boolean and panel state
 - **Fix (release)**: resume tagging from merge commit
 
 ## 0.7.12 (2026-06-17)
+
 - **Fix (favourites)**: remove ad hoc list restore
 
 ## 0.7.11 (2026-06-16)
+
 - **Fix (favourites)**: repair remembered favourite state
 
 ## 0.7.10 (2026-06-16)
+
 - **Fix (favourites)**: remember server-selected favourite
 
 ## 0.7.9 (2026-06-16)
+
 - **Fix (favourites)**: restore remembered favourite apply on htmx calls
 
 ## 0.7.8 (2026-06-11)
+
 - **Fix (list)**: keep wide table scrolling local
 
 ## 0.7.7 (2026-06-10)
+
 - **Fix (favourites)**: mark selected favourite dirty from column chooser
 - **Fix (toolbar)**: make dropdown controls mutually exclusive
 
 ## 0.7.6 (2026-06-10)
+
 - **Fix (favourites)**: preserve column chooser and auto apply state
-  
+
   This fix prevents errors observable in certain saved-favourite scenarios, especially where favourites are combined with selectable columns or richer HTMX list refreshes. Column chooser changes now correctly mark the active favourite as edited instead of being ignored, and remembered favourites now compare against the server-rendered current state before auto-applying. This avoids repeated `/favourites/apply/` refresh loops when the client-side DOM is temporarily incomplete during a refresh.
 
 ## 0.7.5 (2026-06-09)
+
 - **Feature (selection)**: support extra button selection controls
 
 ## 0.7.4 (2026-06-06)
+
 - **Feature (extra-actions)**: add hidden_if row action hook
-  
+
   Adds explicit conditional hiding support for row-level extra actions via hidden_if="...". Hidden actions are omitted from both inline row buttons and the More menu, while disabled_state="..." remains the preferred API for actions that should stay visible but unavailable with tooltip text. Also documents disabled_if and disabled_reason as deprecated ahead of v1.0 removal.
 
 ## 0.7.3 (2026-05-31)
+
 - **Fix (poweractions)**: avoid selection warnings for plain buttons
 
 ## 0.7.2 (2026-05-31)
+
 - **Feature (powerfields)**: add tooltip hooks and polish structured docs
-  
+
   Adds explicit tooltip hook support for PowerField via tooltip_hook="..." and the matching Base Configuration API mapping list_cell_tooltip_fields = {"field": "hook_name"}. The old list form remains supported but is now deprecated and documented with a migration path. Also tidies the Structured API docs, recipes, navigation, and related links.
 
 ## 0.7.1 (2026-05-29)
@@ -118,84 +144,89 @@ This release completes the first Structured Declaration API pass. Together with 
 - **Feature (actions)**: add `PowerAction` and `PowerButton` declaration objects for reusable `extra_actions` and `extra_buttons`.
 
   `PowerAction` covers row-level action declarations, including modal options and disabled-state configuration. `PowerButton` covers toolbar-level button declarations, including selection-aware behavior. Both compile to the existing dictionary configuration, may be mixed with base dictionaries in the same list, and support `with_options(...)` for DRY variants across related views.
-
 - **Feature (powerfields)**: add reusable `PowerField.with_options(...)` variants and clarify default-list intent.
 
   Shared `PowerField` declarations can now be copied with local option changes while leaving the original declaration unchanged. Derived declarations rerun validation, so invalid local overrides fail early.
-
 - **Documentation (structured-api)**: reorganize the public docs around Base Configuration API and Structured Declaration API usage.
 
   Adds a dedicated Structured API section with API-style guidance, PowerField and PowerAction/PowerButton guides, side-by-side recipes, updated references, and sample-app coverage. The setup guides now stay more tutorial-shaped, with broader concepts moved later in the learning path.
-
 - **Fix (list-options)**: float the column chooser panel so it is not clipped by table layout.
-
 - **Maintenance (release)**: publish releases through protected-main PRs, required checks, semantic squash commits, and post-merge version tags.
 
 ## 0.7.0 (2026-05-27)
+
 - **Feature (actions)**: refresh list on modal close
 - **Feature (PowerField)**: implement PowerField helper abstraction API for field intent.
-    
-    PowerField provides a core, optional helper for declaring repeated Field Intent in one place. Views can now use `power_fields` with `PowerField` and `PowerOverride` declarations to generate the existing primitive config for list/detail/form/inline/bulk fields, default list columns, tooltips, links, column help/alignment, properties, and queryset dependencies. Primitive class attributes remain the underlying API; each view inheritance chain must use either primitive Field Intent config or `power_fields`, not both.
 
+  PowerField provides a core, optional helper for declaring repeated Field Intent in one place. Views can now use `power_fields` with `PowerField` and `PowerOverride` declarations to generate the existing primitive config for list/detail/form/inline/bulk fields, default list columns, tooltips, links, column help/alignment, properties, and queryset dependencies. Primitive class attributes remain the underlying API; each view inheritance chain must use either primitive Field Intent config or `power_fields`, not both.
 
 ## 0.6.12 (2026-05-18)
+
 - **Fix (list-links)**: use info style for declarative cell links
-  
-  This was necessary because the previous releases (`0.6.10` and `0.6.11`) only set the default for hooks for cell links. 
+
+  This was necessary because the previous releases (`0.6.10` and `0.6.11`) only set the default for hooks for cell links.
 
 ## 0.6.11 (2026-05-18)
+
 - **Style (link)**: change default from link-primary to link-info
 
 ## 0.6.10 (2026-05-17)
+
 - **Style (object_list)**: change text style for view header to text-base-content for better contrast in dark themes
 
 ## 0.6.9 (2026-05-17)
+
 - **Feature (view_help)**: add param view_help providing collapsed title with detail instructions for screen
 - **Fix (list)**: center pagination on table width
 - **Fix (favourites)**: sync state of favourite selector after creating new favourite
 - **Refactor (js)**: modularize PowerCRUD runtime js and harden lifecycle
-  
+
   This was an internal refactor that did not affect the public API or functionality. Split the browser runtime into focused ES modules, centralize idempotent fragment initialization, preserve the stable public entry path, and document the core/runtime adapter boundaries for future template-pack work.
 
 ## 0.6.8 (2026-05-16)
+
 - **Feature (list-options)**: add explicit chooser opt-in
 - **Style**: auto-fit filter controls
 
 ## 0.6.7 (2026-05-16)
-- **Feature (list-columns)**: allow user-selected list columns
-  
-  Developers can now specify for list columns defined in `fields` the subset `default_list_fields` which will be shown on default. Users can then edit which columns are to be displayed or hidden on each view. The selections will persist across refreshes and navigation changes. 
-  
-  If the optional `powercrud.contrib.favourites` is installed, then for each view, selected list columns, filter settings, filter field open/closed state and page sizing can be persisted in named favourites.
 
+- **Feature (list-columns)**: allow user-selected list columns
+
+  Developers can now specify for list columns defined in `fields` the subset `default_list_fields` which will be shown on default. Users can then edit which columns are to be displayed or hidden on each view. The selections will persist across refreshes and navigation changes.
+
+  If the optional `powercrud.contrib.favourites` is installed, then for each view, selected list columns, filter settings, filter field open/closed state and page sizing can be persisted in named favourites.
 - **Feature (extra-buttons)**: add extra buttons "More" dropdown facility analagous to extra-actions
 
 ## 0.6.6 (2026-05-15)
+
 - **Fix (inline)**: reserve width for inline save & cancel buttons
 
 ## 0.6.5 (2026-05-14)
+
 - **Feature (queryset)**: support queryset annotation fields as first-class PowerCRUD fields.
 
   Views may now include public queryset annotation names in `fields`, `filterset_fields`, sorting configuration, labels, tooltips, and list display configuration. Annotation names must match the queryset declaration exactly, and annotation fields are treated as read-only list/filter columns: they are intentionally rejected from editable configuration such as `form_fields`, `inline_edit_fields`, and `bulk_fields`.
 
-
 ## 0.6.4 (2026-05-12)
 
-**Fix (inline)**: show popover error message inline so always visible. 
+**Fix (inline)**: show popover error message inline so always visible.
+
 - previously if there was an error with an inline form, it displayed an inline form error
 - this could be obscured if the vertical height was short, or if the field was a dropdown
 - so now a popover is displayed near the field with semantic error colouring
 - the inline field is hidden if the popover display succeeds
 
-
 ## 0.6.3 (2026-05-09)
+
 - **Feature (list-links)**: add configurable list-cell link opening
 - **Documentation (plan)**: plan for extensible list fields feature
 
 ## 0.6.2 (2026-04-28)
+
 - **Fix (bulk)**: repair code syntax error for bulk choices char fields
 
 ## 0.6.1 (2026-04-24)
+
 - **Feature (modal)**: provide modal sizing parameters
 
 ## 0.6.0 (2026-04-24)
@@ -205,11 +236,14 @@ This release completes the first Structured Declaration API pass. Together with 
 - **Build (CI)**: expand the test matrix across Django 5.2 and 6.0 for Python 3.12, 3.13, and 3.14
 
 ## 0.5.47 (2026-04-24)
+
 Maintenance release with internal-only or tooling-only changes; no curated user-facing changelog entries.
+
 - **Fix (tooltips)**: hide tooltips during modal transitions
 - **Style (sample)**: restructure sample menu buttons
 
 ## 0.5.46 (2026-04-24)
+
 - **Feature (links)**: support cell level url links on list view via:
   - `link_fields` parameter for simple cases; or
   - `get_cell_list_link()` hook for more complex overrides
@@ -220,10 +254,13 @@ Maintenance release with internal-only or tooling-only changes; no curated user-
 - **Build (Django)**: remove django 4.2 tests from CI test matrix
 
 Maintenance release with internal-only or tooling-only changes; no curated user-facing changelog entries.
+
 ## 0.5.44 (2026-04-22)
+
 - **Feature (style)**: introduce column_alignment
 
 ## 0.5.43 (2026-04-20)
+
 - **Fix (bulk_selection)**: ignore stale row-select responses during range selection
 - **Fix (release)**: run prepare flow inside container
 - **Fix (favourites)**: allow favourites panel to overlay fully
@@ -231,19 +268,24 @@ Maintenance release with internal-only or tooling-only changes; no curated user-
 - **Documentation (changelog)**: curate flattened release history
 
 ## 0.5.42 (2026-04-19)
+
 - **Fix (favourites)**: filter favourites guard and documentation (#92)
 
 ## 0.5.41 (2026-04-18)
+
 - **Feature**: ensure styling of filter class filters and fix More button dropdown
 
 ## 0.5.40 (2026-04-18)
+
 - **Fix (favourites)**: make name migration mssql-safe
 
 ## 0.5.39 (2026-04-18)
+
 - **Documentation**: streamline filter docs
 - **Feature (favourites)**: support named filter favourites through optional contrib app
 
 ## 0.5.38 (2026-04-17)
+
 - **Fix**: trigger multiselect updates
 - **Feature (filters)**: support optional filters and browser display retention
 
@@ -256,48 +298,61 @@ Tooltip defaults were shifted to a more neutral palette, with follow-up test cov
 Tooltip styling variables can now be overridden from CSS without patching the shipped templates.
 
 ## 0.5.34 (2026-04-16)
+
 - **Feature (tooltips)**: provide params and hook for specifying field level tooltip contents
 
 ## 0.5.33 (2026-04-13)
+
 - **Feature (hooks)**: add built-in update guard hooks and improve docs for sync and async
 - **Feature (hooks)**: implement delete guard hooks
 
 ## 0.5.32 (2026-04-13)
+
 - **Feature (delete)**: for standard single delete action pass validation errors to modal form
 
 ## 0.5.31 (2026-04-08)
+
 - **Documentation**: move internal notes outside mkdocs tree
 - **Documentation**: clarify async scope boundaries
 
 ## 0.5.30 (2026-04-08)
+
 - **Documentation (hooks)**: clarify interaction of various hooks with class params
 - **Feature (buttons)**: implement selection-aware extra_buttons and conditional extra_actions
 
 ## 0.5.29 (2026-04-04)
+
 - **Fix (core_mixin)**: sort relation columns by name
 
 ## 0.5.28 (2026-04-04)
+
 - **Fix (inline_editing_mixin)**: refresh lists after inline saves
 
 ## 0.5.27 (2026-04-04)
+
 - **Documentation (persistence)**: update docs with migration guides for persistence hooks
 
 ## 0.5.26 (2026-04-03)
+
 - **Documentation (plans)**: remove standalone asyncmanager phase
 - **Feature (hooks)**: implement bulk async persistence hooks
 
 ## 0.5.25 (2026-04-03)
+
 - **Refactor**: implement de-duplication of fieldname entries in class param lists
 - **Feature (hooks)**: implement synchronous persistence hooks for single & bulk updates
 
 ## 0.5.24 (2026-04-01)
+
 - **Fix (template)**: make empty-state create prompt conditional
 - **Fix (deps)**: update dependency mkdocs-enumerate-headings-plugin to >=0.7,<0.8 (#82)
 
 ## 0.5.23 (2026-03-30)
+
 - **Fix**: use daisyui select wrapper for page size control
 
 ## 0.5.22 (2026-03-30)
+
 - **Fix**: harden bulk and inline editable field validation
 - **Fix (inline)**: fix truncation of text in inline field contents
 - **Fix (deps)**: update python-packages (#79)
@@ -305,6 +360,7 @@ Tooltip styling variables can now be overridden from CSS without patching the sh
 - **Documentation**: clarify strict bulk and inline field rules
 
 ## 0.5.21 (2026-03-21)
+
 - **Fix (inline)**: ensure inline edit POST carry full form fields
 
 ## 0.5.20 (2026-03-19)
@@ -312,26 +368,31 @@ Tooltip styling variables can now be overridden from CSS without patching the sh
 Follow-up maintenance release for the new non-editable and display-only form field work, focused on stabilising tests and async cache behaviour.
 
 ## 0.5.19 (2026-03-19)
+
 - **Fix**: fix race condition with tooltips under htmx
 - **Fix (inline)**: ensure form_disabled_fields is not applied to inline editing
 - **Feature**: implement support to specify non-editable form fields and display-only fields
 
 ## 0.5.18 (2026-03-18)
+
 - **Feature (column)**: support help text tooltips on specified column headers
 - **Feature (powercrud)**: add view_instructions list helper text
 - **Feature (inline)**: parameterise editable inline field background visibility and colour
 - **Feature**: Add view_title parameter to set title at top of crud view page
 
 ## 0.5.17 (2026-03-17)
+
 - **Documentation**: mention shift-click bulk range selection
 - **Documentation**: add static queryset sample app example
 - **Feature**: add loading spinners to bulk action buttons
 - **Feature**: add static queryset rules to field dependencies
 
 ## 0.5.16 (2026-03-17)
+
 - **Feature (extra_actions)**: provide option to display extra_actions as dropdown
 
 ## 0.5.15 (2026-03-16)
+
 - **Fix (list)**: remove sticky header paint seams
 
 ## 0.5.14 (2026-03-16)
@@ -339,18 +400,23 @@ Follow-up maintenance release for the new non-editable and display-only form fie
 Filter layout spacing and presentation were tightened up.
 
 ## 0.5.13 (2026-03-16)
+
 - **Feature (bulk)**: implement bulk select all feature
 
 ## 0.5.12 (2026-03-16)
+
 - **Feature (show_record_count)**: implement boolean parameter to display filtered record count at top of table
 
 ## 0.5.11 (2026-03-16)
+
 - **Refactor (inline)**: remove debug msg
 
 ## 0.5.10 (2026-03-16)
+
 - **Refactor (inline)**: implement backward compatibility and deprecation warnings re inline_edit_enabled
 
 ## 0.5.9 (2026-03-12)
+
 - **Documentation**: improve reference config options table
 - **Feature (inline)**: drop need for boolean inline_edit_enabled & improve docs consistency
 
@@ -359,6 +425,7 @@ Filter layout spacing and presentation were tightened up.
 Maintenance release focused on stabilising the Playwright tooltip coverage in CI.
 
 ## 0.5.7 (2026-03-12)
+
 - **Fix (tippy)**: extract object list runtime into packaged JS
 - **Documentation**: improve docs related to edit field dependencies parameterisation
 
@@ -367,20 +434,25 @@ Maintenance release focused on stabilising the Playwright tooltip coverage in CI
 Compatibility release tightening the supported Django 4.2 / Python matrix.
 
 ## 0.5.5 (2026-03-11)
+
 - **Fix (inline)**: serialize locked guard trigger payloads
 
 ## 0.5.4 (2026-03-11)
+
 - **Fix (deps)**: update js-packages (#73)
 - **Feature (forms)**: add declarative dependent queryset scoping
 - **Feature (filtering)**: add nullable auto-filter controls
 
 ## 0.5.3 (2026-03-07)
+
 - **Documentation**: provide detailed instructions on frontend bundled vs manual install
 
 ## 0.5.2 (2026-03-07)
+
 - **Fix (frontend)**: move runtime assets into package static namespace
 
 ## 0.5.1 (2026-03-06)
+
 - **Fix (test)**: use tomselect API path for stable bulk selection tests
 
 ## 0.5.0 (2026-03-06)
@@ -388,6 +460,7 @@ Compatibility release tightening the supported Django 4.2 / Python matrix.
 This was the Tom Select rollout release. Searchable filter controls moved onto a richer frontend widget, and this is the point where projects with manual asset integration needed to pay closer attention to the frontend setup notes.
 
 ### Upgrade Notes
+
 - If you are not using the bundled PowerCRUD frontend assets, make sure Tom Select assets are included in your own build.
 - **Fix (test)**: harden playwright tomselect interactions
 - **Documentation (setup)**: remove unused frontend deps and clarify frontend bundle guidance
@@ -397,19 +470,24 @@ This was the Tom Select rollout release. Searchable filter controls moved onto a
 - **Feature (filters)**: add tomselect-powered searchable filter controls
 
 ## 0.4.19 (2026-03-06)
+
 - **Fix (bulk)**: refresh positioning and preserve filters after bulk edit
 
 ## 0.4.18 (2026-03-06)
+
 - **Feature (inline)**: implement inline dynamic field dependency updates with doc updates
 
 ## 0.4.17 (2026-03-06)
+
 - **Fix (inline)**: harden dependent field refresh state and preserve dependency metadata on swap
 
 ## 0.4.16 (2026-03-06)
+
 - **Fix (inline)**: preserve row context in dependency refresh and remove stray template artifact
 - **Fix (deps)**: update js-packages (#70)
 
 ## 0.4.15 (2026-02-25)
+
 - **Fix (deps)**: update python-packages (#68)
 - **Fix (deps)**: update dependency pytest-django to >=4.12.0,<5 (#66)
 - **Fix (deps)**: lock file maintenance js-packages (#64)
@@ -417,6 +495,7 @@ This was the Tom Select rollout release. Searchable filter controls moved onto a
 - **Feature (ruff.sh)**: implement ruff and run across all files
 
 ## 0.4.14 (2026-02-09)
+
 - **Fix (config_mixin)**: put in guard and test for non-async config
 - **Fix (deps)**: lock file maintenance js-packages (#61)
 - **Fix (deps)**: update js-packages (#38)
@@ -432,16 +511,19 @@ This was the Tom Select rollout release. Searchable filter controls moved onto a
 Administrative release with no additional code changes beyond the published tag boundary.
 
 ## 0.4.12 (2025-11-26)
+
 - **Fix (FormMixin)**: do guarded import of rcrispy-forms in case not needed
 - **Fix (conf.py)**: do not require presence of settings.POWERCRUD_SETTINGS
 
 ## 0.4.11 (2025-11-26)
+
 - **Refactor (ConfigMixin)**: consolidate config params, validation and resolution in ConfigMixin
 - **Documentation (async)**: write plan to fix async guards
 - **Documentation (templatePacks)**: finalise plan for new templatePack modularisation
 - **Feature (PowerCRUDAsyncMixin)**: split AsyncMixin out from PowerCRUDMixin and include in new PowerCRUDAsyncMixin
 
 ## 0.4.10 (2025-11-15)
+
 - **Documentation (README)**: use correct url for ci tests badge [skip tests]
 - **Feature (InlineEditingMixin)**: add feature to inject missing required fields as hidden form fields
 
@@ -454,6 +536,7 @@ Maintenance release covering CI skip-test handling and docs deployment workflow 
 Maintenance release to make documentation publishing run on every release.
 
 ## 0.4.7 (2025-11-15)
+
 - **Fix (sample.BookCRUDView)**: add expected fields to form_fields
 - **Fix (sample.BookCRUDView)**: remove author and genre unused methods
 - **Fix (deps)**: lock file maintenance js-packages (#24)
@@ -463,9 +546,10 @@ Maintenance release to make documentation publishing run on every release.
 - **Documentation (getting_started.md)**: correct minor discrepancies
 - **Documentation (powercrud)**: rewrite and simplify docs
 - **Documentation (blog)**: add post about possible enhancements
-- **Feature (inline)**: ensure clicked field gets edit focus and <Enter>, <Esc> mirror Save, Cancel
+- **Feature (inline)**: ensure clicked field gets edit focus and <Enter></enter>, <Esc></esc> mirror Save, Cancel
 
 ## 0.4.6 (2025-11-09)
+
 - **Refactor (CoreMixin)**: tighten up get_inline_edit_fields method
 - **Refactor (InlineEditingMixin)**: move inline methods in
 - **Refactor (inline_editing_mixin)**: consolidate all inline methods
@@ -477,6 +561,7 @@ Maintenance release to make documentation publishing run on every release.
 - **Feature (inline_editing)**: implement inline editing in table of 1 row at a time
 
 ## 0.4.5 (2025-11-03)
+
 - **Refactor (AsyncManager)**: have get_urls also include powercrud namespace
 - **Documentation (enhancements)**: remove completed enhancements testing matrix and renovate
 
@@ -485,6 +570,7 @@ Maintenance release to make documentation publishing run on every release.
 Maintenance release covering packaging and dependency housekeeping after the inline-editing rollout.
 
 ## 0.4.3 (2025-11-02)
+
 - **Documentation (README.md)**: correct link to codecov
 
 ## 0.4.2 (2025-11-01)
@@ -498,6 +584,7 @@ Administrative release with no additional code changes beyond the published tag 
 ## 0.4.0 (2025-10-28)
 
 This was more of a consolidation point than a big feature drop. It followed the async and packaging work in the `0.3.x` line and helped settle the renamed package's tooling baseline.
+
 - **Fix (deps)**: lock file maintenance js-packages
 - **Fix (deps)**: lock file maintenance js-packages
 
@@ -508,6 +595,7 @@ Maintenance release fixing publish-workflow syntax after the large async and too
 ## 0.3.5 (2025-10-27)
 
 This was the major async architecture release in the early `powercrud` era. It introduced task context, cleanup, lifecycle-aware dashboard work, and paired that with a much more serious test and tooling baseline.
+
 - **Fix (get_logger)**: refactor all programs to use powercrud.get_logger
 - **Fix (async)**: fix test problems. BEFORE check completeness
 - **Fix (async_dashboard)**: get user label displaying correctly
@@ -521,12 +609,15 @@ This was the major async architecture release in the early `powercrud` era. It i
 Infrastructure release moving the project into `src/`, tightening container naming, and adding the dedicated `q2` service needed for fuller async development.
 
 ## 0.3.3 (2025-08-03)
+
 - **Fix (object_list)**: fix reset not updating page size and sort not working
 
 ## 0.3.2 (2025-08-03)
+
 - **Refactor (powercrud)**: rename PowerCRUD to powercrud throughout except PowerCRUDMixin
 
 ## 0.3.1 (2025-07-30)
+
 - **Fix (FormMixin)**: revert hard-coded tailwind widget classes; use correct imports
 - **Fix (templates)**: use correct powercrud templatetag name
 - **Documentation (docs)**: make small updates to docs content and formatting
@@ -536,9 +627,11 @@ Infrastructure release moving the project into `src/`, tightening container nami
 ## 0.3.0 (2025-07-29)
 
 This release marks the rename boundary from the older `nominopolitan` identity toward `powercrud`. The release itself was small, but it is a useful historical checkpoint when reading later changelog entries.
+
 - **Documentation (docs)**: make slight changes to docs
 
 ## 0.2.27 (2025-07-28)
+
 - **Fix (bulk_edit_process_post)**: clear session of selected_ids after successful delete
 - **Fix (object_list)**: add handlers for hx-triggers refreshTable and bulkEditSuccess
 - **Fix (form_mixin)**: ensure _apply_widget_classes method is applied properly for form opens
@@ -569,40 +662,51 @@ This release marks the rename boundary from the older `nominopolitan` identity t
 - **Feature (BulkActions)**: implement BulkActions enum for url routing of bulk toggle actions
 
 ## 0.2.26 (2025-07-05)
+
 - **Fix (object_list)**: prevent adding null params to get url
 
 ## 0.2.25 (2025-07-05)
+
 - **Feature (dropdown_sort_options)**: implement param to sort related objects asc or desc by specified field name for filters, bulk & single edit
 
 ## 0.2.24 (2025-07-05)
+
 - **Fix (bulk_edit)**: ensure refresh table after bulk delete
 - **Feature (bulk delete)**: allow bulk edit and/or bulk delete (or neither) with new bulk_delete param
 
 ## 0.2.23 (2025-07-05)
+
 - **Fix (bulk_edit)**: add choices for fields with choices to _get_bulk_field_info
 
 ## 0.2.22 (2025-07-04)
+
 - **Fix (bulk edit)**: fix processing of m2m fields
 
 ## 0.2.21 (2025-07-04)
+
 - **Feature (pagination)**: enable user page size selection which persists after edits
 
 ## 0.2.20 (2025-07-03)
+
 - **Documentation (README.md)**: improve documentation of override method for get_bulk_choice_for_field
 - **Feature (sample)**: add Profile and ProfileCRUDView to test OneToOneField bulk edit
 - **Feature (bulk_edit_form)**: add logic to also handle OneToOneFields
 
 ## 0.2.19 (2025-07-03)
+
 - **Refactor (get_bulk_choices_for_field)**: separate out method for extracting choices for foreign key fields, to allow easier override
 
 ## 0.2.18 (2025-07-03)
+
 - **Fix (targeting)**: fix htmx targeting and table refresh after (bulk) edit save to preserve filter and sort params
 
 ## 0.2.17 (2025-07-01)
+
 - **Fix (bulk_edit)**: fix foreign key record update and document bulk edit functionality
 - **Feature (bulk_edit)**: add bulk edit functionality with atomic rollback on failure
 
 ## 0.2.16 (2025-05-22)
+
 - **Refactor (object_list)**: change htmx:afterSwap listener to add event
 - **Refactor (render_to_response)**: assuem hx trigger is always json format
 - **Refactor (get_hx_trigger)**: always return json formatted triggers
@@ -612,10 +716,12 @@ This release marks the rename boundary from the older `nominopolitan` identity t
 Small UI polish release for modal forms and delete confirmation presentation.
 
 ## 0.2.14 (2025-05-22)
+
 - **Refactor (Genre)**: fix logic and method in clean()
 - **Refactor (Genre)**: add test field
 
 ## 0.2.13 (2025-05-21)
+
 - **Refactor (mixins)**: comment out debug statements
 - **Documentation (README)**: document correct way to use @source instead of management command
 
@@ -624,9 +730,11 @@ Small UI polish release for modal forms and delete confirmation presentation.
 Build release improving Tailwind source discovery for downstream `crispy_tailwind` integration.
 
 ## 0.2.11 (2025-05-08)
+
 - **Documentation (README.md)**: document how mixins._apply_crispy_helper() works
 
 ## 0.2.10 (2025-05-08)
+
 - **Feature (get_form_class)**: add `FormHelper` automatically when needed and drop the separate `create_form_class` option
 
 ## 0.2.9 (2025-05-07)
@@ -634,6 +742,7 @@ Build release improving Tailwind source discovery for downstream `crispy_tailwin
 Styling-path release that moved the package toward `crispy_tailwind`, with sample-app work to validate the new direction.
 
 ## 0.2.8 (2025-05-06)
+
 - **Refactor (nm_extract_tailwind_classes)**: use generated css file instead of simulating
 
 ## 0.2.7 (2025-05-06)
@@ -641,10 +750,12 @@ Styling-path release that moved the package toward `crispy_tailwind`, with sampl
 Build release to ensure Vite receives the required environment variables during packaged frontend builds.
 
 ## 0.2.6 (2025-05-06)
+
 - **Refactor (crispy)**: use crispy_daisyui (not working)
 - **Refactor (crispy)**: use crispy_daisyui instead (makes no difference)
 
 ## 0.2.5 (2025-05-04)
+
 - **Feature (object_detail)**: support property.fget.short_description for column header if it exists
 
 ## 0.2.4 (2025-05-03)
@@ -652,6 +763,7 @@ Build release to ensure Vite receives the required environment variables during 
 Delete confirmation template restyle for a cleaner modal flow.
 
 ## 0.2.3 (2025-04-21)
+
 - **Refactor (object_list)**: remove unnecessary js given recent fix in backend
 - **Feature (NominopolitanMixin)**: amend get_queryset and add override paginate_queryset to allow filters and pagination to coexist
 
@@ -666,6 +778,7 @@ Administrative release with no additional code changes beyond the published tag 
 ## 0.2.0 (2025-04-21)
 
 This was the point where filtering started to feel like a first-class part of the package rather than just a convenience around the list view. It paired a filter UI refresh with more robust queryset handling for sortable, filterable relations.
+
 - **Fix (get_filter_queryset_for_field)**: make method more robust with filter and sort options
 
 ## 0.1.43 (2025-04-15)
@@ -673,15 +786,19 @@ This was the point where filtering started to feel like a first-class part of th
 Maintenance release for dependency refresh only.
 
 ## 0.1.42 (2025-04-15)
+
 - **Fix (object_list)**: guartd against non-existent filter in initializeFilterToggle
 
 ## 0.1.41 (2025-04-14)
+
 - **Fix (nominopolitan.py)**: add in missing models import from django.db
 
 ## 0.1.40 (2025-04-09)
+
 - **Feature (NominopolitanMixin, nominopolitan.py)**: handle M2M fields in object list, forms and filtersets
 
 ## 0.1.39 (2025-04-08)
+
 - **Fix (object_list)**: remove debug paragraph
 - **Refactor (Author)**: set table column width parameters
 
@@ -690,6 +807,7 @@ Maintenance release for dependency refresh only.
 Table-display polish for booleans and dates, plus better control over header wrapping.
 
 ## 0.1.37 (2025-04-07)
+
 - **Fix (list)**: make properties not sortable
 - **Refactor (Book)**: add property with very long header name
 
@@ -698,9 +816,11 @@ Table-display polish for booleans and dates, plus better control over header wra
 Modal and form-heading styling refresh.
 
 ## 0.1.35 (2025-04-04)
+
 - **Fix (nm_extract_tailwind_classes)**: include json and text files in scan
 
 ## 0.1.34 (2025-04-04)
+
 - **Documentation (README.md)**: document tailwindcss considerations
 
 ## 0.1.33 (2025-04-02)
@@ -708,89 +828,114 @@ Modal and form-heading styling refresh.
 Refactor release removing an unsupported post-install approach after learning more about package-manager constraints.
 
 ## 0.1.32 (2025-04-02)
+
 - **Refactor (post_install)**: add post_install script to package to run nm_extract_tailwind_classes
 
 ## 0.1.31 (2025-04-02)
+
 - **Fix (nm_extract_tailwind_classes)**: make --pretty option also save in pretty format
 
 ## 0.1.30 (2025-04-02)
+
 - **Refactor (nm_extract_tailwind_classes)**: change default filename to nominopolitan_tailwind_safelist.json
 
 ## 0.1.29 (2025-04-02)
+
 - **Feature (nm_extract_tailwind_classes)**: allow options --output and --package-dir to set file save destination
 
 ## 0.1.28 (2025-04-02)
+
 - **Refactor (nm_extract_tailwind_classes)**: save file in non-pretty format and allow print of file in normal or --pretty format
 
 ## 0.1.27 (2025-04-02)
+
 - **Documentation (new_release.sh)**: add comment
 - **Feature (nm_extract_tailwind_classes)**: create management command to extract classes for downstream to include in safelist
 
 ## 0.1.26 (2025-04-02)
+
 - **Feature (nm_generate_tailwind_config)**: write mgmt command to identify locations of files with tw classes
 
 ## 0.1.25 (2025-04-01)
+
 - **Feature (django_nominopolitan)**: add parameters table_classes, action_button_classes, extra_button_classes and drop table_font_size
 
 ## 0.1.24 (2025-03-31)
+
 - **Fix (new_release.sh)**: ensure correct path to static css files
 
 ## 0.1.23 (2025-03-31)
+
 - **Fix (new_release.sh)**: ensure production css files built via npx
 - **Feature (daisy)**: add daisyUI framework capability and templates
 
 ## 0.1.22 (2025-03-19)
+
 - **Feature (render_to_response)**: add original_template to session data, retrievable via template tag or get_session_data_key('original_target')
 
 ## 0.1.21 (2025-03-18)
+
 - **Refactor (extra_buttons)**: put extra_attrs and extra_class attrs first so they override calculated attributes
 
 ## 0.1.20 (2025-03-18)
+
 - **Fix (extra_buttons)**: set extra_attrs as last added to buttons
 
 ## 0.1.19 (2025-03-18)
+
 - **Fix (extra_buttons)**: fix logic for setting htmx_target
 
 ## 0.1.18 (2025-03-18)
+
 - **Feature (extra_buttons)**: add support for extra_attrs (eg if want to use own modal)
 
 ## 0.1.17 (2025-03-18)
+
 - **Fix (nm_help)**: include README.md in package so it can be read when imported
 - **Refactor (extra_buttons)**: disregard htmx_target if display_modal is True
 - **Feature (extra_buttons)**: support parameter extra_class_attrs
 
 ## 0.1.16 (2025-03-14)
+
 - **Feature (extra_buttons)**: allow extra buttons to be implemented next to Create button via class attribute
 
 ## 0.1.15 (2025-03-10)
+
 - **Refactor (object_form)**: use framework_template_path context var for relative include of crispy forms
 - **Refactor (render_to_response)**: change logic to pick up overridden forms
 - **Feature (nm_mktemplate)**: enhance management command options with app_name --all and app_name.model --all
 
 ## 0.1.14 (2025-03-10)
+
 - **Refactor (sample)**: set form_class for Book but not for Author
 - **Documentation (README)**: update docs re form_fields and form_fields_exclude attributes
 - **Documentation (get_form_class)**: write code comments to improve maintainability
 - **Documentation (README)**: update docs re url_base
 
 ## 0.1.13 (2025-03-10)
+
 - **Fix (render_to_response)**: change all template partial names to nm_content and specify in response logic
 
 ## 0.1.12 (2025-03-10)
-- **Fix (list.html)**: apply sort logic to th header not just the <a> tag with header text
+
+- **Fix (list.html)**: apply sort logic to th header not just the <a></a> tag with header text
 
 ## 0.1.11 (2025-03-09)
+
 - **Fix (sort)**: maintain selected filter display when sorting with htmx
 
 ## 0.1.10 (2025-03-09)
+
 - **Fix (pypoetry)**: correct extras syntax
 - **Fix (NominopolitanMixinValidator)**: remove defaults from validator class and set custom validator for hx_trigger
 - **Documentation (README)**: update installation section
 
 ## 0.1.9 (2025-03-09)
+
 - **Feature (NominopolitanMixin)**: validate all class attributes with pydantic NominopolitanMixinValidator
 
 ## 0.1.8 (2025-03-07)
+
 - **Fix (list.html)**: make sort click on header not just header text
 - **Documentation (README)**: update re nm_help
 - **Documentation (nm_help)**: create management command to display README.md
@@ -798,26 +943,33 @@ Refactor release removing an unsupported post-install approach after learning mo
 - **Feature (list.html)**: enable sort to apply any selected filters to returned data set
 
 ## 0.1.7 (2025-03-06)
+
 - **Feature (django_nominopolitan)**: add new parameters to calculate max-table-height css parameter in list.html
 
 ## 0.1.6 (2025-03-06)
+
 - **Documentation (README)**: update docs re nm_clear_session_keys
 - **Feature (nm_clear_session_keys)**: add management command to clear nominopolitan session keys
 
 ## 0.1.5 (2025-03-06)
+
 - **Fix (list.html)**: use original_target for htmx for header sort when clicked
 - **Refactor (object_list)**: remove debug statement
 
 ## 0.1.4 (2025-03-06)
+
 - **Fix (filtering)**: fix bug in filtering by setting original htmx target correctly in session variable
 
 ## 0.1.3 (2025-03-05)
+
 - **Fix**: improve sorting for underscored fields and add a stable secondary sort by `id`
 
 ## 0.1.2 (2025-03-05)
+
 - **Feature (django_nominopolitan)**: enable sort toggle on object list
 
 ## 0.1.1 (2025-03-01)
+
 - **Refactor (DynamicFilterSet)**: use icontains for 'else' CharFilter
 - **Refactor (get_table_font_size)**: set default to 1rem instead of 0.875rem
 - **Documentation (README)**: update docs re ability to override get_filter_queryset_for_field
@@ -826,24 +978,31 @@ Refactor release removing an unsupported post-install approach after learning mo
 ## 0.1.0 (2025-02-22)
 
 First minor release after the exploratory patch series. It effectively committed the package to a Tailwind-oriented direction by removing Bulma support from the base package.
+
 - **Feature (bulma)**: Remove support for bulma in base package
 
 ## 0.0.43 (2025-02-22)
+
 - **Documentation**: add docstrings and type hints
 
 ## 0.0.42 (2025-02-19)
+
 - **Refactor (mixins)**: remove debug comments
 
 ## 0.0.41 (2025-02-19)
+
 - **Feature (filter)**: toggle display of filter fields
 
 ## 0.0.40 (2025-02-19)
+
 - **Feature (list)**: truncate columns based on table_max_col_width and provide tooltips
 
 ## 0.0.39 (2025-02-18)
+
 - **Feature (get_filterset)**: accommodate GeneratedField types for filter widget determination
 
 ## 0.0.38 (2025-02-18)
+
 - **Fix (get_filterset)**: make all filter field args be applied to filtering
 - **Refactor (AuthorCRUDView)**: use filterset class for sample purposes
 - **Refactor (HTMXFilterSetMixin)**: apply htmx mixin to sample AuthorFilterSet class
@@ -854,11 +1013,13 @@ First minor release after the exploratory patch series. It effectively committed
 - **Feature (get_filterset)**: create dynamic filterset class based on filterset_fields to set htmx triggers
 
 ## 0.0.37 (2025-02-17)
+
 - **Fix (filters)**: filters working with htmx only but no non-htmx option. also fonts too large
 - **Feature (filterset)**: support filterset_fields with styling or filterset_class, both with htmx attrs as needed
 - **Feature (filter)**: 300ms delay works for text filter
 
 ## 0.0.36 (2025-02-15)
+
 - **Feature (object_list.html)**: add code to display filterset if exists
 
 ## 0.0.35 (2025-02-12)
@@ -870,23 +1031,29 @@ Table layout polish adding a clearer actions header and keeping the table width 
 Early styling pass to make the object list tables more compact.
 
 ## 0.0.33 (2025-02-11)
+
 - **Documentation (action_links)**: comment future option to use hx-disable for simplified logic
 - **Feature (modal_id)**: allow override of default modal_id 'nominopolitanBaseModal'
 
 ## 0.0.32 (2025-02-10)
+
 - **Fix (use_htmx)**: make logic work for use_htmx and/or use_modal being False
 
 ## 0.0.31 (2025-02-10)
+
 - **Feature (modal_target)**: allow custom modal_target
 
 ## 0.0.30 (2025-02-04)
+
 - **Feature (Nominopolitan)**: support hx_trigger as value to pass as response['HX-Trigger'] with every response
 
 ## 0.0.29 (2025-02-04)
+
 - **Documentation (README)**: update with details of display_modal for extra_actions
 - **Feature (render_to_response)**: add hx-trigger messagesChanged to allow trigger of message display in base.html
 
 ## 0.0.28 (2025-01-25)
+
 - **Feature (modal)**: allow extra_actions to specify display_modal: False
 
 ## 0.0.27 (2025-01-25)
@@ -898,23 +1065,29 @@ Modal release adding backdrop cleanup so submissions do not leave stale overlays
 Action-button layout polish, including better grouping on small screens.
 
 ## 0.0.25 (2025-01-24)
+
 - **Fix (modal)**: remove modal backdrop because it would not close after modal closed
 
 ## 0.0.24 (2025-01-23)
+
 - **Fix (create form)**: get bootstrap modal working
 
 ## 0.0.23 (2025-01-23)
+
 - **Documentation (README)**: write up changes in readme
 
 ## 0.0.22 (2025-01-23)
+
 - **Fix (bootstrap)**: get bootstrap modal working
 - **Fix**: get modal working ok for bulma
 - **Refactor (object_list)**: add z-index to make modal work properly
 
 ## 0.0.21 (2024-12-05)
+
 - **Feature (nominopolitan)**: exclude non-editable fields from forms if no form_class is specified
 
 ## 0.0.20 (2024-12-05)
+
 - **Feature (nominopolitan)**: add parameters exclude, properties_exclude, detail_exclude, detail_properties_exclude
 
 ## 0.0.19 (2024-12-04)
@@ -922,31 +1095,39 @@ Action-button layout polish, including better grouping on small screens.
 Pagination presentation polish using Django's proper elided page-range helper.
 
 ## 0.0.18 (2024-12-04)
+
 - **Feature (nominopolitan)**: add htmx pagination for object list template
 
 ## 0.0.17 (2024-12-04)
+
 - **Fix (nominopolitan)**: add htmx directives to object_confirm_delete template form
 - **Fix (nominopolitan)**: add delete_view_url context variable and fix modal delete not working
 
 ## 0.0.16 (2024-12-03)
+
 - **Refactor (nominopolitan)**: change parameters for fields, properties, detail_fields, detail_properties
 
 ## 0.0.15 (2024-12-03)
+
 - **Feature (nominopolitan)**: Support fields or properties = 'all'; support detail_fields, detail_properties
 
 ## 0.0.14 (2024-12-02)
+
 - **Refactor (django-nominopolitan)**: prefix all modal names with nominopolitan
 - **Documentation (README)**: update and correct instructions
 
 ## 0.0.13 (2024-11-27)
+
 - **Fix (nominopolitan)**: fix problem where non-htmx call initiated list for view where use_htmx is True
 - **Refactor (nominopolitan)**: remove debug statement
 - **Feature (nominopolitan)**: Allow hx-post parameter on extra_actions
 
 ## 0.0.12 (2024-11-27)
+
 - **Fix (nominopolitan)**: use elif in get_htmx_target to ensure non-htmx target is None not "#None"
 
 ## 0.0.11 (2024-11-27)
+
 - **Refactor (nominopolitan)**: put object_list modal inside #content partial
 
 ## 0.0.10 (2024-11-27)
@@ -954,6 +1135,7 @@ Pagination presentation polish using Django's proper elided page-range helper.
 Template cleanup release removing a stray `>` from `object_form.html`.
 
 ## 0.0.9 (2024-11-27)
+
 - **Fix (nominopolitan)**: get_success_url now correctly targets original hx-target of the list view if used
 - **Fix (nominopolitan)**: get update_view_url correctly into context
 - **Fix (sample)**: correct date widgets in forms
@@ -962,34 +1144,42 @@ Template cleanup release removing a stray `>` from `object_form.html`.
 - **Feature (nominopolitan)**: implement use_modal functionality for CRUD and other actions
 
 ## 0.0.8 (2024-11-26)
+
 - **Refactor (nominopolitan)**: remove debug statement
 - **Feature (nominopolitan)**: style action links as small buttons and allow extra_buttons to be specified
 - **Feature (NominoPolitanMixin)**: Allow specification of new actions
 
 ## 0.0.7 (2024-11-22)
+
 - **Documentation (README)**: minimally document nm_mktemplate command
 - **Feature (nm_mktemplate)**: nm_mktemplate to make copy of nominopolitan templates using same syntax as mktemplate
 
 ## 0.0.6 (2024-11-22)
+
 - **Refactor (NominopolitanMixin)**: set context for htmx_target in get_context_data
 - **Documentation (README)**: update minimal docs re htmx_crud_target
 - **Feature (NominoPolitanMixin)**: support new attribute htmx_crud_target to allow separate target from object list
 - **Feature (NominoPolitanMixin)**: get create form working with htmx if use_htmx and htmx_target exists
 
 ## 0.0.5 (2024-11-22)
+
 - **Fix (action_links)**: set links conditionally on whether htmx_target exists
 
 ## 0.0.4 (2024-11-21)
+
 - **Refactor (nominpolitan)**: remove debug statement
 
 ## 0.0.3 (2024-11-20)
+
 - **Fix (use_htmx_partials)**: remove this option as not used
 
 ## 0.0.2 (2024-11-20)
+
 - **Feature (NominopolitanMixin)**: add logic for use of crispy forms depending on whether installed or overridden via use_crispy
 
 ## 0.0.1 (2024-11-20)
 
 Initial packaged release under the earlier `nominopolitan` name, establishing the first configurable crispy-forms support and the basic CRUD customization shape the project grew from.
+
 - **Feature (nominopolitan)**: allow parameterisation of use_crispy
 - **Feature (nominopolitan)**: Initial Commit

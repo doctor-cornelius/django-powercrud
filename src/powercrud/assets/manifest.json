@@ -1,6 +1,6 @@
 {
-  "_preload-helper-SI-XEWU3.js": {
-    "file": "django_assets/preload-helper-SI-XEWU3.js",
+  "_preload-helper-CMsEVW7y.js": {
+    "file": "django_assets/preload-helper-CMsEVW7y.js",
     "name": "preload-helper",
     "css": [
       "django_assets/preload-helper-dJhxz_Yn.css"
@@ -11,12 +11,12 @@
     "src": "_preload-helper-dJhxz_Yn.css"
   },
   "config/static/js/bootstrap5.js": {
-    "file": "django_assets/bootstrap5-BsNwzJdu.js",
+    "file": "django_assets/bootstrap5-DWHEBUIG.js",
     "name": "bootstrap5",
     "src": "config/static/js/bootstrap5.js",
     "isEntry": true,
     "imports": [
-      "_preload-helper-SI-XEWU3.js"
+      "_preload-helper-CMsEVW7y.js"
     ],
     "dynamicImports": [
       "powercrud/static/powercrud/js/powercrud.js"
@@ -26,27 +26,27 @@
     ]
   },
   "config/static/js/main.js": {
-    "file": "django_assets/powercrud-B5p5EwET.js",
+    "file": "django_assets/powercrud-BfB8tEFz.js",
     "name": "powercrud",
     "src": "config/static/js/main.js",
     "isEntry": true,
     "imports": [
-      "_preload-helper-SI-XEWU3.js"
+      "_preload-helper-CMsEVW7y.js"
     ],
     "dynamicImports": [
       "powercrud/static/powercrud/js/powercrud.js"
     ],
     "css": [
-      "django_assets/powercrud-CdypzY8l.css"
+      "django_assets/powercrud-CqydWqV9.css"
     ]
   },
   "powercrud/static/powercrud/js/powercrud.js": {
-    "file": "django_assets/powercrud-CZSyUlp3.js",
+    "file": "django_assets/powercrud-D3srAr3R.js",
     "name": "powercrud",
     "src": "powercrud/static/powercrud/js/powercrud.js",
     "isDynamicEntry": true,
     "imports": [
-      "_preload-helper-SI-XEWU3.js"
+      "_preload-helper-CMsEVW7y.js"
     ]
   }
 }
