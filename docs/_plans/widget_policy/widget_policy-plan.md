@@ -5,20 +5,22 @@
 - ✅ Create the feature planning folder.
 - ✅ Record the agreed scope, ownership boundary, and expected project outcome.
 - ✅ Separate the behaviour-preserving widget-policy work from the later visible M2M improvement.
-- 🔳 Begin Phase 1 only after the plan is approved for implementation.
+- ✅ Begin Phase 1 only after the plan is approved for implementation.
 
 ## Next
 
-1. 🔳 Review and approve the Phase 1 contract and current-behaviour inventory before implementation starts.
+1. 🔳 Interpret the inventory into stable semantic widget categories.
+2. 🔳 Resolve the recorded runtime ambiguities and capture the current pack behaviour baseline.
+3. 🔳 Lock the ownership and precedence rules before Phase 2 architecture work starts.
 
 ## Phase 1: Lock the Current Contract and Baseline
 
-1. 🔳 Inventory every visible control PowerCRUD or a first-party template pack currently specifies.
-    1. 🔳 Cover generated create and update forms.
-    2. 🔳 Cover generated inline-edit forms.
-    3. 🔳 Cover automatically generated filter forms.
-    4. 🔳 Cover bulk-edit controls rendered by DaisyUI and Bootstrap.
-    5. 🔳 Cover native and supported Crispy rendering paths.
+1. ✅ Inventory every visible control PowerCRUD or a first-party template pack currently specifies.
+    1. ✅ Cover generated create and update forms.
+    2. ✅ Cover generated inline-edit forms.
+    3. ✅ Cover automatically generated filter forms.
+    4. ✅ Cover bulk-edit controls rendered by DaisyUI and Bootstrap.
+    5. ✅ Cover native and supported Crispy rendering paths.
 2. 🔳 Define the stable semantic widget categories used across those surfaces.
     1. 🔳 Cover text, textarea, number, date, datetime, time, boolean, select, multiselect, and file controls.
     2. 🔳 Keep hidden inputs and other submission plumbing neutral and outside presentation policy.
