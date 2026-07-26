@@ -267,6 +267,21 @@ select.ts-hidden-accessible {
     color: var(--pc-ts-option-active-text);
 }
 
+/* Checkbox options keep selected choices visible in the menu, so distinguish
+   them independently from the keyboard-hovered option. */
+.ts-dropdown .option.selected {
+    background: color-mix(
+        in srgb,
+        var(--pc-ts-option-active-bg) 18%,
+        var(--pc-ts-dropdown-bg)
+    );
+    font-weight: 600;
+}
+
+.ts-dropdown .tomselect-checkbox {
+    accent-color: var(--pc-ts-option-active-bg);
+}
+
 .ts-dropdown [data-selectable] .highlight {
     background: color-mix(
         in srgb,
@@ -323,6 +338,18 @@ select.ts-hidden-accessible {
     max-height: 2.75rem;
     overflow-y: auto;
     padding-block: 0.2rem;
+}
+
+/* Inline rows need a stable single-line summary, while modal, filter, and
+   bulk controls retain their ordinary individual removable chips. */
+.ts-wrapper.powercrud-compact-multiselect:not(.dropdown-active) .ts-control > .item {
+    display: none;
+}
+
+.ts-wrapper.powercrud-compact-multiselect .powercrud-compact-multiselect-summary {
+    color: var(--pc-ts-control-text);
+    line-height: 1.25rem;
+    white-space: nowrap;
 }
 
 .ts-dropdown.powercrud-inline-multiselect-dropdown {

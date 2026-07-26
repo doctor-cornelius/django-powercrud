@@ -29,6 +29,54 @@ class Bootstrap5DateTimeLocalInput(forms.DateTimeInput):
 class Bootstrap5ServerAdapter(BaseServerAdapter):
     """Translate PowerCRUD's semantic presentation requests into Bootstrap classes."""
 
+    widget_defaults = {
+        "text": WidgetPresentation(),
+        "textarea": WidgetPresentation(),
+        "number": WidgetPresentation(),
+        "date": WidgetPresentation(
+            widget_class=forms.DateInput,
+            attrs={"type": "date", "class": "form-control"},
+        ),
+        "datetime": WidgetPresentation(
+            widget_class=Bootstrap5DateTimeLocalInput,
+            attrs={"step": "1", "class": "form-control"},
+        ),
+        "time": WidgetPresentation(
+            widget_class=forms.TimeInput,
+            attrs={"type": "time", "class": "form-control"},
+        ),
+        "boolean": WidgetPresentation(),
+        "select": WidgetPresentation(enhancement="searchable-select"),
+        "multiselect": WidgetPresentation(
+            enhancement="searchable-multiselect",
+            variant="standard",
+        ),
+        "file": WidgetPresentation(),
+    }
+    widget_surface_overrides = {
+        ("inline", "multiselect"): WidgetPresentation(variant="compact"),
+        ("filter", "text"): WidgetPresentation(attrs={"class": "form-control form-control-sm"}),
+        ("filter", "textarea"): WidgetPresentation(attrs={"class": "form-control form-control-sm"}),
+        ("filter", "select"): WidgetPresentation(attrs={"class": "form-select form-select-sm"}),
+        ("filter", "multiselect"): WidgetPresentation(attrs={"class": "form-select form-select-sm", "size": "5"}),
+        ("filter", "date"): WidgetPresentation(attrs={"class": "form-control form-control-sm", "type": "date"}),
+        ("filter", "datetime"): WidgetPresentation(attrs={"class": "form-control form-control-sm", "step": "1"}),
+        ("filter", "number"): WidgetPresentation(attrs={"class": "form-control form-control-sm", "step": "any"}),
+        ("filter", "time"): WidgetPresentation(attrs={"class": "form-control form-control-sm", "type": "time"}),
+        ("filter", "boolean"): WidgetPresentation(attrs={"class": "form-select form-select-sm"}),
+        ("filter", "file"): WidgetPresentation(attrs={"class": "form-control form-control-sm"}),
+        ("bulk", "text"): WidgetPresentation(attrs={"class": "form-control"}),
+        ("bulk", "textarea"): WidgetPresentation(attrs={"class": "form-control"}),
+        ("bulk", "number"): WidgetPresentation(attrs={"class": "form-control"}),
+        ("bulk", "date"): WidgetPresentation(attrs={"class": "form-control", "type": "date"}),
+        ("bulk", "datetime"): WidgetPresentation(attrs={"class": "form-control"}),
+        ("bulk", "time"): WidgetPresentation(attrs={"class": "form-control", "type": "time"}),
+        ("bulk", "boolean"): WidgetPresentation(attrs={"class": "form-select"}),
+        ("bulk", "select"): WidgetPresentation(attrs={"class": "form-select"}),
+        ("bulk", "multiselect"): WidgetPresentation(attrs={"class": "form-select"}),
+        ("bulk", "file"): WidgetPresentation(attrs={"class": "form-control"}),
+    }
+
     def get_presentation(self, context: ServerAdapterContext) -> ServerPresentation:
         """Return Bootstrap action presentation for one view."""
         del context
@@ -51,59 +99,7 @@ class Bootstrap5ServerAdapter(BaseServerAdapter):
     def get_widget_presentation(
         self, context: WidgetPolicyContext) -> WidgetPresentation:
         """Return Bootstrap presentation for one generated widget."""
-        if context.surface in {"form", "inline"}:
-            temporal_presentation = {
-                "date": WidgetPresentation(
-                    widget_class=forms.DateInput,
-                    attrs={"type": "date", "class": "form-control"},
-                ),
-                "datetime": WidgetPresentation(
-                    widget_class=Bootstrap5DateTimeLocalInput,
-                    attrs={"step": "1", "class": "form-control"},
-                ),
-                "time": WidgetPresentation(
-                    widget_class=forms.TimeInput,
-                    attrs={"type": "time", "class": "form-control"},
-                ),
-            }
-            if context.kind in temporal_presentation:
-                return temporal_presentation[context.kind]
-            if (
-                context.surface == "inline"
-                and context.kind == "multiselect"
-                and context.searchable_requested
-            ):
-                return WidgetPresentation(enhancement="searchable-multiselect")
-            return WidgetPresentation()
-        if context.surface != "filter":
-            return WidgetPresentation()
-
-        attributes_by_kind = {
-            "text": {"class": "form-control form-control-sm"},
-            "textarea": {"class": "form-control form-control-sm"},
-            "select": {"class": "form-select form-select-sm"},
-            "multiselect": {"class": "form-select form-select-sm", "size": "5"},
-            "date": {"class": "form-control form-control-sm", "type": "date"},
-            "datetime": {"class": "form-control form-control-sm", "step": "1"},
-            "number": {"class": "form-control form-control-sm", "step": "any"},
-            "time": {"class": "form-control form-control-sm", "type": "time"},
-            "boolean": {"class": "form-select form-select-sm"},
-            "file": {"class": "form-control form-control-sm"},
-        }
-        enhancement = None
-        if context.searchable_requested:
-            enhancement = (
-                "searchable-multiselect"
-                if context.kind == "multiselect"
-                else "searchable-select"
-            )
-        return WidgetPresentation(
-            widget_class=(
-                Bootstrap5DateTimeLocalInput if context.kind == "datetime" else None
-            ),
-            attrs=attributes_by_kind.get(context.kind, {}),
-            enhancement=enhancement,
-        )
+        return super().get_widget_presentation(context)
 
     def get_view_help_variables(self, color: str):
         """Return Bootstrap view-help CSS variables."""

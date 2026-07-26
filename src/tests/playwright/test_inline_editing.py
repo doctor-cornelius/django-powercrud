@@ -380,7 +380,7 @@ def test_inline_edit_searchable_select_updates_author(
 
 
 def test_inline_m2m_uses_compact_pack_multiselect(
-    page: Page, books_url: str, inline_ready_books
+    page: Page, books_url: str, inline_ready_books, sample_genre
 ):
     """Both packs should enhance the sample custom form's silent inline M2M widget."""
     book = inline_ready_books[0]
@@ -393,12 +393,38 @@ def test_inline_m2m_uses_compact_pack_multiselect(
     )
     select = active_row.locator("select[name='genres']")
     expect(select).to_have_attribute("data-powercrud-searchable-multiselect", "true")
+    expect(select).to_have_attribute("data-powercrud-widget-variant", "compact")
     expect(
         active_row.locator(".ts-wrapper.powercrud-inline-multiselect")
     ).to_be_visible()
     expect(
         active_row.locator(".ts-wrapper.powercrud-inline-multiselect .ts-control")
     ).to_have_css("max-height", "44px")
+    expect(
+        active_row.locator(".powercrud-compact-multiselect-summary")
+    ).to_have_text("1 selected")
+
+    select.evaluate("element => element.tomselect.open()")
+    dropdown = page.locator(".ts-dropdown.powercrud-inline-multiselect-dropdown")
+    expect(dropdown.locator(".option.selected input.tomselect-checkbox:checked")).to_have_count(
+        1
+    )
+    dropdown.locator(".option.selected").click()
+    page.wait_for_function(
+        """
+        () => document.querySelector(
+            'tr[data-inline-active="true"] select[name="genres"]'
+        ).tomselect.items.length === 0
+        """
+    )
+
+    select.evaluate(
+        "(element, value) => { element.tomselect.setValue(value); element.tomselect.close(); }",
+        str(sample_genre.pk),
+    )
+    expect(
+        active_row.locator(".powercrud-compact-multiselect-summary")
+    ).to_have_text("1 selected")
 
     active_row.locator("[data-inline-save]").click()
     wait_for_inline_event(page, "inline-row-saved")

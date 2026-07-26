@@ -80,7 +80,7 @@ class PowerCRUDMixinValidator(BaseModel):
 
     # forms
     use_crispy: Optional[bool] = None
-    searchable_selects: Optional[bool] = True
+    searchable_selects: Optional[bool] = None
 
     # field and property inclusion scope
     fields: Optional[Union[List[str], Literal["__all__"]]] = None

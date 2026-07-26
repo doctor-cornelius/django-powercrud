@@ -7,7 +7,12 @@
             <label class="form-check-label fw-semibold" for="bulk-field-{{ field_name }}">{{ info.verbose_name }}</label>
         </div>
         <div class="field-input-container d-none ms-4 mt-2">
-            {% if info.type == 'BooleanField' %}
+            {% if info.control %}
+                {{ info.control }}
+                {% if info.is_m2m %}
+                <div class="form-text"><div class="form-check"><input class="form-check-input" type="radio" name="{{ field_name }}_action" value="add" disabled> Add selected</div><div class="form-check"><input class="form-check-input" type="radio" name="{{ field_name }}_action" value="remove" disabled> Remove selected</div><div class="form-check"><input class="form-check-input" type="radio" name="{{ field_name }}_action" value="replace" disabled> Replace with selected</div></div>
+                {% endif %}
+            {% elif info.type == 'BooleanField' %}
                 <select name="{{ field_name }}" class="form-select" disabled><option value="">-- No change --</option><option value="true">Yes</option><option value="false">No</option></select>
             {% elif info.type == 'DateField' %}
                 <input type="date" name="{{ field_name }}" class="form-control" disabled>

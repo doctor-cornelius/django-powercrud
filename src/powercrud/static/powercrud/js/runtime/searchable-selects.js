@@ -95,17 +95,17 @@ export function createSearchableSelectRuntime(context) {
         }
     }
 
-    function destroyPowercrudSearchableSelects(root = documentObject) {
+    function destroyPowercrudSearchableSelects(root = documentObject, options = {}) {
         if (!(root instanceof Element) && root !== documentObject) {
             return;
         }
         const scope = root === documentObject ? documentObject : root;
         scope
             .querySelectorAll(`select[${SEARCHABLE_SELECT_ATTR}="true"], select[${SEARCHABLE_MULTISELECT_ATTR}="true"]`)
-            .forEach(destroySearchableSelect);
+            .forEach(selectElement => destroySearchableSelect(selectElement, options));
 
         if (root instanceof HTMLSelectElement) {
-            destroySearchableSelect(root);
+            destroySearchableSelect(root, options);
         }
     }
 

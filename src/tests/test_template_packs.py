@@ -351,7 +351,7 @@ def test_server_adapter_exposes_required_widget_policy_contract():
             disabled=False,
             is_relation=True,
             has_dependency=False,
-            searchable_requested=True,
+            enhancement_intent="default",
         )
     )
 
@@ -362,6 +362,40 @@ def test_server_adapter_exposes_required_widget_policy_contract():
         "The pack, rather than generic filtering code, should request multiselect enhancement."
     )
 
+    inline_presentation = get_template_pack_server_adapter().get_widget_presentation(
+        WidgetPolicyContext(
+            surface="inline",
+            kind="multiselect",
+            render_mode="native",
+            field_name="genres",
+            required=False,
+            disabled=False,
+            is_relation=True,
+            has_dependency=False,
+            enhancement_intent="default",
+        )
+    )
+    assert inline_presentation.variant == "compact", (
+        "The selected pack should own the compact inline multiselect variant."
+    )
+
+    disabled_presentation = get_template_pack_server_adapter().get_widget_presentation(
+        WidgetPolicyContext(
+            surface="form",
+            kind="multiselect",
+            render_mode="native",
+            field_name="genres",
+            required=False,
+            disabled=False,
+            is_relation=True,
+            has_dependency=False,
+            enhancement_intent="disabled",
+        )
+    )
+    assert disabled_presentation.enhancement is None, (
+        "An explicit application opt-out must override the pack's multiselect default."
+    )
+
 
 def test_old_server_adapter_contract_is_rejected_clearly():
     """The clean contract change must not leave an old-adapter compatibility path."""
@@ -370,7 +404,7 @@ def test_old_server_adapter_contract_is_rejected_clearly():
     with override_settings(
         POWERCRUD_SETTINGS={"POWERCRUD_TEMPLATE_PACK": OLD_ADAPTER_FIXTURE_SELECTOR}
     ):
-        with pytest.raises(ImproperlyConfigured, match="api_version 2"):
+        with pytest.raises(ImproperlyConfigured, match="api_version 3"):
             get_template_pack_server_adapter()
 
 

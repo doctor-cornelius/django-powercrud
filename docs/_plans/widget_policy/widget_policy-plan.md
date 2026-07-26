@@ -19,8 +19,8 @@
 3. ✅ Lock the ownership and precedence rules in the implemented contract.
 4. ✅ Correct the deferred generated datetime date-only behaviour.
 5. ✅ Apply pack defaults to silent custom-ModelForm fields while preserving application-owned widgets.
-6. 🔳 Complete the unified pack-default architecture across every widget surface.
-7. 🔳 Complete the shared Tom Select multiselect UX under both first-party packs.
+6. ✅ Complete the unified pack-default architecture across every widget surface.
+7. ✅ Complete the shared Tom Select multiselect UX under both first-party packs.
 8. 🔳 Update the stable documentation from the completed implementation evidence.
 
 ## ✅ Phase 1: Lock the Current Contract and Baseline
@@ -82,22 +82,22 @@
 1. ✅ Prove datetime form, inline, and filter parsing and presentation under DaisyUI and Bootstrap.
 2. ✅ Prove silent custom-form fallback, explicit-widget preservation, dependencies, validation, and inline save behaviour under both packs.
 
-## Phase 9: Complete Unified Pack Defaults Across Every Surface
+## ✅ Phase 9: Complete Unified Pack Defaults Across Every Surface
 
-1. 🔳 Make `get_widget_presentation()` the authoritative widget-presentation decision for normal forms, inline forms, generated filters, and bulk value controls.
-2. 🔳 Let each pack define base defaults by semantic widget category, with optional surface-specific variants and an explicit neutral Django fallback.
-3. 🔳 Move the inline-only searchable-multiselect decision out of generic PowerCRUD so the pack chooses its default while respecting application enable, disable, or default intent.
-4. 🔳 Route bulk value controls through the policy while keeping field selection and M2M add/remove/replace semantics generic.
-5. 🔳 Give DaisyUI and Bootstrap standard multiselect presentation on normal, filter, and bulk surfaces and a compact inline variant.
-6. 🔳 Verify generated controls and eligible silent custom-ModelForm controls across all four surfaces under both first-party packs.
+1. ✅ Make `get_widget_presentation()` the authoritative widget-presentation decision for normal forms, inline forms, generated filters, and bulk value controls.
+2. ✅ Let each pack define base defaults by semantic widget category, with optional surface-specific variants and an explicit neutral Django fallback.
+3. ✅ Move the inline-only searchable-multiselect decision out of generic PowerCRUD so the pack chooses its default while respecting application enable, disable, or default intent.
+4. ✅ Route bulk value controls through the policy while keeping field selection and M2M add/remove/replace semantics generic.
+5. ✅ Give DaisyUI and Bootstrap standard multiselect presentation on normal, filter, and bulk surfaces and a compact inline variant.
+6. ✅ Verify generated controls and eligible silent custom-ModelForm controls across all four surfaces under both first-party packs.
 
-## Phase 10: Complete the Shared Multiselect UX
+## ✅ Phase 10: Complete the Shared Multiselect UX
 
-1. 🔳 Import and register Tom Select's `checkbox_options` plugin for both first-party pack asset entries.
-2. 🔳 Give multiselect dropdown options visible checked state and reliable click-to-select and click-to-deselect behaviour while keeping the dropdown open.
-3. 🔳 Replace clipped inline chips with a compact selected-count presentation while retaining the standard multiselect presentation on roomier surfaces.
-4. 🔳 Eliminate the native Django multiselect flash during successful inline-save teardown.
-5. 🔳 Verify initial state, mouse and keyboard toggling, submitted values, compact presentation, viewport placement, and flash-free save under DaisyUI and Bootstrap.
+1. ✅ Import and register Tom Select's `checkbox_options` plugin for both first-party pack asset entries.
+2. ✅ Give multiselect dropdown options visible checked state and reliable click-to-select and click-to-deselect behaviour while keeping the dropdown open.
+3. ✅ Replace clipped inline chips with a compact selected-count presentation while retaining the standard multiselect presentation on roomier surfaces.
+4. ✅ Eliminate the native Django multiselect flash during successful inline-save teardown.
+5. ✅ Verify initial state, mouse and keyboard toggling, submitted values, compact presentation, viewport placement, and flash-free save under DaisyUI and Bootstrap.
 
 ## Phase 11: Update Documentation
 

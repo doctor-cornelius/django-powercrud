@@ -2,6 +2,7 @@ import htmx from 'htmx.org'
 import TomSelect from 'tom-select'
 import 'tom-select/dist/css/tom-select.css'
 import removeButtonPlugin from 'tom-select/dist/js/plugins/remove_button.js'
+import checkboxOptionsPlugin from 'tom-select/dist/js/plugins/checkbox_options.js'
 import * as bootstrap from 'bootstrap'
 import 'bootstrap/dist/css/bootstrap.min.css'
 
@@ -13,6 +14,7 @@ window.htmx = htmx
 window.TomSelect = TomSelect
 window.bootstrap = bootstrap
 TomSelect.define('remove_button', removeButtonPlugin)
+TomSelect.define('checkbox_options', checkboxOptionsPlugin)
 
 // Load the stable entry only after Bootstrap and the selected adapter exist.
 void import('../../../powercrud/static/powercrud/js/powercrud.js')

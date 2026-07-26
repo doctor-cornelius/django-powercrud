@@ -179,18 +179,18 @@ class FilteringMixin:
 
     def _is_filter_searchable_select_enabled_for_field(
         self, field_name: str, field: forms.Field
-    ) -> bool:
+    ) -> bool | None:
         """
-        Resolve whether a filter field should receive Tom Select enhancement.
+        Resolve a filter field's explicit Tom Select preference.
 
         This reuses the existing per-field hook when available so views can opt
-        out specific fields consistently across regular, inline, bulk, and
-        filter form controls.
+        out or opt in specific fields consistently across regular, inline,
+        bulk, and filter form controls.
         """
         field_hook = getattr(self, "get_searchable_select_enabled_for_field", None)
         if not callable(field_hook):
-            return True
-        return bool(field_hook(field_name=field_name, bound_field=field))
+            return None
+        return field_hook(field_name=field_name, bound_field=field)
 
     def _apply_filter_searchable_select_attrs(self, filterset: FilterSet | None) -> None:
         """Apply selected-pack filter policy after resolving search eligibility."""
@@ -201,18 +201,23 @@ class FilteringMixin:
             widget = getattr(field, "widget", None)
             if widget is None:
                 continue
-            searchable_requested = False
+            enhancement_intent = "default"
             if (
-                resolve_config(self).searchable_selects_enabled is not False
-                and isinstance(widget, forms.Select)
-                and self._is_filter_searchable_select_enabled_for_field(
-                field_name=field_name, field=field
-                )
+                isinstance(widget, forms.Select)
+                and not self._is_boolean_like_filter_select_field(field)
             ):
-                if getattr(widget, "allow_multiple_selected", False):
-                    searchable_requested = True
-                elif not self._is_boolean_like_filter_select_field(field):
-                    searchable_requested = True
+                view_setting = resolve_config(self).searchable_selects
+                if view_setting is True:
+                    enhancement_intent = "enabled"
+                elif view_setting is False:
+                    enhancement_intent = "disabled"
+                field_setting = self._is_filter_searchable_select_enabled_for_field(
+                    field_name=field_name, field=field
+                )
+                if field_setting is True:
+                    enhancement_intent = "enabled"
+                elif field_setting is False:
+                    enhancement_intent = "disabled"
             presentation = self._get_filter_widget_presentation(
                 field_name=field_name,
                 kind=get_form_widget_kind(field),
@@ -221,7 +226,7 @@ class FilteringMixin:
                 is_relation=isinstance(
                     field, (forms.ModelChoiceField, forms.ModelMultipleChoiceField)
                 ),
-                searchable_requested=searchable_requested,
+                enhancement_intent=enhancement_intent,
             )
             apply_widget_presentation(field, presentation)
 
@@ -251,7 +256,7 @@ class FilteringMixin:
         required: bool = False,
         disabled: bool = False,
         is_relation: bool = False,
-        searchable_requested: bool = False,
+        enhancement_intent: str = "default",
     ):
         """Resolve selected-pack presentation for one filter control."""
         context = WidgetPolicyContext(
@@ -263,7 +268,7 @@ class FilteringMixin:
             disabled=disabled,
             is_relation=is_relation,
             has_dependency=False,
-            searchable_requested=searchable_requested,
+            enhancement_intent=enhancement_intent,
         )
         return get_template_pack_server_adapter().get_widget_presentation(context)
 

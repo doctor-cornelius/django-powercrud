@@ -1,9 +1,9 @@
 """Public declarations and dynamic discovery for PowerCRUD template packs."""
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from importlib import import_module
 from pathlib import PurePosixPath
-from typing import Any, Literal, Mapping, Protocol
+from typing import Any, ClassVar, Literal, Mapping, Protocol
 
 from django import forms
 
@@ -12,8 +12,8 @@ from django.core.exceptions import ImproperlyConfigured
 from powercrud.conf import get_powercrud_setting
 
 
-TEMPLATE_PACK_CONTRACT_VERSION = 2
-SERVER_ADAPTER_API_VERSION = 2
+TEMPLATE_PACK_CONTRACT_VERSION = 3
+SERVER_ADAPTER_API_VERSION = 3
 BROWSER_ADAPTER_API_VERSION = 1
 _BUILTIN_TEMPLATE_PACKS = {"daisyui": "powercrud.packs.daisyui:template_pack"}
 _UNCONFIGURED_SELECTOR = object()
@@ -168,6 +168,8 @@ WidgetKind = Literal[
 ]
 WidgetRenderMode = Literal["native", "crispy"]
 WidgetEnhancement = Literal["searchable-select", "searchable-multiselect"]
+WidgetEnhancementIntent = Literal["default", "enabled", "disabled"]
+WidgetVariant = Literal["standard", "compact"]
 
 
 @dataclass(frozen=True, slots=True)
@@ -192,7 +194,7 @@ class WidgetPolicyContext:
     disabled: bool
     is_relation: bool
     has_dependency: bool
-    searchable_requested: bool
+    enhancement_intent: WidgetEnhancementIntent
 
 
 @dataclass(frozen=True, slots=True)
@@ -202,6 +204,25 @@ class WidgetPresentation:
     widget_class: type[forms.Widget] | None = None
     attrs: Mapping[str, str] = field(default_factory=dict)
     enhancement: WidgetEnhancement | None = None
+    variant: WidgetVariant | None = None
+
+
+def _merge_widget_presentation(
+    base: WidgetPresentation, override: WidgetPresentation
+) -> WidgetPresentation:
+    """Merge one surface-specific presentation over a semantic base default."""
+    attrs = dict(base.attrs)
+    attrs.update(override.attrs)
+    return WidgetPresentation(
+        widget_class=override.widget_class or base.widget_class,
+        attrs=attrs,
+        enhancement=(
+            override.enhancement
+            if override.enhancement is not None
+            else base.enhancement
+        ),
+        variant=override.variant if override.variant is not None else base.variant,
+    )
 
 
 @dataclass(frozen=True, slots=True)
@@ -243,6 +264,10 @@ class BaseServerAdapter:
     """Provide neutral server presentation defaults for simple template packs."""
 
     api_version = SERVER_ADAPTER_API_VERSION
+    widget_defaults: ClassVar[Mapping[WidgetKind, WidgetPresentation]] = {}
+    widget_surface_overrides: ClassVar[
+        Mapping[tuple[WidgetSurface, WidgetKind], WidgetPresentation]
+    ] = {}
 
     def get_presentation(self, context: ServerAdapterContext) -> ServerPresentation:
         """Return presentation with no framework action classes."""
@@ -252,9 +277,25 @@ class BaseServerAdapter:
     def get_widget_presentation(
         self, context: WidgetPolicyContext
     ) -> WidgetPresentation:
-        """Return the explicit neutral widget policy for a simple template pack."""
-        del context
-        return WidgetPresentation()
+        """Resolve optional semantic defaults, surface variants, and intent."""
+        presentation = self.widget_defaults.get(context.kind, WidgetPresentation())
+        override = self.widget_surface_overrides.get((context.surface, context.kind))
+        if override is not None:
+            presentation = _merge_widget_presentation(presentation, override)
+
+        if context.enhancement_intent == "disabled":
+            return replace(presentation, enhancement=None)
+        if (
+            context.enhancement_intent == "enabled"
+            and context.kind in {"select", "multiselect"}
+        ):
+            enhancement: WidgetEnhancement = (
+                "searchable-multiselect"
+                if context.kind == "multiselect"
+                else "searchable-select"
+            )
+            return replace(presentation, enhancement=enhancement)
+        return presentation
 
     def get_view_help_variables(self, color: str) -> Mapping[str, str]:
         """Return neutral CSS variables while preserving the requested colour."""

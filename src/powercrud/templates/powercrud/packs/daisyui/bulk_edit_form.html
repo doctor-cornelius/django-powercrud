@@ -51,7 +51,7 @@
                 if (
                     window.initPowercrudSearchableSelects
                     && input.matches
-                    && input.matches('select[data-powercrud-searchable-select="true"]')
+                    && input.matches('select[data-powercrud-searchable-select="true"], select[data-powercrud-searchable-multiselect="true"]')
                 ) {
                     window.initPowercrudSearchableSelects(input);
                     if (input.tomselect) {

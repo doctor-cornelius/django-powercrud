@@ -249,6 +249,32 @@ resolver, one required pack method, explicit neutral fallback, and small surface
 variants instead of presentation decisions distributed across generic form,
 filter, inline, and bulk code.
 
+### Phase 9 Implementation Outcome
+
+Phase 9 is complete. `WidgetPolicyContext` now carries an explicit
+`default`, `enabled`, or `disabled` enhancement intent, rather than a generic
+default-on boolean. `BaseServerAdapter` resolves a pack's semantic base default
+and then an optional `(surface, kind)` override. `WidgetPresentation` carries a
+small `standard` or `compact` variant marker where a pack needs it.
+
+DaisyUI and Bootstrap each declare all semantic categories. Neutral entries
+mean Django keeps its compatible native widget; date, time, datetime, select,
+and multiselect entries express the first-party pack defaults. The two packs
+use standard searchable multiselects on normal forms, filters, and bulk forms,
+and a compact variant inline.
+
+Bulk editing now builds a real disabled Django `BoundField`, applies the same
+resolver, and lets the existing pack template provide only layout and the
+generic M2M operation radios. Field selection, values, choices, validation,
+and add/remove/replace behaviour remain generic. Eligible silent model-backed
+custom-ModelForm fields follow the same normal or inline route; application
+widgets remain authoritative.
+
+The deliberate pack-extension break increments the template-pack contract and
+server-adapter API markers from 2 to 3. They remain early validation guards for
+an independently installed old pack; they are not user-facing product versions
+or a second widget-policy system.
+
 ## Plan Phases
 
 ### Phase 1: Lock the Current Contract and Baseline
@@ -326,6 +352,25 @@ briefly restores the underlying native Django multi-select before the old row
 is removed. Outgoing-fragment teardown must keep that native control hidden
 until replacement while preserving normal native restoration for explicit or
 non-swap destruction.
+
+### Phase 10 Implementation Outcome
+
+Phase 10 is complete. Both Vite entries register Tom Select's standard
+`checkbox_options` plugin alongside `remove_button`. Selected menu options now
+show checked checkboxes and selected styling; clicking one removes it while the
+menu remains open. The regular standard variant retains normal removable chips.
+
+The compact inline variant hides those chips while closed and shows `N selected`;
+opening it reveals the normal choices and checkbox state. The existing
+non-editing overflow tooltip remains unchanged. During `htmx:beforeSwap`, the
+outgoing Tom Select control is destroyed without restoring the already-hidden
+native select, removing the save flash before the row replacement.
+
+Focused server acceptance covers the resolver, silent custom form, filters,
+and policy-owned bulk control. Browser acceptance proves initial checked state,
+click-to-deselect, compact count, submitted M2M values, and successful save
+under both DaisyUI and Bootstrap. Phase 11 remains the stable-documentation
+follow-up.
 
 Acceptance evidence must cover DaisyUI and Bootstrap initial checked state,
 mouse and keyboard add/remove behaviour, selected-count updates, Django POST

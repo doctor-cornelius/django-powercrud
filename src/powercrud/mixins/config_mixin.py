@@ -158,7 +158,7 @@ class ConfigMixin:
 
     # forms
     use_crispy: bool | None = None
-    searchable_selects: bool | None = True
+    searchable_selects: bool | None = None
 
     # field and property inclusion scope
     power_fields: list[Any] | None = None
@@ -2133,7 +2133,7 @@ class _ConfigShim:
                 return False
             return desired
         if name == "searchable_selects_enabled":
-            return self._raw("searchable_selects", True) is not False
+            return self._raw("searchable_selects", None) is not False
         if name == "modal_id_resolved":
             return self._raw("modal_id") or "powercrudBaseModal"
         if name == "modal_target_resolved":

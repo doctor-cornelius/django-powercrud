@@ -29,6 +29,98 @@ class DaisyUIDateTimeLocalInput(forms.DateTimeInput):
 class DaisyUIServerAdapter(BaseServerAdapter):
     """Translate PowerCRUD's semantic presentation requests into DaisyUI classes."""
 
+    widget_defaults = {
+        "text": WidgetPresentation(),
+        "textarea": WidgetPresentation(),
+        "number": WidgetPresentation(),
+        "date": WidgetPresentation(
+            widget_class=forms.DateInput,
+            attrs={"type": "date", "class": "form-control"},
+        ),
+        "datetime": WidgetPresentation(
+            widget_class=DaisyUIDateTimeLocalInput,
+            attrs={"step": "1", "class": "form-control"},
+        ),
+        "time": WidgetPresentation(
+            widget_class=forms.TimeInput,
+            attrs={"type": "time", "class": "form-control"},
+        ),
+        "boolean": WidgetPresentation(),
+        "select": WidgetPresentation(enhancement="searchable-select"),
+        "multiselect": WidgetPresentation(
+            enhancement="searchable-multiselect",
+            variant="standard",
+        ),
+        "file": WidgetPresentation(),
+    }
+    widget_surface_overrides = {
+        ("inline", "multiselect"): WidgetPresentation(variant="compact"),
+        ("filter", "text"): WidgetPresentation(
+            attrs={"class": "input input-bordered input-sm w-full text-xs h-10 min-h-10"}
+        ),
+        ("filter", "textarea"): WidgetPresentation(
+            attrs={"class": "input input-bordered input-sm w-full text-xs h-10 min-h-10"}
+        ),
+        ("filter", "select"): WidgetPresentation(
+            attrs={"class": "select select-bordered select-sm w-full text-xs h-10 min-h-10"}
+        ),
+        ("filter", "multiselect"): WidgetPresentation(
+            attrs={
+                "class": "select select-bordered select-sm w-full text-xs",
+                "size": "5",
+                "style": "min-height: 8rem; max-height: 8rem; overflow-y: auto;",
+            }
+        ),
+        ("filter", "date"): WidgetPresentation(
+            attrs={"class": "input input-bordered input-sm w-full text-xs h-10 min-h-10", "type": "date"}
+        ),
+        ("filter", "datetime"): WidgetPresentation(
+            attrs={"class": "input input-bordered input-sm w-full text-xs h-10 min-h-10", "step": "1"}
+        ),
+        ("filter", "number"): WidgetPresentation(
+            attrs={"class": "input input-bordered input-sm w-full text-xs h-10 min-h-10", "step": "any"}
+        ),
+        ("filter", "time"): WidgetPresentation(
+            attrs={"class": "input input-bordered input-sm w-full text-xs h-10 min-h-10", "type": "time"}
+        ),
+        ("filter", "boolean"): WidgetPresentation(
+            attrs={"class": "select select-bordered select-sm w-full text-xs h-10 min-h-10"}
+        ),
+        ("filter", "file"): WidgetPresentation(
+            attrs={"class": "input input-bordered input-sm w-full text-xs h-10 min-h-10"}
+        ),
+        ("bulk", "text"): WidgetPresentation(
+            attrs={"class": "input input-bordered w-full"}
+        ),
+        ("bulk", "textarea"): WidgetPresentation(
+            attrs={"class": "textarea textarea-bordered w-full"}
+        ),
+        ("bulk", "number"): WidgetPresentation(
+            attrs={"class": "input input-bordered w-full"}
+        ),
+        ("bulk", "date"): WidgetPresentation(
+            attrs={"class": "input input-bordered w-full", "type": "date"}
+        ),
+        ("bulk", "datetime"): WidgetPresentation(
+            attrs={"class": "input input-bordered w-full"}
+        ),
+        ("bulk", "time"): WidgetPresentation(
+            attrs={"class": "input input-bordered w-full", "type": "time"}
+        ),
+        ("bulk", "boolean"): WidgetPresentation(
+            attrs={"class": "select select-bordered w-full"}
+        ),
+        ("bulk", "select"): WidgetPresentation(
+            attrs={"class": "select select-bordered w-full"}
+        ),
+        ("bulk", "multiselect"): WidgetPresentation(
+            attrs={"class": "select select-bordered w-full min-h-[150px] h-auto"}
+        ),
+        ("bulk", "file"): WidgetPresentation(
+            attrs={"class": "file-input file-input-bordered w-full"}
+        ),
+    }
+
     def get_presentation(self, context: ServerAdapterContext) -> ServerPresentation:
         """Return DaisyUI action presentation for one view."""
         legacy_styles = get_daisyui_framework_styles(_AdapterView(context))["daisyUI"]
@@ -50,85 +142,7 @@ class DaisyUIServerAdapter(BaseServerAdapter):
     def get_widget_presentation(
         self, context: WidgetPolicyContext) -> WidgetPresentation:
         """Return DaisyUI presentation for one generated widget."""
-        if context.surface in {"form", "inline"}:
-            temporal_presentation = {
-                "date": WidgetPresentation(
-                    widget_class=forms.DateInput,
-                    attrs={"type": "date", "class": "form-control"},
-                ),
-                "datetime": WidgetPresentation(
-                    widget_class=DaisyUIDateTimeLocalInput,
-                    attrs={"step": "1", "class": "form-control"},
-                ),
-                "time": WidgetPresentation(
-                    widget_class=forms.TimeInput,
-                    attrs={"type": "time", "class": "form-control"},
-                ),
-            }
-            if context.kind in temporal_presentation:
-                return temporal_presentation[context.kind]
-            if (
-                context.surface == "inline"
-                and context.kind == "multiselect"
-                and context.searchable_requested
-            ):
-                return WidgetPresentation(enhancement="searchable-multiselect")
-            return WidgetPresentation()
-        if context.surface != "filter":
-            return WidgetPresentation()
-
-        attributes_by_kind = {
-            "text": {
-                "class": "input input-bordered input-sm w-full text-xs h-10 min-h-10"
-            },
-            "textarea": {
-                "class": "input input-bordered input-sm w-full text-xs h-10 min-h-10"
-            },
-            "select": {
-                "class": "select select-bordered select-sm w-full text-xs h-10 min-h-10"
-            },
-            "multiselect": {
-                "class": "select select-bordered select-sm w-full text-xs",
-                "size": "5",
-                "style": "min-height: 8rem; max-height: 8rem; overflow-y: auto;",
-            },
-            "date": {
-                "class": "input input-bordered input-sm w-full text-xs h-10 min-h-10",
-                "type": "date",
-            },
-            "datetime": {
-                "class": "input input-bordered input-sm w-full text-xs h-10 min-h-10",
-                "step": "1",
-            },
-            "number": {
-                "class": "input input-bordered input-sm w-full text-xs h-10 min-h-10",
-                "step": "any",
-            },
-            "time": {
-                "class": "input input-bordered input-sm w-full text-xs h-10 min-h-10",
-                "type": "time",
-            },
-            "boolean": {
-                "class": "select select-bordered select-sm w-full text-xs h-10 min-h-10"
-            },
-            "file": {
-                "class": "input input-bordered input-sm w-full text-xs h-10 min-h-10"
-            },
-        }
-        enhancement = None
-        if context.searchable_requested:
-            enhancement = (
-                "searchable-multiselect"
-                if context.kind == "multiselect"
-                else "searchable-select"
-            )
-        return WidgetPresentation(
-            widget_class=(
-                DaisyUIDateTimeLocalInput if context.kind == "datetime" else None
-            ),
-            attrs=attributes_by_kind.get(context.kind, {}),
-            enhancement=enhancement,
-        )
+        return super().get_widget_presentation(context)
 
     def get_view_help_variables(self, color: str):
         """Return DaisyUI view-help CSS variables."""

@@ -532,6 +532,16 @@
     color: var(--bs-body-color);
 }
 
+.ts-dropdown .option.selected {
+    background: var(--bs-primary-bg-subtle);
+    color: var(--bs-emphasis-color);
+    font-weight: 600;
+}
+
+.ts-dropdown .tomselect-checkbox {
+    accent-color: var(--bs-primary);
+}
+
 .ts-dropdown.powercrud-inline-single-dropdown {
     z-index: 1090;
     max-width: calc(100vw - 2rem) !important;
@@ -547,6 +557,16 @@
     max-height: 2.75rem;
     overflow-y: auto;
     padding-block: .2rem;
+}
+
+.ts-wrapper.powercrud-compact-multiselect:not(.dropdown-active) .ts-control > .item {
+    display: none;
+}
+
+.ts-wrapper.powercrud-compact-multiselect .powercrud-compact-multiselect-summary {
+    color: var(--bs-body-color);
+    line-height: 1.25rem;
+    white-space: nowrap;
 }
 
 .ts-dropdown.powercrud-inline-multiselect-dropdown {

@@ -106,7 +106,10 @@ def apply_widget_presentation(
 
     field.widget.attrs.pop("data-powercrud-searchable-select", None)
     field.widget.attrs.pop("data-powercrud-searchable-multiselect", None)
+    field.widget.attrs.pop("data-powercrud-widget-variant", None)
     if presentation.enhancement == "searchable-select":
         field.widget.attrs["data-powercrud-searchable-select"] = "true"
     elif presentation.enhancement == "searchable-multiselect":
         field.widget.attrs["data-powercrud-searchable-multiselect"] = "true"
+    if presentation.variant is not None:
+        field.widget.attrs["data-powercrud-widget-variant"] = presentation.variant

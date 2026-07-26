@@ -112,6 +112,24 @@ export function createBootstrap5SearchableSelectAdapter({ global, documentObject
         });
     }
 
+    function enableCompactMultiselectSummary(instance) {
+        const summary = documentObject.createElement('span');
+        summary.className = 'powercrud-compact-multiselect-summary';
+        summary.setAttribute('aria-live', 'polite');
+        instance.control.appendChild(summary);
+
+        const refreshSummary = () => {
+            const count = instance.items.length;
+            summary.textContent = count ? `${count} selected` : '';
+            summary.hidden = count === 0 || instance.isOpen;
+        };
+        instance.on('item_add', refreshSummary);
+        instance.on('item_remove', refreshSummary);
+        instance.on('dropdown_open', refreshSummary);
+        instance.on('dropdown_close', refreshSummary);
+        refreshSummary();
+    }
+
     function syncDisabled(select) {
         if (!select.tomselect) {
             return;
@@ -152,6 +170,7 @@ export function createBootstrap5SearchableSelectAdapter({ global, documentObject
             return;
         }
         const isInlineSelect = Boolean(select.closest(INLINE_ROW_SELECTOR));
+        const isCompact = select.getAttribute('data-powercrud-widget-variant') === 'compact';
         const settings = {
             create: false,
             maxItems: multiple ? null : 1,
@@ -173,7 +192,7 @@ export function createBootstrap5SearchableSelectAdapter({ global, documentObject
             };
         }
         if (multiple) {
-            settings.plugins = ['remove_button'];
+            settings.plugins = ['remove_button', 'checkbox_options'];
         }
         if (!select.closest('[data-powercrud-modal]')) {
             settings.dropdownParent = 'body';
@@ -198,13 +217,21 @@ export function createBootstrap5SearchableSelectAdapter({ global, documentObject
             instance.dropdown.classList.add('powercrud-inline-multiselect-dropdown');
             enableInlineMultiselectDropdownPlacement(instance);
         }
+        if (multiple && isCompact) {
+            instance.wrapper.classList.add('powercrud-compact-multiselect');
+            enableCompactMultiselectSummary(instance);
+        }
         syncDisabled(select);
         hideNativeSelect(select);
     }
 
-    function destroy(select) {
+    function destroy(select, { restoreNative = true } = {}) {
         select.tomselect?.destroy();
-        restoreNativeSelect(select);
+        if (restoreNative) {
+            restoreNativeSelect(select);
+        } else {
+            hideNativeSelect(select);
+        }
     }
 
     return {

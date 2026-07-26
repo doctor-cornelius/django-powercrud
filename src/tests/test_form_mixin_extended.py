@@ -163,6 +163,11 @@ def test_custom_model_form_uses_pack_policy_only_for_silent_default_widgets():
     ) == "true", (
         "A custom ModelForm's default M2M widget must receive the selected pack's inline enhancement."
     )
+    assert form.fields["genres"].widget.attrs.get(
+        "data-powercrud-widget-variant"
+    ) == "compact", (
+        "A silent custom ModelForm M2M field must inherit the pack's inline variant."
+    )
     assert isinstance(form.fields["published_date"].widget, forms.TextInput), (
         "An explicit custom-form widget must remain application-owned."
     )
@@ -809,7 +814,7 @@ def test_searchable_select_marker_added_to_foreign_key_field():
     request = attach_session(RequestFactory().get("/"))
     view = DummyFormView(request)
     form = view.get_form_class()()
-    view._apply_searchable_select_attrs(form)
+    view._finalize_form(form)
 
     assert (
         form.fields["author"].widget.attrs.get("data-powercrud-searchable-select")
@@ -827,7 +832,7 @@ def test_searchable_select_marker_kept_for_single_relation_choice_with_pk_one():
     request = attach_session(RequestFactory().get("/"))
     view = DummyFormView(request)
     form = view.get_form_class()()
-    view._apply_searchable_select_attrs(form)
+    view._finalize_form(form)
 
     assert (
         form.fields["author"].widget.attrs.get("data-powercrud-searchable-select")
@@ -841,7 +846,7 @@ def test_searchable_select_marker_respects_global_toggle():
     view = DummyFormView(request)
     view.searchable_selects = False
     form = view.get_form_class()()
-    view._apply_searchable_select_attrs(form)
+    view._finalize_form(form)
 
     assert (
         "data-powercrud-searchable-select"
@@ -860,7 +865,7 @@ def test_searchable_select_marker_respects_field_hook():
     request = attach_session(RequestFactory().get("/"))
     view = OptOutDummyView(request)
     form = view.get_form_class()()
-    view._apply_searchable_select_attrs(form)
+    view._finalize_form(form)
 
     assert (
         "data-powercrud-searchable-select"

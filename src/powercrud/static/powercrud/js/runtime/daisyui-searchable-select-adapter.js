@@ -165,6 +165,24 @@ export function createDaisyuiSearchableSelectAdapter(context) {
         });
     }
 
+    function enableCompactMultiselectSummary(instance) {
+        const summary = documentObject.createElement('span');
+        summary.className = 'powercrud-compact-multiselect-summary';
+        summary.setAttribute('aria-live', 'polite');
+        instance.control.appendChild(summary);
+
+        const refreshSummary = () => {
+            const count = instance.items.length;
+            summary.textContent = count ? `${count} selected` : '';
+            summary.hidden = count === 0 || instance.isOpen;
+        };
+        instance.on('item_add', refreshSummary);
+        instance.on('item_remove', refreshSummary);
+        instance.on('dropdown_open', refreshSummary);
+        instance.on('dropdown_close', refreshSummary);
+        refreshSummary();
+    }
+
     function enhanceSingle(selectElement, isVisible) {
         if (selectElement.tomselect) {
             normaliseFilterFavourites(selectElement);
@@ -268,6 +286,7 @@ export function createDaisyuiSearchableSelectAdapter(context) {
         const placeholder = selectElement.getAttribute('data-powercrud-searchable-placeholder') || '';
         const dialogElement = selectElement.closest('dialog');
         const isInlineSelect = Boolean(selectElement.closest(INLINE_ROW_SELECTOR));
+        const isCompact = selectElement.getAttribute('data-powercrud-widget-variant') === 'compact';
         const settings = {
             create: false,
             maxItems: null,
@@ -277,7 +296,7 @@ export function createDaisyuiSearchableSelectAdapter(context) {
             hideSelected: false,
             placeholder,
             openOnFocus: true,
-            plugins: ['remove_button'],
+            plugins: ['remove_button', 'checkbox_options'],
             onItemAdd() {
                 this.setTextboxValue('');
                 this.refreshOptions(true);
@@ -304,15 +323,23 @@ export function createDaisyuiSearchableSelectAdapter(context) {
             instance.dropdown.classList.add('powercrud-inline-multiselect-dropdown');
             enableInlineMultiselectDropdownPlacement(instance);
         }
+        if (isCompact) {
+            instance.wrapper.classList.add('powercrud-compact-multiselect');
+            enableCompactMultiselectSummary(instance);
+        }
         syncDisabledState(selectElement);
         hideNativeSelect(selectElement);
     }
 
-    function destroy(selectElement) {
+    function destroy(selectElement, { restoreNative = true } = {}) {
         if (selectElement.tomselect) {
             selectElement.tomselect.destroy();
         }
-        restoreNativeSelect(selectElement);
+        if (restoreNative) {
+            restoreNativeSelect(selectElement);
+        } else {
+            hideNativeSelect(selectElement);
+        }
     }
 
     return {

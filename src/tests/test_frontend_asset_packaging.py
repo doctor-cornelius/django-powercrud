@@ -184,8 +184,8 @@ def test_runtime_js_exposes_shared_fragment_initializer() -> None:
         "function destroyPowercrudFragment(fragment)" in js
     ), "Runtime JS should define a shared per-fragment teardown helper."
     assert (
-        "destroyPowercrudSearchableSelects(fragment);" in js
-    ), "Shared fragment teardown should restore searchable selects before removal."
+        "destroyPowercrudSearchableSelects(root, { restoreNative: false });" in js
+    ), "HTMX teardown should keep native selects hidden while an outgoing fragment is replaced."
     assert "modalAdapter.dispose(fragment);" in js, (
         "Shared fragment teardown should delegate framework-owned modal instance disposal."
     )

@@ -577,11 +577,11 @@ def test_bulk_edit_process_post_uses_persist_bulk_update_hook(rf):
 
 
 @pytest.mark.django_db
-def test_bulk_field_info_flags_searchable_select_only_for_eligible_fields(rf):
-    """Flag only select-like bulk fields for searchable select enhancement."""
+def test_bulk_field_info_uses_policy_owned_controls_for_selects(rf):
+    """Bulk controls must use selected-pack select and multiselect presentation."""
     request = make_htmx_request(rf)
     view = HarnessView(request)
-    field_info = view._get_bulk_field_info(["author", "bestseller"])
+    field_info = view._get_bulk_field_info(["author", "genres", "bestseller"])
 
     assert (
         field_info["author"]["searchable_select"] is True
@@ -589,6 +589,12 @@ def test_bulk_field_info_flags_searchable_select_only_for_eligible_fields(rf):
     assert (
         field_info["bestseller"]["searchable_select"] is False
     ), "Boolean bulk fields should remain native selects and not use searchable-select enhancement."
+    assert field_info["genres"]["control"].field.widget.attrs.get(
+        "data-powercrud-searchable-multiselect"
+    ) == "true", "Bulk M2M controls should receive the pack multiselect enhancement."
+    assert field_info["genres"]["control"].field.widget.attrs.get(
+        "data-powercrud-widget-variant"
+    ) == "standard", "Bulk M2M controls should retain the standard, non-inline variant."
 
 
 @pytest.mark.django_db

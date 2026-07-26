@@ -17,8 +17,10 @@ from powercrud.template_pack_validation import validate_template_pack
 from powercrud.modal_presentation import modal_presentation_attributes
 from powercrud.template_packs import (
     TEMPLATE_PACK_CONTRACT_VERSION,
+    WidgetPolicyContext,
     get_configured_template_pack,
     get_selected_template_pack,
+    get_template_pack_server_adapter,
     resolve_template_pack,
 )
 from sample.models import Author, Book
@@ -114,6 +116,47 @@ def test_bootstrap_selected_namespace_and_validation_are_available():
         "Configured Bootstrap settings should resolve the package-owned Bootstrap namespace."
     )
     validate_template_pack(selected)
+
+
+def test_bootstrap_adapter_owns_standard_and_compact_multiselect_variants():
+    """Bootstrap should provide the same semantic multiselect policy as DaisyUI."""
+    adapter = get_template_pack_server_adapter()
+    standard = adapter.get_widget_presentation(
+        WidgetPolicyContext(
+            surface="form",
+            kind="multiselect",
+            render_mode="native",
+            field_name="genres",
+            required=False,
+            disabled=False,
+            is_relation=True,
+            has_dependency=False,
+            enhancement_intent="default",
+        )
+    )
+    compact = adapter.get_widget_presentation(
+        WidgetPolicyContext(
+            surface="inline",
+            kind="multiselect",
+            render_mode="native",
+            field_name="genres",
+            required=False,
+            disabled=False,
+            is_relation=True,
+            has_dependency=False,
+            enhancement_intent="default",
+        )
+    )
+
+    assert standard.enhancement == "searchable-multiselect", (
+        "Bootstrap normal form M2M controls should use the pack multiselect default."
+    )
+    assert standard.variant == "standard", (
+        "Bootstrap normal form M2M controls should retain the standard variant."
+    )
+    assert compact.variant == "compact", (
+        "Bootstrap inline M2M controls should use the compact variant."
+    )
 
 
 def test_bootstrap_namespace_contains_only_pack_owned_baseline_templates():

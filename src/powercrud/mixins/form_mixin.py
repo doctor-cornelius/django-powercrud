@@ -131,62 +131,25 @@ class FormMixin:
 
     def get_searchable_select_enabled_for_field(
         self, field_name: str, bound_field: forms.Field | None = None
-    ) -> bool:
+    ) -> bool | None:
         """
-        Hook for per-field searchable-select opt-out.
+        Hook for a per-field searchable-select override.
 
         Args:
             field_name: Form field name being considered.
             bound_field: Concrete Django form field instance, when available.
 
         Returns:
-            bool: True to enhance the field, False to keep a native select.
+            bool | None: True requests enhancement, False disables it, and
+            None leaves the selected pack's default in control.
         """
-        return True
+        return None
 
     def _is_boolean_like_select_field(self, field: forms.Field) -> bool:
         """
         Return True when a select field represents a boolean choice set.
         """
         return is_boolean_like_select_field(field)
-
-    def _is_searchable_select_candidate(
-        self, field_name: str, field: forms.Field
-    ) -> bool:
-        """
-        Check whether a form field should be marked for searchable-select enhancement.
-        """
-        widget = getattr(field, "widget", None)
-        if widget is None:
-            return False
-        if not isinstance(widget, forms.Select):
-            return False
-        if getattr(widget, "allow_multiple_selected", False):
-            return False
-        if self._is_boolean_like_select_field(field):
-            return False
-        return bool(
-            self.get_searchable_select_enabled_for_field(
-                field_name=field_name, bound_field=field
-            )
-        )
-
-    def _apply_searchable_select_attrs(self, form: forms.BaseForm) -> forms.BaseForm:
-        """
-        Tag eligible select fields for frontend searchable-select enhancement.
-        """
-        if not form:
-            return form
-        if not self.get_searchable_selects():
-            return form
-
-        for field_name, field in form.fields.items():
-            attrs = field.widget.attrs
-            if self._is_searchable_select_candidate(field_name, field):
-                attrs["data-powercrud-searchable-select"] = "true"
-            else:
-                attrs.pop("data-powercrud-searchable-select", None)
-        return form
 
     def _get_form_widget_policy_context(
         self,
@@ -199,18 +162,22 @@ class FormMixin:
     ) -> WidgetPolicyContext:
         """Build neutral presentation facts for one eligible model-form field."""
         widget = field.widget
-        is_multiple = isinstance(widget, forms.SelectMultiple)
-        searchable_requested = False
-        if self.get_searchable_selects() and isinstance(widget, forms.Select):
-            eligible = not self._is_boolean_like_select_field(field)
-            if is_multiple:
-                eligible = inline
-            if eligible:
-                searchable_requested = bool(
-                    self.get_searchable_select_enabled_for_field(
-                        field_name=field_name, bound_field=field
-                    )
-                )
+        enhancement_intent = "default"
+        if isinstance(widget, forms.Select) and not self._is_boolean_like_select_field(
+            field
+        ):
+            view_setting = resolve_config(self).searchable_selects
+            if view_setting is True:
+                enhancement_intent = "enabled"
+            elif view_setting is False:
+                enhancement_intent = "disabled"
+            field_setting = self.get_searchable_select_enabled_for_field(
+                field_name=field_name, bound_field=field
+            )
+            if field_setting is True:
+                enhancement_intent = "enabled"
+            elif field_setting is False:
+                enhancement_intent = "disabled"
         return WidgetPolicyContext(
             surface="inline" if inline else "form",
             kind=get_model_widget_kind(model_field),
@@ -220,7 +187,7 @@ class FormMixin:
             disabled=field.disabled,
             is_relation=model_field.is_relation,
             has_dependency=field_name in dependency_fields,
-            searchable_requested=searchable_requested,
+            enhancement_intent=enhancement_intent,
         )
 
     def _apply_form_widget_policy(
@@ -687,10 +654,7 @@ class FormMixin:
         if not inline:
             form = self._apply_disabled_form_fields(form)
         form = self._apply_field_queryset_dependencies(form)
-        if getattr(form, "_powercrud_generated", False):
-            return self._apply_form_widget_policy(form, inline=inline)
-        form = self._apply_form_widget_policy(form, inline=inline)
-        return self._apply_searchable_select_attrs(form)
+        return self._apply_form_widget_policy(form, inline=inline)
 
     def get_context_data(self, **kwargs):
         """
@@ -811,7 +775,7 @@ class FormMixin:
                     disabled=False,
                     is_relation=model_field.is_relation,
                     has_dependency=field_name in dependencies,
-                    searchable_requested=False,
+                    enhancement_intent="default",
                 )
             )
             if presentation.widget_class is not None:
