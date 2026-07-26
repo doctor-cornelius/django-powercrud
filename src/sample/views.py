@@ -1004,7 +1004,12 @@ class AuthorCRUDView(SampleCRUDMixin):
 
     # inline_edit_enabled = True # deprecated
     inline_edit_highlight_accent = "#f40b0b"
-    inline_edit_fields = "__fields__"
+    inline_edit_fields = [
+        "name",
+        "birth_date",
+        "an_integer_with_long_heading_text",
+        "genres",
+    ]
 
     bulk_fields = [
         "genres",
