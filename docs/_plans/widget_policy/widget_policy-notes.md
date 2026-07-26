@@ -116,7 +116,7 @@ Before this project, widget presentation decisions are partly generic, partly pa
 
 After Phase 1 through Phase 4:
 
-1. PowerCRUD has one explicit semantic route for resolving generated controls across normal forms, inline editing, filters, and bulk editing.
+1. PowerCRUD has one explicit semantic policy contract for normal forms, inline editing, and filters; bulk presentation remains pack-owned literal markup until Phase 9 completes the unified resolution route.
 2. DaisyUI owns all DaisyUI presentation decisions for those controls.
 3. Bootstrap owns all Bootstrap presentation decisions for those controls.
 4. Generic PowerCRUD code no longer contains pack- or vendor-specific widget display choices.
@@ -155,6 +155,99 @@ For the in-scope generated-control path, the intended resolution is:
 
 Phase 7 additionally permits a custom ModelForm's silent default widgets to
 enter this path. Explicit application widget choices remain outside it.
+
+## Agreed Completion Architecture
+
+Phase 9 completes the original ownership goal without introducing a mutable
+widget registry. The public pack entry point remains
+`get_widget_presentation(context)`.
+
+The completed resolution path will be:
+
+1. Django or generic PowerCRUD creates the field semantics, values, choices,
+   queryset, validation, and submission behaviour.
+2. PowerCRUD identifies the semantic widget category and surface, then calls
+   the selected pack once for its presentation decision.
+3. The pack starts from its base default for that semantic category and may
+   apply a surface-specific variant.
+4. PowerCRUD applies the compatible widget class, attributes, enhancement, and
+   variant returned by the pack.
+5. If the pack returns neutral presentation for a category, Django's compatible
+   default widget remains in use.
+
+Every pack may define base defaults for text, textarea, number, date, datetime,
+time, boolean, select, multiselect, and file controls. A surface variant refines
+that base default rather than creating an unrelated widget system. For example,
+a pack may choose searchable multiselect as its base and use a standard variant
+on normal forms, filters, and bulk forms while using a compact variant inline.
+
+The four policy surfaces are:
+
+1. Normal create and update forms, whether modal or non-modal.
+2. Inline-edit forms.
+3. Generated filter forms.
+4. Bulk-edit value controls.
+
+Eligible silent model-backed fields in custom `ModelForm` classes follow the
+same normal or inline policy. Application-declared fields, `Meta.widgets`,
+hidden controls, non-model fields, and other explicit application widget
+choices remain authoritative and bypass pack defaults.
+
+Surface context remains necessary for sizing, layout, request behaviour, and
+bulk-operation surroundings. It must not be used by generic PowerCRUD to choose
+a presentation library or impose an inline-only default. Application intent
+should be expressed as default, enabled, or disabled so a pack can choose its
+normal default while respecting explicit opt-in or opt-out configuration.
+
+Bulk field-selection semantics and M2M add/remove/replace operations remain
+generic PowerCRUD behaviour. Only the visible bulk value widget is resolved
+through the pack policy.
+
+### Pack API Shape
+
+The required adapter method remains the complete public decision point:
+
+```python
+def get_widget_presentation(self, context):
+    ...
+```
+
+Simple packs should be able to declare base defaults plus surface overrides;
+advanced packs may implement conditional logic directly in the method. The
+convenience API may take this shape:
+
+```python
+widget_defaults = {
+    "multiselect": WidgetPresentation(
+        enhancement="searchable-multiselect",
+        variant="standard",
+    ),
+}
+
+widget_surface_overrides = {
+    ("inline", "multiselect"): WidgetPresentation(variant="compact"),
+}
+```
+
+PowerCRUD merges the surface override onto the base default. Pack templates,
+CSS, and browser adapters implement the returned decision; they do not create a
+second policy authority. Most application developers only select a pack and use
+ordinary Django custom-form mechanisms when they need an explicit override.
+
+### Current Gaps Phase 9 Must Close
+
+1. Normal forms, inline forms, and filters call `get_widget_presentation()`, but
+   bulk value controls still bypass it and are literal pack-template markup.
+2. Generic form code currently requests searchable multiselect presentation
+   only for inline fields.
+3. The first-party packs repeat the inline-only multiselect condition.
+4. Normal/modal and bulk M2M controls therefore remain native even though the
+   compact inline control has proven the enhancement path.
+
+The resulting architecture is intended to reduce complexity: one semantic
+resolver, one required pack method, explicit neutral fallback, and small surface
+variants instead of presentation decisions distributed across generic form,
+filter, inline, and bulk code.
 
 ## Plan Phases
 
@@ -197,10 +290,19 @@ its explicit `published_date` widget remains untouched.
 Validate both first-party packs across server and browser paths, including
 datetime input/filter round-tripping and the custom-form ownership boundary.
 
-### Phase 9: Update Documentation
+### Phase 9: Complete Unified Pack Defaults Across Every Surface
 
-Promote the settled datetime and silent-custom-form rules into the stable
-documentation, then reconcile these temporary notes with the final boundary.
+Make the pack policy authoritative for value-control presentation across normal,
+inline, filter, and bulk surfaces. Define pack base defaults with surface
+variants, retain explicit Django fallback and application overrides, and use the
+same rich multiselect family across all four surfaces with a compact inline
+variant.
+
+### Phase 10: Update Documentation
+
+Promote the settled datetime, silent-custom-form, pack-default, surface-variant,
+fallback, and bulk-integration rules into stable documentation, then reconcile
+these temporary notes with the final boundary.
 
 ## Implementation Evidence
 
@@ -210,6 +312,10 @@ filter presentation and the old generic temporal form class is selected by the
 pack. Ordinary generated form controls retain Django widgets when the pack
 explicitly returns neutral presentation. Existing bulk controls remain literal
 pack templates and therefore were not given a new generic metadata field.
+
+Phase 9 will close that deliberate preservation gap and remove the generic
+inline-only multiselect presentation decision. Until then, the implemented
+contract is not yet the single resolution route for bulk value controls.
 
 The deliberate visible change in Phase 5 is limited to generated inline ManyToMany fields:
 the selected pack requests the existing Tom Select multi-value enhancement and

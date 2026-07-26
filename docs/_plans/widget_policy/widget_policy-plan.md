@@ -9,6 +9,7 @@
 - ✅ Complete the behaviour-preserving migration and the inline M2M proof.
 - ✅ Correct generated datetime form and auto-filter controls in a focused follow-up.
 - ✅ Apply the selected-pack policy to silent default widgets in custom ModelForms.
+- ✅ Record the agreed completion architecture for pack defaults and surface variants.
 
 ## Next
 
@@ -17,7 +18,8 @@
 3. ✅ Lock the ownership and precedence rules in the implemented contract.
 4. ✅ Correct the deferred generated datetime date-only behaviour.
 5. ✅ Apply pack defaults to silent custom-ModelForm fields while preserving application-owned widgets.
-6. 🔳 Update the stable documentation from the completed implementation evidence.
+6. 🔳 Complete the unified pack-default architecture across every widget surface.
+7. 🔳 Update the stable documentation from the completed implementation evidence.
 
 ## ✅ Phase 1: Lock the Current Contract and Baseline
 
@@ -78,7 +80,17 @@
 1. ✅ Prove datetime form, inline, and filter parsing and presentation under DaisyUI and Bootstrap.
 2. ✅ Prove silent custom-form fallback, explicit-widget preservation, dependencies, validation, and inline save behaviour under both packs.
 
-## Phase 9: Update Documentation
+## Phase 9: Complete Unified Pack Defaults Across Every Surface
+
+1. 🔳 Make `get_widget_presentation()` the authoritative widget-presentation decision for normal forms, inline forms, generated filters, and bulk value controls.
+2. 🔳 Let each pack define base defaults by semantic widget category, with optional surface-specific variants and an explicit neutral Django fallback.
+3. 🔳 Move the inline-only searchable-multiselect decision out of generic PowerCRUD so the pack chooses its default while respecting application enable, disable, or default intent.
+4. 🔳 Route bulk value controls through the policy while keeping field selection and M2M add/remove/replace semantics generic.
+5. 🔳 Give DaisyUI and Bootstrap standard multiselect presentation on normal, filter, and bulk surfaces and a compact inline variant.
+6. 🔳 Verify generated controls and eligible silent custom-ModelForm controls across all four surfaces under both first-party packs.
+
+## Phase 10: Update Documentation
 
 1. 🔳 Update stable form-control and template-pack documentation for the datetime correction and silent custom-ModelForm fallback.
-2. 🔳 Reconcile these plan notes with the final supported custom-form boundary and record the focused validation evidence.
+2. 🔳 Document pack widget defaults, surface variants, neutral fallback, application overrides, and bulk policy integration.
+3. 🔳 Reconcile these plan notes with the final supported boundary and record the focused validation evidence.
