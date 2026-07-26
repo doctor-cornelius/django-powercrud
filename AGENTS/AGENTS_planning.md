@@ -92,10 +92,10 @@ Follow an emoji-status layout with explicit phases, for example:
     1. ✅ Keep local `attention_codes` row-local and code-owned.
     2. ✅ Keep soft workflow concerns as summary or review flags.
     3. ✅ Persist only hard blockers as blocker rows in `4.1`.
-2. ✅ Lock the first naming and model decisions needed before code changes.
+2. 🔳 Lock the first naming and model decisions needed before code changes.
     1. ✅ Choose the blocker model name as `BlockingIssue`.
     2. ✅ Choose the blocker type model name as `BlockingIssueType`.
-    3. ✅ Confirm the first `DDMAction` summary fields to support in code.
+    3. 🔳 Confirm the first `DDMAction` summary fields to support in code.
 ```
 
 `<feature>-notes.md`:
