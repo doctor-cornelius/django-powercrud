@@ -21,11 +21,24 @@
     3. ✅ Cover automatically generated filter forms.
     4. ✅ Cover bulk-edit controls rendered by DaisyUI and Bootstrap.
     5. ✅ Cover native and supported Crispy rendering paths.
-2. 🔳 Define the stable semantic widget categories used across those surfaces.
-    1. 🔳 Cover text, textarea, number, date, datetime, time, boolean, select, multiselect, and file controls.
-    2. 🔳 Keep hidden inputs and other submission plumbing neutral and outside presentation policy.
-3. 🔳 Characterize current DaisyUI and Bootstrap output and browser behaviour so Phase 1 can prove visual and behavioural parity.
-4. 🔳 Lock the ownership and precedence rules in the public template-pack contract.
+2. 🔳 Convert the inventory into a decision matrix for every in-scope surface and control.
+    1. 🔳 Assign each row to the normal form, inline, filter, or bulk surface and to a stable text, textarea, number, date, datetime, time, boolean, select, multiselect, or file category.
+    2. 🔳 Record the values, choices, querysets, validation, submission, dependency, and HTMX semantics that Django or generic PowerCRUD must preserve.
+    3. 🔳 Record the widget choice, attributes, classes, markup, layout, and browser enhancement that the selected pack must own.
+    4. 🔳 Classify each observed behaviour as a contract to preserve, presentation to migrate, ambiguity to verify, or excluded behaviour.
+    5. 🔳 Keep hidden/submission plumbing and application-supplied custom forms outside the presentation policy.
+3. 🔳 Resolve the inventory's unverified behaviour and capture the current DaisyUI and Bootstrap parity baseline.
+    1. 🔳 Verify how generated datetime filters are constructed and rendered.
+    2. 🔳 Verify whether automatic filter and bulk time/file controls reach the recorded fallback paths.
+    3. 🔳 Capture representative native and supported Crispy output for each semantic category under both packs.
+    4. 🔳 Capture browser behaviour for searchable selects, multiselect sizing, inline dependency refresh, HTMX replacement, validation, and accessibility.
+    5. 🔳 Decide explicitly whether each confirmed oddity is preserved through Phase 4 or deferred for a separate intentional frontend change.
+4. 🔳 Lock the public widget-policy ownership and precedence contract.
+    1. 🔳 Confirm that Django and generic PowerCRUD retain field semantics, validation, querysets, submission, dependencies, and HTMX lifecycle.
+    2. 🔳 Confirm that the selected pack owns widget presentation and any presentation-library enhancement request.
+    3. 🔳 Define the boundary between generic semantic markers and pack-owned browser adapters.
+    4. 🔳 Define resolution as selected pack policy, then neutral PowerCRUD fallback, then Django default; application custom forms bypass this policy.
+    5. 🔳 Approve the decision matrix and parity baseline as the design input for Phase 2 and the acceptance target for Phases 3 and 4.
 
 ## Phase 2: Introduce the Pack Widget-Policy Architecture
 
