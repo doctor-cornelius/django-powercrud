@@ -551,6 +551,43 @@ def test_bulk_edit_searchable_select_updates_author(
     ), "Bulk searchable select should not change unselected rows."
 
 
+def test_bulk_multiselect_clear_button_only_clears_staged_values(
+    page, books_url, sample_author, sample_books, sample_genre
+):
+    """Clear-all must not change the selected records or bulk operation until submit."""
+    del sample_author, sample_books
+    page.goto(books_url)
+    page.wait_for_load_state("networkidle")
+
+    page.locator("input.row-select-checkbox").first.check()
+    bulk_container = page.locator("#bulk-actions-container").first
+    expect(bulk_container).to_be_visible()
+    bulk_container.get_by_role("link", name=re.compile("bulk edit", re.I)).click()
+
+    form = page.locator("#powercrudBaseModal #bulk-edit-form")
+    expect(form).to_be_visible()
+    toggle = form.locator("input.field-toggle[value='genres']")
+    toggle.check()
+    select = form.locator("select[name='genres']")
+    page.wait_for_function(
+        "() => Boolean(document.querySelector('#bulk-edit-form select[name=\"genres\"]')?.tomselect)"
+    )
+    select.evaluate(
+        "(element, value) => element.tomselect.setValue(String(value))",
+        str(sample_genre.pk),
+    )
+
+    clear_button = form.locator("select[name='genres'] + .ts-wrapper .clear-button")
+    expect(clear_button).to_have_attribute("title", "Clear all selected options")
+    expect(clear_button).to_be_visible()
+    clear_button.click()
+    page.wait_for_function(
+        "() => document.querySelector('#bulk-edit-form select[name=\"genres\"]').tomselect.items.length === 0"
+    )
+    expect(toggle).to_be_checked()
+    expect(page.locator("#selected-items-counter")).to_have_text("1")
+
+
 def test_pagination_controls_advance_across_multiple_pages(
     page, books_url, sample_author, sample_books
 ):

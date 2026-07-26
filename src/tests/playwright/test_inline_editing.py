@@ -404,12 +404,71 @@ def test_inline_m2m_uses_compact_pack_multiselect(
         active_row.locator(".powercrud-compact-multiselect-summary")
     ).to_have_text("1 selected")
 
-    select.evaluate("element => element.tomselect.open()")
+    active_row.evaluate(
+        """
+        row => {
+            const table = row.closest('table');
+            table.classList.add('powercrud-test-inline-typography');
+            if (!document.getElementById('powercrud-test-inline-typography-style')) {
+                const style = document.createElement('style');
+                style.id = 'powercrud-test-inline-typography-style';
+                style.textContent = '.powercrud-test-inline-typography tbody td { font-size: 17px !important; }';
+                document.head.appendChild(style);
+            }
+        }
+        """
+    )
+    select.evaluate(
+        "element => { element.tomselect.close(); element.tomselect.open(); }"
+    )
     dropdown = page.locator(".ts-dropdown.powercrud-inline-multiselect-dropdown")
+    expect(
+        active_row.locator(".powercrud-compact-multiselect-summary")
+    ).to_be_visible()
+    assert active_row.locator(".powercrud-compact-multiselect .ts-control > .item").evaluate_all(
+        "elements => elements.every(element => window.getComputedStyle(element).display === 'none')"
+    ), "Compact inline multiselects must keep individual chips hidden while their menu is open."
+    typography = active_row.evaluate(
+        """
+        row => {
+            const select = row.querySelector('select[name="genres"]');
+            const cell = select.closest('td');
+            const dropdown = document.querySelector('.ts-dropdown.powercrud-inline-multiselect-dropdown');
+            return {
+                cell: window.getComputedStyle(cell).fontSize,
+                control: window.getComputedStyle(select.tomselect.control).fontSize,
+                input: window.getComputedStyle(select.tomselect.control_input).fontSize,
+                dropdown: window.getComputedStyle(dropdown).fontSize,
+            };
+        }
+        """
+    )
+    assert all(value == typography["cell"] for value in typography.values()), (
+        "Inline control and detached menu typography must inherit the table-cell "
+        f"size set by downstream table classes. Metrics: {typography}"
+    )
     expect(dropdown.locator(".option.selected input.tomselect-checkbox:checked")).to_have_count(
         1
     )
     dropdown.locator(".option.selected").click()
+    page.wait_for_function(
+        """
+        () => document.querySelector(
+            'tr[data-inline-active="true"] select[name="genres"]'
+        ).tomselect.items.length === 0
+        """
+    )
+
+    select.evaluate(
+        "(element, value) => element.tomselect.setValue(String(value))",
+        str(sample_genre.pk),
+    )
+    clear_button = active_row.locator(
+        ".powercrud-compact-multiselect .clear-button"
+    )
+    expect(clear_button).to_have_attribute("title", "Clear all selected options")
+    expect(clear_button).to_be_visible()
+    clear_button.click()
     page.wait_for_function(
         """
         () => document.querySelector(

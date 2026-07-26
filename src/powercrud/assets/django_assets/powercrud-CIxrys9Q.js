@@ -1,4 +1,4 @@
-import{C as e,D as t,E as n,S as r,T as i,_ as a,a as o,d as s,f as c,g as l,h as u,i as d,n as f,o as p,r as m,s as h,u as g,v as _,y as v}from"./preload-helper-DT4sk2Cr.js";var y=new WeakMap;function b(e){let t=y.get(e);return t||(t={domReadyHandled:!1,listenersInstalled:!1,styleInstalled:!1},y.set(e,t)),t}function x(e,t){let n=e.createElement(`style`);n.textContent=`
+import{C as e,D as t,E as n,S as r,T as i,_ as a,a as o,d as s,f as c,g as l,h as u,i as d,n as f,o as p,r as m,s as h,u as g,v as _,y as v}from"./preload-helper-Duv5Sc9v.js";var y=new WeakMap;function b(e){let t=y.get(e);return t||(t={domReadyHandled:!1,listenersInstalled:!1,styleInstalled:!1},y.set(e,t)),t}function x(e,t){let n=e.createElement(`style`);n.textContent=`
         body.${t},
         body.${t} * {
             user-select: none !important;

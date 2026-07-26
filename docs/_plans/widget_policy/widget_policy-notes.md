@@ -355,22 +355,36 @@ non-swap destruction.
 
 ### Phase 10 Implementation Outcome
 
-Phase 10 is complete. Both Vite entries register Tom Select's standard
+The first Phase 10 implementation registered Tom Select's
 `checkbox_options` plugin alongside `remove_button`. Selected menu options now
 show checked checkboxes and selected styling; clicking one removes it while the
 menu remains open. The regular standard variant retains normal removable chips.
 
-The compact inline variant hides those chips while closed and shows `N selected`;
-opening it reveals the normal choices and checkbox state. The existing
-non-editing overflow tooltip remains unchanged. During `htmx:beforeSwap`, the
-outgoing Tom Select control is destroyed without restoring the already-hidden
-native select, removing the save flash before the row replacement.
+The follow-up correction keeps compact inline chips hidden whether the menu is
+closed or open, so `N selected` remains the stable row-level summary while the
+checkbox menu supplies the detailed selection state. It also adds Tom Select's
+`clear_button` plugin, restores Bootstrap modal initialisation after its modal
+becomes visible, and ensures compact controls and their detached menus inherit
+the containing table cell's computed font size. `table_classes` remains the
+downstream typography hook; no new widget-policy setting is introduced.
 
-Focused server acceptance covers the resolver, silent custom form, filters,
-and policy-owned bulk control. Browser acceptance proves initial checked state,
-click-to-deselect, compact count, submitted M2M values, and successful save
-under both DaisyUI and Bootstrap. Phase 11 remains the stable-documentation
-follow-up.
+The same table-typography rule now applies to row-action controls under both
+packs: Bootstrap's buttons no longer retain Bootstrap's default button font
+size. The default DaisyUI body-scrolling modal now receives a viewport-height
+shell, matching Bootstrap's usable form height and leaving room for a normal
+form multiselect menu near the lower fields. A modal configured with
+`scroll="modal"` retains its content-sized shell.
+
+During `htmx:beforeSwap`, the outgoing Tom Select control is destroyed without
+restoring the already-hidden native select, removing the save flash before the
+row replacement. The existing non-editing overflow tooltip remains unchanged.
+
+Phase 10 completion evidence covers the resolver, silent custom form,
+filters, bulk controls, Bootstrap native and Crispy modal rendering, checked
+state, click-to-deselect, compact count while open, clear-all semantics,
+table and row-action typography inheritance, submitted M2M values, placement,
+full-height DaisyUI modal presentation, and successful save under both DaisyUI
+and Bootstrap. Phase 11 remains the stable-documentation follow-up.
 
 Acceptance evidence must cover DaisyUI and Bootstrap initial checked state,
 mouse and keyboard add/remove behaviour, selected-count updates, Django POST

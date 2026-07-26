@@ -74,6 +74,12 @@ export function createBootstrap5SearchableSelectAdapter({ global, documentObject
         const controlRect = instance.control.getBoundingClientRect();
         const dropdown = instance.dropdown;
         const dropdownContent = instance.dropdown_content;
+        const tableCell = instance.control.closest('td');
+        if (tableCell) {
+            // The inline dropdown is detached to avoid table overflow, so carry
+            // the cell typography across to its body-level element.
+            dropdown.style.fontSize = global.getComputedStyle(tableCell).fontSize;
+        }
         const viewportHeight = documentObject.documentElement.clientHeight || global.innerHeight;
         const viewportWidth = documentObject.documentElement.clientWidth || global.innerWidth;
         const viewportEdge = 8;
@@ -121,12 +127,14 @@ export function createBootstrap5SearchableSelectAdapter({ global, documentObject
         const refreshSummary = () => {
             const count = instance.items.length;
             summary.textContent = count ? `${count} selected` : '';
-            summary.hidden = count === 0 || instance.isOpen;
+            summary.hidden = count === 0 || Boolean(instance.control_input?.value);
         };
         instance.on('item_add', refreshSummary);
         instance.on('item_remove', refreshSummary);
+        instance.on('type', refreshSummary);
         instance.on('dropdown_open', refreshSummary);
         instance.on('dropdown_close', refreshSummary);
+        instance.control_input?.addEventListener('input', refreshSummary);
         refreshSummary();
     }
 
@@ -192,7 +200,16 @@ export function createBootstrap5SearchableSelectAdapter({ global, documentObject
             };
         }
         if (multiple) {
-            settings.plugins = ['remove_button', 'checkbox_options'];
+            settings.plugins = isCompact
+                ? {
+                    checkbox_options: {},
+                    clear_button: { title: 'Clear all selected options' },
+                }
+                : {
+                    remove_button: {},
+                    checkbox_options: {},
+                    clear_button: { title: 'Clear all selected options' },
+                };
         }
         if (!select.closest('[data-powercrud-modal]')) {
             settings.dropdownParent = 'body';

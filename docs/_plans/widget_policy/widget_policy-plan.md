@@ -20,7 +20,7 @@
 4. ✅ Correct the deferred generated datetime date-only behaviour.
 5. ✅ Apply pack defaults to silent custom-ModelForm fields while preserving application-owned widgets.
 6. ✅ Complete the unified pack-default architecture across every widget surface.
-7. ✅ Complete the shared Tom Select multiselect UX under both first-party packs.
+7. ✅ Correct and complete the shared Tom Select multiselect UX under both first-party packs.
 8. 🔳 Update the stable documentation from the completed implementation evidence.
 
 ## ✅ Phase 1: Lock the Current Contract and Baseline
@@ -95,9 +95,12 @@
 
 1. ✅ Import and register Tom Select's `checkbox_options` plugin for both first-party pack asset entries.
 2. ✅ Give multiselect dropdown options visible checked state and reliable click-to-select and click-to-deselect behaviour while keeping the dropdown open.
-3. ✅ Replace clipped inline chips with a compact selected-count presentation while retaining the standard multiselect presentation on roomier surfaces.
+3. ✅ Keep compact inline multiselects as a selected-count presentation while their dropdown is open or closed; retain the standard presentation on roomier surfaces.
 4. ✅ Eliminate the native Django multiselect flash during successful inline-save teardown.
-5. ✅ Verify initial state, mouse and keyboard toggling, submitted values, compact presentation, viewport placement, and flash-free save under DaisyUI and Bootstrap.
+5. ✅ Add clear-all support to standard and compact multiselects without changing normal form, filter, or bulk semantics.
+6. ✅ Make both packs' inline controls, row actions, and detached dropdowns respect downstream table typography.
+7. ✅ Restore Bootstrap modal multiselect enhancement, make the DaisyUI body-scrolling modal use the same available viewport height, and verify native and Crispy rendering retain the policy marker.
+8. ✅ Verify initial state, mouse and keyboard toggling, submitted values, compact presentation, clear-all behaviour, typography, viewport placement, modal lifecycle, and flash-free save under DaisyUI and Bootstrap.
 
 ## Phase 11: Update Documentation
 

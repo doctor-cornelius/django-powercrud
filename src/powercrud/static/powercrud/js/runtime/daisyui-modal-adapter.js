@@ -117,7 +117,15 @@ export function createDaisyuiModalLifecycleAdapter(context) {
             ? 'none'
             : viewportBound(presentation.maxHeight, 'height');
         modalBox.style.width = presentation.fullscreen ? '100dvw' : '';
-        modalBox.style.height = presentation.fullscreen ? '100dvh' : '';
+        // The portable default requests a viewport-bounded, body-scrolling
+        // form. Bootstrap already makes that a full-height scrollable dialog;
+        // give the native-dialog pack the equivalent usable height so controls
+        // near the end of a form have room to open their menus.
+        modalBox.style.height = presentation.fullscreen
+            ? '100dvh'
+            : (presentation.scroll === 'body'
+                ? viewportBound(presentation.maxHeight, 'height')
+                : '');
         modalBox.style.borderRadius = presentation.fullscreen ? '0' : '';
         modalBox.style.overflowY = presentation.scroll === 'modal' ? 'auto' : 'hidden';
 

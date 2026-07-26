@@ -246,6 +246,8 @@ def select_single_filter_value(page, field_name: str, option_value: str):
         "el => el.getAttribute('data-powercrud-searchable-select') === 'true'"
     )
     if is_searchable:
+        if not select.is_visible():
+            open_filters_panel(page)
         page.wait_for_function(
             """
             (name) => {

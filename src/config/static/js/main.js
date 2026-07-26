@@ -5,6 +5,7 @@ import TomSelect from 'tom-select'
 import 'tom-select/dist/css/tom-select.css'
 import removeButtonPlugin from 'tom-select/dist/js/plugins/remove_button.js'
 import checkboxOptionsPlugin from 'tom-select/dist/js/plugins/checkbox_options.js'
+import clearButtonPlugin from 'tom-select/dist/js/plugins/clear_button.js'
 
 import tippy from 'tippy.js'
 import 'tippy.js/dist/tippy.css'
@@ -13,6 +14,7 @@ import 'tippy.js/dist/tippy.css'
 window.htmx = htmx
 TomSelect.define('remove_button', removeButtonPlugin)
 TomSelect.define('checkbox_options', checkboxOptionsPlugin)
+TomSelect.define('clear_button', clearButtonPlugin)
 window.TomSelect = TomSelect
 window.tippy = tippy
 

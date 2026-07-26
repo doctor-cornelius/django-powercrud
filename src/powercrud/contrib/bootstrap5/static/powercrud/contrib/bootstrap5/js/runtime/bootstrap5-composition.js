@@ -22,7 +22,14 @@ export function createBootstrap5BaselineComposition({ global, documentObject, is
         destroySearchableSelect: searchableSelectAdapter.destroy,
     });
     const tooltipAdapter = createBootstrap5TooltipLifecycleAdapter({ global, documentObject, warnMissingDependency });
-    const modalAdapter = createBootstrap5ModalLifecycleAdapter({ global, documentObject, warnMissingDependency });
+    const modalAdapter = createBootstrap5ModalLifecycleAdapter({
+        global,
+        documentObject,
+        warnMissingDependency,
+        onShown(modal) {
+            searchableSelects.initPowercrudSearchableSelects(modal);
+        },
+    });
     const actionSelectionAdapter = createBootstrap5ActionSelectionAdapter();
     const floatingPanels = createBootstrap5FloatingPanelAdapter({ global, documentObject });
     const inlinePresentationAdapter = createBootstrap5InlinePresentationAdapter({ global, documentObject });
