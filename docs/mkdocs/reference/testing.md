@@ -80,7 +80,7 @@ pytest -m playwright
 
 Use `uv sync --group ...` for the default local development workflow. Use the constraints file when you need to mirror the exact CI compatibility target.
 
-The Playwright tests target the sample app’s CRUD flows, inline editing, favourites, row-action menus, and tooltip lifecycle. Browser binaries are baked into the Docker image; if you are running outside Docker, install them manually:
+The Playwright tests target the sample app’s CRUD flows, inline editing, favourites, row-action menus, and tooltip lifecycle. The Chromium browser is baked into the Docker image; if you are running outside Docker, install it manually:
 
 ```bash
 playwright install chromium

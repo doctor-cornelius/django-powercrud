@@ -2157,6 +2157,9 @@ def test_table_header_component_preserves_sort_help_selection_and_actions_contra
     assert 'aria-label="Help for Title"' in rendered and 'data-tippy-content="Primary title"' in rendered and 'onclick="event.stopPropagation();"' in rendered, (
         "Header help should remain accessible and should not trigger sorting."
     )
+    assert 'aria-sort="ascending"' in rendered and ">▲</span>" in rendered, (
+        "Ascending sort state should use an accessible upward-pointing indicator."
+    )
     computed_header = rendered.split("Computed", maxsplit=1)[0].rsplit("<th", maxsplit=1)[-1]
     assert "hx-get" not in computed_header and "onclick=" not in computed_header, (
         "Non-sortable headers should not gain navigation behavior."
@@ -2175,6 +2178,15 @@ def test_table_header_component_preserves_sort_help_selection_and_actions_contra
     )
     assert "X-Filter-Sort-Request" not in normal_rendered and "hx-get=" not in normal_rendered, (
         "Non-HTMX headers should not emit HTMX navigation attributes."
+    )
+
+    descending_rendered = render_to_string(
+        "powercrud/daisyUI/partial/table_header.html",
+        {**context, "current_sort": "-title"},
+        request=request,
+    )
+    assert 'aria-sort="descending"' in descending_rendered and ">▼</span>" in descending_rendered, (
+        "Descending sort state should use an accessible downward-pointing indicator."
     )
 
 

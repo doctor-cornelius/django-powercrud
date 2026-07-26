@@ -41,6 +41,16 @@ def test_focused_book_override_source_contains_only_the_agreed_components():
             f"The {component} override must not copy functional JavaScript."
         )
 
+    table_header = (override_directory / FOCUSED_COMPONENTS["table_header"]).read_text(
+        encoding="utf-8"
+    )
+    assert 'aria-sort="ascending"' in table_header and ">▲</span>" in table_header, (
+        "The focused table header should expose ascending state with an upward indicator."
+    )
+    assert 'aria-sort="descending"' in table_header and ">▼</span>" in table_header, (
+        "The focused table header should expose descending state with a downward indicator."
+    )
+
 
 def test_book_focused_component_candidates_remain_model_first():
     """Book components should resolve through model-first candidates before pack fallbacks."""

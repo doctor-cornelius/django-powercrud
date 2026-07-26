@@ -605,6 +605,7 @@ def test_bootstrap_list_filters_sort_pagination_and_htmx_contract(client):
         HTTP_HX_REQUEST="true",
         HTTP_HX_TARGET="content",
     )
+    descending_response = client.get(f"{list_url}?page_size=5&sort=-title")
 
     for response, response_name in ((full_response, "full-page"), (htmx_response, "HTMX")):
         response_text = response.content.decode()
@@ -627,6 +628,13 @@ def test_bootstrap_list_filters_sort_pagination_and_htmx_contract(client):
         assert 'data-inline-row="true"' in response_text, (
             "The completed Bootstrap list should render its inline-capable row contract."
         )
+
+    assert 'aria-sort="ascending"' in full_response.content.decode() and ">▲</span>" in full_response.content.decode(), (
+        "The Bootstrap table should expose ascending state with an upward-pointing indicator."
+    )
+    assert 'aria-sort="descending"' in descending_response.content.decode() and ">▼</span>" in descending_response.content.decode(), (
+        "The Bootstrap table should expose descending state with a downward-pointing indicator."
+    )
 
     bootstrap_template_root = (
         Path(settings.BASE_DIR)
