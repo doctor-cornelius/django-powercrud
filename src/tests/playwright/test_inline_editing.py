@@ -11,6 +11,7 @@ pytest.importorskip("playwright.sync_api")
 from playwright.sync_api import Page, expect
 
 from sample.models import Author
+from sample.views import BookCRUDView
 
 INLINE_ROW_SELECTOR = 'tr[data-inline-row="true"]'
 INLINE_ACTIVE_SELECTOR = f'{INLINE_ROW_SELECTOR}[data-inline-active="true"]'
@@ -366,6 +367,48 @@ def test_inline_edit_searchable_select_updates_author(
     assert (
         book.author_id == replacement_author.pk
     ), "Inline searchable single-select should persist the selected author after save."
+
+
+def test_inline_m2m_uses_compact_pack_multiselect(
+    page: Page, books_url: str, inline_ready_books, monkeypatch
+):
+    """Both packs should enhance generated inline M2M controls without losing saves."""
+    book = inline_ready_books[0]
+    row_path = build_inline_row_path(books_url, book.pk)
+    monkeypatch.setattr(BookCRUDView, "form_class", None)
+    monkeypatch.setattr(
+        BookCRUDView,
+        "form_fields",
+        [
+            "title",
+            "author",
+            "genres",
+            "published_date",
+            "bestseller",
+            "isbn",
+            "pages",
+            "description",
+        ],
+    )
+
+    open_books_page(page, books_url)
+    watch_inline_event(page, "inline-row-saved")
+    active_row = open_inline_row(
+        page, row=get_inline_row(page, row_path), field_name="genres"
+    )
+    select = active_row.locator("select[name='genres']")
+    expect(select).to_have_attribute("data-powercrud-searchable-multiselect", "true")
+    expect(
+        active_row.locator(".ts-wrapper.powercrud-inline-multiselect")
+    ).to_be_visible()
+    expect(
+        active_row.locator(".ts-wrapper.powercrud-inline-multiselect .ts-control")
+    ).to_have_css("max-height", "44px")
+
+    active_row.locator("[data-inline-save]").click()
+    wait_for_inline_event(page, "inline-row-saved")
+    book.refresh_from_db()
+    assert book.genres.exists(), "Saving the enhanced inline M2M field must retain values."
 
 
 def test_inline_edit_saves_after_hiding_non_trigger_column(

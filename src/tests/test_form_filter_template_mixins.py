@@ -20,7 +20,7 @@ from powercrud.mixins.filtering_mixin import (
 from powercrud.mixins.htmx_mixin import HtmxMixin
 from powercrud.templatetags import powercrud as powercrud_tags
 
-from sample.models import Author, Book, Genre
+from sample.models import AsyncTaskRecord, Author, Book, Genre
 
 
 @pytest.mark.django_db
@@ -47,6 +47,45 @@ def test_form_mixin_generates_modelform_with_sorted_dropdown():
     date_widget = form_class.base_fields["published_date"].widget
     assert isinstance(date_widget, forms.DateInput)
     assert date_widget.input_type == "date"
+
+
+@pytest.mark.django_db
+def test_generated_datetime_form_and_filter_preserve_current_date_only_baseline(
+    rf: RequestFactory,
+):
+    """The widget-policy extraction must not silently correct the deferred datetime defect."""
+
+    class DateTimeView(HtmxMixin, FormMixin, FilteringMixin):
+        """Provide generated form and filter paths for the temporal parity check."""
+
+        model = AsyncTaskRecord
+        form_fields = ["completed_at"]
+        filterset_fields = ["completed_at"]
+        use_crispy = False
+        form_class = None
+
+        def get_use_crispy(self):
+            """Keep the characterization on the native renderer path."""
+            return False
+
+    view = DateTimeView()
+    view.request = rf.get("/")
+
+    form_class = view.get_form_class()
+    filterset = view.get_filterset(AsyncTaskRecord.objects.all())
+
+    assert isinstance(form_class.base_fields["completed_at"].widget, forms.DateInput), (
+        "The generated DateTimeField form must retain its current DateField-first widget."
+    )
+    assert form_class.base_fields["completed_at"].widget.input_type == "date", (
+        "The deferred datetime correction must not be folded into the policy refactor."
+    )
+    assert isinstance(filterset.form.fields["completed_at"].widget, forms.DateInput), (
+        "Generated DateTimeField filters must retain their current date-only widget."
+    )
+    assert filterset.form.fields["completed_at"].widget.input_type == "date", (
+        "The generated datetime filter remains a separately tracked correction."
+    )
 
 
 @pytest.mark.django_db

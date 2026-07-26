@@ -258,6 +258,11 @@ def _validate_server_adapter(template_pack: TemplatePack, issues: list[str]) -> 
         issues.append(
             f"server_adapter {template_pack.server_adapter!r} lacks callable get_presentation()."
         )
+    if not callable(getattr(adapter, "get_widget_presentation", None)):
+        issues.append(
+            "server_adapter "
+            f"{template_pack.server_adapter!r} lacks callable get_widget_presentation()."
+        )
 
 
 def _validate_assets(template_pack: TemplatePack, issues: list[str]) -> None:

@@ -238,6 +238,22 @@ class InlineGeneratedOptionalFieldView(FormMixin, InlineTestView):
         )
 
 
+class InlineGeneratedM2MPolicyView(InlineGeneratedOptionalFieldView):
+    """Expose the generated inline ManyToMany policy proof control."""
+
+    form_fields = [
+        "title",
+        "author",
+        "genres",
+        "published_date",
+        "isbn",
+        "pages",
+        "bestseller",
+        "description",
+    ]
+    inline_edit_fields = ["genres"]
+
+
 class InlineCustomOptionalFieldView(FormMixin, InlineTestView):
     """Exercise inline saves through FormMixin with a custom form_class."""
 
@@ -371,6 +387,21 @@ def test_inline_get_renders_form_html(sample_book):
     assert b'hx-vals=\'{"inline_display": true}\'' in response.content and b'hx-swap="outerHTML"' in response.content, (
         "Cancel should retain display-mode and outer-row swap semantics."
     )
+
+
+@pytest.mark.django_db
+def test_generated_inline_m2m_requests_pack_multiselect_enhancement(sample_book):
+    """Inline M2M controls should use the pack policy's compact enhancement path."""
+    view = InlineGeneratedM2MPolicyView(_make_request(), sample_book)
+
+    form = view.build_inline_form(instance=sample_book)
+
+    assert (
+        form.fields["genres"].widget.attrs.get(
+            "data-powercrud-searchable-multiselect"
+        )
+        == "true"
+    ), "Generated inline ManyToMany fields should request the pack multiselect enhancement."
 
 
 @pytest.mark.django_db

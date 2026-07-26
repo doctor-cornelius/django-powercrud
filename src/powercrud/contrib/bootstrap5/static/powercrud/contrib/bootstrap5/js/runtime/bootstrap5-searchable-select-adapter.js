@@ -151,6 +151,10 @@ export function createBootstrap5SearchableSelectAdapter({ global, documentObject
                 instance.dropdown.style.setProperty('min-width', `${desiredWidth}px`, 'important');
             });
         }
+        if (isInlineSelect && multiple) {
+            instance.wrapper.classList.add('powercrud-inline-multiselect');
+            instance.dropdown.classList.add('powercrud-inline-multiselect-dropdown');
+        }
         syncDisabled(select);
         hideNativeSelect(select);
     }

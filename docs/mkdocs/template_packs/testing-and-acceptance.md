@@ -4,7 +4,7 @@ A supported pack needs evidence that it preserves PowerCRUD's behaviour as well 
 
 ## Start with declaration validation
 
-The declaration must have a valid identity, contract version, template package and resource root, adapter information, capability set, form support, and asset metadata. Validation should fail clearly when a declaration is malformed or claims an unsupported presentation exception.
+The declaration must have a valid identity, contract version, template package and resource root, adapter information, capability set, form support, and asset metadata. Its server adapter must implement the current action and widget-presentation methods. Validation should fail clearly when a declaration is malformed, uses an old adapter contract, or claims an unsupported presentation exception.
 
 Run the public helper from the pack's own test project after adding the pack app to `INSTALLED_APPS`:
 

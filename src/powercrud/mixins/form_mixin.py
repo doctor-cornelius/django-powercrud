@@ -20,6 +20,11 @@ from powercrud.query_params import (
     build_navigation_query_string,
     build_navigation_querydict,
 )
+from powercrud.template_packs import (
+    WidgetPolicyContext,
+    get_template_pack_server_adapter,
+)
+from powercrud.widget_policy import apply_widget_presentation, get_model_widget_kind
 from .config_mixin import ConfigMixin, get_template_name, resolve_config
 
 log = get_logger(__name__)
@@ -181,6 +186,62 @@ class FormMixin:
                 attrs["data-powercrud-searchable-select"] = "true"
             else:
                 attrs.pop("data-powercrud-searchable-select", None)
+        return form
+
+    def _get_generated_form_widget_policy_context(
+        self,
+        *,
+        field_name: str,
+        field: forms.Field,
+        inline: bool,
+        dependency_fields: set[str],
+    ) -> WidgetPolicyContext:
+        """Build neutral presentation facts for one generated model-form field."""
+        model_field = self.model._meta.get_field(field_name)
+        widget = field.widget
+        is_multiple = isinstance(widget, forms.SelectMultiple)
+        searchable_requested = False
+        if self.get_searchable_selects() and isinstance(widget, forms.Select):
+            eligible = not self._is_boolean_like_select_field(field)
+            if is_multiple:
+                eligible = inline
+            if eligible:
+                searchable_requested = bool(
+                    self.get_searchable_select_enabled_for_field(
+                        field_name=field_name, bound_field=field
+                    )
+                )
+        return WidgetPolicyContext(
+            surface="inline" if inline else "form",
+            kind=get_model_widget_kind(model_field),
+            render_mode="crispy" if self.get_use_crispy() else "native",
+            field_name=field_name,
+            required=field.required,
+            disabled=field.disabled,
+            is_relation=model_field.is_relation,
+            has_dependency=field_name in dependency_fields,
+            searchable_requested=searchable_requested,
+        )
+
+    def _apply_generated_form_widget_policy(
+        self, form: forms.BaseForm, *, inline: bool
+    ) -> forms.BaseForm:
+        """Apply the selected pack's policy to PowerCRUD-generated model forms."""
+        if not getattr(form, "_powercrud_generated", False):
+            return form
+
+        dependencies = self.get_field_queryset_dependencies(
+            available_fields=set(form.fields.keys()), warn_on_unavailable=False
+        )
+        adapter = get_template_pack_server_adapter()
+        for field_name, field in form.fields.items():
+            context = self._get_generated_form_widget_policy_context(
+                field_name=field_name,
+                field=field,
+                inline=inline,
+                dependency_fields=set(dependencies),
+            )
+            apply_widget_presentation(field, adapter.get_widget_presentation(context))
         return form
 
     def _apply_disabled_form_fields(self, form: forms.BaseForm) -> forms.BaseForm:
@@ -570,6 +631,8 @@ class FormMixin:
         if not inline:
             form = self._apply_disabled_form_fields(form)
         form = self._apply_field_queryset_dependencies(form)
+        if getattr(form, "_powercrud_generated", False):
+            return self._apply_generated_form_widget_policy(form, inline=inline)
         return self._apply_searchable_select_attrs(form)
 
     def get_context_data(self, **kwargs):
@@ -670,6 +733,36 @@ class FormMixin:
                 form_class.base_fields[field_name].label = label
         return form_class
 
+    def _get_generated_form_widget_overrides(
+        self, field_names: list[str]
+    ) -> dict[str, forms.Widget]:
+        """Build selected-pack widget overrides needed while creating a ModelForm class."""
+        dependencies = self.get_field_queryset_dependencies(
+            available_fields=set(field_names), warn_on_unavailable=False
+        )
+        adapter = get_template_pack_server_adapter()
+        widgets: dict[str, forms.Widget] = {}
+        for field_name in field_names:
+            model_field = self.model._meta.get_field(field_name)
+            presentation = adapter.get_widget_presentation(
+                WidgetPolicyContext(
+                    surface="form",
+                    kind=get_model_widget_kind(model_field),
+                    render_mode="crispy" if self.get_use_crispy() else "native",
+                    field_name=field_name,
+                    required=not model_field.blank,
+                    disabled=False,
+                    is_relation=model_field.is_relation,
+                    has_dependency=field_name in dependencies,
+                    searchable_requested=False,
+                )
+            )
+            if presentation.widget_class is not None:
+                widgets[field_name] = presentation.widget_class(
+                    attrs=dict(presentation.attrs)
+                )
+        return widgets
+
     def get_form_class(self):
         """Override get_form_class to use form_fields for form generation."""
 
@@ -680,28 +773,14 @@ class FormMixin:
 
         # Generate a default form class using form_fields
         if self.model is not None and cfg.form_fields:
-            # Configure HTML5 input widgets for date/time fields
-            widgets = {}
-            for field in self.model._meta.get_fields():
-                if field.name not in cfg.form_fields:
-                    continue
-                if isinstance(field, db_models.DateField):
-                    widgets[field.name] = forms.DateInput(
-                        attrs={"type": "date", "class": "form-control"}
-                    )
-                elif isinstance(field, db_models.DateTimeField):
-                    widgets[field.name] = forms.DateTimeInput(
-                        attrs={"type": "datetime-local", "class": "form-control"}
-                    )
-                elif isinstance(field, db_models.TimeField):
-                    widgets[field.name] = forms.TimeInput(
-                        attrs={"type": "time", "class": "form-control"}
-                    )
-
-            # Create the form class with our configured widgets
+            # The selected pack supplies compatible widget presentation after
+            # construction. The factory retains Django's model-field semantics.
             form_class = form_models.modelform_factory(
-                self.model, fields=cfg.form_fields, widgets=widgets
+                self.model,
+                fields=cfg.form_fields,
+                widgets=self._get_generated_form_widget_overrides(cfg.form_fields),
             )
+            form_class._powercrud_generated = True
             form_class = self._apply_field_labels(form_class)
 
             # Apply dropdown sorting to form fields

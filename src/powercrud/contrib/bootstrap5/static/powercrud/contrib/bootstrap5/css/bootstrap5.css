@@ -537,6 +537,23 @@
     max-width: calc(100vw - 2rem) !important;
 }
 
+[data-powercrud-object-list="true"] [data-inline-row="true"] .ts-wrapper.powercrud-inline-multiselect {
+    width: 100%;
+    min-width: 10rem;
+}
+
+[data-powercrud-object-list="true"] [data-inline-row="true"] .ts-wrapper.powercrud-inline-multiselect .ts-control {
+    min-height: calc(1.5em + .5rem + (var(--bs-border-width) * 2));
+    max-height: 2.75rem;
+    overflow-y: auto;
+    padding-block: .2rem;
+}
+
+.ts-dropdown.powercrud-inline-multiselect-dropdown {
+    z-index: 1090;
+    max-width: calc(100vw - 2rem) !important;
+}
+
 .ts-dropdown.powercrud-filter-favourite-select-dropdown {
     z-index: 1090;
 }

@@ -47,7 +47,6 @@ class HtmxMixin:
         return {
             get_selected_template_pack().identity: {
                 "base": actions.base_classes,
-                "filter_attrs": presentation.filter_widget_attrs,
                 "actions": {
                     "View": actions.role_classes.get("view", ""),
                     "Edit": actions.role_classes.get("edit", ""),

@@ -312,3 +312,20 @@ select.ts-hidden-accessible {
 .ts-dropdown.powercrud-inline-single-dropdown {
     max-width: calc(100vw - 2rem) !important;
 }
+
+[data-inline-row="true"] .ts-wrapper.powercrud-inline-multiselect {
+    width: 100%;
+    min-width: 10rem;
+}
+
+[data-inline-row="true"] .ts-wrapper.powercrud-inline-multiselect .ts-control {
+    min-height: 2rem;
+    max-height: 2.75rem;
+    overflow-y: auto;
+    padding-block: 0.2rem;
+}
+
+.ts-dropdown.powercrud-inline-multiselect-dropdown {
+    z-index: 1090;
+    max-width: calc(100vw - 2rem) !important;
+}

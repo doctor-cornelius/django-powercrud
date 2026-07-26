@@ -62,7 +62,9 @@ template_pack = TemplatePack(
 
 Keep the copied template tree complete for every capability your declaration claims. The templates must preserve PowerCRUD's documented `data-powercrud-*` attributes and relevant ARIA/target relationships. They may use completely different CSS classes, elements, and layout.
 
-`adapter.py` translates small server-side presentation choices into your framework's classes or attributes. It must expose an object with `api_version = 1` and `get_presentation(context)`. Start with `BaseServerAdapter`; override it only when you need framework-specific classes or view-help colours.
+`adapter.py` translates server-side presentation choices into your framework's classes or attributes. It must expose an object with `api_version = 2`, `get_presentation(context)`, and `get_widget_presentation(context)`. The widget method receives PowerCRUD's semantic category and surface (`form`, `inline`, `filter`, or `bulk`) and returns a compatible widget class, attributes, and optional semantic enhancement request. Start with `BaseServerAdapter`; its widget method is an explicit neutral policy, so override it when the pack needs framework-specific presentation.
+
+This replaced the short-lived earlier adapter shape before PowerCRUD 1.0. A pack created against that shape must be regenerated or updated; PowerCRUD does not run old and new adapter contracts in parallel.
 
 The optional browser module sets `window.PowerCRUDAdapter` before the stable `powercrud/js/powercrud.js` entry loads. It has `apiVersion: 1`, the same `identity` as the Python declaration, and a `create(context)` function. It returns only the semantic hook groups the framework needs. PowerCRUD supplies no-op defaults for the rest.
 

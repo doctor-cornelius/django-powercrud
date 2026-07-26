@@ -225,6 +225,7 @@ export function createDaisyuiSearchableSelectAdapter(context) {
 
         const placeholder = selectElement.getAttribute('data-powercrud-searchable-placeholder') || '';
         const dialogElement = selectElement.closest('dialog');
+        const isInlineSelect = Boolean(selectElement.closest(INLINE_ROW_SELECTOR));
         const settings = {
             create: false,
             maxItems: null,
@@ -256,6 +257,10 @@ export function createDaisyuiSearchableSelectAdapter(context) {
         }
 
         normaliseControl(instance);
+        if (isInlineSelect) {
+            instance.wrapper.classList.add('powercrud-inline-multiselect');
+            instance.dropdown.classList.add('powercrud-inline-multiselect-dropdown');
+        }
         syncDisabledState(selectElement);
         hideNativeSelect(selectElement);
     }

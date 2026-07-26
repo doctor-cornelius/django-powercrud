@@ -64,6 +64,22 @@ The selected template pack owns the default presentation policy for PowerCRUD-ge
 
 The generic layer may identify semantic facts such as `date`, `boolean`, `select`, `multiselect`, or `inline`, but it must not make DaisyUI-, Bootstrap-, or vendor-specific presentation choices.
 
+## Current Pack Contract Change
+
+This project changes the current template-pack contract cleanly. It does not
+support both the old adapter shape and the new widget-policy shape.
+
+The existing contract and server-adapter compatibility markers will be
+incremented so an independently maintained old pack fails clearly, but those
+numbers are implementation bookkeeping, not separate PowerCRUD products. At
+any point, PowerCRUD accepts one current pack contract.
+
+This break is limited to pack authors. Existing applications using the shipped
+DaisyUI or Bootstrap packs retain their selector, templates, assets, form
+semantics, browser lifecycle, and Phase 1–4 frontend behaviour. The generated
+starter, validator, fixtures, first-party packs, and stable authoring guidance
+change together, so no compatibility shim is needed.
+
 ## Current State
 
 Widget ownership is currently split across several places:
@@ -91,6 +107,10 @@ After Phase 1 through Phase 4:
 5. Independent template packs have a documented, neutral contract for supplying the same policy.
 6. Current server behaviour, rendered presentation, accessibility, and browser lifecycle remain equivalent under both first-party packs.
 
+The selected pack must provide the policy. A pack may explicitly choose a
+neutral presentation that leaves Django's compatible default widget in place,
+but that is a pack policy decision rather than a generic old-contract fallback.
+
 There is no intended frontend change in this part of the project. Any visible difference is treated as a regression unless it is an unavoidable correction explicitly reviewed and approved.
 
 ## What Is Different After Phase 5
@@ -110,9 +130,12 @@ At the end of Phase 5:
 
 For the in-scope generated-control path, the intended resolution is:
 
-1. The selected pack's policy for the semantic widget category and surface.
-2. A neutral PowerCRUD semantic fallback.
-3. Django's normal default widget.
+1. Generic PowerCRUD identifies semantic facts and creates the underlying
+   Django field/filter semantics.
+2. The selected pack's required policy supplies a compatible widget override,
+   attributes, and any semantic enhancement request.
+3. Where that policy explicitly leaves the widget class unchanged, Django's
+   normal default widget remains in use.
 
 Application-supplied custom forms and view-level widget customization do not enter this resolution path.
 
@@ -124,7 +147,10 @@ Inventory the current generated-control surfaces and characterize existing Daisy
 
 ### Phase 2: Introduce the Pack Widget-Policy Architecture
 
-Create the context-aware contract and neutral resolver. The core supplies semantic facts; packs supply presentation policy. No pack-specific library or class belongs in the generic layer.
+Create the context-aware contract and resolver. The core supplies semantic
+facts; every pack adapter supplies presentation policy. Replace the old
+contract rather than supporting a parallel compatibility path. No pack-specific
+library or class belongs in the generic layer.
 
 ### Phase 3: Migrate DaisyUI and Bootstrap Without Frontend Change
 
@@ -137,3 +163,31 @@ Use shared server, browser, contract, and packaging acceptance evidence to prove
 ### Phase 5: Prove the Policy With an Improved Inline M2M Control
 
 Use the new policy to introduce the first deliberate visible improvement: a compact inline ManyToMany control implemented by both first-party packs without adding a generic special case.
+
+## Implementation Evidence
+
+The completed implementation replaces the old `filter_widget_attrs` adapter
+field with a required widget-policy method. The first-party adapters now own
+filter presentation and the old generic temporal form class is selected by the
+pack. Ordinary generated form controls retain Django widgets when the pack
+explicitly returns neutral presentation. Existing bulk controls remain literal
+pack templates and therefore were not given a new generic metadata field.
+
+The deliberate visible change is limited to generated inline ManyToMany fields:
+the selected pack requests the existing Tom Select multi-value enhancement and
+adds compact inline control/dropdown styling. Application-owned custom forms do
+not enter that route.
+
+Focused validation passed in separate successful gates:
+
+1. 178 default-pack form, filter, inline, bulk, validation, and adapter tests.
+2. 96 Bootstrap-pack server and shared-matrix tests.
+3. 321 affected default-pack regression tests after preserving the existing
+   bulk metadata contract.
+4. The compact generated inline M2M browser proof under DaisyUI and Bootstrap.
+5. Fresh `uv build` wheel and sdist validation through the isolated installed
+   template-pack artifact harness.
+
+Two attempted broad runs overlapped on the shared test database; they are not
+used as evidence. An explicit all-tests Bootstrap invocation is also not a
+supported gate because many legacy tests intentionally assert DaisyUI output.

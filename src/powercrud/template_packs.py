@@ -5,13 +5,15 @@ from importlib import import_module
 from pathlib import PurePosixPath
 from typing import Any, Literal, Mapping, Protocol
 
+from django import forms
+
 from django.core.exceptions import ImproperlyConfigured
 
 from powercrud.conf import get_powercrud_setting
 
 
-TEMPLATE_PACK_CONTRACT_VERSION = 1
-SERVER_ADAPTER_API_VERSION = 1
+TEMPLATE_PACK_CONTRACT_VERSION = 2
+SERVER_ADAPTER_API_VERSION = 2
 BROWSER_ADAPTER_API_VERSION = 1
 _BUILTIN_TEMPLATE_PACKS = {"daisyui": "powercrud.packs.daisyui:template_pack"}
 _UNCONFIGURED_SELECTOR = object()
@@ -150,8 +152,22 @@ class CrispyIntegration:
         _require_optional_string(self.dependency, "dependency")
 
 
-FilterWidgetKind = Literal["text", "select", "multiselect", "date", "number", "time", "default"]
 ActionRole = Literal["view", "edit", "delete", "extra"]
+WidgetSurface = Literal["form", "inline", "filter", "bulk"]
+WidgetKind = Literal[
+    "text",
+    "textarea",
+    "number",
+    "date",
+    "datetime",
+    "time",
+    "boolean",
+    "select",
+    "multiselect",
+    "file",
+]
+WidgetRenderMode = Literal["native", "crispy"]
+WidgetEnhancement = Literal["searchable-select", "searchable-multiselect"]
 
 
 @dataclass(frozen=True, slots=True)
@@ -162,6 +178,30 @@ class ServerAdapterContext:
     modal_target_id: str
     use_htmx: bool
     use_modal: bool
+
+
+@dataclass(frozen=True, slots=True)
+class WidgetPolicyContext:
+    """Describe one PowerCRUD-generated control without naming a presentation framework."""
+
+    surface: WidgetSurface
+    kind: WidgetKind
+    render_mode: WidgetRenderMode
+    field_name: str
+    required: bool
+    disabled: bool
+    is_relation: bool
+    has_dependency: bool
+    searchable_requested: bool
+
+
+@dataclass(frozen=True, slots=True)
+class WidgetPresentation:
+    """Return a pack-owned compatible widget override and presentation metadata."""
+
+    widget_class: type[forms.Widget] | None = None
+    attrs: Mapping[str, str] = field(default_factory=dict)
+    enhancement: WidgetEnhancement | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -179,9 +219,6 @@ class ActionPresentation:
 class ServerPresentation:
     """Complete framework presentation returned for one view."""
 
-    filter_widget_attrs: Mapping[FilterWidgetKind, Mapping[str, str]] = field(
-        default_factory=dict
-    )
     actions: ActionPresentation = field(default_factory=ActionPresentation)
 
 
@@ -193,6 +230,11 @@ class PowerCRUDServerAdapter(Protocol):
     def get_presentation(self, context: ServerAdapterContext) -> ServerPresentation:
         """Return framework presentation for one configured view."""
 
+    def get_widget_presentation(
+        self, context: WidgetPolicyContext
+    ) -> WidgetPresentation:
+        """Return framework presentation for one generated widget."""
+
     def get_view_help_variables(self, color: str) -> Mapping[str, str]:
         """Return the documented PowerCRUD view-help CSS variables."""
 
@@ -203,9 +245,16 @@ class BaseServerAdapter:
     api_version = SERVER_ADAPTER_API_VERSION
 
     def get_presentation(self, context: ServerAdapterContext) -> ServerPresentation:
-        """Return presentation with no framework classes or widget attributes."""
+        """Return presentation with no framework action classes."""
         del context
         return ServerPresentation()
+
+    def get_widget_presentation(
+        self, context: WidgetPolicyContext
+    ) -> WidgetPresentation:
+        """Return the explicit neutral widget policy for a simple template pack."""
+        del context
+        return WidgetPresentation()
 
     def get_view_help_variables(self, color: str) -> Mapping[str, str]:
         """Return neutral CSS variables while preserving the requested colour."""
@@ -344,11 +393,17 @@ def get_template_pack_server_adapter() -> PowerCRUDServerAdapter:
     adapter = _load_template_pack(template_pack.server_adapter, template_pack.identity)
     api_version = getattr(adapter, "api_version", None)
     get_presentation = getattr(adapter, "get_presentation", None)
-    if api_version != SERVER_ADAPTER_API_VERSION or not callable(get_presentation):
+    get_widget_presentation = getattr(adapter, "get_widget_presentation", None)
+    if (
+        api_version != SERVER_ADAPTER_API_VERSION
+        or not callable(get_presentation)
+        or not callable(get_widget_presentation)
+    ):
         raise ImproperlyConfigured(
             f"PowerCRUD template pack {template_pack.identity!r} server_adapter "
             f"{template_pack.server_adapter!r} must expose api_version "
-            f"{SERVER_ADAPTER_API_VERSION} and callable get_presentation()."
+            f"{SERVER_ADAPTER_API_VERSION}, callable get_presentation(), and callable "
+            "get_widget_presentation()."
         )
     return adapter
 
