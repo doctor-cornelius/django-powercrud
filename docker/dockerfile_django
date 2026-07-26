@@ -5,6 +5,7 @@ ARG PROJECT_DIR=django_powercrud
 ARG USER=devuser
 ARG USERHOME=/home/${USER}
 ARG NPM_VERSION=11.17.0
+ARG PLAYWRIGHT_VERSION=1.58.0
 ARG PROMPT_CODE='\n\[\e[0m\]🐳 \[\e[0m\][\[\e[0;38;5;226m\]$(git branch 2>/dev/null | grep '"'"'^*'"'"' | colrm 1 2)\[\e[0m\]] \[\e[0;91m\]\u\[\e[0m\]: \[\e[0;96m\]\w\n\[\e[0m\]\$\[\e[0m\] '
 
 ENV PYTHONUNBUFFERED=1 \
@@ -39,25 +40,37 @@ RUN useradd -m -s /bin/bash --create-home ${USER} && \
 
 WORKDIR ${USERHOME}/${PROJECT_DIR}
 
-# Install node packages. Lightning CSS ships its native binary as an optional
-# platform package; include optional deps explicitly so fresh images always
-# contain the Linux artifact Vite expects at runtime.
-COPY package*.json ./
-RUN npm ci --include=optional && chown -R ${USER}:${USER} node_modules
-
 # Install uv
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh && \
     install -Dm755 /root/.local/bin/uv /usr/local/bin/uv && \
     install -Dm755 /root/.local/bin/uvx /usr/local/bin/uvx
 ENV UV_PROJECT_ENVIRONMENT=/usr/local \
+    UV_LINK_MODE=copy \
     PLAYWRIGHT_BROWSERS_PATH=/usr/local/ms-playwright
-# Install Playwright package and browsers early so we avoid redownloading when dependencies change.
-RUN uv pip install --system playwright && \
-    uvx playwright install --with-deps
-COPY pyproject.toml README.md ./
-RUN uv sync --all-extras
+
+# Install the pinned Playwright client and Chromium before general Python
+# dependencies so routine lockfile updates do not invalidate this costly layer.
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv pip install --system "playwright==${PLAYWRIGHT_VERSION}" && \
+    python -m playwright install --with-deps chromium
+
+# Install locked Python dependencies separately from the project source so this
+# expensive layer changes only when Python dependency metadata changes.
+COPY pyproject.toml uv.lock ./
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --all-extras --no-install-project && \
+    test "$(python -c 'from importlib.metadata import version; print(version("playwright"))')" = "${PLAYWRIGHT_VERSION}"
+
+# Install node packages after Playwright so package-lock updates do not trigger
+# another browser download. Lightning CSS requires its optional Linux artifact.
+COPY package*.json ./
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci --include=optional && chown -R ${USER}:${USER} node_modules
+
+COPY --chown=${USER}:${USER} . .
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --locked --all-extras
 
 USER ${USER}
-COPY --chown=${USER}:${USER} . .
 
 CMD ["/bin/bash"]

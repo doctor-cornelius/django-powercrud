@@ -156,7 +156,7 @@ For additional Django container access (new terminal window):
   uv sync --all-extras
   ```
 
-- The Playwright browsers are cached in `/usr/local/ms-playwright`, so re-running the sync does not redownload them unless the Playwright version changes.
+- Playwright's Chromium browser is baked into `/usr/local/ms-playwright` in a Docker layer keyed by the explicit `PLAYWRIGHT_VERSION` build argument. Routine Python and JavaScript dependency updates therefore do not redownload it. When upgrading Playwright, update that argument to match the version in `uv.lock`; the build fails if they differ.
 
 ### 6. **Testing Async Features** 
 
