@@ -2490,8 +2490,8 @@ def test_table_shell_component_preserves_geometry_state_and_delegation(tmp_path)
             },
         )
 
-    assert 'class="box-border w-fit max-w-full overflow-x-auto table-max-height"' in rendered, (
-        "The shell should keep overflow local while shrink-wrapping tables that fit."
+    assert 'class="box-border w-full max-w-full overflow-x-auto table-max-height"' in rendered, (
+        "The shell should keep overflow local while filling the available parent width."
     )
     assert 'style="overflow-y: auto;"' in rendered, (
         "The shell should retain table-local vertical scrolling without a trailing gutter."
