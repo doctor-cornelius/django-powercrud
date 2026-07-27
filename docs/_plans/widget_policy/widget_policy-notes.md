@@ -391,6 +391,115 @@ mouse and keyboard add/remove behaviour, selected-count updates, Django POST
 values, upward and downward viewport placement, HTMX reinitialisation, and the
 absence of a native-control flash during save.
 
+## Branch Change Record
+
+This is the consolidated implementation record for the branch. Use it as the
+source checklist for Phase 11 stable documentation and release-note drafting;
+it records outcomes rather than reproducing commit messages.
+
+### Planning and Contract
+
+1. Created this widget-policy plan, notes, inventory, ownership matrix,
+   behaviour baseline, and contract record.
+2. Replaced the previous pack widget hook with the current template-pack and
+   server-adapter contract version 3. There is no old-adapter compatibility
+   shim: an independently maintained old pack now fails early with a clear
+   compatibility error.
+3. Made `get_widget_presentation(context)` the one pack decision point for
+   widget presentation. The context identifies a semantic widget kind,
+   surface, render mode, field facts, and `default`, `enabled`, or `disabled`
+   enhancement intent without naming a frontend framework.
+4. Added `WidgetPresentation`, including a compatible widget override,
+   attributes, enhancement marker, and `standard` or `compact` variant. The
+   reusable `BaseServerAdapter` resolves a semantic base default followed by
+   an optional `(surface, kind)` override.
+
+### Pack-owned Widget Defaults
+
+1. Moved presentation decisions for text, textarea, number, date, datetime,
+   time, boolean, select, multiselect, and file controls into DaisyUI and
+   Bootstrap policies.
+2. Both first-party packs now define normal-form defaults and filter, inline,
+   and bulk variants. A neutral pack decision leaves Django's compatible
+   widget in place.
+3. Generated forms, inline forms, generated filters, and bulk value controls
+   all resolve through that same pack policy. Bulk field selection and M2M
+   add/remove/replace semantics remain generic PowerCRUD behaviour.
+4. The selected pack applies to a custom `ModelForm` only when a model-backed,
+   non-hidden field still has Django's silent default widget. Application
+   field declarations, `Meta.widgets`, runtime widget replacement, non-model
+   fields, and hidden fields remain authoritative.
+5. The sample `BookForm` proves that distinction: its silent `genres` field
+   receives the policy, while its explicit `published_date` widget is kept.
+
+### Datetime and Multiselect Behaviour
+
+1. Generated `DateTimeField` create, update, inline, and filter controls now
+   use real browser datetime-local presentation with seconds preserved. This
+   is separate from the earlier list-value date/time formatting feature.
+2. Normal forms, filters, and bulk forms use the standard searchable
+   multiselect; inline editing uses the compact variant.
+3. Both pack entries register Tom Select's `checkbox_options`,
+   `remove_button`, and `clear_button` plugins. Selected options remain in
+   the menu with checked state; clicking an option adds or removes it while
+   the menu stays open; clear-all works without changing Django submission.
+4. Compact inline multiselects show a stable `N selected` summary rather than
+   clipped chips, including while the menu is open. Normal, filter, and bulk
+   controls retain removable chips where there is room.
+5. Inline dropdowns choose upward placement when the viewport has insufficient
+   room below and do not recenter the edited row. Successful inline save no
+   longer flashes the native Django multi-select before the HTMX row swap.
+6. Bootstrap modal controls are enhanced after the modal is visible. The
+   ordinary DaisyUI body-scrolling modal now uses the available viewport
+   height; a modal explicitly configured with `scroll="modal"` remains
+   content-sized.
+7. Detached inline menus inherit the table-cell typography and the
+   `inline_edit_highlight_accent` palette. The configured accent now drives
+   the inline multiselect focus border and checkbox, while selected and active
+   menu options use the related pale inline widget and hover tints rather than
+   a generic blue.
+8. Bulk M2M editing visibly preselects `Replace with selected`, matching the
+   generic server-side default when the operation is omitted.
+
+### Table and Inline-list Presentation
+
+1. Removed the sample Author `bio`/memo field from inline editing so a large
+   textarea does not make an inline row excessively tall.
+2. Made both list shells use their available container width rather than an
+   unnecessarily constrained DaisyUI table wrapper.
+3. Enlarged Bootstrap bulk-selection checkboxes to match the DaisyUI affordance.
+4. Added semantic list-column width modes. `bounded` is the legacy default;
+   the opt-in `semantic` policy infers compact primary-key and boolean columns,
+   auto-sized temporal and numeric columns, and bounded text, relation,
+   annotation, and property columns. Individual columns can override the
+   resolved mode.
+5. Added `column_width_policy` and `column_width_modes` to the base view API,
+   plus `PowerField(..., column={"width": ...})` for structured declarations.
+   The sample Author view demonstrates the semantic policy and explicit
+   property/boolean overrides.
+6. Updated both packs to size tables from their content within a full-width
+   scroll container, avoiding equal distribution across every column while
+   preserving a horizontal scrollbar when content genuinely cannot fit.
+7. Made both packs use horizontally and vertically centred table headers,
+   including the Actions heading. Cell alignment remains semantic and
+   independently configurable.
+8. Made Bootstrap inline widgets, detached menus, and row-action buttons
+   inherit the table's configured text size, matching DaisyUI and preserving
+   `table_classes` as the downstream typography hook.
+
+### Validation and Packaging
+
+1. Added or updated server, template, configuration, package-contract, and
+   browser coverage for the policy, datetime, custom-form, multiselect,
+   table-width, header, and palette behaviour under both first-party packs.
+2. Verified compact inline M2M behaviour, values, checked options, clear-all,
+   placement, typography, palette transfer, and save lifecycle in browser
+   tests under DaisyUI and Bootstrap.
+3. Rebuilt and committed the manifest-backed DaisyUI and Bootstrap frontend
+   assets after each frontend-runtime change.
+4. Updated the reference pages for the new semantic column-width API. The
+   broader stable documentation and release-note wording remain Phase 11 work.
+
 ### Phase 11: Update Documentation
 
 Promote the settled datetime, silent-custom-form, pack-default, surface-variant,
