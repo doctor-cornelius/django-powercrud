@@ -233,6 +233,8 @@ Override or refine the automatically generated forms with `form_class`, `form_fi
 
     PowerCRUD still applies its runtime form behavior after the custom form is built, including `form_disabled_fields`, `form_display_fields`, `field_queryset_dependencies`, `dropdown_sort_options`, `searchable_selects`, and `use_crispy`.
 
+    The selected pack may also present a model-backed visible field that still uses Django's silent default widget. A declared field, `Meta.widgets` entry, runtime widget replacement, non-model field, or hidden field remains application-owned. See [Forms](../guides/forms.md#custom-modelforms-and-application-owned-widgets).
+
 `form_display_fields` and `form_disabled_fields` solve two different problems:
 
 - `form_display_fields` adds a separate read-only `Context` block above update forms. Use it for contextual model data, including `editable=False` fields.
@@ -478,10 +480,13 @@ PowerCRUD enhances eligible select dropdowns with Tom Select when `searchable_se
 - Applies to regular create/update forms, inline row forms, bulk edit form selects, and filter form selects.
 - Single-select fields are enhanced as searchable dropdowns.
 - Inline single-selects focus when their row enters edit mode, but the dropdown stays closed until the user clicks or types.
-- Multi-select filter fields are enhanced as searchable multi-select controls.
+- Multi-select fields use the selected pack's standard variant on normal forms, filters, and bulk forms, and its compact variant inline.
+- Standard and compact multiselects keep selected options visible with checked state, allow click-to-toggle while open, and provide clear-all.
 - Boolean-style selects remain native controls.
-- Preserves normal Django form POST semantics (the underlying `<select>` still submits the selected value).
-- When using the built-in daisyUI pack, package CSS overrides Tom Select with daisyUI semantic colors so controls follow the active theme.
+- Preserves normal Django single- and multi-value POST semantics through the underlying `<select>`.
+- The selected pack owns enhancement presentation and styling; application enable/disable intent remains authoritative.
+
+See [Forms](../guides/forms.md#widget-presentation), [Inline editing](../guides/inline_editing.md#compact-manytomany-controls), [Filtering](../guides/filtering.md#generated-widget-presentation), and [Bulk editing](../guides/bulk_edit_sync.md#manytomany-value-controls) for surface-specific behaviour.
 
 Per-field opt-out is available via a view hook:
 

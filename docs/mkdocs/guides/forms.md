@@ -46,6 +46,59 @@ Runtime enhancements still apply after the custom form is built. That includes:
 
 ---
 
+## Widget presentation
+
+Django and PowerCRUD keep ownership of field values, choices and querysets, required and disabled state, validation, submission, dependencies, and the HTMX lifecycle. The selected template pack decides how a compatible visible widget is presented.
+
+The policy understands these semantic kinds:
+
+- text and textarea
+- number
+- date, datetime, and time
+- boolean
+- select and multiselect
+- file
+
+The same semantic kind may have a small surface-specific variation. Normal forms, generated filters, and bulk forms have room for a standard multiselect; inline editing uses a compact variant so the table row does not grow around a tall native control. The pack may also make a neutral decision, which leaves Django's compatible widget in place.
+
+Generated `DateTimeField` controls on normal and inline forms use a real browser `datetime-local` input and preserve seconds. Generated datetime filters use the corresponding date-and-time control. This concerns editing and filtering only: [temporal list value formats](setup_core_crud.md#temporal-list-value-formats) still control how saved values appear in list columns.
+
+With `searchable_selects = True` (the default), both first-party packs provide standard searchable multiselects on normal forms. Selected options remain visible with checked state, clicking an option adds or removes it while the menu stays open, and clear-all preserves normal Django multi-value submission. See [Inline editing](inline_editing.md#compact-manytomany-controls), [Filtering](filtering.md#generated-widget-presentation), and [Bulk editing](bulk_edit_sync.md#manytomany-value-controls) for the surface-specific experience.
+
+### Custom ModelForms and application-owned widgets
+
+A custom `ModelForm` remains the source of truth for its fields and explicit widget choices. PowerCRUD applies the selected pack only when a model-backed, visible field still carries Django's silent default widget.
+
+For example:
+
+```python
+class BookForm(forms.ModelForm):
+    """Keep one explicit application widget and one silent model default."""
+
+    class Meta:
+        model = Book
+        fields = ["title", "genres", "published_date"]
+        widgets = {
+            "published_date": forms.TextInput(
+                attrs={"placeholder": "YYYY-MM-DD"},
+            ),
+        }
+```
+
+In that form, `genres` may receive the selected pack's multiselect default because the application did not choose its widget. `published_date` keeps the explicit `Meta.widgets` choice.
+
+PowerCRUD also leaves these application-owned controls unchanged:
+
+- a field declared directly on the form class
+- a `Meta.widgets` entry
+- a widget replaced at runtime
+- a non-model field
+- a hidden field
+
+Use those ordinary Django mechanisms whenever the application needs a deliberate exception to the selected pack's defaults.
+
+---
+
 ## Shaping an auto-generated form
 
 Use `form_fields` when you want PowerCRUD to generate the form and you want to control which editable fields appear and in what order.

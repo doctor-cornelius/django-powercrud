@@ -137,6 +137,16 @@ Use these when you are on the auto-generated `filterset_fields` path:
 
 Auto-generated text filters use `icontains` by default. There is no separate declarative setting to change that lookup expression field by field. If you need custom lookup behavior such as `iexact`, `startswith`, or range-style filters, switch to a custom `filterset_class`.
 
+### Generated widget presentation
+
+Generated filters keep their lookup, queryset, choices, values, and validation in PowerCRUD and `django-filter`. The selected template pack supplies the compatible visible widget and its presentation.
+
+A generated `DateTimeField` filter uses a real date-and-time control rather than the date-only branch used by a `DateField`. This does not change [temporal list value formatting](setup_core_crud.md#temporal-list-value-formats), which controls displayed list values rather than filter input.
+
+Generated ManyToMany filters use the standard searchable multiselect when `searchable_selects = True`. Selected options stay visible with checked state; clicking an option toggles it while the menu remains open; clear-all removes the active values. The underlying multi-value filter submission and `m2m_filter_and_logic` behaviour remain unchanged.
+
+An explicitly declared widget on a custom filter remains the custom filter's choice. The selected pack owns defaults for the generated path; it does not replace deliberate application widget configuration.
+
 ## Sorting behavior
 
 Sorting is wired into the table headers.
