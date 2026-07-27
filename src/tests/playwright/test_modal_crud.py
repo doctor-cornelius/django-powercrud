@@ -107,12 +107,13 @@ def test_create_book_via_modal(page, books_url, sample_author, sample_genre):
         if not using_bootstrap_pack():
             modal_box = modal.locator("[data-powercrud-modal-box]")
             viewport = page.viewport_size
+            assert "100dvh" in modal_box.evaluate("element => element.style.height"), (
+                "The default DaisyUI body-scrolling modal should request a viewport-height shell."
+            )
+            expect(modal_box).to_have_css("scale", "1")
             modal_box_bounds = modal_box.bounding_box()
             assert viewport is not None and modal_box_bounds is not None, (
                 "The DaisyUI modal and browser viewport should expose measurable geometry."
-            )
-            assert "100dvh" in modal_box.evaluate("element => element.style.height"), (
-                "The default DaisyUI body-scrolling modal should request a viewport-height shell."
             )
             assert modal_box_bounds["height"] >= viewport["height"] - 50, (
                 "The default DaisyUI body-scrolling modal should use the available "
