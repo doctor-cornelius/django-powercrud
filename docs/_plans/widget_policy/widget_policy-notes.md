@@ -460,6 +460,14 @@ it records outcomes rather than reproducing commit messages.
    a generic blue.
 8. Bulk M2M editing visibly preselects `Replace with selected`, matching the
    generic server-side default when the operation is omitted.
+9. Put bulk M2M operation choices above their value control in both packs, so
+   an open option menu cannot obscure the operation that will be submitted.
+10. The DaisyUI bulk multiselect still has a known dropdown-placement defect.
+    Its bulk policy adds `min-h-[150px]` to the original select; Tom Select
+    copies that class to its wrapper, so a dropdown retained inside a modal is
+    positioned after the 150-pixel wrapper rather than directly below the
+    visible control. Bootstrap is not affected. This is a recorded follow-up,
+    not a completed Phase 10 outcome.
 
 ### Table and Inline-list Presentation
 
@@ -486,6 +494,16 @@ it records outcomes rather than reproducing commit messages.
 8. Made Bootstrap inline widgets, detached menus, and row-action buttons
    inherit the table's configured text size, matching DaisyUI and preserving
    `table_classes` as the downstream typography hook.
+9. Switched both Book sample views—the ordinary primitive view and the
+   PowerField equivalent—to the opt-in `semantic` column-width policy.
+
+### Sample Shell Presentation
+
+1. Added Bootstrap's light/dark selector to the sample navigation. It uses
+   Bootstrap's native `data-bs-theme` support and remembers the local choice.
+2. Compacted the Bootstrap sample shell's padding, metadata, navigation
+   controls, and spacing so its menu area has a comparable text scale and
+   vertical footprint to the DaisyUI sample shell.
 
 ### Validation and Packaging
 
