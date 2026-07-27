@@ -50,6 +50,6 @@ def test_same_adapter_fixture_resolves_the_reused_public_server_adapter():
     with override_settings(
         POWERCRUD_SETTINGS={"POWERCRUD_TEMPLATE_PACK": SAME_ADAPTER_SELECTOR}
     ):
-        assert get_template_pack_server_adapter().api_version == 3, (
+        assert get_template_pack_server_adapter().api_version == 2, (
             "The fixture should resolve the declared DaisyUI server adapter without a framework registry."
         )

@@ -270,10 +270,10 @@ and add/remove/replace behaviour remain generic. Eligible silent model-backed
 custom-ModelForm fields follow the same normal or inline route; application
 widgets remain authoritative.
 
-The deliberate pack-extension break increments the template-pack contract and
-server-adapter API markers from 2 to 3. They remain early validation guards for
-an independently installed old pack; they are not user-facing product versions
-or a second widget-policy system.
+The deliberate pack-extension break is part of the unreleased template-pack
+contract and server-adapter API version 2. The markers remain early validation
+guards for an independently installed old pack; they are not user-facing
+product versions or a second widget-policy system.
 
 ## Plan Phases
 
@@ -402,7 +402,7 @@ it records outcomes rather than reproducing commit messages.
 1. Created this widget-policy plan, notes, inventory, ownership matrix,
    behaviour baseline, and contract record.
 2. Replaced the previous pack widget hook with the current template-pack and
-   server-adapter contract version 3. There is no old-adapter compatibility
+   server-adapter contract version 2. There is no old-adapter compatibility
    shim: an independently maintained old pack now fails early with a clear
    compatibility error.
 3. Made `get_widget_presentation(context)` the one pack decision point for

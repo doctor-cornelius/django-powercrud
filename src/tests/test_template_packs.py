@@ -404,7 +404,7 @@ def test_old_server_adapter_contract_is_rejected_clearly():
     with override_settings(
         POWERCRUD_SETTINGS={"POWERCRUD_TEMPLATE_PACK": OLD_ADAPTER_FIXTURE_SELECTOR}
     ):
-        with pytest.raises(ImproperlyConfigured, match="api_version 3"):
+        with pytest.raises(ImproperlyConfigured, match="api_version 2"):
             get_template_pack_server_adapter()
 
 

@@ -12,8 +12,8 @@ from django.core.exceptions import ImproperlyConfigured
 from powercrud.conf import get_powercrud_setting
 
 
-TEMPLATE_PACK_CONTRACT_VERSION = 3
-SERVER_ADAPTER_API_VERSION = 3
+TEMPLATE_PACK_CONTRACT_VERSION = 2
+SERVER_ADAPTER_API_VERSION = 2
 BROWSER_ADAPTER_API_VERSION = 1
 _BUILTIN_TEMPLATE_PACKS = {"daisyui": "powercrud.packs.daisyui:template_pack"}
 _UNCONFIGURED_SELECTOR = object()
