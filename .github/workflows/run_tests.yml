@@ -182,7 +182,7 @@ jobs:
         env:
           DJANGO_SETTINGS_MODULE: tests.settings_bootstrap
         run: |
-          pytest --cov-append --no-cov-on-fail \
+          pytest -m playwright --cov-append --no-cov-on-fail \
             src/tests/playwright/test_bootstrap_modal_presentation.py \
             src/tests/playwright/test_bootstrap_manual_static_assets.py \
             src/tests/playwright/test_modal_crud.py::test_modal_multiselect_uses_pack_widget_and_clear_all \
