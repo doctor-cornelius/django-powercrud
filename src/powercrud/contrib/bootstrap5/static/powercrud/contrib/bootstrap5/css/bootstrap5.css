@@ -551,8 +551,8 @@
 }
 
 .powercrud-bootstrap-tomselect .ts-control.focus {
-    border-color: #86b7fe;
-    box-shadow: 0 0 0 .25rem rgba(13, 110, 253, .25);
+    border-color: var(--pc-ts-option-active-bg, var(--bs-primary));
+    box-shadow: 0 0 0 .25rem color-mix(in srgb, var(--pc-ts-option-active-bg, var(--bs-primary)) 25%, transparent);
 }
 
 .powercrud-bootstrap-tomselect .ts-dropdown {
@@ -561,18 +561,18 @@
 }
 
 .powercrud-bootstrap-tomselect .ts-dropdown .active {
-    background: var(--bs-tertiary-bg);
-    color: var(--bs-body-color);
+    background: var(--pc-ts-option-keyboard-bg, var(--bs-tertiary-bg));
+    color: var(--pc-ts-option-active-text, var(--bs-body-color));
 }
 
 .ts-dropdown .option.selected {
-    background: var(--bs-primary-bg-subtle);
+    background: var(--pc-ts-option-selected-bg, var(--bs-primary-bg-subtle));
     color: var(--bs-emphasis-color);
     font-weight: 600;
 }
 
 .ts-dropdown .tomselect-checkbox {
-    accent-color: var(--bs-primary);
+    accent-color: var(--pc-ts-option-active-bg, var(--bs-primary));
 }
 
 .ts-dropdown.powercrud-inline-single-dropdown {

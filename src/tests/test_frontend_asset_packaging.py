@@ -60,6 +60,39 @@ def test_package_runtime_assets_exist() -> None:
     assert bootstrap_css.is_file(), "Expected the package-owned Bootstrap integration CSS."
 
 
+def test_detached_inline_tom_select_menus_inherit_the_view_palette() -> None:
+    """Detached inline menus should keep the view's configured inline-edit colours."""
+    package_root = Path(powercrud.__file__).resolve().parent
+    daisy_adapter = (
+        package_root
+        / "static"
+        / "powercrud"
+        / "js"
+        / "runtime"
+        / "daisyui-searchable-select-adapter.js"
+    ).read_text(encoding="utf-8")
+    bootstrap_adapter = (
+        package_root
+        / "contrib"
+        / "bootstrap5"
+        / "static"
+        / "powercrud"
+        / "contrib"
+        / "bootstrap5"
+        / "js"
+        / "runtime"
+        / "bootstrap5-searchable-select-adapter.js"
+    ).read_text(encoding="utf-8")
+
+    for adapter in (daisy_adapter, bootstrap_adapter):
+        assert "function copyInlineTomSelectPalette(instance)" in adapter, (
+            "Both pack adapters should copy the inline palette to a body-level Tom Select dropdown."
+        )
+        assert "--pc-ts-option-selected-bg" in adapter, (
+            "Both pack adapters should transfer the selected-option tint to detached inline menus."
+        )
+
+
 def test_runtime_js_uses_stable_entry_with_internal_module_import() -> None:
     """The stable runtime entry should import internal modules without changing the public path."""
     package_root = Path(powercrud.__file__).resolve().parent
@@ -401,6 +434,12 @@ def test_runtime_css_themes_tomselect_with_daisyui_semantic_tokens() -> None:
     assert (
         "--pc-ts-option-active-bg: var(--color-primary, #3b82f6);" in css
     ), "TomSelect runtime CSS should derive active option backgrounds from daisyUI primary colors."
+    assert "--pc-ts-option-keyboard-bg: var(--pc-ts-option-active-bg);" in css, (
+        "Tom Select should distinguish its keyboard-active option background from its semantic accent."
+    )
+    assert "background: var(--pc-ts-option-selected-bg);" in css, (
+        "Tom Select selected options should use an overridable semantic background token."
+    )
     assert (
         ".ts-wrapper .ts-control {" in css
     ), "TomSelect runtime CSS should include an explicit control override block."

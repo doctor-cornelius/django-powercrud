@@ -447,6 +447,29 @@ def test_inline_m2m_uses_compact_pack_multiselect(
         "Inline control and detached menu typography must inherit the table-cell "
         f"size set by downstream table classes. Metrics: {typography}"
     )
+    palette = active_row.evaluate(
+        """
+        row => {
+            const table = row.closest('table[data-inline-enabled="true"]');
+            const dropdown = document.querySelector(
+                '.ts-dropdown.powercrud-inline-multiselect-dropdown'
+            );
+            const properties = [
+                '--pc-ts-option-active-bg',
+                '--pc-ts-option-keyboard-bg',
+                '--pc-ts-option-selected-bg',
+            ];
+            return Object.fromEntries(properties.map(property => [property, {
+                table: window.getComputedStyle(table).getPropertyValue(property).trim(),
+                dropdown: dropdown.style.getPropertyValue(property).trim(),
+            }]));
+        }
+        """
+    )
+    assert all(values["table"] == values["dropdown"] for values in palette.values()), (
+        "A detached inline M2M menu must inherit the view-configured inline-edit palette. "
+        f"Palette transfer: {palette}"
+    )
     expect(dropdown.locator(".option.selected input.tomselect-checkbox:checked")).to_have_count(
         1
     )

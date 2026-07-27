@@ -1800,6 +1800,10 @@ def object_list(context, objects, view):
     if hasattr(view, "get_inline_edit_highlight_palette"):
         inline_edit_highlight_palette = view.get_inline_edit_highlight_palette()
 
+    inline_edit_highlight_accent = ""
+    if hasattr(view, "get_inline_edit_highlight_accent"):
+        inline_edit_highlight_accent = view.get_inline_edit_highlight_accent()
+
     return {
         "headers": headers,
         "object_list": object_list,
@@ -1829,6 +1833,7 @@ def object_list(context, objects, view):
         "inline_edit": inline_config,
         "inline_edit_always_visible": inline_edit_always_visible,
         "inline_edit_highlight_palette": inline_edit_highlight_palette,
+        "inline_edit_highlight_accent": inline_edit_highlight_accent,
         "table_header_template_paths": context.get(
             "table_header_template_paths"
         )

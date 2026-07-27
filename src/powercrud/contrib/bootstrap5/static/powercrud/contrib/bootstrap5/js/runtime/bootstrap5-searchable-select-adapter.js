@@ -70,6 +70,29 @@ export function createBootstrap5SearchableSelectAdapter({ global, documentObject
         select.tomselect.dropdown.classList.add('powercrud-filter-favourite-select-dropdown');
     }
 
+    function copyInlineTomSelectPalette(instance) {
+        const table = instance.control.closest('table[data-inline-enabled="true"]');
+        if (!table) {
+            return;
+        }
+
+        // Inline menus are appended to body for viewport-aware placement, so
+        // copy the table's view-configured inline palette to the detached menu.
+        const palette = global.getComputedStyle(table);
+        for (const property of [
+            '--pc-ts-option-active-bg',
+            '--pc-ts-option-active-text',
+            '--pc-ts-option-keyboard-bg',
+            '--pc-ts-option-selected-bg',
+            '--pc-ts-option-hover-bg',
+        ]) {
+            const value = palette.getPropertyValue(property).trim();
+            if (value) {
+                instance.dropdown.style.setProperty(property, value);
+            }
+        }
+    }
+
     function positionInlineMultiselectDropdown(instance) {
         const controlRect = instance.control.getBoundingClientRect();
         const dropdown = instance.dropdown;
@@ -220,6 +243,9 @@ export function createBootstrap5SearchableSelectAdapter({ global, documentObject
         }
         normalise(instance);
         normaliseFilterFavourites(select);
+        if (isInlineSelect) {
+            copyInlineTomSelectPalette(instance);
+        }
         if (isInlineSelect && !multiple) {
             instance.dropdown.classList.add('powercrud-inline-single-dropdown');
             instance.on('dropdown_open', function onInlineDropdownOpen() {

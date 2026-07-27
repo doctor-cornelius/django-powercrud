@@ -3517,6 +3517,14 @@ def test_book_list_renders_default_inline_edit_highlight_css_variables():
         _extract_inline_css_variable(response_text, "--pc-inline-hover-bg")
         == "rgba(20, 184, 166, 0.15)"
     ), "Default inline-edit hover background variable should preserve the current stronger teal-derived color."
+    assert (
+        _extract_inline_css_variable(response_text, "--pc-ts-option-active-bg")
+        == "#14b8a6"
+    ), "Inline Tom Select controls should use the configured inline-edit accent rather than a generic blue."
+    assert (
+        _extract_inline_css_variable(response_text, "--pc-ts-option-selected-bg")
+        == "rgba(20, 184, 166, 0.15)"
+    ), "Inline Tom Select selected options should use the inline widget background tint."
 
 
 @pytest.mark.django_db
@@ -3548,6 +3556,10 @@ def test_book_list_renders_custom_inline_edit_highlight_css_variables(
         _extract_inline_css_variable(response_text, "--pc-inline-active-row-outline")
         == "rgba(59, 130, 246, 0.85)"
     ), "Custom inline-edit accent should drive the active-row outline variable."
+    assert (
+        _extract_inline_css_variable(response_text, "--pc-ts-option-active-bg")
+        == "#3b82f6"
+    ), "A custom inline-edit accent should also drive inline Tom Select presentation."
 
 
 @pytest.mark.django_db
