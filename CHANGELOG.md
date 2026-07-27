@@ -6,11 +6,8 @@ During the `0.x` series, breaking changes can occur, although we try to minimise
 
 Version numbers below correspond to published git tags. The more important releases include a little extra narrative and upgrade context; smaller patch releases remain deliberately brief. For full detail between any two versions, use the GitHub compare view for the matching tags.
 
-## 0.9.2b1 (2026-07-27)
+## 0.9.2 (2026-07-27)
 
-### Breaking Changes
-
-- template-pack server adapters must implement api_version 2 and get_widget_presentation(context).
 - **Feature (widgets): pack-owned widget presentation.**
 
   PowerCRUD now lets the selected template pack own visible widget presentation across normal forms, inline editing, generated filters, and bulk-edit value controls. Applications get controls that fit the selected framework and surface while PowerCRUD continues to own values, querysets, validation, submission, dependencies, and HTMX lifecycle.
@@ -18,6 +15,32 @@ Version numbers below correspond to published git tags. The more important relea
   Generated `DateTimeField` controls now use true `datetime-local` inputs with seconds preserved, and silent model-backed defaults in a custom `ModelForm` can receive the selected pack's presentation without overriding declarative fields, `Meta.widgets`, runtime replacements, non-model fields, or hidden controls. Searchable multiselects now share checked options, click-to-toggle, and clear-all behaviour across both first-party packs: normal forms, filters, and bulk editing use the standard variant, while inline editing uses the compact `N selected` variant.
 
   The release also adds opt-in semantic list-column widths and material cross-pack polish for headers, table sizing, modal controls, dropdown placement, typography, palettes, and flash-free inline saves. Independently maintained template packs must upgrade to the server-adapter version 2 widget-policy contract; the browser-adapter API remains version 1.
+
+- **Fix(tables): wrap compact headers**
+
+  Compact semantic columns now allow long header labels to wrap in DaisyUI and Bootstrap 5, while compact body values remain on one line.
+
+- **Docs: improve setup guide docs**
+
+  Reworked the setup guides around a clearer first-use path, explained the built-in CRUD routes, and kept advanced configuration available without making it prerequisite reading.
+
+### Breaking Changes
+
+- template-pack server adapters must implement `api_version = 2` and `get_widget_presentation(context)`.
+
+## 0.9.2b1 (2026-07-27)
+
+- **Feature (widgets): pack-owned widget presentation.**
+
+  PowerCRUD now lets the selected template pack own visible widget presentation across normal forms, inline editing, generated filters, and bulk-edit value controls. Applications get controls that fit the selected framework and surface while PowerCRUD continues to own values, querysets, validation, submission, dependencies, and HTMX lifecycle.
+
+  Generated `DateTimeField` controls now use true `datetime-local` inputs with seconds preserved, and silent model-backed defaults in a custom `ModelForm` can receive the selected pack's presentation without overriding declarative fields, `Meta.widgets`, runtime replacements, non-model fields, or hidden controls. Searchable multiselects now share checked options, click-to-toggle, and clear-all behaviour across both first-party packs: normal forms, filters, and bulk editing use the standard variant, while inline editing uses the compact `N selected` variant.
+
+  The release also adds opt-in semantic list-column widths and material cross-pack polish for headers, table sizing, modal controls, dropdown placement, typography, palettes, and flash-free inline saves. Independently maintained template packs must upgrade to the server-adapter version 2 widget-policy contract; the browser-adapter API remains version 1.
+
+### Breaking Changes
+
+- template-pack server adapters must implement api_version 2 and get_widget_presentation(context).
 
 ## 0.9.1 (2026-07-26)
 
