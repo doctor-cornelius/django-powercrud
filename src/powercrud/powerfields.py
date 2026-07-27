@@ -49,9 +49,11 @@ LIST_CELL_METADATA_OPTIONS = ("tooltip_hook", "tooltip_mode", "column", "link")
 
 TOOLTIP_MODES = {"eager", "lazy"}
 
-COLUMN_OPTIONS = {"help_text", "alignment", "value_format"}
+COLUMN_OPTIONS = {"help_text", "alignment", "value_format", "width"}
 
 COLUMN_ALIGNMENTS = {"left", "center", "right"}
+
+COLUMN_WIDTH_MODES = {"compact", "auto", "bounded"}
 
 
 @dataclass(frozen=True)
@@ -178,6 +180,11 @@ class PowerField:
                 raise ValueError(
                     "PowerField.column value_format must be 'date', 'time', or 'datetime'"
                 )
+            width = self.column.get("width")
+            if width is not None and width not in COLUMN_WIDTH_MODES:
+                raise ValueError(
+                    "PowerField.column width must be 'compact', 'auto', or 'bounded'"
+                )
 
         conflicting_dimensions = [
             dimension
@@ -260,6 +267,10 @@ class PowerField:
                 fragment.setdefault("column_value_formats", {})[
                     self.name
                 ] = value_format
+
+            width = self.column.get("width")
+            if width is not None:
+                fragment.setdefault("column_width_modes", {})[self.name] = width
 
         if self.label is not None:
             fragment.setdefault("field_labels", {})[self.name] = self.label

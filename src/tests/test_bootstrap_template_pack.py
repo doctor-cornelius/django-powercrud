@@ -337,8 +337,18 @@ def test_bootstrap_table_alignment_and_dropdown_button_classes_use_portable_valu
         {
             "enable_selection_controls": False,
             "headers": [
-                {"field_name": "title", "align": "left", "is_sortable": False},
-                {"field_name": "pages", "align": "right", "is_sortable": False},
+                {
+                    "field_name": "title",
+                    "align": "left",
+                    "is_sortable": False,
+                    "width_mode": "bounded",
+                },
+                {
+                    "field_name": "pages",
+                    "align": "right",
+                    "is_sortable": False,
+                    "width_mode": "auto",
+                },
             ],
             "has_row_actions": False,
         },
@@ -369,6 +379,12 @@ def test_bootstrap_table_alignment_and_dropdown_button_classes_use_portable_valu
     )
     assert 'class="pc-table-column-width text-end"' in table_header, (
         "The public right alignment must map to Bootstrap's text-end utility."
+    )
+    assert 'data-powercrud-column-width-mode="bounded"' in table_header, (
+        "Bootstrap headers should receive the resolved bounded width mode."
+    )
+    assert 'data-powercrud-column-width-mode="auto"' in table_header, (
+        "Bootstrap headers should receive the resolved auto width mode."
     )
     assert "shared-extra-class btn-primary" in dropdown, (
         "Dropdown entries must receive the same configured extra-button classes as button mode."

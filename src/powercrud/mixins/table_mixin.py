@@ -247,6 +247,17 @@ class TableMixin:
             return dict(configured_formats)
         return {}
 
+    def get_column_width_policy(self) -> str:
+        """Return the view-wide list-column sizing policy."""
+        return resolve_config(self).column_width_policy
+
+    def get_column_width_modes(self) -> dict[str, str]:
+        """Return explicit semantic list-column sizing overrides."""
+        configured_modes = resolve_config(self).column_width_modes
+        if isinstance(configured_modes, dict):
+            return dict(configured_modes)
+        return {}
+
     def get_default_datetime_value_format(self) -> str:
         """Return the view-wide display mode for unoverridden datetime columns."""
         return resolve_config(self).default_datetime_value_format

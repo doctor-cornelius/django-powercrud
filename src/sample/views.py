@@ -987,6 +987,11 @@ class AuthorCRUDView(SampleCRUDMixin):
     table_classes = "table-zebra table-sm"
     action_button_classes = "btn-xs"
     extra_button_classes = "btn-sm"
+    column_width_policy = "semantic"
+    column_width_modes = {
+        "has_bio": "compact",
+        "property_birth_date": "auto",
+    }
 
     paginate_by = 15
 

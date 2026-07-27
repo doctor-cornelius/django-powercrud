@@ -2521,7 +2521,7 @@ def test_table_shell_component_preserves_geometry_state_and_delegation(tmp_path)
     assert 'data-selection-key="sample_book_staff_selected"' in rendered, (
         "The shell should retain its selection-key metadata expression."
     )
-    assert 'class="table table-sm custom-table w-auto min-w-max"' in rendered and 'data-inline-enabled="true"' in rendered, (
+    assert 'class="table table-sm custom-table w-max min-w-0"' in rendered and 'data-inline-enabled="true"' in rendered, (
         "The shell should retain configured table classes and inline-enabled metadata."
     )
     assert rendered.count("Delegated header") == 1, (

@@ -187,6 +187,42 @@ def _get_effective_list_field(view, field_name: str, queryset=None):
     return None
 
 
+def _get_semantic_column_width_mode(field) -> str:
+    """Return the presentation width mode inferred from typed field metadata."""
+    if field is None or getattr(field, "is_relation", False):
+        return "bounded"
+    if getattr(field, "primary_key", False) and isinstance(
+        field, (models.AutoField, models.BigAutoField, models.SmallAutoField)
+    ):
+        return "compact"
+    if isinstance(field, models.BooleanField):
+        return "compact"
+    if isinstance(
+        field,
+        (
+            models.DateField,
+            models.TimeField,
+            models.IntegerField,
+            models.FloatField,
+            models.DecimalField,
+        ),
+    ):
+        return "auto"
+    return "bounded"
+
+
+def _resolve_column_width_mode(
+    *, field_name: str, field, policy: str, configured_modes: dict[str, str]
+) -> str:
+    """Resolve one rendered column's explicit, inferred, or legacy width mode."""
+    explicit_mode = configured_modes.get(field_name)
+    if explicit_mode:
+        return explicit_mode
+    if policy == "semantic":
+        return _get_semantic_column_width_mode(field)
+    return "bounded"
+
+
 def _get_display_name_for_field(field_name: str, field) -> str:
     """Return a human label for a model or annotation field."""
     return resolve_field_label(None, field_name, field)
@@ -256,6 +292,25 @@ def _resolve_cell_alignment(
     Return the configured alignment override for a rendered cell when present.
     """
     return column_alignments.get(name, default_align)
+
+
+def _resolve_list_column_alignment(
+    *,
+    column_alignments: dict[str, str],
+    name: str,
+    field,
+    raw_value: Any = None,
+) -> str:
+    """Return the shared header and cell alignment for one rendered list column."""
+    if field is not None:
+        default_align = "center" if _should_center_field(field) else "left"
+    else:
+        default_align = "center" if isinstance(raw_value, bool) else "left"
+    return _resolve_cell_alignment(
+        column_alignments=column_alignments,
+        name=name,
+        default_align=default_align,
+    )
 
 
 @register.filter
@@ -1310,6 +1365,22 @@ def object_list(context, objects, view):
     )
     if not isinstance(column_value_formats, dict):
         column_value_formats = {}
+    column_width_policy = _resolve_view_option(
+        view,
+        method_name="get_column_width_policy",
+        attr_name="column_width_policy",
+        default="bounded",
+    )
+    if column_width_policy not in {"bounded", "semantic"}:
+        column_width_policy = "bounded"
+    column_width_modes = _resolve_view_option(
+        view,
+        method_name="get_column_width_modes",
+        attr_name="column_width_modes",
+        default={},
+    )
+    if not isinstance(column_width_modes, dict):
+        column_width_modes = {}
     default_datetime_value_format = _resolve_view_option(
         view,
         method_name="get_default_datetime_value_format",
@@ -1333,6 +1404,9 @@ def object_list(context, objects, view):
     }
     list_cell_tooltip_url_getter = getattr(view, "get_list_cell_tooltip_url", None)
 
+    objects = list(objects)
+    first_object = objects[0] if objects else None
+
     # Create header metadata for each field
     headers = []
     for f in fields:
@@ -1343,6 +1417,18 @@ def object_list(context, objects, view):
                 "field_name": f,
                 "is_sortable": True,
                 "help_text": column_help_text.get(f, ""),
+                "align": _resolve_list_column_alignment(
+                    column_alignments=column_alignments,
+                    name=f,
+                    field=field,
+                    raw_value=getattr(first_object, f, None),
+                ),
+                "width_mode": _resolve_column_width_mode(
+                    field_name=f,
+                    field=field,
+                    policy=column_width_policy,
+                    configured_modes=column_width_modes,
+                ),
             }
         )
 
@@ -1356,13 +1442,24 @@ def object_list(context, objects, view):
                 "field_name": prop,
                 "is_sortable": False,
                 "help_text": column_help_text.get(prop, ""),
+                "align": _resolve_list_column_alignment(
+                    column_alignments=column_alignments,
+                    name=prop,
+                    field=None,
+                    raw_value=getattr(first_object, prop, None),
+                ),
+                "width_mode": _resolve_column_width_mode(
+                    field_name=prop,
+                    field=None,
+                    policy=column_width_policy,
+                    configured_modes=column_width_modes,
+                ),
             }
         )
 
     TICK_SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="green" class="pc-boolean-icon size-4 inline-block"><path fill-rule="evenodd" d="M8 15A7 7 0 1 0 8 1a7 7 0 0 0 0 14Zm3.844-8.791a.75.75 0 0 0-1.188-.918l-3.7 4.79-1.649-1.833a.75.75 0 1 0-1.114 1.004l2.25 2.5a.75.75 0 0 0 1.15-.043l4.25-5.5Z" clip-rule="evenodd" /></svg>'
     CROSS_SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="crimson" class="pc-boolean-icon size-4 inline-block"><path fill-rule="evenodd" d="M8 15A7 7 0 1 0 8 1a7 7 0 0 0 0 14Zm2.78-4.22a.75.75 0 0 1-1.06 0L8 9.06l-1.72 1.72a.75.75 0 1 1-1.06-1.06L6.94 8 5.22 6.28a.75.75 0 0 1 1.06-1.06L8 6.94l1.72-1.72a.75.75 0 1 1 1.06 1.06L9.06 8l1.72 1.72a.75.75 0 0 1 0 1.06Z" clip-rule="evenodd" /></svg>'
 
-    objects = list(objects)
     bottom_row_count_for_upward_dropdown = _resolve_view_option(
         view,
         method_name="get_extra_actions_dropdown_open_upward_bottom_rows",
@@ -1583,17 +1680,11 @@ def object_list(context, objects, view):
                 default_datetime_value_format=default_datetime_value_format,
             )
 
-            if effective_field is not None:
-                default_align = (
-                    "center" if _should_center_field(effective_field) else "left"
-                )
-            else:
-                raw_value = getattr(obj, f, None)
-                default_align = "center" if isinstance(raw_value, bool) else "left"
-            cell_align = _resolve_cell_alignment(
+            cell_align = _resolve_list_column_alignment(
                 column_alignments=column_alignments,
                 name=f,
-                default_align=default_align,
+                field=effective_field,
+                raw_value=getattr(obj, f, None),
             )
             tooltip_metadata = resolve_cell_tooltip_metadata(f, is_property=False)
 
@@ -1606,6 +1697,12 @@ def object_list(context, objects, view):
                     "is_inline_editable": inline_enabled and f in inline_fields,
                     "dependency": resolve_cell_dependency(f),
                     "align": cell_align,
+                    "width_mode": _resolve_column_width_mode(
+                        field_name=f,
+                        field=effective_field,
+                        policy=column_width_policy,
+                        configured_modes=column_width_modes,
+                    ),
                     **tooltip_metadata,
                     "link": _resolve_list_cell_link(
                         view=view,
@@ -1622,11 +1719,11 @@ def object_list(context, objects, view):
 
         for prop in properties:
             prop_value = getattr(obj, prop)
-            default_align = "center" if isinstance(prop_value, bool) else "left"
-            prop_align = _resolve_cell_alignment(
+            prop_align = _resolve_list_column_alignment(
                 column_alignments=column_alignments,
                 name=prop,
-                default_align=default_align,
+                field=None,
+                raw_value=prop_value,
             )
             tooltip_metadata = resolve_cell_tooltip_metadata(
                 prop,
@@ -1660,6 +1757,12 @@ def object_list(context, objects, view):
                     "is_inline_editable": inline_enabled and prop in inline_fields,
                     "dependency": resolve_cell_dependency(prop),
                     "align": prop_align,
+                    "width_mode": _resolve_column_width_mode(
+                        field_name=prop,
+                        field=None,
+                        policy=column_width_policy,
+                        configured_modes=column_width_modes,
+                    ),
                     **tooltip_metadata,
                     "link": _resolve_list_cell_link(
                         view=view,

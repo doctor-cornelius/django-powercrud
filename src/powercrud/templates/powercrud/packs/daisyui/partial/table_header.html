@@ -10,8 +10,9 @@
         {% endif %}
 
         {% for header in headers %}
-        <th class="bg-neutral text-neutral-content text-center align-middle truncate table-column-width sticky-header"
+        <th class="bg-neutral text-neutral-content {% if header.align == 'center' %}text-center{% elif header.align == 'right' %}text-right{% else %}text-left{% endif %} align-middle truncate table-column-width sticky-header"
             data-field-name="{{ header.field_name }}"
+            data-powercrud-column-width-mode="{{ header.width_mode }}"
             {% if current_sort == header.field_name %}aria-sort="ascending"{% elif current_sort == '-'|add:header.field_name %}aria-sort="descending"{% endif %}
             {% if header.is_sortable %}style="cursor: pointer;"{% endif %}
             {% if header.is_sortable %}
@@ -62,8 +63,8 @@
         </th>
         {% endfor %}
         {% if has_row_actions %}
-        <th class="bg-neutral text-neutral-content text-center align-middle sticky-header">
-            <span class="text-center block w-full h-full">Actions</span>
+        <th class="bg-neutral text-neutral-content text-right align-middle sticky-header">
+            <span class="text-right block w-full h-full">Actions</span>
         </th>
         {% endif %}
     </tr>

@@ -72,6 +72,10 @@ class PowerCRUDMixinValidator(BaseModel):
     column_value_formats: Optional[
         Dict[str, Literal["date", "time", "datetime"]]
     ] = None
+    column_width_policy: Literal["bounded", "semantic"] = "bounded"
+    column_width_modes: Optional[
+        Dict[str, Literal["compact", "auto", "bounded"]]
+    ] = None
     default_datetime_value_format: Literal["date", "time", "datetime"] = "date"
     list_cell_tooltip_fields: Optional[Union[List[str], Dict[str, Any]]] = None
     list_cell_link_default_open_in: Optional[Literal["current", "new", "modal"]] = "new"
@@ -362,6 +366,7 @@ class PowerCRUDMixinValidator(BaseModel):
         "column_sort_fields_override",
         "column_alignments",
         "column_value_formats",
+        "column_width_modes",
     )
     @classmethod
     def validate_string_mapping(cls, v, info):
@@ -384,6 +389,14 @@ class PowerCRUDMixinValidator(BaseModel):
                 if normalized not in {"left", "center", "right"}:
                     raise ValueError(
                         "column_alignments values must be 'left', 'center', or 'right'"
+                    )
+                v[key.strip()] = normalized
+                continue
+            if info.field_name == "column_width_modes":
+                normalized = value.strip().lower()
+                if normalized not in {"compact", "auto", "bounded"}:
+                    raise ValueError(
+                        "column_width_modes values must be 'compact', 'auto', or 'bounded'"
                     )
                 v[key.strip()] = normalized
                 continue

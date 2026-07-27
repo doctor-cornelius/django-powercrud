@@ -80,6 +80,7 @@ PowerField(
         | `column={"help_text": "..."}` | `column_help_text` | Add header help text for the rendered field or property. |
         | `column={"alignment": "center"}` | `column_alignments` | Override rendered body-cell alignment. |
         | `column={"value_format": "datetime"}` | `column_value_formats` | Select `date`, `time`, or `datetime` output for a typed temporal list column. |
+        | `column={"width": "compact"}` | `column_width_modes` | Override this list column's semantic width mode: `compact`, `auto`, or `bounded`. |
         | `queryset_dependencies={...}` | `field_queryset_dependencies` | Attach declarative queryset scoping for form, inline, and bulk choices. |
         | `link={...}` | `link_fields` | Attach a declarative list-cell link using the base `link_fields` metadata contract. |
 
@@ -209,7 +210,7 @@ PowerCRUD validates PowerField declarations early.
 - Boolean options must be `True` or `False`.
 - `exclude` must be a dict using supported exclude dimensions.
 - `column`, `queryset_dependencies`, and `link` must be dicts when supplied.
-- `column` supports `help_text` and `alignment`; alignment must be `left`, `center`, or `right`.
+- `column` supports `help_text`, `alignment`, `value_format`, and `width`; width must be `compact`, `auto`, or `bounded`.
 - `property=True` cannot be combined with `list=True`.
 - `detail_property=True` cannot be combined with `detail=True`.
 - `form=True` cannot be combined with `form_display=True`.

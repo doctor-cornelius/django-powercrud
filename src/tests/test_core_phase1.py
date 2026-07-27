@@ -1891,6 +1891,38 @@ def test_table_mixin_get_column_alignments_prefers_configured_mapping():
     )
 
 
+def test_table_mixin_column_width_defaults_preserve_bounded_legacy_layout():
+    """Views should retain bounded columns until they opt into semantic sizing."""
+    class TableView(TableMixin):
+        model = Author
+
+    view = TableView()
+
+    assert view.get_column_width_policy() == "bounded", (
+        "List columns should retain the bounded legacy policy unless a view opts into semantic sizing."
+    )
+    assert view.get_column_width_modes() == {}, (
+        "Views should not have explicit semantic width overrides by default."
+    )
+
+
+def test_table_mixin_column_width_configuration_exposes_policy_and_overrides():
+    """Views should expose opt-in semantic sizing and per-column overrides."""
+    class TableView(TableMixin):
+        model = Author
+        column_width_policy = "semantic"
+        column_width_modes = {"name": "compact"}
+
+    view = TableView()
+
+    assert view.get_column_width_policy() == "semantic", (
+        "TableMixin should expose the configured semantic sizing policy."
+    )
+    assert view.get_column_width_modes() == {"name": "compact"}, (
+        "TableMixin should expose configured per-column width overrides."
+    )
+
+
 def test_table_mixin_get_list_cell_tooltip_fields_defaults_to_empty_mapping():
     class TableView(TableMixin):
         model = Author
@@ -2013,6 +2045,28 @@ def test_core_mixin_rejects_invalid_column_alignment_values():
         column_alignments = {"name": "middle"}
 
     with pytest.raises(ImproperlyConfigured, match="column_alignments"):
+        BrokenView()
+
+
+def test_core_mixin_rejects_unknown_column_width_mode_keys():
+    """Per-column width overrides must name a configurable list column."""
+    class BrokenView(CoreMixin):
+        model = Author
+        fields = "__all__"
+        column_width_modes = {"missing_field": "compact"}
+
+    with pytest.raises(ValueError, match="column_width_modes"):
+        BrokenView()
+
+
+def test_core_mixin_rejects_invalid_column_width_mode_values():
+    """Per-column width overrides must use one of the public semantic modes."""
+    class BrokenView(CoreMixin):
+        model = Author
+        fields = "__all__"
+        column_width_modes = {"name": "wide"}
+
+    with pytest.raises(ImproperlyConfigured, match="column_width_modes"):
         BrokenView()
 
 

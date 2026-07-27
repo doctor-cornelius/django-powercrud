@@ -567,7 +567,12 @@ def test_bulk_multiselect_clear_button_only_clears_staged_values(
     form = page.locator("#powercrudBaseModal #bulk-edit-form")
     expect(form).to_be_visible()
     toggle = form.locator("input.field-toggle[value='genres']")
+    replace_action = form.locator("input[name='genres_action'][value='replace']")
+    expect(replace_action).to_be_checked()
+    expect(replace_action).to_be_disabled()
     toggle.check()
+    expect(replace_action).to_be_checked()
+    expect(replace_action).to_be_enabled()
     select = form.locator("select[name='genres']")
     page.wait_for_function(
         "() => Boolean(document.querySelector('#bulk-edit-form select[name=\"genres\"]')?.tomselect)"

@@ -2,7 +2,7 @@
 
 PowerField is the Structured Declaration API for Field Intent.
 
-It is not a contrib app, and it is not a replacement product API. It is a structured declaration layer over the Base Configuration API attributes such as `fields`, `detail_fields`, `form_fields`, `inline_edit_fields`, `bulk_fields`, `default_list_fields`, `field_labels`, `column_help_text`, `list_cell_tooltip_fields`, and `link_fields`.
+It is not a contrib app, and it is not a replacement product API. It is a structured declaration layer over the Base Configuration API attributes such as `fields`, `detail_fields`, `form_fields`, `inline_edit_fields`, `bulk_fields`, `default_list_fields`, `field_labels`, `column_help_text`, `column_width_modes`, `list_cell_tooltip_fields`, and `link_fields`.
 
 Use it when the same field participates in several places and the Base Configuration API starts to repeat the same names across many lists and dictionaries.
 

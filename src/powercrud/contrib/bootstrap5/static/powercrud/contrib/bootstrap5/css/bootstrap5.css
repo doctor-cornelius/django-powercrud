@@ -265,6 +265,13 @@
     text-align: center;
 }
 
+[data-powercrud-object-list="true"] .pc-bootstrap-selection-column .form-check-input {
+    width: 1.25rem;
+    height: 1.25rem;
+    margin: 0;
+    vertical-align: middle;
+}
+
 [data-powercrud-object-list="true"] .table-responsive > .table > :not(caption) > * > * {
     padding: .2rem .375rem;
 }
@@ -321,8 +328,22 @@
 }
 
 [data-powercrud-object-list="true"] .pc-table-column-width {
-    width: fit-content;
     max-width: var(--pc-table-column-width, 14rem);
+}
+
+[data-powercrud-object-list="true"] .pc-table-column-width[data-powercrud-column-width-mode="bounded"] {
+    width: fit-content;
+}
+
+[data-powercrud-object-list="true"] .pc-table-column-width[data-powercrud-column-width-mode="auto"] {
+    width: 1%;
+    min-width: 0;
+}
+
+[data-powercrud-object-list="true"] .pc-table-column-width[data-powercrud-column-width-mode="compact"] {
+    width: 1%;
+    min-width: 0;
+    white-space: nowrap;
 }
 
 [data-powercrud-object-list="true"] .pc-bootstrap-actions-column,
@@ -334,8 +355,19 @@
 
 /* Bootstrap tables use their content width by default. Bound ordinary text
    columns so a long title cannot crowd the useful fields from a narrow view. */
-[data-powercrud-object-list="true"] th.pc-table-column-width {
+[data-powercrud-object-list="true"] th.pc-table-column-width[data-powercrud-column-width-mode="bounded"] {
     min-width: var(--pc-table-header-min-wrap-width, var(--pc-table-column-width, 14rem));
+    white-space: normal;
+}
+
+[data-powercrud-object-list="true"] th.pc-table-column-width[data-powercrud-column-width-mode="auto"] {
+    white-space: normal;
+}
+
+[data-powercrud-object-list="true"] th.pc-table-column-width[data-powercrud-column-width-mode="bounded"] > *,
+[data-powercrud-object-list="true"] th.pc-table-column-width[data-powercrud-column-width-mode="auto"] > * {
+    overflow: visible;
+    text-overflow: clip;
     white-space: normal;
 }
 

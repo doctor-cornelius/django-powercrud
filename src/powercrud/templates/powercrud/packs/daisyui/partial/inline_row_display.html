@@ -19,6 +19,7 @@
     <td class="{% if forloop.first %}font-medium{% endif %} py-0 align-middle px-2 truncate table-column-width"
         style="text-align:{% if cell.align == 'center' %}center{% elif cell.align == 'right' %}right{% else %}left{% endif %};"
         data-field-name="{{ cell.name }}"
+        data-powercrud-column-width-mode="{{ cell.width_mode }}"
         {% if cell.is_inline_editable %}data-inline-cell="true"{% endif %}
         {% if cell.dependency %}
             data-inline-dependent-field="{{ cell.name }}"

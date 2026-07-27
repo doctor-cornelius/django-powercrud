@@ -10,7 +10,7 @@
             {% if info.control %}
                 {{ info.control }}
                 {% if info.is_m2m %}
-                <div class="form-text"><div class="form-check"><input class="form-check-input" type="radio" name="{{ field_name }}_action" value="add" disabled> Add selected</div><div class="form-check"><input class="form-check-input" type="radio" name="{{ field_name }}_action" value="remove" disabled> Remove selected</div><div class="form-check"><input class="form-check-input" type="radio" name="{{ field_name }}_action" value="replace" disabled> Replace with selected</div></div>
+                <div class="form-text"><div class="form-check"><input class="form-check-input" type="radio" name="{{ field_name }}_action" value="add" disabled> Add selected</div><div class="form-check"><input class="form-check-input" type="radio" name="{{ field_name }}_action" value="remove" disabled> Remove selected</div><div class="form-check"><input class="form-check-input" type="radio" name="{{ field_name }}_action" value="replace" checked disabled> Replace with selected</div></div>
                 {% endif %}
             {% elif info.type == 'BooleanField' %}
                 <select name="{{ field_name }}" class="form-select" disabled><option value="">-- No change --</option><option value="true">Yes</option><option value="false">No</option></select>
@@ -24,7 +24,7 @@
                 </select>
             {% elif info.is_relation and info.is_m2m %}
                 <select name="{{ field_name }}" class="form-select" multiple disabled>{% for choice in info.bulk_choices %}<option value="{{ choice.pk }}">{{ choice }}</option>{% endfor %}</select>
-                <div class="form-text"><div class="form-check"><input class="form-check-input" type="radio" name="{{ field_name }}_action" value="add" disabled> Add selected</div><div class="form-check"><input class="form-check-input" type="radio" name="{{ field_name }}_action" value="remove" disabled> Remove selected</div><div class="form-check"><input class="form-check-input" type="radio" name="{{ field_name }}_action" value="replace" disabled> Replace with selected</div></div>
+                <div class="form-text"><div class="form-check"><input class="form-check-input" type="radio" name="{{ field_name }}_action" value="add" disabled> Add selected</div><div class="form-check"><input class="form-check-input" type="radio" name="{{ field_name }}_action" value="remove" disabled> Remove selected</div><div class="form-check"><input class="form-check-input" type="radio" name="{{ field_name }}_action" value="replace" checked disabled> Replace with selected</div></div>
             {% elif info.choices %}
                 <select name="{{ field_name }}" class="form-select" {% if info.searchable_select %}data-powercrud-searchable-select="true"{% endif %} disabled><option value="">-- No change --</option>{% if info.null or info.blank %}<option value="null">{% if info.null %}-- None --{% else %}-- Blank --{% endif %}</option>{% endif %}{% for value, label in info.choices %}<option value="{{ value }}">{{ label }}</option>{% endfor %}</select>
             {% elif info.type == 'IntegerField' or info.type == 'FloatField' or info.type == 'DecimalField' %}
