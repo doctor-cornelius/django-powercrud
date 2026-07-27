@@ -195,19 +195,21 @@ For manual mode, if dependencies are bundled through your own JS pipeline, make 
 
 Load only `powercrud/js/powercrud.js` with `type="module"`; the browser follows PowerCRUD's internal module imports.
 
+Your application supplies the vendor runtimes, while the selected pack's browser adapter owns the plugin setup for its controls. Do not separately register Tom Select's `checkbox_options`, `remove_button`, or `clear_button` plugins when the pack already does so.
+
 Do not mix packaged-bundle mode and manual mode on the same page. Pick one path.
 
 ### Tom Select theme behavior
 
-PowerCRUD applies daisyUI semantic-color overrides to Tom Select so searchable selects follow the active `data-theme` in both light and dark themes.
+The compatible DaisyUI pack applies semantic-colour overrides to Tom Select so searchable selects follow the active `data-theme` in both light and dark themes.
 
-If you manage assets yourself, keep Tom Select's vendor CSS loaded before `powercrud/css/powercrud.css`; the package stylesheet is the layer that replaces Tom Select's light-theme defaults with theme-aware daisyUI colors.
+If you manage assets yourself, keep Tom Select's vendor CSS loaded before `powercrud/css/powercrud.css`; the pack stylesheet is the layer that replaces Tom Select's light-theme defaults with theme-aware DaisyUI colours.
 
 If you also override PowerCRUD tooltip variables in your own CSS, load that override stylesheet after `powercrud/css/powercrud.css`.
 
 If you manage assets yourself and still want the default visual style, refer to:
 
-- daisyUI docs: [https://daisyui.com/docs/](https://daisyui.com/docs/){ target="_blank" rel="noopener noreferrer" }
+- DaisyUI docs: [https://daisyui.com/docs/](https://daisyui.com/docs/){ target="_blank" rel="noopener noreferrer" }
 - Tailwind CSS docs: [https://tailwindcss.com/docs](https://tailwindcss.com/docs){ target="_blank" rel="noopener noreferrer" }
 
 PowerCRUD does not ship a full HTML shell; instead, your project must define its own base template (for example, see the sample app’s `sample/templates/sample/daisyUI/base.html`) and point `base_template_path` at it.

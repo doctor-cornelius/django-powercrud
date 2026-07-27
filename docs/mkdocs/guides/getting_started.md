@@ -57,7 +57,7 @@ You can run PowerCRUD in either of these modes:
     - HTMX: [https://htmx.org/docs/](https://htmx.org/docs/){ target="_blank" rel="noopener noreferrer" }
     - Tom Select: [https://tom-select.js.org/](https://tom-select.js.org/){ target="_blank" rel="noopener noreferrer" }
     - Tippy.js: [https://atomiks.github.io/tippyjs/](https://atomiks.github.io/tippyjs/){ target="_blank" rel="noopener noreferrer" }
-    - daisyUI: [https://daisyui.com/docs/](https://daisyui.com/docs/){ target="_blank" rel="noopener noreferrer" }
+    - DaisyUI: [https://daisyui.com/docs/](https://daisyui.com/docs/){ target="_blank" rel="noopener noreferrer" }
     - Tailwind CSS: [https://tailwindcss.com/docs](https://tailwindcss.com/docs){ target="_blank" rel="noopener noreferrer" }
 
 Projects that use the built-in templates but manage assets manually should read those docs. Projects that load the packaged bundle can usually ignore package-level frontend dependency wiring.
@@ -230,13 +230,11 @@ You can install PowerCRUD in two ways.
     ```javascript
     import htmx from "htmx.org";
     import TomSelect from "tom-select";
-    import removeButtonPlugin from "tom-select/dist/js/plugins/remove_button.js";
     import "tom-select/dist/css/tom-select.css";
     import tippy from "tippy.js";
     import "tippy.js/dist/tippy.css";
 
     window.htmx = htmx;
-    TomSelect.define("remove_button", removeButtonPlugin);
     window.TomSelect = TomSelect;
     window.tippy = tippy;
     ```
@@ -253,8 +251,8 @@ You can install PowerCRUD in two ways.
 
     - Load vendor dependencies before the module entry at `powercrud/js/powercrud.js`.
     - Load only the stable module entry; the browser follows PowerCRUD's internal module imports.
-    - Load Tom Select's vendor CSS before `powercrud/css/powercrud.css` so the package can override Tom Select with daisyUI semantic colors.
-    - Register the Tom Select `remove_button` plugin if you want multi-select remove buttons.
+    - Load Tom Select's vendor CSS before `powercrud/css/powercrud.css` so the selected pack can apply its theme-aware overrides.
+    - Provide the Tom Select vendor runtime, but do not duplicate pack-owned plugin registration. The selected pack's browser adapter registers `checkbox_options`, `remove_button`, and `clear_button` when its controls need them.
     - If you use the built-in DaisyUI templates without the packaged bundle, you must provide your own DaisyUI/Tailwind CSS stack.
 
     Do not load both integration modes on the same page:

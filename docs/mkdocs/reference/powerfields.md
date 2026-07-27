@@ -231,11 +231,11 @@ A PowerField child can inherit PowerField config from a PowerField parent. A bas
 
 ## Form Class Behaviour
 
-When `form_class` is set, the custom form class remains the runtime source of truth for editable form inputs.
+When `form_class` is set, the custom `ModelForm` remains the runtime source of truth for editable form inputs.
 
 That rule is the same for base `form_fields` and PowerField-generated `form_fields`. PowerField form declarations can still be visible in class-time compiled config, but runtime `form_fields` is cleared once `form_class` is configured.
 
-Use `form_display=True` and `form_disabled=True` when you want PowerCRUD to layer display-only context or disabled-field behaviour around a custom form.
+Use `form_display=True` and `form_disabled=True` when you want PowerCRUD to layer display-only context or disabled-field behaviour around a custom form. Widgets attached through declarative form fields, `Meta.widgets`, or runtime replacement remain application-owned; silent model-backed defaults may receive the selected pack's presentation. See [Forms: Custom ModelForms and application-owned widgets](../guides/forms.md#custom-modelforms-and-application-owned-widgets).
 
 ## Base Config Extraction
 

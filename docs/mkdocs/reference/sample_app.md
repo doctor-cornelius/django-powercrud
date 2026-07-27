@@ -13,7 +13,7 @@ The default sample uses the compatible DaisyUI pack. Its runtime metadata footer
 ./manage.py runserver --settings=config.settings_bootstrap 0:8002
 ```
 
-There is no in-application presentation switcher. Start the desired settings configuration explicitly; use different ports when running presentations side by side. Bootstrap is a supported non-default pack selected at process startup, while the unconfigured default remains DaisyUI. See [Selecting and configuring a template pack](../template_packs/selecting-and-configuring.md).
+There is no in-application template-pack switcher. Start the desired settings configuration explicitly; use different ports when running presentations side by side. Bootstrap 5 is a supported non-default pack selected at process startup, while the unconfigured default remains DaisyUI. Its sample shell is deliberately compact and includes a light/dark theme selector so you can inspect both Bootstrap colour modes without changing the selected pack. See [Selecting and configuring a template pack](../template_packs/selecting-and-configuring.md).
 
 ## Models
 
@@ -94,6 +94,7 @@ class BookCRUDView(PowerCRUDAsyncMixin, CRUDView):
     }
     list_cell_link_default_open_in = "modal"
     list_options_enabled = True
+    column_width_policy = "semantic"
     default_list_fields = [
         "title",
         "author",
@@ -227,14 +228,14 @@ The same annotated list also demonstrates selection controls for a selection-awa
 
 The main Books list has two selected-summary toolbar demos. `Selected Summary` reads the current selection and uses the default selection-aware behavior, so PowerCRUD clears the persisted selection after the HTMX request succeeds. `Selected Summary (Do Not Clear)` reads the same selection but sets `clear_selection_on_success=False`, so the modal can preview selected rows without clearing them.
 
-The sample frontend now also shows the downstream tooltip-styling path. In [`src/config/static/css/app.custom.css`](https://github.com/doctor-cornelius/django-powercrud/blob/main/src/config/static/css/app.custom.css), the sample app actively overrides `--pc-tooltip-bg` and `--pc-tooltip-fg` to use daisyUI's primary semantic tokens, while PowerCRUD itself keeps neutral tooltip defaults. The sample Vite entry imports that file after `powercrud/css/powercrud.css`, so readers can inspect the real app-level override pattern rather than only reading about it in the styling guide.
+The sample frontend now also shows the downstream tooltip-styling path. In [`src/config/static/css/app.custom.css`](https://github.com/doctor-cornelius/django-powercrud/blob/main/src/config/static/css/app.custom.css), the sample app actively overrides `--pc-tooltip-bg` and `--pc-tooltip-fg` to use DaisyUI's primary semantic tokens, while PowerCRUD itself keeps neutral tooltip defaults. The sample Vite entry imports that file after `powercrud/css/powercrud.css`, so readers can inspect the real app-level override pattern rather than only reading about it in the styling guide.
 
 The sample form configuration now also demonstrates two contextual form-surface features:
 
 - `form_display_fields = ["uneditable_field"]` shows the model’s non-editable field in a separate read-only `Context` block above the update form.
 - `form_disabled_fields = ["isbn"]` keeps the ISBN visible on update forms but locks the input so users can see it without changing it.
 
-`BookForm` remains the source of truth for editable inputs, while PowerCRUD layers the display-only context block and disabled-field behavior on top of that custom form.
+`BookForm` remains the source of truth for editable inputs, while PowerCRUD layers the display-only context block and disabled-field behaviour on top of that custom form. It deliberately leaves `genres` on Django's silent model-backed widget path, so the selected pack can apply its multiselect presentation, while its explicit `published_date = DateInput(type="date")` widget remains unchanged. On normal forms, `genres` uses the standard multiselect variant; inline editing, filtering, and bulk editing use the compact variant with an `N selected` summary. Enhanced multiselects show checked options, support click-to-toggle and clear-all, and preserve the submitted values and dependency rules.
 
 The sample `BookCRUDView` now also demonstrates both custom action enhancements discussed in the docs:
 
@@ -257,7 +258,7 @@ These examples are intentionally simple so package users can inspect both the vi
 
 The sample app includes a sibling Book view at `/sample/powerfield-book/` labelled **PowerField Books**.
 
-This view uses `power_fields` instead of Base API Field Intent attributes. It is not a subclass of `BookCRUDView`, because PowerCRUD rejects mixing base Field Intent and PowerField declarations in one inheritance chain.
+This view uses `power_fields` instead of Base API Field Intent attributes. It is not a subclass of `BookCRUDView`, because PowerCRUD rejects mixing base Field Intent and PowerField declarations in one inheritance chain. Like the main Books view, it opts into semantic list widths.
 
 ```python
 from powercrud.actions import PowerAction, PowerButton
@@ -269,6 +270,7 @@ class PowerFieldBookCRUDView(PowerCRUDAsyncMixin, CRUDView):
     namespace = "sample"
     url_base = "powerfield-book"
     list_options_enabled = True
+    column_width_policy = "semantic"
     form_class = BookForm
 
     power_fields = [
@@ -625,7 +627,7 @@ The top-left sample login menu includes a viewer and manager:
 
 ### Custom Forms
 
-- **BookForm**: Date widgets, field selection, crispy forms integration, and form-specific tweaks while `field_queryset_dependencies` handles the shared `author -> genres` queryset rule
+- **BookForm**: Field selection and form-specific tweaks while `field_queryset_dependencies` handles the shared `author -> genres` queryset rule. The silent `genres` field receives the selected pack's standard multiselect presentation, while the explicit `published_date` date widget remains application-owned.
 - **AuthorForm**: Demonstrates form customization patterns
 
 ### Advanced Filtering  
@@ -650,8 +652,8 @@ The top-left sample login menu includes a viewer and manager:
 - **Inline Dependencies**: Changing a Book author inline immediately refreshes the allowed genre choices derived from the shared form dependency config
 - **Inline Validation Errors**: Clear a Book title inline and save to see the row stay open with field-level error text and a field popover
 - **Static Queryset Rules**: Editing a Profile only offers `favorite_genre` choices whose names start with `S`, and the same restriction carries through inline and bulk edit
-- **CSS Frameworks**: Easy switching between daisyUI and Bootstrap
-- **Responsive Design**: Table layouts with column width controls
+- **Template packs**: Run the same sample with DaisyUI or Bootstrap 5; the compact Bootstrap shell includes a light/dark theme selector
+- **Responsive Design**: Semantic Book and PowerField Book column widths alongside explicit per-column modes elsewhere in the sample
 
 ### Manual Inline Error Repro
 
