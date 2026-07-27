@@ -1891,6 +1891,38 @@ def test_table_mixin_get_column_alignments_prefers_configured_mapping():
     )
 
 
+def test_table_mixin_column_width_defaults_preserve_bounded_legacy_layout():
+    """Views should retain bounded columns until they opt into semantic sizing."""
+    class TableView(TableMixin):
+        model = Author
+
+    view = TableView()
+
+    assert view.get_column_width_policy() == "bounded", (
+        "List columns should retain the bounded legacy policy unless a view opts into semantic sizing."
+    )
+    assert view.get_column_width_modes() == {}, (
+        "Views should not have explicit semantic width overrides by default."
+    )
+
+
+def test_table_mixin_column_width_configuration_exposes_policy_and_overrides():
+    """Views should expose opt-in semantic sizing and per-column overrides."""
+    class TableView(TableMixin):
+        model = Author
+        column_width_policy = "semantic"
+        column_width_modes = {"name": "compact"}
+
+    view = TableView()
+
+    assert view.get_column_width_policy() == "semantic", (
+        "TableMixin should expose the configured semantic sizing policy."
+    )
+    assert view.get_column_width_modes() == {"name": "compact"}, (
+        "TableMixin should expose configured per-column width overrides."
+    )
+
+
 def test_table_mixin_get_list_cell_tooltip_fields_defaults_to_empty_mapping():
     class TableView(TableMixin):
         model = Author
@@ -2013,6 +2045,28 @@ def test_core_mixin_rejects_invalid_column_alignment_values():
         column_alignments = {"name": "middle"}
 
     with pytest.raises(ImproperlyConfigured, match="column_alignments"):
+        BrokenView()
+
+
+def test_core_mixin_rejects_unknown_column_width_mode_keys():
+    """Per-column width overrides must name a configurable list column."""
+    class BrokenView(CoreMixin):
+        model = Author
+        fields = "__all__"
+        column_width_modes = {"missing_field": "compact"}
+
+    with pytest.raises(ValueError, match="column_width_modes"):
+        BrokenView()
+
+
+def test_core_mixin_rejects_invalid_column_width_mode_values():
+    """Per-column width overrides must use one of the public semantic modes."""
+    class BrokenView(CoreMixin):
+        model = Author
+        fields = "__all__"
+        column_width_modes = {"name": "wide"}
+
+    with pytest.raises(ImproperlyConfigured, match="column_width_modes"):
         BrokenView()
 
 
@@ -3463,6 +3517,14 @@ def test_book_list_renders_default_inline_edit_highlight_css_variables():
         _extract_inline_css_variable(response_text, "--pc-inline-hover-bg")
         == "rgba(20, 184, 166, 0.15)"
     ), "Default inline-edit hover background variable should preserve the current stronger teal-derived color."
+    assert (
+        _extract_inline_css_variable(response_text, "--pc-ts-option-active-bg")
+        == "#14b8a6"
+    ), "Inline Tom Select controls should use the configured inline-edit accent rather than a generic blue."
+    assert (
+        _extract_inline_css_variable(response_text, "--pc-ts-option-selected-bg")
+        == "rgba(20, 184, 166, 0.15)"
+    ), "Inline Tom Select selected options should use the inline widget background tint."
 
 
 @pytest.mark.django_db
@@ -3494,6 +3556,10 @@ def test_book_list_renders_custom_inline_edit_highlight_css_variables(
         _extract_inline_css_variable(response_text, "--pc-inline-active-row-outline")
         == "rgba(59, 130, 246, 0.85)"
     ), "Custom inline-edit accent should drive the active-row outline variable."
+    assert (
+        _extract_inline_css_variable(response_text, "--pc-ts-option-active-bg")
+        == "#3b82f6"
+    ), "A custom inline-edit accent should also drive inline Tom Select presentation."
 
 
 @pytest.mark.django_db

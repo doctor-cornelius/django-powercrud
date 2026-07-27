@@ -33,6 +33,31 @@ def test_row_actions_menu_stays_visible_for_top_and_bottom_rows(
     row_action_triggers = page.locator("[data-powercrud-row-actions-trigger='true']")
     expect(row_action_triggers).to_have_count(2)
 
+    typography = row_action_triggers.first.evaluate(
+        """
+        trigger => {
+            const table = trigger.closest('table');
+            table.classList.add('powercrud-test-action-typography');
+            if (!document.getElementById('powercrud-test-action-typography-style')) {
+                const style = document.createElement('style');
+                style.id = 'powercrud-test-action-typography-style';
+                style.textContent = '.powercrud-test-action-typography tbody td { font-size: 17px !important; }';
+                document.head.appendChild(style);
+            }
+            const cell = trigger.closest('td');
+            return {
+                cell: window.getComputedStyle(cell).fontSize,
+                trigger: window.getComputedStyle(trigger).fontSize,
+                primary: window.getComputedStyle(cell.querySelector('a, button')).fontSize,
+            };
+        }
+        """
+    )
+    assert all(value == typography["cell"] for value in typography.values()), (
+        "Row-action controls must inherit table typography configured by downstream "
+        f"table classes. Metrics: {typography}"
+    )
+
     for index in range(2):
         trigger = row_action_triggers.nth(index)
         trigger.dispatch_event("click")

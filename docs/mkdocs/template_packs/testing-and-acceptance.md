@@ -4,7 +4,7 @@ A supported pack needs evidence that it preserves PowerCRUD's behaviour as well 
 
 ## Start with declaration validation
 
-The declaration must have a valid identity, contract version, template package and resource root, adapter information, capability set, form support, and asset metadata. Validation should fail clearly when a declaration is malformed or claims an unsupported presentation exception.
+The declaration must have a valid identity, contract version, template package and resource root, adapter information, capability set, form support, and asset metadata. Its server adapter must implement the current action and widget-presentation methods. Validation should fail clearly when a declaration is malformed, uses an old adapter contract, or claims an unsupported presentation exception.
 
 Run the public helper from the pack's own test project after adding the pack app to `INSTALLED_APPS`:
 
@@ -26,6 +26,21 @@ Every supported pack is expected to pass the shared server behaviour matrix for 
 
 Portable presentation options must keep their promised meaning across the maintained packs. Framework-specific class settings may differ by framework, but they should not become silent no-ops.
 
+Use this matrix to choose evidence for the widget policy:
+
+| Area | Minimum evidence |
+| --- | --- |
+| Contract | The declaration and adapter conform; an old server adapter fails clearly instead of entering a compatibility path. |
+| Surfaces | Normal forms, inline forms, generated filters, and bulk value controls receive the intended semantic defaults and surface variants. |
+| Rendering | Native rendering and every declared Crispy integration preserve values, validation, errors, required/disabled state, and policy markers. |
+| Ownership | Neutral presentation keeps Django's compatible widget; silent model-backed custom-form fields may receive the policy; explicit application widgets remain unchanged. |
+| Datetime | Generated form, inline, and filter controls round-trip date and time, including seconds, under the pack. |
+| Selects | Default, explicitly enabled, and explicitly disabled searchable-select intent resolve correctly. |
+| Multiselects | Standard and compact variants preserve checked state, mouse and keyboard toggling, clear-all, submitted values, placement, and the compact selected count. |
+| Browser lifecycle | HTMX replacement reinitialises controls, modal timing and dropdown ownership are correct, and successful inline save does not flash the native control. |
+
+Server tests should prove semantics and adapter decisions. Use browser tests only for behaviour that requires layout, focus, events, vendor code, or an actual HTMX/modal lifecycle.
+
 ## Check the installed distribution
 
 Test the built wheel and source distribution, not only the source checkout. Confirm that template resources and declared assets are present after installation and that the selected pack resolves successfully in that environment.
@@ -46,3 +61,4 @@ Run the broad project suite for release preparation and use focused test selecti
 - Installed wheel and source-distribution resources are present and usable.
 - Browser-only risks have focused Playwright evidence where relevant.
 - Documentation tells users how to select the pack, load its assets, align Crispy Forms, and meet any vendor requirements.
+- Widget policy is covered across every supported surface, rendering mode, fallback, and application-override boundary.

@@ -26,7 +26,7 @@ These layers are deliberately different. Choose the row whose scope matches the 
 
 Model roots take precedence over a configured project root, and the selected package remains the final fallback. A view-specific candidate can be placed before those normal candidates when one view needs a different template. `--all` is the only project-copy scope that takes complete template ownership; it requires `template_override_complete = True`. `--assets` is separate from template scope and is never model- or view-specific.
 
-This page explains which layer to choose. [Management Commands](../reference/mgmt_commands.md#pcrud_mktemplate---copy-crud-templates-and-assets) is the detailed source of truth for options, generated paths, and preservation rules. To create a selectable pack rather than an application override, see [Authoring and publishing](authoring-and-publishing.md).
+This page explains which layer to choose. [Management Commands](../reference/mgmt_commands.md#pcrud-mktemplate) is the detailed source of truth for options, generated paths, and preservation rules. To create a selectable pack rather than an application override, see [Authoring and publishing](authoring-and-publishing.md).
 
 ## Focused component overrides
 
@@ -229,3 +229,5 @@ Your application owns its base template and any copied override markup. PowerCRU
     Neither setting selects a pack or changes CSS/JavaScript. The base template's chosen frontend route owns those assets.
 
 For style settings, use classes that belong to the selected framework. Values such as `table_classes` and `action_button_classes` are passed through; they are not translated from DaisyUI to Bootstrap or the other way around.
+
+Template overrides arrange the bound fields and behaviour supplied to them; they do not create a second default widget policy. To publish reusable widget defaults and browser integration with a selectable pack, follow [Authoring and publishing](authoring-and-publishing.md#define-the-server-side-widget-policy).

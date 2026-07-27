@@ -162,6 +162,42 @@ def test_bootstrap_sample_base_preserves_shared_navigation_and_runtime_metadata(
     assert '{% include "sample/_runtime_meta.html" %}' in base, (
         "Bootstrap sample pages should retain the shared runtime metadata placement."
     )
+    assert 'data-bs-theme="light"' in base, (
+        "Bootstrap sample pages should start with Bootstrap's explicit light theme."
+    )
+    assert 'data-sample-theme-toggle' in base, (
+        "Bootstrap sample navigation should expose the light/dark selector."
+    )
+    assert "powercrud-sample-bootstrap-theme" in base, (
+        "Bootstrap sample pages should retain a user's selected light or dark theme."
+    )
+
+
+def test_bootstrap_sample_shell_uses_the_compact_navigation_presentation():
+    """The Bootstrap sample shell should not consume more vertical space than necessary."""
+    base_path = bootstrap_sample_settings.TEMPLATES[0]["DIRS"][0] / "sample" / "base.html"
+    meta_path = base_path.with_name("_runtime_meta.html")
+    style_path = (
+        default_sample_settings.BASE_DIR
+        / "powercrud"
+        / "contrib"
+        / "bootstrap5"
+        / "static"
+        / "powercrud"
+        / "contrib"
+        / "bootstrap5"
+        / "css"
+        / "bootstrap5.css"
+    )
+
+    assert 'container-fluid px-3 py-2' in base_path.read_text(encoding="utf-8")
+    assert 'mb-2 pc-bootstrap-runtime-meta' in meta_path.read_text(encoding="utf-8")
+
+    styles = style_path.read_text(encoding="utf-8")
+    assert 'padding: .5rem;' in styles
+    assert 'min-height: 2rem;' in styles
+    assert 'z-index: 3;' in styles
+    assert 'font-size: .75rem;' in styles
 
 
 @pytest.mark.django_db

@@ -70,6 +70,97 @@ export function createBootstrap5SearchableSelectAdapter({ global, documentObject
         select.tomselect.dropdown.classList.add('powercrud-filter-favourite-select-dropdown');
     }
 
+    function copyInlineTomSelectPalette(instance) {
+        const table = instance.control.closest('table[data-inline-enabled="true"]');
+        if (!table) {
+            return;
+        }
+
+        // Inline menus are appended to body for viewport-aware placement, so
+        // copy the table's view-configured inline palette to the detached menu.
+        const palette = global.getComputedStyle(table);
+        for (const property of [
+            '--pc-ts-option-active-bg',
+            '--pc-ts-option-active-text',
+            '--pc-ts-option-keyboard-bg',
+            '--pc-ts-option-selected-bg',
+            '--pc-ts-option-hover-bg',
+        ]) {
+            const value = palette.getPropertyValue(property).trim();
+            if (value) {
+                instance.dropdown.style.setProperty(property, value);
+            }
+        }
+    }
+
+    function positionInlineMultiselectDropdown(instance) {
+        const controlRect = instance.control.getBoundingClientRect();
+        const dropdown = instance.dropdown;
+        const dropdownContent = instance.dropdown_content;
+        const tableCell = instance.control.closest('td');
+        if (tableCell) {
+            // The inline dropdown is detached to avoid table overflow, so carry
+            // the cell typography across to its body-level element.
+            dropdown.style.fontSize = global.getComputedStyle(tableCell).fontSize;
+        }
+        const viewportHeight = documentObject.documentElement.clientHeight || global.innerHeight;
+        const viewportWidth = documentObject.documentElement.clientWidth || global.innerWidth;
+        const viewportEdge = 8;
+        const dropdownGap = 4;
+        const spaceAbove = Math.max(0, controlRect.top - viewportEdge - dropdownGap);
+        const spaceBelow = Math.max(0, viewportHeight - controlRect.bottom - viewportEdge - dropdownGap);
+        const renderedHeight = dropdown.getBoundingClientRect().height;
+        const opensUpward = spaceBelow < renderedHeight && spaceAbove >= spaceBelow;
+        const availableSpace = opensUpward ? spaceAbove : spaceBelow;
+        const contentHeight = dropdownContent.getBoundingClientRect().height;
+        const dropdownChrome = Math.max(0, renderedHeight - contentHeight);
+        const maxContentHeight = Math.max(0, Math.floor(availableSpace - dropdownChrome));
+        const maxWidth = Math.max(0, viewportWidth - (viewportEdge * 2));
+        const width = Math.min(controlRect.width, maxWidth);
+        const left = Math.max(
+            viewportEdge,
+            Math.min(controlRect.left, viewportWidth - width - viewportEdge),
+        );
+
+        dropdownContent.style.maxHeight = `${maxContentHeight}px`;
+        dropdown.style.margin = '0';
+        dropdown.style.width = `${width}px`;
+        dropdown.style.left = `${global.scrollX + left}px`;
+        dropdown.classList.toggle('powercrud-inline-dropdown-upward', opensUpward);
+
+        const positionedHeight = dropdown.getBoundingClientRect().height;
+        const top = opensUpward
+            ? controlRect.top - positionedHeight - dropdownGap
+            : controlRect.bottom + dropdownGap;
+        dropdown.style.top = `${global.scrollY + top}px`;
+    }
+
+    function enableInlineMultiselectDropdownPlacement(instance) {
+        instance.on('dropdown_open', () => {
+            global.requestAnimationFrame(() => positionInlineMultiselectDropdown(instance));
+        });
+    }
+
+    function enableCompactMultiselectSummary(instance) {
+        const summary = documentObject.createElement('span');
+        summary.className = 'powercrud-compact-multiselect-summary';
+        summary.setAttribute('aria-live', 'polite');
+        instance.control.appendChild(summary);
+
+        const refreshSummary = () => {
+            const count = instance.items.length;
+            summary.textContent = count ? `${count} selected` : '';
+            summary.hidden = count === 0 || Boolean(instance.control_input?.value);
+        };
+        instance.on('item_add', refreshSummary);
+        instance.on('item_remove', refreshSummary);
+        instance.on('type', refreshSummary);
+        instance.on('dropdown_open', refreshSummary);
+        instance.on('dropdown_close', refreshSummary);
+        instance.control_input?.addEventListener('input', refreshSummary);
+        refreshSummary();
+    }
+
     function syncDisabled(select) {
         if (!select.tomselect) {
             return;
@@ -110,6 +201,7 @@ export function createBootstrap5SearchableSelectAdapter({ global, documentObject
             return;
         }
         const isInlineSelect = Boolean(select.closest(INLINE_ROW_SELECTOR));
+        const isCompact = select.getAttribute('data-powercrud-widget-variant') === 'compact';
         const settings = {
             create: false,
             maxItems: multiple ? null : 1,
@@ -131,7 +223,16 @@ export function createBootstrap5SearchableSelectAdapter({ global, documentObject
             };
         }
         if (multiple) {
-            settings.plugins = ['remove_button'];
+            settings.plugins = isCompact
+                ? {
+                    checkbox_options: {},
+                    clear_button: { title: 'Clear all selected options' },
+                }
+                : {
+                    remove_button: {},
+                    checkbox_options: {},
+                    clear_button: { title: 'Clear all selected options' },
+                };
         }
         if (!select.closest('[data-powercrud-modal]')) {
             settings.dropdownParent = 'body';
@@ -142,6 +243,9 @@ export function createBootstrap5SearchableSelectAdapter({ global, documentObject
         }
         normalise(instance);
         normaliseFilterFavourites(select);
+        if (isInlineSelect) {
+            copyInlineTomSelectPalette(instance);
+        }
         if (isInlineSelect && !multiple) {
             instance.dropdown.classList.add('powercrud-inline-single-dropdown');
             instance.on('dropdown_open', function onInlineDropdownOpen() {
@@ -151,13 +255,26 @@ export function createBootstrap5SearchableSelectAdapter({ global, documentObject
                 instance.dropdown.style.setProperty('min-width', `${desiredWidth}px`, 'important');
             });
         }
+        if (isInlineSelect && multiple) {
+            instance.wrapper.classList.add('powercrud-inline-multiselect');
+            instance.dropdown.classList.add('powercrud-inline-multiselect-dropdown');
+            enableInlineMultiselectDropdownPlacement(instance);
+        }
+        if (multiple && isCompact) {
+            instance.wrapper.classList.add('powercrud-compact-multiselect');
+            enableCompactMultiselectSummary(instance);
+        }
         syncDisabled(select);
         hideNativeSelect(select);
     }
 
-    function destroy(select) {
+    function destroy(select, { restoreNative = true } = {}) {
         select.tomselect?.destroy();
-        restoreNativeSelect(select);
+        if (restoreNative) {
+            restoreNativeSelect(select);
+        } else {
+            hideNativeSelect(select);
+        }
     }
 
     return {

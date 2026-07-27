@@ -24,13 +24,27 @@
         }
 
         .table-column-width {
-            width: fit-content;
             max-width: {{ table_max_col_width }};
         }
-        th.table-column-width {
+        .table-column-width[data-powercrud-column-width-mode="bounded"] {
+            width: fit-content;
+        }
+        .table-column-width[data-powercrud-column-width-mode="auto"] {
+            width: 1%;
+            min-width: 0;
+        }
+        .table-column-width[data-powercrud-column-width-mode="compact"] {
+            width: 1%;
+            min-width: 0;
+            white-space: nowrap;
+        }
+        th.table-column-width[data-powercrud-column-width-mode="bounded"] {
             white-space: normal;
             min-width: {{ table_header_min_wrap_width }};
             max-width: {{ table_max_col_width }};
+        }
+        th.table-column-width[data-powercrud-column-width-mode="auto"] {
+            white-space: normal;
         }
 
         #filterCollapse .filter-panel-shell {

@@ -56,7 +56,17 @@ Stop and discuss with the user before continuing if any of these occur:
     gh pr create --base main --head <feature-branch> --title "<clear PR title>" --body-file -
     ```
 
-    Use a concise PR title and a short body that summarizes the user-visible change and verification. Avoid relying on `--fill` for broad or multi-commit branches unless the generated title and body are already clear.
+    Use a concise PR title and a body proportionate to the change. The description should help a reviewer understand why the change is needed, what changed, where careful review is most useful, and how the branch was verified.
+
+    For broad or multi-commit branches, group the description by meaningful areas rather than listing commits. Cover:
+
+    - the purpose and user-visible outcome
+    - the main implementation or documentation changes
+    - compatibility, upgrade, or release implications
+    - key review areas, risks, or deliberate boundaries
+    - the verification performed and any known gaps
+
+    Keep small pull requests brief, but do not omit useful review context merely to make the body short. Avoid relying on `--fill` unless the generated title and body already meet this standard.
 
 5. Inspect the PR:
 

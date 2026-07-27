@@ -31,6 +31,8 @@ class TemplateViewStub:
         "isbn_empty": "Whether the ISBN field is blank.",
     }
     column_alignments = {}
+    column_width_policy = "bounded"
+    column_width_modes = {}
     field_labels = {}
     list_cell_tooltip_fields = []
     link_fields = {}
@@ -268,6 +270,12 @@ class TemplateViewStub:
 
     def get_column_alignments(self):
         return dict(self.column_alignments)
+
+    def get_column_width_policy(self):
+        return self.column_width_policy
+
+    def get_column_width_modes(self):
+        return dict(self.column_width_modes)
 
     def get_link_fields(self):
         return dict(self.link_fields)
@@ -1054,6 +1062,9 @@ def test_object_list_renders_booleans_dates_and_selection():
     assert result["headers"][-1]["help_text"] == "Whether the ISBN field is blank.", (
         "Object-list header metadata should include configured help text for matching property columns."
     )
+    assert result["headers"][-1]["align"] == "center", (
+        "A boolean property header should use the same centered alignment as its rendered cells."
+    )
     row = result["object_list"][0]
     assert row["id"] == str(book.pk)
     assert any("<svg" in fragment for fragment in row["fields"])
@@ -1086,6 +1097,60 @@ def test_object_list_renders_booleans_dates_and_selection():
     assert "csrfmiddlewaretoken" not in result["filter_params"], (
         "Object-list filter params should not reflect CSRF tokens into sort/filter URLs."
     )
+
+
+@pytest.mark.django_db
+def test_object_list_resolves_legacy_and_semantic_column_width_modes():
+    """List metadata should preserve legacy widths and infer useful semantic widths on request."""
+    author = Author.objects.create(name="Width Mode Author")
+    book = Book.objects.create(
+        title="Width Mode Book",
+        author=author,
+        published_date=date(2024, 1, 1),
+        bestseller=True,
+        isbn="1234567890123",
+        pages=250,
+    )
+    request = apply_session(RequestFactory().get("/"))
+    view = TemplateViewStub(request)
+    view.fields = ["id", "pages", "bestseller", "title", "published_date", "author"]
+    view.properties = []
+
+    legacy_result = powercrud.object_list({"request": request}, [book], view)
+    assert {header["width_mode"] for header in legacy_result["headers"]} == {"bounded"}, (
+        "The default bounded policy should preserve the existing shared list-column sizing behaviour."
+    )
+
+    view.column_width_policy = "semantic"
+    view.column_width_modes = {"title": "compact", "author": "auto"}
+    semantic_result = powercrud.object_list({"request": request}, [book], view)
+    width_modes = {
+        header["field_name"]: header["width_mode"]
+        for header in semantic_result["headers"]
+    }
+
+    assert width_modes == {
+        "id": "compact",
+        "pages": "auto",
+        "bestseller": "compact",
+        "title": "compact",
+        "published_date": "auto",
+        "author": "auto",
+    }, "Semantic mode should infer typed widths while explicit mappings take precedence."
+    assert [cell["width_mode"] for cell in semantic_result["object_list"][0]["cells"]] == [
+        width_modes[name] for name in view.fields
+    ], "Header and body cells should receive the same resolved column width mode."
+    assert [header["align"] for header in semantic_result["headers"]] == [
+        "center",
+        "center",
+        "center",
+        "left",
+        "center",
+        "left",
+    ], "Headers should receive the same semantic alignment as their rendered body cells."
+    assert [cell["align"] for cell in semantic_result["object_list"][0]["cells"]] == [
+        header["align"] for header in semantic_result["headers"]
+    ], "Header and body alignment metadata should remain synchronized."
 
 
 @pytest.mark.django_db

@@ -29,7 +29,7 @@ The runtime modules have these broad responsibilities:
 5. `runtime/list-columns.js`: visible-column chooser state, save/reset request payloads, and last-visible-column guard.
 6. `runtime/bulk-actions.js`: row selection, select-all state, selection persistence, selection-aware action semantics, and bulk success/queued events.
 7. `runtime/inline-edit.js`: inline row lifecycle, save/cancel/error handling, dependencies, focus recovery, and inline validation payloads.
-8. `runtime/searchable-selects.js`: semantic discovery and value synchronization for `data-powercrud-searchable-*` controls.
+8. `runtime/searchable-selects.js`: semantic discovery and value synchronization for `data-powercrud-searchable-*` controls, including the pack-selected `data-powercrud-widget-variant`.
 9. `runtime/daisyui-composition.js`: private ordered construction of the DaisyUI adapters and adapter-wired searchable-select runtime.
 10. `runtime/daisyui-searchable-select-adapter.js`: private Tom Select construction, presentation, native restoration, and destruction.
 11. `runtime/daisyui-tooltip-adapter.js`: private Tippy presentation lifecycle for semantic, overflow, and lazy tooltips.
@@ -79,9 +79,11 @@ The core fragment initialization order is:
 2. Bootstrap affected object-list roots.
 3. Initialize tooltips.
 
-That order is intentional. Select enhancement runs first so list bootstrap can interact with enhanced controls when it opens or restores panels. List bootstrap may then reveal controls, restore list state, or sync current-template presentation before tooltip setup runs. HTMX swaps call teardown before replacing a fragment, then call `initPowercrud()` again after swap/settle.
+That order is intentional. Select enhancement runs first so list bootstrap can interact with enhanced controls when it opens or restores panels. List bootstrap may then reveal controls, restore list state, or sync current-template presentation before tooltip setup runs. HTMX swaps tear down Tom Select in `htmx:beforeSwap` while keeping the native source hidden until replacement, then call `initPowercrud()` again after swap/settle. This prevents a native `<select multiple>` from flashing during an inline save.
 
-Fragment teardown currently destroys Tom Select instances, destroys Tippy instances, and removes detached inline error popovers.
+HTMX pre-swap teardown destroys Tom Select instances without exposing their
+native sources; fragment teardown destroys Tippy instances and removes detached
+inline error popovers.
 
 ## Ownership Boundaries
 

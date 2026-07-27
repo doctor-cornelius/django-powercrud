@@ -37,27 +37,29 @@ Do not automatically create a `master/`, `plan1/`, `plan2/`, or similar child-fo
 
 When a master plan exists, keep it as a terse roadmap. Use one short line per phase or subphase so the whole project shape remains scannable. Do not add nested implementation checklists, design rationale, deferred-register details, or evidence lists to the master plan. Put that detail in the relevant feature plan, feature notes, or master notes file.
 
+Use `✅` for completed phases or tasks and `🔳` for incomplete phases or tasks. Add `✅` to a phase heading only when every task in that phase is complete. Leave an incomplete phase heading without an emoji and use `🔳` on its incomplete entries. Do not use GitHub `[x]` or `[ ]` checkbox syntax in plans.
+
 Good master-plan shape:
 
 ```md
 ### Phase 5: Workflow Spine MVP
 
-- [x] Phase 5.1 Implement case creation, case triage, and truthful submission to `AwaitingApproval`.
-- [x] Phase 5.2 Implement approval outcomes and post-approval DDMS workflow truth.
-- [x] Phase 5.3 Implement execution preparation, Uptick reflection, and first reflected-state observation recording for the narrow happy path.
-- [ ] Phase 5.4 Implement first non-Uptick execution entry semantics after the first Uptick monitoring path is settled.
-- [x] Phase 5.5 Implement monitoring and recommendation layer for the same happy path.
-- [ ] Phase 5.6 Prepare senior-management demo checkpoint before resuming deeper workflow automation.
-- [ ] Phase 5.7 Implement business-confirmed status propagation and closure/write-back automation.
+- ✅ Phase 5.1 Implement case creation, case triage, and truthful submission to `AwaitingApproval`.
+- ✅ Phase 5.2 Implement approval outcomes and post-approval DDMS workflow truth.
+- ✅ Phase 5.3 Implement execution preparation, Uptick reflection, and first reflected-state observation recording for the narrow happy path.
+- 🔳 Phase 5.4 Implement first non-Uptick execution entry semantics after the first Uptick monitoring path is settled.
+- ✅ Phase 5.5 Implement monitoring and recommendation layer for the same happy path.
+- 🔳 Phase 5.6 Prepare senior-management demo checkpoint before resuming deeper workflow automation.
+- 🔳 Phase 5.7 Implement business-confirmed status propagation and closure/write-back automation.
 ```
 
 Do not expand those master entries like this:
 
 ```md
-- [x] Phase 5.5 Implement monitoring and recommendation layer for the same happy path.
-    - [x] Record Analytics and Uptick observations without broad canonical workflow mutation.
-    - [x] Surface status tension and recommendation categories through attention codes, positive health flags, filters, and workflow timeline events.
-    - [x] Defer DDMS-local closure automation and external write-back until business confirmation.
+- ✅ Phase 5.5 Implement monitoring and recommendation layer for the same happy path.
+    - ✅ Record Analytics and Uptick observations without broad canonical workflow mutation.
+    - ✅ Surface status tension and recommendation categories through attention codes, positive health flags, filters, and workflow timeline events.
+    - ✅ Defer DDMS-local closure automation and external write-back until business confirmation.
 ```
 
 Those bullets belong in the relevant feature plan, feature notes, or master notes file, not in the master roadmap.
@@ -77,23 +79,23 @@ Optional, only when needed:
 
 `<feature>-plan.md`:
 
-- phased tasks with checkboxes
+- phased tasks with `✅` and `🔳` status emojis
 - clear `Status` and `Next` sections
 - tasks phrased as testable outcomes (what "done" looks like)
 
-Follow a checkbox-oriented layout with explicit phases, for example:
+Follow an emoji-status layout with explicit phases, for example:
 
 ```md
 ## ✅ Phase A: Establish the First Proof Path
 
-1. [x] Lock the MVP rules that the first implementation will follow.
-    1. [x] Keep local `attention_codes` row-local and code-owned.
-    2. [x] Keep soft workflow concerns as summary or review flags.
-    3. [x] Persist only hard blockers as blocker rows in `4.1`.
-2. [x] Lock the first naming and model decisions needed before code changes.
-    1. [x] Choose the blocker model name as `BlockingIssue`.
-    2. [x] Choose the blocker type model name as `BlockingIssueType`.
-    3. [x] Confirm the first `DDMAction` summary fields to support in code.
+1. ✅ Lock the MVP rules that the first implementation will follow.
+    1. ✅ Keep local `attention_codes` row-local and code-owned.
+    2. ✅ Keep soft workflow concerns as summary or review flags.
+    3. ✅ Persist only hard blockers as blocker rows in `4.1`.
+2. 🔳 Lock the first naming and model decisions needed before code changes.
+    1. ✅ Choose the blocker model name as `BlockingIssue`.
+    2. ✅ Choose the blocker type model name as `BlockingIssueType`.
+    3. 🔳 Confirm the first `DDMAction` summary fields to support in code.
 ```
 
 `<feature>-notes.md`:
@@ -107,7 +109,7 @@ When a feature plan needs both a succinct checklist and room for working detail,
 In that case:
 
 - create matching `### Phase ...` headers in the notes for each plan phase
-- keep the plan as checkbox tasks and subtasks only
+- keep the plan as emoji-status tasks and subtasks only
 - put rationale, evidence, phase-specific notes, deferred debate, and implementation discussion under the matching notes phase header
 - do not expand the plan with long explanatory paragraphs when matching notes phase headers exist
 

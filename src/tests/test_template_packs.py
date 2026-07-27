@@ -23,6 +23,7 @@ from powercrud.template_packs import (
     PackAssets,
     TEMPLATE_PACK_CONTRACT_VERSION,
     TemplatePack,
+    WidgetPolicyContext,
     get_configured_template_pack,
     get_template_pack_copy_destination,
     get_selected_template_pack,
@@ -34,6 +35,7 @@ from powercrud.template_packs import (
 
 
 FIXTURE_SELECTOR = "tests.template_pack_fixtures:template_pack"
+OLD_ADAPTER_FIXTURE_SELECTOR = "tests.template_pack_fixtures:old_adapter_template_pack"
 
 
 def test_builtin_daisyui_declaration_describes_the_relocated_implementation():
@@ -42,7 +44,7 @@ def test_builtin_daisyui_declaration_describes_the_relocated_implementation():
 
     assert template_pack.identity == "daisyui", "The built-in identity must remain DaisyUI."
     assert template_pack.contract_version == TEMPLATE_PACK_CONTRACT_VERSION, (
-        "The built-in declaration must use the public v1 contract."
+        "The built-in declaration must use the current public pack contract."
     )
     assert template_pack.server_adapter == "powercrud.packs.daisyui.adapter:server_adapter", (
         "The built-in declaration must use its public server adapter."
@@ -333,6 +335,77 @@ def test_default_framework_style_override_point_uses_the_selected_public_adapter
     assert styles["daisyui"]["modal_attrs"] == 'data-powercrud-modal-trigger="true"', (
         "Modal triggers must now use the framework-neutral semantic hook."
     )
+
+
+def test_server_adapter_exposes_required_widget_policy_contract():
+    """The selected pack must own generated widget presentation through its adapter."""
+    from powercrud.template_packs import get_template_pack_server_adapter
+
+    presentation = get_template_pack_server_adapter().get_widget_presentation(
+        WidgetPolicyContext(
+            surface="filter",
+            kind="multiselect",
+            render_mode="native",
+            field_name="genres",
+            required=False,
+            disabled=False,
+            is_relation=True,
+            has_dependency=False,
+            enhancement_intent="default",
+        )
+    )
+
+    assert presentation.attrs["size"] == "5", (
+        "The DaisyUI adapter should retain its compact filter multiselect policy."
+    )
+    assert presentation.enhancement == "searchable-multiselect", (
+        "The pack, rather than generic filtering code, should request multiselect enhancement."
+    )
+
+    inline_presentation = get_template_pack_server_adapter().get_widget_presentation(
+        WidgetPolicyContext(
+            surface="inline",
+            kind="multiselect",
+            render_mode="native",
+            field_name="genres",
+            required=False,
+            disabled=False,
+            is_relation=True,
+            has_dependency=False,
+            enhancement_intent="default",
+        )
+    )
+    assert inline_presentation.variant == "compact", (
+        "The selected pack should own the compact inline multiselect variant."
+    )
+
+    disabled_presentation = get_template_pack_server_adapter().get_widget_presentation(
+        WidgetPolicyContext(
+            surface="form",
+            kind="multiselect",
+            render_mode="native",
+            field_name="genres",
+            required=False,
+            disabled=False,
+            is_relation=True,
+            has_dependency=False,
+            enhancement_intent="disabled",
+        )
+    )
+    assert disabled_presentation.enhancement is None, (
+        "An explicit application opt-out must override the pack's multiselect default."
+    )
+
+
+def test_old_server_adapter_contract_is_rejected_clearly():
+    """The clean contract change must not leave an old-adapter compatibility path."""
+    from powercrud.template_packs import get_template_pack_server_adapter
+
+    with override_settings(
+        POWERCRUD_SETTINGS={"POWERCRUD_TEMPLATE_PACK": OLD_ADAPTER_FIXTURE_SELECTOR}
+    ):
+        with pytest.raises(ImproperlyConfigured, match="api_version 2"):
+            get_template_pack_server_adapter()
 
 
 def test_pack_without_legacy_copy_destination_uses_its_safe_identity():

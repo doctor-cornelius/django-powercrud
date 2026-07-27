@@ -10,7 +10,7 @@ DaisyUI is the built-in compatible default. Bootstrap 5 is an optional supported
 
 ## What a pack provides
 
-A pack supplies the templates and presentation details for PowerCRUD's standard screens. That includes list, form, detail, delete, filtering, modal, bulk, async, inline-editing, and favourites surfaces.
+A pack supplies the templates and presentation details for PowerCRUD's standard screens. That includes list, form, detail, delete, filtering, modal, bulk, async, inline-editing, and favourites surfaces. It also supplies the default visible widget policy for PowerCRUD-generated controls while Django and PowerCRUD retain their values, validation, submission, dependencies, and lifecycle.
 
 Your application still owns its base template. It decides the surrounding site layout and authentication chrome, and chooses the frontend route: PowerCRUD's packaged Vite entry, package-owned manual-static tags, or an application-owned entry. For the manual-static route, PowerCRUD can emit the selected pack's correctly ordered tags; it does not supply a complete HTML page shell or take over an application's frontend build.
 
@@ -46,7 +46,7 @@ The first two rows choose a process-wide pack. The middle rows are local overrid
 
 - [Selecting and configuring](selecting-and-configuring.md) covers the default, Bootstrap setup, assets, and form rendering.
 - [Customising](customising.md) explains focused template overrides and ownership boundaries.
-- [Authoring and publishing](authoring-and-publishing.md) shows how to create, test, publish, install, and select an independent pack for another CSS framework.
+- [Authoring and publishing](authoring-and-publishing.md) shows how to create, define widget presentation, test, publish, install, and select an independent pack for another CSS framework.
 - [Testing and acceptance](testing-and-acceptance.md) explains what makes a supported pack release-ready.
 
 ## What does not change with a pack

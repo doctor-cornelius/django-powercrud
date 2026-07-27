@@ -89,6 +89,28 @@ class MinimalBookForm(forms.ModelForm):
         fields = ["title", "isbn"]
 
 
+class SilentWidgetBookForm(forms.ModelForm):
+    """Custom form that leaves the M2M widget to Django but owns one date widget."""
+
+    title = forms.CharField(widget=forms.TextInput(attrs={"class": "application-title"}))
+    application_note = forms.CharField(
+        required=False, widget=forms.TextInput(attrs={"class": "application-note"})
+    )
+
+    class Meta:
+        model = Book
+        fields = ["title", "genres", "published_date"]
+        widgets = {
+            "published_date": forms.TextInput(attrs={"class": "application-date"}),
+        }
+
+
+class SilentWidgetBookFormView(DummyFormView):
+    """Exercise selected-pack fallback for silent fields in a custom ModelForm."""
+
+    form_class = SilentWidgetBookForm
+
+
 class CustomFormPriorityView(FormMixin, CoreMixin):
     """Configured view that intentionally conflicts form_class and form_fields."""
 
@@ -117,6 +139,47 @@ def attach_session(request):
     middleware.process_request(request)
     request.session.save()
     return request
+
+
+@pytest.mark.django_db
+def test_custom_model_form_uses_pack_policy_only_for_silent_default_widgets():
+    """A custom form should retain explicit widgets while its silent M2M can enhance."""
+    genre = Genre.objects.create(name="Silent widget genre")
+    book = Book.objects.create(
+        title="Silent Widget Book",
+        author=Author.objects.create(name="Silent Widget Author"),
+        published_date="2026-03-02",
+        bestseller=False,
+        isbn="9780000000001",
+        pages=1,
+    )
+    book.genres.add(genre)
+    view = SilentWidgetBookFormView(attach_session(RequestFactory().get("/")))
+
+    form = view.build_inline_form(instance=book)
+
+    assert form.fields["genres"].widget.attrs.get(
+        "data-powercrud-searchable-multiselect"
+    ) == "true", (
+        "A custom ModelForm's default M2M widget must receive the selected pack's inline enhancement."
+    )
+    assert form.fields["genres"].widget.attrs.get(
+        "data-powercrud-widget-variant"
+    ) == "compact", (
+        "A silent custom ModelForm M2M field must inherit the pack's inline variant."
+    )
+    assert isinstance(form.fields["published_date"].widget, forms.TextInput), (
+        "An explicit custom-form widget must remain application-owned."
+    )
+    assert form.fields["published_date"].widget.attrs.get("class") == "application-date", (
+        "Pack presentation must not replace attributes supplied by an explicit custom widget."
+    )
+    assert form.fields["title"].widget.attrs.get("class") == "application-title", (
+        "A declared custom ModelForm field must remain application-owned."
+    )
+    assert form.fields["application_note"].widget.attrs.get("class") == "application-note", (
+        "A non-model custom form field must not enter the selected pack policy."
+    )
 
 
 def test_persist_single_object_defaults_to_form_save():
@@ -751,7 +814,7 @@ def test_searchable_select_marker_added_to_foreign_key_field():
     request = attach_session(RequestFactory().get("/"))
     view = DummyFormView(request)
     form = view.get_form_class()()
-    view._apply_searchable_select_attrs(form)
+    view._finalize_form(form)
 
     assert (
         form.fields["author"].widget.attrs.get("data-powercrud-searchable-select")
@@ -769,7 +832,7 @@ def test_searchable_select_marker_kept_for_single_relation_choice_with_pk_one():
     request = attach_session(RequestFactory().get("/"))
     view = DummyFormView(request)
     form = view.get_form_class()()
-    view._apply_searchable_select_attrs(form)
+    view._finalize_form(form)
 
     assert (
         form.fields["author"].widget.attrs.get("data-powercrud-searchable-select")
@@ -783,7 +846,7 @@ def test_searchable_select_marker_respects_global_toggle():
     view = DummyFormView(request)
     view.searchable_selects = False
     form = view.get_form_class()()
-    view._apply_searchable_select_attrs(form)
+    view._finalize_form(form)
 
     assert (
         "data-powercrud-searchable-select"
@@ -802,7 +865,7 @@ def test_searchable_select_marker_respects_field_hook():
     request = attach_session(RequestFactory().get("/"))
     view = OptOutDummyView(request)
     form = view.get_form_class()()
-    view._apply_searchable_select_attrs(form)
+    view._finalize_form(form)
 
     assert (
         "data-powercrud-searchable-select"

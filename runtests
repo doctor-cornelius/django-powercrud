@@ -7,8 +7,8 @@ Usage: ./runtests [OPTION] [TEST_PATH ...]
 
 Options:
   --help, -h        Show this help message and exit.
-  --pytest          Run only non-Playwright tests (pytest -m "not playwright").
-  --playwright      Run only Playwright tests (pytest -m playwright).
+  --pytest          Run the default non-Playwright suite and focused Bootstrap server coverage.
+  --playwright      Run the default Playwright suite and focused Bootstrap browser coverage.
   --rebuild-assets  Build static assets before running the selected tests.
 
 Arguments:
@@ -64,6 +64,36 @@ function build_assets {
     npm run build
 }
 
+BOOTSTRAP_SERVER_TESTS=(
+    src/tests/test_bootstrap_template_pack.py
+    src/tests/test_template_pack_behaviour_matrix.py
+    src/tests/test_form_filter_template_mixins.py::test_generated_datetime_form_and_filter_use_true_datetime_controls
+    src/tests/test_form_mixin_extended.py::test_custom_model_form_uses_pack_policy_only_for_silent_default_widgets
+    src/tests/test_inline_editing_mixin.py::test_generated_inline_m2m_requests_pack_multiselect_enhancement
+    src/tests/test_bulk_view_mixin.py::test_bulk_field_info_uses_policy_owned_controls_for_selects
+)
+
+BOOTSTRAP_PLAYWRIGHT_TESTS=(
+    src/tests/playwright/test_bootstrap_modal_presentation.py
+    src/tests/playwright/test_bootstrap_manual_static_assets.py
+    src/tests/playwright/test_modal_crud.py::test_modal_multiselect_uses_pack_widget_and_clear_all
+    src/tests/playwright/test_inline_editing.py::test_inline_m2m_uses_compact_pack_multiselect
+)
+
+function run_bootstrap_server_tests {
+    echo "Running focused Bootstrap server coverage..."
+    DJANGO_SETTINGS_MODULE=tests.settings_bootstrap \
+        pytest -m "not playwright" --cov-append --no-cov-on-fail \
+        "${BOOTSTRAP_SERVER_TESTS[@]}"
+}
+
+function run_bootstrap_playwright_tests {
+    echo "Running focused Bootstrap browser coverage..."
+    DJANGO_SETTINGS_MODULE=tests.settings_bootstrap \
+        pytest -m playwright --cov-append --no-cov-on-fail \
+        "${BOOTSTRAP_PLAYWRIGHT_TESTS[@]}"
+}
+
 if [ "${#TEST_PATHS[@]}" -gt 0 ]; then
     # An explicit settings module selects an intentional presentation-specific
     # test environment, including for focused Playwright coverage. Fall back
@@ -111,7 +141,8 @@ coverage erase
 rm -rf htmlcov
 rm -f coverage.xml
 
-# All suites run under the lightweight test settings (manifest uses built files)
+# Default suites use the lightweight settings; focused pack coverage selects
+# its explicit settings overlay for the duration of each pytest command.
 export DJANGO_SETTINGS_MODULE=tests.settings
 
 if [ "$MODE" = "pytest" ]; then
@@ -119,18 +150,22 @@ if [ "$MODE" = "pytest" ]; then
         build_assets
     fi
     pytest -m "not playwright"
+    run_bootstrap_server_tests
 elif [ "$MODE" = "playwright" ]; then
     build_assets
     pytest -m playwright --no-cov-on-fail
+    run_bootstrap_playwright_tests
 else
     # Core + async suite with coverage (skips Playwright)
     pytest -m "not playwright"
+    run_bootstrap_server_tests
 
     # Ensure the built bundle exists for manifest mode
     build_assets
 
     # Playwright UI checks
     pytest -m playwright --cov-append --no-cov-on-fail
+    run_bootstrap_playwright_tests
 fi
 
 coverage html

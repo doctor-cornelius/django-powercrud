@@ -17,8 +17,10 @@ from powercrud.template_pack_validation import validate_template_pack
 from powercrud.modal_presentation import modal_presentation_attributes
 from powercrud.template_packs import (
     TEMPLATE_PACK_CONTRACT_VERSION,
+    WidgetPolicyContext,
     get_configured_template_pack,
     get_selected_template_pack,
+    get_template_pack_server_adapter,
     resolve_template_pack,
 )
 from sample.models import Author, Book
@@ -114,6 +116,47 @@ def test_bootstrap_selected_namespace_and_validation_are_available():
         "Configured Bootstrap settings should resolve the package-owned Bootstrap namespace."
     )
     validate_template_pack(selected)
+
+
+def test_bootstrap_adapter_owns_standard_and_compact_multiselect_variants():
+    """Bootstrap should provide the same semantic multiselect policy as DaisyUI."""
+    adapter = get_template_pack_server_adapter()
+    standard = adapter.get_widget_presentation(
+        WidgetPolicyContext(
+            surface="form",
+            kind="multiselect",
+            render_mode="native",
+            field_name="genres",
+            required=False,
+            disabled=False,
+            is_relation=True,
+            has_dependency=False,
+            enhancement_intent="default",
+        )
+    )
+    compact = adapter.get_widget_presentation(
+        WidgetPolicyContext(
+            surface="inline",
+            kind="multiselect",
+            render_mode="native",
+            field_name="genres",
+            required=False,
+            disabled=False,
+            is_relation=True,
+            has_dependency=False,
+            enhancement_intent="default",
+        )
+    )
+
+    assert standard.enhancement == "searchable-multiselect", (
+        "Bootstrap normal form M2M controls should use the pack multiselect default."
+    )
+    assert standard.variant == "standard", (
+        "Bootstrap normal form M2M controls should retain the standard variant."
+    )
+    assert compact.variant == "compact", (
+        "Bootstrap inline M2M controls should use the compact variant."
+    )
 
 
 def test_bootstrap_namespace_contains_only_pack_owned_baseline_templates():
@@ -294,8 +337,18 @@ def test_bootstrap_table_alignment_and_dropdown_button_classes_use_portable_valu
         {
             "enable_selection_controls": False,
             "headers": [
-                {"field_name": "title", "align": "left", "is_sortable": False},
-                {"field_name": "pages", "align": "right", "is_sortable": False},
+                {
+                    "field_name": "title",
+                    "align": "left",
+                    "is_sortable": False,
+                    "width_mode": "bounded",
+                },
+                {
+                    "field_name": "pages",
+                    "align": "right",
+                    "is_sortable": False,
+                    "width_mode": "auto",
+                },
             ],
             "has_row_actions": False,
         },
@@ -321,11 +374,14 @@ def test_bootstrap_table_alignment_and_dropdown_button_classes_use_portable_valu
         },
     )
 
-    assert 'class="pc-table-column-width text-start"' in table_header, (
-        "The public left alignment must map to Bootstrap's text-start utility."
+    assert table_header.count('class="pc-table-column-width align-middle text-center"') == 2, (
+        "Bootstrap headers should use the shared centred header presentation regardless of cell alignment."
     )
-    assert 'class="pc-table-column-width text-end"' in table_header, (
-        "The public right alignment must map to Bootstrap's text-end utility."
+    assert 'data-powercrud-column-width-mode="bounded"' in table_header, (
+        "Bootstrap headers should receive the resolved bounded width mode."
+    )
+    assert 'data-powercrud-column-width-mode="auto"' in table_header, (
+        "Bootstrap headers should receive the resolved auto width mode."
     )
     assert "shared-extra-class btn-primary" in dropdown, (
         "Dropdown entries must receive the same configured extra-button classes as button mode."

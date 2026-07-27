@@ -43,15 +43,6 @@ def get_bootstrap5_framework_styles(view: Any) -> dict[str, dict[str, Any]]:
     return {
         "bootstrap5": {
             "base": "btn",
-            "filter_attrs": {
-                "text": {"class": "form-control form-control-sm"},
-                "select": {"class": "form-select form-select-sm"},
-                "multiselect": {"class": "form-select form-select-sm", "size": "5"},
-                "date": {"class": "form-control form-control-sm", "type": "date"},
-                "number": {"class": "form-control form-control-sm", "step": "any"},
-                "time": {"class": "form-control form-control-sm", "type": "time"},
-                "default": {"class": "form-control form-control-sm"},
-            },
             "actions": {
                 "View": "btn-info",
                 "Edit": "btn-primary",

@@ -123,6 +123,98 @@ export function createDaisyuiSearchableSelectAdapter(context) {
         selectElement.tomselect.dropdown.classList.add('powercrud-filter-favourite-select-dropdown');
     }
 
+    function copyInlineTomSelectPalette(instance) {
+        const table = instance.control.closest('table[data-inline-enabled="true"]');
+        if (!table) {
+            return;
+        }
+
+        // Inline menus are appended to body for viewport-aware placement, so
+        // copy the table's view-configured inline palette to the detached menu.
+        const palette = global.getComputedStyle(table);
+        for (const property of [
+            '--pc-ts-option-active-bg',
+            '--pc-ts-option-active-text',
+            '--pc-ts-option-keyboard-bg',
+            '--pc-ts-option-selected-bg',
+            '--pc-ts-option-hover-bg',
+        ]) {
+            const value = palette.getPropertyValue(property).trim();
+            if (value) {
+                instance.dropdown.style.setProperty(property, value);
+            }
+        }
+    }
+
+    function positionInlineMultiselectDropdown(instance) {
+        const controlRect = instance.control.getBoundingClientRect();
+        const dropdown = instance.dropdown;
+        const dropdownContent = instance.dropdown_content;
+        const tableCell = instance.control.closest('td');
+        if (tableCell) {
+            // Inline dropdowns live under body to avoid table overflow. Copy the
+            // table cell's computed size so downstream table typography applies
+            // to both the control and the detached option list.
+            dropdown.style.fontSize = global.getComputedStyle(tableCell).fontSize;
+        }
+        const viewportHeight = documentObject.documentElement.clientHeight || global.innerHeight;
+        const viewportWidth = documentObject.documentElement.clientWidth || global.innerWidth;
+        const viewportEdge = 8;
+        const dropdownGap = 4;
+        const spaceAbove = Math.max(0, controlRect.top - viewportEdge - dropdownGap);
+        const spaceBelow = Math.max(0, viewportHeight - controlRect.bottom - viewportEdge - dropdownGap);
+        const renderedHeight = dropdown.getBoundingClientRect().height;
+        const opensUpward = spaceBelow < renderedHeight && spaceAbove >= spaceBelow;
+        const availableSpace = opensUpward ? spaceAbove : spaceBelow;
+        const contentHeight = dropdownContent.getBoundingClientRect().height;
+        const dropdownChrome = Math.max(0, renderedHeight - contentHeight);
+        const maxContentHeight = Math.max(0, Math.floor(availableSpace - dropdownChrome));
+        const maxWidth = Math.max(0, viewportWidth - (viewportEdge * 2));
+        const width = Math.min(controlRect.width, maxWidth);
+        const left = Math.max(
+            viewportEdge,
+            Math.min(controlRect.left, viewportWidth - width - viewportEdge),
+        );
+
+        dropdownContent.style.maxHeight = `${maxContentHeight}px`;
+        dropdown.style.margin = '0';
+        dropdown.style.width = `${width}px`;
+        dropdown.style.left = `${global.scrollX + left}px`;
+        dropdown.classList.toggle('powercrud-inline-dropdown-upward', opensUpward);
+
+        const positionedHeight = dropdown.getBoundingClientRect().height;
+        const top = opensUpward
+            ? controlRect.top - positionedHeight - dropdownGap
+            : controlRect.bottom + dropdownGap;
+        dropdown.style.top = `${global.scrollY + top}px`;
+    }
+
+    function enableInlineMultiselectDropdownPlacement(instance) {
+        instance.on('dropdown_open', () => {
+            global.requestAnimationFrame(() => positionInlineMultiselectDropdown(instance));
+        });
+    }
+
+    function enableCompactMultiselectSummary(instance) {
+        const summary = documentObject.createElement('span');
+        summary.className = 'powercrud-compact-multiselect-summary';
+        summary.setAttribute('aria-live', 'polite');
+        instance.control.appendChild(summary);
+
+        const refreshSummary = () => {
+            const count = instance.items.length;
+            summary.textContent = count ? `${count} selected` : '';
+            summary.hidden = count === 0 || Boolean(instance.control_input?.value);
+        };
+        instance.on('item_add', refreshSummary);
+        instance.on('item_remove', refreshSummary);
+        instance.on('type', refreshSummary);
+        instance.on('dropdown_open', refreshSummary);
+        instance.on('dropdown_close', refreshSummary);
+        instance.control_input?.addEventListener('input', refreshSummary);
+        refreshSummary();
+    }
+
     function enhanceSingle(selectElement, isVisible) {
         if (selectElement.tomselect) {
             normaliseFilterFavourites(selectElement);
@@ -225,6 +317,8 @@ export function createDaisyuiSearchableSelectAdapter(context) {
 
         const placeholder = selectElement.getAttribute('data-powercrud-searchable-placeholder') || '';
         const dialogElement = selectElement.closest('dialog');
+        const isInlineSelect = Boolean(selectElement.closest(INLINE_ROW_SELECTOR));
+        const isCompact = selectElement.getAttribute('data-powercrud-widget-variant') === 'compact';
         const settings = {
             create: false,
             maxItems: null,
@@ -234,7 +328,16 @@ export function createDaisyuiSearchableSelectAdapter(context) {
             hideSelected: false,
             placeholder,
             openOnFocus: true,
-            plugins: ['remove_button'],
+            plugins: isCompact
+                ? {
+                    checkbox_options: {},
+                    clear_button: { title: 'Clear all selected options' },
+                }
+                : {
+                    remove_button: {},
+                    checkbox_options: {},
+                    clear_button: { title: 'Clear all selected options' },
+                },
             onItemAdd() {
                 this.setTextboxValue('');
                 this.refreshOptions(true);
@@ -256,15 +359,29 @@ export function createDaisyuiSearchableSelectAdapter(context) {
         }
 
         normaliseControl(instance);
+        if (isInlineSelect) {
+            copyInlineTomSelectPalette(instance);
+            instance.wrapper.classList.add('powercrud-inline-multiselect');
+            instance.dropdown.classList.add('powercrud-inline-multiselect-dropdown');
+            enableInlineMultiselectDropdownPlacement(instance);
+        }
+        if (isCompact) {
+            instance.wrapper.classList.add('powercrud-compact-multiselect');
+            enableCompactMultiselectSummary(instance);
+        }
         syncDisabledState(selectElement);
         hideNativeSelect(selectElement);
     }
 
-    function destroy(selectElement) {
+    function destroy(selectElement, { restoreNative = true } = {}) {
         if (selectElement.tomselect) {
             selectElement.tomselect.destroy();
         }
-        restoreNativeSelect(selectElement);
+        if (restoreNative) {
+            restoreNativeSelect(selectElement);
+        } else {
+            hideNativeSelect(selectElement);
+        }
     }
 
     return {

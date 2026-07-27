@@ -117,6 +117,7 @@ FIELD_INTENT_CONFIG_FIELDS = {
     "column_help_text",
     "column_alignments",
     "column_value_formats",
+    "column_width_modes",
     "field_queryset_dependencies",
     "link_fields",
 }
@@ -150,6 +151,8 @@ class ConfigMixin:
     field_labels: dict[str, str] | None = None
     column_alignments: dict[str, str] | None = None
     column_value_formats: dict[str, str] | None = None
+    column_width_policy: str = "bounded"
+    column_width_modes: dict[str, str] | None = None
     default_datetime_value_format: str = "date"
     list_cell_tooltip_fields: list[str] | dict[str, Any] | None = None
     list_cell_link_default_open_in: str = "new"
@@ -158,7 +161,7 @@ class ConfigMixin:
 
     # forms
     use_crispy: bool | None = None
-    searchable_selects: bool | None = True
+    searchable_selects: bool | None = None
 
     # field and property inclusion scope
     power_fields: list[Any] | None = None
@@ -413,6 +416,7 @@ class ConfigMixin:
         self._configure_field_labels()
         self._configure_column_alignments()
         self._configure_column_value_formats()
+        self._configure_column_width_modes()
         self._configure_link_fields()
         self._configure_bulk_fields()
         self._configure_inline_edit_fields()
@@ -1012,6 +1016,26 @@ class ConfigMixin:
         if invalid_names:
             raise ValueError(
                 "The following column_alignments keys are not model fields, "
+                "queryset annotations, configured list fields, or properties "
+                f"in {self.model.__name__}: {', '.join(invalid_names)}"
+            )
+
+    def _configure_column_width_modes(self) -> None:
+        """Validate optional semantic list-column sizing overrides."""
+        if self.column_width_modes is None:
+            self.column_width_modes = {}
+            return
+
+        if not isinstance(self.column_width_modes, dict):
+            raise ValueError("column_width_modes must be a dictionary when provided")
+
+        valid_names = self._get_configurable_list_column_names()
+        invalid_names = [
+            name for name in self.column_width_modes.keys() if name not in valid_names
+        ]
+        if invalid_names:
+            raise ValueError(
+                "The following column_width_modes keys are not model fields, "
                 "queryset annotations, configured list fields, or properties "
                 f"in {self.model.__name__}: {', '.join(invalid_names)}"
             )
@@ -2133,7 +2157,7 @@ class _ConfigShim:
                 return False
             return desired
         if name == "searchable_selects_enabled":
-            return self._raw("searchable_selects", True) is not False
+            return self._raw("searchable_selects", None) is not False
         if name == "modal_id_resolved":
             return self._raw("modal_id") or "powercrudBaseModal"
         if name == "modal_target_resolved":
@@ -2220,6 +2244,10 @@ class _ConfigShim:
             return self._raw("column_alignments", {}) or {}
         if name == "column_value_formats":
             return self._raw("column_value_formats", {}) or {}
+        if name == "column_width_policy":
+            return self._raw("column_width_policy") or "bounded"
+        if name == "column_width_modes":
+            return self._raw("column_width_modes", {}) or {}
         if name == "default_datetime_value_format":
             return self._raw("default_datetime_value_format") or "date"
         if name == "link_fields":
@@ -2265,6 +2293,7 @@ class _ConfigShim:
         if name in {
             "column_alignments",
             "column_value_formats",
+            "column_width_modes",
             "column_sort_fields_override",
             "dropdown_sort_options",
             "field_queryset_dependencies",

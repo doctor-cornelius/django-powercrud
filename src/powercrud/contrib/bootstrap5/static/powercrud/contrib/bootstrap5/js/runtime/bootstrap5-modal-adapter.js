@@ -4,7 +4,7 @@
  * Core owns when a modal is requested and whether a close refreshes a list;
  * this adapter owns Bootstrap instance creation, events, and disposal.
  */
-export function createBootstrap5ModalLifecycleAdapter({ global, documentObject, warnMissingDependency }) {
+export function createBootstrap5ModalLifecycleAdapter({ global, documentObject, warnMissingDependency, onShown }) {
     const SIZE_CLASSES = {
         compact: 'modal-sm',
         default: '',
@@ -145,6 +145,11 @@ export function createBootstrap5ModalLifecycleAdapter({ global, documentObject, 
     function show(modal) {
         if (!isBootstrapModal(modal) || modal.classList.contains('show')) {
             return;
+        }
+        if (typeof onShown === 'function') {
+            modal.addEventListener('shown.bs.modal', () => {
+                global.requestAnimationFrame(() => onShown(modal));
+            }, { once: true });
         }
         getModalConstructor()?.getOrCreateInstance(modal).show();
     }

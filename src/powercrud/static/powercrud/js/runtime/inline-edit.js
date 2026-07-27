@@ -190,11 +190,17 @@ export function createInlineEditRuntime(context) {
         const triggerField = preferredField || pendingInlineFocusField;
         const focusTarget = resolveInlineFocusTarget(row, triggerField);
         pendingInlineFocusField = null;
+        if (!triggerField) {
+            // Guard and validation recovery may target an off-screen row.
+            // Direct activation deliberately leaves the row in the position
+            // the user selected, avoiding scroll changes in either the page
+            // or the table's internal viewport.
+            row.scrollIntoView({ behavior: 'auto', block: 'nearest' });
+        }
         if (focusTarget) {
             presentInlineFocus(focusTarget, triggerField, pendingInlineSelectHighlight);
             pendingInlineSelectHighlight = false;
         }
-        row.scrollIntoView({ behavior: 'smooth', block: 'center' });
         global.setTimeout(() => row.classList.remove('inline-row-attention'), 600);
     }
 

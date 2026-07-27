@@ -17,7 +17,7 @@
     </td>
     {% endif %}
     {% for cell in row.cells %}
-    <td class="py-0 align-middle px-2 truncate table-column-width" data-field-name="{{ cell.name }}">
+    <td class="py-0 align-middle px-2 truncate table-column-width" data-field-name="{{ cell.name }}" data-powercrud-column-width-mode="{{ cell.width_mode }}">
         {% if cell.is_inline_editable and form %}
             {% with inline_field=form|get_form_field:cell.name %}
             {% if inline_field %}

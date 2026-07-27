@@ -2,7 +2,7 @@
 
 PowerField is the Structured Declaration API for Field Intent.
 
-It is not a contrib app, and it is not a replacement product API. It is a structured declaration layer over the Base Configuration API attributes such as `fields`, `detail_fields`, `form_fields`, `inline_edit_fields`, `bulk_fields`, `default_list_fields`, `field_labels`, `column_help_text`, `list_cell_tooltip_fields`, and `link_fields`.
+It is not a contrib app, and it is not a replacement product API. It is a structured declaration layer over the Base Configuration API attributes such as `fields`, `detail_fields`, `form_fields`, `inline_edit_fields`, `bulk_fields`, `default_list_fields`, `field_labels`, `column_help_text`, `column_width_modes`, `list_cell_tooltip_fields`, and `link_fields`.
 
 Use it when the same field participates in several places and the Base Configuration API starts to repeat the same names across many lists and dictionaries.
 
@@ -336,9 +336,9 @@ PowerField can declare generated form intent with `form=True`, display-only cont
         ]
         ```
 
-If the view sets `form_class`, that custom form class remains the runtime source of truth for editable inputs. PowerField form declarations still compile at class-time, but runtime `form_fields` is cleared in the same way as base `form_fields` when `form_class` is configured.
+If the view sets `form_class`, that custom `ModelForm` remains the runtime source of truth for editable inputs. PowerField form declarations still compile at class-time, but runtime `form_fields` is cleared in the same way as base `form_fields` when `form_class` is configured.
 
-Use this pattern when you want PowerField to document the intended surface while a custom `ModelForm` controls the actual editable form fields.
+Use this pattern when you want PowerField to document the intended surface while a custom `ModelForm` controls the actual editable form fields. Widgets attached through declarative form fields, `Meta.widgets`, or runtime replacement remain application-owned; silent model-backed defaults may receive the selected pack's presentation. See [Forms: Custom ModelForms and application-owned widgets](../forms.md#custom-modelforms-and-application-owned-widgets).
 
 ## Inline, Bulk, And Dependent Choices
 

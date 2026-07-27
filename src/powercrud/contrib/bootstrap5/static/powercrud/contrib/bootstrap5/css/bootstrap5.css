@@ -5,7 +5,7 @@
 }
 
 .pc-bootstrap-header {
-    padding: .75rem;
+    padding: .5rem;
     border: var(--bs-border-width) solid var(--bs-border-color);
     border-radius: var(--bs-border-radius-lg);
     background: var(--bs-tertiary-bg);
@@ -13,19 +13,22 @@
 }
 
 .pc-bootstrap-runtime-meta {
-    margin-bottom: .75rem !important;
+    margin-bottom: .5rem !important;
 }
 
 .pc-bootstrap-runtime-meta .dropdown-toggle,
 .pc-bootstrap-navigation .btn {
-    min-height: 2.125rem;
+    min-height: 2rem;
     display: inline-flex;
     align-items: center;
+    font-size: .8125rem;
+    line-height: 1.25;
 }
 
 .pc-bootstrap-runtime-details {
     max-width: 100%;
-    line-height: 1.35;
+    font-size: .75rem;
+    line-height: 1.25;
 }
 
 /* Bootstrap's dropdown menu needs its .show class, while PowerCRUD uses the
@@ -39,8 +42,20 @@
 }
 
 .pc-bootstrap-navigation .btn-group > .btn:last-child {
-    min-width: 2.125rem;
+    min-width: 2rem;
     padding-inline: .5rem;
+}
+
+.pc-bootstrap-theme-toggle {
+    width: 2rem;
+    padding-inline: 0;
+    justify-content: center;
+}
+
+.pc-bootstrap-theme-toggle svg {
+    width: .875rem;
+    height: .875rem;
+    fill: currentColor;
 }
 
 .pc-bootstrap-content {
@@ -265,6 +280,13 @@
     text-align: center;
 }
 
+[data-powercrud-object-list="true"] .pc-bootstrap-selection-column .form-check-input {
+    width: 1.25rem;
+    height: 1.25rem;
+    margin: 0;
+    vertical-align: middle;
+}
+
 [data-powercrud-object-list="true"] .table-responsive > .table > :not(caption) > * > * {
     padding: .2rem .375rem;
 }
@@ -313,16 +335,30 @@
     display: none !important;
 }
 
-/* Keep the compact toolbar controls actionable when a detached chooser panel
-   overlaps their narrow-screen row. */
+/* Keep the compact toolbar controls actionable above sticky table headers, but
+   within the list's local stack so a Bootstrap modal always covers them. */
 [data-powercrud-object-list="true"] [data-powercrud-view-controls] {
     position: relative;
-    z-index: 1081;
+    z-index: 3;
 }
 
 [data-powercrud-object-list="true"] .pc-table-column-width {
-    width: fit-content;
     max-width: var(--pc-table-column-width, 14rem);
+}
+
+[data-powercrud-object-list="true"] .pc-table-column-width[data-powercrud-column-width-mode="bounded"] {
+    width: fit-content;
+}
+
+[data-powercrud-object-list="true"] .pc-table-column-width[data-powercrud-column-width-mode="auto"] {
+    width: 1%;
+    min-width: 0;
+}
+
+[data-powercrud-object-list="true"] .pc-table-column-width[data-powercrud-column-width-mode="compact"] {
+    width: 1%;
+    min-width: 0;
+    white-space: nowrap;
 }
 
 [data-powercrud-object-list="true"] .pc-bootstrap-actions-column,
@@ -334,8 +370,19 @@
 
 /* Bootstrap tables use their content width by default. Bound ordinary text
    columns so a long title cannot crowd the useful fields from a narrow view. */
-[data-powercrud-object-list="true"] th.pc-table-column-width {
+[data-powercrud-object-list="true"] th.pc-table-column-width[data-powercrud-column-width-mode="bounded"] {
     min-width: var(--pc-table-header-min-wrap-width, var(--pc-table-column-width, 14rem));
+    white-space: normal;
+}
+
+[data-powercrud-object-list="true"] th.pc-table-column-width[data-powercrud-column-width-mode="auto"] {
+    white-space: normal;
+}
+
+[data-powercrud-object-list="true"] th.pc-table-column-width[data-powercrud-column-width-mode="bounded"] > *,
+[data-powercrud-object-list="true"] th.pc-table-column-width[data-powercrud-column-width-mode="auto"] > * {
+    overflow: visible;
+    text-overflow: clip;
     white-space: normal;
 }
 
@@ -446,6 +493,7 @@
     height: 1.5rem;
     padding: .125rem .35rem;
     padding-block: 0 !important;
+    font-size: inherit;
     line-height: 1;
     display: inline-flex;
     align-items: center;
@@ -458,7 +506,7 @@
 
 [data-powercrud-object-list="true"] .pc-bootstrap-row-actions-more {
     min-width: 4rem !important;
-    font-size: .75rem;
+    font-size: inherit;
     line-height: 1 !important;
     gap: .35rem;
     font-weight: 600;
@@ -518,8 +566,8 @@
 }
 
 .powercrud-bootstrap-tomselect .ts-control.focus {
-    border-color: #86b7fe;
-    box-shadow: 0 0 0 .25rem rgba(13, 110, 253, .25);
+    border-color: var(--pc-ts-option-active-bg, var(--bs-primary));
+    box-shadow: 0 0 0 .25rem color-mix(in srgb, var(--pc-ts-option-active-bg, var(--bs-primary)) 25%, transparent);
 }
 
 .powercrud-bootstrap-tomselect .ts-dropdown {
@@ -528,13 +576,78 @@
 }
 
 .powercrud-bootstrap-tomselect .ts-dropdown .active {
-    background: var(--bs-tertiary-bg);
-    color: var(--bs-body-color);
+    background: var(--pc-ts-option-keyboard-bg, var(--bs-tertiary-bg));
+    color: var(--pc-ts-option-active-text, var(--bs-body-color));
+}
+
+.ts-dropdown .option.selected {
+    background: var(--pc-ts-option-selected-bg, var(--bs-primary-bg-subtle));
+    color: var(--bs-emphasis-color);
+    font-weight: 600;
+}
+
+.ts-dropdown .tomselect-checkbox {
+    accent-color: var(--pc-ts-option-active-bg, var(--bs-primary));
 }
 
 .ts-dropdown.powercrud-inline-single-dropdown {
     z-index: 1090;
     max-width: calc(100vw - 2rem) !important;
+}
+
+[data-powercrud-object-list="true"] [data-inline-row="true"] .ts-wrapper.powercrud-inline-multiselect {
+    width: 100%;
+    min-width: 10rem;
+    font-size: inherit;
+}
+
+[data-powercrud-object-list="true"] [data-inline-row="true"] .ts-wrapper.powercrud-inline-multiselect .ts-control {
+    font-size: inherit;
+    min-height: calc(1.5em + .5rem + (var(--bs-border-width) * 2));
+    max-height: 2.75rem;
+    overflow-y: auto;
+    padding-block: .2rem;
+}
+
+[data-powercrud-object-list="true"] [data-inline-row="true"] .ts-wrapper.powercrud-inline-multiselect .ts-control > input {
+    font-size: inherit;
+}
+
+.ts-wrapper.powercrud-compact-multiselect .ts-control > .item {
+    display: none;
+}
+
+.ts-wrapper.powercrud-compact-multiselect .ts-control {
+    flex-wrap: nowrap;
+}
+
+.ts-wrapper.powercrud-compact-multiselect .powercrud-compact-multiselect-summary {
+    color: var(--bs-body-color);
+    flex: 0 1 auto;
+    line-height: inherit;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ts-wrapper.powercrud-compact-multiselect .ts-control > input {
+    flex: 1 1 2ch;
+    min-width: 2ch;
+}
+
+.ts-wrapper.powercrud-compact-multiselect.plugin-clear_button.has-items .clear-button {
+    opacity: 1;
+}
+
+.ts-dropdown.powercrud-inline-multiselect-dropdown {
+    z-index: 1090;
+    max-width: calc(100vw - 2rem) !important;
+}
+
+.ts-dropdown.powercrud-inline-multiselect-dropdown.powercrud-inline-dropdown-upward {
+    border-top: var(--bs-border-width) solid var(--bs-border-color);
+    border-bottom: 0;
+    border-radius: var(--bs-border-radius) var(--bs-border-radius) 0 0;
 }
 
 .ts-dropdown.powercrud-filter-favourite-select-dropdown {

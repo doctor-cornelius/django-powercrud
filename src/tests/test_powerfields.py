@@ -73,7 +73,11 @@ def test_powerfield_extracts_mapping_primitive_fragment():
     fragment = PowerField(
         "status",
         list=True,
-        column={"help_text": "Current status.", "alignment": "center"},
+        column={
+            "help_text": "Current status.",
+            "alignment": "center",
+            "width": "compact",
+        },
         queryset_dependencies={"static_filters": {"is_active": True}},
         link={"view_name": "workflow:status-detail", "open_in": "modal"},
     ).to_primitive_fragment()
@@ -82,6 +86,7 @@ def test_powerfield_extracts_mapping_primitive_fragment():
         "fields": ["status"],
         "column_help_text": {"status": "Current status."},
         "column_alignments": {"status": "center"},
+        "column_width_modes": {"status": "compact"},
         "field_queryset_dependencies": {
             "status": {"static_filters": {"is_active": True}},
         },
@@ -127,6 +132,12 @@ def test_powerfield_rejects_invalid_temporal_value_format():
     """PowerField should reject unsupported temporal display mode literals."""
     with pytest.raises(ValueError, match="value_format"):
         PowerField("completed_at", list=True, column={"value_format": "DATE"})
+
+
+def test_powerfield_rejects_invalid_column_width_mode():
+    """PowerField should reject unsupported semantic column width mode literals."""
+    with pytest.raises(ValueError, match="width"):
+        PowerField("title", list=True, column={"width": "wide"})
 
 
 def test_powerfield_rejects_include_and_exclude_for_same_dimension():

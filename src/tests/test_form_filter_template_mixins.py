@@ -1,5 +1,5 @@
 from copy import deepcopy
-from datetime import date
+from datetime import date, datetime
 import re
 
 import pytest
@@ -11,6 +11,7 @@ from django.template.loader import render_to_string
 from django.test import RequestFactory, override_settings
 from django.utils.formats import date_format
 from django.utils.safestring import mark_safe
+from django.utils import timezone
 
 from powercrud.mixins.form_mixin import FormMixin
 from powercrud.mixins.filtering_mixin import (
@@ -20,7 +21,7 @@ from powercrud.mixins.filtering_mixin import (
 from powercrud.mixins.htmx_mixin import HtmxMixin
 from powercrud.templatetags import powercrud as powercrud_tags
 
-from sample.models import Author, Book, Genre
+from sample.models import AsyncTaskRecord, Author, Book, Genre
 
 
 @pytest.mark.django_db
@@ -47,6 +48,66 @@ def test_form_mixin_generates_modelform_with_sorted_dropdown():
     date_widget = form_class.base_fields["published_date"].widget
     assert isinstance(date_widget, forms.DateInput)
     assert date_widget.input_type == "date"
+
+
+@pytest.mark.django_db
+def test_generated_datetime_form_and_filter_use_true_datetime_controls(
+    rf: RequestFactory,
+):
+    """Generated datetime form and filter paths must retain date-and-time values."""
+
+    class DateTimeView(HtmxMixin, FormMixin, FilteringMixin):
+        """Provide generated form and filter paths for the temporal parity check."""
+
+        model = AsyncTaskRecord
+        form_fields = ["completed_at"]
+        filterset_fields = ["completed_at"]
+        use_crispy = False
+        form_class = None
+
+        def get_use_crispy(self):
+            """Keep the characterization on the native renderer path."""
+            return False
+
+    completed_at = timezone.make_aware(datetime(2026, 3, 2, 14, 5, 6))
+    record = AsyncTaskRecord.objects.create(
+        task_name="datetime-widget-proof", completed_at=completed_at
+    )
+    view = DateTimeView()
+    view.request = rf.get("/", {"completed_at": "2026-03-02T14:05:06"})
+
+    form_class = view.get_form_class()
+    inline_form = view.build_inline_form(instance=record)
+    filterset = view.get_filterset(AsyncTaskRecord.objects.all())
+
+    form_widget = form_class.base_fields["completed_at"].widget
+    inline_widget = inline_form.fields["completed_at"].widget
+    filter_widget = filterset.form.fields["completed_at"].widget
+    assert isinstance(form_widget, forms.DateTimeInput), (
+        "Generated DateTimeField forms must use a DateTimeInput-compatible widget."
+    )
+    assert form_widget.input_type == "datetime-local", (
+        "Generated DateTimeField forms must render a browser datetime-local control."
+    )
+    assert inline_widget.input_type == "datetime-local", (
+        "Generated DateTimeField inline forms must render a browser datetime-local control."
+    )
+    assert "2026-03-02T14:05:06" in inline_form["completed_at"].as_widget(), (
+        "Generated datetime inline controls must render the complete local date-and-time value."
+    )
+    assert isinstance(filter_widget, forms.DateTimeInput), (
+        "Generated DateTimeField filters must use a DateTimeInput-compatible widget."
+    )
+    assert filter_widget.input_type == "datetime-local", (
+        "Generated DateTimeField filters must render a browser datetime-local control."
+    )
+    assert form_widget.format == "%Y-%m-%dT%H:%M:%S", (
+        "Generated datetime controls must preserve seconds in their browser value."
+    )
+    assert filterset.is_valid(), "A datetime-local filter value must validate."
+    assert list(filterset.qs) == [record], (
+        "A datetime-local filter value must select the matching DateTimeField record."
+    )
 
 
 @pytest.mark.django_db
@@ -2116,12 +2177,14 @@ def test_table_header_component_preserves_sort_help_selection_and_actions_contra
             {
                 "label": "Title",
                 "field_name": "title",
+                "align": "left",
                 "is_sortable": True,
                 "help_text": "Primary title",
             },
             {
                 "label": "Computed",
                 "field_name": "computed",
+                "align": "center",
                 "is_sortable": False,
                 "help_text": "",
             },
@@ -2160,12 +2223,15 @@ def test_table_header_component_preserves_sort_help_selection_and_actions_contra
     assert 'aria-sort="ascending"' in rendered and ">▲</span>" in rendered, (
         "Ascending sort state should use an accessible upward-pointing indicator."
     )
+    assert rendered.count('items-center justify-center gap-1') == 2, (
+        "DaisyUI headers should use the shared centred header presentation regardless of cell alignment."
+    )
     computed_header = rendered.split("Computed", maxsplit=1)[0].rsplit("<th", maxsplit=1)[-1]
     assert "hx-get" not in computed_header and "onclick=" not in computed_header, (
         "Non-sortable headers should not gain navigation behavior."
     )
     assert '<span class="text-center block w-full h-full">Actions</span>' in rendered, (
-        "The component should retain the conditional row-actions heading."
+        "The component should retain the centred conditional row-actions heading."
     )
 
     normal_rendered = render_to_string(
@@ -2451,8 +2517,8 @@ def test_table_shell_component_preserves_geometry_state_and_delegation(tmp_path)
             },
         )
 
-    assert 'class="box-border w-fit max-w-full overflow-x-auto table-max-height"' in rendered, (
-        "The shell should keep overflow local while shrink-wrapping tables that fit."
+    assert 'class="box-border w-full max-w-full overflow-x-auto table-max-height"' in rendered, (
+        "The shell should keep overflow local while filling the available parent width."
     )
     assert 'style="overflow-y: auto;"' in rendered, (
         "The shell should retain table-local vertical scrolling without a trailing gutter."
@@ -2460,7 +2526,7 @@ def test_table_shell_component_preserves_geometry_state_and_delegation(tmp_path)
     assert 'data-selection-key="sample_book_staff_selected"' in rendered, (
         "The shell should retain its selection-key metadata expression."
     )
-    assert 'class="table table-sm custom-table w-auto min-w-max"' in rendered and 'data-inline-enabled="true"' in rendered, (
+    assert 'class="table table-sm custom-table w-max min-w-0"' in rendered and 'data-inline-enabled="true"' in rendered, (
         "The shell should retain configured table classes and inline-enabled metadata."
     )
     assert rendered.count("Delegated header") == 1, (

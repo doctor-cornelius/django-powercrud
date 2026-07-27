@@ -23,6 +23,12 @@
     );
     --pc-ts-option-active-bg: var(--color-primary, #3b82f6);
     --pc-ts-option-active-text: var(--color-primary-content, #ffffff);
+    --pc-ts-option-keyboard-bg: var(--pc-ts-option-active-bg);
+    --pc-ts-option-selected-bg: color-mix(
+        in srgb,
+        var(--pc-ts-option-active-bg) 18%,
+        var(--pc-ts-dropdown-bg)
+    );
     --pc-ts-option-hover-bg: var(--color-base-200, #f3f4f6);
     --pc-ts-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
     --pc-tooltip-bg: var(--color-neutral, #272728);
@@ -263,8 +269,19 @@ select.ts-hidden-accessible {
 .ts-dropdown .active,
 .ts-dropdown [data-selectable].active,
 .ts-dropdown .active.create {
-    background-color: var(--pc-ts-option-active-bg);
+    background-color: var(--pc-ts-option-keyboard-bg);
     color: var(--pc-ts-option-active-text);
+}
+
+/* Checkbox options keep selected choices visible in the menu, so distinguish
+   them independently from the keyboard-hovered option. */
+.ts-dropdown .option.selected {
+    background: var(--pc-ts-option-selected-bg);
+    font-weight: 600;
+}
+
+.ts-dropdown .tomselect-checkbox {
+    accent-color: var(--pc-ts-option-active-bg);
 }
 
 .ts-dropdown [data-selectable] .highlight {
@@ -311,4 +328,64 @@ select.ts-hidden-accessible {
    extend wider so long option labels remain readable. */
 .ts-dropdown.powercrud-inline-single-dropdown {
     max-width: calc(100vw - 2rem) !important;
+}
+
+[data-inline-row="true"] .ts-wrapper.powercrud-inline-multiselect {
+    width: 100%;
+    min-width: 10rem;
+}
+
+[data-inline-row="true"] .ts-wrapper.powercrud-inline-multiselect .ts-control {
+    font-size: inherit;
+    min-height: 2rem;
+    max-height: 2.75rem;
+    overflow-y: auto;
+    padding-block: 0.2rem;
+}
+
+[data-inline-row="true"] .ts-wrapper.powercrud-inline-multiselect .ts-control > input {
+    font-size: inherit;
+}
+
+[data-powercrud-object-list="true"] [data-inline-actions="true"] .btn {
+    font-size: inherit;
+}
+
+/* Inline rows need a stable single-line summary, while modal, filter, and
+   bulk controls retain their ordinary individual removable chips. */
+.ts-wrapper.powercrud-compact-multiselect .ts-control > .item {
+    display: none;
+}
+
+.ts-wrapper.powercrud-compact-multiselect .ts-control {
+    flex-wrap: nowrap;
+}
+
+.ts-wrapper.powercrud-compact-multiselect .powercrud-compact-multiselect-summary {
+    color: var(--pc-ts-control-text);
+    flex: 0 1 auto;
+    line-height: inherit;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ts-wrapper.powercrud-compact-multiselect .ts-control > input {
+    flex: 1 1 2ch;
+    min-width: 2ch;
+}
+
+.ts-wrapper.powercrud-compact-multiselect.plugin-clear_button.has-items .clear-button {
+    opacity: 1;
+}
+
+.ts-dropdown.powercrud-inline-multiselect-dropdown {
+    z-index: 1090;
+    max-width: calc(100vw - 2rem) !important;
+}
+
+.ts-dropdown.powercrud-inline-multiselect-dropdown.powercrud-inline-dropdown-upward {
+    border-top: var(--pc-ts-border-width) solid var(--pc-ts-border-color);
+    border-bottom: 0;
+    border-radius: var(--radius-field) var(--radius-field) 0 0;
 }

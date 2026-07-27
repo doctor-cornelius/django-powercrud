@@ -163,6 +163,7 @@ class BookCRUDView(SampleCRUDMixin):
     exclude = ["description"]
     properties = "__all__"
     list_options_enabled = True
+    column_width_policy = "semantic"
     default_list_fields = [
         "title",
         "author",
@@ -585,6 +586,7 @@ class PowerFieldBookCRUDView(SampleCRUDMixin):
     paginate_by = 5
 
     list_options_enabled = True
+    column_width_policy = "semantic"
     list_cell_link_default_open_in = "modal"
     form_class = forms.BookForm
     power_fields = [
@@ -987,6 +989,11 @@ class AuthorCRUDView(SampleCRUDMixin):
     table_classes = "table-zebra table-sm"
     action_button_classes = "btn-xs"
     extra_button_classes = "btn-sm"
+    column_width_policy = "semantic"
+    column_width_modes = {
+        "has_bio": "compact",
+        "property_birth_date": "auto",
+    }
 
     paginate_by = 15
 
@@ -1004,7 +1011,12 @@ class AuthorCRUDView(SampleCRUDMixin):
 
     # inline_edit_enabled = True # deprecated
     inline_edit_highlight_accent = "#f40b0b"
-    inline_edit_fields = "__fields__"
+    inline_edit_fields = [
+        "name",
+        "birth_date",
+        "an_integer_with_long_heading_text",
+        "genres",
+    ]
 
     bulk_fields = [
         "genres",

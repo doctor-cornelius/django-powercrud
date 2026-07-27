@@ -5,7 +5,7 @@
             {% if bulk_selection_controls_template_paths %}{% include bulk_selection_controls_template_paths with selection_control="select_all" %}{% else %}{% include framework_template_path|add:"/partial/bulk_selection_controls.html" with selection_control="select_all" %}{% endif %}
         {% endif %}
         {% for header in headers %}
-            <th scope="col" class="pc-table-column-width text-{{ header.align|bootstrap5_text_alignment }}" data-field-name="{{ header.field_name }}"{% if current_sort == header.field_name %} aria-sort="ascending"{% elif current_sort == '-'|add:header.field_name %} aria-sort="descending"{% endif %}>
+            <th scope="col" class="pc-table-column-width align-middle text-center" data-field-name="{{ header.field_name }}" data-powercrud-column-width-mode="{{ header.width_mode }}"{% if current_sort == header.field_name %} aria-sort="ascending"{% elif current_sort == '-'|add:header.field_name %} aria-sort="descending"{% endif %}>
                 {% if header.is_sortable %}
                     <a class="link-light text-decoration-none" href="?sort={% if current_sort == header.field_name %}-{% elif current_sort == '-'|add:header.field_name %}{% else %}{% endif %}{{ header.field_name }}{% if request.GET.page_size %}&page_size={{ request.GET.page_size }}{% endif %}{% if filter_params %}&{{ filter_params }}{% endif %}"
                        {% if use_htmx %}hx-get="?sort={% if current_sort == header.field_name %}-{% elif current_sort == '-'|add:header.field_name %}{% else %}{% endif %}{{ header.field_name }}{% if request.GET.page_size %}&page_size={{ request.GET.page_size }}{% endif %}{% if filter_params %}&{{ filter_params }}{% endif %}" hx-headers='{"X-Filter-Sort-Request": "true"}' hx-target="#filtered_results" hx-push-url="true"{% endif %}
@@ -17,6 +17,6 @@
                 {% endif %}
             </th>
         {% endfor %}
-        {% if has_row_actions %}<th scope="col" class="pc-bootstrap-actions-column text-end">Actions</th>{% endif %}
+        {% if has_row_actions %}<th scope="col" class="pc-bootstrap-actions-column align-middle text-center">Actions</th>{% endif %}
     </tr>
 </thead>

@@ -29,6 +29,8 @@ For the mental model behind the option groups, see [PowerCRUD Concepts](../guide
 | `column_help_text` (`dict[str, str]`) | `None` or `dict[str, str]` | `None` | Column headers render without help icons | Add plain-text help tooltips to specific list headers by field/property name. Only configured columns show the adjacent info trigger. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
 | `column_sort_fields_override` (`dict[str, str]`) | `None` or `dict[str, str]` | `None` | Sortable list columns use their own field names, except direct relations with a concrete `name` field which default to `field__name` | Override the queryset `order_by()` expression used when a visible list column header is clicked. Keys are visible column names, including queryset annotation fields; values are Django ordering expressions such as `"author__name"` or `"customer__code"`. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
 | `column_value_formats` (`dict[str, str]`) | `None` or `dict[str, 'date' \| 'time' \| 'datetime']` | `None` | Temporal model fields use their type defaults | Override a named `DateTimeField` or typed temporal queryset annotation. `DateField` accepts only `date`, `TimeField` only `time`, and `DateTimeField` all three. Properties and annotations without an inferable temporal `output_field` are invalid. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
+| `column_width_modes` (`dict[str, str]`) | `None` or `dict[str, 'compact' \| 'auto' \| 'bounded']` | `None` | The view-wide `column_width_policy` decides each column | Override the resolved list width mode for individual fields, annotations, or configured properties. | [Setup & Core CRUD basics](../guides/setup_core_crud.md#semantic-column-widths) |
+| `column_width_policy` (`str`) | `'bounded'`, `'semantic'` | `'bounded'` | All columns retain the legacy bounded width | Opt into type-aware list widths: compact for automatic primary keys and booleans, auto for temporal and numeric fields, and bounded for text, relations, annotations, and properties. | [Setup & Core CRUD basics](../guides/setup_core_crud.md#semantic-column-widths) |
 | `default_datetime_value_format` (`str`) | `'date'`, `'time'`, `'datetime'` | `'date'` | DateTimeField columns show date-only output | View-wide fallback for unconfigured `DateTimeField` and typed datetime-annotation list columns. Named `column_value_formats` entries take precedence. Set Django `DATE_FORMAT`, `TIME_FORMAT`, and `DATETIME_FORMAT` to control the rendered values; Django defaults apply when they are unset. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
 | `default_htmx_target` (`str`) | `str` | `'#content'` | Responses target the main content container | Default HTMX target selector (ignored when HTMX is off). | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
 | `default_filterset_fields` (`list[str]`) | `None` or `list[str]` | `None` | All allowed filters render immediately | Limit the initially visible filter subset while keeping the remaining allowed filters available through the built-in Add filter control. Validated against effective filter names from the bound filter form. | [Filter controls](#filter-controls) |
@@ -230,6 +232,8 @@ Override or refine the automatically generated forms with `form_class`, `form_fi
     If you set `form_class`, PowerCRUD does not use `form_fields` or `form_fields_exclude` to decide which editable fields appear on the form. Those two parameters are for auto-generated forms only.
 
     PowerCRUD still applies its runtime form behavior after the custom form is built, including `form_disabled_fields`, `form_display_fields`, `field_queryset_dependencies`, `dropdown_sort_options`, `searchable_selects`, and `use_crispy`.
+
+    The selected pack may also present a model-backed visible field that still uses Django's silent default widget. A declared field, `Meta.widgets` entry, runtime widget replacement, non-model field, or hidden field remains application-owned. See [Forms](../guides/forms.md#custom-modelforms-and-application-owned-widgets).
 
 `form_display_fields` and `form_disabled_fields` solve two different problems:
 
@@ -476,10 +480,13 @@ PowerCRUD enhances eligible select dropdowns with Tom Select when `searchable_se
 - Applies to regular create/update forms, inline row forms, bulk edit form selects, and filter form selects.
 - Single-select fields are enhanced as searchable dropdowns.
 - Inline single-selects focus when their row enters edit mode, but the dropdown stays closed until the user clicks or types.
-- Multi-select filter fields are enhanced as searchable multi-select controls.
+- Multi-select fields use the selected pack's standard variant on normal forms, filters, and bulk forms, and its compact variant inline.
+- Standard and compact multiselects keep selected options visible with checked state, allow click-to-toggle while open, and provide clear-all.
 - Boolean-style selects remain native controls.
-- Preserves normal Django form POST semantics (the underlying `<select>` still submits the selected value).
-- When using the built-in daisyUI pack, package CSS overrides Tom Select with daisyUI semantic colors so controls follow the active theme.
+- Preserves normal Django single- and multi-value POST semantics through the underlying `<select>`.
+- The selected pack owns enhancement presentation and styling; application enable/disable intent remains authoritative.
+
+See [Forms](../guides/forms.md#widget-presentation), [Inline editing](../guides/inline_editing.md#compact-manytomany-controls), [Filtering](../guides/filtering.md#generated-widget-presentation), and [Bulk editing](../guides/bulk_edit_sync.md#manytomany-value-controls) for surface-specific behaviour.
 
 Per-field opt-out is available via a view hook:
 

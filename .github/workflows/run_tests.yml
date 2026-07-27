@@ -84,6 +84,19 @@ jobs:
       - name: Run pytest
         run: pytest -m "not playwright"
 
+      - name: Run focused Bootstrap server coverage
+        if: matrix.python-version == '3.14'
+        env:
+          DJANGO_SETTINGS_MODULE: tests.settings_bootstrap
+        run: |
+          pytest -m "not playwright" --cov-append --no-cov-on-fail \
+            src/tests/test_bootstrap_template_pack.py \
+            src/tests/test_template_pack_behaviour_matrix.py \
+            src/tests/test_form_filter_template_mixins.py::test_generated_datetime_form_and_filter_use_true_datetime_controls \
+            src/tests/test_form_mixin_extended.py::test_custom_model_form_uses_pack_policy_only_for_silent_default_widgets \
+            src/tests/test_inline_editing_mixin.py::test_generated_inline_m2m_requests_pack_multiselect_enhancement \
+            src/tests/test_bulk_view_mixin.py::test_bulk_field_info_uses_policy_owned_controls_for_selects
+
       - name: Preserve canonical core coverage data
         if: matrix.python-version == '3.14' && matrix.django == '6.0'
         run: cp .coverage coverage-core.sqlite
@@ -164,6 +177,16 @@ jobs:
 
       - name: Run Playwright smoke suite with coverage append
         run: pytest -m playwright_smoke --cov-append --no-cov-on-fail
+
+      - name: Run focused Bootstrap Playwright coverage
+        env:
+          DJANGO_SETTINGS_MODULE: tests.settings_bootstrap
+        run: |
+          pytest -m playwright --cov-append --no-cov-on-fail \
+            src/tests/playwright/test_bootstrap_modal_presentation.py \
+            src/tests/playwright/test_bootstrap_manual_static_assets.py \
+            src/tests/playwright/test_modal_crud.py::test_modal_multiselect_uses_pack_widget_and_clear_all \
+            src/tests/playwright/test_inline_editing.py::test_inline_m2m_uses_compact_pack_multiselect
 
       - name: Generate combined coverage report
         run: coverage xml

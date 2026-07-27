@@ -1,8 +1,11 @@
 from typing import Dict, List, Optional
+from django import forms
 from django.db import models
 
 from powercrud.labels import resolve_field_label
 from powercrud.logging import get_logger
+from powercrud.template_packs import WidgetPolicyContext, get_template_pack_server_adapter
+from powercrud.widget_policy import apply_widget_presentation, get_model_widget_kind
 from ..config_mixin import resolve_config
 
 log = get_logger(__name__)
@@ -10,6 +13,100 @@ log = get_logger(__name__)
 
 class MetadataMixin:
     """Mixin providing metadata for bulk editing fields, including field info and choices."""
+
+    def _get_bulk_enhancement_intent(self, field_name: str) -> str:
+        """Return the view and field override intent for one bulk value control."""
+        setting = resolve_config(self).searchable_selects
+        intent = (
+            "enabled"
+            if setting is True
+            else "disabled"
+            if setting is False
+            else "default"
+        )
+        field_hook = getattr(self, "get_searchable_select_enabled_for_field", None)
+        if not callable(field_hook):
+            return intent
+        try:
+            field_setting = field_hook(field_name=field_name, bound_field=None)
+        except TypeError:
+            field_setting = field_hook(field_name)
+        if field_setting is True:
+            return "enabled"
+        if field_setting is False:
+            return "disabled"
+        return intent
+
+    def _build_bulk_value_control(
+        self, *, field_name: str, field: models.Field, info: dict
+    ) -> forms.BoundField:
+        """Build one policy-owned, initially disabled bulk value widget."""
+        choices = list(info.get("bulk_choices") or [])
+        choice_pairs = [(str(choice.pk), str(choice)) for choice in choices]
+        field_type = field.get_internal_type()
+        is_m2m = info["is_m2m"]
+
+        if is_m2m:
+            form_field: forms.Field = forms.MultipleChoiceField(
+                choices=choice_pairs,
+                required=False,
+            )
+        elif field_type == "BooleanField":
+            form_field = forms.ChoiceField(
+                choices=[("", "-- No change --"), ("true", "Yes"), ("false", "No")],
+                required=False,
+            )
+        elif field.is_relation:
+            relation_choices = [("", "-- No change --")]
+            if info["null"]:
+                relation_choices.append(("null", "-- None --"))
+            relation_choices.extend(choice_pairs)
+            form_field = forms.ChoiceField(choices=relation_choices, required=False)
+        elif info.get("choices"):
+            value_choices = [("", "-- No change --")]
+            if info["null"] or info["blank"]:
+                value_choices.append(
+                    ("null", "-- None --" if info["null"] else "-- Blank --")
+                )
+            value_choices.extend((str(value), label) for value, label in info["choices"])
+            form_field = forms.ChoiceField(choices=value_choices, required=False)
+        elif isinstance(field, models.DateTimeField):
+            form_field = forms.DateTimeField(required=False)
+        elif isinstance(field, models.DateField):
+            form_field = forms.DateField(required=False)
+        elif isinstance(field, models.TimeField):
+            form_field = forms.TimeField(required=False)
+        elif isinstance(field, (models.IntegerField, models.DecimalField, models.FloatField)):
+            form_field = forms.DecimalField(required=False)
+            form_field.widget.attrs["step"] = (
+                "1" if isinstance(field, models.IntegerField) else "any"
+            )
+        elif isinstance(field, models.TextField):
+            form_field = forms.CharField(required=False, widget=forms.Textarea)
+        elif isinstance(field, models.FileField):
+            form_field = forms.FileField(required=False)
+        else:
+            form_field = forms.CharField(required=False)
+
+        form_field.disabled = True
+        context = WidgetPolicyContext(
+            surface="bulk",
+            kind=get_model_widget_kind(field),
+            render_mode="native",
+            field_name=field_name,
+            required=False,
+            disabled=True,
+            is_relation=field.is_relation,
+            has_dependency=False,
+            enhancement_intent=self._get_bulk_enhancement_intent(field_name),
+        )
+        apply_widget_presentation(
+            form_field,
+            get_template_pack_server_adapter().get_widget_presentation(context),
+        )
+        bulk_form = forms.Form()
+        bulk_form.fields[field_name] = form_field
+        return bulk_form[field_name]
 
     def _get_bulk_field_queryset_meta(self, field_name: str) -> dict:
         """
@@ -75,7 +172,7 @@ class MetadataMixin:
                         field_name=field_name, field=field
                     )
 
-                field_info[field_name] = {
+                info = {
                     "field": field,
                     "type": field_type,
                     "is_relation": is_relation,
@@ -87,11 +184,22 @@ class MetadataMixin:
                     "choices": getattr(
                         field, "choices", None
                     ),  # Add choices for fields with choices
-                    "searchable_select": self._is_bulk_searchable_select(
-                        field_name=field_name,
-                        field=field,
-                    ),
                 }
+                info["control"] = self._build_bulk_value_control(
+                    field_name=field_name,
+                    field=field,
+                    info=info,
+                )
+                # Preserve this focused-template context flag for applications
+                # that still render their own bulk partial. Pack templates use
+                # the policy-owned BoundField above instead.
+                info["searchable_select"] = (
+                    info["control"].field.widget.attrs.get(
+                        "data-powercrud-searchable-select"
+                    )
+                    == "true"
+                )
+                field_info[field_name] = info
             except Exception as e:
                 # Skip invalid fields
                 print(f"Error processing field {field_name}: {str(e)}")

@@ -182,6 +182,14 @@ def get_bulk_choices_for_field(self, field_name, field):
     return qs
 ```
 
+### ManyToMany value controls
+
+Bulk field selection and ManyToMany `add`, `remove`, or `replace` operations remain generic PowerCRUD behaviour. The selected template pack controls only the visible bulk value widget.
+
+When a ManyToMany field is enabled for the update, both first-party packs show the operation choices above a standard searchable multiselect. **Replace with selected** is visibly selected by default, matching the server-side default when no operation value is submitted.
+
+The multiselect keeps selected options in the menu with checked state, lets an option click add or remove it without closing the menu, and provides clear-all. Its dropdown opens directly beside the visible control rather than covering the operation choices or appearing below an oversized wrapper. Django still receives the normal multi-value selection, and PowerCRUD still applies the chosen add/remove/replace operation.
+
 ---
 
 ## 4. Selection persistence

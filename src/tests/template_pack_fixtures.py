@@ -17,6 +17,15 @@ class FixtureServerAdapter(BaseServerAdapter):
 server_adapter = FixtureServerAdapter()
 
 
+class OldFixtureServerAdapter(FixtureServerAdapter):
+    """Represent the short-lived pre-widget-policy server adapter shape."""
+
+    api_version = 1
+
+
+old_server_adapter = OldFixtureServerAdapter()
+
+
 template_pack = TemplatePack(
     identity="fixture-pack",
     contract_version=TEMPLATE_PACK_CONTRACT_VERSION,
@@ -24,6 +33,19 @@ template_pack = TemplatePack(
     template_package="tests",
     template_resource_root="template_packs/fixture",
     server_adapter="tests.template_pack_fixtures:server_adapter",
+    capabilities=frozenset({"list"}),
+    supports_native_forms=True,
+    django_app=None,
+)
+
+
+old_adapter_template_pack = TemplatePack(
+    identity="old-adapter-fixture",
+    contract_version=TEMPLATE_PACK_CONTRACT_VERSION,
+    template_namespace="fixture/templates",
+    template_package="tests",
+    template_resource_root="template_packs/fixture",
+    server_adapter="tests.template_pack_fixtures:old_server_adapter",
     capabilities=frozenset({"list"}),
     supports_native_forms=True,
     django_app=None,

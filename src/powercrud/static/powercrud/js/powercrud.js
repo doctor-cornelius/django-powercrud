@@ -335,10 +335,10 @@ export function installPowercrudRuntime({ createComposition } = {}) {
     }
 
     function destroyPowercrudFragment(fragment) {
-        // Restore library-enhanced controls before HTMX removes their source
-        // markup, and clear detached body-level UI tied to the fragment.
+        // Clear detached body-level UI tied to the fragment. Searchable-select
+        // teardown happens immediately before HTMX removes its source markup,
+        // so the restored native control cannot flash during an inline save.
         fragmentAdapter?.destroy(fragment);
-        destroyPowercrudSearchableSelects(fragment);
         destroyPowercrudTooltips(fragment);
         modalAdapter.dispose(fragment);
         inlineEdit.destroyInlineFieldErrorPopovers(fragment);
@@ -759,7 +759,12 @@ export function installPowercrudRuntime({ createComposition } = {}) {
                     });
                 });
                 affectedListRoots.forEach(prepareFilterPanelForSwap);
-                getHtmxEventRoots(event).forEach(destroyPowercrudFragment);
+                getHtmxEventRoots(event).forEach(root => {
+                    // Tear down third-party controls before replacement, but
+                    // leave their native source hidden until HTMX removes it.
+                    destroyPowercrudSearchableSelects(root, { restoreNative: false });
+                    destroyPowercrudFragment(root);
+                });
                 closeRowActionsMenu();
                 listColumns.closeListColumnChoosers(document);
                 inlineEdit.handleHtmxBeforeSwap(event);

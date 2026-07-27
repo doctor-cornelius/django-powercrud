@@ -10,8 +10,7 @@ from django.conf import settings
 pytest.importorskip("playwright.sync_api")
 from playwright.sync_api import Page, expect
 
-from sample.models import Author
-
+from sample.models import Author, Genre
 INLINE_ROW_SELECTOR = 'tr[data-inline-row="true"]'
 INLINE_ACTIVE_SELECTOR = f'{INLINE_ROW_SELECTOR}[data-inline-active="true"]'
 
@@ -39,6 +38,13 @@ def inline_ready_books(sample_books, sample_genre):
 
 def open_books_page(page: Page, books_url: str) -> None:
     page.goto(f"{books_url}?page_size=50")
+    page.wait_for_load_state("networkidle")
+    expect(page.locator("table[data-inline-enabled='true']")).to_be_visible()
+
+
+def open_authors_page(page: Page, authors_url: str) -> None:
+    """Open the Author list with enough rows for the viewport-placement proof."""
+    page.goto(f"{authors_url}?page_size=50")
     page.wait_for_load_state("networkidle")
     expect(page.locator("table[data-inline-enabled='true']")).to_be_visible()
 
@@ -357,8 +363,13 @@ def test_inline_edit_searchable_select_updates_author(
         option_value=str(replacement_author.pk),
     )
     genres_select = active_row.locator("select[name='genres']")
-    expect(genres_select).to_be_visible()
-    genres_select.select_option(str(sample_genre.pk))
+    expect(
+        active_row.locator(".ts-wrapper.powercrud-inline-multiselect")
+    ).to_be_visible()
+    genres_select.evaluate(
+        "(element, value) => element.tomselect.setValue(value)",
+        str(sample_genre.pk),
+    )
     active_row.locator("[data-inline-save]").click()
     wait_for_inline_event(page, "inline-row-saved")
 
@@ -366,6 +377,225 @@ def test_inline_edit_searchable_select_updates_author(
     assert (
         book.author_id == replacement_author.pk
     ), "Inline searchable single-select should persist the selected author after save."
+
+
+def test_inline_m2m_uses_compact_pack_multiselect(
+    page: Page, books_url: str, inline_ready_books, sample_genre
+):
+    """Both packs should enhance the sample custom form's silent inline M2M widget."""
+    book = inline_ready_books[0]
+    row_path = build_inline_row_path(books_url, book.pk)
+
+    open_books_page(page, books_url)
+    watch_inline_event(page, "inline-row-saved")
+    active_row = open_inline_row(
+        page, row=get_inline_row(page, row_path), field_name="genres"
+    )
+    select = active_row.locator("select[name='genres']")
+    expect(select).to_have_attribute("data-powercrud-searchable-multiselect", "true")
+    expect(select).to_have_attribute("data-powercrud-widget-variant", "compact")
+    expect(
+        active_row.locator(".ts-wrapper.powercrud-inline-multiselect")
+    ).to_be_visible()
+    expect(
+        active_row.locator(".ts-wrapper.powercrud-inline-multiselect .ts-control")
+    ).to_have_css("max-height", "44px")
+    expect(
+        active_row.locator(".powercrud-compact-multiselect-summary")
+    ).to_have_text("1 selected")
+
+    active_row.evaluate(
+        """
+        row => {
+            const table = row.closest('table');
+            table.classList.add('powercrud-test-inline-typography');
+            if (!document.getElementById('powercrud-test-inline-typography-style')) {
+                const style = document.createElement('style');
+                style.id = 'powercrud-test-inline-typography-style';
+                style.textContent = '.powercrud-test-inline-typography tbody td { font-size: 17px !important; }';
+                document.head.appendChild(style);
+            }
+        }
+        """
+    )
+    select.evaluate(
+        "element => { element.tomselect.close(); element.tomselect.open(); }"
+    )
+    dropdown = page.locator(".ts-dropdown.powercrud-inline-multiselect-dropdown")
+    expect(
+        active_row.locator(".powercrud-compact-multiselect-summary")
+    ).to_be_visible()
+    assert active_row.locator(".powercrud-compact-multiselect .ts-control > .item").evaluate_all(
+        "elements => elements.every(element => window.getComputedStyle(element).display === 'none')"
+    ), "Compact inline multiselects must keep individual chips hidden while their menu is open."
+    typography = active_row.evaluate(
+        """
+        row => {
+            const select = row.querySelector('select[name="genres"]');
+            const cell = select.closest('td');
+            const dropdown = document.querySelector('.ts-dropdown.powercrud-inline-multiselect-dropdown');
+            return {
+                cell: window.getComputedStyle(cell).fontSize,
+                control: window.getComputedStyle(select.tomselect.control).fontSize,
+                input: window.getComputedStyle(select.tomselect.control_input).fontSize,
+                dropdown: window.getComputedStyle(dropdown).fontSize,
+            };
+        }
+        """
+    )
+    assert all(value == typography["cell"] for value in typography.values()), (
+        "Inline control and detached menu typography must inherit the table-cell "
+        f"size set by downstream table classes. Metrics: {typography}"
+    )
+    palette = active_row.evaluate(
+        """
+        row => {
+            const table = row.closest('table[data-inline-enabled="true"]');
+            const dropdown = document.querySelector(
+                '.ts-dropdown.powercrud-inline-multiselect-dropdown'
+            );
+            const properties = [
+                '--pc-ts-option-active-bg',
+                '--pc-ts-option-keyboard-bg',
+                '--pc-ts-option-selected-bg',
+            ];
+            return Object.fromEntries(properties.map(property => [property, {
+                table: window.getComputedStyle(table).getPropertyValue(property).trim(),
+                dropdown: dropdown.style.getPropertyValue(property).trim(),
+            }]));
+        }
+        """
+    )
+    assert all(values["table"] == values["dropdown"] for values in palette.values()), (
+        "A detached inline M2M menu must inherit the view-configured inline-edit palette. "
+        f"Palette transfer: {palette}"
+    )
+    expect(dropdown.locator(".option.selected input.tomselect-checkbox:checked")).to_have_count(
+        1
+    )
+    dropdown.locator(".option.selected").click()
+    page.wait_for_function(
+        """
+        () => document.querySelector(
+            'tr[data-inline-active="true"] select[name="genres"]'
+        ).tomselect.items.length === 0
+        """
+    )
+
+    select.evaluate(
+        "(element, value) => element.tomselect.setValue(String(value))",
+        str(sample_genre.pk),
+    )
+    clear_button = active_row.locator(
+        ".powercrud-compact-multiselect .clear-button"
+    )
+    expect(clear_button).to_have_attribute("title", "Clear all selected options")
+    expect(clear_button).to_be_visible()
+    clear_button.click()
+    page.wait_for_function(
+        """
+        () => document.querySelector(
+            'tr[data-inline-active="true"] select[name="genres"]'
+        ).tomselect.items.length === 0
+        """
+    )
+
+    select.evaluate(
+        "(element, value) => { element.tomselect.setValue(value); element.tomselect.close(); }",
+        str(sample_genre.pk),
+    )
+    expect(
+        active_row.locator(".powercrud-compact-multiselect-summary")
+    ).to_have_text("1 selected")
+
+    active_row.locator("[data-inline-save]").click()
+    wait_for_inline_event(page, "inline-row-saved")
+    book.refresh_from_db()
+    assert book.genres.exists(), "Saving the enhanced inline M2M field must retain values."
+
+
+def test_inline_m2m_near_viewport_bottom_stays_put_and_opens_upward(
+    page: Page, authors_url: str, sample_genre
+):
+    """Keep an inline M2M row in view and position its menu on the usable side."""
+    page.set_viewport_size({"width": 1500, "height": 900})
+    for index in range(30):
+        Author.objects.create(name=f"Viewport placement author {index:02d}")
+    for index in range(8):
+        Genre.objects.create(name=f"Viewport placement genre {index:02d}")
+
+    target = Author.objects.get(name="Viewport placement author 22")
+    target.genres.add(sample_genre)
+    row_path = build_inline_row_path(authors_url, target.pk)
+
+    open_authors_page(page, authors_url)
+    target_row = get_inline_row(page, row_path)
+    before_metrics = target_row.evaluate(
+        """
+        row => {
+            const scrollContainer = row.closest('[data-powercrud-table-scroll="true"]');
+            const containerBox = scrollContainer.getBoundingClientRect();
+            const rowBox = row.getBoundingClientRect();
+            scrollContainer.style.scrollBehavior = 'auto';
+            scrollContainer.scrollTop += rowBox.bottom - (containerBox.bottom - 8);
+            const placedRowBox = row.getBoundingClientRect();
+            return {
+                scrollTop: scrollContainer.scrollTop,
+                rowTop: placedRowBox.top,
+                rowBottom: placedRowBox.bottom,
+                containerBottom: containerBox.bottom,
+            };
+        }
+        """
+    )
+
+    active_row = open_inline_row(page, row=target_row, field_name="genres")
+    dropdown = page.locator(".ts-dropdown.powercrud-inline-multiselect-dropdown")
+    expect(dropdown).to_be_visible()
+    metrics = active_row.evaluate(
+        """
+        row => {
+            const scrollContainer = row.closest('[data-powercrud-table-scroll="true"]');
+            const control = row.querySelector('select[name="genres"]').tomselect.control;
+            const dropdown = document.querySelector(
+                '.ts-dropdown.powercrud-inline-multiselect-dropdown'
+            );
+            const containerBox = scrollContainer.getBoundingClientRect();
+            const rowBox = row.getBoundingClientRect();
+            const controlBox = control.getBoundingClientRect();
+            const dropdownBox = dropdown.getBoundingClientRect();
+            return {
+                scrollTop: scrollContainer.scrollTop,
+                containerTop: containerBox.top,
+                containerHeight: containerBox.height,
+                rowTop: rowBox.top,
+                controlTop: controlBox.top,
+                dropdownTop: dropdownBox.top,
+                dropdownBottom: dropdownBox.bottom,
+                opensUpward: dropdown.classList.contains('powercrud-inline-dropdown-upward'),
+            };
+        }
+        """
+    )
+
+    assert abs(metrics["scrollTop"] - before_metrics["scrollTop"]) <= 12, (
+        "Opening an inline row already visible near the table bottom must not "
+        f"recenter the table scroll position. Before/after: {before_metrics}, {metrics}"
+    )
+    assert metrics["rowTop"] > (
+        metrics["containerTop"] + (metrics["containerHeight"] * 0.6)
+    ), (
+        "The active row should remain in the lower part of the table viewport, "
+        f"not migrate to its middle. Metrics: {metrics}"
+    )
+    assert metrics["opensUpward"], (
+        "An inline M2M menu with insufficient room below must choose the space "
+        f"above the control. Metrics: {metrics}"
+    )
+    assert metrics["dropdownBottom"] <= metrics["controlTop"] - 2, (
+        "The upward inline M2M menu must sit above its control without overlap. "
+        f"Metrics: {metrics}"
+    )
 
 
 def test_inline_edit_saves_after_hiding_non_trigger_column(
@@ -422,7 +652,7 @@ def test_inline_searchable_select_focus_opens_dropdown(
         """
     )
 
-    expect(active_row.locator(".ts-wrapper")).to_have_count(1)
+    expect(active_row.locator("select[name='author'] + .ts-wrapper")).to_have_count(1)
     assert select.evaluate(
         "el => document.activeElement === el.tomselect.control_input"
     ), "Inline searchable select should route focus to the Tom Select control input."

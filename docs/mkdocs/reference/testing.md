@@ -5,7 +5,7 @@ PowerCRUD ships with an end-to-end test suite that exercises both the Python sur
 The project now uses a three-layer testing model:
 
 - Local and release preparation: run the full suite with `./runtests`, including the full Playwright browser regression set.
-- Blocking CI browser coverage: run a curated `playwright_smoke` subset that covers core CRUD, inline editing, favourites, bulk selection, row actions, and tooltip reinitialisation.
+- Blocking CI browser coverage: run the curated default-pack `playwright_smoke` subset plus focused Bootstrap modal, asset-loading, standard multiselect, and compact inline multiselect checks.
 - Broader browser regression coverage: run the full Playwright suite separately from the smoke gate when you want deeper browser validation without making every nuanced browser interaction a merge blocker.
 
 ## Supported template-pack acceptance
@@ -96,12 +96,12 @@ To point Playwright at a different host, set `PLAYWRIGHT_BASE_URL` (defaults to 
   - `pytest -m "not playwright"` for headless-free runs
   - `pytest -m playwright_smoke` for the curated browser smoke subset
   - `pytest -m playwright` for the full browser suite
-- `./runtests` is the easiest way to reproduce the intended local workflow: it sets `DJANGO_SETTINGS_MODULE=tests.settings`, resets coverage, builds static assets when needed, and runs the core + Playwright suites in order.
-- `./runtests --playwright <node-id>` lets you run a focused Playwright subset while still forcing the normal test settings and browser marker selection.
+- `./runtests` is the easiest way to reproduce the intended local workflow: it resets coverage, runs the default core suite, adds focused server coverage under `tests.settings_bootstrap`, builds static assets, then runs the default and focused Bootstrap Playwright coverage in order.
+- `./runtests --playwright <node-id>` runs a focused Playwright subset with the normal test settings unless you explicitly set another module such as `DJANGO_SETTINGS_MODULE=tests.settings_bootstrap`.
 - `./runtests --rebuild-assets <node-id>` is useful when debugging frontend flakes or asset-sensitive browser failures and you want to force a fresh bundle before a focused run.
 - `./runtests` also accepts multiple explicit pytest node ids or paths in one invocation. In plain path mode it auto-selects `tests.settings_minimal` only if every requested path is a minimal-settings test; mixed minimal and regular test selections are rejected unless you set `DJANGO_SETTINGS_MODULE` explicitly.
 - Use `requirements/constraints-django52.txt` or `requirements/constraints-django60.txt` when you need to reproduce the exact support-matrix environment rather than the default local workflow.
 - A bare `pytest` will use `DJANGO_SETTINGS_MODULE=tests.settings` from `pytest.ini`, but it will not build assets or install browser/OS dependencies; expect Playwright tests (and async/system checks) to fail unless you provision those prerequisites yourself.
 - Async-only tests rely on `django_q` (installed via the `tests-core` extras group) and are guarded with `pytest.importorskip("django_q")` so the core suite can be exercised even when async deps are omitted.
 - The `tests.settings_minimal` module and `test_minimal_settings_no_async.py` provide a smoke test for importing `PowerCRUDMixin` in a project that never configures async or `POWERCRUD_SETTINGS`.
-- GitHub Actions blocks on the curated `playwright_smoke` subset. The full Playwright suite is still intended for local runs, release preparation, and optional manual GitHub Actions runs when you want the extra browser signal.
+- GitHub Actions blocks on the curated default-pack `playwright_smoke` subset and focused Bootstrap browser coverage. The full Playwright suite is still intended for local runs, release preparation, and optional manual GitHub Actions runs when you want the extra browser signal.

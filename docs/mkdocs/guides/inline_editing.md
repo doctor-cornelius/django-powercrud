@@ -210,10 +210,23 @@ inline-row-forbidden # payload: {"message": …}
 - **Column widths** – editable columns reserve a small width buffer so swapping to a widget (with icons or date pickers) does not push neighbouring columns. Non-editable columns keep their natural width.
 - **Single-select fields** – eligible dropdowns are enhanced with Tom Select by default, so users can type to filter options inline without changing backend form contracts. Inline activation focuses the field and opens the dropdown when the selected cell is a searchable select. Disable globally with `searchable_selects = False` or per field with `get_searchable_select_enabled_for_field()`.
 - **Validation errors** – field errors remain in the row markup for accessibility and fallback rendering. When the runtime successfully shows a forced-visible popover, it visually hides the duplicate inline error text with `sr-only`; if the popover cannot be created, the inline text stays visible. If you override the inline row partial, preserve the `data-inline-field-error`, `data-inline-error-message`, `aria-invalid`, and `aria-describedby` attributes so the package runtime can find the invalid widget.
-- **Multi-select fields** – a row can temporarily grow taller when editing ManyToMany fields (e.g., genres). This is expected; if you need a single-line control, swap the widget for a chips/combobox style component.
+- **Multi-select fields** – both first-party packs use the compact multiselect described below for eligible ManyToMany fields.
 - **HTMX targets** – inline rows target themselves (`hx-target="#pc-row-{{ pk }}"`) so partial updates do not reload the entire table.
 - **Keyboard flow** – the row automatically focuses the cell that triggered edit mode (or the first editable field) so users can start typing immediately. Text/number inputs are pre-selected on first focus so typing replaces the current value. Press `Enter` to trigger the same Save action as the button (except inside textareas), and `Esc` mirrors the Cancel button. `<Tab>` will tab between editable fields in the row.
 - **Testing** – unit tests can call `_dispatch_inline_row()` and `_dispatch_inline_dependency()` directly (see `src/tests/test_inline_editing_mixin.py` for a harness). Browser tests should assert the `inline-row-*` triggers fire correctly.
+
+### Compact ManyToMany controls
+
+Eligible inline ManyToMany fields use the selected pack's compact searchable multiselect instead of a tall native select. The closed and open control keeps a stable `N selected` summary while the dropdown shows the individual options and their checked state.
+
+- Clicking an option selects or deselects it without closing the menu.
+- Clear-all removes the current selection while retaining ordinary Django multi-value submission.
+- The dropdown opens above the control when the viewport does not have enough room below, without recentering the row.
+- The control and detached menu inherit the table cell's configured typography and the inline highlight palette.
+- A dependency refresh replaces and reinitialises the same compact control through the normal inline lifecycle.
+- Successful save keeps the hidden native select hidden until HTMX removes the outgoing row, so there is no native-control flash.
+
+The pack supplies this default presentation. A widget explicitly selected by the application remains application-owned as described in [Forms](forms.md#custom-modelforms-and-application-owned-widgets).
 
 ### Manual test checklist for dependent inline fields
 

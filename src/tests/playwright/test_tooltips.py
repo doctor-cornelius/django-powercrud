@@ -341,17 +341,17 @@ def test_searchable_select_and_tooltip_initializers_are_idempotent_after_htmx_re
         "beforeSwap": {
             "instanceDestroyed": True,
             "wrapperDisconnected": True,
-            "hidden": False,
-            "ariaHidden": False,
-            "hiddenClass": False,
-            "nativeStyleStored": False,
-            "nativeTabindexStored": False,
+            "hidden": True,
+            "ariaHidden": True,
+            "hiddenClass": True,
+            "nativeStyleStored": True,
+            "nativeTabindexStored": True,
         },
         "oldSelectDisconnected": True,
         "freshSelect": True,
         "freshInstance": True,
         "freshWrapper": True,
-    }, "Expected HTMX teardown to restore the old native select before creating one fresh replacement."
+    }, "Expected HTMX teardown to keep the old native select hidden until its replacement arrives."
     for _ in range(2):
         page.evaluate(
             """

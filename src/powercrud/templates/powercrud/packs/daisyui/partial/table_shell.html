@@ -1,11 +1,11 @@
 {% with inline_enabled=inline_edit.enabled %}
 
-<div class="box-border w-fit max-w-full overflow-x-auto table-max-height"
+<div class="box-border w-full max-w-full overflow-x-auto table-max-height"
     style="overflow-y: auto;"
     data-powercrud-table-scroll="true"
     {% if enable_selection_controls %}data-selection-key="{{ keyBase }}_{{ selection_key_suffix }}_selected"{% endif %}
     >
-    <table class="table {{ table_classes }} w-auto min-w-max"
+    <table class="table {{ table_classes }} w-max min-w-0"
         {% if inline_enabled %}data-inline-enabled="true"{% endif %}>
         {% if table_header_template_paths %}
             {% include table_header_template_paths %}

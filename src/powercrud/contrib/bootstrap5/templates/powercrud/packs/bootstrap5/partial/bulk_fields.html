@@ -7,7 +7,16 @@
             <label class="form-check-label fw-semibold" for="bulk-field-{{ field_name }}">{{ info.verbose_name }}</label>
         </div>
         <div class="field-input-container d-none ms-4 mt-2">
-            {% if info.type == 'BooleanField' %}
+            {% if info.control %}
+                {% if info.is_m2m %}
+                <div class="form-text mb-2" data-powercrud-bulk-m2m-actions="{{ field_name }}">
+                    <label class="form-check"><input class="form-check-input" type="radio" name="{{ field_name }}_action" value="add" disabled> Add selected</label>
+                    <label class="form-check"><input class="form-check-input" type="radio" name="{{ field_name }}_action" value="remove" disabled> Remove selected</label>
+                    <label class="form-check"><input class="form-check-input" type="radio" name="{{ field_name }}_action" value="replace" checked disabled> Replace with selected</label>
+                </div>
+                {% endif %}
+                {{ info.control }}
+            {% elif info.type == 'BooleanField' %}
                 <select name="{{ field_name }}" class="form-select" disabled><option value="">-- No change --</option><option value="true">Yes</option><option value="false">No</option></select>
             {% elif info.type == 'DateField' %}
                 <input type="date" name="{{ field_name }}" class="form-control" disabled>
@@ -18,8 +27,12 @@
                     <option value="">-- No change --</option>{% if info.null %}<option value="null">-- None --</option>{% endif %}{% for choice in info.bulk_choices %}<option value="{{ choice.pk }}">{{ choice }}</option>{% endfor %}
                 </select>
             {% elif info.is_relation and info.is_m2m %}
+                <div class="form-text mb-2" data-powercrud-bulk-m2m-actions="{{ field_name }}">
+                    <label class="form-check"><input class="form-check-input" type="radio" name="{{ field_name }}_action" value="add" disabled> Add selected</label>
+                    <label class="form-check"><input class="form-check-input" type="radio" name="{{ field_name }}_action" value="remove" disabled> Remove selected</label>
+                    <label class="form-check"><input class="form-check-input" type="radio" name="{{ field_name }}_action" value="replace" checked disabled> Replace with selected</label>
+                </div>
                 <select name="{{ field_name }}" class="form-select" multiple disabled>{% for choice in info.bulk_choices %}<option value="{{ choice.pk }}">{{ choice }}</option>{% endfor %}</select>
-                <div class="form-text"><div class="form-check"><input class="form-check-input" type="radio" name="{{ field_name }}_action" value="add" disabled> Add selected</div><div class="form-check"><input class="form-check-input" type="radio" name="{{ field_name }}_action" value="remove" disabled> Remove selected</div><div class="form-check"><input class="form-check-input" type="radio" name="{{ field_name }}_action" value="replace" disabled> Replace with selected</div></div>
             {% elif info.choices %}
                 <select name="{{ field_name }}" class="form-select" {% if info.searchable_select %}data-powercrud-searchable-select="true"{% endif %} disabled><option value="">-- No change --</option>{% if info.null or info.blank %}<option value="null">{% if info.null %}-- None --{% else %}-- Blank --{% endif %}</option>{% endif %}{% for value, label in info.choices %}<option value="{{ value }}">{{ label }}</option>{% endfor %}</select>
             {% elif info.type == 'IntegerField' or info.type == 'FloatField' or info.type == 'DecimalField' %}

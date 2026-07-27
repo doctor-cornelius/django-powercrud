@@ -6,6 +6,7 @@ from django_filters import (
     CharFilter,
     ChoiceFilter,
     DateFilter,
+    DateTimeFilter,
     NumberFilter,
     BooleanFilter,
     ModelChoiceFilter,
@@ -16,7 +17,16 @@ from django.db import models
 from django.utils.text import capfirst
 
 from powercrud.logging import get_logger
-from powercrud.template_packs import get_template_pack_styles
+from powercrud.template_packs import (
+    WidgetKind,
+    WidgetPolicyContext,
+    get_template_pack_server_adapter,
+)
+from powercrud.widget_policy import (
+    apply_widget_presentation,
+    get_form_widget_kind,
+    get_model_widget_kind,
+)
 from .config_mixin import ConfigMixin, resolve_config
 from .form_mixin import is_boolean_like_select_field
 
@@ -169,50 +179,56 @@ class FilteringMixin:
 
     def _is_filter_searchable_select_enabled_for_field(
         self, field_name: str, field: forms.Field
-    ) -> bool:
+    ) -> bool | None:
         """
-        Resolve whether a filter field should receive Tom Select enhancement.
+        Resolve a filter field's explicit Tom Select preference.
 
         This reuses the existing per-field hook when available so views can opt
-        out specific fields consistently across regular, inline, bulk, and
-        filter form controls.
+        out or opt in specific fields consistently across regular, inline,
+        bulk, and filter form controls.
         """
         field_hook = getattr(self, "get_searchable_select_enabled_for_field", None)
         if not callable(field_hook):
-            return True
-        return bool(field_hook(field_name=field_name, bound_field=field))
+            return None
+        return field_hook(field_name=field_name, bound_field=field)
 
     def _apply_filter_searchable_select_attrs(self, filterset: FilterSet | None) -> None:
-        """
-        Tag eligible filter select widgets for frontend Tom Select enhancement.
-        """
+        """Apply selected-pack filter policy after resolving search eligibility."""
         if filterset is None:
-            return
-        if resolve_config(self).searchable_selects_enabled is False:
             return
 
         for field_name, field in filterset.form.fields.items():
             widget = getattr(field, "widget", None)
-            if widget is None or not isinstance(widget, forms.Select):
+            if widget is None:
                 continue
-
-            attrs = widget.attrs
-            attrs.pop("data-powercrud-searchable-select", None)
-            attrs.pop("data-powercrud-searchable-multiselect", None)
-
-            if not self._is_filter_searchable_select_enabled_for_field(
-                field_name=field_name, field=field
+            enhancement_intent = "default"
+            if (
+                isinstance(widget, forms.Select)
+                and not self._is_boolean_like_filter_select_field(field)
             ):
-                continue
-
-            if getattr(widget, "allow_multiple_selected", False):
-                attrs["data-powercrud-searchable-multiselect"] = "true"
-                continue
-
-            if self._is_boolean_like_filter_select_field(field):
-                continue
-
-            attrs["data-powercrud-searchable-select"] = "true"
+                view_setting = resolve_config(self).searchable_selects
+                if view_setting is True:
+                    enhancement_intent = "enabled"
+                elif view_setting is False:
+                    enhancement_intent = "disabled"
+                field_setting = self._is_filter_searchable_select_enabled_for_field(
+                    field_name=field_name, field=field
+                )
+                if field_setting is True:
+                    enhancement_intent = "enabled"
+                elif field_setting is False:
+                    enhancement_intent = "disabled"
+            presentation = self._get_filter_widget_presentation(
+                field_name=field_name,
+                kind=get_form_widget_kind(field),
+                required=field.required,
+                disabled=field.disabled,
+                is_relation=isinstance(
+                    field, (forms.ModelChoiceField, forms.ModelMultipleChoiceField)
+                ),
+                enhancement_intent=enhancement_intent,
+            )
+            apply_widget_presentation(field, presentation)
 
     def _apply_custom_filterset_htmx_attrs(self, filterset: FilterSet | None) -> None:
         """
@@ -232,82 +248,29 @@ class FilteringMixin:
         if callable(setup_htmx_attrs):
             setup_htmx_attrs()
 
-    def _merge_widget_attrs(
+    def _get_filter_widget_presentation(
         self,
-        existing_attrs: dict[str, str],
-        framework_attrs: dict[str, str],
-    ) -> dict[str, str]:
-        """
-        Merge framework widget attrs into an existing widget attrs mapping.
-
-        Existing custom attrs win for non-class/style keys so custom filterset
-        definitions keep any explicit placeholders, titles, and input behavior.
-        Framework classes are appended to existing classes so custom styling is
-        preserved while still applying the baseline DaisyUI filter treatment.
-        """
-        merged_attrs = existing_attrs.copy()
-
-        existing_classes = merged_attrs.get("class", "").split()
-        framework_classes = framework_attrs.get("class", "").split()
-        combined_classes = []
-        for class_name in [*existing_classes, *framework_classes]:
-            if class_name and class_name not in combined_classes:
-                combined_classes.append(class_name)
-        if combined_classes:
-            merged_attrs["class"] = " ".join(combined_classes)
-
-        existing_style = merged_attrs.get("style", "").strip().rstrip(";")
-        framework_style = framework_attrs.get("style", "").strip().rstrip(";")
-        if existing_style and framework_style:
-            merged_attrs["style"] = f"{existing_style}; {framework_style}"
-        elif framework_style and not existing_style:
-            merged_attrs["style"] = framework_style
-
-        for attr_name, attr_value in framework_attrs.items():
-            if attr_name in {"class", "style"}:
-                continue
-            merged_attrs.setdefault(attr_name, attr_value)
-
-        return merged_attrs
-
-    def _get_framework_filter_widget_attrs_for_form_field(
-        self,
-        field: forms.Field,
-    ) -> dict[str, str]:
-        """
-        Resolve framework filter widget attrs for a bound custom filter form field.
-
-        Custom `filterset_class` definitions expose Django form fields rather than
-        the model-field metadata used by the auto-generated filterset path, so
-        this helper chooses the same framework attrs from the bound field/widget
-        shape directly.
-        """
-        base_attrs = get_template_pack_styles(self.get_framework_styles())["filter_attrs"]
-        widget = field.widget
-
-        if isinstance(widget, forms.SelectMultiple):
-            return base_attrs.get(
-                "multiselect",
-                base_attrs.get("select", base_attrs.get("default", {})),
-            ).copy()
-        if isinstance(widget, forms.Select):
-            return base_attrs.get("select", base_attrs.get("default", {})).copy()
-        if isinstance(widget, forms.DateInput):
-            return base_attrs.get("date", base_attrs.get("default", {})).copy()
-        if isinstance(widget, forms.TimeInput):
-            return base_attrs.get("time", base_attrs.get("default", {})).copy()
-        if isinstance(widget, forms.NumberInput) or isinstance(
-            field,
-            (
-                forms.IntegerField,
-                forms.DecimalField,
-                forms.FloatField,
-            ),
-        ):
-            return base_attrs.get("number", base_attrs.get("default", {})).copy()
-        if isinstance(widget, (forms.TextInput, forms.Textarea)):
-            return base_attrs.get("text", base_attrs.get("default", {})).copy()
-        return base_attrs.get("default", {}).copy()
+        *,
+        field_name: str,
+        kind: WidgetKind,
+        required: bool = False,
+        disabled: bool = False,
+        is_relation: bool = False,
+        enhancement_intent: str = "default",
+    ):
+        """Resolve selected-pack presentation for one filter control."""
+        context = WidgetPolicyContext(
+            surface="filter",
+            kind=kind,
+            render_mode="native",
+            field_name=field_name,
+            required=required,
+            disabled=disabled,
+            is_relation=is_relation,
+            has_dependency=False,
+            enhancement_intent=enhancement_intent,
+        )
+        return get_template_pack_server_adapter().get_widget_presentation(context)
 
     def _apply_custom_filterset_framework_attrs(
         self, filterset: FilterSet | None
@@ -323,16 +286,17 @@ class FilteringMixin:
         if filterset is None:
             return
 
-        for field in filterset.form.fields.values():
-            framework_attrs = self._get_framework_filter_widget_attrs_for_form_field(
-                field
+        for field_name, field in filterset.form.fields.items():
+            presentation = self._get_filter_widget_presentation(
+                field_name=field_name,
+                kind=get_form_widget_kind(field),
+                required=field.required,
+                disabled=field.disabled,
+                is_relation=isinstance(
+                    field, (forms.ModelChoiceField, forms.ModelMultipleChoiceField)
+                ),
             )
-            if not framework_attrs:
-                continue
-            field.widget.attrs = self._merge_widget_attrs(
-                field.widget.attrs,
-                framework_attrs,
-            )
+            apply_widget_presentation(field, presentation)
 
     def get_filter_queryset_for_field(self, field_name, model_field):
         """Get an efficiently filtered and sorted queryset for filter options."""
@@ -524,46 +488,6 @@ class FilteringMixin:
         context.update(self.get_filter_visibility_context(filterset))
         return context
 
-    def _get_filter_widget_attrs(
-        self,
-        base_attrs: dict[str, dict[str, str]] | dict[str, str],
-        field_to_check,
-        *,
-        prefer_select: bool = False,
-    ) -> dict[str, str]:
-        """Resolve widget attrs for a filter field based on model-field type."""
-        if not isinstance(base_attrs, dict) or (
-            "text" not in base_attrs and "select" not in base_attrs
-        ):
-            return base_attrs.copy()
-
-        if prefer_select:
-            return base_attrs.get("select", base_attrs.get("default", {})).copy()
-
-        if isinstance(field_to_check, models.ManyToManyField):
-            return base_attrs.get(
-                "multiselect",
-                base_attrs.get("select", base_attrs.get("default", {})),
-            ).copy()
-        if isinstance(field_to_check, (models.ForeignKey, models.OneToOneField)):
-            return base_attrs.get("select", base_attrs.get("default", {})).copy()
-        if self._field_has_choices(field_to_check):
-            return base_attrs.get("select", base_attrs.get("default", {})).copy()
-        if isinstance(field_to_check, (models.CharField, models.TextField)):
-            return base_attrs.get("text", base_attrs.get("default", {})).copy()
-        if isinstance(field_to_check, models.DateField):
-            return base_attrs.get("date", base_attrs.get("default", {})).copy()
-        if isinstance(
-            field_to_check,
-            (models.IntegerField, models.DecimalField, models.FloatField),
-        ):
-            return base_attrs.get("number", base_attrs.get("default", {})).copy()
-        if isinstance(field_to_check, models.TimeField):
-            return base_attrs.get("time", base_attrs.get("default", {})).copy()
-        if isinstance(field_to_check, models.BooleanField):
-            return base_attrs.get("select", base_attrs.get("default", {})).copy()
-        return base_attrs.get("default", {}).copy()
-
     def _field_supports_auto_null_filter(self, field_name: str, field_to_check) -> bool:
         """Return whether a field should receive automatic null-filter support."""
         if getattr(field_to_check, "null", False) is not True:
@@ -701,7 +625,6 @@ class FilteringMixin:
 
         if filterset_class is None and filterset_fields is not None:
             use_htmx = self.get_use_htmx()
-            base_attrs = get_template_pack_styles(self.get_framework_styles())["filter_attrs"]
             declared_filters = {}
             filter_form_order = []
 
@@ -710,7 +633,12 @@ class FilteringMixin:
                     self._resolve_generated_filter_field(field_name, queryset)
                 )
 
-                field_attrs = self._get_filter_widget_attrs(base_attrs, field_to_check)
+                field_presentation = self._get_filter_widget_presentation(
+                    field_name=field_name,
+                    kind=get_model_widget_kind(field_to_check),
+                    is_relation=bool(getattr(field_to_check, "is_relation", False)),
+                )
+                field_attrs = dict(field_presentation.attrs)
 
                 if is_annotation and isinstance(
                     field_to_check,
@@ -748,6 +676,11 @@ class FilteringMixin:
                         lookup_expr="icontains",
                         label=self._get_filter_label(model_field or field_name),
                         widget=forms.TextInput(attrs=field_attrs),
+                    )
+                elif isinstance(field_to_check, models.DateTimeField):
+                    declared_filters[field_name] = DateTimeFilter(
+                        label=self._get_filter_label(model_field or field_name),
+                        widget=forms.DateTimeInput(attrs=field_attrs),
                     )
                 elif isinstance(field_to_check, models.DateField):
                     if "type" not in field_attrs:
@@ -813,10 +746,12 @@ class FilteringMixin:
                     field_name, field_to_check
                 ) and self._field_uses_companion_null_filter(field_to_check):
                     null_field_name = self.get_null_filter_field_name(field_name)
-                    null_attrs = self._get_filter_widget_attrs(
-                        base_attrs,
-                        field_to_check,
-                        prefer_select=True,
+                    null_attrs = dict(
+                        self._get_filter_widget_presentation(
+                            field_name=null_field_name,
+                            kind="select",
+                            is_relation=False,
+                        ).attrs
                     )
                     declared_filters[null_field_name] = (
                         self._build_companion_null_filter(

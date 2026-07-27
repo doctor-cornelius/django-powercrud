@@ -1,20 +1,13 @@
 # Django PowerCRUD
 
+[![PyPI](https://img.shields.io/pypi/v/django-powercrud.svg?cacheSeconds=300)](https://pypi.org/project/django-powercrud/)
 [![Run Test Matrix](https://github.com/doctor-cornelius/django-powercrud/actions/workflows/pr_tests.yml/badge.svg)](https://github.com/doctor-cornelius/django-powercrud/actions/workflows/pr_tests.yml)
-
 [![Security](https://github.com/doctor-cornelius/django-powercrud/actions/workflows/security.yml/badge.svg)](https://github.com/doctor-cornelius/django-powercrud/actions/workflows/security.yml)
-
 [![codecov](https://codecov.io/github/doctor-cornelius/django-powercrud/branch/main/graph/badge.svg)](https://codecov.io/github/doctor-cornelius/django-powercrud)
+[![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 [![Python](https://img.shields.io/badge/python-3.12%20%7C%203.13%20%7C%203.14-blue)](#supported-versions)
-
 [![Django](https://img.shields.io/badge/django-5.2%20%7C%206.0-0C4B33)](#supported-versions)
-
-[![Renovate](https://img.shields.io/badge/renovate-enabled-brightgreen?logo=renovatebot)](https://developer.mend.io/github/doctor-cornelius/django-powercrud)
-
-[![PyPI](https://img.shields.io/pypi/v/django-powercrud.svg?cacheSeconds=300)](https://pypi.org/project/django-powercrud/)
-
-[![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 **Advanced CRUD for perfectionists with deadlines. An opinionated Django package for shipping production-grade CRUD screens with filtering, bulk operations, inline editing, and async workflows.**
 
@@ -43,10 +36,11 @@ See the [full documentation](https://doctor-cornelius.github.io/django-powercrud
 - Bulk edit/delete with selection persistence and an optional async path.
 - Async infrastructure: conflict locks, progress cache, django-q2 workers, cleanup command, optional dashboard persistence.
 - Filtering, sorting, and pagination helpers backed by tuned templates.
-- Template-pack support: built-in DaisyUI, maintained Bootstrap 5, and a public contract for authors to create and publish compatible packs.
+- First-party presentation packs: built-in DaisyUI and maintained Bootstrap 5 templates, assets, and widget presentation.
+- Independent template packs: a tested public contract for authors to create and publish another framework integration.
 - Styling controls, template and pack scaffolding, and Tailwind safelist extraction.
-- Extension hooks for custom actions, buttons, and templates, illustrated in the bundled sample app.
-- Two supported API styles: direct class-attribute configuration plus structured declarations for repeated field and action intent.
+- Production extension points: persistence hooks, permission-aware actions, queryset annotation columns, lazy evaluation, and optional saved favourites.
+- Two supported API styles: the direct Base Configuration API plus structured declarations for reusable field and action intent.
 - Tooling support: Dockerised dev environment, management commands, pytest + Playwright coverage.
 
 ## Quick Examples
@@ -80,6 +74,36 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
 
 This single view serves a filtered list, modal forms, inline edits, and synchronous bulk edits - no async stack required.
 
+### Structured declarations for repeated intent
+
+The Base Configuration API above remains the most direct place to start. When the same field participates in several surfaces, the Structured Declaration API can keep that intent together and make it reusable:
+
+```python
+from neapolitan.views import CRUDView
+from powercrud.mixins import PowerCRUDMixin
+from powercrud.powerfields import PowerField
+
+
+PROJECT_STATUS = PowerField(
+    "status",
+    default_list=True,
+    form=True,
+    inline=True,
+    bulk=True,
+)
+
+
+class ProjectCRUDView(PowerCRUDMixin, CRUDView):
+    model = Project
+    power_fields = [
+        PowerField("name", default_list=True, form=True),
+        PowerField("owner", default_list=True, form=True),
+        PROJECT_STATUS,
+    ]
+```
+
+Choose either Base Configuration field-intent attributes or `power_fields` within one view inheritance chain; do not mix them. `PowerAction` and `PowerButton` provide reusable action and toolbar declarations and may be mixed with Base API action dictionaries. See [Choosing an API Style](https://doctor-cornelius.github.io/django-powercrud/guides/structured_api/) for the decision guide.
+
 ### Async bulk (opt-in)
 
 ```python
@@ -107,9 +131,11 @@ Here async queueing is explicit: you opt in by using `PowerCRUDAsyncMixin`, enab
 
 - Install `django-powercrud` and `neapolitan`, add `powercrud`, `neapolitan`, and `django_htmx`, then follow the [Getting Started](https://doctor-cornelius.github.io/django-powercrud/guides/getting_started/) guide for base template requirements.
 - Continue with [Setup & Core CRUD basics](https://doctor-cornelius.github.io/django-powercrud/guides/setup_core_crud/) for the first full view configuration, then use [Filtering](https://doctor-cornelius.github.io/django-powercrud/guides/filtering/) for the dedicated filter guide.
+- Read [PowerCRUD Concepts](https://doctor-cornelius.github.io/django-powercrud/guides/concepts/) for the mental model behind surfaces, field intent, actions, presentation, selection, and bulk work, then [Choosing an API Style](https://doctor-cornelius.github.io/django-powercrud/guides/structured_api/) when repeated configuration starts to obscure that intent.
 - Add [Inline editing](https://doctor-cornelius.github.io/django-powercrud/guides/inline_editing/) and [Bulk editing (synchronous)](https://doctor-cornelius.github.io/django-powercrud/guides/bulk_edit_sync/), then move to [Async Manager](https://doctor-cornelius.github.io/django-powercrud/guides/async_manager/) and [Bulk editing (async)](https://doctor-cornelius.github.io/django-powercrud/guides/bulk_edit_async/) when you need background work.
 - Use [Styling & Tailwind](https://doctor-cornelius.github.io/django-powercrud/guides/styling_tailwind/) and [Customisation tips](https://doctor-cornelius.github.io/django-powercrud/guides/advanced/customisation_tips/) to adapt templates.
 - See [Template Packs](https://doctor-cornelius.github.io/django-powercrud/template_packs/) to select DaisyUI or Bootstrap 5, customise a selected pack, or learn the compatible-pack contract.
+- Use the [Advanced Guides](https://doctor-cornelius.github.io/django-powercrud/guides/advanced/) for persistence, permission-aware affordances, saved favourites, queryset annotations, and lazy evaluation in larger applications.
 
 ## Tooling & References
 
@@ -134,7 +160,7 @@ PowerCRUD’s development environment is Docker-first. From the project root:
 
 ```bash
 ./runproj up          # build images, start services, enter the Django container
-./runtests           # run the full local test suite, including the full Playwright browser suite
+./runtests           # run the full local suite, including Playwright and focused Bootstrap coverage
 ```
 
 Dependencies are managed with [`uv`](https://github.com/astral-sh/uv); the Docker image installs them into the system interpreter so you never need to activate a virtual environment inside the container. See the [Dockerised Development Environment guide](https://doctor-cornelius.github.io/django-powercrud/reference/dockerised_dev/) for full details.

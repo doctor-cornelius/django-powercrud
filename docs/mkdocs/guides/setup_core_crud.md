@@ -694,7 +694,43 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
 }
 ```
 
-Accepted values are `left`, `center`, and `right`. This is a semantic presentation override for rendered list body cells only; table headers keep their normal alignment, and any column not listed here continues to use PowerCRUD's built-in alignment heuristic.
+Accepted values are `left`, `center`, and `right`. This is a semantic presentation override for rendered list body cells only. First-party template packs centre table headers independently, and any body column not listed here continues to use PowerCRUD's built-in alignment heuristic.
+
+### Semantic column widths
+
+PowerCRUD keeps the legacy bounded-width table by default. Opt into type-aware widths when compact values should stop consuming the same space as descriptive text:
+
+```python
+class ProjectCRUDView(PowerCRUDMixin, CRUDView):
+    # ...
+    column_width_policy = "semantic"
+```
+
+The two policies are:
+
+- `"bounded"` gives every column the established minimum and maximum width behaviour.
+- `"semantic"` infers `compact` for automatic primary keys and booleans, `auto` for temporal and numeric fields, and `bounded` for text, relations, annotations, and properties.
+
+Override an inferred mode when the meaning of a particular column calls for it:
+
+```python
+class ProjectCRUDView(PowerCRUDMixin, CRUDView):
+    # ...
+    column_width_policy = "semantic"
+    column_width_modes = {
+        "status_code": "compact",
+        "reference_number": "auto",
+        "summary": "bounded",
+    }
+```
+
+Accepted per-column modes are `compact`, `auto`, and `bounded`. With the structured API, make the same declaration on the field:
+
+```python
+PowerField("status_code", column={"width": "compact"})
+```
+
+Widths affect list presentation only. They do not change values, sorting, filtering, or the independently configurable body-cell alignment. See the [configuration reference](../reference/config_options.md) and [PowerField reference](../reference/powerfields.md) for the terse API mappings.
 
 ### Temporal list value formats
 

@@ -26,7 +26,7 @@ function toggleFieldInput(checkbox) {
         if (input.tomselect) {
             checkbox.checked ? input.tomselect.enable() : input.tomselect.disable();
         }
-        if (checkbox.checked && window.initPowercrudSearchableSelects && input.matches('select[data-powercrud-searchable-select="true"]')) {
+        if (checkbox.checked && window.initPowercrudSearchableSelects && input.matches('select[data-powercrud-searchable-select="true"], select[data-powercrud-searchable-multiselect="true"]')) {
             window.initPowercrudSearchableSelects(input);
         }
     });

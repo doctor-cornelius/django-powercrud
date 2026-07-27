@@ -69,7 +69,7 @@ Presentation options include `base_template_path`, `templates_path`, `use_htmx`,
 
 Presentation overlaps with field links and actions because both need a target. The important distinction is that a field or action describes what the user can do; presentation describes where the result opens.
 
-The selected template pack owns framework markup and assets. Portable semantic presentation settings have the same product meaning across supported packs; raw class strings are selected-framework inputs. See [Testing and accepting a template pack](../template_packs/testing-and-acceptance.md) for the support rule.
+The selected template pack owns framework markup, assets, and visible widget presentation. PowerCRUD still owns field values, querysets, validation, submission, dependencies, and HTMX lifecycle. Portable semantic presentation settings have the same product meaning across supported packs; raw class strings are selected-framework inputs. See [Forms: Widget presentation](./forms.md#widget-presentation) for application behaviour and [Testing and accepting a template pack](../template_packs/testing-and-acceptance.md) for the support rule.
 
 ### Selection
 

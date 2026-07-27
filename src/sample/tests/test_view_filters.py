@@ -493,6 +493,12 @@ def test_powerfield_book_sample_view_matches_book_field_intent_config():
         "PowerFieldBookCRUDView should use the same custom BookForm as BookCRUDView "
         "for clone-equivalence testing."
     )
+    assert primitive_view.get_column_width_policy() == "semantic", (
+        "The ordinary Book sample should demonstrate semantic list-column sizing."
+    )
+    assert powerfield_view.get_column_width_policy() == "semantic", (
+        "The PowerField Book sample should demonstrate the same semantic list-column sizing."
+    )
 
 
 @pytest.mark.django_db
@@ -695,8 +701,8 @@ def test_book_sample_list_renders_external_link_field_attrs(client: Client):
     assert "container mt-20 mb-5 mx-5 p-5" not in response_text, (
         "Sample base template should not keep the old large top margin wrapper."
     )
-    assert "container mx-5 my-5 p-5" in response_text, (
-        "Sample base template should render the reduced page margin wrapper."
+    assert 'class="box-border w-full px-5 py-5"' in response_text, (
+        "Sample base template should use the full available page width with safe internal padding."
     )
     assert 'href="https://www.isbn-international.org/content/what-isbn"' in response_text, (
         "Book sample list should render the static external URL from link_fields."

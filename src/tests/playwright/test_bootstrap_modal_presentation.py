@@ -24,6 +24,26 @@ pytestmark = [
 ]
 
 
+def test_bootstrap_sample_theme_toggle_changes_and_remembers_the_theme(page, books_url):
+    """The Bootstrap sample shell should provide the same useful theme choice as DaisyUI."""
+    page.goto(books_url)
+    page.wait_for_load_state("networkidle")
+
+    toggle = page.locator("[data-sample-theme-toggle]")
+    expect(toggle).to_have_accessible_name("Select Dark Theme")
+    expect(page.locator("html")).to_have_attribute("data-bs-theme", "light")
+    expect(toggle).to_have_attribute("aria-pressed", "false")
+
+    toggle.click()
+    expect(page.locator("html")).to_have_attribute("data-bs-theme", "dark")
+    expect(toggle).to_have_attribute("aria-label", "Select Light Theme")
+    expect(toggle).to_have_attribute("aria-pressed", "true")
+
+    page.reload()
+    page.wait_for_load_state("networkidle")
+    expect(page.locator("html")).to_have_attribute("data-bs-theme", "dark")
+
+
 def test_bootstrap_preview_modal_opens_and_closes_without_browser_errors(
     page, books_url, sample_author
 ):

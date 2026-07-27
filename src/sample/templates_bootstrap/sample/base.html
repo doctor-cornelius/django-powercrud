@@ -2,7 +2,7 @@
 
 <!DOCTYPE html>
 
-<html lang="en">
+<html lang="en" data-bs-theme="light">
 
 <head>
     <meta charset="UTF-8">
@@ -23,11 +23,20 @@
 <body hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
     {% block app_content %}{% endblock app_content %}
 
-    <main class="container-fluid px-3 py-3">
-        <header class="pc-bootstrap-header mb-4">
+    <main class="container-fluid px-3 py-2">
+        <header class="pc-bootstrap-header mb-3">
             {% include "sample/_runtime_meta.html" %}
 
         <nav class="d-flex flex-wrap align-items-center gap-2 pc-bootstrap-navigation" aria-label="Sample navigation">
+            <button class="btn btn-sm btn-outline-secondary pc-bootstrap-theme-toggle"
+                    type="button"
+                    aria-label="Select Dark Theme"
+                    title="Select Dark Theme"
+                    data-sample-theme-toggle>
+                <svg aria-hidden="true" viewBox="0 0 24 24" focusable="false">
+                    <path d="M21.75 15.5a9.75 9.75 0 0 1-13.25-13.25 10 10 0 1 0 13.25 13.25Z" />
+                </svg>
+            </button>
             <a class="btn btn-sm btn-primary" href="{% url 'home' %}">Home</a>
             <div class="btn-group" role="group" aria-label="Book List buttons">
                 <a class="btn btn-sm btn-secondary" hx-get="{% url 'sample:bigbook-list' %}" hx-target="#content"
@@ -86,6 +95,48 @@
             <div id="powercrud"></div>
         </div>
     </main>
+    <script>
+        (function () {
+            const storageKey = 'powercrud-sample-bootstrap-theme';
+            const root = document.documentElement;
+
+            function setTheme(theme) {
+                root.setAttribute('data-bs-theme', theme);
+                try {
+                    window.localStorage.setItem(storageKey, theme);
+                } catch (error) {
+                    // The selector remains useful when browser storage is unavailable.
+                }
+            }
+
+            function syncThemeToggle(toggle) {
+                const isDark = root.getAttribute('data-bs-theme') === 'dark';
+                const nextThemeLabel = isDark ? 'Light' : 'Dark';
+                const label = `Select ${nextThemeLabel} Theme`;
+
+                toggle.setAttribute('aria-label', label);
+                toggle.setAttribute('title', label);
+                toggle.setAttribute('aria-pressed', String(isDark));
+            }
+
+            try {
+                const savedTheme = window.localStorage.getItem(storageKey);
+                if (savedTheme === 'light' || savedTheme === 'dark') {
+                    root.setAttribute('data-bs-theme', savedTheme);
+                }
+            } catch (error) {
+                // Keep the explicit light default when browser storage is unavailable.
+            }
+
+            document.querySelectorAll('[data-sample-theme-toggle]').forEach(function (toggle) {
+                syncThemeToggle(toggle);
+                toggle.addEventListener('click', function () {
+                    setTheme(root.getAttribute('data-bs-theme') === 'dark' ? 'light' : 'dark');
+                    syncThemeToggle(toggle);
+                });
+            });
+        }());
+    </script>
 </body>
 
 </html>
