@@ -374,11 +374,8 @@ def test_bootstrap_table_alignment_and_dropdown_button_classes_use_portable_valu
         },
     )
 
-    assert 'class="pc-table-column-width text-start"' in table_header, (
-        "The public left alignment must map to Bootstrap's text-start utility."
-    )
-    assert 'class="pc-table-column-width text-end"' in table_header, (
-        "The public right alignment must map to Bootstrap's text-end utility."
+    assert table_header.count('class="pc-table-column-width align-middle text-center"') == 2, (
+        "Bootstrap headers should use the shared centred header presentation regardless of cell alignment."
     )
     assert 'data-powercrud-column-width-mode="bounded"' in table_header, (
         "Bootstrap headers should receive the resolved bounded width mode."

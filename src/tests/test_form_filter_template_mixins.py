@@ -2177,12 +2177,14 @@ def test_table_header_component_preserves_sort_help_selection_and_actions_contra
             {
                 "label": "Title",
                 "field_name": "title",
+                "align": "left",
                 "is_sortable": True,
                 "help_text": "Primary title",
             },
             {
                 "label": "Computed",
                 "field_name": "computed",
+                "align": "center",
                 "is_sortable": False,
                 "help_text": "",
             },
@@ -2221,12 +2223,15 @@ def test_table_header_component_preserves_sort_help_selection_and_actions_contra
     assert 'aria-sort="ascending"' in rendered and ">▲</span>" in rendered, (
         "Ascending sort state should use an accessible upward-pointing indicator."
     )
+    assert rendered.count('items-center justify-center gap-1') == 2, (
+        "DaisyUI headers should use the shared centred header presentation regardless of cell alignment."
+    )
     computed_header = rendered.split("Computed", maxsplit=1)[0].rsplit("<th", maxsplit=1)[-1]
     assert "hx-get" not in computed_header and "onclick=" not in computed_header, (
         "Non-sortable headers should not gain navigation behavior."
     )
     assert '<span class="text-center block w-full h-full">Actions</span>' in rendered, (
-        "The component should retain the conditional row-actions heading."
+        "The component should retain the centred conditional row-actions heading."
     )
 
     normal_rendered = render_to_string(
