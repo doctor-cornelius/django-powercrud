@@ -158,11 +158,11 @@ enter this path. Explicit application widget choices remain outside it.
 
 ## Agreed Completion Architecture
 
-Phase 9 completes the original ownership goal without introducing a mutable
-widget registry. The public pack entry point remains
+Phase 9 completed the original ownership goal without introducing a mutable
+widget registry. The public pack entry point is
 `get_widget_presentation(context)`.
 
-The completed resolution path will be:
+The completed resolution path is:
 
 1. Django or generic PowerCRUD creates the field semantics, values, choices,
    queryset, validation, and submission behaviour.
@@ -234,15 +234,13 @@ CSS, and browser adapters implement the returned decision; they do not create a
 second policy authority. Most application developers only select a pack and use
 ordinary Django custom-form mechanisms when they need an explicit override.
 
-### Current Gaps Phase 9 Must Close
+### Gaps Closed in Phase 9
 
-1. Normal forms, inline forms, and filters call `get_widget_presentation()`, but
-   bulk value controls still bypass it and are literal pack-template markup.
-2. Generic form code currently requests searchable multiselect presentation
-   only for inline fields.
-3. The first-party packs repeat the inline-only multiselect condition.
-4. Normal/modal and bulk M2M controls therefore remain native even though the
-   compact inline control has proven the enhancement path.
+Before Phase 9, bulk value controls bypassed `get_widget_presentation()`,
+generic form code requested searchable multiselect presentation only for
+inline fields, and the first-party packs repeated that inline-only condition.
+Phase 9 closed those gaps by routing visible bulk value controls through the
+same resolver and moving standard-versus-compact defaults into each pack.
 
 The resulting architecture is intended to reduce complexity: one semantic
 resolver, one required pack method, explicit neutral fallback, and small surface
@@ -326,32 +324,30 @@ variant.
 
 ### Phase 10: Complete the Shared Multiselect UX
 
-After Phase 9 establishes the final resolution route, improve the shared Tom
-Select multiselect rather than adding another surface-specific widget. Both
-first-party packs will import and register Tom Select's standard
-`checkbox_options` plugin. Multiselects will keep selected options visible in
-the dropdown, show their checked state, and let an option click add or remove
-that value while the dropdown remains open.
+Phase 10 improved the shared Tom Select multiselect after Phase 9 established
+the final resolution route. Both first-party packs import and register Tom
+Select's standard `checkbox_options` plugin. Multiselects keep selected options
+visible in the dropdown, show their checked state, and let an option click add
+or remove that value while the dropdown remains open.
 
-The standard multiselect interaction will be shared across applicable
-surfaces. Pack adapters remain responsible for DaisyUI or Bootstrap styling.
-Roomier surfaces may retain ordinary selected-item presentation; the inline
-variant will show a compact selected count rather than clipped partial chips.
-The existing non-editing overflow tooltip remains unchanged, and no additional
-inline-edit tooltip is required.
+The standard multiselect interaction is shared across applicable surfaces.
+Pack adapters remain responsible for DaisyUI or Bootstrap styling. Roomier
+surfaces retain ordinary selected-item presentation; the inline variant shows
+a compact selected count rather than clipped partial chips. The existing
+non-editing overflow tooltip remains unchanged, and no additional inline-edit
+tooltip is required.
 
-The current adapters register only Tom Select's `remove_button` plugin. With
-`hideSelected` false, selected options therefore remain listed without a clear
-selected indicator, and clicking an already-selected option does not toggle it
-off. The checkbox plugin supplies the intended standard toggle behaviour. Any
-failure to add an unselected option is treated as a separate regression and
-must be covered by the same browser proof.
+Before Phase 10, the adapters registered only Tom Select's `remove_button`
+plugin. With `hideSelected` false, selected options remained listed without a
+clear selected indicator, and clicking an already-selected option did not
+toggle it off. The checkbox plugin now supplies the intended standard toggle
+behaviour, covered together with adding unselected options in browser tests.
 
-Successful inline save currently destroys Tom Select during HTMX teardown and
-briefly restores the underlying native Django multi-select before the old row
-is removed. Outgoing-fragment teardown must keep that native control hidden
-until replacement while preserving normal native restoration for explicit or
-non-swap destruction.
+Successful inline save previously destroyed Tom Select during HTMX teardown
+and briefly restored the underlying native Django multi-select before the old
+row was removed. Outgoing-fragment teardown now keeps that native control
+hidden until replacement while preserving normal native restoration for
+explicit or non-swap destruction.
 
 ### Phase 10 Implementation Outcome
 
@@ -384,12 +380,39 @@ filters, bulk controls, Bootstrap native and Crispy modal rendering, checked
 state, click-to-deselect, compact count while open, clear-all semantics,
 table and row-action typography inheritance, submitted M2M values, placement,
 full-height DaisyUI modal presentation, and successful save under both DaisyUI
-and Bootstrap. Phase 11 remains the stable-documentation follow-up.
+and Bootstrap. Phase 11 records the resulting stable documentation.
 
-Acceptance evidence must cover DaisyUI and Bootstrap initial checked state,
+Acceptance evidence covers DaisyUI and Bootstrap initial checked state,
 mouse and keyboard add/remove behaviour, selected-count updates, Django POST
 values, upward and downward viewport placement, HTMX reinitialisation, and the
 absence of a native-control flash during save.
+
+## Release-note draft
+
+### Pack-owned widget presentation
+
+PowerCRUD now lets the selected template pack own visible widget presentation
+across normal forms, inline editing, generated filters, and bulk-edit value
+controls. Applications get controls that fit the selected framework and
+surface while PowerCRUD continues to own values, querysets, validation,
+submission, dependencies, and HTMX lifecycle.
+
+Generated `DateTimeField` controls now use true `datetime-local` inputs with
+seconds preserved, and silent model-backed defaults in a custom `ModelForm` can
+receive the selected pack's presentation without overriding declarative fields,
+`Meta.widgets`, runtime replacements, non-model fields, or hidden controls.
+Searchable multiselects now share checked options, click-to-toggle, and
+clear-all behaviour across both first-party packs: normal forms, filters, and
+bulk editing use the standard variant, while inline editing uses the compact
+`N selected` variant.
+
+The release also adds opt-in semantic list-column widths and material
+cross-pack polish for headers, table sizing, modal controls, dropdown placement,
+typography, palettes, and flash-free inline saves. Independently maintained
+template packs must upgrade to the server-adapter version 2 widget-policy
+contract; the browser-adapter API remains version 1. This version-neutral prose
+should move into `CHANGELOG.md` unchanged when release work creates the version
+and date heading.
 
 ## Branch Change Record
 
@@ -516,29 +539,44 @@ it records outcomes rather than reproducing commit messages.
    tests under DaisyUI and Bootstrap.
 3. Rebuilt and committed the manifest-backed DaisyUI and Bootstrap frontend
    assets after each frontend-runtime change.
-4. Updated the reference pages for the new semantic column-width API. The
-   broader stable documentation and release-note wording remain Phase 11 work.
+4. Updated the stable guides and references for the completed widget policy,
+   multiselect behaviour, semantic column-width API, and cross-pack ownership
+   boundary. Version-neutral release wording is retained in these notes until
+   release work creates the `CHANGELOG.md` version and date heading.
 
 ### Phase 11: Update Documentation
 
-Promote the settled datetime, silent-custom-form, pack-default, surface-variant,
-fallback, bulk-integration, and multiselect behaviour into stable documentation,
-then reconcile these temporary notes with the final boundary.
+The stable documentation keeps its existing task-led structure. Template-pack
+authors use `template_packs/authoring-and-publishing.md` for the end-to-end
+contract and release journey, including the collapsed release checklist, and
+`template_packs/testing-and-acceptance.md` for the acceptance matrix.
+
+Application developers use `guides/forms.md` as the main widget-presentation
+authority, with the inline, filtering, and bulk guides describing their own
+surface behaviour. Setup owns semantic list widths; Getting Started and the
+styling guide own consumer asset-loading order; the sample and terse references
+link back to those authorities without duplicating the policy.
+
+The Phase 11 handover and inventory audit remain historical planning evidence.
+No new stable page or MkDocs navigation entry was added. The release-note draft
+above is the approved transfer source for a later release-heading update to
+`CHANGELOG.md`.
 
 ## Implementation Evidence
 
 The completed implementation replaces the old `filter_widget_attrs` adapter
-field with a required widget-policy method. The first-party adapters now own
-filter presentation and the old generic temporal form class is selected by the
-pack. Ordinary generated form controls retain Django widgets when the pack
-explicitly returns neutral presentation. Existing bulk controls remain literal
-pack templates and therefore were not given a new generic metadata field.
+field with the required server-adapter version 2 widget-policy method. The
+first-party adapters own visible presentation across normal forms, inline
+forms, generated filters, and bulk value controls. A neutral decision preserves
+Django's compatible widget, while `BaseServerAdapter` combines semantic base
+defaults, surface overrides, and explicit enhancement intent.
 
-Phase 9 will close that deliberate preservation gap and remove the generic
-inline-only multiselect presentation decision. Until then, the implemented
-contract is not yet the single resolution route for bulk value controls.
+Bulk field selection and M2M add/remove/replace operations remain generic
+PowerCRUD behaviour. Pack templates still own their layout, but the visible
+bulk value control now resolves through the same widget policy as the other
+three surfaces.
 
-The deliberate visible change in Phase 5 is limited to generated inline ManyToMany fields:
+The deliberate visible change in Phase 5 was limited to generated inline ManyToMany fields:
 the selected pack requests the existing Tom Select multi-value enhancement and
 adds compact inline control/dropdown styling. Phase 7 separately extends that
 route to silent default widgets in custom ModelForms; application-owned widget
@@ -565,3 +603,21 @@ The completed Phase 6–8 follow-up has separate successful evidence:
 Two attempted broad runs overlapped on the shared test database; they are not
 used as evidence. An explicit all-tests Bootstrap invocation is also not a
 supported gate because many legacy tests intentionally assert DaisyUI output.
+
+### Phase 11 Documentation Validation
+
+1. `git diff --check` passed for the completed documentation change set.
+2. `.venv/bin/mkdocs build --strict` completed successfully after correcting
+   the customisation page's management-command anchor. It reported no missing
+   pages, invalid links or anchors, malformed tabs, malformed admonitions, or
+   other build errors.
+3. MkDocs retained the three pre-existing informational notices for pages that
+   sit outside configured navigation: `guides/dependent_form_fields.md`,
+   `guides/poweractions.md`, and `guides/powerfields.md`. Phase 11 deliberately
+   made no navigation change.
+4. The Material for MkDocs runtime printed its upstream MkDocs 2.0 migration
+   advisory; the locked MkDocs 1.6 strict build itself passed.
+5. Every changed stable Markdown page and its new cross-links were inspected.
+   No product test was run because Phase 11 changes documentation only.
+6. `CHANGELOG.md` remains unchanged. The version-neutral release prose stays in
+   these notes until release work supplies the version and date heading.

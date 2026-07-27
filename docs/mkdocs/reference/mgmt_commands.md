@@ -2,7 +2,7 @@
 
 powercrud provides several management commands to help with setup, template customization, and Tailwind CSS integration.
 
-## `pcrud_mktemplate` - Copy CRUD Templates And Assets
+## `pcrud_mktemplate` - Copy CRUD Templates And Assets {#pcrud-mktemplate}
 
 Copy PowerCRUD templates and, when explicitly requested, pack assets to your project for customisation. For pack selection and customisation boundaries, see [Template Packs](../template_packs/index.md). To choose a focused `--component` value, use the [focused component table](../template_packs/customising.md#focused-component-overrides).
 
