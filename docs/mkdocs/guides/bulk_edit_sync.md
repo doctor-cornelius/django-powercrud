@@ -2,6 +2,8 @@
 
 Let users edit or delete multiple records at once without bringing async into the picture yet. This chapter shows the minimum configuration, common tweaks, and guardrails. Async queuing, progress, and conflict locks arrive in the next chapter.
 
+Use this path when the selected records can be updated within a normal request. If the work is long-running or needs conflict tracking, keep this configuration and add the async layer later.
+
 ---
 
 ## Prerequisites
@@ -26,7 +28,7 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
     bulk_delete = True
 ```
 
-Every entry in `bulk_fields` must be an editable model field. If you include a field with `editable=False`, PowerCRUD raises a configuration error during view setup. In practice, bulk-edit fields should also appear in your normal `fields` list when you want the list and bulk-edit surfaces to stay aligned.
+This is the complete minimum setup. Every entry in `bulk_fields` must be an editable model field. If you include a field with `editable=False`, PowerCRUD raises a configuration error during view setup. In practice, bulk-edit fields should also appear in your normal `fields` list when you want the list and bulk-edit surfaces to stay aligned.
 
 - `bulk_fields` lists the fields that appear in the bulk edit form.
 - `bulk_delete = True` adds a “Delete selected” option.
@@ -40,17 +42,19 @@ The selector controls are shared PowerCRUD selection controls. Permitted built-i
 
 ---
 
-## 2. Validation & save behaviour
+## 2. Understand validation and saving
 
-By default PowerCRUD runs `full_clean()` and then `save()` for each object. If you trust the inputs and want throughput:
+By default PowerCRUD runs `full_clean()` and then `save()` for each object. Operations remain atomic—if any record fails, the whole transaction rolls back. Most applications should keep that behaviour.
 
-```python
-class ProjectCRUDView(PowerCRUDMixin, CRUDView):
-    # …
-    bulk_full_clean = False   # skip full_clean per object
-```
+??? info "Skipping per-object full_clean for trusted high-throughput updates"
 
-Operations remain atomic—if any record fails the whole transaction rolls back.
+    If you trust the inputs and need throughput:
+
+    ```python
+    class ProjectCRUDView(PowerCRUDMixin, CRUDView):
+        # …
+        bulk_full_clean = False   # skip full_clean per object
+    ```
 
 ### Routing sync bulk updates through one hook
 
@@ -153,7 +157,7 @@ If you want a real importable sample of this pattern, see the sample app note in
 
 ---
 
-## 3. Dropdowns & choices {#dropdowns-choices}
+## 3. Configure choices when the bulk form needs them {#dropdowns-choices}
 
 ### Configure dropdowns
 
@@ -192,7 +196,7 @@ The multiselect keeps selected options in the menu with checked state, lets an o
 
 ---
 
-## 4. Selection persistence
+## 4. Work with selection across pages
 
 PowerCRUD stores selections per view in the Django session. They survive pagination, sorting, and filter changes until the user clears them (or the session expires). You can scope them further:
 
@@ -245,7 +249,7 @@ In practice, `BULK_MAX_SELECTED_RECORDS` should usually be at or below `DATA_UPL
 
 ## 5. UX hints
 
-???+ info "Hints for UX Refinements"
+??? info "Hints for UX refinements"
 
     | Requirement | Why it matters |
     |-------------|----------------|

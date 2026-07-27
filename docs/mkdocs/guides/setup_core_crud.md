@@ -1,14 +1,17 @@
 # Setup & Core CRUD basics
 
-Kick off your project by wiring PowerCRUD into an existing Django site, creating the first CRUD view, and enabling the core niceties (filtering, modals, pagination). Everything that follows in later chapters builds on this foundation.
+Use this guide after [Getting Started](./getting_started.md) when your first PowerCRUD list page already renders. It shows how to make that page useful day to day: choose what users see, add filtering and pagination, then improve the table's presentation.
+
+???+ info "How to use this guide"
+
+    For a first useful screen, work through list/detail fields, filtering, pagination, and the list-presentation options that matter to your users. The custom-button, row-action, and detailed modal sections are here when you need them; they are not prerequisites for a working CRUD screen.
 
 ---
 
 ## Prerequisites
 
-- A working Django project on Django 5.2 or 6.0.
-- Python 3.12+ (Docker images currently default to Python 3.14).
-- Optional but recommended: virtual environment to isolate dependencies.
+- A working Django project running Django 5.2 or 6.0.
+- Python 3.12 or later.
 
 If you have not yet installed PowerCRUD and its base dependencies, complete the steps in [Getting Started](./getting_started.md) first.
 
@@ -23,13 +26,13 @@ Before enabling the richer features, work through the [Getting Started](./gettin
 - [Declare your first view](./getting_started.md#basic-setup) and confirm the list/template renders without HTMX extras.
 - [Expose the view somewhere in your project URLs](./getting_started.md#add-to-urls).
 
-When you can load the plain CRUD view end-to-end, come back here to turn on the opinionated defaults.
+When you can load the plain CRUD view end-to-end, come back here to add the features your screen needs.
 
 ---
 
 ## 2. Wire up URLs
 
-If you followed [Getting Started](./getting_started.md#add-to-urls) you already have the fundamentals in place, but here is a slightly fuller example that mirrors the sample project. PowerCRUD inherits Neapolitan’s `get_urls()` helper, so you never have to hand-write the per-role paths.
+If you followed [Getting Started](./getting_started.md#add-to-urls), this is already in place. PowerCRUD uses Neapolitan’s `get_urls()` helper, so you do not write separate paths for the list, create, detail, edit, and delete views.
 
 ```python
 # myapp/urls.py
@@ -45,7 +48,7 @@ urlpatterns = [
 ]
 ```
 
-Need to restrict the registered routes (and therefore the action buttons that appear)? Pass a subset of roles:
+If this screen should expose only some operations, pass the roles you want:
 
 ```python
 urlpatterns = [
@@ -70,33 +73,32 @@ For the full background, see Neapolitan’s [“URLs and view callables”](http
 
 ## 3. Shape list and detail scopes
 
-### Field and detail scopes
+### Choose list and detail content {#field-and-detail-scopes}
 
-PowerCRUD layers a few convenient defaults so you can start with zero configuration and progressively override what appears in list and detail views.
+Start with the information a user needs to scan in the table. Add detail-only context later; you do not need to configure every surface at once.
 
-**List fields**
+**For the list**
 
-- If `fields` is unset or set to `"__all__"`, every concrete model field is included.
-- If `fields` is an explicit list, entries may be model field names or supported queryset annotation names.
-- Use `exclude` to remove a handful of items while keeping the rest of the list intact.
-- `properties` is optional; adding a property name exposes it as a column. Use `"__all__"` to include every `@property` on the model and `properties_exclude` to hide specific ones.
-- Queryset annotation fields are rendered in `fields` order and can filter/sort when the effective queryset exposes the same public annotation name. They are read-only and are not valid in form, inline-edit, or bulk-edit field lists.
-- Use `list_options_enabled = True` to let users choose visible columns through **Cols** for the current session. If the table is too wide for the default view, add `default_list_fields` to show a smaller default subset. See [List Options](./advanced/list_options.md) for the full behavior and persistence rules.
+- Leave `fields` unset, or set it to `"__all__"`, to show every concrete model field.
+- Use an explicit list when the table needs only selected fields. That list can also include supported queryset annotation names.
+- Use `exclude` when it is shorter to name what should not appear.
+- Add a computed `@property` through `properties`. Use `"__all__"` only when every model property is suitable for a list column.
+- Set `list_options_enabled = True` to give users a **Cols** chooser. Add `default_list_fields` when the useful default is a smaller subset of the available columns.
 
-**Detail view**
+Queryset annotations are read-only list fields. They can filter and sort when the active queryset exposes the same annotation name. They do not belong in form, inline-edit, or bulk-edit field lists.
 
-- The **View** button renders `detail_fields`, so this is the place to show extra context that you do not want in the table or edit forms.
-- `detail_fields` inherits the resolved `fields` list via the `"__fields__"` sentinel (the default). Override with `"__all__"` or an explicit list when the detail page needs more context than the list.
-- `detail_properties` defaults to an empty list, but you can reuse the list-view properties with `"__properties__"` or ask for all properties via `"__all__"`. You can also pass an explicit list such as `["is_overdue", "display_owner"]` (use the actual `@property` names, not model fields). Because detail pages are read-only, you can safely surface calculated properties that would never appear on a form.
-- `detail_exclude` and `detail_properties_exclude` mirror the list exclusions so you can tweak the detail layout without rewriting the full list of items.
+**For the detail view**
 
-### Extra Buttons
+- The **View** button uses `detail_fields`, so this is the place for context you do not need in the table or edit forms.
+- `detail_fields` uses the resolved list fields by default. Set it to `"__all__"` or an explicit list when the detail page needs more context.
+- `detail_properties` starts empty. Add calculated values here with an explicit list, reuse list properties with `"__properties__"`, or use `"__all__"` when that is genuinely suitable.
+- `detail_exclude` and `detail_properties_exclude` let you fine-tune those choices without repeating every field name.
 
-Use `extra_buttons` for additional buttons above the table, alongside controls such as filter toggles and create buttons. These are page-level actions, not per-record actions. The Base API uses dictionaries for these entries.
+### Optional custom buttons {#extra-buttons}
 
-Use permission fields when a button should be hidden or disabled for users who cannot run that operation. Permission checks run before selection-state disabling.
+Skip this section until the standard list is working. Use `extra_buttons` for page-level actions above the table, such as a report, an import, or a summary of selected records. They are not actions on an individual row. The standard configuration API uses dictionaries for these entries.
 
-Use `extra_buttons_mode = "dropdown"` when those page-level actions should move into a compact top toolbar overflow menu. The built-in Create button stays visible because it is not part of `extra_buttons`.
+Use `extra_buttons_mode = "dropdown"` when several page-level actions would make the toolbar hard to scan. The built-in Create button remains visible because it is not part of `extra_buttons`.
 
 Typical uses:
 
@@ -104,51 +106,32 @@ Typical uses:
 - open custom modals
 - add list-level utilities that are not tied to a single row
 
-Example:
+Start with a normal link or endpoint:
 
 ```python
-extra_buttons_mode = "dropdown"
-
 extra_buttons = [
     {
-        "url_name": "home",
-        "text": "Home",
-        "button_class": "btn-success",
+        "url_name": "projects:report",
+        "text": "Project report",
         "needs_pk": False,
         "display_modal": False,
-        "htmx_target": "content",
-    },
-    {
-        "url_name": "projects:selected-summary",
-        "text": "Selected Summary",
-        "button_class": "btn-primary",
-        "needs_pk": False,
-        "display_modal": True,
-        "uses_selection": True,
-        "selection_min_count": 1,
-        "selection_min_behavior": "disable",
-        "selection_min_reason": "Select at least one row first.",
-        "permission_check": "can_use_selected_summary",
-        "permission_behavior": "hide",
-        "modal_presentation": {"size": "extra_wide"},
     },
 ]
-
-def can_use_selected_summary(self, request, obj=None):
-    return request.user.has_perm("projects.view_selected_summary")
 ```
 
-Selection-aware header buttons read the current persisted PowerCRUD selection at the endpoint rather than expecting row IDs in the URL. They can render row selection controls even when `bulk_fields = []` and `bulk_delete = False`.
+??? info "Selection, permissions, and modal buttons"
 
-Selection-aware header buttons clear the persisted selection by default after a successful HTMX request completes. Set `clear_selection_on_success = False` for summary or preview buttons that merely read the current selection and should leave it intact. Failed requests leave the selection intact.
+    A button with `uses_selection = True` reads PowerCRUD's persisted selection at its endpoint; it does not receive row IDs in the URL. It can show row-selection controls even when bulk edit and bulk delete are disabled.
 
-Set `extra_button_selection_controls_disabled = True` if the button uses selected rows, but this list should not show checkboxes just because of that button.
+    A successful selection-aware HTMX request clears that selection by default. Set `clear_selection_on_success = False` for a read-only summary or preview that should leave the selection in place. Failed requests leave it intact.
 
-This is mainly useful when the selected rows come from somewhere else, or when the page has its own custom way to choose rows. Bulk edit and bulk delete still show checkboxes because they need them.
+    Set `extra_button_selection_controls_disabled = True` only when a button reads a selection that comes from another part of the page or from your own selection control. Bulk edit and bulk delete still need their normal checkboxes.
 
-Keep server-side validation in the endpoint even when you also disable the button in the UI.
+    Use `permission` or `permission_check` when the button should be hidden or disabled for users who cannot use it. This only controls the PowerCRUD UI: your endpoint must still validate permissions and input.
 
-??? info "Parameter Guide"
+    A button can set `display_modal = True` and a partial `modal_presentation` when it should open in a modal. See [Modals](#modals) for the shared modal settings.
+
+??? info "All button options"
 
     | Parameter | Type | What it does |
     | --- | --- | --- |
@@ -174,56 +157,40 @@ Keep server-side validation in the endpoint even when you also disable the butto
 
     Use `refresh_list_on_modal_close = True` only when the modal itself is the practical boundary for refreshing, for example a custom modal workflow that cannot easily emit response headers from the final action. The option is ignored unless `display_modal=True`.
 
-### Extra Actions
+### Optional row actions {#extra-actions}
 
-Use `extra_actions` for additional per-row actions in the list table. These render in the row action area next to the built-in `View`, `Edit`, and `Delete` actions. The Base API uses dictionaries for these entries.
-
-Use permission fields when a row action should be hidden or disabled for users who cannot run that operation. Permission checks run before `hidden_if` and `disabled_state`.
+Use `extra_actions` only when a row needs an operation beyond the built-in **View**, **Edit**, and **Delete** controls. These actions belong to your application, so build and secure their endpoints as you would any other Django view. The standard configuration API uses dictionaries for these entries.
 
 For row actions, `extra_actions_mode` controls whether the extra actions stay visible as buttons or move into an overflow menu:
 
-- `extra_actions_mode = "buttons"` keeps the legacy behavior and renders extra row actions as visible joined buttons after `View/Edit/Delete`.
-- `extra_actions_mode = "dropdown"` keeps `View/Edit/Delete` visible and moves only the configured `extra_actions` into a `More` dropdown.
-- `extra_actions_dropdown_open_upward_bottom_rows = 3` makes the `More` dropdown open upward for the last three rendered rows on the current page. Set it to `0` to keep every row opening downward.
+- `extra_actions_mode = "buttons"` renders the extra actions beside the built-in controls.
+- `extra_actions_mode = "dropdown"` keeps the built-in controls visible and puts only your extra actions in **More**.
+- `extra_actions_dropdown_open_upward_bottom_rows = 3` opens **More** upward for the last three rows on the page. Set it to `0` when every menu should open downward.
 
-Example:
+Start with the smallest useful action:
 
 ```python
 class AuthorCRUDView(PowerCRUDMixin, CRUDView):
     # ...
-    extra_actions_mode = "dropdown"
-    extra_actions_dropdown_open_upward_bottom_rows = 3
     extra_actions = [
         {
-            "url_name": "sample:author-detail",
-            "text": "View Again",
+            "url_name": "projects:project-timeline",
+            "text": "Timeline",
             "needs_pk": True,
             "display_modal": True,
-            "permission_check": "can_view_author_again",
-            "permission_behavior": "hide",
-            "hidden_if": "should_hide_view_again",
-            "hidden_if_mode": "lazy",
-            "disabled_state": "get_view_again_disabled_state",
-            "disabled_state_mode": "lazy",
-            "modal_presentation": {"size": "extra_wide"},
         },
     ]
-
-    def can_view_author_again(self, request, obj=None):
-        return request.user.has_perm("sample.view_author")
-
-    def should_hide_view_again(self, obj, request):
-        return not obj.bio
-
-    def get_view_again_disabled_state(self, obj, request):
-        if obj.birth_date is None:
-            return "Birth date is required before viewing this record again."
-        return None
 ```
 
-`"buttons"` remains the default for backward compatibility, so existing projects only change if they opt in.
+??? info "Conditional and permission-aware row actions"
 
-??? info "Parameter Guide"
+    Use `permission` or `permission_check` to hide or disable an action for users who cannot use it. PowerCRUD checks permission before row-state checks, but your custom endpoint must still enforce the same rules.
+
+    Use `hidden_if` when an action does not apply to a row. Use `disabled_state` when it does apply but needs to remain visible with an explanation. `hidden_if_mode = "lazy"` and `disabled_state_mode = "lazy"` defer expensive checks until a user opens a dropdown **More** menu.
+
+    Set `display_modal = True` for a modal response, and add partial `modal_presentation` only when this action needs a different modal size or placement from the view default.
+
+??? info "All row-action options"
 
     | Parameter | Type | What it does |
     | --- | --- | --- |
@@ -262,9 +229,9 @@ class AuthorCRUDView(PowerCRUDMixin, CRUDView):
     - the `More` trigger uses the framework’s `extra_default` styling instead
     - leaving `button_class` off an `extra_actions` item is therefore fine if that action only ever appears in dropdown mode
 
-### Reusable Action And Button Declarations
+### Reusable action and button declarations
 
-Use the Structured API when related views repeat the same action mechanics with only small changes. `PowerAction` and `PowerButton` compile to the same Base API dictionaries shown above, and they may be mixed with dictionaries in one list.
+Use the Structured API only when related views repeat the same action with small changes. `PowerAction` and `PowerButton` group the same configuration into reusable Python objects, and they can be mixed with dictionaries in one list.
 
 For reusable action patterns, see [PowerAction and PowerButton](structured_api/poweractions.md) and [Structured API Recipes](structured_api/recipes.md). For the full constructor contract, see [PowerAction and PowerButton Reference](../reference/poweractions.md).
 
@@ -286,16 +253,15 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
     default_filterset_fields = ["owner", "status"]
 ```
 
-This is the quick-start version of filtering. The full filtering story now lives in the dedicated [Filtering](filtering.md) guide.
+This is the quickest way to add filters. Use the dedicated [Filtering](filtering.md) guide when you need more than these generated controls.
 
 What happens at a high level:
 
-- With no `filterset_fields`, the list renders immediately and ignores filter-style query parameters apart from `page`, `page_size`, and `sort`.
-- Setting `filterset_fields` builds an automatic `django-filter` filterset for those fields.
-- `filterset_fields` can include queryset annotation names when the queryset uses the same public `annotate(...)` name and the expression exposes an `output_field`.
-- Leaving `default_filterset_fields` unset shows every allowed filter immediately.
-- Setting `default_filterset_fields` to a subset keeps the rest available through the built-in `Add filter` control.
-- Sorting stays wired into the table headers, so users can still share URLs such as `/projects/?sort=status`.
+- With no `filterset_fields`, the list loads without generated filters. Sorting and pagination still work.
+- `filterset_fields` asks PowerCRUD to build ordinary `django-filter` controls for those fields.
+- Leave `default_filterset_fields` unset to show every allowed filter. Set it to a smaller subset to keep the rest in **Add filter**.
+- Typed queryset annotations can be filters when the active queryset exposes the same `annotate(...)` name.
+- Sorting stays in the table headers, so users can still share URLs such as `/projects/?sort=status`.
 
 If a sortable relation column should use something other than the normal default, configure `column_sort_fields_override`:
 
@@ -308,7 +274,7 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
     }
 ```
 
-`column_sort_fields_override` is an override map, not an exhaustive declaration. If a sortable list field is not present, PowerCRUD falls back to the normal default for that field.
+`column_sort_fields_override` changes only the named columns. Other sortable fields keep their normal ordering.
 
 For the full filtering feature set, including:
 
@@ -333,39 +299,36 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
     use_modal = True
 ```
 
-Modal behaviour piggybacks on HTMX:
+Most screens need only these two settings. Modals depend on HTMX:
 
 - Set `use_htmx = True` first.
-- Set `use_modal = True` to load create, edit, delete, bulk, and modal-enabled custom actions into the shared dialog.
-- By default, PowerCRUD renders `powercrudBaseModal` as the dialog and `powercrudModalContent` as the HTMX content target.
-- The supplied modal is centered, viewport-bounded, and body-scrolling by default in every first-party template pack.
-- When a modal form fails validation, PowerCRUD keeps the modal open and retargets the error response back into the modal content area.
+- Set `use_modal = True` to open create, edit, delete, bulk, and modal-enabled custom actions in the standard PowerCRUD dialog.
+- Failed validation stays in that dialog, so users can correct the form without losing their place in the list.
 
-Common modal settings:
+??? info "Changing the standard modal"
 
-| Setting | Use it for |
-| --- | --- |
-| `modal_id` | Match a custom dialog DOM id when you provide your own modal shell. Do not include `#`. |
-| `modal_target` | Match the DOM id that receives HTMX modal content. Do not include `#`. |
-| `modal_presentation` | Set portable modal size, width, height, scroll ownership, fullscreen, and vertical alignment. |
-| `bulk_modal_presentation` | Partially override that presentation for the built-in Bulk Edit trigger. |
+    PowerCRUD's supplied modal is centred, bounded by the viewport, and scrolls its body by default in both first-party packs. The normal dialog id is `powercrudBaseModal`; its HTMX content target is `powercrudModalContent`.
 
-`modal_presentation` is a partial mapping. Omitted fields use these portable defaults:
+    Use `modal_id` or `modal_target` only when your application provides its own modal shell. Do not include `#` in either value.
 
-```python
-{
-    "size": "default",                 # compact, default, wide, extra_wide
-    "max_width": None,                  # or a safe CSS length such as "48rem"
-    "max_height": "viewport",          # or a safe CSS length
-    "scroll": "body",                  # body or modal
-    "fullscreen": False,
-    "vertical_alignment": "center",    # top or center
-}
-```
+    Use `modal_presentation` for the view-wide choices that PowerCRUD maps to the selected pack: named size, maximum width or height, scroll ownership, fullscreen, and vertical alignment. Use `bulk_modal_presentation` only when the built-in Bulk Edit dialog should differ.
 
-`max_width` overrides the named size. `fullscreen=True` wins over width, height, and alignment. Safe CSS lengths use non-negative `px`, `rem`, `em`, `ch`, `%`, `vw`, `vh`, `dvw`, or `dvh` values; functions such as `calc()` are not accepted in configuration.
+    `modal_presentation` is a partial mapping. Omitted values use the normal defaults:
 
-Example wider modal defaults:
+    ```python
+    {
+        "size": "default",                 # compact, default, wide, extra_wide
+        "max_width": None,                  # or a safe CSS length such as "48rem"
+        "max_height": "viewport",          # or a safe CSS length
+        "scroll": "body",                  # body or modal
+        "fullscreen": False,
+        "vertical_alignment": "center",    # top or center
+    }
+    ```
+
+    `max_width` overrides the named size. `fullscreen=True` wins over width, height, and alignment. Safe CSS lengths use non-negative `px`, `rem`, `em`, `ch`, `%`, `vw`, `vh`, `dvw`, or `dvh` values; functions such as `calc()` are not accepted in configuration.
+
+When the whole view needs more room, set its modal defaults:
 
 ```python
 class ProjectCRUDView(PowerCRUDMixin, CRUDView):
@@ -377,7 +340,7 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
     bulk_modal_presentation = {"size": "extra_wide"}
 ```
 
-Individual modal `extra_buttons`, `extra_actions`, declarative `link_fields`, and hook-returned modal links may also set partial `modal_presentation` when one trigger needs different sizing:
+An individual modal button, row action, or list-cell link can set its own partial `modal_presentation` when only that one trigger needs different sizing:
 
 ```python
 extra_actions = [
@@ -390,7 +353,9 @@ extra_actions = [
 ]
 ```
 
-`modal_classes`, `modal_box_classes`, `modal_body_classes`, `bulk_modal_box_classes`, and per-trigger `modal_box_classes` remain available for legacy framework-specific templates, but emit `FutureWarning` and are targeted for removal in v1.0. Do not combine a new presentation mapping with its legacy class equivalent; PowerCRUD rejects an ambiguous configuration. See [Deprecations](../reference/deprecations.md).
+??? warning "Older framework-specific modal classes"
+
+    `modal_classes`, `modal_box_classes`, `modal_body_classes`, `bulk_modal_box_classes`, and per-trigger `modal_box_classes` still work for existing framework-specific templates, but emit `FutureWarning` and are planned for removal before 1.0. Do not combine a new presentation mapping with its older class equivalent. See [Deprecations](../reference/deprecations.md).
 
 ### Pagination
 
@@ -400,11 +365,11 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
     paginate_by = 25
 ```
 
-PowerCRUD paginates list views at 25 rows per page by default. Set `paginate_by` to another number to choose a different default page size, or set `paginate_by = None` when a view should render every record by default.
+PowerCRUD shows 25 rows per page by default. Set `paginate_by` to another default, or set `paginate_by = None` only when a view should show every record at once.
 
-- By default, the selector shows `5/10/25/50/100` plus `All`, and `?page_size=all` disables pagination temporarily.
-- Set `page_size_options = [10, 25, 50]` to control the finite selector choices and restrict direct `?page_size=` requests to those values.
-- Set `page_size_all_enabled = False` to remove `All` and make direct `?page_size=all` requests fall back to `paginate_by`.
+- By default, the selector shows `5/10/25/50/100` plus **All**.
+- Set `page_size_options = [10, 25, 50]` to offer only those finite choices and accept only those values in `?page_size=`.
+- Set `page_size_all_enabled = False` to remove **All** and make `?page_size=all` fall back to `paginate_by`.
 - When filters change, the mixin automatically snaps back to page 1 so users do not land on empty pages.
 - Pagination works with or without HTMX. With HTMX enabled, only the table/pager fragment updates on navigation.
 
@@ -418,7 +383,7 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
     show_record_count = True
 ```
 
-When enabled, PowerCRUD renders a small metadata line above the table inside the same HTMX-updated results region as the table and pagination controls. That means the count stays in sync with filtering, sorting, page-size changes, and page navigation automatically.
+PowerCRUD renders a small line above the table. It updates with filtering, sorting, page-size changes, and page navigation.
 
 Examples:
 
@@ -428,11 +393,11 @@ Examples:
 
 This is useful when users need quick confirmation that a filter narrowed the queryset as expected, without adding extra noise to the main button toolbar.
 
-When row selection controls are enabled, the same metadata line can also host contextual selection actions such as `Select all N matching records` or `Add 998 more from 1030 matching records`. Leave `show_bulk_selection_meta = True` (the default) to keep that action available even when `show_record_count` is off, or disable it separately if you do not want selection prompts in that row.
+When row selection controls are enabled, this area can also offer actions such as **Select all matching records**. Leave `show_bulk_selection_meta = True` (the default) to keep that option, even when the record count is off.
 
-## 5. List presentation adjustments
+## 5. Make the list easier to read
 
-These options adjust how the list surface reads and scans once the core CRUD page is already working: heading text, helper copy, tooltip affordances, and per-column body-cell alignment.
+Use these options after the screen's data and interactions are right. They improve scanability without changing what the screen does.
 
 ### List heading
 
@@ -475,13 +440,17 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
     }
 ```
 
-`view_help` renders a collapsed pack-native disclosure below `view_instructions` and above the list toolbar. The `summary` is the one-line clickable bar, and `details` is escaped plain text. Separate paragraphs with blank lines. Add `"default_open": True` only when the guidance should start expanded.
+`view_help` renders a collapsed help panel below `view_instructions` and above the list toolbar. The `summary` is the one-line clickable bar, and `details` is plain text. Separate paragraphs with blank lines. Add `"default_open": True` only when the guidance should start expanded.
 
-By default, the help block uses the quiet `base` colour, aligns to the rendered table width, and will not shrink below `view_help_min_width = "40rem"` unless the surrounding container is narrower. Set `view_help_default_color` or `view_help_min_width` on the view to change those defaults. A specific `view_help` can override the colour with `"color": "info"` or a hex value such as `"#0ea5e9"`, and can override the width floor with `"min_width": "34rem"`. Semantic and hex colours are applied as subtle tints, with the summary bar slightly stronger than the content area.
+??? info "Help-panel appearance"
+
+    The panel uses the quiet `base` colour, follows the rendered table width, and does not shrink below `view_help_min_width = "40rem"` unless its container is narrower. Set `view_help_default_color` or `view_help_min_width` on the view to change those defaults.
+
+    A particular `view_help` can use `"color": "info"` or a hex value such as `"#0ea5e9"`, and can set its own minimum width with `"min_width": "34rem"`. Both first-party packs support these semantic colours and subtle hex tints.
 
 Most views should use either `view_instructions` for a short always-visible sentence or `view_help` for longer optional guidance. Use both only when the short description and expandable detail carry distinct information.
 
-The semantic and hex colour contract is supported by both first-party packs; see [Testing and accepting a template pack](../template_packs/testing-and-acceptance.md) for pack boundaries.
+See [Testing and accepting a template pack](../template_packs/testing-and-acceptance.md) for the support boundary across packs.
 
 ### Field labels
 
@@ -510,16 +479,16 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
     }
 ```
 
-`column_help_text` adds a separate info trigger next to only the configured header labels, so sorting still belongs to the header itself.
+`column_help_text` adds an info trigger beside only the configured labels. Sorting still works normally on the header.
 
-### List-cell tooltips
+### Tooltips for table cells {#list-cell-tooltips}
 
-If you want semantic tooltips for selected rendered list cells, configure `list_cell_tooltip_fields` as a field-to-hook mapping:
+Use a list-cell tooltip when a visible value needs a row-specific explanation that would make the table too busy if shown all the time. Configure `list_cell_tooltip_fields` as a field-to-method mapping:
 
 - The key is the rendered field or property name, such as `"owner"`.
 - The value is the name of a method on the view, such as `"get_owner_tooltip"`.
 
-PowerCRUD calls that method for each visible row cell and uses the returned text as the tooltip.
+PowerCRUD calls that method only for visible cells and uses the returned text as the tooltip.
 
 ```python
 class ProjectCRUDView(PowerCRUDMixin, CRUDView):
@@ -538,9 +507,9 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
 
 For expensive tooltip hooks, see [Lazy Evaluation](advanced/lazy_evaluation.md).
 
-`list_cell_tooltip_fields` is opt-in. PowerCRUD only calls the named hook methods for rendered list fields or properties named in the mapping, and silently ignores configured names that are not actually visible in the table. Each hook receives the row object and should return plain text for the tooltip, or `None` when that row should not show a semantic tooltip.
+Each method receives the row object and should return plain text, or `None` when that row should not show a tooltip. Configured names that are not visible in the table are ignored.
 
-Hook-backed semantic list-cell tooltip text may include newline characters when a tooltip should display as multiple lines. That multiline rendering is limited to semantic list-cell tooltips returned by the configured hook; header-help and other tooltip surfaces keep their existing behavior.
+Returned list-cell tooltip text may include newline characters for multiple lines. Header-help and other tooltip surfaces remain single-line.
 
 ??? warning "Deprecated generic tooltip hook: legacy list form"
 
@@ -548,19 +517,17 @@ Hook-backed semantic list-cell tooltip text may include newline characters when 
 
     The deprecations page shows the legacy hook signature, explains how the generic `field_name` branching works, and shows the migration to field-specific hook methods.
 
-Tooltip behavior stays layered:
+Choose the tooltip that matches the job:
 
 - `column_help_text` is header help only.
 - `list_cell_tooltip_fields = {"field": "hook_name"}` provides semantic per-cell tooltip text for selected rendered columns.
 - Unconfigured cells keep the built-in overflow tooltip behavior when their rendered content is truncated.
 
-When a semantic list-cell tooltip is configured for a cell, it takes precedence over the overflow tooltip for that same cell. PowerCRUD continues to use the model verbose names for other copy such as `Create project` and empty-state text, and `view_instructions`, `view_help`, `column_help_text`, and semantic list-cell tooltip text are all escaped plain text rather than HTML.
+When a row-specific tooltip is configured, it replaces the overflow tooltip for that cell. `view_instructions`, `view_help`, `column_help_text`, and list-cell tooltip text are escaped plain text, not HTML.
 
-### List-cell links
+### Links from table cells {#list-cell-links}
 
-If a rendered list cell should navigate somewhere, configure `link_fields`.
-The key is the rendered field or property name, and the value is either a
-short Django `view_name` string or an explicit dict:
+If a rendered value should open another page, configure `link_fields`. The key is the displayed field or property name. For the common internal-link case, the value is simply a Django URL name; use the longer dictionary form only when a link needs extra information:
 
 ```python
 class ProjectCRUDView(PowerCRUDMixin, CRUDView):
@@ -597,7 +564,7 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
     }
 ```
 
-Current allowed shapes:
+The supported shapes are:
 
 - keys are rendered list field/property names
 - string values are treated as Django `view_name` links
@@ -606,41 +573,31 @@ Current allowed shapes:
 - dict values may include `open_in`
 - dict values may include `modal_presentation` only for modal-opening links
 
-`list_cell_link_default_open_in` is optional and sets the view-wide default for
-list-cell links. It accepts `"current"`, `"new"`, or `"modal"`. If the view
-omits it, PowerCRUD assumes `"new"`, so links open in a new browser context by
-default. Use `"modal"` on CRUD list views where drill-in links should preserve
-the current list context, or `"current"` when you want normal same-page anchor
-navigation. Explicit per-link `open_in` always overrides the view default.
+`list_cell_link_default_open_in` sets the view-wide opening style: `"current"`, `"new"`, or `"modal"`. If you omit it, links open in a new browser context. Use `"modal"` when a drill-in should preserve the current list, or `"current"` for normal navigation. An individual link's `open_in` always wins.
 
-`pk_attr` names the attribute on the current row object that PowerCRUD should
-use as the `pk` URL kwarg when reversing a `view_name`. When it is omitted,
-PowerCRUD uses sensible defaults:
+`pk_attr` names the current-row attribute PowerCRUD should use as the `pk` URL kwarg for a `view_name`. If you omit it, PowerCRUD uses these defaults:
 
 - relation fields such as `owner` use `<field_name>_id`
 - non-relation fields and properties use the current row `pk`
 
-That makes the common cases short:
+That keeps common links short:
 
 - `{"owner": "crm:owner-detail"}` means “link the `owner` column to the related owner detail using `owner_id`”
 - `{"reference_code": "projects:project-detail"}` means “link the `reference_code` column to this project row’s own detail using `pk`”
 
-`open_in` controls how an individual link opens:
+`open_in` controls an individual link:
 
 - omitted uses `list_cell_link_default_open_in`; if that view option is also omitted, PowerCRUD assumes `"new"`
 - `"current"` opens as a normal same-page anchor
 - `"new"` renders `target="_blank"` and defaults `rel="noopener noreferrer"`
 - `"modal"` reuses the view’s existing PowerCRUD modal target and modal-open attributes
 
-When `open_in = "modal"` is configured but the view is not running with HTMX
-modal support, PowerCRUD gracefully falls back to a normal current-page anchor.
+If a link requests `open_in = "modal"` but the view does not use HTMX modals, PowerCRUD falls back to normal current-page navigation.
 
-`modal_presentation` on a modal list-cell link merges with the view presentation
-only for that clicked cell. It uses the same portable per-trigger behavior as
-modal `extra_buttons` and `extra_actions`; for example, set
+`modal_presentation` on a modal list-cell link changes the modal only for that clicked cell. It uses the same per-trigger choices as modal buttons and row actions; for example, set
 `{"size": "extra_wide"}` or `{"max_width": "64rem"}`.
 
-If you need conditional logic or richer link metadata, override `get_list_cell_link(...)`:
+For conditional links or richer metadata, override `get_list_cell_link(...)`:
 
 ```python
 class ProjectCRUDView(PowerCRUDMixin, CRUDView):
@@ -667,7 +624,7 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
         return None
 ```
 
-Hook behavior is deliberately simple:
+The hook returns one of these values:
 
 - return a dict with at least `url` to link that cell
 - include `open_in` when the cell should open somewhere other than the view-wide default
@@ -675,7 +632,7 @@ Hook behavior is deliberately simple:
 - return `None` to fall back to `link_fields`
 - return `False` to suppress `link_fields` for that cell
 
-Important behavior:
+Keep these boundaries in mind:
 
 - inline-editable cells are never linked, because inline click-to-edit takes precedence
 - if a field appears in both `link_fields` and `inline_edit_fields`, PowerCRUD logs a warning and silently skips the link at render time
@@ -683,7 +640,7 @@ Important behavior:
 
 ### Column alignment
 
-If a short categorical column would scan better centered than the default heuristic allows, use `column_alignments` to override just the list body cells for that column:
+PowerCRUD chooses a sensible body-cell alignment from the field type. If a short categorical value would scan better centred or right-aligned, override that one column:
 
 ```python
 class ProjectCRUDView(PowerCRUDMixin, CRUDView):
@@ -691,14 +648,14 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
     column_alignments = {
         "status": "center",
         "priority_band": "center",
-}
+    }
 ```
 
-Accepted values are `left`, `center`, and `right`. This is a semantic presentation override for rendered list body cells only. First-party template packs centre table headers independently, and any body column not listed here continues to use PowerCRUD's built-in alignment heuristic.
+Use `left`, `center`, or `right`. This changes body cells only. First-party packs centre headers independently, and other columns keep PowerCRUD's usual alignment.
 
-### Semantic column widths
+### Column widths
 
-PowerCRUD keeps the legacy bounded-width table by default. Opt into type-aware widths when compact values should stop consuming the same space as descriptive text:
+Tables often mix short values, such as checkmarks, IDs, dates, and amounts, with names and descriptions. Turn on automatic column sizing to keep the short columns from taking more room than they need and leave more space for the text people read:
 
 ```python
 class ProjectCRUDView(PowerCRUDMixin, CRUDView):
@@ -706,35 +663,38 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
     column_width_policy = "semantic"
 ```
 
-The two policies are:
+With `"semantic"`, PowerCRUD chooses one of three width modes from the field type:
 
-- `"bounded"` gives every column the established minimum and maximum width behaviour.
-- `"semantic"` infers `compact` for automatic primary keys and booleans, `auto` for temporal and numeric fields, and `bounded` for text, relations, annotations, and properties.
+- `"compact"` keeps automatic IDs and checkmarks as narrow as practical. Long header labels can wrap instead of making the column unnecessarily wide.
+- `"auto"` sizes dates, times, and numbers around their values.
+- `"bounded"` gives descriptive text, relations, computed properties, and other columns without a short-value rule a sensible maximum width.
 
-Override an inferred mode when the meaning of a particular column calls for it:
+Queryset annotations use their declared Django `output_field`, so Boolean, numeric, and temporal annotations receive the same automatic treatment as those model-field types. A computed Python property has no such type metadata; choose a width explicitly when its value is known to be short.
+
+Normally, you can leave those choices to PowerCRUD. Override an individual column only when your application knows better. For example, a short asset code stored in a text field can use the compact treatment:
 
 ```python
 class ProjectCRUDView(PowerCRUDMixin, CRUDView):
     # ...
     column_width_policy = "semantic"
     column_width_modes = {
-        "status_code": "compact",
-        "reference_number": "auto",
-        "summary": "bounded",
+        "asset_code": "compact",
     }
 ```
 
-Accepted per-column modes are `compact`, `auto`, and `bounded`. With the structured API, make the same declaration on the field:
+You can use `"compact"`, `"auto"`, or `"bounded"` in `column_width_modes` whenever an individual column needs a different treatment. Without `column_width_policy = "semantic"`, PowerCRUD keeps its normal general-purpose table sizing.
+
+Using `PowerField`? Put the same choice on the field declaration:
 
 ```python
-PowerField("status_code", column={"width": "compact"})
+PowerField("asset_code", column={"width": "compact"})
 ```
 
-Widths affect list presentation only. They do not change values, sorting, filtering, or the independently configurable body-cell alignment. See the [configuration reference](../reference/config_options.md) and [PowerField reference](../reference/powerfields.md) for the terse API mappings.
+Column widths affect list layout only. They do not change values, sorting, filtering, or body-cell alignment. See the [configuration reference](../reference/config_options.md) and [PowerField reference](../reference/powerfields.md) for the complete option lists.
 
-### Temporal list value formats
+### How dates and times appear in lists {#temporal-list-value-formats}
 
-Date, time, and datetime columns use Django's `DATE_FORMAT`, `TIME_FORMAT`, and `DATETIME_FORMAT` settings. `DateField` defaults to date output, `TimeField` defaults to time output, and `DateTimeField` defaults to date-only output for legacy compatibility.
+Date, time, and datetime columns use Django's `DATE_FORMAT`, `TIME_FORMAT`, and `DATETIME_FORMAT` settings. `DateField` shows a date, `TimeField` shows a time, and `DateTimeField` shows a date by default.
 
 Set these Django settings explicitly when PowerCRUD should use a particular regional display format:
 
@@ -745,7 +705,7 @@ TIME_FORMAT = "H:i"
 DATETIME_FORMAT = "d/m/Y H:i"
 ```
 
-If they are unset, Django's own defaults apply. Set `default_datetime_value_format` when most datetime columns on one screen should instead be time-only or date-and-time. Use `column_value_formats` for named `DateTimeField` or typed datetime-annotation overrides:
+If they are unset, Django uses its own defaults. Set `default_datetime_value_format` when most datetime columns on one screen should show a time or both date and time. Use `column_value_formats` for named `DateTimeField` or typed datetime-annotation overrides:
 
 ```python
 class ProjectCRUDView(PowerCRUDMixin, CRUDView):
@@ -757,7 +717,7 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
     }
 ```
 
-The permitted lower-case modes are `date`, `time`, and `datetime`. `DateField` accepts only `date`; `TimeField` accepts only `time`; and `DateTimeField` accepts all three. PowerCRUD validates model fields at setup and typed annotations before rendering. Properties and annotations without an inferable temporal `output_field` are rejected with `ImproperlyConfigured`.
+The available lower-case modes are `date`, `time`, and `datetime`. `DateField` accepts only `date`; `TimeField` accepts only `time`; and `DateTimeField` accepts all three. PowerCRUD validates model fields during setup and typed annotations before rendering. A property or annotation without a known temporal type raises `ImproperlyConfigured` rather than guessing.
 
 ---
 

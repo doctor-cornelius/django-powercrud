@@ -1,6 +1,8 @@
 # Async Manager
 
-PowerCRUD ships a full async infrastructure (conflict locks, progress cache, lifecycle hooks) that you can reuse in plain Django code — no PowerCRUD views required. This chapter shows the building blocks so you can launch background work from management commands, signals, admin actions, or bespoke views. For a deeper architectural walkthrough, see the [async architecture reference](../reference/async.md).
+Use `AsyncManager` only when your project has background work beyond a single synchronous request. PowerCRUD ships this async infrastructure—conflict locks, progress cache, lifecycle hooks, and cleanup—and you can reuse it in ordinary Django code without a PowerCRUD view.
+
+If you only need ordinary bulk edit and delete, stay with [Bulk editing (synchronous)](./bulk_edit_sync.md). If you want queued PowerCRUD bulk updates, read [Bulk editing (async)](./bulk_edit_async.md); return here when you need to understand or reuse the manager itself. For a deeper architectural walkthrough, see the [async architecture reference](../reference/async.md).
 
 ---
 

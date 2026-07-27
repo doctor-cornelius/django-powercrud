@@ -1,6 +1,6 @@
 # Filtering
 
-PowerCRUD's filtering support now has enough moving parts that it deserves its own guide rather than living only inside the basic setup walkthrough.
+Use this guide after your list page works and you want users to narrow it down. Start with generated filters; the later sections cover annotations, custom filtersets, and saved views when your screen needs them.
 
 Use this page when you want to understand:
 
@@ -22,17 +22,19 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
     default_filterset_fields = ["owner", "status"]
 ```
 
-What happens by default:
+For most screens, this is enough: `filterset_fields` names every allowed filter and `default_filterset_fields` names the filters shown immediately. Users can add the rest through **Add filter**.
 
-- With no `filterset_fields`, the view renders the list immediately and ignores any query parameters except `page`, `page_size`, and `sort`.
-- Setting `filterset_fields` automatically builds a `django-filter` `FilterSet` for those fields, including sensible widgets based on field type and optional HTMX attributes if `use_htmx` is True.
-- Model fields with `choices` render as dropdown filters and match the selected value exactly. Text fields without `choices` stay as text inputs and use `icontains`.
-- `filterset_fields` may contain model field names and supported queryset annotation names.
-- Leave `default_filterset_fields` unset to keep the current behavior and show every allowed filter immediately.
-- Set `default_filterset_fields` to a smaller subset when some filters should be visible by default and the rest should stay behind the built-in `Add filter` control.
-- Once an optional filter is shown, it stays visible until the user explicitly removes it, even if its current value is empty.
-- PowerCRUD persists optional filter visibility through the reserved `visible_filters` query parameter, so shared URLs can still open the same optional filters explicitly.
-- PowerCRUD does not restore unsaved optional filter visibility after navigation unless the current URL or a saved favourite explicitly asks for those fields.
+??? info "Generated filter behaviour and URL state"
+
+    - With no `filterset_fields`, the view renders the list immediately and ignores any query parameters except `page`, `page_size`, and `sort`.
+    - Setting `filterset_fields` automatically builds a `django-filter` `FilterSet` for those fields, including sensible widgets based on field type and optional HTMX attributes if `use_htmx` is True.
+    - Model fields with `choices` render as dropdown filters and match the selected value exactly. Text fields without `choices` stay as text inputs and use `icontains`.
+    - `filterset_fields` may contain model field names and supported queryset annotation names.
+    - Leave `default_filterset_fields` unset to keep the current behavior and show every allowed filter immediately.
+    - Set `default_filterset_fields` to a smaller subset when some filters should be visible by default and the rest should stay behind the built-in `Add filter` control.
+    - Once an optional filter is shown, it stays visible until the user explicitly removes it, even if its current value is empty.
+    - PowerCRUD persists optional filter visibility through the reserved `visible_filters` query parameter, so shared URLs can still open the same optional filters explicitly.
+    - PowerCRUD does not restore unsaved optional filter visibility after navigation unless the current URL or a saved favourite explicitly asks for those fields.
 
 ## Default vs optional filters
 
@@ -173,7 +175,7 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
 
 If you need hand-crafted filters, switch to a custom `filterset_class`.
 
-???+ note "filterset_fields vs filterset_class"
+??? note "filterset_fields vs filterset_class"
 
     `filterset_fields` and `filterset_class` are alternative strategies.
 

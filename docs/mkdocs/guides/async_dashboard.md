@@ -1,6 +1,8 @@
 # Async dashboard add-on
 
-Turn lifecycle events into visible status. Whether you use the bundled `ModelTrackingAsyncManager` or build your own, this chapter covers how to persist task metadata, expose it in a dashboard, and customise formats.
+Turn lifecycle events into visible status. This is optional: async work and its progress endpoint work without a persistent dashboard. Use this guide when users or operators need a record of queued, completed, and failed work.
+
+Whether you use the bundled `ModelTrackingAsyncManager` or build your own, this chapter covers how to persist task metadata, expose it in a dashboard, and customise formats.
 
 ---
 

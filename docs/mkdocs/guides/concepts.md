@@ -2,19 +2,23 @@
 
 PowerCRUD can be used directly through the Base API: class attributes, hooks, lists, and dictionaries. That remains the underlying contract.
 
-As CRUD screens grow, the same ideas appear repeatedly across the settings: a working list surface, field intent, actions, permissions, modals, selection, bulk work, async work, and styling. This page names those ideas so the individual options are easier to reason about.
+As a screen grows, the same questions come up repeatedly: Which records are on this page? What does each field do? What may the user do? Where should it open? This page gives those everyday questions the names used elsewhere in the documentation, so the individual settings are easier to place.
 
-## Why This Page Exists
+???+ info "How to use this page"
+
+    Read the plain-language heading first. The term in quotation marks is the established PowerCRUD concept name you will see in guides, references, and the Structured API. Use the option lists when you need to find the exact setting; use the configuration reference for accepted values.
+
+## Why this page exists
 
 The configuration reference tells you what each option does. This page explains what kind of thing you are configuring.
 
 That distinction matters because not every setting that mentions a field has the same job. For example, `fields` controls list display, `filterset_fields` controls filtering, and `inline_edit_fields` controls editability. Those settings can use the same model field name while expressing different intent, and list/filter settings can also use supported queryset annotation names.
 
-## Concept Buckets
+## Start with a practical question {#concept-buckets}
 
-### Surface
+### What is this working list? — “Surface”
 
-A Surface is the configured working screen for a model: queryset, list columns, filters, sorting, pagination, record counts, selection state, and available actions.
+The **Surface** is the configured working list for a model: its records, columns, filters, sorting, pagination, record counts, selection state, and available actions.
 
 Surface options include `model`, `queryset`, `url_base`, `view_title`, `view_instructions`, `view_help`, `filterset_fields`, `filterset_class`, `default_filterset_fields`, `list_options_enabled`, `default_list_fields`, `paginate_by`, `show_record_count`, and `get_queryset()`.
 
@@ -22,9 +26,9 @@ Filters belong primarily to the Surface because they narrow the current working 
 
 Because the queryset defines the working row set, a Surface can expose supported queryset annotations as first-class list and filter columns. Use this when a database expression belongs in the operational table order instead of being appended as a display-only property.
 
-### Field Intent
+### What should this field do here? — “Field Intent”
 
-Field intent describes how a model field, queryset annotation, or property participates in the screen.
+**Field Intent** describes how a model field, queryset annotation, or property participates in this screen: visible, filterable, editable, read-only, linked, and so on.
 
 Base Field Intent options include `fields`, `properties`, `detail_fields`, `detail_properties`, `form_fields`, `form_display_fields`, `form_disabled_fields`, `inline_edit_fields`, `bulk_fields`, `field_labels`, `column_help_text`, `list_cell_tooltip_fields`, `link_fields`, and `get_list_cell_link(...)`.
 
@@ -36,9 +40,9 @@ List-column visibility is display state, not field capability. `fields` and `pro
 
 Queryset annotation fields sit between model fields and properties: they are placed in `fields` order, can participate in generated filters and sorting when the effective queryset exposes the same annotation name, and remain read-only. Properties stay Python attributes listed through `properties`; editable surfaces such as forms, inline editing, and bulk editing still require editable model fields.
 
-### Action
+### What can a user do? — “Action”
 
-An Action is a user-visible operation: a header button, row action, standard View/Edit/Delete action, selection-aware action, or bulk operation.
+An **Action** is a user-visible operation: a header button, row action, standard View/Edit/Delete action, selection-aware action, or bulk operation.
 
 Action options and hooks include `extra_buttons`, `extra_actions`, `extra_actions_mode`, `can_update_object(...)`, `get_update_disabled_reason(...)`, `can_delete_object(...)`, `get_delete_disabled_reason(...)`, `persist_single_object(...)`, and `persist_bulk_update(...)`.
 
@@ -46,9 +50,9 @@ Action options and hooks include `extra_buttons`, `extra_actions`, `extra_action
 
 Actions should keep their business rules server-side. Disabled-state hooks and persistence hooks are the right place for rules that should not depend only on frontend affordances.
 
-### Permission
+### Who may do it? — “Permission”
 
-Permission describes whether the current user can perform an operation at all.
+**Permission** describes whether the current user can perform an operation at all.
 
 Permission-aware affordances let a screen stay readable while hiding or disabling operations that the current user cannot perform. This is different from screen access: a user may be allowed to open a list or detail page while being denied create, edit, delete, approval, export, or other operations on that page.
 
@@ -61,9 +65,9 @@ Keep the concepts separate:
 - PowerCRUD-owned Create/Detail/Edit/Delete endpoints enforce their permission hooks server-side.
 - Downstream-owned custom endpoints must still enforce their own backend permissions.
 
-### Presentation
+### Where and how should it appear? — “Presentation”
 
-Presentation controls where and how UI is rendered.
+**Presentation** controls where and how the UI appears: the template, HTMX target, modal, and other visible treatment.
 
 Presentation options include `base_template_path`, `templates_path`, `use_htmx`, `default_htmx_target`, `hx_trigger`, `use_modal`, `modal_id`, `modal_target`, portable `modal_presentation`, `bulk_modal_presentation`, `list_cell_link_default_open_in`, and per-trigger modal settings. Raw modal class settings remain deprecated framework-specific compatibility APIs.
 
@@ -71,9 +75,9 @@ Presentation overlaps with field links and actions because both need a target. T
 
 The selected template pack owns framework markup, assets, and visible widget presentation. PowerCRUD still owns field values, querysets, validation, submission, dependencies, and HTMX lifecycle. Portable semantic presentation settings have the same product meaning across supported packs; raw class strings are selected-framework inputs. See [Forms: Widget presentation](./forms.md#widget-presentation) for application behaviour and [Testing and accepting a template pack](../template_packs/testing-and-acceptance.md) for the support rule.
 
-### Selection
+### Which rows are currently chosen? — “Selection”
 
-Selection is persisted row state used by bulk operations and selection-aware controls.
+**Selection** is persisted row state used by bulk operations and selection-aware controls.
 
 Selection-related options include `show_bulk_selection_meta`, `extra_buttons` with `uses_selection`, `selection_min_count`, `selection_min_behavior`, `extra_button_selection_controls_disabled`, and selection session helpers.
 
@@ -81,55 +85,55 @@ Selection is separate from visible columns. Hiding or showing columns should not
 
 Built-in bulk edit/delete and selection-aware toolbar buttons can both render selector controls. Set `extra_button_selection_controls_disabled = True` if a button uses selected rows, but the list should not show checkboxes just because of that button. This is mainly useful when the selected rows come from somewhere else, or when the page has its own custom way to choose rows. Bulk edit and bulk delete still show checkboxes because they need them.
 
-### Bulk Operation
+### What happens to several records at once? — “Bulk Operation”
 
-A Bulk operation applies work to multiple records.
+A **Bulk Operation** applies work to multiple records.
 
 Bulk options and hooks include `bulk_fields`, `bulk_delete`, `bulk_full_clean`, `bulk_modal_presentation`, `persist_bulk_update(...)`, `bulk_update_persistence_backend_path`, and `bulk_update_persistence_backend_config`.
 
 Bulk configuration should stay explicit because bulk work has validation, permission, persistence, and feedback concerns that are different from single-object form saves.
 
-### Async Operation
+### Does that work need the background? — “Async Operation”
 
-Async operation covers long-running work: queueing, conflict checks, progress, lifecycle cleanup, and optional dashboard persistence.
+An **Async Operation** covers long-running work: queueing, conflict checks, progress, lifecycle cleanup, and optional dashboard persistence.
 
 Async options include `bulk_async`, `bulk_async_conflict_checking`, `bulk_min_async_records`, `bulk_async_backend`, `bulk_async_notification`, `async_manager_class_path`, and `async_manager_config`.
 
 Async is related to bulk operation but has its own lifecycle. Treat it as a separate layer when designing or debugging behaviour.
 
-### Styling
+### Is this only about appearance? — “Styling”
 
-Styling controls table sizing, classes, alignments, template packs, inline-edit highlighting, and collapsed screen-help colour/width defaults.
+**Styling** controls table sizing, classes, alignments, template packs, inline-edit highlighting, and collapsed screen-help colour/width defaults.
 
 Styling options include `table_classes`, `action_button_classes`, `extra_button_classes`, `table_max_height`, `table_max_col_width`, `table_header_min_wrap_width`, `column_alignments`, `inline_edit_always_visible`, `inline_edit_highlight_accent`, and `templates_path`.
 
 Styling should usually stay explicit. It should not change the data or permission contract of the screen.
 
-### Compatibility And Defaults
+### What happens when I do not configure it? — “Compatibility and Defaults”
 
-Compatibility and defaults preserve existing behaviour when options are omitted.
+**Compatibility and Defaults** preserve existing behaviour when options are omitted.
 
 Examples include `fields = "__all__"`, `detail_fields = "__fields__"`, `detail_properties = "__properties__"`, `form_fields = "__fields__"`, legacy inline-edit compatibility, `default_filterset_fields = None`, `list_options_enabled = None`, and `default_list_fields = None`.
 
 Unset values and explicit empty lists can mean different things. For example, an explicit `inline_edit_fields = []` should be understood as disabling inline editing for that view.
 
-## How To Use This Model
+## Use the model to find the right guide {#how-to-use-this-model}
 
 When configuring a view, start by asking which concept you are changing:
 
-1. Is this about the working list screen? Start with Surface options.
-2. Is this about how a field appears or behaves? Start with Field intent.
-3. Is this a user operation? Start with Action options and hooks.
-4. Is this about whether the user may perform an operation? Start with Permission.
-5. Is this about where something opens? Start with Presentation.
-6. Is this about selected rows? Start with Selection.
-7. Is this about many records? Start with Bulk operation.
-8. Is this long-running work? Start with Async operation.
-9. Is this only visual treatment? Start with Styling.
+1. Is this about the working list screen? Start with **Surface** options.
+2. Is this about how a field appears or behaves? Start with **Field Intent**.
+3. Is this a user operation? Start with **Action** options and hooks.
+4. Is this about whether the user may perform an operation? Start with **Permission**.
+5. Is this about where something opens? Start with **Presentation**.
+6. Is this about selected rows? Start with **Selection**.
+7. Is this about many records? Start with **Bulk Operation**.
+8. Is this long-running work? Start with **Async Operation**.
+9. Is this only visual treatment? Start with **Styling**.
 
 Then use the reference docs for exact accepted values.
 
-## What This Is Not
+## What this is not
 
 These concepts are a mental model, not a replacement API.
 
