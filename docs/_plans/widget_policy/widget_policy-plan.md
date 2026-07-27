@@ -11,6 +11,7 @@
 - ✅ Apply the selected-pack policy to silent default widgets in custom ModelForms.
 - ✅ Record the agreed completion architecture for pack defaults and surface variants.
 - ✅ Record the post-architecture multiselect UX improvement.
+- ✅ Complete the Phase 11 stable-documentation inventory and lock the destination-page strategy.
 
 ## Next
 
@@ -21,7 +22,8 @@
 5. ✅ Apply pack defaults to silent custom-ModelForm fields while preserving application-owned widgets.
 6. ✅ Complete the unified pack-default architecture across every widget surface.
 7. ✅ Correct and complete the shared Tom Select multiselect UX under both first-party packs.
-8. 🔳 Update the stable documentation from the completed implementation evidence.
+8. ✅ Audit the stable documentation and map every branch outcome to an update, link, release note, or no-action decision.
+9. 🔳 Complete the Phase 11 stable documentation, release notes, and final plan reconciliation.
 
 ## ✅ Phase 1: Lock the Current Contract and Baseline
 
@@ -104,6 +106,10 @@
 
 ## Phase 11: Update Documentation
 
-1. 🔳 Update stable form-control and template-pack documentation for the datetime correction and silent custom-ModelForm fallback.
-2. 🔳 Document pack widget defaults, surface variants, neutral fallback, application overrides, and bulk policy integration.
-3. 🔳 Document the shared multiselect behaviour and reconcile these plan notes with the final supported boundary and validation evidence.
+1. ✅ Complete the stable-documentation inventory and retain the existing documentation structure rather than creating another widget-policy page.
+2. 🔳 Make the template-pack authoring and acceptance guidance sufficient for a new pack author to implement, test, package, and publish the version-2 widget-policy contract.
+3. 🔳 Update the application-facing form, inline, filtering, and bulk guides for datetime controls, silent custom-ModelForm fallback, pack defaults, surface variants, application overrides, and shared multiselect behaviour.
+4. 🔳 Reconcile the supporting configuration, setup, frontend-loading, PowerField, sample-app, and conceptual guidance, including semantic column widths and the corrected cross-pack presentation behaviour.
+5. 🔳 Add concise narrative release notes covering the pack-author upgrade boundary and the material user-visible outcomes without reproducing the branch-change checklist.
+6. 🔳 Review the complete stable documentation set for consistent style, terminology, ownership boundaries, cross-links, and removal of stale or contradictory guidance.
+7. 🔳 Reconcile these temporary plan notes with the final supported boundary and record the stable-documentation validation evidence.
