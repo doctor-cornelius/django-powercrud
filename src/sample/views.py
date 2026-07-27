@@ -163,6 +163,7 @@ class BookCRUDView(SampleCRUDMixin):
     exclude = ["description"]
     properties = "__all__"
     list_options_enabled = True
+    column_width_policy = "semantic"
     default_list_fields = [
         "title",
         "author",
@@ -585,6 +586,7 @@ class PowerFieldBookCRUDView(SampleCRUDMixin):
     paginate_by = 5
 
     list_options_enabled = True
+    column_width_policy = "semantic"
     list_cell_link_default_open_in = "modal"
     form_class = forms.BookForm
     power_fields = [

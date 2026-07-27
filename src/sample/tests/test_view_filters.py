@@ -493,6 +493,12 @@ def test_powerfield_book_sample_view_matches_book_field_intent_config():
         "PowerFieldBookCRUDView should use the same custom BookForm as BookCRUDView "
         "for clone-equivalence testing."
     )
+    assert primitive_view.get_column_width_policy() == "semantic", (
+        "The ordinary Book sample should demonstrate semantic list-column sizing."
+    )
+    assert powerfield_view.get_column_width_policy() == "semantic", (
+        "The PowerField Book sample should demonstrate the same semantic list-column sizing."
+    )
 
 
 @pytest.mark.django_db

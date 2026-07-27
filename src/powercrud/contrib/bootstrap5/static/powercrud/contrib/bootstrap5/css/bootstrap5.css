@@ -5,7 +5,7 @@
 }
 
 .pc-bootstrap-header {
-    padding: .75rem;
+    padding: .5rem;
     border: var(--bs-border-width) solid var(--bs-border-color);
     border-radius: var(--bs-border-radius-lg);
     background: var(--bs-tertiary-bg);
@@ -13,19 +13,22 @@
 }
 
 .pc-bootstrap-runtime-meta {
-    margin-bottom: .75rem !important;
+    margin-bottom: .5rem !important;
 }
 
 .pc-bootstrap-runtime-meta .dropdown-toggle,
 .pc-bootstrap-navigation .btn {
-    min-height: 2.125rem;
+    min-height: 2rem;
     display: inline-flex;
     align-items: center;
+    font-size: .8125rem;
+    line-height: 1.25;
 }
 
 .pc-bootstrap-runtime-details {
     max-width: 100%;
-    line-height: 1.35;
+    font-size: .75rem;
+    line-height: 1.25;
 }
 
 /* Bootstrap's dropdown menu needs its .show class, while PowerCRUD uses the
@@ -39,8 +42,20 @@
 }
 
 .pc-bootstrap-navigation .btn-group > .btn:last-child {
-    min-width: 2.125rem;
+    min-width: 2rem;
     padding-inline: .5rem;
+}
+
+.pc-bootstrap-theme-toggle {
+    width: 2rem;
+    padding-inline: 0;
+    justify-content: center;
+}
+
+.pc-bootstrap-theme-toggle svg {
+    width: .875rem;
+    height: .875rem;
+    fill: currentColor;
 }
 
 .pc-bootstrap-content {
