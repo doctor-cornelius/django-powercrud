@@ -56,6 +56,32 @@ class BookCRUDView(PowerCRUDMixin, CRUDView):
 
 This keeps related intent close to the thing it describes. The `status` field's list, form, inline, and bulk roles are visible in one declaration instead of being repeated across several class attributes.
 
+## A Structured View Still Uses Normal View Settings
+
+`power_fields` replaces only the Field Intent lists. Configure the rest of the view in the same direct, readable way as the Base Configuration API:
+
+```python
+class BookCRUDView(PowerCRUDMixin, CRUDView):
+    model = Book
+    namespace = "library"
+    base_template_path = "core/base.html"
+
+    use_htmx = True
+    use_modal = True
+    filterset_fields = ["author", "status"]
+    column_width_policy = "semantic"
+
+    power_fields = [
+        PowerField("title", default_list=True, form=True),
+        PowerField("author", default_list=True, form=True),
+        PowerField("status", default_list=True, form=True, inline=True, bulk=True),
+    ]
+```
+
+In this example, `filterset_fields`, `use_htmx`, `use_modal`, and `column_width_policy` keep their usual meaning. `power_fields` is only the place where the fields' list, form, inline, and bulk roles are declared. Add `PowerAction` and `PowerButton` to `extra_actions` and `extra_buttons` when repeated action patterns need the same treatment.
+
+Use the setup guides to learn those normal view settings. Come back to this section when repeated field or action declarations make a direct view difficult to scan.
+
 ## Important Style Rules
 
 `PowerField` is exclusive for Field Intent within a view inheritance chain. Choose one style for field intent:
