@@ -696,9 +696,9 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
 
 Accepted values are `left`, `center`, and `right`. This is a semantic presentation override for rendered list body cells only. First-party template packs centre table headers independently, and any body column not listed here continues to use PowerCRUD's built-in alignment heuristic.
 
-### Semantic column widths
+### Column widths
 
-PowerCRUD keeps the legacy bounded-width table by default. Opt into type-aware widths when compact values should stop consuming the same space as descriptive text:
+Tables often mix short values, such as checkmarks, IDs, dates, and amounts, with names and descriptions. Turn on automatic column sizing to keep the short columns from taking more room than they need and leave more space for the text people read:
 
 ```python
 class ProjectCRUDView(PowerCRUDMixin, CRUDView):
@@ -706,31 +706,32 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
     column_width_policy = "semantic"
 ```
 
-The two policies are:
+With `"semantic"`, PowerCRUD chooses one of three width modes from the field type:
 
-- `"bounded"` gives every column the established minimum and maximum width behaviour.
-- `"semantic"` infers `compact` for automatic primary keys and booleans, `auto` for temporal and numeric fields, and `bounded` for text, relations, annotations, and properties.
+- `"compact"` keeps automatic IDs and checkmarks as narrow as practical. Long header labels can wrap instead of making the column unnecessarily wide.
+- `"auto"` sizes dates, times, and numbers around their values.
+- `"bounded"` gives descriptive text, relations, annotations, and computed properties a sensible maximum width.
 
-Override an inferred mode when the meaning of a particular column calls for it:
+Normally, you can leave those choices to PowerCRUD. Override an individual column only when your application knows better. For example, a short asset code stored in a text field can use the compact treatment:
 
 ```python
 class ProjectCRUDView(PowerCRUDMixin, CRUDView):
     # ...
     column_width_policy = "semantic"
     column_width_modes = {
-        "status_code": "compact",
-        "reference_number": "auto",
-        "summary": "bounded",
+        "asset_code": "compact",
     }
 ```
 
-Accepted per-column modes are `compact`, `auto`, and `bounded`. With the structured API, make the same declaration on the field:
+You can use `"compact"`, `"auto"`, or `"bounded"` in `column_width_modes` whenever an individual column needs a different treatment. Without `column_width_policy = "semantic"`, PowerCRUD keeps its normal general-purpose table sizing.
+
+Using `PowerField`? Put the same choice on the field declaration:
 
 ```python
-PowerField("status_code", column={"width": "compact"})
+PowerField("asset_code", column={"width": "compact"})
 ```
 
-Widths affect list presentation only. They do not change values, sorting, filtering, or the independently configurable body-cell alignment. See the [configuration reference](../reference/config_options.md) and [PowerField reference](../reference/powerfields.md) for the terse API mappings.
+Column widths affect list layout only. They do not change values, sorting, filtering, or body-cell alignment. See the [configuration reference](../reference/config_options.md) and [PowerField reference](../reference/powerfields.md) for the complete option lists.
 
 ### Temporal list value formats
 
