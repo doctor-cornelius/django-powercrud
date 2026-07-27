@@ -229,3 +229,5 @@ Your application owns its base template and any copied override markup. PowerCRU
     Neither setting selects a pack or changes CSS/JavaScript. The base template's chosen frontend route owns those assets.
 
 For style settings, use classes that belong to the selected framework. Values such as `table_classes` and `action_button_classes` are passed through; they are not translated from DaisyUI to Bootstrap or the other way around.
+
+Template overrides arrange the bound fields and behaviour supplied to them; they do not create a second default widget policy. To publish reusable widget defaults and browser integration with a selectable pack, follow [Authoring and publishing](authoring-and-publishing.md#define-the-server-side-widget-policy).

@@ -4,11 +4,13 @@ You can create and publish a PowerCRUD template pack for any CSS framework. It i
 
 PowerCRUD still owns CRUD operations, HTMX requests, saved list state, selection, persistence, and the order in which the browser lifecycle runs. Your pack supplies the presentation layer around that behaviour.
 
+This guide follows that boundary from the generated starter through widget policy, browser behaviour, testing, packaging, and the instructions your consumers need.
+
 ## The author journey
 
 1. Create a starter package from a maintained pack.
 2. Replace its template classes and markup with your framework's presentation.
-3. Add small Python or browser adapters only where the framework needs them.
+3. Define the pack's server-side widget policy and add browser hooks only where the framework needs them.
 4. Test the package in its own repository.
 5. Build and publish the Python package.
 6. Consumers install the package, add its Django app, and select its declaration.
@@ -43,6 +45,8 @@ Use `--source-template-pack bootstrap5` if Bootstrap is a closer starting point.
 
 The generated package has a neutral browser adapter. That is enough for a framework that can use normal HTML dialogs, buttons, and hidden elements. Add hooks only if the framework needs something more specific, such as its own modal API, dropdown placement, tooltip API, or busy-state classes.
 
+The generated Python adapter is neutral too. It is a valid starting point: Django keeps its compatible widgets until you deliberately add framework classes, compatible widget variants, or semantic enhancements.
+
 ## What belongs in the package
 
 `template_pack.py` exports one `TemplatePack` declaration. It identifies the package, its template namespace, its server adapter, and its pack-owned static resources. The generated file is the working reference, but its important parts look like this:
@@ -62,11 +66,90 @@ template_pack = TemplatePack(
 
 Keep the copied template tree complete for every capability your declaration claims. The templates must preserve PowerCRUD's documented `data-powercrud-*` attributes and relevant ARIA/target relationships. They may use completely different CSS classes, elements, and layout.
 
-`adapter.py` translates server-side presentation choices into your framework's classes or attributes. It must expose an object with `api_version = 2`, `get_presentation(context)`, and `get_widget_presentation(context)`. The widget method receives PowerCRUD's semantic category and surface (`form`, `inline`, `filter`, or `bulk`) and returns a compatible widget class, attributes, and optional semantic enhancement request. Start with `BaseServerAdapter`; its widget method is an explicit neutral policy, so override it when the pack needs framework-specific presentation.
+`adapter.py` translates server-side presentation choices into your framework's classes or attributes. It must expose an object with `api_version = 2`, `get_presentation(context)`, and `get_widget_presentation(context)`. Start with `BaseServerAdapter`: it supplies neutral action and widget presentation, then lets the pack declare semantic defaults and small surface-specific adjustments.
 
 This replaced the short-lived earlier adapter shape before PowerCRUD 1.0. A pack created against that shape must be regenerated or updated; PowerCRUD does not run old and new adapter contracts in parallel.
 
-The optional browser module sets `window.PowerCRUDAdapter` before the stable `powercrud/js/powercrud.js` entry loads. It has `apiVersion: 1`, the same `identity` as the Python declaration, and a `create(context)` function. It returns only the semantic hook groups the framework needs. PowerCRUD supplies no-op defaults for the rest.
+### Define the server-side widget policy
+
+PowerCRUD supplies facts about one control; the selected pack returns its presentation. A simple adapter can declare base defaults by semantic kind and override only the surfaces that need a different presentation:
+
+```python
+from django import forms
+
+from powercrud.template_packs import BaseServerAdapter, WidgetPresentation
+
+
+class LocalDateTimeInput(forms.DateTimeInput):
+    """Render a browser-local datetime control while preserving seconds."""
+
+    input_type = "datetime-local"
+
+    def __init__(self, attrs=None):
+        """Use the format expected by a datetime-local input."""
+        super().__init__(attrs=attrs, format="%Y-%m-%dT%H:%M:%S")
+
+
+class ServerAdapter(BaseServerAdapter):
+    """Supply this pack's server-side widget presentation."""
+
+    widget_defaults = {
+        "date": WidgetPresentation(
+            widget_class=forms.DateInput,
+            attrs={"type": "date", "class": "my-input"},
+        ),
+        "datetime": WidgetPresentation(
+            widget_class=LocalDateTimeInput,
+            attrs={"step": "1", "class": "my-input"},
+        ),
+        "select": WidgetPresentation(enhancement="searchable-select"),
+        "multiselect": WidgetPresentation(
+            enhancement="searchable-multiselect",
+            variant="standard",
+        ),
+    }
+    widget_surface_overrides = {
+        ("inline", "multiselect"): WidgetPresentation(variant="compact"),
+        ("filter", "select"): WidgetPresentation(
+            attrs={"class": "my-select my-select-small"},
+        ),
+    }
+
+
+server_adapter = ServerAdapter()
+```
+
+The semantic widget kinds are `text`, `textarea`, `number`, `date`, `datetime`, `time`, `boolean`, `select`, `multiselect`, and `file`. You do not have to repeat neutral entries: an omitted kind resolves to an empty `WidgetPresentation`, which leaves Django's compatible widget in place.
+
+`WidgetPolicyContext` describes why and where the widget is being rendered:
+
+| Context value | Meaning |
+| --- | --- |
+| `surface` | `form`, `inline`, `filter`, or `bulk`. |
+| `kind` | One of the semantic widget kinds above. |
+| `render_mode` | `native` or `crispy`. |
+| `field_name` | The application-facing field name. |
+| `required`, `disabled` | Current Django field state. |
+| `is_relation` | Whether the control represents a relation. |
+| `has_dependency` | Whether PowerCRUD manages a queryset dependency for this field. |
+| `enhancement_intent` | `default`, `enabled`, or `disabled` application intent. |
+
+A returned `WidgetPresentation` may set:
+
+| Field | Pack decision |
+| --- | --- |
+| `widget_class` | A compatible Django widget class, or `None` to retain the existing class. |
+| `attrs` | Framework classes and presentation attributes merged onto the widget. |
+| `enhancement` | `searchable-select`, `searchable-multiselect`, or `None`. |
+| `variant` | `standard`, `compact`, or `None`. |
+
+`BaseServerAdapter` resolves a semantic base default first and merges an optional `(surface, kind)` override onto it. An explicit disabled enhancement intent then removes the enhancement; an explicit enabled intent requests the matching searchable enhancement for select and multiselect controls. Do not replace those generic values, choices, querysets, validation, submission semantics, dependencies, or HTMX lifecycle in the pack.
+
+The policy applies to PowerCRUD-generated fields and to model-backed visible fields in a custom `ModelForm` that still use Django's silent default widget. An application-declared field, `Meta.widgets` entry, runtime widget replacement, non-model field, or hidden field remains application-owned and bypasses the pack default.
+
+### Add browser behaviour only when needed
+
+The optional browser module sets `window.PowerCRUDAdapter` before the stable `powercrud/js/powercrud.js` entry loads. It has `apiVersion: 1`, the same `identity` as the Python declaration, and a `create(context)` function. Server-adapter version 2 and browser-adapter version 1 are separate compatibility markers. The browser adapter returns only the semantic hook groups the framework needs; PowerCRUD supplies no-op defaults for the rest.
 
 This is intentionally not a list of DaisyUI or Bootstrap APIs. A pack for another CSS framework can use its own classes and library APIs, provided it preserves the semantic template hooks and implements any browser behaviour it needs.
 
@@ -118,6 +201,38 @@ That checks the declaration, packaged template resources, required templates for
 
 Before release, build both a wheel and a source distribution and run the same tests in an environment that installs those artifacts. This catches missing `templates/` or `static/` package data that a source checkout can hide.
 
+??? success "Template pack release checklist"
+
+    === "Contract and policy"
+
+        - [ ] The declaration uses the current contract and a safe identity, namespace, package resource root, capability set, and form-support claim.
+        - [ ] The server adapter uses `api_version = 2` and exposes the required presentation methods.
+        - [ ] Every semantic widget kind has a deliberate pack decision or an intentional neutral fallback.
+        - [ ] Surface overrides are limited to real form, inline, filter, or bulk presentation differences.
+        - [ ] The documentation preserves the application-owned custom-widget boundary.
+
+    === "Templates and browser"
+
+        - [ ] Required templates preserve the documented `data-powercrud-*`, target, and ARIA relationships for the behaviour they retain.
+        - [ ] The browser adapter uses `apiVersion: 1`, matches the declaration identity, and is loaded once before the PowerCRUD entry.
+        - [ ] PowerCRUD retains request, selection, modal-cleanup, and HTMX lifecycle ownership.
+        - [ ] Pack-owned CSS and JavaScript are separated from consumer-owned vendor dependencies.
+        - [ ] Manual-static and Vite consumers receive the correct load order without combining frontend routes.
+
+    === "Tests and packaging"
+
+        - [ ] The public conformance helper passes for the package declaration.
+        - [ ] Native forms and every declared Crispy integration have appropriate coverage.
+        - [ ] Server and browser tests cover the pack-specific behaviour that generic contract checks cannot see.
+        - [ ] Both the wheel and source distribution pass isolated-install validation.
+        - [ ] Installed artifacts contain every declared template and static resource.
+
+    === "Consumer documentation"
+
+        - [ ] Installation, `INSTALLED_APPS`, the selector, frontend assets, vendor requirements, and any Crispy setup are documented.
+        - [ ] Supported PowerCRUD versions and known presentation limits are stated clearly.
+        - [ ] Unsupported or untested behaviour is described rather than silently implied.
+
 ## Publish, install, and select
 
 Publish the package to PyPI or an internal index like any other Python distribution. A consumer then installs it and adds its Django app:
@@ -142,8 +257,10 @@ POWERCRUD_SETTINGS = {
 
 The selector is a Python `module.path:attribute`, not a framework name. PowerCRUD validates the declaration and reports a missing module, wrong contract version, missing template/static resource, or incompatible adapter directly. It never falls back to DaisyUI because another pack was selected incorrectly.
 
-## Limits of version 1
+## Current contract boundaries
 
-This is a public template-pack contract, not a generic frontend build system. A pack author must ship the Python package resources and document vendor dependencies. The automated manual-static route is supported. Vite users own their entry, aliases, npm dependencies, and manifest because only their project knows that build layout.
+This is a public template-pack contract, not a generic frontend build system. The current server-adapter API is version 2; the browser-adapter API remains version 1. These numbers identify different interfaces rather than two generations of the same complete pack contract.
+
+A pack author must ship the Python package resources and document vendor dependencies. The automated manual-static route is supported. Vite users own their entry, aliases, npm dependencies, and manifest because only their project knows that build layout.
 
 Application-owned template copies and asset snapshots are a separate choice from publishing a selectable pack. See [Customising](customising.md) for those override layers and [Testing and acceptance](testing-and-acceptance.md) for the release evidence expected of a supported pack.
