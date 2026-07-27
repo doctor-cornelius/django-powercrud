@@ -1,6 +1,10 @@
 # Forms
 
-After [Setup & Core CRUD basics](./setup_core_crud.md), the next step is understanding how PowerCRUD builds and enhances forms. This guide brings the form-related settings into one place:
+After [Setup & Core CRUD basics](./setup_core_crud.md), use this guide to decide who builds the editable form. For a normal model form, let PowerCRUD generate it and choose its fields. Use a custom `ModelForm` only when Django form behaviour belongs in your application.
+
+Most first forms need only `form_fields` (or the defaults) and the selected template pack. Read the later sections when you need a custom form, read-only context, locked inputs, dependent dropdowns, or custom persistence.
+
+This guide brings the form-related settings into one place:
 
 - auto-generated forms vs custom `form_class`
 - `form_fields` and `form_fields_exclude`
@@ -10,14 +14,16 @@ After [Setup & Core CRUD basics](./setup_core_crud.md), the next step is underst
 
 ---
 
-## Mental model
+## Start with the form owner
 
-PowerCRUD has two layers for forms:
+There are two clear paths:
 
-1. Form construction
-2. Runtime enhancements applied after the form exists
+1. **PowerCRUD-generated form:** omit `form_class` and use `form_fields` / `form_fields_exclude` to choose editable model fields.
+2. **Application-owned form:** set `form_class` and let that Django form define editable fields and explicit widgets.
 
-## Template-pack form rendering
+PowerCRUD can still apply its normal runtime help after either path: display-only context, disabled inputs, dependent querysets, searchable selects, Crispy rendering, and HTMX behaviour.
+
+## Form rendering and widget ownership
 
 Every supported template pack renders native Django forms. Crispy Forms remains an application decision: DaisyUI is tested with the `tailwind` Crispy pack and Bootstrap 5 with `crispy-bootstrap5`. Configure `use_crispy` and the Crispy pack in your application; PowerCRUD does not silently choose or enable one.
 
@@ -36,7 +42,7 @@ Runtime enhancements still apply after the custom form is built. That includes:
 - `searchable_selects`
 - `use_crispy`
 
-???+ note "Relationship Between form_class and PowerCRUD Form Parameters"
+??? note "Relationship between form_class and PowerCRUD form parameters"
 
     `form_class` replaces PowerCRUD's editable form generation.
 
@@ -48,7 +54,7 @@ Runtime enhancements still apply after the custom form is built. That includes:
 
 ## Widget presentation
 
-Django and PowerCRUD keep ownership of field values, choices and querysets, required and disabled state, validation, submission, dependencies, and the HTMX lifecycle. The selected template pack decides how a compatible visible widget is presented.
+Django and PowerCRUD keep ownership of values, choices and querysets, required and disabled state, validation, submission, dependencies, and the HTMX lifecycle. The selected template pack decides the visible treatment of a compatible widget.
 
 The policy understands these semantic kinds:
 
@@ -59,7 +65,7 @@ The policy understands these semantic kinds:
 - select and multiselect
 - file
 
-The same semantic kind may have a small surface-specific variation. Normal forms, generated filters, and bulk forms have room for a standard multiselect; inline editing uses a compact variant so the table row does not grow around a tall native control. The pack may also make a neutral decision, which leaves Django's compatible widget in place.
+The same kind of field can look slightly different where space demands it. Normal forms, generated filters, and bulk forms have room for a standard multiselect; inline editing uses a compact version so the table row stays usable. A pack can also leave Django's compatible widget alone when that is the right choice.
 
 Generated `DateTimeField` controls on normal and inline forms use a real browser `datetime-local` input and preserve seconds. Generated datetime filters use the corresponding date-and-time control. This concerns editing and filtering only: [temporal list value formats](setup_core_crud.md#temporal-list-value-formats) still control how saved values appear in list columns.
 

@@ -2,6 +2,8 @@
 
 When bulk updates take too long for a request/response cycle, move them to the background with django-q2. This chapter builds on [Bulk editing (synchronous)](./bulk_edit_sync.md) by adding async queueing, conflict locks, progress polling, and cleanup.
 
+This is an opt-in production layer, not the next required step after synchronous bulk editing. Use it when a normal bulk request may take too long, needs visible progress, or must prevent overlapping work on the same records.
+
 ---
 
 ## Prerequisites
@@ -57,7 +59,7 @@ python manage.py createcachetable powercrud_async_cache
 
 See the [async architecture reference](../reference/async.md#cache-design) for deeper background on how PowerCRUD uses the cache.
 
-???+ note "Redis Backend"
+??? note "Redis backend"
 
     Prefer a Redis (or other network) backend once you move beyond local demos. For example:
 
@@ -205,7 +207,7 @@ Whenever you change async settings, update PowerCRUD, or adjust cache configurat
 
 ---
 
-## 8. Optional Async Task Dashboard
+## 9. Optional async task dashboard
 
 If you configured `ModelTrackingAsyncManager`, you already have basic dashboard persistence—[Async dashboard add-on](async_dashboard.md) dives into customising it. If you rolled your own manager, make sure lifecycle events (`create`, `progress`, `complete`, `fail`, `cleanup`) are handled or at least logged.
 

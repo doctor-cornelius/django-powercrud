@@ -1,10 +1,8 @@
-# Styling & Tailwind
+# Styling, Template Packs & Tailwind
 
-PowerCRUD ships with a DaisyUI/Tailwind default and a supported Bootstrap 5 template pack. This chapter covers common DaisyUI/Tailwind styling controls and integration; see [Template Packs](../template_packs/index.md) for pack selection, cross-pack contracts, and Bootstrap requirements.
+Use this page after the first screen works. Most applications need only to use the DaisyUI default or select Bootstrap 5, then follow the frontend-loading route in [Getting Started](./getting_started.md#3-load-frontend-assets). The later sections are for application CSS, table tuning, a project-owned Tailwind build, and manual assets.
 
----
-
-## 1. DaisyUI default and Bootstrap selection
+## 1. Choose the selected template pack {#1-daisyui-default-and-bootstrap-selection}
 
 ```python
 # Leave POWERCRUD_TEMPLATE_PACK unset for the DaisyUI default.
@@ -19,7 +17,7 @@ POWERCRUD_SETTINGS = {
 - **Bootstrap 5** is a supported non-default pack. It has its own frontend asset requirements.
 - Class settings such as `table_classes` are selected-framework inputs: write DaisyUI/Tailwind classes for the default, or Bootstrap classes when Bootstrap is selected. They are not translated between frameworks.
 
-Do not use `POWERCRUD_CSS_FRAMEWORK` to select Bootstrap; it is a legacy compatibility setting. For a requirement beyond the supported packs, start with focused template overrides and discuss any maintained-pack work explicitly. See [Template Packs](../template_packs/index.md).
+Do not use `POWERCRUD_CSS_FRAMEWORK` to select Bootstrap; it is a legacy compatibility setting. For a requirement beyond the supported packs, start with focused template overrides and discuss any maintained-pack work explicitly. See [Template Packs](../template_packs/index.md) for pack selection, cross-pack contracts, and Bootstrap requirements.
 
 ---
 
@@ -77,16 +75,30 @@ If you manage your own app bundle, load the override CSS after `powercrud/css/po
 
     In practice, the cleanest downstream overrides usually use design tokens such as `var(--color-neutral)` / `var(--color-neutral-content)` for defaults or `var(--color-primary)` / `var(--color-primary-content)` for project-specific emphasis, plus existing radius tokens where available.
 
-### Column size controls
+### Let PowerCRUD choose column widths first {#column-size-controls}
+
+For a table that mixes text with dates, amounts, IDs, and checkmarks, start with semantic widths:
 
 ```python
-table_max_col_width = 30                   # characters
-table_header_min_wrap_width = 15
-table_pixel_height_other_page_elements = 100
-table_max_height = 80                      # percent of remaining viewport
+class ProjectCRUDView(PowerCRUDMixin, CRUDView):
+    # …
+    column_width_policy = "semantic"
 ```
 
-These values control truncation/popovers and scrollable table height.
+This keeps automatic IDs and booleans narrow, sizes dates and numbers around their values, and leaves descriptive text room to breathe. Use `column_width_modes` only when your application knows that one named column needs a different treatment. See [Semantic column widths](./setup_core_crud.md#column-widths) for the complete explanation and examples.
+
+??? info "Fine-grained table constraints"
+
+    These existing settings tune the wider table layout and scroll area. Use them when semantic sizing does not answer the layout problem, not as a substitute for choosing a sensible width policy:
+
+    ```python
+    table_max_col_width = 30                   # characters
+    table_header_min_wrap_width = 15
+    table_pixel_height_other_page_elements = 100
+    table_max_height = 80                      # percent of remaining viewport
+    ```
+
+    They control truncation/popovers and the scrollable table height.
 
 ### Dropdown sorting
 
@@ -174,6 +186,8 @@ Re-run the command whenever you upgrade PowerCRUD or adjust templates heavily.
 
 ## 4. External assets
 
+The complete, copyable setup for either frontend-loading route is in [Getting Started](./getting_started.md#3-load-frontend-assets). The same rules apply here; this summary is for styling work that needs to check asset order.
+
 Choose one loading path for PowerCRUD's frontend assets:
 
 - Bundled mode: load the packaged bundle with `{% vite_asset 'config/static/js/main.js' app='powercrud' %}`
@@ -222,7 +236,8 @@ PowerCRUD does not ship a full HTML shell; instead, your project must define its
 |---------|---------|----------------|---------|
 | `POWERCRUD_CSS_FRAMEWORK` | `'daisyUI'` | legacy compatibility value | Retain the compatible DaisyUI styling path; use `POWERCRUD_TEMPLATE_PACK` to select a supported pack. |
 | `table_classes`, `action_button_classes`, `extra_button_classes` | `''` | CSS classes | Style tables and buttons. |
-| `table_max_col_width`, `table_header_min_wrap_width` | `25`, same as max | integers | Control column widths and truncation. |
+| `column_width_policy`, `column_width_modes` | `'bounded'`, `None` | semantic policy and per-column overrides | Let PowerCRUD choose practical widths, then override a named column when needed. |
+| `table_max_col_width`, `table_header_min_wrap_width` | `25`, same as max | integers | Advanced table constraints for truncation and header wrapping. |
 | `table_max_height`, `table_pixel_height_other_page_elements` | `70`, `0` | integers | Limit table height and scroll behaviour. |
 | `dropdown_sort_options` | `{}` | dict | Order entries in dropdowns. |
 | `TAILWIND_SAFELIST_JSON_LOC` | `None` | path | Where to write the Tailwind safelist. |

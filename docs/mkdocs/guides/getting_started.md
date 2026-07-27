@@ -1,10 +1,17 @@
 # Getting Started
 
-!!! tip "Ready after setup?"
+Use this page to add PowerCRUD to an existing Django project and render your first useful list screen. Follow the numbered sections in order. You do not need saved favourites, manual asset loading, Tailwind configuration, or async work to get that first screen running.
 
-    Once you have the basics installed, continue with [Setup & Core CRUD basics](./setup_core_crud.md) for the full walkthrough. After you have seen the main features, read [PowerCRUD Concepts](./concepts.md) to put the configuration model in perspective.
+???+ tip "Your first pass through this guide"
 
-## Installation
+    1. Install the Python packages.
+    2. Add the required Django apps and middleware.
+    3. Load the packaged frontend bundle, unless you already know you need the manual asset route.
+    4. Declare the view and add its URLs.
+
+After that, continue with [Setup & Core CRUD basics](./setup_core_crud.md) to shape the screen. Read [PowerCRUD Concepts](./concepts.md) once the main features are familiar and you want a map of the terminology.
+
+## 1. Install PowerCRUD {#installation}
 
 ### Install Python packages
 
@@ -13,56 +20,11 @@ pip install neapolitan
 pip install django-powercrud
 ```
 
-Optional add-on:
+??? info "Optional saved favourites"
 
-- If you want saved favourites, also add the optional contrib app to `INSTALLED_APPS`, run migrations, and mount `powercrud.urls` with namespace `powercrud`.
-- The detailed behavior and UI guidance live in [Saved Favourites](./advanced/filter_favourites.md).
+    If you want saved favourites, also add the optional contrib app to `INSTALLED_APPS`, run migrations, and mount `powercrud.urls` with namespace `powercrud`. The detailed behavior and UI guidance live in [Saved Favourites](./advanced/filter_favourites.md).
 
-## Dependencies
-
-### Backend dependencies
-
-Install `django-powercrud` and `neapolitan` via `pip`, then add the required Django apps and middleware in your settings.
-
-PowerCRUD installs these Python dependencies automatically:
-
-- `django-htmx`
-- `django-template-partials` for Django 5.2 template partial compatibility
-- `pydantic`
-
-??? note "Backend library docs"
-
-    - django-htmx: [https://django-htmx.readthedocs.io/](https://django-htmx.readthedocs.io/){ target="_blank" rel="noopener noreferrer" }
-    - django-template-partials: [https://github.com/carltongibson/django-template-partials](https://github.com/carltongibson/django-template-partials){ target="_blank" rel="noopener noreferrer" }
-    - pydantic: [https://docs.pydantic.dev/latest/](https://docs.pydantic.dev/latest/){ target="_blank" rel="noopener noreferrer" }
-
-### Frontend dependencies
-
-PowerCRUD ships package-owned frontend runtime assets and a packaged bundle.
-
-Runtime responsibilities include:
-
-- **HTMX**
-- **Tom Select** (searchable single/multi select enhancement)
-- **Tippy.js** (truncated-table tooltips/popovers)
-- **PowerCRUD runtime JS/CSS** (`powercrud/js/powercrud.js`, `powercrud/css/powercrud.css`)
-
-You can run PowerCRUD in either of these modes:
-
-- **Bundled mode (recommended):** load PowerCRUD's packaged Vite entry (`config/static/js/main.js`).
-- **Manual mode:** install frontend dependencies yourself, then load PowerCRUD runtime assets from Django static paths.
-
-??? note "Frontend library docs"
-
-    - HTMX: [https://htmx.org/docs/](https://htmx.org/docs/){ target="_blank" rel="noopener noreferrer" }
-    - Tom Select: [https://tom-select.js.org/](https://tom-select.js.org/){ target="_blank" rel="noopener noreferrer" }
-    - Tippy.js: [https://atomiks.github.io/tippyjs/](https://atomiks.github.io/tippyjs/){ target="_blank" rel="noopener noreferrer" }
-    - DaisyUI: [https://daisyui.com/docs/](https://daisyui.com/docs/){ target="_blank" rel="noopener noreferrer" }
-    - Tailwind CSS: [https://tailwindcss.com/docs](https://tailwindcss.com/docs){ target="_blank" rel="noopener noreferrer" }
-
-Projects that use the built-in templates but manage assets manually should read those docs. Projects that load the packaged bundle can usually ignore package-level frontend dependency wiring.
-
-## Required Configuration
+## 2. Configure Django {#required-configuration}
 
 !!! warning "Minimum required wiring for PowerCRUD"
 
@@ -144,9 +106,31 @@ The URL prefix can be different, but the namespace must stay `powercrud`.
 
 If you do not install that contrib app and mount its shared URLs, filtering still works normally and the favourites UI simply remains unavailable.
 
-## Frontend Integration
+??? info "What PowerCRUD depends on"
 
-You can install PowerCRUD in two ways.
+    PowerCRUD installs `django-htmx`, `django-template-partials` (for Django 5.2 compatibility), and `pydantic` as Python dependencies. You do not configure `pydantic` in Django.
+
+    PowerCRUD ships package-owned frontend runtime assets and a packaged bundle. The frontend runtime includes:
+
+    - **HTMX**
+    - **Tom Select** (searchable single/multi-select enhancement)
+    - **Tippy.js** (truncated-table tooltips/popovers)
+    - **PowerCRUD runtime JS/CSS** (`powercrud/js/powercrud.js`, `powercrud/css/powercrud.css`)
+
+    The packaged bundle supplies those assets. You only need to manage them yourself when you choose the manual asset route below. Projects that use the built-in templates but manage assets manually should read the linked frontend library documentation; projects that load the packaged bundle can usually ignore package-level frontend dependency wiring.
+
+    - django-htmx: [https://django-htmx.readthedocs.io/](https://django-htmx.readthedocs.io/){ target="_blank" rel="noopener noreferrer" }
+    - django-template-partials: [https://github.com/carltongibson/django-template-partials](https://github.com/carltongibson/django-template-partials){ target="_blank" rel="noopener noreferrer" }
+    - pydantic: [https://docs.pydantic.dev/latest/](https://docs.pydantic.dev/latest/){ target="_blank" rel="noopener noreferrer" }
+    - HTMX: [https://htmx.org/docs/](https://htmx.org/docs/){ target="_blank" rel="noopener noreferrer" }
+    - Tom Select: [https://tom-select.js.org/](https://tom-select.js.org/){ target="_blank" rel="noopener noreferrer" }
+    - Tippy.js: [https://atomiks.github.io/tippy/](https://atomiks.github.io/tippy/){ target="_blank" rel="noopener noreferrer" }
+    - DaisyUI: [https://daisyui.com/docs/](https://daisyui.com/docs/){ target="_blank" rel="noopener noreferrer" }
+    - Tailwind CSS: [https://tailwindcss.com/docs](https://tailwindcss.com/docs){ target="_blank" rel="noopener noreferrer" }
+
+## 3. Load frontend assets {#frontend-integration}
+
+Use the packaged bundle unless your project already owns the frontend dependency pipeline. The two tabs are mutually exclusive loading routes; do not use both on one page.
 
 === "Option A (recommended): bundled mode"
 
@@ -272,9 +256,9 @@ You can install PowerCRUD in two ways.
 
     **Important:** If you compile Tailwind yourself, ensure Tailwind includes PowerCRUD classes in its build process. See the [Styling guide](./styling_tailwind.md#tailwind-integration) for details.
 
-## Quick Start Tutorial
+## 4. Create the first view {#quick-start-tutorial}
 
-### Basic Setup
+### Declare the view {#basic-setup}
 
 Start with a basic CRUD view. For reference see [`neapolitan`'s docs](https://noumenal.es/neapolitan/).
 
@@ -289,7 +273,7 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
     base_template_path = "core/base.html"
 ```
 
-### Add to URLs
+### Add the URLs {#add-to-urls}
 
 PowerCRUD’s `UrlMixin` (inherited from Neapolitan) exposes `get_urls()` so you do not have to hand-write the five CRUD routes. Pick the style that suits your project:
 
@@ -331,9 +315,9 @@ urlpatterns = [
 ]
 ```
 
-### Your First Enhanced View
+### Add the first enhancements you need {#your-first-enhanced-view}
 
-Add some powercrud features:
+Once the plain page renders, add only the features this screen needs. This example enables the common set:
 
 ```python
 class ProjectCRUDView(PowerCRUDMixin, CRUDView):
@@ -358,11 +342,11 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
     namespace = "my_app"
 ```
 
-That's it! You now have a fully-featured CRUD interface with filtering, pagination, modals, and HTMX support.
+You now have a list with filtering, pagination, HTMX, and modals. The next guide explains each choice without requiring you to turn on everything at once.
 
 ## Next Steps
 
 - **[Core configuration](./setup_core_crud.md#3-shape-list-and-detail-scopes)** - Field control and basic settings
 - **[HTMX & Modals](./setup_core_crud.md#modals)** - Interactive features
-- **[Filtering](./setup_core_crud.md#filtering-sorting)** - Advanced search and filter options
+- **[Filtering](./filtering.md)** - Advanced search and filter options
 - **[Bulk operations](./bulk_edit_sync.md)** - Edit multiple records at once

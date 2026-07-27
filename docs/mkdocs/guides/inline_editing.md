@@ -2,6 +2,8 @@
 
 Let users tweak individual rows without leaving the list view. PowerCRUD renders inline form fields inside the table, swaps rows with HTMX, and keeps the action column focused on “Save / Cancel” while editing.
 
+Use inline editing for a small number of quick, low-risk changes in a list. Keep the normal Edit form for larger or more complicated changes.
+
 ---
 
 ## Prerequisites
@@ -14,6 +16,8 @@ Let users tweak individual rows without leaving the list view. PowerCRUD renders
 
 ## 1. Enable inline editing
 
+For a first inline-editable screen, enable HTMX and name the editable fields. Each field must be an editable model field, be present on the actual form, and be visible in the list.
+
 ```python
 class BookCRUDView(PowerCRUDMixin, CRUDView):
     model = Book
@@ -25,7 +29,7 @@ class BookCRUDView(PowerCRUDMixin, CRUDView):
     inline_edit_highlight_accent = "#14b8a6"
 ```
 
-!!! warning "Legacy `inline_edit_enabled` compatibility"
+??? warning "Legacy `inline_edit_enabled` compatibility"
 
     `inline_edit_enabled` is now legacy compatibility-only behavior.
     New code should configure inline editing only through `inline_edit_fields`.
@@ -35,20 +39,20 @@ class BookCRUDView(PowerCRUDMixin, CRUDView):
 
     Downstream projects should migrate away from `inline_edit_enabled`.
 
-- `inline_edit_fields` both enables inline editing and controls which columns show the hover/focus shim and respond to clicks.
-- Leave `inline_edit_fields` unset to disable inline editing for the view.
-- Explicit `inline_edit_fields` entries must be editable model fields. If you include a field with `editable=False`, PowerCRUD raises a configuration error during view setup.
-- `inline_edit_fields` must match fields exposed by the actual form returned by `get_form_class()`. If you use a custom `form_class`, PowerCRUD still filters the inline list to fields that really exist on that form.
-- Stock inline editing still builds the full edit form, then reposts any non-rendered form fields as hidden inputs so inline saves behave like the normal edit form.
-- `form_disabled_fields` does not disable the same field inline. It remains an update-form feature only.
-- Only columns actually rendered in the list can be clicked inline, so a field must be both inline-configured and visible in the list to behave as an inline-editable cell.
-- `inline_edit_always_visible` defaults to `True`, which means editable cells show a subtle resting hint even before hover.
-- `inline_edit_highlight_accent` defaults to `"#14b8a6"`. PowerCRUD derives the lighter resting tint, stronger hover/focus tint, and active-row highlight from that single hex accent automatically.
-- The mixin automatically injects inline metadata into the row payload and exposes two HTMX endpoints:
-    - `…-inline-row` – swaps the display/form row and handles POST saves.
-    - `…-inline-dependency` – rebuilds a single field widget for dependent dropdowns.
+`inline_edit_fields` both enables inline editing and controls which visible cells users can click. Leave it unset to disable inline editing for the view. The selected pack already supplies the triggers, Save/Cancel buttons, and `inline-row-*` events; you do not need template work unless you override the list partial.
 
-The selected pack's built-in list template already includes the triggers, Save/Cancel buttons, and `inline-row-*` events; no manual template work is required unless you are overriding the list partial.
+??? info "Inline-edit rules and implementation details"
+
+    - Explicit `inline_edit_fields` entries must be editable model fields. If you include a field with `editable=False`, PowerCRUD raises a configuration error during view setup.
+    - `inline_edit_fields` must match fields exposed by the actual form returned by `get_form_class()`. If you use a custom `form_class`, PowerCRUD still filters the inline list to fields that really exist on that form.
+    - Stock inline editing still builds the full edit form, then reposts any non-rendered form fields as hidden inputs so inline saves behave like the normal edit form.
+    - `form_disabled_fields` does not disable the same field inline. It remains an update-form feature only.
+    - Only columns actually rendered in the list can be clicked inline, so a field must be both inline-configured and visible in the list to behave as an inline-editable cell.
+    - `inline_edit_always_visible` defaults to `True`, which means editable cells show a subtle resting hint even before hover.
+    - `inline_edit_highlight_accent` defaults to `"#14b8a6"`. PowerCRUD derives the lighter resting tint, stronger hover/focus tint, and active-row highlight from that single hex accent automatically.
+    - The mixin automatically injects inline metadata into the row payload and exposes two HTMX endpoints:
+        - `…-inline-row` – swaps the display/form row and handles POST saves.
+        - `…-inline-dependency` – rebuilds a single field widget for dependent dropdowns.
 
 ### Styling the inline-edit affordance
 
@@ -80,9 +84,9 @@ Notes:
 
 ---
 
-## 2. Configure dependencies and helpers
+## 2. Add dependencies when one field changes another
 
-Inline editing reuses the existing form machinery, so any widget or queryset customisations carry over. Keep `inline_edit_fields` aligned with whatever the form actually exposes; if a field is excluded from `form_class`, PowerCRUD drops it from the inline list after the initial editable-field validation. List rendering still controls which cells are clickable, so an inline field should normally also be present in your list `fields`. Fields that belong to the full form but are not rendered as visible inline widgets are still reposted as hidden inputs so save validation matches the normal edit form. One exception is `form_disabled_fields`: that setting does not lock the same field inline and remains update-form-only. For dynamic dropdowns, declare the shared queryset dependency once:
+Skip this section unless one field should change the choices offered by another. Inline editing reuses the normal form machinery, so widget and queryset customisations carry over. For a dynamic dropdown, declare the shared queryset dependency once:
 
 ```python
 class BookCRUDView(PowerCRUDMixin, CRUDView):
@@ -115,7 +119,7 @@ The most reliable pattern is:
 
 The sample app demonstrates this with `Book.author -> Book.genres`, where the allowed genres come from `Author.genres`:
 
-???+ note "Sample App Dynamic Inline Field Overrides Example"
+??? note "Sample app dynamic inline field example"
 
     === "`BookCRUDView`"
 
@@ -165,7 +169,7 @@ For a fuller explanation of `filter_by`, multiple-parent mappings, and migration
 
 ---
 
-## 3. Respect locks and permissions
+## 3. Add locks and permissions when needed
 
 Inline editing piggybacks on the same hooks the bulk/async flows use:
 
