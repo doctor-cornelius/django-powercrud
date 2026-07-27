@@ -196,6 +196,7 @@ def test_bootstrap_sample_shell_uses_the_compact_navigation_presentation():
     styles = style_path.read_text(encoding="utf-8")
     assert 'padding: .5rem;' in styles
     assert 'min-height: 2rem;' in styles
+    assert 'z-index: 3;' in styles
     assert 'font-size: .75rem;' in styles
 
 

@@ -494,6 +494,9 @@ it records outcomes rather than reproducing commit messages.
    `table_classes` as the downstream typography hook.
 9. Switched both Book sample views—the ordinary primitive view and the
    PowerField equivalent—to the opt-in `semantic` column-width policy.
+10. Kept Bootstrap view controls above sticky table headers but below the
+    Bootstrap modal layer, preventing filter and column controls from painting
+    over a bulk-edit modal.
 
 ### Sample Shell Presentation
 

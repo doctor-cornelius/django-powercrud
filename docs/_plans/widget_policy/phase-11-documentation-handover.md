@@ -73,6 +73,7 @@ The user-visible results include:
   legacy behaviour;
 - centred table headers, better typography inheritance, and improved table
   sizing in both packs;
+- Bootstrap list controls correctly remain below the Bootstrap modal layer;
 - Bootstrap sample light/dark selection and a more compact sample shell; and
 - the Book and PowerField Book sample views using semantic column sizing.
 

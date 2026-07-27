@@ -335,11 +335,11 @@
     display: none !important;
 }
 
-/* Keep the compact toolbar controls actionable when a detached chooser panel
-   overlaps their narrow-screen row. */
+/* Keep the compact toolbar controls actionable above sticky table headers, but
+   within the list's local stack so a Bootstrap modal always covers them. */
 [data-powercrud-object-list="true"] [data-powercrud-view-controls] {
     position: relative;
-    z-index: 1081;
+    z-index: 3;
 }
 
 [data-powercrud-object-list="true"] .pc-table-column-width {
