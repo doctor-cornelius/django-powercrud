@@ -462,12 +462,10 @@ it records outcomes rather than reproducing commit messages.
    generic server-side default when the operation is omitted.
 9. Put bulk M2M operation choices above their value control in both packs, so
    an open option menu cannot obscure the operation that will be submitted.
-10. The DaisyUI bulk multiselect still has a known dropdown-placement defect.
-    Its bulk policy adds `min-h-[150px]` to the original select; Tom Select
-    copies that class to its wrapper, so a dropdown retained inside a modal is
-    positioned after the 150-pixel wrapper rather than directly below the
-    visible control. Bootstrap is not affected. This is a recorded follow-up,
-    not a completed Phase 10 outcome.
+10. Removed DaisyUI's bulk-only `min-h-[150px]` from the enhanced control. Tom
+    Select had copied it to its wrapper, causing in-modal dropdowns to open
+    far below the visible selector. Both first-party packs now open bulk M2M
+    menus directly below their controls.
 
 ### Table and Inline-list Presentation
 

@@ -91,23 +91,22 @@ while its explicit date widget does not change.
 Bulk selection checkboxes and M2M add/remove/replace remain generic PowerCRUD
 behaviour. The selected pack controls the visible bulk value widget.
 
-## Known Follow-up to Preserve
+## Late UI Correction
 
 The radio choices for a bulk M2M operation now appear above the selector in
-both packs, so the dropdown cannot hide them. DaisyUI still has one known bulk
-dropdown-position defect that Michael observed after that change:
+both packs, so the dropdown cannot hide them. The late DaisyUI bulk dropdown
+placement defect was also corrected:
 
-- The DaisyUI bulk multiselect policy applies `min-h-[150px]` to the original
-  select.
-- Tom Select copies that class to its wrapper.
-- Inside its modal, DaisyUI intentionally retains the dropdown within the
-  dialog; normal `top: 100%` placement therefore starts below the 150-pixel
-  wrapper instead of immediately below the approximately 44-pixel visible
-  control.
+- DaisyUI previously applied `min-h-[150px]` to the original bulk select.
+- Tom Select copied that class to its wrapper.
+- Inside its modal, normal `top: 100%` placement therefore started after the
+  150-pixel wrapper rather than immediately below the visible control.
+- The bulk presentation now uses the regular DaisyUI select height, so both
+  packs open their M2M menu beside the visible control.
 
-This is recorded in the notes but is not the next autonomous task. Do not
-investigate or fix it unless Michael explicitly reopens it. The next agreed
-step is to discuss Phase 11 stable documentation.
+This correction is recorded in the notes. The next agreed step remains to
+discuss Phase 11 stable documentation; do not investigate further UI work or
+make changes unless Michael explicitly reopens it.
 
 ## Phase 11 Discussion Starting Point
 

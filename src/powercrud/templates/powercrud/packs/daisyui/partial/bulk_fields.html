@@ -84,7 +84,7 @@
                                         <span>Replace with selected</span>
                                     </label>
                                 </div>
-                                <select name="{{ field_name }}" class="select select-bordered w-full min-h-[150px] h-auto"
+                                <select name="{{ field_name }}" class="select select-bordered w-full"
                                     multiple disabled>
                                     {% for choice in info.bulk_choices %}
                                     <option value="{{ choice.pk }}">{{ choice }}</option>

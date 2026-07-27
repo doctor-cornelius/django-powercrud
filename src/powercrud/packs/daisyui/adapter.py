@@ -114,7 +114,7 @@ class DaisyUIServerAdapter(BaseServerAdapter):
             attrs={"class": "select select-bordered w-full"}
         ),
         ("bulk", "multiselect"): WidgetPresentation(
-            attrs={"class": "select select-bordered w-full min-h-[150px] h-auto"}
+            attrs={"class": "select select-bordered w-full"}
         ),
         ("bulk", "file"): WidgetPresentation(
             attrs={"class": "file-input file-input-bordered w-full"}

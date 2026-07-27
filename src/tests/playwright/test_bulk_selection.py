@@ -585,6 +585,19 @@ def test_bulk_multiselect_clear_button_only_clears_staged_values(
     assert action_box["y"] + action_box["height"] <= control_box["y"], (
         "Bulk M2M operation choices should remain visible above their selector."
     )
+    control.click()
+    dropdown_box = select.evaluate(
+        """
+        (element) => {
+            const rect = element.tomselect.dropdown.getBoundingClientRect();
+            return { y: rect.y, height: rect.height };
+        }
+        """
+    )
+    assert dropdown_box["y"] <= control_box["y"] + control_box["height"] + 12, (
+        "Bulk M2M options should open directly below their visible control, not after an inherited tall wrapper. "
+        f"Dropdown: {dropdown_box}; control: {control_box}."
+    )
     select.evaluate(
         "(element, value) => element.tomselect.setValue(String(value))",
         str(sample_genre.pk),
