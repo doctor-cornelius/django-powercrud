@@ -358,6 +358,9 @@
 [data-powercrud-object-list="true"] .pc-table-column-width[data-powercrud-column-width-mode="compact"] {
     width: 1%;
     min-width: 0;
+}
+
+[data-powercrud-object-list="true"] td.pc-table-column-width[data-powercrud-column-width-mode="compact"] {
     white-space: nowrap;
 }
 
@@ -376,6 +379,10 @@
 }
 
 [data-powercrud-object-list="true"] th.pc-table-column-width[data-powercrud-column-width-mode="auto"] {
+    white-space: normal;
+}
+
+[data-powercrud-object-list="true"] th.pc-table-column-width[data-powercrud-column-width-mode="compact"] {
     white-space: normal;
 }
 

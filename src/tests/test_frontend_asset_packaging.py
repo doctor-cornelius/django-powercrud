@@ -93,6 +93,51 @@ def test_detached_inline_tom_select_menus_inherit_the_view_palette() -> None:
         )
 
 
+def test_compact_column_headers_can_wrap_in_both_first_party_packs() -> None:
+    """Compact values must not force long column headers onto one line."""
+    package_root = Path(powercrud.__file__).resolve().parent
+    daisyui_list = (
+        package_root
+        / "templates"
+        / "powercrud"
+        / "packs"
+        / "daisyui"
+        / "object_list.html"
+    ).read_text(encoding="utf-8")
+    bootstrap_css = (
+        package_root
+        / "contrib"
+        / "bootstrap5"
+        / "static"
+        / "powercrud"
+        / "contrib"
+        / "bootstrap5"
+        / "css"
+        / "bootstrap5.css"
+    ).read_text(encoding="utf-8")
+
+    for styles, table_cell_selector, table_header_selector in (
+        (
+            daisyui_list,
+            'td.table-column-width[data-powercrud-column-width-mode="compact"]',
+            'th.table-column-width[data-powercrud-column-width-mode="compact"]',
+        ),
+        (
+            bootstrap_css,
+            'td.pc-table-column-width[data-powercrud-column-width-mode="compact"]',
+            'th.pc-table-column-width[data-powercrud-column-width-mode="compact"]',
+        ),
+    ):
+        compact_cell_rule = styles[styles.index(table_cell_selector):]
+        compact_header_rule = styles[styles.index(table_header_selector):]
+        assert "white-space: nowrap;" in compact_cell_rule.split("}", 1)[0], (
+            "Compact table body cells should keep short values such as booleans on one line."
+        )
+        assert "white-space: normal;" in compact_header_rule.split("}", 1)[0], (
+            "Compact headers should wrap long labels instead of dictating a wide column."
+        )
+
+
 def test_runtime_js_uses_stable_entry_with_internal_module_import() -> None:
     """The stable runtime entry should import internal modules without changing the public path."""
     package_root = Path(powercrud.__file__).resolve().parent

@@ -36,6 +36,8 @@
         .table-column-width[data-powercrud-column-width-mode="compact"] {
             width: 1%;
             min-width: 0;
+        }
+        td.table-column-width[data-powercrud-column-width-mode="compact"] {
             white-space: nowrap;
         }
         th.table-column-width[data-powercrud-column-width-mode="bounded"] {
@@ -44,6 +46,9 @@
             max-width: {{ table_max_col_width }};
         }
         th.table-column-width[data-powercrud-column-width-mode="auto"] {
+            white-space: normal;
+        }
+        th.table-column-width[data-powercrud-column-width-mode="compact"] {
             white-space: normal;
         }
 
