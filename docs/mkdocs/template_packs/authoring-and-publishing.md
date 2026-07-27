@@ -119,6 +119,44 @@ class ServerAdapter(BaseServerAdapter):
 server_adapter = ServerAdapter()
 ```
 
+#### Understand the context-to-presentation exchange
+
+`WidgetPolicyContext` is simply PowerCRUD's read-only description of one field. Think of it as PowerCRUD saying: “This is the `genres` field, it is a multiselect, and I am rendering it inside an inline-edit row.” Your pack does not create this object.
+
+For each field, the exchange is:
+
+1. PowerCRUD creates the Django field and works out what it is and where it will appear.
+2. PowerCRUD describes those facts in a `WidgetPolicyContext` and hands it to the selected pack.
+3. The pack returns a `WidgetPresentation`: keep or change the compatible Django widget, add these attributes, request this enhancement, and use the standard or compact layout.
+4. PowerCRUD applies that answer while keeping ownership of values, choices, validation, submission, dependencies, and HTMX updates.
+
+You normally need only `BaseServerAdapter`, `WidgetPresentation`, `widget_defaults`, and `widget_surface_overrides`, as shown above. PowerCRUD calls the inherited method for you. Import `WidgetPolicyContext` only if you write your own `get_widget_presentation()` method and want to inspect facts such as `context.surface` or `context.has_dependency`.
+
+??? info "Exact Python definition"
+
+    `WidgetPolicyContext` is a frozen dataclass exported from `powercrud.template_packs`. You do not define or instantiate it in your pack.
+
+    ```python
+    from dataclasses import dataclass
+    from typing import Literal
+
+
+    @dataclass(frozen=True, slots=True)
+    class WidgetPolicyContext:
+        surface: Literal["form", "inline", "filter", "bulk"]
+        kind: Literal[
+            "text", "textarea", "number", "date", "datetime",
+            "time", "boolean", "select", "multiselect", "file",
+        ]
+        render_mode: Literal["native", "crispy"]
+        field_name: str
+        required: bool
+        disabled: bool
+        is_relation: bool
+        has_dependency: bool
+        enhancement_intent: Literal["default", "enabled", "disabled"]
+    ```
+
 The semantic widget kinds are `text`, `textarea`, `number`, `date`, `datetime`, `time`, `boolean`, `select`, `multiselect`, and `file`. You do not have to repeat neutral entries: an omitted kind resolves to an empty `WidgetPresentation`, which leaves Django's compatible widget in place.
 
 `WidgetPolicyContext` describes why and where the widget is being rendered:
@@ -134,6 +172,8 @@ The semantic widget kinds are `text`, `textarea`, `number`, `date`, `datetime`, 
 | `has_dependency` | Whether PowerCRUD manages a queryset dependency for this field. |
 | `enhancement_intent` | `default`, `enabled`, or `disabled` application intent. |
 
+For example, an inline `Book.genres` field rendered through Crispy Forms might arrive as a `multiselect` on the `inline` surface, with `is_relation=True`, `has_dependency=True`, and `enhancement_intent="default"`. For the adapter above, `BaseServerAdapter` starts with the standard searchable `multiselect` default, merges the inline override to make it compact, and leaves the enhancement unchanged because the application expressed no explicit override.
+
 A returned `WidgetPresentation` may set:
 
 | Field | Pack decision |
@@ -145,13 +185,101 @@ A returned `WidgetPresentation` may set:
 
 `BaseServerAdapter` resolves a semantic base default first and merges an optional `(surface, kind)` override onto it. An explicit disabled enhancement intent then removes the enhancement; an explicit enabled intent requests the matching searchable enhancement for select and multiselect controls. Do not replace those generic values, choices, querysets, validation, submission semantics, dependencies, or HTMX lifecycle in the pack.
 
+Most packs should stay with the two dictionaries. Override the method only when presentation genuinely depends on another supplied fact:
+
+```python
+from dataclasses import replace
+
+from powercrud.template_packs import (
+    BaseServerAdapter,
+    WidgetPolicyContext,
+    WidgetPresentation,
+)
+
+
+class ServerAdapter(BaseServerAdapter):
+    # widget_defaults and widget_surface_overrides as above
+
+    def get_widget_presentation(
+        self, context: WidgetPolicyContext
+    ) -> WidgetPresentation:
+        presentation = super().get_widget_presentation(context)
+        if context.kind == "select" and context.has_dependency:
+            return replace(
+                presentation,
+                attrs={**presentation.attrs, "data-my-dependent-control": "true"},
+            )
+        return presentation
+```
+
+Call `super()` first so the semantic base default, surface override, and application enhancement intent continue to resolve in the documented order.
+
 The policy applies to PowerCRUD-generated fields and to model-backed visible fields in a custom `ModelForm` that still use Django's silent default widget. An application-declared field, `Meta.widgets` entry, runtime widget replacement, non-model field, or hidden field remains application-owned and bypasses the pack default.
 
-### Add browser behaviour only when needed
+### Decide whether you need browser code
 
-The optional browser module sets `window.PowerCRUDAdapter` before the stable `powercrud/js/powercrud.js` entry loads. It has `apiVersion: 1`, the same `identity` as the Python declaration, and a `create(context)` function. Server-adapter version 2 and browser-adapter version 1 are separate compatibility markers. The browser adapter returns only the semantic hook groups the framework needs; PowerCRUD supplies no-op defaults for the rest.
+Most of a pack is templates, CSS, and the Python widget policy. Add browser code only when the framework or widget library needs JavaScript to do something PowerCRUD's neutral browser behaviour cannot do. Typical examples are opening a framework-specific modal, creating searchable selects, positioning detached dropdowns, or initialising tooltips.
 
-This is intentionally not a list of DaisyUI or Bootstrap APIs. A pack for another CSS framework can use its own classes and library APIs, provided it preserves the semantic template hooks and implements any browser behaviour it needs.
+The generated `adapter.js` is already a valid adapter:
+
+```javascript
+window.PowerCRUDAdapter = Object.freeze({
+    apiVersion: 1,
+    identity: "my-pack",
+    create() {
+        return {};
+    },
+});
+```
+
+In plain language:
+
+- `identity` must exactly match `identity="my-pack"` in `template_pack.py`.
+- `create()` returns the browser jobs your pack wants to replace.
+- Returning `{}` means “use PowerCRUD's neutral browser behaviour for everything.”
+- PowerCRUD calls `create()` for you. Your application must not call it again.
+
+Leave this file unchanged while ordinary HTML and CSS are enough. If the pack has no JavaScript at all, you may remove its `BrowserAdapterSpec` from `PackAssets` instead of shipping an empty file.
+
+When JavaScript is necessary, return only the callbacks you need. For example, a framework that must initialise and clean up controls whenever PowerCRUD loads or replaces part of the page could use:
+
+```javascript
+window.PowerCRUDAdapter = Object.freeze({
+    apiVersion: 1,
+    identity: "my-pack",
+    create() {
+        return {
+            fragment: {
+                init(root) {
+                    window.MyFramework?.initialise?.(root);
+                },
+                destroy(root) {
+                    window.MyFramework?.destroy?.(root);
+                },
+            },
+        };
+    },
+});
+```
+
+PowerCRUD calls `fragment.init(root)` after the initial page load and after relevant HTMX replacements. It calls `fragment.destroy(root)` before removing an old fragment. Replace `MyFramework` with the real API used by your pack; keep data fetching, form submission, and HTMX requests in PowerCRUD.
+
+The available callback groups correspond to ordinary browser jobs:
+
+| Callback group | Use it when your framework must handle |
+| --- | --- |
+| `fragment` | General setup or cleanup for a page fragment. |
+| `searchableSelects` | Creating, destroying, or synchronising enhanced selects. |
+| `tooltips` | Showing and cleaning up framework tooltips. |
+| `modals` | Opening, closing, or disposing of framework modals. |
+| `controls` | Framework-specific busy and disabled presentation. |
+| `floatingPanels` | Cloning, positioning, showing, or hiding detached menus. |
+| `inline` | Focus, saving state, and error presentation during inline editing. |
+| `filters` | Framework-specific filter-panel and favourites presentation. |
+
+You do not need to implement every group or every callback. PowerCRUD fills any missing callback with neutral behaviour. The generated `BrowserAdapterSpec` tells PowerCRUD where `adapter.js` is, and the selected-pack asset tags load it before the main PowerCRUD script.
+
+The compatibility numbers are deliberately separate: the Python server adapter uses `api_version = 2`; this JavaScript browser adapter still uses `apiVersion: 1`.
 
 ## Own CSS and JavaScript honestly
 
