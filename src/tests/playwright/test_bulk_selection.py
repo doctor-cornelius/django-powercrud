@@ -577,6 +577,14 @@ def test_bulk_multiselect_clear_button_only_clears_staged_values(
     page.wait_for_function(
         "() => Boolean(document.querySelector('#bulk-edit-form select[name=\"genres\"]')?.tomselect)"
     )
+    action_group = form.locator("[data-powercrud-bulk-m2m-actions='genres']")
+    control = form.locator("select[name='genres'] + .ts-wrapper .ts-control")
+    action_box = action_group.bounding_box()
+    control_box = control.bounding_box()
+    assert action_box and control_box
+    assert action_box["y"] + action_box["height"] <= control_box["y"], (
+        "Bulk M2M operation choices should remain visible above their selector."
+    )
     select.evaluate(
         "(element, value) => element.tomselect.setValue(String(value))",
         str(sample_genre.pk),

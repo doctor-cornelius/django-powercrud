@@ -16,9 +16,8 @@
 
                     <div class="mt-2 pl-10 field-input-container" style="display: none;">
                         {% if info.control %}
-                        {{ info.control }}
                         {% if info.is_m2m %}
-                        <div class="text-xs mt-1">
+                        <div class="mb-2 text-xs" data-powercrud-bulk-m2m-actions="{{ field_name }}">
                             <label class="flex items-center">
                                 <input type="radio" name="{{ field_name }}_action" value="add"
                                     class="radio radio-xs mr-1" disabled>
@@ -36,6 +35,7 @@
                             </label>
                         </div>
                         {% endif %}
+                        {{ info.control }}
                         {% elif info.type == 'BooleanField' %}
                         <!-- Boolean field -->
                         <select name="{{ field_name }}" class="select select-bordered w-full" disabled>
@@ -67,13 +67,7 @@
                                 {% endfor %}
                             </select>
                             {% elif info.is_m2m %}
-                                <select name="{{ field_name }}" class="select select-bordered w-full min-h-[150px] h-auto"
-                                    multiple disabled>
-                                    {% for choice in info.bulk_choices %}
-                                    <option value="{{ choice.pk }}">{{ choice }}</option>
-                                    {% endfor %}
-                                </select>
-                                <div class="text-xs mt-1">
+                                <div class="mb-2 text-xs" data-powercrud-bulk-m2m-actions="{{ field_name }}">
                                     <label class="flex items-center">
                                         <input type="radio" name="{{ field_name }}_action" value="add"
                                             class="radio radio-xs mr-1" disabled>
@@ -90,6 +84,12 @@
                                         <span>Replace with selected</span>
                                     </label>
                                 </div>
+                                <select name="{{ field_name }}" class="select select-bordered w-full min-h-[150px] h-auto"
+                                    multiple disabled>
+                                    {% for choice in info.bulk_choices %}
+                                    <option value="{{ choice.pk }}">{{ choice }}</option>
+                                    {% endfor %}
+                                </select>
                             {% endif %}
                         {% elif info.choices %}
                         <!-- Field with choices -->
