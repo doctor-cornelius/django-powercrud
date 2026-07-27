@@ -710,7 +710,9 @@ With `"semantic"`, PowerCRUD chooses one of three width modes from the field typ
 
 - `"compact"` keeps automatic IDs and checkmarks as narrow as practical. Long header labels can wrap instead of making the column unnecessarily wide.
 - `"auto"` sizes dates, times, and numbers around their values.
-- `"bounded"` gives descriptive text, relations, annotations, and computed properties a sensible maximum width.
+- `"bounded"` gives descriptive text, relations, computed properties, and other columns without a short-value rule a sensible maximum width.
+
+Queryset annotations use their declared Django `output_field`, so Boolean, numeric, and temporal annotations receive the same automatic treatment as those model-field types. A computed Python property has no such type metadata; choose a width explicitly when its value is known to be short.
 
 Normally, you can leave those choices to PowerCRUD. Override an individual column only when your application knows better. For example, a short asset code stored in a text field can use the compact treatment:
 
