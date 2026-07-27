@@ -2,7 +2,7 @@
 
 Use this guide after [Getting Started](./getting_started.md) when your first PowerCRUD list page already renders. It shows how to make that page useful day to day: choose what users see, add filtering and pagination, then improve the table's presentation.
 
-??? info "How to use this guide"
+???+ info "How to use this guide"
 
     For a first useful screen, work through list/detail fields, filtering, pagination, and the list-presentation options that matter to your users. The custom-button, row-action, and detailed modal sections are here when you need them; they are not prerequisites for a working CRUD screen.
 
