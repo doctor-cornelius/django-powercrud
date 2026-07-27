@@ -304,7 +304,19 @@ urlpatterns = [
 ]
 ```
 
-Only the List and View endpoints (and their buttons) will render in that case. Finally, include the app URLs at the project level as usual:
+With no `roles` argument, PowerCRUD registers all five built-in roles:
+
+| Role | What it gives the user |
+| --- | --- |
+| `Role.LIST` | The table page that lists records. |
+| `Role.DETAIL` | The **View** page for one record. |
+| `Role.CREATE` | The **Create** form for a new record. |
+| `Role.UPDATE` | The **Edit** form for an existing record. |
+| `Role.DELETE` | The **Delete** confirmation for an existing record. |
+
+The example registers only the list and detail routes, so users can browse records and open **View**, but cannot use PowerCRUD's built-in **Create**, **Edit**, or **Delete** controls. A missing role means PowerCRUD does not register that route or render its associated built-in action. Custom actions still need their own endpoints and permission checks.
+
+Finally, include the app URLs at the project level as usual:
 
 ```python
 # config/urls.py
