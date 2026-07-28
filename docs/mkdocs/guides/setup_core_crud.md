@@ -642,6 +642,19 @@ Keep these boundaries in mind:
 
 PowerCRUD chooses a sensible body-cell alignment from the field type. If a short categorical value would scan better centred or right-aligned, override that one column:
 
+??? info "Default body-cell alignment"
+
+    | Field or value category | Default alignment |
+    | --- | --- |
+    | Text-like fields: `CharField`, `TextField`, `SlugField`, `EmailField`, and `URLField` | Left |
+    | Relations, including foreign keys and many-to-many fields | Left |
+    | All other typed Django fields, including booleans, numbers, dates, times, and automatic primary keys | Centre |
+    | Typed queryset annotations | Follows the same rule using the annotation's declared `output_field` |
+    | Untyped computed properties whose value is boolean | Centre |
+    | Other untyped computed properties | Left |
+
+    Numeric values are centred rather than right-aligned. First-party packs centre column headers independently of these body-cell defaults.
+
 ```python
 class ProjectCRUDView(PowerCRUDMixin, CRUDView):
     # ...
