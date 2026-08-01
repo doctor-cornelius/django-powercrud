@@ -354,6 +354,11 @@ def test_inline_edit_searchable_select_updates_author(
         "data-powercrud-searchable-select",
         "true",
     )
+    genres_select = active_row.locator("select[name='genres']")
+    outgoing_genres_select = genres_select.element_handle()
+    assert outgoing_genres_select is not None, (
+        "The active inline row should contain the genres select before its dependency refresh."
+    )
 
     select_single_value(
         page=page,
@@ -362,7 +367,17 @@ def test_inline_edit_searchable_select_updates_author(
         option_label=replacement_author.name,
         option_value=str(replacement_author.pk),
     )
-    genres_select = active_row.locator("select[name='genres']")
+    page.wait_for_function(
+        "element => !element.isConnected",
+        arg=outgoing_genres_select,
+    )
+    page.wait_for_function(
+        """
+        () => Boolean(document.querySelector(
+            'tr[data-inline-active="true"] select[name="genres"]'
+        )?.tomselect)
+        """
+    )
     expect(
         active_row.locator(".ts-wrapper.powercrud-inline-multiselect")
     ).to_be_visible()
