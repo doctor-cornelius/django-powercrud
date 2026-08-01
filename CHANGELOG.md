@@ -6,6 +6,20 @@ During the `0.x` series, breaking changes can occur, although we try to minimise
 
 Version numbers below correspond to published git tags. The more important releases include a little extra narrative and upgrade context; smaller patch releases remain deliberately brief. For full detail between any two versions, use the GitHub compare view for the matching tags.
 
+## 0.9.3 (2026-08-01)
+
+- **Fix (UI): improve searchable-select responsiveness.**
+
+  Tom Select dropdowns now render at most 50 matching options while retaining the default 300 ms type-ahead throttle, improving responsiveness for large datasets.
+
+- **Docs (modals): correct the modal-shell ownership contract.**
+
+  Previous documentation incorrectly stated that `modal_id` and `modal_target` could replace PowerCRUD’s modal with an application-provided modal. That integration was never implemented. These settings only rename PowerCRUD’s own modal shell and content host; projects should use global or focused template overrides to customize the modal.
+
+- **Docs: improve configuration guidance.**
+
+  Expanded the Structured API examples and clarified default column-alignment behaviour.
+
 ## 0.9.2 (2026-07-27)
 
 - **Feature (widgets): pack-owned widget presentation.**
