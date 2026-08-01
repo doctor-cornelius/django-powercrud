@@ -205,7 +205,7 @@ export function createBootstrap5SearchableSelectAdapter({ global, documentObject
         const settings = {
             create: false,
             maxItems: multiple ? null : 1,
-            maxOptions: null,
+            maxOptions: 50,
             closeAfterSelect: !multiple,
             allowEmptyOption: true,
             hideSelected: false,

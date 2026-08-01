@@ -80,6 +80,16 @@ def test_bootstrap_manual_static_loads_selected_runtime_without_vite(
     assert page.locator("#filter-form select[name='author'] + .ts-wrapper").count() == 1, (
         "Repeated Bootstrap manual-static initialization should keep one TomSelect wrapper."
     )
+    tom_select_performance_settings = page.locator(
+        "#filter-form select[name='author']"
+    ).evaluate(
+        "element => ({ maxOptions: element.tomselect.settings.maxOptions, "
+        "refreshThrottle: element.tomselect.settings.refreshThrottle })"
+    )
+    assert tom_select_performance_settings == {
+        "maxOptions": 50,
+        "refreshThrottle": 300,
+    }, "Bootstrap searchable selects should cap rendered results while retaining input throttling."
 
     assert any(
         "/static/node_modules/bootstrap/dist/css/bootstrap.min.css" in url
