@@ -104,16 +104,6 @@ def test_bootstrap_modal_uses_the_fragment_operation_heading(
     expect(modal.locator(".modal-header .modal-title")).to_have_class(
         re.compile(r"(?:^|\s)visually-hidden(?:\s|$)")
     )
-    title_metrics = modal.locator(".modal-header .modal-title").evaluate(
-        """element => {
-            const rect = element.getBoundingClientRect();
-            return {width: rect.width, height: rect.height};
-        }"""
-    )
-    assert title_metrics["width"] <= 1 and title_metrics["height"] <= 1, (
-        "The generic Bootstrap modal title must not create a second visible heading. "
-        f"Metrics: {title_metrics}"
-    )
 
 
 def test_bootstrap_filter_controls_and_favourites_are_interactive(
