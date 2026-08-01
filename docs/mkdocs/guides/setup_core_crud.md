@@ -305,13 +305,13 @@ Most screens need only these two settings. Modals depend on HTMX:
 - Set `use_modal = True` to open create, edit, delete, bulk, and modal-enabled custom actions in the standard PowerCRUD dialog.
 - Failed validation stays in that dialog, so users can correct the form without losing their place in the list.
 
-??? info "Changing the standard modal"
+??? info "Naming and customising the standard modal"
 
-    PowerCRUD's supplied modal is centred, bounded by the viewport, and scrolls its body by default in both first-party packs. The normal dialog id is `powercrudBaseModal`; its HTMX content target is `powercrudModalContent`.
+    When `use_modal = True`, PowerCRUD renders and owns the modal shell and its lifecycle. The supplied modal is centred, bounded by the viewport, and scrolls its body by default in both first-party packs. Its normal id is `powercrudBaseModal`; its HTMX content target is `powercrudModalContent`.
 
-    Use `modal_id` or `modal_target` only when your application provides its own modal shell. Do not include `#` in either value.
+    Set `modal_id` or `modal_target` only when the PowerCRUD-rendered shell needs different, page-unique ids. Do not include `#`, and do not reuse an id belonging to a modal or content host already rendered by the application.
 
-    Use `modal_presentation` for the view-wide choices that PowerCRUD maps to the selected pack: named size, maximum width or height, scroll ownership, fullscreen, and vertical alignment. Use `bulk_modal_presentation` only when the built-in Bulk Edit dialog should differ.
+    Use `modal_presentation` for the view-wide choices that PowerCRUD maps to the selected pack: named size, maximum width or height, scroll ownership, fullscreen, and vertical alignment. Use `bulk_modal_presentation` only when the built-in Bulk Edit dialog should differ. For structural or behavioural changes, [override the focused modal shell](advanced/customisation_tips.md#override-the-modal-shell) or [customise the selected template pack](../template_packs/customising.md) while preserving PowerCRUD's documented lifecycle hooks.
 
     `modal_presentation` is a partial mapping. Omitted values use the normal defaults:
 
@@ -641,6 +641,19 @@ Keep these boundaries in mind:
 ### Column alignment
 
 PowerCRUD chooses a sensible body-cell alignment from the field type. If a short categorical value would scan better centred or right-aligned, override that one column:
+
+??? info "Default body-cell alignment"
+
+    | Field or value category | Default alignment |
+    | --- | --- |
+    | Text-like fields: `CharField`, `TextField`, `SlugField`, `EmailField`, and `URLField` | Left |
+    | Relations, including foreign keys and many-to-many fields | Left |
+    | All other typed Django fields, including booleans, numbers, dates, times, and automatic primary keys | Centre |
+    | Typed queryset annotations | Follows the same rule using the annotation's declared `output_field` |
+    | Untyped computed properties whose value is boolean | Centre |
+    | Other untyped computed properties | Left |
+
+    Numeric values are centred rather than right-aligned. First-party packs centre column headers independently of these body-cell defaults.
 
 ```python
 class ProjectCRUDView(PowerCRUDMixin, CRUDView):

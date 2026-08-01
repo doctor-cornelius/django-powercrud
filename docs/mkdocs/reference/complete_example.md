@@ -84,8 +84,6 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
     use_htmx = True
     use_modal = True
     default_htmx_target = "#content"
-    modal_id = "projectModal"
-    modal_target = "projectModalContent"
     modal_presentation = {"size": "wide"}
     bulk_modal_presentation = {"size": "extra_wide"}
     hx_trigger = {

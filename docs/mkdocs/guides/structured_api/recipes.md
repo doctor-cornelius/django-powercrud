@@ -65,6 +65,46 @@ Use this when related CRUD views share most field roles, but one view needs a sm
 
 Use the structured version when the field's roles repeat across views and a local change such as `bulk=False` should be obvious at the declaration site.
 
+## Per-Field Column Presentation
+
+Use this when a field needs a different list-column treatment from the view-wide policy. The policy remains a normal view setting; the Structured API carries only the named field override.
+
+=== "Base Configuration API"
+
+    ```python
+    class AssetCRUDView(PowerCRUDMixin, CRUDView):
+        model = Asset
+        column_width_policy = "semantic"
+        column_width_modes = {
+            "asset_code": "compact",
+        }
+
+        fields = ["name", "asset_code", "last_reviewed"]
+    ```
+
+=== "Structured Declaration API"
+
+    ```python
+    from powercrud.powerfields import PowerField
+
+
+    class AssetCRUDView(PowerCRUDMixin, CRUDView):
+        model = Asset
+        column_width_policy = "semantic"
+
+        power_fields = [
+            PowerField("name", default_list=True),
+            PowerField(
+                "asset_code",
+                default_list=True,
+                column={"width": "compact"},
+            ),
+            PowerField("last_reviewed", default_list=True),
+        ]
+    ```
+
+Use `column_width_policy = "semantic"` when PowerCRUD should choose sensible widths from field type. Use `column={"width": ...}` only when your application knows that one named field needs a different mode. See [Semantic column widths](../setup_core_crud.md#column-widths) for the available modes and behaviour.
+
 ## Reusable Row Actions
 
 Use this when row actions share the same modal, disabled-state, or sizing behavior.

@@ -11,7 +11,7 @@
     "src": "_preload-helper-dJhxz_Yn.css"
   },
   "config/static/js/bootstrap5.js": {
-    "file": "django_assets/bootstrap5-CSre1GXb.js",
+    "file": "django_assets/bootstrap5-CnhZG5cP.js",
     "name": "bootstrap5",
     "src": "config/static/js/bootstrap5.js",
     "isEntry": true,
@@ -26,7 +26,7 @@
     ]
   },
   "config/static/js/main.js": {
-    "file": "django_assets/powercrud-BCZ4J5_M.js",
+    "file": "django_assets/powercrud-BjyKcCv8.js",
     "name": "powercrud",
     "src": "config/static/js/main.js",
     "isEntry": true,

@@ -142,6 +142,24 @@ class TaskCRUDView(PowerCRUDMixin, CRUDView):
 
 The permitted values are `date`, `time`, and `datetime`. `DateField` accepts only `date`; `TimeField` only `time`; and `DateTimeField` all three. Set Django `DATE_FORMAT`, `TIME_FORMAT`, and `DATETIME_FORMAT` to control the rendered text. See [Temporal list value formats](../setup_core_crud.md#temporal-list-value-formats) for the shared Base API rules.
 
+### Per-field column presentation
+
+Keep the view-wide width policy as a normal class attribute. Use a `PowerField` column mapping only when one rendered column needs a deliberate exception:
+
+```python
+class AssetCRUDView(PowerCRUDMixin, CRUDView):
+    model = Asset
+    column_width_policy = "semantic"
+
+    power_fields = [
+        PowerField("name", default_list=True, form=True),
+        PowerField("asset_code", default_list=True, column={"width": "compact"}),
+        PowerField("last_reviewed", default_list=True),
+    ]
+```
+
+Here, the semantic policy makes its normal type-aware choices for every column, while `asset_code` is explicitly kept compact even though it is stored as text. The permitted per-field modes are `compact`, `auto`, and `bounded`. Width changes list layout only; they do not change values, sorting, filtering, or body-cell alignment. See [Semantic column widths](../setup_core_crud.md#column-widths) for when to choose each mode.
+
 PowerCRUD also supports repeating a field across multiple declarations. The compiler merges and de-duplicates the generated base lists, so this works:
 
 ```python
@@ -385,7 +403,7 @@ PowerCRUD de-duplicates each generated base list while preserving first occurren
 
 ## What PowerField Does Not Cover
 
-PowerField covers Field Intent only.
+PowerField covers Field Intent only. A `column={"width": ...}` mapping can override one rendered field's width, but the view-wide `column_width_policy` remains normal view configuration.
 
 Keep these as normal view configuration:
 
@@ -393,7 +411,7 @@ Keep these as normal view configuration:
 - `bulk_delete`, `bulk_full_clean`, `bulk_async`, and other bulk operation flags
 - `extra_buttons`, `extra_actions`, and action hooks
 - `use_htmx`, `use_modal`, modal settings, and template paths
-- table classes, button classes, widths, and other styling options
+- `column_width_policy`, table classes, button classes, and other view-wide styling options
 
 ## Sample App
 

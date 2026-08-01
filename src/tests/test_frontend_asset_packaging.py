@@ -93,6 +93,38 @@ def test_detached_inline_tom_select_menus_inherit_the_view_palette() -> None:
         )
 
 
+def test_searchable_select_adapters_retain_tom_select_performance_defaults() -> None:
+    """Searchable selects should inherit Tom Select's result cap and input throttle."""
+    package_root = Path(powercrud.__file__).resolve().parent
+    adapters = (
+        package_root
+        / "static"
+        / "powercrud"
+        / "js"
+        / "runtime"
+        / "daisyui-searchable-select-adapter.js",
+        package_root
+        / "contrib"
+        / "bootstrap5"
+        / "static"
+        / "powercrud"
+        / "contrib"
+        / "bootstrap5"
+        / "js"
+        / "runtime"
+        / "bootstrap5-searchable-select-adapter.js",
+    )
+
+    for adapter_path in adapters:
+        adapter = adapter_path.read_text(encoding="utf-8")
+        assert "maxOptions: 50" in adapter and "maxOptions: null" not in adapter, (
+            f"{adapter_path.name} should cap each rendered Tom Select result list at 50 options."
+        )
+        assert "refreshThrottle:" not in adapter, (
+            f"{adapter_path.name} should inherit Tom Select's default 300 ms input throttle."
+        )
+
+
 def test_compact_column_headers_can_wrap_in_both_first_party_packs() -> None:
     """Compact values must not force long column headers onto one line."""
     package_root = Path(powercrud.__file__).resolve().parent

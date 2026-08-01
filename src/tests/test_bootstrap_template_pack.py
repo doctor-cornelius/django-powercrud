@@ -1,5 +1,6 @@
 """Focused Phase 7.1 contract tests for the optional Bootstrap 5 pack."""
 
+import re
 from datetime import date
 from pathlib import Path
 from types import SimpleNamespace
@@ -23,6 +24,7 @@ from powercrud.template_packs import (
     get_template_pack_server_adapter,
     resolve_template_pack,
 )
+from sample import views as sample_views
 from sample.models import Author, Book
 
 
@@ -723,24 +725,32 @@ def test_bootstrap_list_filters_sort_pagination_and_htmx_contract(client):
 
 
 @pytest.mark.django_db
-def test_bootstrap_modal_shell_and_create_transport_preserve_shared_hooks(client):
-    """Bootstrap should own the modal shell while retaining existing modal transport IDs."""
+def test_bootstrap_modal_shell_preserves_configured_powercrud_transport_ids(client, monkeypatch):
+    """Bootstrap should apply configured IDs to its PowerCRUD-owned modal shell."""
     login_response = client.post(reverse("sample:demo-login", args=["manager"]))
     assert login_response.status_code == 302, "The sample manager should authenticate for the create action."
+    monkeypatch.setattr(sample_views.BookCRUDView, "modal_id", "customBootstrapModal")
+    monkeypatch.setattr(sample_views.BookCRUDView, "modal_target", "customBootstrapModalContent")
     response = client.get(reverse("sample:bigbook-list"))
     rendered = response.content.decode()
 
     assert response.status_code == 200, "The Bootstrap list with its modal host should render."
-    assert 'id="powercrudBaseModal"' in rendered and 'data-powercrud-modal' in rendered, (
-        "The Bootstrap list should retain the shared modal root ID and lifecycle marker."
+    assert re.search(
+        r'<div id="customBootstrapModal"[^>]*data-powercrud-modal',
+        rendered,
+    ), (
+        "The configured modal_id should remain attached to Bootstrap's PowerCRUD modal lifecycle hook."
     )
-    assert 'id="powercrudModalContent"' in rendered and 'data-powercrud-modal-content' in rendered, (
-        "The Bootstrap shell should retain the shared HTMX modal content target."
+    assert re.search(
+        r'<div id="customBootstrapModalContent"[^>]*data-powercrud-modal-content',
+        rendered,
+    ), (
+        "The configured modal_target should remain attached to Bootstrap's PowerCRUD content lifecycle hook."
     )
     assert 'class="modal fade"' in rendered and 'data-bs-dismiss="modal"' in rendered, (
         "The Bootstrap modal host should use Bootstrap component markup rather than a native dialog."
     )
     create_url = reverse("sample:bigbook-create")
-    assert f'hx-get="{create_url}"' in rendered and 'hx-target="#powercrudModalContent"' in rendered, (
-        "The Bootstrap create action should retain modal-compatible HTMX transport."
+    assert f'hx-get="{create_url}"' in rendered and 'hx-target="#customBootstrapModalContent"' in rendered, (
+        "The Bootstrap create action should target the configured PowerCRUD modal content host."
     )

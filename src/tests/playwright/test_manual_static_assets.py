@@ -82,6 +82,16 @@ def test_manual_static_sample_loads_powercrud_module_entry(
     assert page.locator("#filter-form select[name='author'] + .ts-wrapper").count() == 1, (
         "Expected manual static loading to initialise one TomSelect wrapper for the author filter."
     )
+    tom_select_performance_settings = page.locator(
+        "#filter-form select[name='author']"
+    ).evaluate(
+        "element => ({ maxOptions: element.tomselect.settings.maxOptions, "
+        "refreshThrottle: element.tomselect.settings.refreshThrottle })"
+    )
+    assert tom_select_performance_settings == {
+        "maxOptions": 50,
+        "refreshThrottle": 300,
+    }, "DaisyUI searchable selects should cap rendered results while retaining input throttling."
 
     tooltip_trigger = page.locator("[data-powercrud-filter-toggle]").first
     expect(tooltip_trigger).to_be_visible()

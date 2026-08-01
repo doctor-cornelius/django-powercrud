@@ -235,7 +235,7 @@ export function createDaisyuiSearchableSelectAdapter(context) {
         const settings = {
             create: false,
             maxItems: 1,
-            maxOptions: null,
+            maxOptions: 50,
             closeAfterSelect: true,
             allowEmptyOption: true,
             placeholder,
@@ -322,7 +322,7 @@ export function createDaisyuiSearchableSelectAdapter(context) {
         const settings = {
             create: false,
             maxItems: null,
-            maxOptions: null,
+            maxOptions: 50,
             closeAfterSelect: false,
             allowEmptyOption: true,
             hideSelected: false,
