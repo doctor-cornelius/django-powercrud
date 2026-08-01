@@ -4050,8 +4050,8 @@ def test_book_list_renders_modal_with_explicit_close_button(client):
 
 
 @pytest.mark.django_db
-def test_book_list_renders_custom_modal_context(client, monkeypatch):
-    """Render configured modal IDs, targets, and class hooks in the shared modal shell."""
+def test_book_list_renders_configured_powercrud_modal_shell_ids(client, monkeypatch):
+    """Apply configured IDs and hooks to the PowerCRUD-owned modal shell."""
     _login_sample_manager(client)
 
     author = Author.objects.create(name="Large Modal Link Author")
@@ -4089,11 +4089,17 @@ def test_book_list_renders_custom_modal_context(client, monkeypatch):
     assert response.status_code == 200, (
         "Book list view should render successfully with customized modal settings."
     )
-    assert 'id="customBookModal"' in response_text, (
-        "The modal shell should use the configured modal_id."
+    assert re.search(
+        r'<dialog id="customBookModal"[^>]*data-powercrud-modal',
+        response_text,
+    ), (
+        "The configured modal_id should remain attached to PowerCRUD's modal lifecycle hook."
     )
-    assert 'id="customBookModalContent"' in response_text, (
-        "The modal shell should use the configured modal_target."
+    assert re.search(
+        r'<div id="customBookModalContent"[^>]*data-powercrud-modal-content',
+        response_text,
+    ), (
+        "The configured modal_target should remain attached to PowerCRUD's content lifecycle hook."
     )
     assert 'class="modal modal-bottom sm:modal-middle"' in response_text, (
         "The modal shell should render configured dialog classes."
