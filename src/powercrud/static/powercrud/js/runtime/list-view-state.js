@@ -34,8 +34,9 @@ export function createListViewStateRuntime(context) {
         syncSelectedFilterFavouritePresentation,
     } = context;
 
-    const FILTER_PANEL_PRESERVE_MS = 2000;
-    const filterPanelOpenPreserveUntil = new Map();
+    // The next list swap consumes this state. A fixed timeout made slow
+    // filter rendering close an otherwise active panel before the swap.
+    const filterPanelOpenRefreshKeys = new Set();
 
     function getFilterPanelRenderKey(root) {
         return normaliseListUrl(root?.dataset?.powercrudListUrl || '', global)
@@ -45,17 +46,14 @@ export function createListViewStateRuntime(context) {
 
     function markFilterPanelOpenForRefresh(root) {
         if (root instanceof Element) {
-            filterPanelOpenPreserveUntil.set(
-                getFilterPanelRenderKey(root),
-                Date.now() + FILTER_PANEL_PRESERVE_MS,
-            );
+            filterPanelOpenRefreshKeys.add(getFilterPanelRenderKey(root));
             ensureObjectListState(root).filterPanelRefreshPending = true;
         }
     }
 
     function clearFilterPanelOpenPreservation(root) {
         if (root instanceof Element) {
-            filterPanelOpenPreserveUntil.delete(getFilterPanelRenderKey(root));
+            filterPanelOpenRefreshKeys.delete(getFilterPanelRenderKey(root));
             ensureObjectListState(root).filterPanelRefreshPending = false;
         }
     }
@@ -75,13 +73,7 @@ export function createListViewStateRuntime(context) {
     }
 
     function shouldPreserveFilterPanelOpen(root) {
-        const key = getFilterPanelRenderKey(root);
-        const preserveUntil = filterPanelOpenPreserveUntil.get(key) || 0;
-        if (preserveUntil < Date.now()) {
-            filterPanelOpenPreserveUntil.delete(key);
-            return false;
-        }
-        return true;
+        return filterPanelOpenRefreshKeys.has(getFilterPanelRenderKey(root));
     }
 
     function isDjangoNullBooleanUnknownValue(field, value) {
