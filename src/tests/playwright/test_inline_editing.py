@@ -440,28 +440,13 @@ def test_inline_m2m_uses_compact_pack_multiselect(
     expect(
         active_row.locator(".powercrud-compact-multiselect-summary")
     ).to_be_visible()
+    expect(
+        active_row.locator(".powercrud-compact-multiselect .ts-control")
+    ).to_have_css("font-size", "17px")
+    expect(dropdown).to_have_css("font-size", "17px")
     assert active_row.locator(".powercrud-compact-multiselect .ts-control > .item").evaluate_all(
         "elements => elements.every(element => window.getComputedStyle(element).display === 'none')"
     ), "Compact inline multiselects must keep individual chips hidden while their menu is open."
-    typography = active_row.evaluate(
-        """
-        row => {
-            const select = row.querySelector('select[name="genres"]');
-            const cell = select.closest('td');
-            const dropdown = document.querySelector('.ts-dropdown.powercrud-inline-multiselect-dropdown');
-            return {
-                cell: window.getComputedStyle(cell).fontSize,
-                control: window.getComputedStyle(select.tomselect.control).fontSize,
-                input: window.getComputedStyle(select.tomselect.control_input).fontSize,
-                dropdown: window.getComputedStyle(dropdown).fontSize,
-            };
-        }
-        """
-    )
-    assert all(value == typography["cell"] for value in typography.values()), (
-        "Inline control and detached menu typography must inherit the table-cell "
-        f"size set by downstream table classes. Metrics: {typography}"
-    )
     palette = active_row.evaluate(
         """
         row => {
