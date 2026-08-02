@@ -646,6 +646,7 @@ def test_form_valid_htmx_returns_list(monkeypatch):
     view._object = book
     view.object = book
     view.role = Role.UPDATE
+    view.hx_trigger = {"measurementsChanged": True}
 
     monkeypatch.setattr(
         "powercrud.mixins.form_mixin.reverse", lambda name, kwargs=None: f"/{name}"
@@ -660,7 +661,13 @@ def test_form_valid_htmx_returns_list(monkeypatch):
     monkeypatch.setattr(view, "_check_for_conflicts", lambda selected_ids: False)
     response = view.form_valid(form)
     assert isinstance(response, HttpResponse)
-    assert json.loads(response["HX-Trigger"]) == {"formSuccess": True}
+    assert json.loads(response["HX-Trigger"]) == {
+        "measurementsChanged": True,
+        "formSuccess": True,
+    }, (
+        "HTMX form success should preserve configured trigger events alongside "
+        "PowerCRUD's formSuccess event."
+    )
     assert response["HX-Retarget"] == view.get_original_target()
 
 
