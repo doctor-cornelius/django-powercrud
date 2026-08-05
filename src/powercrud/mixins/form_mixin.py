@@ -1037,7 +1037,9 @@ class FormMixin:
             # Restore original GET
             self.request.GET = original_get
 
-            response["HX-Trigger"] = json.dumps({"formSuccess": True})
+            trigger_data = json.loads(self.get_hx_trigger() or "{}")
+            trigger_data["formSuccess"] = True
+            response["HX-Trigger"] = json.dumps(trigger_data)
             response["HX-Retarget"] = f"{self.get_original_target()}"
             response["HX-Push-Url"] = canonical_url
             return response

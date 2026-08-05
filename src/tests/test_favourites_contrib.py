@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import json
+import subprocess
+import sys
 from unittest.mock import patch
 
 import pytest
@@ -24,6 +26,77 @@ from sample.views import BookCRUDView
 
 BOOK_VIEW_KEY = f"{BookCRUDView.__module__}.{BookCRUDView.__name__}"
 SESSION_FAVOURITE_OWNER_USERNAME = "powercrud_filter_favourite_owner_username"
+
+
+def test_shared_urls_support_favourites_without_async_dependencies():
+    """Shared URLs should expose favourites without importing django-q2."""
+
+    probe = """
+import sys
+import types
+
+import django
+from django.conf import settings
+
+
+sys.modules["django_q"] = None
+
+root_urls = types.ModuleType("favourites_without_async_probe_urls")
+root_urls.urlpatterns = []
+sys.modules[root_urls.__name__] = root_urls
+
+settings.configure(
+    SECRET_KEY="favourites-without-async-probe",
+    INSTALLED_APPS=(
+        "django.contrib.auth",
+        "django.contrib.contenttypes",
+        "powercrud",
+        "powercrud.contrib.favourites",
+    ),
+    DATABASES={
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": ":memory:",
+        }
+    },
+    DEFAULT_AUTO_FIELD="django.db.models.BigAutoField",
+    ROOT_URLCONF=root_urls.__name__,
+)
+django.setup()
+
+from django.urls import clear_url_caches, include, path, reverse
+
+
+root_urls.urlpatterns = [
+    path("powercrud/", include("powercrud.urls", namespace="powercrud")),
+]
+clear_url_caches()
+
+expected_routes = {
+    "powercrud:favourites-toolbar": "/powercrud/favourites/toolbar/",
+    "powercrud:favourites-save": "/powercrud/favourites/save/",
+    "powercrud:favourites-apply": "/powercrud/favourites/apply/",
+    "powercrud:favourites-update": "/powercrud/favourites/update/",
+    "powercrud:favourites-delete": "/powercrud/favourites/delete/",
+}
+for route_name, expected_url in expected_routes.items():
+    actual_url = reverse(route_name)
+    assert actual_url == expected_url, (
+        f"Expected {route_name} to reverse to {expected_url}, got {actual_url}."
+    )
+"""
+
+    result = subprocess.run(
+        [sys.executable, "-c", probe],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0, (
+        "A favourites-only project should load the documented shared PowerCRUD URLs "
+        f"without django-q2.\nstdout:\n{result.stdout}\nstderr:\n{result.stderr}"
+    )
 
 
 def resolve_filter_favourite_owner_from_session(request):
