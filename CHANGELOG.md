@@ -6,6 +6,9 @@ During the `0.x` series, breaking changes can occur, although we try to minimise
 
 Version numbers below correspond to published git tags. The more important releases include a little extra narrative and upgrade context; smaller patch releases remain deliberately brief. For full detail between any two versions, use the GitHub compare view for the matching tags.
 
+## 0.9.5 (2026-08-05)
+- **Fix (urls)**: support favourites without async dependencies
+
 ## 0.9.4 (2026-08-01)
 - **Fix (filters)**: retain panel during slow refresh
 
