@@ -22,7 +22,20 @@
     "pep621",
     "npm",
     "dockerfile",
-    "github-actions"
+    "github-actions",
+    "custom.regex"
+  ],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "Track the global npm CLI in the development image.",
+      "managerFilePatterns": [
+        "/^docker\\/dockerfile_django$/"
+      ],
+      "matchStrings": [
+        "# renovate: datasource=(?<datasource>npm) depName=(?<depName>npm) versioning=(?<versioning>semver)\\s+ARG NPM_VERSION=(?<currentValue>\\S+)"
+      ]
+    }
   ],
   "packageRules": [
     {
