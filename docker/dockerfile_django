@@ -51,7 +51,7 @@ ENV UV_PROJECT_ENVIRONMENT=/usr/local \
 # Install the pinned Playwright client and Chromium before general Python
 # dependencies so routine lockfile updates do not invalidate this costly layer.
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv pip install --system "playwright==${PLAYWRIGHT_VERSION}" && \
+    uv pip install --system "wheel==0.47.0" "playwright==${PLAYWRIGHT_VERSION}" && \
     python -m playwright install --with-deps chromium
 
 # Install locked Python dependencies separately from the project source so this
