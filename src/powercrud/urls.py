@@ -1,13 +1,14 @@
 from django.apps import apps
 from django.urls import include, path
 
-from .async_manager import AsyncManager
-
 app_name = "powercrud"  # Default namespace
 
-urlpatterns = [
-    AsyncManager.get_url(name="async_progress"),
-]
+urlpatterns = []
+
+if apps.is_installed("django_q"):
+    from .async_manager import AsyncManager
+
+    urlpatterns.append(AsyncManager.get_url(name="async_progress"))
 
 if apps.is_installed("powercrud.contrib.favourites"):
     urlpatterns.append(
