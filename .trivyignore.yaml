@@ -1,4 +1,52 @@
 vulnerabilities:
+  - id: CVE-2026-13149
+    paths:
+      - "usr/lib/node_modules/npm/node_modules/brace-expansion/package.json"
+    expired_at: 2026-09-30
+    statement: >-
+      npm-internal brace-expansion in the dev/test Docker image. This is not a
+      PowerCRUD runtime dependency, project package-lock dependency, or PyPI
+      package artifact. Remove once pinned npm bundles a fixed version.
+  - id: CVE-2026-14257
+    paths:
+      - "usr/lib/node_modules/npm/node_modules/brace-expansion/package.json"
+    expired_at: 2026-09-30
+    statement: >-
+      npm-internal brace-expansion in the dev/test Docker image. This is not a
+      PowerCRUD runtime dependency, project package-lock dependency, or PyPI
+      package artifact. Remove once pinned npm bundles a fixed version.
+  - id: CVE-2026-69152
+    paths:
+      - "usr/lib/node_modules/npm/node_modules/brace-expansion/package.json"
+    expired_at: 2026-09-30
+    statement: >-
+      npm-internal brace-expansion in the dev/test Docker image. This is not a
+      PowerCRUD runtime dependency, project package-lock dependency, or PyPI
+      package artifact. Remove once pinned npm bundles a fixed version.
+  - id: CVE-2026-69192
+    paths:
+      - "usr/lib/node_modules/npm/node_modules/ip-address/package.json"
+    expired_at: 2026-09-30
+    statement: >-
+      npm-internal ip-address in the dev/test Docker image. This is not a
+      PowerCRUD runtime dependency, project package-lock dependency, or PyPI
+      package artifact. Remove once pinned npm bundles a fixed version.
+  - id: CVE-2026-59873
+    paths:
+      - "usr/lib/node_modules/npm/node_modules/tar/package.json"
+    expired_at: 2026-09-30
+    statement: >-
+      npm-internal tar in the dev/test Docker image. This is not a PowerCRUD
+      runtime dependency, project package-lock dependency, or PyPI package
+      artifact. Remove once pinned npm bundles a fixed version.
+  - id: CVE-2026-59874
+    paths:
+      - "usr/lib/node_modules/npm/node_modules/tar/package.json"
+    expired_at: 2026-09-30
+    statement: >-
+      npm-internal tar in the dev/test Docker image. This is not a PowerCRUD
+      runtime dependency, project package-lock dependency, or PyPI package
+      artifact. Remove once pinned npm bundles a fixed version.
   - id: CVE-2026-12151
     paths:
       - "usr/lib/node_modules/npm/node_modules/undici/package.json"
