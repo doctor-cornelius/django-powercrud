@@ -6,6 +6,8 @@ ARG USER=devuser
 ARG USERHOME=/home/${USER}
 # renovate: datasource=npm depName=npm versioning=semver
 ARG NPM_VERSION=11.17.0
+# renovate: datasource=pypi depName=wheel versioning=pep440
+ARG WHEEL_VERSION=0.47.0
 ARG PLAYWRIGHT_VERSION=1.58.0
 ARG PROMPT_CODE='\n\[\e[0m\]🐳 \[\e[0m\][\[\e[0;38;5;226m\]$(git branch 2>/dev/null | grep '"'"'^*'"'"' | colrm 1 2)\[\e[0m\]] \[\e[0;91m\]\u\[\e[0m\]: \[\e[0;96m\]\w\n\[\e[0m\]\$\[\e[0m\] '
 
@@ -52,7 +54,7 @@ ENV UV_PROJECT_ENVIRONMENT=/usr/local \
 # Install the pinned Playwright client and Chromium before general Python
 # dependencies so routine lockfile updates do not invalidate this costly layer.
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv pip install --system "wheel==0.47.0" "playwright==${PLAYWRIGHT_VERSION}" && \
+    uv pip install --system "wheel==${WHEEL_VERSION}" "playwright==${PLAYWRIGHT_VERSION}" && \
     python -m playwright install --with-deps chromium
 
 # Install locked Python dependencies separately from the project source so this

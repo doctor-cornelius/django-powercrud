@@ -28,12 +28,12 @@
   "customManagers": [
     {
       "customType": "regex",
-      "description": "Track the global npm CLI in the development image.",
+      "description": "Track annotated development-image tool versions.",
       "managerFilePatterns": [
         "/^docker\\/dockerfile_django$/"
       ],
       "matchStrings": [
-        "# renovate: datasource=(?<datasource>npm) depName=(?<depName>npm) versioning=(?<versioning>semver)\\s+ARG NPM_VERSION=(?<currentValue>\\S+)"
+        "# renovate: datasource=(?<datasource>[a-z-]+) depName=(?<depName>[^\\s]+) versioning=(?<versioning>[^\\s]+)\\s+ARG [A-Z0-9_]+_VERSION=(?<currentValue>\\S+)"
       ]
     }
   ],
