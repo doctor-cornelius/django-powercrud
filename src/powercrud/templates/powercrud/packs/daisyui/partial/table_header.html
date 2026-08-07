@@ -14,7 +14,11 @@
             data-powercrud-row-actions-column="true"
             data-powercrud-row-actions-position="start"
             {% if row_actions_column_sticky %}data-powercrud-row-actions-sticky="true"{% endif %}>
-            <span class="text-start block w-full h-full">Actions</span>
+            {% if extra_actions_mode == "all_dropdown" %}
+                <span class="sr-only">Actions</span>
+            {% else %}
+                <span class="text-start block w-full h-full">Actions</span>
+            {% endif %}
         </th>
         {% endif %}
 
@@ -76,7 +80,11 @@
             data-powercrud-row-actions-column="true"
             data-powercrud-row-actions-position="end"
             {% if row_actions_column_sticky %}data-powercrud-row-actions-sticky="true"{% endif %}>
-            <span class="text-center block w-full h-full">Actions</span>
+            {% if extra_actions_mode == "all_dropdown" %}
+                <span class="sr-only">Actions</span>
+            {% else %}
+                <span class="text-center block w-full h-full">Actions</span>
+            {% endif %}
         </th>
         {% endif %}
     </tr>

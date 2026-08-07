@@ -43,8 +43,8 @@ For the mental model behind the option groups, see [PowerCRUD Concepts](../guide
 | `dropdown_sort_options` (`dict`) | `dict[str, str]` | `{}` | PowerCRUD orders dropdowns by `name/title/...` heuristics | Explicit ordering for dropdowns in filters, forms, and bulk edit widgets. | [Bulk editing (synchronous)](../guides/bulk_edit_sync.md) |
 | `exclude` (`list[str]`) | `list[str]` | `[]` | Every concrete model field is shown | Remove individual fields from the list view while keeping the rest. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
 | `extra_actions` (`list[dict \| PowerAction]`) | `list[action spec]` | `[]` | Only the default action buttons render | Define extra per-row actions (URL, label, attributes). Modal actions may set partial `modal_presentation`, `refresh_list_on_modal_close`, `hidden_if`, disabled-state hooks, and permission affordance fields. | [Complete Example](complete_example.md) |
-| `extra_actions_mode` (`str`) | `'buttons'`, `'dropdown'` | `'buttons'` | Extra row actions render as visible buttons after the standard actions | Control how row-level `extra_actions` are rendered. Use `'dropdown'` to keep `View/Edit/Delete` visible and move only the extra row actions into a `More` overflow menu. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
-| `extra_actions_dropdown_open_upward_bottom_rows` (`int`) | `int >= 0` | `3` | All `More` menus open downward | In dropdown mode, open the `More` menu upward for the last N rendered rows on the current page. Set `0` to disable this behavior. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
+| `extra_actions_mode` (`str`) | `'buttons'`, `'dropdown'`, `'all_dropdown'` | `'buttons'` | Extra row actions render as visible buttons after the standard actions | Control row-action presentation. `'dropdown'` keeps permitted `View/Edit/Delete` controls visible and moves only extras into `More`; `'all_dropdown'` puts every permitted row action behind one compact `Actions` trigger. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
+| `extra_actions_dropdown_open_upward_bottom_rows` (`int`) | `int >= 0` | `3` | All row-action menus open downward | In either dropdown mode, open the row-action menu upward for the last N rendered rows on the current page. Set `0` to disable this behavior. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
 | `extra_button_classes` (`str`) | `str` | `""` | Extra buttons use the default button styling | Additional CSS classes shared by every entry in `extra_buttons`. | [Styling & Tailwind](../guides/styling_tailwind.md) |
 | `extra_button_selection_controls_disabled` (`bool`) | `True`, `False` | `False` | Selection-aware extra buttons can render row selection controls | Set to `True` if the button uses selected rows, but this list should not show checkboxes just because of that button. Bulk edit and bulk delete still show checkboxes because they need them. | [Setup & Core CRUD basics](../guides/setup_core_crud.md#extra-buttons) |
 | `extra_buttons_mode` (`str`) | `'buttons'`, `'dropdown'` | `'buttons'` | Extra header buttons render as visible toolbar buttons | Control how list-level `extra_buttons` are rendered. Use `'dropdown'` to move configured extra buttons into a top toolbar `More` menu. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
@@ -404,6 +404,9 @@ Use `extra_actions` to add per-row actions beyond the built-in `View`, `Edit`, a
 
 - `'buttons'` keeps the legacy behavior and renders extra row actions as visible joined buttons.
 - `'dropdown'` keeps the standard row actions visible and moves only `extra_actions` into a `More` dropdown.
+- `'all_dropdown'` replaces the visible row controls with one vertical-ellipsis **Actions** trigger using the pack's semantic `info` colour. The menu renders the permitted standard actions as a centred, icon-only row using their configured colours, followed by labelled extra-action rows using their configured colours. If no standard action is permitted, the icon row is omitted.
+
+The all-actions trigger and its tooltip have the accessible name **Actions**. The table's visual **Actions** heading is omitted in this compact mode, while a screen-reader-only heading preserves the column name. Inline Save and Cancel remain visible while a row is being edited.
 
 The action column itself has two independent layout settings:
 
@@ -441,16 +444,17 @@ extra_actions = [
 Notes:
 
 - The default is `'buttons'` for backward compatibility.
-- `extra_actions_mode` affects only row `extra_actions`, not top-of-page `extra_buttons`.
-- In dropdown mode, the `More` trigger uses the framework’s `extra_default` button styling unless you override the framework styles.
+- `extra_actions_mode` controls row-action presentation only; it does not affect top-of-page `extra_buttons`.
+- In extras-only dropdown mode, the `More` trigger uses the framework’s `extra_default` button styling unless you override the framework styles.
+- In all-dropdown mode, standard and extra menu actions reuse their normal configured/default action colours. Permission-hidden standard actions are omitted, and disabled reasons, modal behavior, HTMX behavior, history, guards, and refresh-on-close metadata are preserved.
 - `extra_actions_dropdown_open_upward_bottom_rows` counts from the bottom of the currently rendered rows after filtering and pagination.
 - Set `extra_actions_dropdown_open_upward_bottom_rows = 0` to keep every dropdown opening downward.
 - `modal_presentation` is only used when `display_modal=True`; it merges with the view presentation while this row action's modal is open.
 - `refresh_list_on_modal_close` is only used when `display_modal=True`; prefer `HX-Trigger: {"refreshTable": true}` when the endpoint knows it changed data.
 - `hidden_if` is an optional view method name with signature `(obj, request) -> bool`. Return `True` to omit the action for that row. Hidden actions are removed before disabled hooks are evaluated.
-- Set `hidden_if_mode = "lazy"` only in `extra_actions_mode = "dropdown"` when the row relevance check is expensive and should be resolved when the row `More` menu opens. Button-mode actions keep eager hidden-if evaluation.
+- Set `hidden_if_mode = "lazy"` only in `extra_actions_mode = "dropdown"` or `"all_dropdown"` when the row relevance check is expensive and should be resolved when the row menu opens. Button-mode actions keep eager hidden-if evaluation.
 - `disabled_state` is a single-hook alternative to `disabled_if` / `disabled_reason`. Return a non-empty string to disable the action and show that string as the reason; return `None`, `False`, or an empty string to keep it enabled.
-- Set `disabled_state_mode = "lazy"` only in `extra_actions_mode = "dropdown"` when the disabled reason is expensive to calculate and should be resolved when the row `More` menu opens. Button-mode actions keep eager disabled-state evaluation.
+- Set `disabled_state_mode = "lazy"` only in `extra_actions_mode = "dropdown"` or `"all_dropdown"` when the disabled reason is expensive to calculate and should be resolved when the row menu opens. Button-mode actions keep eager disabled-state evaluation.
 - `permission` or `permission_check` hides or disables the action before `hidden_if` and `disabled_state` run. `permission_behavior` defaults to `"hide"`.
 - `disabled_if` and `disabled_reason` are deprecated view method names used to disable a row action based on the current object and request. Use `disabled_state` instead.
 - Do not combine `disabled_state` with `disabled_if` or `disabled_reason` on the same action.
@@ -472,9 +476,9 @@ Notes:
     | `hx_post` | `bool` | Sends the action as an HTMX POST instead of the default GET when `True`. |
     | `lock_sensitive` | `bool` | Disables the action automatically when PowerCRUD marks the row as blocked by its existing lock logic. |
     | `hidden_if` | `str` | Name of a view method with signature `(obj, request) -> bool` that decides whether the action should be omitted for that row. |
-    | `hidden_if_mode` | `'eager' \| 'lazy'` | Defaults to `'eager'`. Use `'lazy'` with dropdown row actions to resolve `hidden_if` when the row `More` menu opens. |
+    | `hidden_if_mode` | `'eager' \| 'lazy'` | Defaults to `'eager'`. Use `'lazy'` with either dropdown mode to resolve `hidden_if` when the row menu opens. |
     | `disabled_state` | `str` | Name of a view method with signature `(obj, request) -> str \| None \| bool` that returns a disabled reason string, or a falsey enabled value. |
-    | `disabled_state_mode` | `'eager' \| 'lazy'` | Defaults to `'eager'`. Use `'lazy'` with dropdown row actions to resolve `disabled_state` when the row `More` menu opens. |
+    | `disabled_state_mode` | `'eager' \| 'lazy'` | Defaults to `'eager'`. Use `'lazy'` with either dropdown mode to resolve `disabled_state` when the row menu opens. |
     | `disabled_if` | `str` | Deprecated. Name of a view method with signature `(obj, request) -> bool` that decides whether the action is disabled for that row. Use `disabled_state` instead. |
     | `disabled_reason` | `str` | Deprecated. Name of a view method with signature `(obj, request) -> str \| None` that returns the disabled tooltip/help text. Use `disabled_state` instead. |
     | `permission` | `str` | Django permission string resolved through `has_power_permission(permission, request, obj=obj)`. |

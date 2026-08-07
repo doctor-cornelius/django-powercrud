@@ -16,7 +16,10 @@ from ..modal_presentation import (
     resolve_modal_presentation,
 )
 from ..powerfields import compile_powerfields
-from ..row_actions import is_lazy_row_action_state_action
+from ..row_actions import (
+    is_lazy_row_action_state_action,
+    is_row_actions_dropdown_mode,
+)
 from ..validators import DEFAULT_PAGINATE_BY, PowerCRUDMixinValidator
 
 from powercrud.template_packs import (
@@ -1768,11 +1771,13 @@ class ConfigMixin:
                 )
             if (
                 hidden_if_mode == "lazy"
-                and getattr(self, "extra_actions_mode", "buttons") != "dropdown"
+                and not is_row_actions_dropdown_mode(
+                    getattr(self, "extra_actions_mode", "buttons")
+                )
             ):
                 raise ValueError(
                     "extra_actions[%s].hidden_if_mode='lazy' requires "
-                    "extra_actions_mode='dropdown'" % index
+                    "extra_actions_mode='dropdown' or 'all_dropdown'" % index
                 )
             disabled_state = self._resolve_extra_action_method(
                 normalized.get("disabled_state"),
@@ -1794,11 +1799,13 @@ class ConfigMixin:
                 )
             if (
                 disabled_state_mode == "lazy"
-                and getattr(self, "extra_actions_mode", "buttons") != "dropdown"
+                and not is_row_actions_dropdown_mode(
+                    getattr(self, "extra_actions_mode", "buttons")
+                )
             ):
                 raise ValueError(
                     "extra_actions[%s].disabled_state_mode='lazy' requires "
-                    "extra_actions_mode='dropdown'" % index
+                    "extra_actions_mode='dropdown' or 'all_dropdown'" % index
                 )
             disabled_if = self._resolve_extra_action_method(
                 normalized.get("disabled_if"),

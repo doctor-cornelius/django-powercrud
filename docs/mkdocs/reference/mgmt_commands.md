@@ -137,7 +137,7 @@ python manage.py pcrud_starttemplatepack my_powercrud_pack ../my-powercrud-pack 
 
 The first argument is the Python package name. The second is a new or empty destination directory; the command refuses to overwrite a populated directory. Use `--identity` only when the public pack identity should differ from the package name.
 
-The starter has no framework-name registration. Its generated declaration pins the current numeric template-pack contract version (`contract_version=3`); it does not import a moving current-version constant. Edit the copied templates and the optional adapter hooks, then test and publish it as a normal Python distribution. A later PowerCRUD contract bump is an explicit pack upgrade obligation. See [Authoring and publishing a template pack](../template_packs/authoring-and-publishing.md) for the complete workflow.
+The starter has no framework-name registration. Its generated declaration pins the current numeric template-pack contract version (`contract_version=4`); it does not import a moving current-version constant. Edit the copied templates and the optional adapter hooks, then test and publish it as a normal Python distribution. A later PowerCRUD contract bump is an explicit pack upgrade obligation. See [Authoring and publishing a template pack](../template_packs/authoring-and-publishing.md) for the complete workflow.
 
 ### Copy templates for one model
 
@@ -273,9 +273,9 @@ You can change the chooser's markup, classes, labels, and icons without copying 
 
 For example, `library.Book` produces `library/templates/library/book_row_actions.html`. PowerCRUD selects this file for that model before its built-in row-actions component.
 
-The component receives `object` and `row_actions`. PowerCRUD has already resolved URLs, permissions, visibility, disabled and lock state, HTMX behavior, modal behavior, lazy-state indices, and framework classes. The override should render only that supplied presentation data; do not repeat authorization, state-hook, or URL decisions in the template.
+The component receives `object` and `row_actions`. PowerCRUD has already resolved URLs, permissions, visibility, disabled and lock state, HTMX behavior, modal behavior, lazy-state indices, and framework classes. Its version-4 context includes `standard_actions`, `extra_actions`, `dropdown_actions`, `standard_dropdown_actions`, `extra_dropdown_actions`, `show_dropdown`, `show_extra_dropdown`, `show_all_dropdown`, `dropdown_scope`, and the lazy-state URL. The override should render only that supplied presentation data; do not repeat authorization, state-hook, or URL decisions in the template.
 
-You can change the arrangement, classes, labels, and icons without copying PowerCRUD JavaScript or the list template. Preserve `data-inline-action` plus the dropdown, lazy-state, disabled-tooltip, HTMX, modal, and modal-close-refresh attributes used by the behavior you retain. The legacy `action_links()` function and `row.actions`/`row.has_actions` list-template values remain available during the 0.x compatibility period.
+You can change the arrangement, classes, labels, and icons without copying PowerCRUD JavaScript or the list template. For `all_dropdown`, preserve the accessible **Actions** trigger, standard icon group, supplied colours and tooltips, labelled extra rows, semantic action-kind markers, and empty-group behavior. Preserve `data-inline-action` plus the floating dropdown, lazy-state, disabled-tooltip, HTMX, modal, and modal-close-refresh attributes used by the behavior you retain. The legacy `action_links()` function and `row.actions`/`row.has_actions` list-template values remain available during the 0.x compatibility period.
 
 ### Focused Table Header Override
 
@@ -287,7 +287,7 @@ You can change the arrangement, classes, labels, and icons without copying Power
 
 For example, `library.Book` produces `library/templates/library/book_table_header.html`. PowerCRUD selects this file for that model before its built-in table-header component.
 
-You can change header layout, classes, labels, sort icons, and help icons without copying PowerCRUD JavaScript or the whole list template. Keep `headers`, `current_sort`, `filter_params`, `use_htmx`, `request`, `has_row_actions`, `enable_selection_controls`, `row_actions_column_position`, `row_actions_column_sticky`, and the existing selection-state context available. Preserve the sorting URL and HTMX attributes, semantic help trigger, conditional Actions heading, action-column markers, and select-all hooks for the behavior you retain. If actions are at start, selection remains outermost. The table shell and rows remain separately overridable, while the select-all column delegates to the focused bulk-selection controls component.
+You can change header layout, classes, labels, sort icons, and help icons without copying PowerCRUD JavaScript or the whole list template. Keep `headers`, `current_sort`, `filter_params`, `use_htmx`, `request`, `has_row_actions`, `extra_actions_mode`, `enable_selection_controls`, `row_actions_column_position`, `row_actions_column_sticky`, and the existing selection-state context available. Preserve the sorting URL and HTMX attributes, semantic help trigger, conditional Actions heading, action-column markers, and select-all hooks for the behavior you retain. In `all_dropdown`, omit the visible heading but retain screen-reader-only **Actions** text. If actions are at start, selection remains outermost. The table shell and rows remain separately overridable, while the select-all column delegates to the focused bulk-selection controls component.
 
 ### Focused Table Row Override
 

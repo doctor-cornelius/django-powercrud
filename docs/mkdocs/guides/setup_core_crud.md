@@ -161,11 +161,14 @@ extra_buttons = [
 
 Use `extra_actions` only when a row needs an operation beyond the built-in **View**, **Edit**, and **Delete** controls. These actions belong to your application, so build and secure their endpoints as you would any other Django view. The standard configuration API uses dictionaries for these entries.
 
-For row actions, `extra_actions_mode` controls whether the extra actions stay visible as buttons or move into an overflow menu:
+For row actions, `extra_actions_mode` controls which actions stay visible in the row:
 
 - `extra_actions_mode = "buttons"` renders the extra actions beside the built-in controls.
 - `extra_actions_mode = "dropdown"` keeps the built-in controls visible and puts only your extra actions in **More**.
+- `extra_actions_mode = "all_dropdown"` puts every permitted row action behind a compact vertical-ellipsis **Actions** trigger using the pack's semantic `info` colour. Permitted View, Edit, and Delete controls form a centred, icon-only first row in their configured colours; labelled extra actions follow in their configured colours. The standard row is omitted when none of those actions is permitted.
 - `extra_actions_dropdown_open_upward_bottom_rows = 3` opens **More** upward for the last three rows on the page. Set it to `0` when every menu should open downward.
+
+In `all_dropdown` mode the table heading is visually empty to save width, but its screen-reader name and the trigger's accessible name remain **Actions**. Inline Save and Cancel are never moved into the menu.
 
 Start with the smallest useful action:
 
@@ -186,7 +189,7 @@ class AuthorCRUDView(PowerCRUDMixin, CRUDView):
 
     Use `permission` or `permission_check` to hide or disable an action for users who cannot use it. PowerCRUD checks permission before row-state checks, but your custom endpoint must still enforce the same rules.
 
-    Use `hidden_if` when an action does not apply to a row. Use `disabled_state` when it does apply but needs to remain visible with an explanation. `hidden_if_mode = "lazy"` and `disabled_state_mode = "lazy"` defer expensive checks until a user opens a dropdown **More** menu.
+    Use `hidden_if` when an action does not apply to a row. Use `disabled_state` when it does apply but needs to remain visible with an explanation. `hidden_if_mode = "lazy"` and `disabled_state_mode = "lazy"` defer expensive checks until a user opens either dropdown mode.
 
     Set `display_modal = True` for a modal response, and add partial `modal_presentation` only when this action needs a different modal size or placement from the view default.
 
@@ -205,9 +208,9 @@ class AuthorCRUDView(PowerCRUDMixin, CRUDView):
     | `hx_post` | `bool` | If `True`, renders the action as an HTMX POST instead of the default GET. |
     | `lock_sensitive` | `bool` | Reuses PowerCRUD's existing blocked-row/lock logic so the action disables automatically when the row is not currently actionable. |
     | `hidden_if` | `str` | Name of a view method with signature `(obj, request) -> bool` that decides whether this row action should be omitted. |
-    | `hidden_if_mode` | `'eager' \| 'lazy'` | Defaults to `'eager'`. Use `'lazy'` with dropdown row actions to resolve `hidden_if` when the row `More` menu opens. |
+    | `hidden_if_mode` | `'eager' \| 'lazy'` | Defaults to `'eager'`. Use `'lazy'` with either dropdown mode to resolve `hidden_if` when the row menu opens. |
     | `disabled_state` | `str` | Name of a view method with signature `(obj, request) -> str | None | bool`. Return a non-empty string to disable the action and show the reason; return `None`, `False`, or an empty string to keep it enabled. |
-    | `disabled_state_mode` | `'eager' \| 'lazy'` | Defaults to `'eager'`. Use `'lazy'` with dropdown row actions to resolve `disabled_state` when the row `More` menu opens. |
+    | `disabled_state_mode` | `'eager' \| 'lazy'` | Defaults to `'eager'`. Use `'lazy'` with either dropdown mode to resolve `disabled_state` when the row menu opens. |
     | `disabled_if` | `str` | Deprecated. Name of a view method with signature `(obj, request) -> bool` that decides whether this row action should be disabled. Use `disabled_state` instead. |
     | `disabled_reason` | `str` | Deprecated. Name of a view method with signature `(obj, request) -> str | None` that returns the tooltip/help text when the action is disabled. Use `disabled_state` instead. |
 
@@ -228,6 +231,8 @@ class AuthorCRUDView(PowerCRUDMixin, CRUDView):
     - per-action `button_class` values are no longer used for the dropdown menu entries themselves
     - the `More` trigger uses the framework’s `extra_default` styling instead
     - leaving `button_class` off an `extra_actions` item is therefore fine if that action only ever appears in dropdown mode
+
+    When `extra_actions_mode = "all_dropdown"`, configured/default `button_class` colours are used for the standard icon controls and labelled extra-action rows.
 
 ### Reusable action and button declarations
 
@@ -718,7 +723,7 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
 
 The two settings are independent. Use `"start"` or `"end"` for logical placement and `True` or `False` for horizontal pinning. Defaults are `"end"` and `False`, preserving the existing end-positioned scrolling column. In LTR pages, start is the left edge; in RTL pages it is the right edge.
 
-When row selection is enabled, its checkbox remains the outermost logical-start column. A start-positioned Actions column comes immediately after it, followed by data columns. PowerCRUD preserves that same order in the header, display rows, active inline forms, and HTMX row replacements. Sticky actions stay with their row vertically; only horizontal table scrolling pins them to the configured edge. The existing body-level floating `More` menu continues to work without additional JavaScript configuration.
+When row selection is enabled, its checkbox remains the outermost logical-start column. A start-positioned Actions column comes immediately after it, followed by data columns. PowerCRUD preserves that same order in the header, display rows, active inline forms, and HTMX row replacements. Sticky actions stay with their row vertically; only horizontal table scrolling pins them to the configured edge. Both body-level floating row-action menus continue to work without additional JavaScript configuration.
 
 ### How dates and times appear in lists {#temporal-list-value-formats}
 

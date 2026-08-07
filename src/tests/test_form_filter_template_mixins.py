@@ -2098,7 +2098,11 @@ def test_row_actions_component_renders_resolved_presentation_metadata():
             "row_actions": {
                 "standard_actions": [base_action],
                 "extra_actions": [dropdown_action],
+                "dropdown_actions": [dropdown_action],
+                "show_dropdown": True,
                 "show_extra_dropdown": True,
+                "show_all_dropdown": False,
+                "dropdown_scope": "extras",
                 "row_action_states_url": "/books/1/action-states/",
                 "dropdown_trigger_class": "btn btn-secondary",
             }

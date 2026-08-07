@@ -11,7 +11,7 @@
     "src": "_preload-helper-dJhxz_Yn.css"
   },
   "config/static/js/bootstrap5.js": {
-    "file": "django_assets/bootstrap5-BtEEc8-e.js",
+    "file": "django_assets/bootstrap5-Dc89UWHA.js",
     "name": "bootstrap5",
     "src": "config/static/js/bootstrap5.js",
     "isEntry": true,
@@ -22,11 +22,11 @@
       "powercrud/static/powercrud/js/powercrud.js"
     ],
     "css": [
-      "django_assets/bootstrap5-CXPddbs4.css"
+      "django_assets/bootstrap5-D1Z2tBPF.css"
     ]
   },
   "config/static/js/main.js": {
-    "file": "django_assets/powercrud-DQusg8LV.js",
+    "file": "django_assets/powercrud-BRjx95Sn.js",
     "name": "powercrud",
     "src": "config/static/js/main.js",
     "isEntry": true,
@@ -37,7 +37,7 @@
       "powercrud/static/powercrud/js/powercrud.js"
     ],
     "css": [
-      "django_assets/powercrud-D2KOXCnq.css"
+      "django_assets/powercrud-OqaFmovU.css"
     ]
   },
   "powercrud/static/powercrud/js/powercrud.js": {

@@ -753,7 +753,7 @@ class PowerFieldBookCRUDView(SampleCRUDMixin):
     action_button_classes = "btn-xs"
     extra_button_classes = "btn-sm"
     extra_buttons_mode = "dropdown"
-    extra_actions_mode = "dropdown"
+    extra_actions_mode = "all_dropdown"
     row_actions_column_position = "end"
     row_actions_column_sticky = True
     extra_actions_dropdown_open_upward_bottom_rows = 5
@@ -1007,6 +1007,7 @@ class AuthorCRUDView(SampleCRUDMixin):
     table_classes = "table-zebra table-sm"
     action_button_classes = "btn-xs"
     extra_button_classes = "btn-sm"
+    extra_actions_mode = "all_dropdown"
     row_actions_column_position = "start"
     row_actions_column_sticky = True
     column_width_policy = "semantic"

@@ -332,7 +332,7 @@ def test_sample_powerfield_view_uses_same_builtin_mutation_permissions(client):
     assert "Create book" not in response_text, (
         "PowerButton demo viewers should not see built-in Create."
     )
-    assert "sr-only'>View</span>" not in response_text, (
+    assert "data-inline-action='view'" not in response_text, (
         "PowerButton demo viewers should not see the built-in Detail/View row action."
     )
     assert reverse("sample:powerfield-book-update", args=[book.pk]) not in response_text, (
@@ -357,7 +357,7 @@ def test_sample_powerfield_view_uses_same_builtin_mutation_permissions(client):
     assert "Create book" in response_text, (
         "PowerButton demo managers should see built-in Create."
     )
-    assert "sr-only'>View</span>" in response_text, (
+    assert "data-inline-action='view'" in response_text, (
         "PowerButton demo managers should see the built-in Detail/View row action."
     )
     assert reverse("sample:powerfield-book-update", args=[book.pk]) in response_text, (

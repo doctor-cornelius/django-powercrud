@@ -56,7 +56,7 @@ from powercrud.template_packs import TemplatePack
 
 template_pack = TemplatePack(
     identity="my-pack",
-    contract_version=3,
+    contract_version=4,
     template_namespace="powercrud/packs/my-pack",
     template_package="my_powercrud_pack",
     template_resource_root="templates/powercrud/packs/my-pack",
@@ -67,7 +67,9 @@ template_pack = TemplatePack(
 
 Keep the copied template tree complete for every capability your declaration claims. The templates must preserve PowerCRUD's documented `data-powercrud-*` attributes and relevant ARIA/target relationships. They may use completely different CSS classes, elements, and layout.
 
-`contract_version=3` is a numeric compatibility pin, not a reference to PowerCRUD's current-version constant. Version 3 requires portable row-action column layout. Your table header, display row, active inline form, and direct HTMX display/form fragments must all honour `row_actions_column_position` (`start` or `end`) and `row_actions_column_sticky`. Keep selection outermost at logical start, use logical CSS insets for RTL/LTR portability, and preserve the semantic action-column data markers. Sticky cells need an opaque pack-native background, edge separation, and table-layer z-index ordering; they remain vertically attached to their rows. Reuse PowerCRUD's already-resolved row action presentation rather than duplicating permissions, disabled state, or URLs.
+`contract_version=4` is a numeric compatibility pin, not a reference to PowerCRUD's current-version constant. Version 4 retains version 3's portable row-action column layout and adds the compact all-actions dropdown. Your table header, display row, active inline form, and direct HTMX display/form fragments must all honour `row_actions_column_position` (`start` or `end`) and `row_actions_column_sticky`. Keep selection outermost at logical start, use logical CSS insets for RTL/LTR portability, and preserve the semantic action-column data markers. Sticky cells need an opaque pack-native background, edge separation, and table-layer z-index ordering; they remain vertically attached to their rows.
+
+For `extra_actions_mode = "all_dropdown"`, use the resolved standard and extra dropdown collections rather than duplicating permissions, guards, disabled state, lazy hooks, or URLs. Render the supplied standard actions as a centred icon-only group, omit that group when empty, and retain their colours, accessible names, and semantic tooltips. Render configured extras as labelled rows with their supplied colours. Keep the visual heading compact while preserving screen-reader-only **Actions** text, keep inline Save/Cancel visible, and preserve the existing body-level floating-menu hooks.
 
 `adapter.py` translates server-side presentation choices into your framework's classes or attributes. It must expose an object with `api_version = 2`, `get_presentation(context)`, and `get_widget_presentation(context)`. Start with `BaseServerAdapter`: it supplies neutral action and widget presentation, then lets the pack declare semantic defaults and small surface-specific adjustments.
 
@@ -346,6 +348,7 @@ Before release, build both a wheel and a source distribution and run the same te
 
         - [ ] Required templates preserve the documented `data-powercrud-*`, target, and ARIA relationships for the behaviour they retain.
         - [ ] Header, display, inline-form, and HTMX-returned rows keep selection/action/data order aligned and honour start/end plus sticky row-action settings.
+        - [ ] Both dropdown modes preserve resolved permissions, disabled reasons, lazy state, HTMX/modal metadata, and detached-menu hooks; all-dropdown renders accessible coloured standard icons and labelled extras without an empty standard group.
         - [ ] The browser adapter uses `apiVersion: 1`, matches the declaration identity, and is loaded once before the PowerCRUD entry.
         - [ ] PowerCRUD retains request, selection, modal-cleanup, and HTMX lifecycle ownership.
         - [ ] Pack-owned CSS and JavaScript are separated from consumer-owned vendor dependencies.
@@ -391,7 +394,7 @@ The selector is a Python `module.path:attribute`, not a framework name. PowerCRU
 
 ## Current contract boundaries
 
-This is a public template-pack contract, not a generic frontend build system. The template-pack contract is version 3, the current server-adapter API is version 2, and the browser-adapter API remains version 1. These numbers identify different interfaces rather than three generations of the same complete contract.
+This is a public template-pack contract, not a generic frontend build system. The template-pack contract is version 4, the current server-adapter API is version 2, and the browser-adapter API remains version 1. These numbers identify different interfaces rather than three generations of the same complete contract.
 
 A pack author must ship the Python package resources and document vendor dependencies. The automated manual-static route is supported. Vite users own their entry, aliases, npm dependencies, and manifest because only their project knows that build layout.
 

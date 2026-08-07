@@ -109,9 +109,9 @@ row_actions_column_position = "start"  # or "end"
 row_actions_column_sticky = True
 ```
 
-Both DaisyUI and Bootstrap 5 render the Actions header, ordinary row actions, and inline Save/Cancel controls at the selected logical edge. Pack styling supplies the sticky positioning, surface background, edge separation, and table-layer ordering. `start` and `end` follow document direction; with selection enabled, the checkbox remains outermost and start-positioned actions follow it.
+Both DaisyUI and Bootstrap 5 render the Actions header, ordinary row actions, and inline Save/Cancel controls at the selected logical edge. Pack styling supplies the sticky positioning, surface background, edge separation, and table-layer ordering. `start` and `end` follow document direction; with selection enabled, the checkbox remains outermost and start-positioned actions follow it. In `extra_actions_mode = "all_dropdown"`, the visible heading is removed to match the compact ellipsis trigger, while screen-reader-only **Actions** text preserves the column name.
 
-Stickiness is horizontal only. Rows continue to move normally during vertical scrolling, and the existing detached `More` panel remains body-level so it is not clipped by the table wrapper. If you own pack or override CSS, preserve the semantic `data-powercrud-row-actions-column`, `data-powercrud-row-actions-position`, and optional `data-powercrud-row-actions-sticky` markers instead of relying on first-party utility classes.
+Stickiness is horizontal only. Rows continue to move normally during vertical scrolling, and detached row-action panels remain body-level so they are not clipped by the table wrapper. The first-party packs therefore give those floating panels explicit pack-native typography and control sizing instead of relying on table inheritance. If you own pack or override CSS, preserve the semantic `data-powercrud-row-actions-column`, `data-powercrud-row-actions-position`, and optional `data-powercrud-row-actions-sticky` markers instead of relying on first-party utility classes.
 
 ### Dropdown sorting
 

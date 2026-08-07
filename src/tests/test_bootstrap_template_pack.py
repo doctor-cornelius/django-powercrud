@@ -284,7 +284,35 @@ def test_bootstrap_optional_components_preserve_shared_semantic_hooks():
         {
             "row_actions": SimpleNamespace(
                 standard_actions=[],
+                dropdown_actions=[
+                    SimpleNamespace(
+                        href="/books/7/archive/",
+                        class_name="",
+                        tooltip_text="Archive this book",
+                        style="",
+                        use_htmx=True,
+                        hx_post=True,
+                        target="#book-row-7",
+                        use_history=False,
+                        modal_attrs="",
+                        modal_box_classes="",
+                        modal_presentation_attrs="",
+                        refresh_list_on_modal_close=False,
+                        disable=False,
+                        lazy_row_action_state=True,
+                        action_index=0,
+                        lazy_hidden_if=False,
+                        inline_action="archive",
+                        text="Archive",
+                        label_html="",
+                        kind="extra",
+                        is_destructive=False,
+                    )
+                ],
+                show_dropdown=True,
                 show_extra_dropdown=True,
+                show_all_dropdown=False,
+                dropdown_scope="extras",
                 dropdown_trigger_class="",
                 row_action_states_url="/books/7/action-states/",
                 extra_actions=[
@@ -327,7 +355,7 @@ def test_bootstrap_optional_components_preserve_shared_semantic_hooks():
     assert 'data-powercrud-filter-favourites-trigger="true"' in favourites and 'data-powercrud-filter-favourites-template="true"' in favourites, (
         "Bootstrap favourites should retain the private toolbar and deferred-panel hooks."
     )
-    assert '<li><a href="/books/7/archive/"' in row_actions and 'data-powercrud-row-action-state-mode="lazy"' in row_actions, (
+    assert 'data-powercrud-row-action-kind="extra"' in row_actions and '<a href="/books/7/archive/"' in row_actions and 'data-powercrud-row-action-state-mode="lazy"' in row_actions, (
         "Bootstrap row-action menus should preserve list-item semantics and lazy action-state metadata."
     )
 
@@ -390,6 +418,93 @@ def test_bootstrap_table_alignment_and_dropdown_button_classes_use_portable_valu
     )
     assert "dropdown-menu show" not in dropdown, (
         "Bootstrap extra-button menus must remain closed until their details control opens."
+    )
+
+
+def test_bootstrap_row_actions_render_one_accessible_all_actions_menu():
+    """Bootstrap should honour the unified action order and semantic markers."""
+    def action(text, *, kind, destructive=False, label_html=""):
+        """Return resolved presentation metadata for one template action."""
+        return SimpleNamespace(
+            href=f"/books/7/{text.lower()}/",
+            class_name="justify-start whitespace-nowrap",
+            tooltip_text="",
+            style="",
+            use_htmx=True,
+            hx_post=False,
+            target="#content",
+            use_history=True,
+            modal_attrs="",
+            modal_box_classes="",
+            modal_presentation_attrs="",
+            refresh_list_on_modal_close=False,
+            disable=False,
+            lazy_row_action_state=False,
+            action_index=0,
+            lazy_hidden_if=False,
+            inline_action=text.lower(),
+            text=text,
+            label_html=label_html,
+            menu_button_class="btn btn-warning",
+            kind=kind,
+            is_destructive=destructive,
+        )
+
+    dropdown_actions = [
+        action("View", kind="standard", label_html='<svg aria-hidden="true"></svg>'),
+        action("Edit", kind="standard", label_html='<svg aria-hidden="true"></svg>'),
+        action("Archive", kind="extra"),
+        action(
+            "Delete",
+            kind="standard",
+            destructive=True,
+            label_html='<svg aria-hidden="true"></svg>',
+        ),
+    ]
+    rendered = render_to_string(
+        f"{BOOTSTRAP_NAMESPACE}/partial/row_actions.html",
+        {
+            "row_actions": SimpleNamespace(
+                standard_actions=[],
+                extra_actions=[],
+                dropdown_actions=dropdown_actions,
+                standard_dropdown_actions=[
+                    dropdown_actions[0],
+                    dropdown_actions[1],
+                    dropdown_actions[3],
+                ],
+                extra_dropdown_actions=[dropdown_actions[2]],
+                show_dropdown=True,
+                show_extra_dropdown=False,
+                show_all_dropdown=True,
+                dropdown_scope="all",
+                dropdown_trigger_class="btn btn-secondary",
+                row_action_states_url="",
+            )
+        },
+    )
+
+    assert 'aria-label="Actions"' in rendered and 'data-powercrud-row-actions-scope="all"' in rendered, (
+        "Bootstrap all-dropdown mode should expose the accessible compact trigger and all-actions scope."
+    )
+    assert "More</span>" not in rendered, (
+        "Bootstrap all-dropdown mode should not render the extras-only More label."
+    )
+    assert all(
+        marker in rendered
+        for marker in (
+            'data-powercrud-row-actions-standard-group="true"',
+            'aria-label="View"',
+            'aria-label="Edit"',
+            'aria-label="Delete"',
+            "btn btn-warning w-100",
+            "<span>Archive</span>",
+        )
+    ), (
+        "Bootstrap should render coloured native icons as one group and labelled configured extras below it."
+    )
+    assert 'data-powercrud-row-action-destructive="true"' in rendered, (
+        "Bootstrap should retain the semantic marker used for conditional Delete separation."
     )
 
 

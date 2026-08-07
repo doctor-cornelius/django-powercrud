@@ -363,18 +363,21 @@ class Command(BaseCommand):
             )
         elif component == "row-actions":
             contract_guidance = (
-                "Keep object and resolved row_actions context; do not repeat permission, state-hook, "
-                "or URL decisions in the template. Preserve action, dropdown, lazy-state, disabled-tooltip, "
-                "HTMX, modal, and modal-close-refresh hooks.\n"
+                "Keep object and resolved row_actions context, including dropdown_actions, "
+                "standard_dropdown_actions, extra_dropdown_actions, show_dropdown, show_extra_dropdown, "
+                "show_all_dropdown, and dropdown_scope; do not repeat permission, ordering, state-hook, "
+                "or URL decisions in the template. Preserve the accessible compact trigger, standard icon "
+                "group, supplied colours/tooltips, labelled extras, action-kind, dropdown-scope, lazy-state, "
+                "disabled-tooltip, HTMX, modal, and modal-close-refresh hooks.\n"
                 "Legacy action_links(), row.actions, and row.has_actions remain available through 0.x; "
                 "no copied PowerCRUD JavaScript is required."
             )
         elif component == "table-header":
             contract_guidance = (
                 "Keep headers, current_sort, filter_params, use_htmx, request, has_row_actions, "
-                "enable_selection_controls, and the existing selection-state context. Preserve sorting "
-                "URLs and HTMX attributes, semantic help triggers, the conditional Actions heading, "
-                "and the select-all compatibility hooks.\n"
+                "extra_actions_mode, enable_selection_controls, and the existing selection-state context. "
+                "Preserve sorting URLs and HTMX attributes, semantic help triggers, the conditional visible "
+                "or screen-reader-only Actions heading, and the select-all compatibility hooks.\n"
                 "Legacy partial/list.html remains the 0.x facade; no copied PowerCRUD JavaScript is required."
             )
         elif component == "table-row":

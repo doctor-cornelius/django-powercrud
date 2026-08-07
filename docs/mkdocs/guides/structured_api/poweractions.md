@@ -247,7 +247,7 @@ def get_preview_disabled_state(self, obj, request):
 
 Return a non-empty string to disable the action and show that string as the reason. Return `None`, `False`, or an empty string to keep the action enabled.
 
-Set `hidden_if_mode="lazy"` for a dropdown row action when the row relevance hook is expensive. Set `disabled_state_mode="lazy"` when the exact disabled reason is expensive. Lazy hidden mode requires `hidden_if`, lazy disabled mode requires `disabled_state`, and neither mode is supported for visible button-mode row actions. See [Lazy Evaluation](../advanced/lazy_evaluation.md) for the Base API and Structured API lazy patterns together.
+Set `hidden_if_mode="lazy"` for a row action in either dropdown mode when the row relevance hook is expensive. Set `disabled_state_mode="lazy"` when the exact disabled reason is expensive. Lazy hidden mode requires `hidden_if`, lazy disabled mode requires `disabled_state`, and neither mode is supported for visible button-mode row actions. See [Lazy Evaluation](../advanced/lazy_evaluation.md) for the Base API and Structured API lazy patterns together.
 
 The older `disabled_if` and `disabled_reason` pair still works for compatibility, but it is deprecated and targeted for removal in v1.0. Do not combine those legacy hooks with `disabled_state` on one action.
 

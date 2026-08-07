@@ -568,6 +568,12 @@ class UrlMixin:
             f"{self.get_table_header_min_wrap_width()}"
         )
         kwargs["table_classes"] = self.get_table_classes()
+        extra_actions_mode_getter = getattr(self, "get_extra_actions_mode", None)
+        kwargs["extra_actions_mode"] = (
+            extra_actions_mode_getter()
+            if callable(extra_actions_mode_getter)
+            else getattr(cfg, "extra_actions_mode", "buttons")
+        )
         row_actions_position_getter = getattr(
             self, "get_row_actions_column_position", None
         )

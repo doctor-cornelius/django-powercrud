@@ -917,6 +917,157 @@ def test_action_links_can_render_extra_actions_in_dropdown():
 
 
 @pytest.mark.django_db
+def test_action_links_render_all_permitted_actions_in_one_ordered_menu():
+    """All-dropdown mode should expose one compact, semantically ordered menu."""
+    author = Author.objects.create(name="Unified Actions Author")
+    book = Book.objects.create(
+        title="Unified Actions",
+        author=author,
+        published_date=date(2024, 8, 1),
+        bestseller=False,
+        isbn="9876543210126",
+        pages=79,
+        description="Unified preview",
+    )
+    request = apply_session(RequestFactory().get("/?page=2"))
+    view = TemplateViewStub(request)
+    view.extra_actions_mode = "all_dropdown"
+
+    context = powercrud._resolve_row_action_context(view, book)
+    actions = context["row_actions"]["dropdown_actions"]
+    html = powercrud._render_row_actions(view, context)
+
+    assert [action["text"] for action in actions] == [
+        "View",
+        "Edit",
+        "Delete",
+        "Preview",
+        "Refresh",
+    ], "All-dropdown mode should keep the native icon row ahead of configured extras."
+    assert [action["kind"] for action in actions] == [
+        "standard",
+        "standard",
+        "standard",
+        "extra",
+        "extra",
+    ], "The unified menu should distinguish native and configured actions semantically."
+    assert context["row_actions"]["standard_dropdown_actions"][-1]["is_destructive"] is True, (
+        "Delete should remain identifiable inside the standard-action icon row."
+    )
+    assert "aria-label='Actions'" in html and "data-powercrud-row-actions-scope='all'" in html, (
+        "All-dropdown mode should render an accessible icon trigger and stable all-actions scope marker."
+    )
+    assert "btn-info" in context["row_actions"]["dropdown_trigger_class"].split(), (
+        "The compact all-actions trigger should use the pack's semantic info action colour."
+    )
+    assert ">More<" not in html, (
+        "The compact all-actions trigger should not retain the extras-only More label."
+    )
+    assert "data-powercrud-row-actions-standard-group='true'" in html, (
+        "The native actions should render as one semantic icon group."
+    )
+    native_actions = context["row_actions"]["standard_dropdown_actions"]
+    assert [
+        next(
+            colour
+            for colour in ("btn-info", "btn-primary", "btn-error")
+            if colour in action["class_name"].split()
+        )
+        for action in native_actions
+    ] == ["btn-info", "btn-primary", "btn-error"], (
+        "Native icon actions should reuse their configured action colours."
+    )
+    assert [action["tooltip_text"] for action in native_actions] == [
+        "View",
+        "Edit",
+        "Delete",
+    ], "Native icon actions should retain their normal semantic tooltip labels."
+    assert all(
+        f"aria-label='{name}'" in html for name in ("View", "Edit", "Delete")
+    ), (
+        "Native icon actions should retain accessible names when their visible text is removed."
+    )
+    assert "<span>Preview</span>" in html and "<span>Refresh</span>" in html, (
+        "Configured extras should remain labelled menu rows."
+    )
+
+
+@pytest.mark.django_db
+def test_action_links_all_dropdown_respects_native_permissions_and_disabled_state():
+    """Unified menus should reuse native permission and disabled-state decisions."""
+    author = Author.objects.create(name="Restricted Unified Actions Author")
+    book = Book.objects.create(
+        title="Restricted Unified Actions",
+        author=author,
+        published_date=date(2024, 8, 2),
+        bestseller=False,
+        isbn="9876543210127",
+        pages=80,
+        description="Restricted preview",
+    )
+    request = apply_session(RequestFactory().get("/"))
+    view = TemplateViewStub(request)
+    view.extra_actions_mode = "all_dropdown"
+    view.update_permission_allowed = False
+    book._blocked_reason = "locked"
+    book._blocked_label = "Row locked"
+
+    actions = powercrud._resolve_row_action_context(view, book)["row_actions"][
+        "dropdown_actions"
+    ]
+    action_map = {action["text"]: action for action in actions}
+
+    assert "Edit" not in action_map, (
+        "Native update permission should remove Edit from the unified menu."
+    )
+    assert action_map["Delete"]["disable"] is True, (
+        "Native row locking should keep Delete visible but disabled."
+    )
+    assert action_map["Delete"]["tooltip_text"] == "Row locked", (
+        "Disabled native menu actions should retain their explanatory reason."
+    )
+
+
+@pytest.mark.django_db
+def test_action_links_all_dropdown_defers_lazy_extra_action_state():
+    """The unified menu should hydrate configured lazy actions with original indices."""
+    author = Author.objects.create(name="Lazy Unified Actions Author")
+    book = Book.objects.create(
+        title="Lazy Unified Actions",
+        author=author,
+        published_date=date(2024, 8, 3),
+        bestseller=False,
+        isbn="9876543210128",
+        pages=81,
+        description="Lazy unified preview",
+    )
+    request = apply_session(RequestFactory().get("/"))
+    view = TemplateViewStub(request)
+    view.extra_actions_mode = "all_dropdown"
+    view.extra_actions[0].pop("disabled_if")
+    view.extra_actions[0].pop("disabled_reason")
+    view.extra_actions[0]["hidden_if"] = "track_hidden_if_true"
+    view.extra_actions[0]["hidden_if_mode"] = "lazy"
+
+    context = powercrud._resolve_row_action_context(view, book)
+    preview = next(
+        action
+        for action in context["row_actions"]["dropdown_actions"]
+        if action["text"] == "Preview"
+    )
+
+    assert view.row_state_calls == [], (
+        "All-dropdown list rendering should defer lazy hidden-state hooks."
+    )
+    assert preview["action_index"] == 0 and preview["lazy_hidden_if"] is True, (
+        "Unified menus should preserve the configured extra-action index for hydration."
+    )
+    assert context["row_actions"]["row_action_states_url"], (
+        "Unified menus with lazy actions should expose the existing state endpoint."
+    )
+
+
+@pytest.mark.django_db
 def test_action_links_omit_dropdown_more_when_all_extra_actions_are_hidden():
     """Omit the row More trigger when hidden_if removes every extra action."""
     author = Author.objects.create(name="Hidden Dropdown")

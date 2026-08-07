@@ -241,6 +241,56 @@ def test_sample_views_demonstrate_row_actions_column_layout_options():
     assert author_view.get_row_actions_column_position() == "start" and author_view.get_row_actions_column_sticky() is True, (
         "AuthorCRUDView should demonstrate the combined logical-start and sticky layout."
     )
+    assert author_view.get_extra_actions_mode() == "all_dropdown", (
+        "AuthorCRUDView should demonstrate the compact menu containing native and configured row actions."
+    )
+
+
+@pytest.mark.django_db
+def test_author_sample_all_actions_menu_survives_inline_htmx_rows():
+    """Author list and replacement rows should share the all-actions contract."""
+    author = Author.objects.create(name="Author Unified Menu")
+    client = Client()
+    _login_sample_manager(client)
+
+    list_response = client.get(reverse("sample:author-list"))
+    display_response = client.get(
+        reverse("sample:author-inline-row", args=[author.pk]),
+        {"inline_display": "true"},
+        HTTP_HX_REQUEST="true",
+    )
+    form_response = client.get(
+        reverse("sample:author-inline-row", args=[author.pk]),
+        HTTP_HX_REQUEST="true",
+    )
+
+    assert list_response.status_code == 200, (
+        "The Author sample list should render its unified row-actions demonstration."
+    )
+    list_html = list_response.content.decode()
+    row_start = list_html.index('data-inline-row="true"')
+    row_html = list_html[row_start:list_html.index("</tr>", row_start)]
+    assert row_html.index('data-powercrud-row-select="true"') < row_html.index(
+        'data-powercrud-row-actions-column="true"'
+    ) < row_html.index('data-field-name="id"'), (
+        "The Author list should keep selection, start-positioned actions, then data columns."
+    )
+    assert "data-powercrud-row-actions-scope='all'" in list_html and "aria-label='Actions'" in list_html, (
+        "The Author list should expose the unified Actions trigger through stable semantic markup."
+    )
+    header_start = list_html.index("<thead")
+    header_html = list_html[header_start:list_html.index("</thead>", header_start)]
+    assert '<span class="sr-only">Actions</span>' in header_html and '>Actions</span>' not in header_html.replace(
+        '<span class="sr-only">Actions</span>', ""
+    ), (
+        "The all-dropdown Author header should retain an accessible name without a visible Actions label."
+    )
+    assert display_response.status_code == 200 and b"data-powercrud-row-actions-scope='all'" in display_response.content, (
+        "An HTMX display-row replacement should retain the Author all-actions menu."
+    )
+    assert form_response.status_code == 200 and b"data-inline-save" in form_response.content and b"data-inline-cancel" in form_response.content, (
+        "An active Author inline row should replace its menu with working Save and Cancel controls."
+    )
 
 
 @pytest.mark.django_db
@@ -435,7 +485,6 @@ def test_powerfield_book_sample_view_matches_book_field_intent_config():
         "field_queryset_dependencies",
         "column_help_text",
         "column_alignments",
-        "extra_actions_mode",
         "extra_actions_dropdown_open_upward_bottom_rows",
         "row_actions_column_position",
         "row_actions_column_sticky",
@@ -447,6 +496,10 @@ def test_powerfield_book_sample_view_matches_book_field_intent_config():
             "PowerFieldBookCRUDView should compile the same resolved "
             f"{config_name} as BookCRUDView."
         )
+
+    assert primitive_view.extra_actions_mode == "dropdown" and powerfield_view.extra_actions_mode == "all_dropdown", (
+        "PowerFieldBookCRUDView should deliberately contrast the compact all-actions menu with BookCRUDView's extras-only menu."
+    )
 
     assert set(powerfield_view.properties) == set(primitive_view.properties), (
         "PowerFieldBookCRUDView should expose the same list property names as "
@@ -555,6 +608,7 @@ def test_powerfield_book_sample_routes_are_generated():
 @pytest.mark.django_db
 def test_powerfield_book_sample_list_renders(client: Client):
     """PowerField Book sample list route should render through the sample app."""
+    _login_sample_manager(client)
     author = Author.objects.create(name="PowerField Author")
     book = Book.objects.create(
         title="PowerField Sample Book",
@@ -585,6 +639,9 @@ def test_powerfield_book_sample_list_renders(client: Client):
     )
     assert 'data-powercrud-row-actions-sticky="true"' in response_text, (
         "PowerFieldBookCRUDView should keep the same horizontally sticky row actions as BookCRUDView."
+    )
+    assert "data-powercrud-row-actions-scope='all'" in response_text and "aria-label='Actions'" in response_text, (
+        "PowerFieldBookCRUDView should demonstrate the compact all-actions menu on its logical-end sticky column."
     )
 
 

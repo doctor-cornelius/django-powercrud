@@ -53,9 +53,9 @@ PowerAction(
 | `lock_sensitive` | `False` | Disable the action under PowerCRUD row-lock logic. |
 | `refresh_list_on_modal_close` | `False` | Refresh the list when this modal closes. |
 | `hidden_if` | `None` | Boolean hook name that hides this row action when true. |
-| `hidden_if_mode` | `None` | `None` or `"eager"` evaluates `hidden_if` during list rendering. `"lazy"` resolves it when a dropdown row action's `More` menu opens. |
+| `hidden_if_mode` | `None` | `None` or `"eager"` evaluates `hidden_if` during list rendering. `"lazy"` resolves it when either dropdown row-action menu opens. |
 | `disabled_state` | `None` | Single disabled-state hook name. |
-| `disabled_state_mode` | `None` | `None` or `"eager"` evaluates `disabled_state` during list rendering. `"lazy"` resolves it when a dropdown row action's `More` menu opens. |
+| `disabled_state_mode` | `None` | `None` or `"eager"` evaluates `disabled_state` during list rendering. `"lazy"` resolves it when either dropdown row-action menu opens. |
 | `disabled_if` | `None` | Deprecated legacy disabled boolean hook name. Use `disabled_state` instead. |
 | `disabled_reason` | `None` | Deprecated legacy disabled reason hook name. Use `disabled_state` instead. |
 | `permission` | `None` | Django permission string resolved through `has_power_permission(permission, request, obj=obj)`. |
@@ -193,7 +193,7 @@ extra_buttons = [
 - `PowerAction.hidden_if_mode` must be `"eager"` or `"lazy"` when set, and `"lazy"` requires `hidden_if`.
 - `PowerAction.disabled_state` cannot be combined with `disabled_if` or `disabled_reason`.
 - `PowerAction.disabled_state_mode` must be `"eager"` or `"lazy"` when set, and `"lazy"` requires `disabled_state`.
-- Lazy hidden and disabled state are supported for dropdown row actions. Base dictionaries use the same `hidden_if_mode` and `disabled_state_mode` keys.
+- Lazy hidden and disabled state are supported for both extras-only and all-actions dropdown row actions. Base dictionaries use the same `hidden_if_mode` and `disabled_state_mode` keys.
 - `PowerAction.disabled_if` and `PowerAction.disabled_reason` are deprecated and targeted for removal in v1.0.
 - `modal_presentation` must be a partial mapping with only the documented portable modal keys. It requires a modal trigger and cannot be combined with deprecated `modal_box_classes`.
 - `PowerAction.disabled_reason` requires `disabled_if`; use `disabled_state` for the single-hook contract.

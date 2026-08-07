@@ -362,10 +362,11 @@ def test_validator_rejects_invalid_extra_actions_mode():
         PowerCRUDMixinValidator(extra_actions_mode="menu")
 
 
-def test_validator_accepts_extra_actions_mode():
-    validator = PowerCRUDMixinValidator(extra_actions_mode="dropdown")
-    assert validator.extra_actions_mode == "dropdown", (
-        "Validator should accept the dropdown extra-actions rendering mode for row action overflow."
+@pytest.mark.parametrize("mode", ["buttons", "dropdown", "all_dropdown"])
+def test_validator_accepts_extra_actions_mode(mode):
+    validator = PowerCRUDMixinValidator(extra_actions_mode=mode)
+    assert validator.extra_actions_mode == mode, (
+        f"Validator should accept the {mode!r} extra-actions rendering mode."
     )
 
 
