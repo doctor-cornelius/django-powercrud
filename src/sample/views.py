@@ -278,6 +278,8 @@ class BookCRUDView(SampleCRUDMixin):
     extra_button_classes = "btn-sm"
     extra_buttons_mode = "dropdown"
     extra_actions_mode = "dropdown"
+    row_actions_column_position = "end"
+    row_actions_column_sticky = True
     extra_actions_dropdown_open_upward_bottom_rows = 5
 
     inline_edit_always_visible = True  # default is True
@@ -538,6 +540,7 @@ class AnnotatedBookCRUDView(SampleCRUDMixin):
     inline_edit_fields = ["pages"]
     bulk_fields = []
     bulk_delete = False
+    row_actions_column_position = "start"
     extra_button_classes = "btn-sm"
     extra_buttons = [
         PowerButton(
@@ -551,7 +554,15 @@ class AnnotatedBookCRUDView(SampleCRUDMixin):
             selection_min_reason="Select at least one annotated book first.",
         )
     ]
-    extra_actions = []
+    extra_actions = [
+        {
+            "url_name": "sample:bigbook-detail",
+            "text": "Open Book",
+            "needs_pk": True,
+            "button_class": "btn-primary",
+            "display_modal": True,
+        }
+    ]
 
     def get_bulk_selection_key_suffix(self):
         """Keep the annotated-book demo selection separate from the main Book view."""
@@ -590,7 +601,7 @@ class PowerFieldBookCRUDView(SampleCRUDMixin):
     list_cell_link_default_open_in = "modal"
     form_class = forms.BookForm
     power_fields = [
-        PowerOverride(detail="__all__"),
+        PowerOverride(list="__all__", detail="__all__"),
         PowerField(
             "title",
             default_list=True,
@@ -696,7 +707,12 @@ class PowerFieldBookCRUDView(SampleCRUDMixin):
             },
         ),
         PowerField("uneditable_field", form_display=True),
-        PowerField("description", form=True, inline=True),
+        PowerField(
+            "description",
+            form=True,
+            inline=True,
+            exclude={"list": True},
+        ),
         PowerField(
             "there_are_so_many_pages_this_header_surely_will_wrap",
             property=True,
@@ -738,6 +754,8 @@ class PowerFieldBookCRUDView(SampleCRUDMixin):
     extra_button_classes = "btn-sm"
     extra_buttons_mode = "dropdown"
     extra_actions_mode = "dropdown"
+    row_actions_column_position = "end"
+    row_actions_column_sticky = True
     extra_actions_dropdown_open_upward_bottom_rows = 5
     inline_edit_always_visible = True
     inline_preserve_required_fields = True
@@ -989,6 +1007,8 @@ class AuthorCRUDView(SampleCRUDMixin):
     table_classes = "table-zebra table-sm"
     action_button_classes = "btn-xs"
     extra_button_classes = "btn-sm"
+    row_actions_column_position = "start"
+    row_actions_column_sticky = True
     column_width_policy = "semantic"
     column_width_modes = {
         "has_bio": "compact",

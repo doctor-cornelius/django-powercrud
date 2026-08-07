@@ -78,6 +78,8 @@ The command writes an application template such as `myapp/templates/myapp/projec
 
 The [management-command reference](../reference/mgmt_commands.md) documents each generated template's context and the behaviour that an override must retain.
 
+Contract-version-3 list overrides receive `row_actions_column_position` and `row_actions_column_sticky`. If an override owns action-column structure, it must apply the configured order consistently to `table-header`, `table-row` / `inline-row-display`, and `inline-row-form`; selection remains the outermost logical-start column. Preserve `data-powercrud-row-actions-column`, `data-powercrud-row-actions-position`, and the conditional `data-powercrud-row-actions-sticky` marker so pack CSS and browser-focused tests can identify the semantic column without depending on framework classes. An override that changes only the resolved controls inside `row-actions` does not own column placement.
+
 ## Override all main templates for one model
 
 Use this when one model needs a substantially different list, detail, create/edit, and delete layout. For example, every standard PowerCRUD view for the `Project` model may need a different overall presentation while the rest of the application should keep using the selected pack:

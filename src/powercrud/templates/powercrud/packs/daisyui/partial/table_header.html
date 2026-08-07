@@ -9,6 +9,15 @@
             {% endif %}
         {% endif %}
 
+        {% if has_row_actions and row_actions_column_position == "start" %}
+        <th class="bg-neutral text-neutral-content text-start align-middle sticky-header"
+            data-powercrud-row-actions-column="true"
+            data-powercrud-row-actions-position="start"
+            {% if row_actions_column_sticky %}data-powercrud-row-actions-sticky="true"{% endif %}>
+            <span class="text-start block w-full h-full">Actions</span>
+        </th>
+        {% endif %}
+
         {% for header in headers %}
         <th class="bg-neutral text-neutral-content text-center align-middle truncate table-column-width sticky-header"
             data-field-name="{{ header.field_name }}"
@@ -62,8 +71,11 @@
             </span>
         </th>
         {% endfor %}
-        {% if has_row_actions %}
-        <th class="bg-neutral text-neutral-content text-center align-middle sticky-header">
+        {% if has_row_actions and row_actions_column_position != "start" %}
+        <th class="bg-neutral text-neutral-content text-center align-middle sticky-header"
+            data-powercrud-row-actions-column="true"
+            data-powercrud-row-actions-position="end"
+            {% if row_actions_column_sticky %}data-powercrud-row-actions-sticky="true"{% endif %}>
             <span class="text-center block w-full h-full">Actions</span>
         </th>
         {% endif %}

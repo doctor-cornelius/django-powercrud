@@ -369,6 +369,28 @@ def test_validator_accepts_extra_actions_mode():
     )
 
 
+@pytest.mark.parametrize("position", ["start", "end"])
+def test_validator_accepts_row_actions_column_positions(position):
+    validator = PowerCRUDMixinValidator(row_actions_column_position=position)
+
+    assert validator.row_actions_column_position == position, (
+        "Validator should preserve either accepted logical row-actions position."
+    )
+
+
+def test_validator_rejects_invalid_row_actions_column_position():
+    with pytest.raises(ValueError):
+        PowerCRUDMixinValidator(row_actions_column_position="left")
+
+
+def test_validator_accepts_row_actions_column_sticky_toggle():
+    validator = PowerCRUDMixinValidator(row_actions_column_sticky=True)
+
+    assert validator.row_actions_column_sticky is True, (
+        "Validator should accept the row-actions sticky boolean toggle."
+    )
+
+
 def test_validator_accepts_extra_actions_dropdown_upward_bottom_rows():
     validator = PowerCRUDMixinValidator(
         extra_actions_dropdown_open_upward_bottom_rows=0

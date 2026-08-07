@@ -14,6 +14,18 @@
         {% endif %}
     {% endif %}
 
+    {% if has_row_actions and row_actions_column_position == "start" %}
+    <td class="text-start py-1 align-middle"
+        data-inline-actions="true"
+        data-powercrud-row-actions-column="true"
+        data-powercrud-row-actions-position="start"
+        {% if row_actions_column_sticky %}data-powercrud-row-actions-sticky="true"{% endif %}>
+        <div class="pc-actions-default">
+            {{ row.actions }}
+        </div>
+    </td>
+    {% endif %}
+
     {% for cell in row.cells %}
         {% with value_str=cell.value|stringformat:"s" %}
     <td class="{% if forloop.first %}font-medium{% endif %} py-0 align-middle px-2 truncate table-column-width"
@@ -85,8 +97,12 @@
     </td>
         {% endwith %}
     {% endfor %}
-    {% if has_row_actions %}
-    <td class="text-right py-1 align-middle" data-inline-actions="true">
+    {% if has_row_actions and row_actions_column_position != "start" %}
+    <td class="text-right py-1 align-middle"
+        data-inline-actions="true"
+        data-powercrud-row-actions-column="true"
+        data-powercrud-row-actions-position="end"
+        {% if row_actions_column_sticky %}data-powercrud-row-actions-sticky="true"{% endif %}>
         <div class="pc-actions-default">
             {{ row.actions }}
         </div>

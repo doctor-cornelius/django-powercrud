@@ -1,7 +1,8 @@
 {% load powercrud_bootstrap5 %}
 {% with inline_enabled=inline_edit.enabled %}
-<tr{% if row.row_id %} id="{{ row.row_id }}"{% endif %} class="{% if row.is_selected %}table-active{% endif %}" data-inline-row="true"{% if row.inline_blocked_reason %} data-inline-status="{{ row.inline_blocked_reason }}"{% endif %}{% if row.inline_url %} data-inline-row-url="{{ row.inline_url }}"{% endif %}>
+    <tr{% if row.row_id %} id="{{ row.row_id }}"{% endif %} class="{% if row.is_selected %}table-active{% endif %}" data-inline-row="true"{% if row.inline_blocked_reason %} data-inline-status="{{ row.inline_blocked_reason }}"{% endif %}{% if row.inline_url %} data-inline-row-url="{{ row.inline_url }}"{% endif %}>
     {% if enable_selection_controls %}{% if bulk_selection_controls_template_paths %}{% include bulk_selection_controls_template_paths with selection_control="row" %}{% else %}{% include framework_template_path|add:"/partial/bulk_selection_controls.html" with selection_control="row" %}{% endif %}{% endif %}
+    {% if has_row_actions and row_actions_column_position == "start" %}<td class="text-start text-nowrap" data-inline-actions="true" data-powercrud-row-actions-column="true" data-powercrud-row-actions-position="start"{% if row_actions_column_sticky %} data-powercrud-row-actions-sticky="true"{% endif %}><div class="pc-actions-default pc-bootstrap-row-actions">{{ row.actions }}</div></td>{% endif %}
     {% for cell in row.cells %}
         {% with value_str=cell.value|stringformat:"s" %}
         <td class="pc-table-column-width text-{{ cell.align|bootstrap5_text_alignment }} {% if forloop.first %}fw-semibold{% endif %}" data-field-name="{{ cell.name }}" data-powercrud-column-width-mode="{{ cell.width_mode }}"{% if cell.is_inline_editable %} data-inline-cell="true"{% endif %}{% if cell.dependency %} data-inline-dependent-field="{{ cell.name }}"{% if cell.dependency.depends_on %} data-inline-depends-on="{{ cell.dependency.depends_on|join:',' }}"{% endif %} data-inline-endpoint="{{ cell.dependency.endpoint_url|default:inline_edit.dependency_endpoint_url }}"{% endif %}>
@@ -19,6 +20,6 @@
         </td>
         {% endwith %}
     {% endfor %}
-    {% if has_row_actions %}<td class="text-end text-nowrap" data-inline-actions="true"><div class="pc-actions-default pc-bootstrap-row-actions">{{ row.actions }}</div></td>{% endif %}
+    {% if has_row_actions and row_actions_column_position != "start" %}<td class="text-end text-nowrap" data-inline-actions="true" data-powercrud-row-actions-column="true" data-powercrud-row-actions-position="end"{% if row_actions_column_sticky %} data-powercrud-row-actions-sticky="true"{% endif %}><div class="pc-actions-default pc-bootstrap-row-actions">{{ row.actions }}</div></td>{% endif %}
 </tr>
 {% endwith %}

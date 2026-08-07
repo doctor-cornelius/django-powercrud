@@ -12,7 +12,7 @@ from django.core.exceptions import ImproperlyConfigured
 from powercrud.conf import get_powercrud_setting
 
 
-TEMPLATE_PACK_CONTRACT_VERSION = 2
+TEMPLATE_PACK_CONTRACT_VERSION = 3
 SERVER_ADAPTER_API_VERSION = 2
 BROWSER_ADAPTER_API_VERSION = 1
 _BUILTIN_TEMPLATE_PACKS = {"daisyui": "powercrud.packs.daisyui:template_pack"}
@@ -30,6 +30,8 @@ PORTABLE_PRESENTATION_OPTIONS = frozenset(
         "table_max_col_width",
         "table_header_min_wrap_width",
         "column_alignments",
+        "row_actions_column_position",
+        "row_actions_column_sticky",
         "extra_button_classes",
         "inline_edit_highlight_accent",
         "view_help.summary",

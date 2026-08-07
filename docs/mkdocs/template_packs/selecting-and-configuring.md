@@ -120,6 +120,8 @@ The matching base template loads the runtime configuration and this one entry:
 
 PowerCRUD deliberately does not prescribe the aliases, npm dependencies, or Vite manifest entry because those are owned by the application. The pack author must document the required vendor imports and source locations.
 
+Current independent packs must declare template-pack contract version `3`. Version 3 adds the portable `row_actions_column_position` and `row_actions_column_sticky` rendering obligation: the selected pack must keep header, display, inline-form, and HTMX-returned action cells in one logical order and provide horizontal sticky presentation at either logical edge. A declaration pinned to an older contract is rejected so consumers do not silently receive a pack that ignores the settings. Upgrade or regenerate the pack before selecting it with this PowerCRUD release.
+
 ## Configure forms deliberately
 
 Both supported packs render native Django forms. Set `use_crispy = False` if you need native rendering in a project that has Crispy Forms installed.

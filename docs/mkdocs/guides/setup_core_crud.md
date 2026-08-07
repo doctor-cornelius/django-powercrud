@@ -705,6 +705,21 @@ PowerField("asset_code", column={"width": "compact"})
 
 Column widths affect list layout only. They do not change values, sorting, filtering, or body-cell alignment. See the [configuration reference](../reference/config_options.md) and [PowerField reference](../reference/powerfields.md) for the complete option lists.
 
+### Row-actions column layout {#row-actions-column-layout}
+
+Wide tables can keep their per-row controls close to the edge where users are working:
+
+```python
+class ProjectCRUDView(PowerCRUDMixin, CRUDView):
+    # ...
+    row_actions_column_position = "start"
+    row_actions_column_sticky = True
+```
+
+The two settings are independent. Use `"start"` or `"end"` for logical placement and `True` or `False` for horizontal pinning. Defaults are `"end"` and `False`, preserving the existing end-positioned scrolling column. In LTR pages, start is the left edge; in RTL pages it is the right edge.
+
+When row selection is enabled, its checkbox remains the outermost logical-start column. A start-positioned Actions column comes immediately after it, followed by data columns. PowerCRUD preserves that same order in the header, display rows, active inline forms, and HTMX row replacements. Sticky actions stay with their row vertically; only horizontal table scrolling pins them to the configured edge. The existing body-level floating `More` menu continues to work without additional JavaScript configuration.
+
 ### How dates and times appear in lists {#temporal-list-value-formats}
 
 Date, time, and datetime columns use Django's `DATE_FORMAT`, `TIME_FORMAT`, and `DATETIME_FORMAT` settings. `DateField` shows a date, `TimeField` shows a time, and `DateTimeField` shows a date by default.

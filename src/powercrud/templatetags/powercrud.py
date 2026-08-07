@@ -1387,6 +1387,22 @@ def object_list(context, objects, view):
         attr_name="default_datetime_value_format",
         default="date",
     )
+    row_actions_column_position = _resolve_view_option(
+        view,
+        method_name="get_row_actions_column_position",
+        attr_name="row_actions_column_position",
+        default="end",
+    )
+    if row_actions_column_position not in {"start", "end"}:
+        row_actions_column_position = "end"
+    row_actions_column_sticky = bool(
+        _resolve_view_option(
+            view,
+            method_name="get_row_actions_column_sticky",
+            attr_name="row_actions_column_sticky",
+            default=False,
+        )
+    )
 
     configured_cell_tooltips = _resolve_view_option(
         view,
@@ -1818,6 +1834,8 @@ def object_list(context, objects, view):
         "table_classes": view.get_table_classes(),
         "htmx_target": htmx_target,
         "has_row_actions": has_row_actions,
+        "row_actions_column_position": row_actions_column_position,
+        "row_actions_column_sticky": row_actions_column_sticky,
         "request": request,
         # add bulk selection context
         "selected_ids": selected_ids,

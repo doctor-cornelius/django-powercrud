@@ -38,8 +38,9 @@ Use this matrix to choose evidence for the widget policy:
 | Selects | Default, explicitly enabled, and explicitly disabled searchable-select intent resolve correctly. |
 | Multiselects | Standard and compact variants preserve checked state, mouse and keyboard toggling, clear-all, submitted values, placement, and the compact selected count. |
 | Browser lifecycle | HTMX replacement reinitialises controls, modal timing and dropdown ownership are correct, and successful inline save does not flash the native control. |
+| Row-action columns | Default actions remain at end; start placement keeps selection outermost; header, display, and inline rows share the same order; HTMX replacements retain it; sticky actions remain visible and usable during horizontal scrolling at either logical edge. |
 
-Server tests should prove semantics and adapter decisions. Use browser tests only for behaviour that requires layout, focus, events, vendor code, or an actual HTMX/modal lifecycle.
+Server tests should prove semantics and adapter decisions. Use browser tests only for behaviour that requires layout, focus, events, vendor code, or an actual HTMX/modal lifecycle. For row-action columns, assert semantic order and markers on the server, then use a small browser test to exercise horizontal scrolling, the floating `More` menu, and inline Save/Cancel. Do not encode pixel tolerances, whitespace expectations, or framework-class inventories as the portable contract.
 
 ## Check the installed distribution
 
@@ -62,3 +63,4 @@ Run the broad project suite for release preparation and use focused test selecti
 - Browser-only risks have focused Playwright evidence where relevant.
 - Documentation tells users how to select the pack, load its assets, align Crispy Forms, and meet any vendor requirements.
 - Widget policy is covered across every supported surface, rendering mode, fallback, and application-override boundary.
+- A version-3 pack honours row-action placement and horizontal stickiness across header, display, inline, and HTMX replacement rows.

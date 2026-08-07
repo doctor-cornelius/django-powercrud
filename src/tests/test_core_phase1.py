@@ -719,6 +719,8 @@ def test_table_mixin_returns_expected_css_values():
         extra_button_classes = "btn-sm"
         extra_buttons_mode = "dropdown"
         extra_actions_mode = "dropdown"
+        row_actions_column_position = "start"
+        row_actions_column_sticky = True
 
     view = TableView()
 
@@ -731,6 +733,23 @@ def test_table_mixin_returns_expected_css_values():
     assert view.get_extra_button_classes() == "btn-sm"
     assert view.get_extra_buttons_mode() == "dropdown"
     assert view.get_extra_actions_mode() == "dropdown"
+    assert view.get_row_actions_column_position() == "start", (
+        "TableMixin should expose the resolved logical action-column position."
+    )
+    assert view.get_row_actions_column_sticky() is True, (
+        "TableMixin should expose the resolved action-column sticky toggle."
+    )
+
+
+def test_table_mixin_row_actions_column_layout_defaults_preserve_existing_behaviour():
+    view = TableMixin()
+
+    assert view.get_row_actions_column_position() == "end", (
+        "Action columns should remain at logical end by default."
+    )
+    assert view.get_row_actions_column_sticky() is False, (
+        "Action columns should continue scrolling horizontally by default."
+    )
 
 
 def test_table_header_wrap_never_exceeds_max_width():

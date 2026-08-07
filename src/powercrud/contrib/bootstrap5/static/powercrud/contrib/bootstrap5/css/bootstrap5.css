@@ -300,6 +300,31 @@
     letter-spacing: .01em;
 }
 
+[data-powercrud-object-list="true"] [data-powercrud-row-actions-column="true"] {
+    width: 1%;
+    white-space: nowrap;
+}
+
+[data-powercrud-object-list="true"] [data-powercrud-row-actions-sticky="true"] {
+    position: sticky;
+    z-index: 2;
+    background-color: var(--bs-table-bg, var(--bs-body-bg));
+}
+
+[data-powercrud-object-list="true"] [data-powercrud-row-actions-position="start"][data-powercrud-row-actions-sticky="true"] {
+    inset-inline-start: 0;
+    border-inline-end: var(--bs-border-width) solid var(--bs-border-color);
+}
+
+[data-powercrud-object-list="true"] [data-powercrud-row-actions-position="end"][data-powercrud-row-actions-sticky="true"] {
+    inset-inline-end: 0;
+    border-inline-start: var(--bs-border-width) solid var(--bs-border-color);
+}
+
+[data-powercrud-object-list="true"] thead [data-powercrud-row-actions-sticky="true"] {
+    z-index: 3;
+}
+
 [data-powercrud-object-list="true"] .pc-bootstrap-pagination .page-link {
     color: var(--bs-emphasis-color);
     background-color: var(--bs-secondary-bg);

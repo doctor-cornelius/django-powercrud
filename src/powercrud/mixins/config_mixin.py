@@ -239,6 +239,8 @@ class ConfigMixin:
     extra_button_classes: str = ""
     extra_buttons_mode: str = "buttons"
     extra_actions_mode: str = "buttons"
+    row_actions_column_position: str = "end"
+    row_actions_column_sticky: bool = False
     extra_actions_dropdown_open_upward_bottom_rows: int = 3
     show_record_count: bool = False
     show_bulk_selection_meta: bool = True
@@ -282,6 +284,8 @@ class ConfigMixin:
         "extra_button_classes",
         "extra_buttons_mode",
         "extra_actions_mode",
+        "row_actions_column_position",
+        "row_actions_column_sticky",
         "extra_actions_dropdown_open_upward_bottom_rows",
         "show_record_count",
         "show_bulk_selection_meta",
@@ -2248,6 +2252,18 @@ class _ConfigShim:
             return self._raw("column_width_policy") or "bounded"
         if name == "column_width_modes":
             return self._raw("column_width_modes", {}) or {}
+        if name == "row_actions_column_position":
+            return self._raw(
+                "row_actions_column_position",
+                ConfigMixin.row_actions_column_position,
+            )
+        if name == "row_actions_column_sticky":
+            return bool(
+                self._raw(
+                    "row_actions_column_sticky",
+                    ConfigMixin.row_actions_column_sticky,
+                )
+            )
         if name == "default_datetime_value_format":
             return self._raw("default_datetime_value_format") or "date"
         if name == "link_fields":

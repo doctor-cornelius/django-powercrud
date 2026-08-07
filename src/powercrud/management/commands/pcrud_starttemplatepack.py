@@ -8,7 +8,11 @@ from pathlib import Path
 
 from django.core.management.base import BaseCommand, CommandError
 
-from powercrud.template_packs import TemplatePack, resolve_template_pack
+from powercrud.template_packs import (
+    TEMPLATE_PACK_CONTRACT_VERSION,
+    TemplatePack,
+    resolve_template_pack,
+)
 
 
 class Command(BaseCommand):
@@ -132,11 +136,11 @@ class Command(BaseCommand):
         (package_dir / "template_pack.py").write_text(
             "from powercrud.template_packs import (\n"
             "    BrowserAdapterSpec,\n    PackAssets,\n    PackageResource,\n"
-            "    TEMPLATE_PACK_CONTRACT_VERSION,\n    TemplatePack,\n)\n\n"
+            "    TemplatePack,\n)\n\n"
             "from .adapter import server_adapter\n\n\n"
             "template_pack = TemplatePack(\n"
             f'    identity="{identity}",\n'
-            "    contract_version=TEMPLATE_PACK_CONTRACT_VERSION,\n"
+            f"    contract_version={TEMPLATE_PACK_CONTRACT_VERSION},\n"
             f'    template_namespace="powercrud/packs/{identity}",\n'
             f'    template_package="{package_name}",\n'
             f'    template_resource_root="templates/powercrud/packs/{identity}",\n'

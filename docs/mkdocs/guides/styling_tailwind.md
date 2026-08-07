@@ -100,6 +100,19 @@ This keeps automatic IDs and booleans narrow, sizes dates and numbers around the
 
     They control truncation/popovers and the scrollable table height.
 
+### Keep row actions at a table edge {#row-actions-column-layout}
+
+For a wide table, placement and horizontal pinning are portable view settings rather than framework classes:
+
+```python
+row_actions_column_position = "start"  # or "end"
+row_actions_column_sticky = True
+```
+
+Both DaisyUI and Bootstrap 5 render the Actions header, ordinary row actions, and inline Save/Cancel controls at the selected logical edge. Pack styling supplies the sticky positioning, surface background, edge separation, and table-layer ordering. `start` and `end` follow document direction; with selection enabled, the checkbox remains outermost and start-positioned actions follow it.
+
+Stickiness is horizontal only. Rows continue to move normally during vertical scrolling, and the existing detached `More` panel remains body-level so it is not clipped by the table wrapper. If you own pack or override CSS, preserve the semantic `data-powercrud-row-actions-column`, `data-powercrud-row-actions-position`, and optional `data-powercrud-row-actions-sticky` markers instead of relying on first-party utility classes.
+
 ### Dropdown sorting
 
 Use `dropdown_sort_options` when queryset-backed selects should be ordered by a predictable field instead of PowerCRUD's default heuristics.

@@ -483,6 +483,45 @@ def test_inline_form_row_preserves_disabled_selection_column(sample_book):
 
 
 @pytest.mark.django_db
+def test_inline_htmx_rows_preserve_start_sticky_actions_layout(sample_book):
+    """Direct edit and display replacements should keep the configured column order."""
+
+    class StartStickyInlineView(InlineTestView):
+        row_actions_column_position = "start"
+        row_actions_column_sticky = True
+
+        def get_selection_controls_enabled(self):
+            return True
+
+        def _build_inline_row_payload(self, obj):
+            payload = super()._build_inline_row_payload(obj)
+            payload["has_actions"] = True
+            return payload
+
+    form_request = _make_request("get")
+    display_request = _make_request("get", path="/inline/?inline_display=true")
+    form_response = StartStickyInlineView(
+        form_request, sample_book
+    )._dispatch_inline_row(form_request, pk=sample_book.pk)
+    display_response = StartStickyInlineView(
+        display_request, sample_book
+    )._dispatch_inline_row(display_request, pk=sample_book.pk)
+
+    for content in (form_response.content, display_response.content):
+        assert content.index(b"row-select-checkbox") < content.index(
+            b'data-powercrud-row-actions-column="true"'
+        ) < content.index(b'data-field-name="title"'), (
+            "HTMX inline replacements should keep selection, actions, and data in configured order."
+        )
+        assert b'data-powercrud-row-actions-position="start"' in content, (
+            "HTMX inline replacements should retain the logical-start marker."
+        )
+        assert b'data-powercrud-row-actions-sticky="true"' in content, (
+            "HTMX inline replacements should retain the sticky marker."
+        )
+
+
+@pytest.mark.django_db
 def test_inline_display_response_uses_focused_model_row(sample_book, tmp_path):
     """Cancel/display requests should render the model-first canonical display row."""
     override_path = tmp_path / "sample"

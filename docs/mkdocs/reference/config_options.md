@@ -88,6 +88,8 @@ For the mental model behind the option groups, see [PowerCRUD Concepts](../guide
 | `power_fields` (`list`) | `None` or `list[PowerField \| PowerOverride]` | `None` | Base Field Intent attributes are used directly | Structured declarations for Field Intent. A PowerField view must not mix base Field Intent attributes in the same inheritance chain. | [PowerField Reference](powerfields.md) |
 | `properties` (`list/str`) | `None`, `'__all__'`, `list[str]` | `[]` | No computed properties show in the list view | Computed properties to display alongside fields. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
 | `properties_exclude` (`list[str]`) | `list[str]` | `[]` | Every listed property renders | Remove individual properties from the list view. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
+| `row_actions_column_position` (`str`) | `'start'`, `'end'` | `'end'` | The Actions column remains after the data columns | Place the Actions column at the logical start or end of list tables. In LTR layouts start is left and end is right; RTL reverses those physical edges. When selection controls are present, their checkbox column remains the outermost start column. | [Setup & Core CRUD basics](../guides/setup_core_crud.md#row-actions-column-layout) |
+| `row_actions_column_sticky` (`bool`) | `True`, `False` | `False` | The Actions column scrolls horizontally with the table | Pin the Actions header and display/inline action cells to their configured logical edge during horizontal table scrolling. This does not fix them vertically or change the floating `More` menu. | [Styling & Tailwind](../guides/styling_tailwind.md#row-actions-column-layout) |
 | `searchable_selects` (`bool`) | `None`, `True`, `False` | `True` | Select widgets render as native `<select>` controls | Enable Tom Select enhancement for eligible select fields in regular forms, inline editing, bulk edit forms, and filter forms. | [Form controls](#form-controls) |
 | `show_bulk_selection_meta` (`bool`) | `True`, `False` | `True` | Bulk-selection metadata actions appear above the table when a selection exists | Control the contextual bulk-selection action row independently of `show_record_count`. | [Bulk editing (synchronous)](../guides/bulk_edit_sync.md) |
 | `show_record_count` (`bool`) | `True`, `False` | `False` | No results-count metadata is shown above the table | Display a small status line above the list table showing the total filtered queryset size, or the current page slice plus total when pagination is enabled. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
@@ -402,6 +404,15 @@ Use `extra_actions` to add per-row actions beyond the built-in `View`, `Edit`, a
 
 - `'buttons'` keeps the legacy behavior and renders extra row actions as visible joined buttons.
 - `'dropdown'` keeps the standard row actions visible and moves only `extra_actions` into a `More` dropdown.
+
+The action column itself has two independent layout settings:
+
+```python
+row_actions_column_position = "start"
+row_actions_column_sticky = True
+```
+
+`position` is logical rather than physical, so it follows LTR/RTL direction. Selection checkboxes always remain the outermost start column; start-positioned actions follow them. Stickiness applies only while the table scrolls horizontally and is carried through the header, normal rows, inline edit controls, and HTMX-returned replacement rows. The default combination remains `"end"` plus `False`.
 
 Example:
 

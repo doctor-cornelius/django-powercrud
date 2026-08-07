@@ -95,7 +95,7 @@ def test_bootstrap_declaration_is_opt_in_with_completed_modal_lifecycle():
         "The optional declaration must retain its selected identity."
     )
     assert template_pack.contract_version == TEMPLATE_PACK_CONTRACT_VERSION, (
-        "Bootstrap must consume the same public v1 contract as external packs."
+        "Bootstrap must consume the same current public contract as external packs."
     )
     assert template_pack.server_adapter == "powercrud.contrib.bootstrap5.adapter:server_adapter", (
         "Bootstrap must expose its server adapter through the public import path."
@@ -391,6 +391,86 @@ def test_bootstrap_table_alignment_and_dropdown_button_classes_use_portable_valu
     assert "dropdown-menu show" not in dropdown, (
         "Bootstrap extra-button menus must remain closed until their details control opens."
     )
+
+
+def test_bootstrap_row_actions_column_honours_portable_start_and_sticky_layout():
+    """Bootstrap should preserve selection, actions, data order in every row state."""
+    layout = {
+        "row_actions_column_position": "start",
+        "row_actions_column_sticky": True,
+    }
+    header = render_to_string(
+        f"{BOOTSTRAP_NAMESPACE}/partial/table_header.html",
+        {
+            "headers": [
+                {
+                    "label": "Title",
+                    "field_name": "title",
+                    "is_sortable": False,
+                    "width_mode": "bounded",
+                }
+            ],
+            "enable_selection_controls": True,
+            "has_row_actions": True,
+            "framework_template_path": BOOTSTRAP_NAMESPACE,
+            **layout,
+        },
+    )
+    row = {
+        "id": "7",
+        "row_id": "book-row-7",
+        "inline_url": "/books/7/inline/",
+        "actions": "View",
+        "cells": [
+            {
+                "name": "title",
+                "value": "Portable actions",
+                "align": "left",
+                "width_mode": "bounded",
+                "is_inline_editable": False,
+                "dependency": None,
+                "link": None,
+                "tooltip_text": None,
+                "tooltip_url": None,
+            }
+        ],
+    }
+    shared_row_context = {
+        "row": row,
+        "enable_selection_controls": True,
+        "framework_template_path": BOOTSTRAP_NAMESPACE,
+        **layout,
+    }
+    display_row = render_to_string(
+        f"{BOOTSTRAP_NAMESPACE}/partial/inline_row_display.html",
+        {
+            **shared_row_context,
+            "inline_edit": {"enabled": False},
+            "selected_ids": [],
+            "has_row_actions": True,
+        },
+    )
+    form_row = render_to_string(
+        f"{BOOTSTRAP_NAMESPACE}/partial/inline_row_form.html",
+        {**shared_row_context, "form": None},
+    )
+
+    for rendered, selection_marker in (
+        (header, 'data-powercrud-select-all="true"'),
+        (display_row, 'data-powercrud-row-select="true"'),
+        (form_row, "row-select-checkbox"),
+    ):
+        assert rendered.index(selection_marker) < rendered.index(
+            'data-powercrud-row-actions-column="true"'
+        ) < rendered.index('data-field-name="title"'), (
+            "Bootstrap selection, row actions, and data columns should keep one start-positioned order."
+        )
+        assert 'data-powercrud-row-actions-position="start"' in rendered, (
+            "Bootstrap action columns should expose their resolved logical position."
+        )
+        assert 'data-powercrud-row-actions-sticky="true"' in rendered, (
+            "Bootstrap action columns should expose the enabled sticky marker."
+        )
 
 
 def test_bootstrap_modal_templates_preserve_portable_presentation_attributes():

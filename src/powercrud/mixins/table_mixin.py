@@ -102,6 +102,14 @@ class TableMixin:
         """
         return resolve_config(self).extra_actions_mode
 
+    def get_row_actions_column_position(self) -> str:
+        """Return the logical table edge used for the row-actions column."""
+        return str(resolve_config(self).row_actions_column_position)
+
+    def get_row_actions_column_sticky(self) -> bool:
+        """Return whether row actions remain visible during horizontal scrolling."""
+        return bool(resolve_config(self).row_actions_column_sticky)
+
     def get_extra_actions_dropdown_open_upward_bottom_rows(self) -> int:
         """
         Return how many rendered rows from the bottom should open the extra

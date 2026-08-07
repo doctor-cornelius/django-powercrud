@@ -50,7 +50,7 @@ class PaginateMixin:
         if explicit_options is not None:
             return [str(size) for size in explicit_options]
 
-        standard_sizes = [5, 10, 25, 50, 100]
+        standard_sizes = [5, 10, 15, 20, 25, 50, 100]
         default = cfg.paginate_by
         options = []
         for size in sorted(

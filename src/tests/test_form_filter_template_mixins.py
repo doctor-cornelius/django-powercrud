@@ -2256,6 +2256,105 @@ def test_table_header_component_preserves_sort_help_selection_and_actions_contra
     )
 
 
+def test_daisyui_row_actions_column_defaults_to_end_and_moves_consistently_to_start():
+    """Headers, display rows, and edit rows should share one semantic column order."""
+    header_context = {
+        "headers": [
+            {
+                "label": "Title",
+                "field_name": "title",
+                "is_sortable": False,
+                "width_mode": "bounded",
+            }
+        ],
+        "enable_selection_controls": True,
+        "has_row_actions": True,
+    }
+    row = {
+        "id": "7",
+        "row_id": "book-row-7",
+        "inline_url": "/books/7/inline/",
+        "actions": mark_safe("<button>View</button>"),
+        "cells": [
+            {
+                "name": "title",
+                "value": "Portable actions",
+                "align": "left",
+                "width_mode": "bounded",
+                "is_inline_editable": False,
+                "dependency": None,
+                "link": None,
+                "tooltip_text": None,
+                "tooltip_url": None,
+            }
+        ],
+    }
+    display_context = {
+        "row": row,
+        "inline_edit": {"enabled": False},
+        "enable_selection_controls": True,
+        "selected_ids": [],
+        "has_row_actions": True,
+    }
+    form_context = {
+        "row": row,
+        "form": None,
+        "enable_selection_controls": True,
+    }
+
+    default_header = render_to_string(
+        "powercrud/daisyUI/partial/table_header.html", header_context
+    )
+    default_row = render_to_string(
+        "powercrud/daisyUI/partial/inline_row_display.html", display_context
+    )
+    assert default_header.index('data-field-name="title"') < default_header.index(
+        'data-powercrud-row-actions-column="true"'
+    ), "The default DaisyUI Actions header should remain after data headers."
+    assert default_row.index('data-field-name="title"') < default_row.index(
+        'data-powercrud-row-actions-column="true"'
+    ), "The default DaisyUI row-actions cell should remain after data cells."
+    assert 'data-powercrud-row-actions-position="end"' in default_header, (
+        "The default Actions header should expose its logical-end position."
+    )
+    assert 'data-powercrud-row-actions-sticky="true"' not in default_header, (
+        "The default Actions header should continue scrolling horizontally."
+    )
+
+    layout = {
+        "row_actions_column_position": "start",
+        "row_actions_column_sticky": True,
+    }
+    start_header = render_to_string(
+        "powercrud/daisyUI/partial/table_header.html", {**header_context, **layout}
+    )
+    start_row = render_to_string(
+        "powercrud/daisyUI/partial/inline_row_display.html",
+        {**display_context, **layout},
+    )
+    start_form = render_to_string(
+        "powercrud/daisyUI/partial/inline_row_form.html",
+        {**form_context, **layout},
+    )
+
+    for rendered, selection_marker in (
+        (start_header, 'data-powercrud-select-all="true"'),
+        (start_row, 'data-powercrud-row-select="true"'),
+        (start_form, "row-select-checkbox"),
+    ):
+        assert rendered.index(selection_marker) < rendered.index(
+            'data-powercrud-row-actions-column="true"'
+        ) < rendered.index('data-field-name="title"'), (
+            "DaisyUI selection, row actions, and data columns should keep one start-positioned order."
+        )
+        assert 'data-powercrud-row-actions-position="start"' in rendered, (
+            "DaisyUI action columns should expose their resolved logical position."
+        )
+        assert 'data-powercrud-row-actions-sticky="true"' in rendered, (
+            "DaisyUI action columns should expose the enabled sticky marker."
+        )
+
+
 def test_table_header_component_prefers_downstream_model_override(tmp_path):
     """The legacy list partial should select a model-scoped table header without JavaScript."""
     override_path = tmp_path / "sample"
