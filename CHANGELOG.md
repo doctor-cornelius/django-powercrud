@@ -6,7 +6,13 @@ During the `0.x` series, breaking changes can occur, although we try to minimise
 
 Version numbers below correspond to published git tags. The more important releases include a little extra narrative and upgrade context; smaller patch releases remain deliberately brief. For full detail between any two versions, use the GitHub compare view for the matching tags.
 
+## 0.9.8 (2026-08-08)
+
+- **Style(actions)**: increase contrast of row action icons
+- **Chore(sample)**: provide management command `runbootstrap` for sample app to run up bootstrap5 server
+
 ## 0.9.7 (2026-08-08)
+
 - **Fix (filters)**: stabilise responsive controls and favourites
 
 ## 0.9.6 (2026-08-08)
