@@ -35,7 +35,7 @@ def get_daisyui_framework_styles(view: Any) -> dict[str, dict[str, Any]]:
             "actions": {
                 "View": "btn-ghost text-base-content/80",
                 "Edit": "btn-ghost text-base-content/80",
-                "Delete": "btn-ghost text-error/70",
+                "Delete": "btn-ghost text-error/80",
             },
             "action_group_item": "join-item",
             "extra_default": "btn-accent",
