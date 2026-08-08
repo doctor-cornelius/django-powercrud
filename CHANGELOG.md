@@ -6,10 +6,49 @@ During the `0.x` series, breaking changes can occur, although we try to minimise
 
 Version numbers below correspond to published git tags. The more important releases include a little extra narrative and upgrade context; smaller patch releases remain deliberately brief. For full detail between any two versions, use the GitHub compare view for the matching tags.
 
+## 0.9.6 (2026-08-08)
+
+This release substantially improves row-action usability across wide tables, compact screens, inline editing, and both first-party template packs.
+
+- **Feature (tables): add configurable row-action column placement and stickiness.**
+
+  Row actions can now appear at either logical edge of the table using `row_actions_column_position = "start" | "end"` and can remain visible during horizontal scrolling with `row_actions_column_sticky`.
+
+  Start and end are interpreted logically for LTR and RTL layouts. When actions are placed at the start, the bulk-selection column remains the outermost column and the actions follow it. The configured order is preserved across table headers, normal rows, active inline-edit rows, and HTMX-returned replacement rows.
+- **Feature (actions): add an all-actions dropdown mode.**
+
+  `extra_actions_mode` now supports three presentation modes:
+
+  - `"buttons"` displays standard and configured row actions directly.
+  - `"dropdown"` displays standard actions directly and places configured extra actions in a compact menu.
+  - `"all_dropdown"` places every permitted row action in a single kebab menu.
+
+  The all-actions menu uses the consistent order View, Edit, configured extra actions, then Delete. Existing permission checks, disabled reasons, lazy action state, guards, modal actions, HTMX behaviour, navigation history, and refresh-on-close behaviour continue to apply.
+- **Feature (responsive): collapse row actions into one menu on narrow screens.**
+
+  At the template pack’s narrow breakpoint, all three desktop action modes automatically collapse into the compact all-actions kebab. This keeps row controls usable without requiring each application to maintain separate mobile configuration. Inline Save and Cancel controls remain directly available while a row is being edited.
+- **Feature (selection): keep bulk-selection controls visible while scrolling.**
+
+  Bulk-selection checkboxes and the select-all header are now sticky at the logical start of horizontally scrollable tables. They can remain pinned on the left while sticky row actions are independently pinned at either the start or end.
+- **Style (actions): introduce a quieter, more consistent row-action presentation.**
+
+  DaisyUI and Bootstrap 5 now use compact, neutral icon controls rather than saturated button fills for ordinary row actions. Menus use consistent icon gutters, table-aware typography, neutral hover states, and restrained destructive styling for Delete. Accessible names and semantic tooltips remain available for icon-only controls.
+- **Change (defaults): use a sticky end-positioned dropdown by default.**
+
+  The new defaults are:
+
+  ```python
+  extra_actions_mode = "dropdown"
+  row_actions_column_position = "end"
+  row_actions_column_sticky = True
+  ```
+
 ## 0.9.5 (2026-08-05)
+
 - **Fix (urls)**: support favourites without async dependencies
 
 ## 0.9.4 (2026-08-01)
+
 - **Fix (filters)**: retain panel during slow refresh
 
 ## 0.9.3 (2026-08-01)
@@ -17,11 +56,9 @@ Version numbers below correspond to published git tags. The more important relea
 - **Fix (UI): improve searchable-select responsiveness.**
 
   Tom Select dropdowns now render at most 50 matching options while retaining the default 300 ms type-ahead throttle, improving responsiveness for large datasets.
-
 - **Docs (modals): correct the modal-shell ownership contract.**
 
   Previous documentation incorrectly stated that `modal_id` and `modal_target` could replace PowerCRUD’s modal with an application-provided modal. That integration was never implemented. These settings only rename PowerCRUD’s own modal shell and content host; projects should use global or focused template overrides to customize the modal.
-
 - **Docs: improve configuration guidance.**
 
   Expanded the Structured API examples and clarified default column-alignment behaviour.
@@ -35,11 +72,9 @@ Version numbers below correspond to published git tags. The more important relea
   Generated `DateTimeField` controls now use true `datetime-local` inputs with seconds preserved, and silent model-backed defaults in a custom `ModelForm` can receive the selected pack's presentation without overriding declarative fields, `Meta.widgets`, runtime replacements, non-model fields, or hidden controls. Searchable multiselects now share checked options, click-to-toggle, and clear-all behaviour across both first-party packs: normal forms, filters, and bulk editing use the standard variant, while inline editing uses the compact `N selected` variant.
 
   The release also adds opt-in semantic list-column widths and material cross-pack polish for headers, table sizing, modal controls, dropdown placement, typography, palettes, and flash-free inline saves. Independently maintained template packs must upgrade to the server-adapter version 2 widget-policy contract; the browser-adapter API remains version 1.
-
 - **Fix(tables): wrap compact headers**
 
   Compact semantic columns now allow long header labels to wrap in DaisyUI and Bootstrap 5, while compact body values remain on one line.
-
 - **Docs: improve setup guide docs**
 
   Reworked the setup guides around a clearer first-use path, explained the built-in CRUD routes, and kept advanced configuration available without making it prerequisite reading.
