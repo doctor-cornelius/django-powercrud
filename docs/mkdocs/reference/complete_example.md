@@ -196,7 +196,9 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
     action_button_classes = "btn-sm"
     extra_button_classes = "btn-sm"
     extra_buttons_mode = "dropdown"
-    extra_actions_mode = "dropdown"
+    extra_actions_mode = "all_dropdown"
+    row_actions_column_position = "start"
+    row_actions_column_sticky = True
     extra_actions_dropdown_open_upward_bottom_rows = 3
 
     # ------------------------------------------------------------------
@@ -340,8 +342,10 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
 - `form_disabled_fields` keeps real update-form inputs visible but disabled. PowerCRUD uses Django field disabling rather than widget-only attrs, so posted tampering is ignored and the saved instance value is preserved.
 - A good use case for `view_title` is when the page heading needs UX-friendly wording such as `My List of Books` or `Active Client Projects`, while the underlying model metadata should stay reusable elsewhere.
 - `extra_buttons_mode = "dropdown"` is optional. When omitted, top-level `extra_buttons` keep the legacy visible-button behavior. Dropdown mode keeps built-in actions such as Create visible and moves only configured `extra_buttons` into the top toolbar `More` menu.
-- `extra_actions_mode = "dropdown"` is optional. When omitted, `extra_actions` keep the legacy visible-button behavior. Dropdown mode keeps `View/Edit/Delete` visible and moves only the extra row actions into the row-level `More` menu.
-- `extra_actions_dropdown_open_upward_bottom_rows = 3` makes the `More` menu open upward for the last three rendered rows on the current page. Set it to `0` if you want every dropdown to keep opening downward.
+- `extra_actions_mode = "all_dropdown"` is optional. The default extras-only `"dropdown"` keeps native icons visible and moves configured extras behind a neutral kebab with the accessible name **More actions**. `"buttons"` restores directly visible configured extras. `"all_dropdown"` uses one neutral compact **Actions** trigger and a labelled View, Edit, configured extras, Delete menu. Below 640px every mode automatically uses that all-actions layout. Delete remains last and visually separated when another item precedes it. Inline Save/Cancel remain visible.
+- When bulk or selection-aware controls enable the selection column, its header and row checkboxes remain pinned at logical start during horizontal scrolling. This is the default system-column behavior and has no view setting.
+- `row_actions_column_position = "start"` moves the Actions column before data columns while leaving a selection checkbox outermost. Row actions default to logical end with `row_actions_column_sticky = True`, keeping the Actions header, row controls, and inline Save/Cancel controls visible during horizontal table scrolling. Set stickiness to `False` for the previous scrolling behaviour.
+- `extra_actions_dropdown_open_upward_bottom_rows = 3` makes the row-action menu open upward for the last three rendered rows on the current page. Set it to `0` if you want every dropdown to keep opening downward.
 - `has_power_create_permission()`, `has_power_detail_permission()`, `has_power_update_permission()`, `has_power_delete_permission()`, `has_power_bulk_update_permission()`, and `has_power_bulk_delete_permission()` hide and deny PowerCRUD-owned operations when the user lacks permission.
 - `permission_check` on `extra_buttons` and `extra_actions` controls whether custom affordances render before row-state, selection-state, or disabled-state hooks run.
 - `uses_selection = True` turns a header button into a selection-aware action that reads the persisted PowerCRUD selection at the endpoint. It can render selector controls even when the view does not configure built-in bulk edit/delete.

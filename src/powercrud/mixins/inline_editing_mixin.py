@@ -424,6 +424,8 @@ class InlineEditingMixin:
             "selected_ids": self._get_selected_ids(),
             "list_view_url": self._get_list_url(),
             "action_button_classes": self.get_action_button_classes(),
+            "row_actions_column_position": self.get_row_actions_column_position(),
+            "row_actions_column_sticky": self.get_row_actions_column_sticky(),
             "inline_row_form_template_paths": inline_row_form_template_paths,
         }
         return render_to_string(
@@ -530,6 +532,8 @@ class InlineEditingMixin:
             "selected_ids": self._get_selected_ids(),
             "list_view_url": self._get_list_url(),
             "has_row_actions": row_payload.get("has_actions", False),
+            "row_actions_column_position": self.get_row_actions_column_position(),
+            "row_actions_column_sticky": self.get_row_actions_column_sticky(),
             "inline_row_display_template_paths": inline_row_display_template_paths,
             "bulk_selection_controls_template_paths": bulk_selection_controls_template_paths,
         }

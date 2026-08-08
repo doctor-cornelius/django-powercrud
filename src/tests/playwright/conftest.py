@@ -25,6 +25,24 @@ def books_url(live_server):
 
 
 @pytest.fixture
+def annotated_books_url(live_server):
+    path = reverse("sample:annotated-book-list")
+    base = os.getenv("PLAYWRIGHT_BASE_URL")
+    if base:
+        return f"{base.rstrip('/')}{path}"
+    return f"{live_server.url.rstrip('/')}{path}"
+
+
+@pytest.fixture
+def powerfield_books_url(live_server):
+    path = reverse("sample:powerfield-book-list")
+    base = os.getenv("PLAYWRIGHT_BASE_URL")
+    if base:
+        return f"{base.rstrip('/')}{path}"
+    return f"{live_server.url.rstrip('/')}{path}"
+
+
+@pytest.fixture
 def manual_static_books_url(live_server):
     path = reverse("sample:manual-static-bigbook-list")
     base = os.getenv("PLAYWRIGHT_BASE_URL")

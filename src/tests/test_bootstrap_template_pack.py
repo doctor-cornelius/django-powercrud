@@ -95,7 +95,7 @@ def test_bootstrap_declaration_is_opt_in_with_completed_modal_lifecycle():
         "The optional declaration must retain its selected identity."
     )
     assert template_pack.contract_version == TEMPLATE_PACK_CONTRACT_VERSION, (
-        "Bootstrap must consume the same public v1 contract as external packs."
+        "Bootstrap must consume the same current public contract as external packs."
     )
     assert template_pack.server_adapter == "powercrud.contrib.bootstrap5.adapter:server_adapter", (
         "Bootstrap must expose its server adapter through the public import path."
@@ -284,9 +284,40 @@ def test_bootstrap_optional_components_preserve_shared_semantic_hooks():
         {
             "row_actions": SimpleNamespace(
                 standard_actions=[],
+                dropdown_actions=[
+                    SimpleNamespace(
+                        href="/books/7/archive/",
+                        class_name="",
+                        tooltip_text="Archive this book",
+                        style="",
+                        use_htmx=True,
+                        hx_post=True,
+                        target="#book-row-7",
+                        use_history=False,
+                        modal_attrs="",
+                        modal_box_classes="",
+                        modal_presentation_attrs="",
+                        refresh_list_on_modal_close=False,
+                        disable=False,
+                        lazy_row_action_state=True,
+                        action_index=0,
+                        lazy_hidden_if=False,
+                        inline_action="archive",
+                        text="Archive",
+                        label_html="",
+                        kind="extra",
+                        is_destructive=False,
+                    )
+                ],
+                show_dropdown=True,
                 show_extra_dropdown=True,
+                show_all_dropdown=False,
+                dropdown_scope="extras",
+                dropdown_trigger_label="More actions",
                 dropdown_trigger_class="",
                 row_action_states_url="/books/7/action-states/",
+                show_responsive_dropdown=False,
+                responsive_dropdown_actions=[],
                 extra_actions=[
                     SimpleNamespace(
                         href="/books/7/archive/",
@@ -327,8 +358,14 @@ def test_bootstrap_optional_components_preserve_shared_semantic_hooks():
     assert 'data-powercrud-filter-favourites-trigger="true"' in favourites and 'data-powercrud-filter-favourites-template="true"' in favourites, (
         "Bootstrap favourites should retain the private toolbar and deferred-panel hooks."
     )
-    assert '<li><a href="/books/7/archive/"' in row_actions and 'data-powercrud-row-action-state-mode="lazy"' in row_actions, (
+    assert 'data-powercrud-row-action-kind="extra"' in row_actions and '<a href="/books/7/archive/"' in row_actions and 'data-powercrud-row-action-state-mode="lazy"' in row_actions, (
         "Bootstrap row-action menus should preserve list-item semantics and lazy action-state metadata."
+    )
+    assert 'aria-label="More actions"' in row_actions and ">More<" not in row_actions, (
+        "Bootstrap extras-only dropdowns should use the accessible compact kebab without visible More text."
+    )
+    assert "pc-bootstrap-row-actions-caret" not in row_actions, (
+        "Bootstrap extras-only dropdowns should not retain the old chevron indicator."
     )
 
 
@@ -391,6 +428,188 @@ def test_bootstrap_table_alignment_and_dropdown_button_classes_use_portable_valu
     assert "dropdown-menu show" not in dropdown, (
         "Bootstrap extra-button menus must remain closed until their details control opens."
     )
+
+
+def test_bootstrap_row_actions_render_one_accessible_all_actions_menu():
+    """Bootstrap should honour the unified action order and semantic markers."""
+    def action(text, *, kind, destructive=False, label_html=""):
+        """Return resolved presentation metadata for one template action."""
+        return SimpleNamespace(
+            href=f"/books/7/{text.lower()}/",
+            class_name="justify-start whitespace-nowrap",
+            tooltip_text="",
+            style="",
+            use_htmx=True,
+            hx_post=False,
+            target="#content",
+            use_history=True,
+            modal_attrs="",
+            modal_box_classes="",
+            modal_presentation_attrs="",
+            refresh_list_on_modal_close=False,
+            disable=False,
+            lazy_row_action_state=False,
+            action_index=0,
+            lazy_hidden_if=False,
+            inline_action=text.lower(),
+            text=text,
+            label_html=label_html,
+            menu_button_class="btn btn-warning",
+            kind=kind,
+            is_destructive=destructive,
+        )
+
+    dropdown_actions = [
+        action("View", kind="standard", label_html='<svg aria-hidden="true"></svg>'),
+        action("Edit", kind="standard", label_html='<svg aria-hidden="true"></svg>'),
+        action("Archive", kind="extra"),
+        action(
+            "Delete",
+            kind="standard",
+            destructive=True,
+            label_html='<svg aria-hidden="true"></svg>',
+        ),
+    ]
+    rendered = render_to_string(
+        f"{BOOTSTRAP_NAMESPACE}/partial/row_actions.html",
+        {
+            "row_actions": SimpleNamespace(
+                standard_actions=[],
+                extra_actions=[],
+                dropdown_actions=dropdown_actions,
+                standard_dropdown_actions=[
+                    dropdown_actions[0],
+                    dropdown_actions[1],
+                    dropdown_actions[3],
+                ],
+                extra_dropdown_actions=[dropdown_actions[2]],
+                show_dropdown=True,
+                show_extra_dropdown=False,
+                show_all_dropdown=True,
+                dropdown_scope="all",
+                dropdown_trigger_label="Actions",
+                dropdown_trigger_class="btn",
+                row_action_states_url="",
+                show_responsive_dropdown=False,
+                responsive_dropdown_actions=dropdown_actions,
+            )
+        },
+    )
+
+    assert 'aria-label="Actions"' in rendered and 'data-powercrud-row-actions-scope="all"' in rendered, (
+        "Bootstrap all-dropdown mode should expose the accessible compact trigger and all-actions scope."
+    )
+    assert "More</span>" not in rendered, (
+        "Bootstrap all-dropdown mode should not render the extras-only More label."
+    )
+    assert all(
+        marker in rendered
+        for marker in (
+            '<span>View</span>',
+            '<span>Edit</span>',
+            "<span>Archive</span>",
+            '<span>Delete</span>',
+            'class="pc-row-action-menu-icon"',
+        )
+    ), (
+        "Bootstrap should render native and configured actions as one labelled vertical menu."
+    )
+    rendered_positions = [
+        rendered.index(f"<span>{name}</span>")
+        for name in ("View", "Edit", "Archive", "Delete")
+    ]
+    assert rendered_positions == sorted(rendered_positions), (
+        "Bootstrap should place configured actions after View and Edit while keeping Delete last."
+    )
+    assert "btn btn-warning" not in rendered, (
+        "Dropdown entries should not reuse decorative extra-button fills."
+    )
+    assert 'data-powercrud-row-action-destructive="true"' in rendered, (
+        "Bootstrap should retain the semantic marker used for conditional Delete separation."
+    )
+
+
+def test_bootstrap_row_actions_column_honours_portable_start_and_sticky_layout():
+    """Bootstrap should preserve selection, actions, data order in every row state."""
+    layout = {
+        "row_actions_column_position": "start",
+        "row_actions_column_sticky": True,
+    }
+    header = render_to_string(
+        f"{BOOTSTRAP_NAMESPACE}/partial/table_header.html",
+        {
+            "headers": [
+                {
+                    "label": "Title",
+                    "field_name": "title",
+                    "is_sortable": False,
+                    "width_mode": "bounded",
+                }
+            ],
+            "enable_selection_controls": True,
+            "has_row_actions": True,
+            "framework_template_path": BOOTSTRAP_NAMESPACE,
+            **layout,
+        },
+    )
+    row = {
+        "id": "7",
+        "row_id": "book-row-7",
+        "inline_url": "/books/7/inline/",
+        "actions": "View",
+        "cells": [
+            {
+                "name": "title",
+                "value": "Portable actions",
+                "align": "left",
+                "width_mode": "bounded",
+                "is_inline_editable": False,
+                "dependency": None,
+                "link": None,
+                "tooltip_text": None,
+                "tooltip_url": None,
+            }
+        ],
+    }
+    shared_row_context = {
+        "row": row,
+        "enable_selection_controls": True,
+        "framework_template_path": BOOTSTRAP_NAMESPACE,
+        **layout,
+    }
+    display_row = render_to_string(
+        f"{BOOTSTRAP_NAMESPACE}/partial/inline_row_display.html",
+        {
+            **shared_row_context,
+            "inline_edit": {"enabled": False},
+            "selected_ids": [],
+            "has_row_actions": True,
+        },
+    )
+    form_row = render_to_string(
+        f"{BOOTSTRAP_NAMESPACE}/partial/inline_row_form.html",
+        {**shared_row_context, "form": None},
+    )
+
+    for rendered, selection_marker in (
+        (header, 'data-powercrud-select-all="true"'),
+        (display_row, 'data-powercrud-row-select="true"'),
+        (form_row, "row-select-checkbox"),
+    ):
+        assert rendered.index(selection_marker) < rendered.index(
+            'data-powercrud-row-actions-column="true"'
+        ) < rendered.index('data-field-name="title"'), (
+            "Bootstrap selection, row actions, and data columns should keep one start-positioned order."
+        )
+        assert 'data-powercrud-row-actions-position="start"' in rendered, (
+            "Bootstrap action columns should expose their resolved logical position."
+        )
+        assert 'data-powercrud-row-actions-sticky="true"' in rendered, (
+            "Bootstrap action columns should expose the enabled sticky marker."
+        )
+        assert 'data-powercrud-selection-column="true"' in rendered, (
+            "Bootstrap selection cells should expose the default sticky-column marker in every row state."
+        )
 
 
 def test_bootstrap_modal_templates_preserve_portable_presentation_attributes():

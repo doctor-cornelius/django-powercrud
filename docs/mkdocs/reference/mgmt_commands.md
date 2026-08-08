@@ -137,7 +137,7 @@ python manage.py pcrud_starttemplatepack my_powercrud_pack ../my-powercrud-pack 
 
 The first argument is the Python package name. The second is a new or empty destination directory; the command refuses to overwrite a populated directory. Use `--identity` only when the public pack identity should differ from the package name.
 
-The starter has no framework-name registration. Edit the copied templates and the optional adapter hooks, then test and publish it as a normal Python distribution. See [Authoring and publishing a template pack](../template_packs/authoring-and-publishing.md) for the complete workflow.
+The starter has no framework-name registration. Its generated declaration pins the current numeric template-pack contract version (`contract_version=3`); it does not import a moving current-version constant. Edit the copied templates and the optional adapter hooks, then test and publish it as a normal Python distribution. A later PowerCRUD contract bump is an explicit pack upgrade obligation. See [Authoring and publishing a template pack](../template_packs/authoring-and-publishing.md) for the complete workflow.
 
 ### Copy templates for one model
 
@@ -273,9 +273,9 @@ You can change the chooser's markup, classes, labels, and icons without copying 
 
 For example, `library.Book` produces `library/templates/library/book_row_actions.html`. PowerCRUD selects this file for that model before its built-in row-actions component.
 
-The component receives `object` and `row_actions`. PowerCRUD has already resolved URLs, permissions, visibility, disabled and lock state, HTMX behavior, modal behavior, lazy-state indices, and framework classes. The override should render only that supplied presentation data; do not repeat authorization, state-hook, or URL decisions in the template.
+The component receives `object` and `row_actions`. PowerCRUD has already resolved URLs, permissions, visibility, disabled and lock state, HTMX behavior, modal behavior, lazy-state indices, and framework classes. Its version-3 context includes `standard_actions`, `extra_actions`, mode-specific `dropdown_actions`, canonical `responsive_dropdown_actions`, compatibility `standard_dropdown_actions` and `extra_dropdown_actions`, `show_dropdown`, `show_extra_dropdown`, `show_all_dropdown`, `show_responsive_dropdown`, `dropdown_scope`, and the lazy-state URL. The override should render only that supplied presentation data; do not repeat authorization, state-hook, order, or URL decisions in the template.
 
-You can change the arrangement, classes, labels, and icons without copying PowerCRUD JavaScript or the list template. Preserve `data-inline-action` plus the dropdown, lazy-state, disabled-tooltip, HTMX, modal, and modal-close-refresh attributes used by the behavior you retain. The legacy `action_links()` function and `row.actions`/`row.has_actions` list-template values remain available during the 0.x compatibility period.
+You can change the arrangement, classes, labels, and icons without copying PowerCRUD JavaScript or the list template. Preserve the accessible extras-only and all-actions kebabs, canonical labelled responsive order, standard icon gutter, semantic action-kind/destructive markers, and conditional Delete separation. If the override retains responsive behavior, expose the desktop and mobile groups through the supplied semantic markers and never show both simultaneously. Keep menu rows neutral rather than reusing configured extra-button fills. Preserve `data-inline-action` plus the floating dropdown, lazy-state, disabled-tooltip, HTMX, modal, and modal-close-refresh attributes used by the behavior you retain. The legacy `action_links()` function and `row.actions`/`row.has_actions` list-template values remain available during the 0.x compatibility period.
 
 ### Focused Table Header Override
 
@@ -287,7 +287,7 @@ You can change the arrangement, classes, labels, and icons without copying Power
 
 For example, `library.Book` produces `library/templates/library/book_table_header.html`. PowerCRUD selects this file for that model before its built-in table-header component.
 
-You can change header layout, classes, labels, sort icons, and help icons without copying PowerCRUD JavaScript or the whole list template. Keep `headers`, `current_sort`, `filter_params`, `use_htmx`, `request`, `has_row_actions`, `enable_selection_controls`, and the existing selection-state context available. Preserve the sorting URL and HTMX attributes, semantic help trigger, conditional Actions heading, and select-all hooks for the behavior you retain. The table shell and rows remain separately overridable, while the select-all column delegates to the focused bulk-selection controls component.
+You can change header layout, classes, labels, sort icons, and help icons without copying PowerCRUD JavaScript or the whole list template. Keep `headers`, `current_sort`, `filter_params`, `use_htmx`, `request`, `has_row_actions`, `extra_actions_mode`, `enable_selection_controls`, `row_actions_column_position`, `row_actions_column_sticky`, and the existing selection-state context available. Preserve the sorting URL and HTMX attributes, semantic help trigger, conditional Actions heading, responsive heading hook, action-column markers, and select-all hooks for the behavior you retain. In `all_dropdown`, omit the visible heading but retain screen-reader-only **Actions** text; the first-party packs also compact it below 640px for every mode. Selection remains the outermost, always-sticky logical-start system column, and sticky start actions follow it. The table shell and rows remain separately overridable, while the select-all column delegates to the focused bulk-selection controls component.
 
 ### Focused Table Row Override
 
@@ -299,7 +299,7 @@ You can change header layout, classes, labels, sort icons, and help icons withou
 
 For example, `library.Book` produces `library/templates/library/book_table_row.html`. PowerCRUD selects this file for that model before its built-in normal-row component.
 
-You can change row and cell arrangement, classes, and presentation without copying PowerCRUD JavaScript or the whole list template. Keep `row`, `inline_edit`, `enable_selection_controls`, `selected_ids`, `list_view_url`, and `has_row_actions` available. Preserve the row, selection, inline-display, dependency, cell-link, tooltip, and row-action hooks used by the behavior you retain. The selection cell delegates to focused bulk-selection controls. The built-in row and direct `partial/list.html#inline_row_display` fragment are compatibility façades over the focused inline display row, while `#inline_row_form` remains the direct edit-row façade through 0.x.
+You can change row and cell arrangement, classes, and presentation without copying PowerCRUD JavaScript or the whole list template. Keep `row`, `inline_edit`, `enable_selection_controls`, `selected_ids`, `list_view_url`, `has_row_actions`, `row_actions_column_position`, and `row_actions_column_sticky` available. Preserve the row, selection, inline-display, dependency, cell-link, tooltip, and semantic row-action column hooks used by the behavior you retain. Match the table-header order and keep the sticky selection cell outermost at logical start. The selection cell delegates to focused bulk-selection controls. The built-in row and direct `partial/list.html#inline_row_display` fragment are compatibility façades over the focused inline display row, while `#inline_row_form` remains the direct edit-row façade through 0.x.
 
 ### Focused Table Shell Override
 
@@ -339,7 +339,7 @@ The toolbar feature guard and matching-record selection prompt remain owned by `
 
 For example, `library.Book` produces `library/templates/library/book_bulk_selection_controls.html`. PowerCRUD selects this same model override for all three `selection_control` modes: `matching` in filtered-results metadata, `select_all` in the table header, and `row` in each normal table row.
 
-Keep all three modes. Matching mode receives the matching-selection flags, label or limit message, `request`, and `list_view_url`. Select-all mode receives `all_selected` and `some_selected`. Row mode receives `row`, `selected_ids`, and `list_view_url`. Preserve the select-all, row-selection, initial-state, matching-action, status-target, and outer-swap hooks used by the behavior you retain.
+Keep all three modes. Matching mode receives the matching-selection flags, label or limit message, `request`, and `list_view_url`. Select-all mode receives `all_selected` and `some_selected`. Row mode receives `row`, `selected_ids`, and `list_view_url`. Preserve the select-all, row-selection, initial-state, matching-action, status-target, and outer-swap hooks used by the behavior you retain. Keep `data-powercrud-selection-column="true"` on both table-cell modes so pack styling can pin selection at logical start and offset an adjacent sticky start-actions column.
 
 The surrounding results metadata, table header, table row, and table shell remain separate focused or legacy surfaces. Selection persistence remains server-session owned, and repeated initialization and range-selection behavior remain in PowerCRUD JavaScript.
 
@@ -425,13 +425,13 @@ Preserve modal return-control suppression, the normal list link, and the HTMX re
 
 ### Focused Inline Display Row Override
 
-`--component inline-row-display` creates `{app}/templates/{app}/{model}_inline_row_display.html`. It receives resolved `row`, `inline_edit`, selection/list/action context, and focused bulk-selection candidates. Preserve row identity/status/URL, field and dependency metadata, editable and blocked affordances, links, tooltips, selection delegation, and aligned actions for behavior you retain.
+`--component inline-row-display` creates `{app}/templates/{app}/{model}_inline_row_display.html`. It receives resolved `row`, `inline_edit`, selection/list/action context including `row_actions_column_position` and `row_actions_column_sticky`, and focused bulk-selection candidates. Preserve row identity/status/URL, field and dependency metadata, editable and blocked affordances, links, tooltips, selection delegation, and the semantic action-column markers/order for behavior you retain.
 
 The built-in `table-row` and direct `partial/list.html#inline_row_display` are compatibility façades over this canonical component. Existing custom table-row and full-list overrides remain supported. Inline lifecycle, focus/width handling, HTMX events, guards, selection, and tooltips remain package-owned; the focused copy contains no PowerCRUD JavaScript.
 
 ### Focused Inline Form Row Override
 
-`--component inline-row-form` creates `{app}/templates/{app}/{model}_inline_row_form.html`. It receives row/form/hidden-field/config/save/cancel/selection/list/action context. Preserve active-row identity and URL, bound fields and labels, hidden preserved values, CSRF, dependency and error metadata, the aligned action cell, and exact Save/Cancel HTMX hooks for behavior you retain.
+`--component inline-row-form` creates `{app}/templates/{app}/{model}_inline_row_form.html`. It receives row/form/hidden-field/config/save/cancel/selection/list/action context, including the row-action column position and sticky toggle. Preserve active-row identity and URL, bound fields and labels, hidden preserved values, CSRF, dependency and error metadata, the action cell's matching order and semantic markers, and exact Save/Cancel HTMX hooks for behavior you retain.
 
 Direct `partial/list.html#inline_row_form` remains the server-addressable façade used by entry and invalid-save responses. Inline fields have their own focused dependency-response boundary; validation stays in `inline-row-form` because widget error attributes, adjacent messages, and non-field errors form one row contract. Focus, widths, searchable widgets, dependency swaps, spinners, events, error popovers, and repeated initialization remain package-owned; the focused copy contains no PowerCRUD JavaScript.
 

@@ -56,11 +56,11 @@ Use lazy row-action state when a dropdown row action has expensive row-specific 
     ]
     ```
 
-PowerCRUD still evaluates permission checks during list rendering. It defers only the hooks that opt into lazy mode, then resolves them when the row `More` menu opens.
+PowerCRUD still evaluates permission checks during list rendering. It defers only the hooks that opt into lazy mode, then resolves them when the row's extras-only or all-actions kebab opens.
 
 Use `hidden_if_mode="lazy"` when the action may not apply to a row and that relevance check is expensive. Use `disabled_state_mode="lazy"` when the action applies, but the exact disabled reason is expensive.
 
-Lazy row-action state is supported only for dropdown row actions. Visible button-mode row actions stay eager.
+Lazy row-action state is supported by both `extra_actions_mode = "dropdown"` and `"all_dropdown"`. The extras-only and all-actions menus use the same stable configured-action indices and state endpoint, including their narrow all-actions presentation. Button-mode row actions stay eager even though the first-party packs present them through one responsive kebab below 640px.
 
 ## Lazy Cell Tooltips
 

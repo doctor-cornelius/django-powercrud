@@ -1129,8 +1129,14 @@ def test_bulk_selection_controls_render_all_three_modes():
     assert 'data-powercrud-select-all="true"' in select_all and 'data-powercrud-initial-indeterminate="true"' in select_all, (
         "Select-all mode should retain truthful initial header state."
     )
+    assert 'data-powercrud-selection-column="true"' in select_all, (
+        "Select-all mode should expose the semantic sticky selection-column marker."
+    )
     assert 'data-powercrud-row-select="true"' in row and 'data-powercrud-initial-checked="true"' in row, (
         "Row mode should retain selected-row hydration metadata."
+    )
+    assert 'data-powercrud-selection-column="true"' in row, (
+        "Row mode should expose the same semantic sticky selection-column marker."
     )
     assert 'hx-post="/books/toggle-selection/7/"' in row and 'hx-swap="outerHTML"' in row, (
         "Row mode should retain its selection endpoint and outer swap."
@@ -2098,9 +2104,16 @@ def test_row_actions_component_renders_resolved_presentation_metadata():
             "row_actions": {
                 "standard_actions": [base_action],
                 "extra_actions": [dropdown_action],
+                "dropdown_actions": [dropdown_action],
+                "show_dropdown": True,
                 "show_extra_dropdown": True,
+                "show_all_dropdown": False,
+                "dropdown_scope": "extras",
+                "dropdown_trigger_label": "More actions",
                 "row_action_states_url": "/books/1/action-states/",
                 "dropdown_trigger_class": "btn btn-secondary",
+                "show_responsive_dropdown": False,
+                "responsive_dropdown_actions": [],
             }
         },
     )
@@ -2125,6 +2138,9 @@ def test_row_actions_component_renders_resolved_presentation_metadata():
     )
     assert "data-powercrud-row-action-state-mode='lazy'" in rendered and "data-powercrud-row-action-index='4'" in rendered and "data-powercrud-row-action-hidden-mode='lazy'" in rendered, (
         "The component should retain resolved lazy-state metadata and original action index."
+    )
+    assert "aria-label='More actions'" in rendered and ">More<" not in rendered, (
+        "The DaisyUI extras-only dropdown should use the accessible compact kebab without visible More text."
     )
 
 
@@ -2230,8 +2246,8 @@ def test_table_header_component_preserves_sort_help_selection_and_actions_contra
     assert "hx-get" not in computed_header and "onclick=" not in computed_header, (
         "Non-sortable headers should not gain navigation behavior."
     )
-    assert '<span class="text-center block w-full h-full">Actions</span>' in rendered, (
-        "The component should retain the centred conditional row-actions heading."
+    assert '<span class="text-center block w-full h-full pc-row-actions-heading-label">Actions</span>' in rendered, (
+        "The component should retain the centred row-actions heading with its responsive visibility hook."
     )
 
     normal_rendered = render_to_string(
@@ -2254,6 +2270,111 @@ def test_table_header_component_preserves_sort_help_selection_and_actions_contra
     assert 'aria-sort="descending"' in descending_rendered and ">▼</span>" in descending_rendered, (
         "Descending sort state should use an accessible downward-pointing indicator."
     )
+
+
+def test_daisyui_row_actions_column_defaults_to_end_and_moves_consistently_to_start():
+    """Headers, display rows, and edit rows should share one semantic column order."""
+    header_context = {
+        "headers": [
+            {
+                "label": "Title",
+                "field_name": "title",
+                "is_sortable": False,
+                "width_mode": "bounded",
+            }
+        ],
+        "enable_selection_controls": True,
+        "has_row_actions": True,
+        "row_actions_column_sticky": True,
+    }
+    row = {
+        "id": "7",
+        "row_id": "book-row-7",
+        "inline_url": "/books/7/inline/",
+        "actions": mark_safe("<button>View</button>"),
+        "cells": [
+            {
+                "name": "title",
+                "value": "Portable actions",
+                "align": "left",
+                "width_mode": "bounded",
+                "is_inline_editable": False,
+                "dependency": None,
+                "link": None,
+                "tooltip_text": None,
+                "tooltip_url": None,
+            }
+        ],
+    }
+    display_context = {
+        "row": row,
+        "inline_edit": {"enabled": False},
+        "enable_selection_controls": True,
+        "selected_ids": [],
+        "has_row_actions": True,
+        "row_actions_column_sticky": True,
+    }
+    form_context = {
+        "row": row,
+        "form": None,
+        "enable_selection_controls": True,
+        "row_actions_column_sticky": True,
+    }
+
+    default_header = render_to_string(
+        "powercrud/daisyUI/partial/table_header.html", header_context
+    )
+    default_row = render_to_string(
+        "powercrud/daisyUI/partial/inline_row_display.html", display_context
+    )
+    assert default_header.index('data-field-name="title"') < default_header.index(
+        'data-powercrud-row-actions-column="true"'
+    ), "The default DaisyUI Actions header should remain after data headers."
+    assert default_row.index('data-field-name="title"') < default_row.index(
+        'data-powercrud-row-actions-column="true"'
+    ), "The default DaisyUI row-actions cell should remain after data cells."
+    assert 'data-powercrud-row-actions-position="end"' in default_header, (
+        "The default Actions header should expose its logical-end position."
+    )
+    assert 'data-powercrud-row-actions-sticky="true"' in default_header, (
+        "The default Actions header should remain visible during horizontal scrolling."
+    )
+
+    layout = {
+        "row_actions_column_position": "start",
+        "row_actions_column_sticky": True,
+    }
+    start_header = render_to_string(
+        "powercrud/daisyUI/partial/table_header.html", {**header_context, **layout}
+    )
+    start_row = render_to_string(
+        "powercrud/daisyUI/partial/inline_row_display.html",
+        {**display_context, **layout},
+    )
+    start_form = render_to_string(
+        "powercrud/daisyUI/partial/inline_row_form.html",
+        {**form_context, **layout},
+    )
+
+    for rendered, selection_marker in (
+        (start_header, 'data-powercrud-select-all="true"'),
+        (start_row, 'data-powercrud-row-select="true"'),
+        (start_form, "row-select-checkbox"),
+    ):
+        assert rendered.index(selection_marker) < rendered.index(
+            'data-powercrud-row-actions-column="true"'
+        ) < rendered.index('data-field-name="title"'), (
+            "DaisyUI selection, row actions, and data columns should keep one start-positioned order."
+        )
+        assert 'data-powercrud-row-actions-position="start"' in rendered, (
+            "DaisyUI action columns should expose their resolved logical position."
+        )
+        assert 'data-powercrud-row-actions-sticky="true"' in rendered, (
+            "DaisyUI action columns should expose the enabled sticky marker."
+        )
+        assert 'data-powercrud-selection-column="true"' in rendered, (
+            "DaisyUI selection cells should expose the default sticky-column marker in every row state."
+        )
 
 
 def test_table_header_component_prefers_downstream_model_override(tmp_path):

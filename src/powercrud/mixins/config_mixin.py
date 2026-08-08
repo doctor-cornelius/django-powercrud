@@ -16,7 +16,10 @@ from ..modal_presentation import (
     resolve_modal_presentation,
 )
 from ..powerfields import compile_powerfields
-from ..row_actions import is_lazy_row_action_state_action
+from ..row_actions import (
+    is_lazy_row_action_state_action,
+    is_row_actions_dropdown_mode,
+)
 from ..validators import DEFAULT_PAGINATE_BY, PowerCRUDMixinValidator
 
 from powercrud.template_packs import (
@@ -238,7 +241,9 @@ class ConfigMixin:
     action_button_classes: str = ""
     extra_button_classes: str = ""
     extra_buttons_mode: str = "buttons"
-    extra_actions_mode: str = "buttons"
+    extra_actions_mode: str = "dropdown"
+    row_actions_column_position: str = "end"
+    row_actions_column_sticky: bool = True
     extra_actions_dropdown_open_upward_bottom_rows: int = 3
     show_record_count: bool = False
     show_bulk_selection_meta: bool = True
@@ -282,6 +287,8 @@ class ConfigMixin:
         "extra_button_classes",
         "extra_buttons_mode",
         "extra_actions_mode",
+        "row_actions_column_position",
+        "row_actions_column_sticky",
         "extra_actions_dropdown_open_upward_bottom_rows",
         "show_record_count",
         "show_bulk_selection_meta",
@@ -1764,11 +1771,13 @@ class ConfigMixin:
                 )
             if (
                 hidden_if_mode == "lazy"
-                and getattr(self, "extra_actions_mode", "buttons") != "dropdown"
+                and not is_row_actions_dropdown_mode(
+                    getattr(self, "extra_actions_mode", "dropdown")
+                )
             ):
                 raise ValueError(
                     "extra_actions[%s].hidden_if_mode='lazy' requires "
-                    "extra_actions_mode='dropdown'" % index
+                    "extra_actions_mode='dropdown' or 'all_dropdown'" % index
                 )
             disabled_state = self._resolve_extra_action_method(
                 normalized.get("disabled_state"),
@@ -1790,11 +1799,13 @@ class ConfigMixin:
                 )
             if (
                 disabled_state_mode == "lazy"
-                and getattr(self, "extra_actions_mode", "buttons") != "dropdown"
+                and not is_row_actions_dropdown_mode(
+                    getattr(self, "extra_actions_mode", "dropdown")
+                )
             ):
                 raise ValueError(
                     "extra_actions[%s].disabled_state_mode='lazy' requires "
-                    "extra_actions_mode='dropdown'" % index
+                    "extra_actions_mode='dropdown' or 'all_dropdown'" % index
                 )
             disabled_if = self._resolve_extra_action_method(
                 normalized.get("disabled_if"),
@@ -2248,6 +2259,18 @@ class _ConfigShim:
             return self._raw("column_width_policy") or "bounded"
         if name == "column_width_modes":
             return self._raw("column_width_modes", {}) or {}
+        if name == "row_actions_column_position":
+            return self._raw(
+                "row_actions_column_position",
+                ConfigMixin.row_actions_column_position,
+            )
+        if name == "row_actions_column_sticky":
+            return bool(
+                self._raw(
+                    "row_actions_column_sticky",
+                    ConfigMixin.row_actions_column_sticky,
+                )
+            )
         if name == "default_datetime_value_format":
             return self._raw("default_datetime_value_format") or "date"
         if name == "link_fields":

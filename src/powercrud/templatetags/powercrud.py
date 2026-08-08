@@ -48,6 +48,7 @@ from powercrud.row_actions import (
     is_lazy_disabled_state_action,
     is_lazy_hidden_if_action,
     is_lazy_row_action_state_action,
+    is_row_actions_dropdown_mode,
     resolve_extra_action_disabled_state as _resolve_extra_action_disabled_state,
     resolve_extra_action_hidden_state as _resolve_extra_action_hidden_state,
     resolve_extra_action_permission_state as _resolve_extra_action_permission_state,
@@ -136,6 +137,13 @@ STANDARD_ACTION_ICONS = {
         "d='m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673A2.25 2.25 0 0 1 15.916 21H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0' />"
         "</svg><span class='pc-action-label sr-only'>Delete</span>"
     ),
+}
+STANDARD_ACTION_MENU_ICONS = {
+    name: icon.replace(
+        f"<span class='pc-action-label sr-only'>{name}</span>",
+        "",
+    )
+    for name, icon in STANDARD_ACTION_ICONS.items()
 }
 
 
@@ -506,7 +514,6 @@ def _resolve_action_presentation(
     tooltip_text = None
     if label_html:
         tooltip_text = lock_label if disable and lock_label else anchor_text
-        style_declarations.append("min-width: 2.5rem;")
 
     if disable:
         style_declarations.extend(
@@ -941,7 +948,7 @@ def _resolve_row_action_context(view: Any, object: Any) -> dict[str, Any]:
         view,
         method_name="get_extra_actions_mode",
         attr_name="extra_actions_mode",
-        default="buttons",
+        default="dropdown",
     )
     query_string = ""
     if hasattr(view, "request") and hasattr(view.request, "GET") and view.request.GET:
@@ -954,7 +961,7 @@ def _resolve_row_action_context(view: Any, object: Any) -> dict[str, Any]:
         default="#content",
     )
     extra_actions: List[Dict[str, Any]] = getattr(view, "extra_actions", [])
-    has_lazy_row_action = extra_actions_mode == "dropdown" and any(
+    has_lazy_row_action = is_row_actions_dropdown_mode(extra_actions_mode) and any(
         is_lazy_row_action_state_action(action) for action in extra_actions
     )
     row_action_states_url = None
@@ -1002,6 +1009,7 @@ def _resolve_row_action_context(view: Any, object: Any) -> dict[str, Any]:
                 "url": url,
                 "text": name,
                 "label_html": STANDARD_ACTION_ICONS[name],
+                "menu_label_html": STANDARD_ACTION_MENU_ICONS[name],
                 "button_class": styles["actions"][name],
                 "target": default_target,
                 "hx_post": False,
@@ -1036,7 +1044,7 @@ def _resolve_row_action_context(view: Any, object: Any) -> dict[str, Any]:
                 continue
 
             lazy_hidden_if = (
-                extra_actions_mode == "dropdown"
+                is_row_actions_dropdown_mode(extra_actions_mode)
                 and row_action_states_url
                 and is_lazy_hidden_if_action(action)
             )
@@ -1078,7 +1086,7 @@ def _resolve_row_action_context(view: Any, object: Any) -> dict[str, Any]:
                 disable_extra = True
                 disabled_reason = permission_disabled_reason
             elif (
-                extra_actions_mode == "dropdown"
+                is_row_actions_dropdown_mode(extra_actions_mode)
                 and row_action_states_url
                 and is_lazy_disabled_state_action(action)
             ):
@@ -1125,7 +1133,8 @@ def _resolve_row_action_context(view: Any, object: Any) -> dict[str, Any]:
             anchor_text=action["text"],
             label_html=action["label_html"],
             class_name=(
-                f"{styles['base']}{action_group_item_class} justify-center px-3 {action['button_class']} {action_button_classes}"
+                f"{styles['base']}{action_group_item_class} {action['button_class']} "
+                f"{action_button_classes}"
             ),
             target=action["target"],
             hx_post=action["hx_post"],
@@ -1141,36 +1150,51 @@ def _resolve_row_action_context(view: Any, object: Any) -> dict[str, Any]:
         )
         for action in standard_action_items
     ]
+    for presentation in standard_presentations:
+        presentation.update(
+            {
+                "kind": "standard",
+                "is_destructive": presentation["text"] == "Delete",
+            }
+        )
 
-    if extra_actions_mode == "dropdown":
-        extra_presentations = []
-        for action in extra_action_items:
-            presentation = _resolve_action_presentation(
-                url=action["url"],
-                anchor_text=action["text"],
-                class_name="justify-start whitespace-nowrap",
-                target=action["target"],
-                hx_post=action["hx_post"],
-                show_modal=action["show_modal"],
-                modal_attrs=action["modal_attrs"],
-                disable=action["disable"],
-                lock_label=action.get("disabled_reason") or lock_label,
-                use_htmx=use_htmx,
-                query_string=query_string,
-                modal_box_classes=action["modal_box_classes"],
-                modal_presentation_attrs=action["modal_presentation_attrs"],
-                refresh_list_on_modal_close=action["refresh_list_on_modal_close"],
-            )
-            presentation.update(
-                {
-                    "lazy_row_action_state": action.get(
-                        "lazy_row_action_state", False
-                    ),
-                    "action_index": action["action_index"],
-                    "lazy_hidden_if": action.get("lazy_hidden_if", False),
-                }
-            )
-            extra_presentations.append(presentation)
+    extra_dropdown_presentations = []
+    for action in extra_action_items:
+        presentation = _resolve_action_presentation(
+            url=action["url"],
+            anchor_text=action["text"],
+            class_name="justify-start whitespace-nowrap",
+            target=action["target"],
+            hx_post=action["hx_post"],
+            show_modal=action["show_modal"],
+            modal_attrs=action["modal_attrs"],
+            disable=action["disable"],
+            lock_label=action.get("disabled_reason") or lock_label,
+            use_htmx=use_htmx,
+            query_string=query_string,
+            modal_box_classes=action["modal_box_classes"],
+            modal_presentation_attrs=action["modal_presentation_attrs"],
+            refresh_list_on_modal_close=action["refresh_list_on_modal_close"],
+        )
+        presentation.update(
+            {
+                "menu_button_class": (
+                    f"{styles['base']} {action['button_class']} "
+                    f"{action_button_classes}"
+                ),
+                "lazy_row_action_state": action.get(
+                    "lazy_row_action_state", False
+                ),
+                "action_index": action["action_index"],
+                "lazy_hidden_if": action.get("lazy_hidden_if", False),
+                "kind": "extra",
+                "is_destructive": False,
+            }
+        )
+        extra_dropdown_presentations.append(presentation)
+
+    if is_row_actions_dropdown_mode(extra_actions_mode):
+        extra_presentations = extra_dropdown_presentations
     else:
         extra_presentations = [
             _resolve_action_presentation(
@@ -1193,17 +1217,88 @@ def _resolve_row_action_context(view: Any, object: Any) -> dict[str, Any]:
             )
             for action in extra_action_items
         ]
+        for presentation in extra_presentations:
+            presentation.update({"kind": "extra", "is_destructive": False})
+
+    standard_dropdown_presentations = []
+    for action in standard_action_items:
+        presentation = _resolve_action_presentation(
+            url=action["url"],
+            anchor_text=action["text"],
+            class_name="",
+            target=action["target"],
+            hx_post=action["hx_post"],
+            show_modal=action["show_modal"],
+            modal_attrs=action["modal_attrs"],
+            disable=action["disable"],
+            lock_label=action.get("disabled_reason"),
+            use_htmx=use_htmx,
+            query_string=query_string,
+            modal_box_classes=action["modal_box_classes"],
+            modal_presentation_attrs=action["modal_presentation_attrs"],
+            refresh_list_on_modal_close=action["refresh_list_on_modal_close"],
+        )
+        presentation.update(
+            {
+                "label_html": action["menu_label_html"],
+                "kind": "standard",
+                "is_destructive": action["text"] == "Delete",
+            }
+        )
+        standard_dropdown_presentations.append(presentation)
+
+    non_destructive_standard_actions = [
+        action
+        for action in standard_dropdown_presentations
+        if not action["is_destructive"]
+    ]
+    destructive_standard_actions = [
+        action
+        for action in standard_dropdown_presentations
+        if action["is_destructive"]
+    ]
+    responsive_dropdown_actions = [
+        *non_destructive_standard_actions,
+        *extra_dropdown_presentations,
+        *destructive_standard_actions,
+    ]
+
+    dropdown_actions = []
+    if extra_actions_mode == "dropdown":
+        dropdown_actions = extra_dropdown_presentations
+    elif extra_actions_mode == "all_dropdown":
+        dropdown_actions = responsive_dropdown_actions
 
     has_lazy_presentation = any(
-        action.get("lazy_row_action_state") for action in extra_presentations
+        action.get("lazy_row_action_state")
+        for action in extra_dropdown_presentations
     )
     row_actions = {
         "has_actions": bool(standard_presentations or extra_presentations),
         "standard_actions": standard_presentations,
         "extra_actions": extra_presentations,
+        "standard_dropdown_actions": standard_dropdown_presentations,
+        "extra_dropdown_actions": extra_dropdown_presentations,
+        "dropdown_actions": dropdown_actions,
+        "responsive_dropdown_actions": responsive_dropdown_actions,
         "extra_actions_mode": extra_actions_mode,
         "show_extra_dropdown": bool(
             extra_actions_mode == "dropdown" and extra_presentations
+        ),
+        "show_all_dropdown": bool(
+            extra_actions_mode == "all_dropdown" and dropdown_actions
+        ),
+        "show_dropdown": bool(dropdown_actions),
+        "show_responsive_dropdown": bool(responsive_dropdown_actions),
+        "dropdown_trigger_label": (
+            "Actions" if extra_actions_mode == "all_dropdown" else "More actions"
+        ),
+        "dropdown_scope": (
+            "all"
+            if extra_actions_mode == "all_dropdown"
+            else "extras"
+            if extra_actions_mode == "dropdown"
+            else None
         ),
         "row_action_states_url": (
             row_action_states_url
@@ -1211,7 +1306,7 @@ def _resolve_row_action_context(view: Any, object: Any) -> dict[str, Any]:
             else None
         ),
         "dropdown_trigger_class": (
-            f"{styles['base']}{action_group_item_class} {styles['extra_default']} "
+            f"{styles['base']}{action_group_item_class} "
             f"{action_button_classes} gap-1"
         ),
     }
@@ -1386,6 +1481,22 @@ def object_list(context, objects, view):
         method_name="get_default_datetime_value_format",
         attr_name="default_datetime_value_format",
         default="date",
+    )
+    row_actions_column_position = _resolve_view_option(
+        view,
+        method_name="get_row_actions_column_position",
+        attr_name="row_actions_column_position",
+        default="end",
+    )
+    if row_actions_column_position not in {"start", "end"}:
+        row_actions_column_position = "end"
+    row_actions_column_sticky = bool(
+        _resolve_view_option(
+            view,
+            method_name="get_row_actions_column_sticky",
+            attr_name="row_actions_column_sticky",
+            default=True,
+        )
     )
 
     configured_cell_tooltips = _resolve_view_option(
@@ -1791,6 +1902,13 @@ def object_list(context, objects, view):
     use_htmx = context.get("use_htmx", view.get_use_htmx())
     original_target = context.get("original_target", view.get_original_target())
     htmx_target = context.get("htmx_target", view.get_htmx_target())
+    extra_actions_mode_getter = getattr(view, "get_extra_actions_mode", None)
+    extra_actions_mode = context.get(
+        "extra_actions_mode",
+        extra_actions_mode_getter()
+        if callable(extra_actions_mode_getter)
+        else getattr(view, "extra_actions_mode", "dropdown"),
+    )
     has_row_actions = any(row.get("has_actions") for row in object_list)
     inline_edit_always_visible = False
     if hasattr(view, "get_inline_edit_always_visible"):
@@ -1818,6 +1936,9 @@ def object_list(context, objects, view):
         "table_classes": view.get_table_classes(),
         "htmx_target": htmx_target,
         "has_row_actions": has_row_actions,
+        "extra_actions_mode": extra_actions_mode,
+        "row_actions_column_position": row_actions_column_position,
+        "row_actions_column_sticky": row_actions_column_sticky,
         "request": request,
         # add bulk selection context
         "selected_ids": selected_ids,

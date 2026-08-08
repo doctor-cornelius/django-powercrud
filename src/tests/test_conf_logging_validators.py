@@ -362,10 +362,33 @@ def test_validator_rejects_invalid_extra_actions_mode():
         PowerCRUDMixinValidator(extra_actions_mode="menu")
 
 
-def test_validator_accepts_extra_actions_mode():
-    validator = PowerCRUDMixinValidator(extra_actions_mode="dropdown")
-    assert validator.extra_actions_mode == "dropdown", (
-        "Validator should accept the dropdown extra-actions rendering mode for row action overflow."
+@pytest.mark.parametrize("mode", ["buttons", "dropdown", "all_dropdown"])
+def test_validator_accepts_extra_actions_mode(mode):
+    validator = PowerCRUDMixinValidator(extra_actions_mode=mode)
+    assert validator.extra_actions_mode == mode, (
+        f"Validator should accept the {mode!r} extra-actions rendering mode."
+    )
+
+
+@pytest.mark.parametrize("position", ["start", "end"])
+def test_validator_accepts_row_actions_column_positions(position):
+    validator = PowerCRUDMixinValidator(row_actions_column_position=position)
+
+    assert validator.row_actions_column_position == position, (
+        "Validator should preserve either accepted logical row-actions position."
+    )
+
+
+def test_validator_rejects_invalid_row_actions_column_position():
+    with pytest.raises(ValueError):
+        PowerCRUDMixinValidator(row_actions_column_position="left")
+
+
+def test_validator_accepts_row_actions_column_sticky_toggle():
+    validator = PowerCRUDMixinValidator(row_actions_column_sticky=True)
+
+    assert validator.row_actions_column_sticky is True, (
+        "Validator should accept the row-actions sticky boolean toggle."
     )
 
 

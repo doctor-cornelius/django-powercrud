@@ -4,6 +4,12 @@ from typing import Any
 
 
 LAZY_DISABLED_STATE_UNAVAILABLE_MESSAGE = "Unable to validate current availability."
+ROW_ACTION_DROPDOWN_MODES = frozenset({"dropdown", "all_dropdown"})
+
+
+def is_row_actions_dropdown_mode(mode: str) -> bool:
+    """Return whether a row-action mode renders a floating dropdown menu."""
+    return mode in ROW_ACTION_DROPDOWN_MODES
 
 
 def is_lazy_disabled_state_action(action: dict[str, Any]) -> bool:

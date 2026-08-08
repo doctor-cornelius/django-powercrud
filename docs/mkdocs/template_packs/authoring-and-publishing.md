@@ -56,6 +56,7 @@ from powercrud.template_packs import TemplatePack
 
 template_pack = TemplatePack(
     identity="my-pack",
+    contract_version=3,
     template_namespace="powercrud/packs/my-pack",
     template_package="my_powercrud_pack",
     template_resource_root="templates/powercrud/packs/my-pack",
@@ -65,6 +66,10 @@ template_pack = TemplatePack(
 ```
 
 Keep the copied template tree complete for every capability your declaration claims. The templates must preserve PowerCRUD's documented `data-powercrud-*` attributes and relevant ARIA/target relationships. They may use completely different CSS classes, elements, and layout.
+
+`contract_version=3` is a numeric compatibility pin, not a reference to PowerCRUD's current-version constant. Version 3 adds the portable row-action column layout and compact all-actions dropdown. Your table header, display row, active inline form, and direct HTMX display/form fragments must all honour `row_actions_column_position` (`start` or `end`) and `row_actions_column_sticky`. Keep the selection system column always sticky and outermost at logical start, offset sticky start actions after it, use logical CSS insets for RTL/LTR portability, and preserve the semantic selection/action-column data markers. Sticky cells need an opaque pack-native background, edge separation, and table-layer z-index ordering; they remain vertically attached to their rows.
+
+For `extra_actions_mode = "all_dropdown"`, render canonical `dropdown_actions` rather than recomposing permissions, guards, disabled state, lazy hooks, URLs, or order. For the pack's narrow layout, render `responsive_dropdown_actions` for every mode and expose only that all-actions control group; first-party packs switch below 640px. Standard menu actions have an icon and visible label; configured extras have a visible label and an empty icon gutter. Keep ordinary entries neutral, reserve destructive treatment for Delete, and do not apply configured extra-button fills inside menus. Keep the visual heading compact while preserving screen-reader-only **Actions** text, keep inline Save/Cancel visible, and preserve the existing body-level floating-menu hooks. Core copies the originating table cell's computed font size to the detached menu, while the pack remains responsible for fallback typography and control sizing. The compatibility standard and extra collections remain available for existing overrides.
 
 `adapter.py` translates server-side presentation choices into your framework's classes or attributes. It must expose an object with `api_version = 2`, `get_presentation(context)`, and `get_widget_presentation(context)`. Start with `BaseServerAdapter`: it supplies neutral action and widget presentation, then lets the pack declare semantic defaults and small surface-specific adjustments.
 
@@ -342,6 +347,8 @@ Before release, build both a wheel and a source distribution and run the same te
     === "Templates and browser"
 
         - [ ] Required templates preserve the documented `data-powercrud-*`, target, and ARIA relationships for the behaviour they retain.
+        - [ ] Header, display, inline-form, and HTMX-returned rows keep selection/action/data order aligned and honour start/end plus sticky row-action settings.
+        - [ ] Both dropdown modes preserve resolved permissions, disabled reasons, lazy state, HTMX/modal metadata, and detached-menu hooks; all-dropdown renders the canonical labelled order with Delete last and no orphaned divider.
         - [ ] The browser adapter uses `apiVersion: 1`, matches the declaration identity, and is loaded once before the PowerCRUD entry.
         - [ ] PowerCRUD retains request, selection, modal-cleanup, and HTMX lifecycle ownership.
         - [ ] Pack-owned CSS and JavaScript are separated from consumer-owned vendor dependencies.
@@ -387,7 +394,7 @@ The selector is a Python `module.path:attribute`, not a framework name. PowerCRU
 
 ## Current contract boundaries
 
-This is a public template-pack contract, not a generic frontend build system. The current server-adapter API is version 2; the browser-adapter API remains version 1. These numbers identify different interfaces rather than two generations of the same complete pack contract.
+This is a public template-pack contract, not a generic frontend build system. The template-pack contract is version 3, the current server-adapter API is version 2, and the browser-adapter API remains version 1. These numbers identify different interfaces rather than three generations of the same complete contract.
 
 A pack author must ship the Python package resources and document vendor dependencies. The automated manual-static route is supported. Vite users own their entry, aliases, npm dependencies, and manifest because only their project knows that build layout.
 

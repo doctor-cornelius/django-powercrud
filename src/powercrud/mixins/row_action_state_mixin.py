@@ -7,6 +7,7 @@ from neapolitan.views import Role
 
 from powercrud.row_actions import (
     is_lazy_row_action_state_action,
+    is_row_actions_dropdown_mode,
     resolve_extra_action_runtime_state,
 )
 
@@ -36,9 +37,9 @@ class RowActionStateMixin:
         """Return lazy disabled-state data for the requested row."""
         if request.method != "GET":
             return HttpResponseNotAllowed(["GET"])
-        if self.get_extra_actions_mode() != "dropdown":
+        if not is_row_actions_dropdown_mode(self.get_extra_actions_mode()):
             return JsonResponse(
-                {"error": "Lazy row-action state requires dropdown mode."},
+                {"error": "Lazy row-action state requires a dropdown mode."},
                 status=400,
             )
 
@@ -84,7 +85,7 @@ class RowActionStateMixin:
         """Return whether lazy row-action state is active for this view."""
         if getattr(self, "role", None) != Role.LIST:
             return False
-        if self.get_extra_actions_mode() != "dropdown":
+        if not is_row_actions_dropdown_mode(self.get_extra_actions_mode()):
             return False
         return any(
             is_lazy_row_action_state_action(action)

@@ -42,9 +42,9 @@ For the mental model behind the option groups, see [PowerCRUD Concepts](../guide
 | `detail_properties_exclude` (`list[str]`) | `list[str]` | `[]` | All listed detail properties render | Remove specific properties from the detail page. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
 | `dropdown_sort_options` (`dict`) | `dict[str, str]` | `{}` | PowerCRUD orders dropdowns by `name/title/...` heuristics | Explicit ordering for dropdowns in filters, forms, and bulk edit widgets. | [Bulk editing (synchronous)](../guides/bulk_edit_sync.md) |
 | `exclude` (`list[str]`) | `list[str]` | `[]` | Every concrete model field is shown | Remove individual fields from the list view while keeping the rest. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
-| `extra_actions` (`list[dict \| PowerAction]`) | `list[action spec]` | `[]` | Only the default action buttons render | Define extra per-row actions (URL, label, attributes). Modal actions may set partial `modal_presentation`, `refresh_list_on_modal_close`, `hidden_if`, disabled-state hooks, and permission affordance fields. | [Complete Example](complete_example.md) |
-| `extra_actions_mode` (`str`) | `'buttons'`, `'dropdown'` | `'buttons'` | Extra row actions render as visible buttons after the standard actions | Control how row-level `extra_actions` are rendered. Use `'dropdown'` to keep `View/Edit/Delete` visible and move only the extra row actions into a `More` overflow menu. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
-| `extra_actions_dropdown_open_upward_bottom_rows` (`int`) | `int >= 0` | `3` | All `More` menus open downward | In dropdown mode, open the `More` menu upward for the last N rendered rows on the current page. Set `0` to disable this behavior. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
+| `extra_actions` (`list[dict \| PowerAction]`) | `list[action spec]` | `[]` | Only the built-in row actions render | Define extra per-row actions (URL, label, attributes). Modal actions may set partial `modal_presentation`, `refresh_list_on_modal_close`, `hidden_if`, disabled-state hooks, and permission affordance fields. | [Complete Example](complete_example.md) |
+| `extra_actions_mode` (`str`) | `'buttons'`, `'dropdown'`, `'all_dropdown'` | `'dropdown'` | Built-in actions remain visible and configured extras use a kebab menu | Control row-action presentation on wider viewports. `'dropdown'` keeps permitted `View/Edit/Delete` controls visible and moves only extras behind a kebab; `'all_dropdown'` puts every permitted row action behind one kebab. On narrow viewports every mode collapses to the all-actions layout. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
+| `extra_actions_dropdown_open_upward_bottom_rows` (`int`) | `int >= 0` | `3` | All row-action menus open downward | In either dropdown mode, open the row-action menu upward for the last N rendered rows on the current page. Set `0` to disable this behavior. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
 | `extra_button_classes` (`str`) | `str` | `""` | Extra buttons use the default button styling | Additional CSS classes shared by every entry in `extra_buttons`. | [Styling & Tailwind](../guides/styling_tailwind.md) |
 | `extra_button_selection_controls_disabled` (`bool`) | `True`, `False` | `False` | Selection-aware extra buttons can render row selection controls | Set to `True` if the button uses selected rows, but this list should not show checkboxes just because of that button. Bulk edit and bulk delete still show checkboxes because they need them. | [Setup & Core CRUD basics](../guides/setup_core_crud.md#extra-buttons) |
 | `extra_buttons_mode` (`str`) | `'buttons'`, `'dropdown'` | `'buttons'` | Extra header buttons render as visible toolbar buttons | Control how list-level `extra_buttons` are rendered. Use `'dropdown'` to move configured extra buttons into a top toolbar `More` menu. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
@@ -88,6 +88,8 @@ For the mental model behind the option groups, see [PowerCRUD Concepts](../guide
 | `power_fields` (`list`) | `None` or `list[PowerField \| PowerOverride]` | `None` | Base Field Intent attributes are used directly | Structured declarations for Field Intent. A PowerField view must not mix base Field Intent attributes in the same inheritance chain. | [PowerField Reference](powerfields.md) |
 | `properties` (`list/str`) | `None`, `'__all__'`, `list[str]` | `[]` | No computed properties show in the list view | Computed properties to display alongside fields. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
 | `properties_exclude` (`list[str]`) | `list[str]` | `[]` | Every listed property renders | Remove individual properties from the list view. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
+| `row_actions_column_position` (`str`) | `'start'`, `'end'` | `'end'` | The Actions column remains after the data columns | Place the Actions column at the logical start or end of list tables. In LTR layouts start is left and end is right; RTL reverses those physical edges. When selection controls are present, their checkbox column remains the outermost start column. | [Setup & Core CRUD basics](../guides/setup_core_crud.md#row-actions-column-layout) |
+| `row_actions_column_sticky` (`bool`) | `True`, `False` | `True` | The Actions column remains pinned during horizontal table scrolling | Pin the Actions header and display/inline action cells to their configured logical edge during horizontal table scrolling. This does not fix them vertically or change the floating `More` menu. | [Styling & Tailwind](../guides/styling_tailwind.md#row-actions-column-layout) |
 | `searchable_selects` (`bool`) | `None`, `True`, `False` | `True` | Select widgets render as native `<select>` controls | Enable Tom Select enhancement for eligible select fields in regular forms, inline editing, bulk edit forms, and filter forms. | [Form controls](#form-controls) |
 | `show_bulk_selection_meta` (`bool`) | `True`, `False` | `True` | Bulk-selection metadata actions appear above the table when a selection exists | Control the contextual bulk-selection action row independently of `show_record_count`. | [Bulk editing (synchronous)](../guides/bulk_edit_sync.md) |
 | `show_record_count` (`bool`) | `True`, `False` | `False` | No results-count metadata is shown above the table | Display a small status line above the list table showing the total filtered queryset size, or the current page slice plus total when pagination is enabled. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
@@ -400,8 +402,22 @@ Use `extra_actions` to add per-row actions beyond the built-in `View`, `Edit`, a
 
 `extra_actions_mode` controls how those extra row actions are displayed:
 
-- `'buttons'` keeps the legacy behavior and renders extra row actions as visible joined buttons.
-- `'dropdown'` keeps the standard row actions visible and moves only `extra_actions` into a `More` dropdown.
+- `'buttons'` keeps compact built-in icon controls visible and renders configured extra actions as labelled buttons.
+- `'dropdown'` keeps the built-in icon controls visible and moves only `extra_actions` behind a neutral vertical-ellipsis trigger whose accessible name is **More actions**.
+- `'all_dropdown'` replaces the visible row controls with one neutral vertical-ellipsis **Actions** trigger. Its labelled menu order is View, Edit, configured extras in declaration order, then Delete last.
+
+Below 640px, the first-party packs collapse all three modes to the `all_dropdown` presentation. The single **Actions** kebab contains every permitted native and configured action in canonical order. This is a responsive default rather than another configuration value; inline Save and Cancel remain visible while editing.
+
+The all-actions trigger and its tooltip have the accessible name **Actions**. The table's visual **Actions** heading is omitted in this compact mode, while a screen-reader-only heading preserves the column name. Inline Save and Cancel remain visible while a row is being edited.
+
+The action column itself has two independent layout settings:
+
+```python
+row_actions_column_position = "start"
+row_actions_column_sticky = True
+```
+
+`position` is logical rather than physical, so it follows LTR/RTL direction. Selection checkboxes always remain the outermost start column; start-positioned actions follow them. Stickiness applies only while the table scrolls horizontally and is carried through the header, normal rows, inline edit controls, and HTMX-returned replacement rows. The default combination is `"end"` plus `True`.
 
 Example:
 
@@ -429,17 +445,21 @@ extra_actions = [
 
 Notes:
 
-- The default is `'buttons'` for backward compatibility.
-- `extra_actions_mode` affects only row `extra_actions`, not top-of-page `extra_buttons`.
-- In dropdown mode, the `More` trigger uses the framework’s `extra_default` button styling unless you override the framework styles.
+- The default is `'dropdown'`: built-in actions remain visible while configured extras move behind the kebab. Set `'buttons'` to restore the previous wider-screen presentation.
+- `extra_actions_mode` controls row-action presentation only; it does not affect top-of-page `extra_buttons`.
+- In either dropdown mode, configured `button_class` values do not colour menu entries. They still apply to visible configured extras in `'buttons'` mode.
+- The first-party packs render View, Edit, and both kebab scopes as quiet neutral controls. Delete alone retains restrained destructive colour. Menus use neutral rows, a consistent icon gutter in all-actions scope, and a divider before Delete only when another visible item precedes it.
+- Selection checkboxes are a system column pinned to logical start by default; this is not separately parameterised. Sticky logical-start actions sit immediately after selection, while sticky logical-end actions remain pinned at the opposite edge.
+- To restore the previous scrolling action column, set `row_actions_column_sticky = False`.
+- Permission-hidden standard actions are omitted. Disabled reasons, modal behavior, HTMX behavior, history, guards, lazy state, and refresh-on-close metadata are preserved.
 - `extra_actions_dropdown_open_upward_bottom_rows` counts from the bottom of the currently rendered rows after filtering and pagination.
 - Set `extra_actions_dropdown_open_upward_bottom_rows = 0` to keep every dropdown opening downward.
 - `modal_presentation` is only used when `display_modal=True`; it merges with the view presentation while this row action's modal is open.
 - `refresh_list_on_modal_close` is only used when `display_modal=True`; prefer `HX-Trigger: {"refreshTable": true}` when the endpoint knows it changed data.
 - `hidden_if` is an optional view method name with signature `(obj, request) -> bool`. Return `True` to omit the action for that row. Hidden actions are removed before disabled hooks are evaluated.
-- Set `hidden_if_mode = "lazy"` only in `extra_actions_mode = "dropdown"` when the row relevance check is expensive and should be resolved when the row `More` menu opens. Button-mode actions keep eager hidden-if evaluation.
+- Set `hidden_if_mode = "lazy"` only in `extra_actions_mode = "dropdown"` or `"all_dropdown"` when the row relevance check is expensive and should be resolved when the row menu opens. Button-mode actions keep eager hidden-if evaluation.
 - `disabled_state` is a single-hook alternative to `disabled_if` / `disabled_reason`. Return a non-empty string to disable the action and show that string as the reason; return `None`, `False`, or an empty string to keep it enabled.
-- Set `disabled_state_mode = "lazy"` only in `extra_actions_mode = "dropdown"` when the disabled reason is expensive to calculate and should be resolved when the row `More` menu opens. Button-mode actions keep eager disabled-state evaluation.
+- Set `disabled_state_mode = "lazy"` only in `extra_actions_mode = "dropdown"` or `"all_dropdown"` when the disabled reason is expensive to calculate and should be resolved when the row menu opens. Button-mode actions keep eager disabled-state evaluation.
 - `permission` or `permission_check` hides or disables the action before `hidden_if` and `disabled_state` run. `permission_behavior` defaults to `"hide"`.
 - `disabled_if` and `disabled_reason` are deprecated view method names used to disable a row action based on the current object and request. Use `disabled_state` instead.
 - Do not combine `disabled_state` with `disabled_if` or `disabled_reason` on the same action.
@@ -461,9 +481,9 @@ Notes:
     | `hx_post` | `bool` | Sends the action as an HTMX POST instead of the default GET when `True`. |
     | `lock_sensitive` | `bool` | Disables the action automatically when PowerCRUD marks the row as blocked by its existing lock logic. |
     | `hidden_if` | `str` | Name of a view method with signature `(obj, request) -> bool` that decides whether the action should be omitted for that row. |
-    | `hidden_if_mode` | `'eager' \| 'lazy'` | Defaults to `'eager'`. Use `'lazy'` with dropdown row actions to resolve `hidden_if` when the row `More` menu opens. |
+    | `hidden_if_mode` | `'eager' \| 'lazy'` | Defaults to `'eager'`. Use `'lazy'` with either dropdown mode to resolve `hidden_if` when the row menu opens. |
     | `disabled_state` | `str` | Name of a view method with signature `(obj, request) -> str \| None \| bool` that returns a disabled reason string, or a falsey enabled value. |
-    | `disabled_state_mode` | `'eager' \| 'lazy'` | Defaults to `'eager'`. Use `'lazy'` with dropdown row actions to resolve `disabled_state` when the row `More` menu opens. |
+    | `disabled_state_mode` | `'eager' \| 'lazy'` | Defaults to `'eager'`. Use `'lazy'` with either dropdown mode to resolve `disabled_state` when the row menu opens. |
     | `disabled_if` | `str` | Deprecated. Name of a view method with signature `(obj, request) -> bool` that decides whether the action is disabled for that row. Use `disabled_state` instead. |
     | `disabled_reason` | `str` | Deprecated. Name of a view method with signature `(obj, request) -> str \| None` that returns the disabled tooltip/help text. Use `disabled_state` instead. |
     | `permission` | `str` | Django permission string resolved through `has_power_permission(permission, request, obj=obj)`. |

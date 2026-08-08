@@ -13,6 +13,7 @@ from django.test import RequestFactory
 from neapolitan.views import Role
 
 from powercrud.actions import PowerAction, PowerButton
+from powercrud.mixins import PowerCRUDMixin
 from powercrud.mixins.config_mixin import get_framework_template_path
 from powercrud.mixins.core_mixin import CoreMixin
 from powercrud.mixins.list_options_mixin import ListOptionsMixin
@@ -719,6 +720,8 @@ def test_table_mixin_returns_expected_css_values():
         extra_button_classes = "btn-sm"
         extra_buttons_mode = "dropdown"
         extra_actions_mode = "dropdown"
+        row_actions_column_position = "start"
+        row_actions_column_sticky = True
 
     view = TableView()
 
@@ -731,6 +734,37 @@ def test_table_mixin_returns_expected_css_values():
     assert view.get_extra_button_classes() == "btn-sm"
     assert view.get_extra_buttons_mode() == "dropdown"
     assert view.get_extra_actions_mode() == "dropdown"
+    assert view.get_row_actions_column_position() == "start", (
+        "TableMixin should expose the resolved logical action-column position."
+    )
+    assert view.get_row_actions_column_sticky() is True, (
+        "TableMixin should expose the resolved action-column sticky toggle."
+    )
+
+
+def test_table_mixin_row_actions_column_layout_defaults_to_sticky_end():
+    view = TableMixin()
+
+    assert view.get_row_actions_column_position() == "end", (
+        "Action columns should remain at logical end by default."
+    )
+    assert view.get_row_actions_column_sticky() is True, (
+        "Action columns should remain visible during horizontal scrolling by default."
+    )
+
+
+def test_table_mixin_extra_actions_mode_defaults_to_extras_dropdown():
+    """Keep native actions visible while compacting configured extras by default."""
+    class DefaultTableView(PowerCRUDMixin):
+        model = Book
+        fields = "__all__"
+        base_template_path = "sample/base.html"
+
+    view = DefaultTableView()
+
+    assert view.get_extra_actions_mode() == "dropdown", (
+        "Configured extra row actions should use the extras-only dropdown by default."
+    )
 
 
 def test_table_header_wrap_never_exceeds_max_width():
@@ -1265,12 +1299,50 @@ def test_core_mixin_accepts_lazy_extra_action_hidden_if_in_dropdown_mode():
 
 
 @pytest.mark.django_db
+def test_core_mixin_accepts_lazy_extra_action_state_in_all_dropdown_mode():
+    """Allow deferred extra-action state in the unified all-actions menu."""
+    class ActionView(CoreMixin):
+        model = Book
+        fields = "__all__"
+        base_template_path = "sample/base.html"
+        extra_actions_mode = "all_dropdown"
+        extra_actions = [
+            {
+                "url_name": "sample:bigbook-description-preview",
+                "text": "Description Preview",
+                "hidden_if": "should_hide_description_preview",
+                "hidden_if_mode": "lazy",
+                "disabled_state": "get_description_disabled_state",
+                "disabled_state_mode": "lazy",
+            }
+        ]
+
+        def should_hide_description_preview(self, obj, request):
+            """Return no hidden state for config validation."""
+            return False
+
+        def get_description_disabled_state(self, obj, request):
+            """Return no disabled state for config validation."""
+            return None
+
+    view = ActionView()
+
+    assert view.extra_actions[0]["hidden_if_mode"] == "lazy", (
+        "All-dropdown mode should preserve lazy hidden-state declarations."
+    )
+    assert view.extra_actions[0]["disabled_state_mode"] == "lazy", (
+        "All-dropdown mode should preserve lazy disabled-state declarations."
+    )
+
+
+@pytest.mark.django_db
 def test_core_mixin_rejects_lazy_extra_action_hidden_if_without_dropdown_mode():
     """Reject lazy hidden-if mode when extra actions render as buttons."""
     class BrokenView(CoreMixin):
         model = Book
         fields = "__all__"
         base_template_path = "sample/base.html"
+        extra_actions_mode = "buttons"
         extra_actions = [
             {
                 "url_name": "sample:bigbook-description-preview",
@@ -1340,6 +1412,7 @@ def test_core_mixin_rejects_lazy_extra_action_disabled_state_without_dropdown_mo
         model = Book
         fields = "__all__"
         base_template_path = "sample/base.html"
+        extra_actions_mode = "buttons"
         extra_actions = [
             {
                 "url_name": "sample:bigbook-description-preview",
@@ -3125,8 +3198,13 @@ def test_author_list_escapes_view_instructions_html(client, monkeypatch):
 
 
 @pytest.mark.django_db
-def test_author_list_omits_view_help_when_unset(client):
+def test_author_list_omits_view_help_when_unset(client, monkeypatch):
     """Keep the list heading compact when collapsed view help is not configured."""
+    monkeypatch.setattr(
+        "sample.views.AuthorCRUDView.view_help",
+        None,
+        raising=False,
+    )
     Author.objects.create(name="Alice Jones")
 
     response = client.get(reverse("sample:author-list"))
@@ -3135,7 +3213,10 @@ def test_author_list_omits_view_help_when_unset(client):
     assert response.status_code == 200, (
         "Author list view should render successfully without view_help configured."
     )
-    assert '<details class="collapse collapse-arrow mt-3 border"' not in response_text, (
+    assert re.search(
+        r'<details\b[^>]*data-powercrud-view-help="true"',
+        response_text,
+    ) is None, (
         "List view should not render the collapsed help container when view_help is unset."
     )
 
@@ -3731,14 +3812,17 @@ def test_profile_list_renders_centered_categorical_columns(client, monkeypatch):
     assert reverse("sample:profile-inline-row", args=[author.profile.pk]) in response_text, (
         "Profile list should keep inline editing enabled while demonstrating the reduced row-action set."
     )
-    assert '<span class="text-center block w-full h-full">Actions</span>' in response_text, (
+    assert (
+        '<span class="text-center block w-full h-full pc-row-actions-heading-label">Actions</span>'
+        in response_text
+    ), (
         "Profile list should show the actions header when the sample has one row action."
     )
     assert ">View<" not in response_text, (
         "Profile list should omit the built-in View action for the one-row-action demo."
     )
-    assert response_text.count(">Edit<") == 1, (
-        "Profile list should demonstrate the one-row-action case."
+    assert response_text.count(">Edit<") == 2, (
+        "Profile list should expose its sole Edit action in both desktop and narrow-screen action layouts."
     )
     assert ">Delete<" not in response_text, (
         "Profile list should omit the built-in Delete action for the one-row-action demo."
@@ -4233,7 +4317,7 @@ def test_book_list_defers_lazy_disabled_extra_action_reason(client):
         "Sample book list should mark the description-preview action for lazy state hydration."
     )
     assert "data-powercrud-row-action-states-url=" in response_text, (
-        "Sample book list should render the row-state endpoint URL on the More trigger."
+        "Sample book list should render the row-state endpoint URL on its kebab triggers."
     )
     assert 'data-powercrud-modal-max-width="64rem"' in response_text, (
         "Sample modal extra action should demonstrate a portable per-action width override."
@@ -4328,8 +4412,8 @@ def test_book_list_defers_primitive_hidden_extra_action(client):
     assert "data-powercrud-row-action-hidden-mode='lazy'" in response_text, (
         "Base BookCRUDView should mark the primitive description-preview action for lazy hidden-if hydration."
     )
-    assert ">More<" in response_text, (
-        "The row should keep More visible because the Normal Edit extra action still applies."
+    assert "aria-label='More actions'" in response_text, (
+        "The row should keep the extras kebab available because the Normal Edit action still applies."
     )
 
 
@@ -4360,8 +4444,8 @@ def test_powerfield_book_list_defers_poweraction_hidden_hook(client):
     assert "data-powercrud-row-action-hidden-mode='lazy'" in response_text, (
         "PowerFieldBookCRUDView should mark the PowerAction for lazy hidden-if hydration."
     )
-    assert ">More<" in response_text, (
-        "The row should keep More visible because the Normal Edit PowerAction still applies."
+    assert "aria-label='More actions'" in response_text, (
+        "The row should keep the extras kebab available because the Normal Edit PowerAction still applies."
     )
 
 
@@ -4486,21 +4570,27 @@ def test_author_list_centers_boolean_icon_cells(client):
 
 
 @pytest.mark.django_db
-def test_author_list_renders_extra_actions_as_buttons_by_default(client):
-    """Render author extra actions as visible buttons when dropdown mode is unset."""
-    Author.objects.create(name="Author Buttons")
+def test_author_list_renders_all_actions_dropdown(client):
+    """Render the Author sample's configured compact all-actions menu."""
+    Author.objects.create(name="Author Dropdown")
 
     response = client.get(reverse("sample:author-list"))
     response_text = " ".join(response.content.decode().split())
 
     assert response.status_code == 200, (
-        "Author list view should render successfully so default row action buttons can be inspected."
+        "Author list view should render successfully so its compact row actions can be inspected."
     )
     assert "View Again" in response_text, (
         "Sample author list should still render the configured extra action label."
     )
-    assert "data-powercrud-row-actions-trigger" not in response_text, (
-        "Sample author list should fall back to the default visible-button row action mode when dropdown mode is unset."
+    assert "data-powercrud-row-actions-trigger='true'" in response_text, (
+        "Sample author rows should expose the compact action-menu trigger."
+    )
+    assert "data-powercrud-row-actions-scope='all'" in response_text, (
+        "Sample author menus should include both standard and configured row actions."
+    )
+    assert ">More<" not in response_text, (
+        "The all-actions sample should use its accessible ellipsis trigger rather than the extras-only More label."
     )
 
 
@@ -4528,8 +4618,8 @@ def test_book_list_renders_extra_actions_in_dropdown(client):
     assert "data-powercrud-row-actions-template='true'" in response_text, (
         "Sample book list should render the floating row-actions menu template when dropdown mode is enabled."
     )
-    assert ">More<" in response_text, (
-        "Sample book list should include the More trigger for overflow extra row actions."
+    assert "aria-label='More actions'" in response_text and "pc-row-actions-more" not in response_text, (
+        "Sample book list should expose overflow extras through an accessible compact kebab."
     )
     assert "Description Preview" in response_text, (
         "Sample book list should keep the configured extra action labels inside the dropdown markup."

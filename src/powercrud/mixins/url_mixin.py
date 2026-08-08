@@ -568,6 +568,28 @@ class UrlMixin:
             f"{self.get_table_header_min_wrap_width()}"
         )
         kwargs["table_classes"] = self.get_table_classes()
+        extra_actions_mode_getter = getattr(self, "get_extra_actions_mode", None)
+        kwargs["extra_actions_mode"] = (
+            extra_actions_mode_getter()
+            if callable(extra_actions_mode_getter)
+            else getattr(cfg, "extra_actions_mode", "dropdown")
+        )
+        row_actions_position_getter = getattr(
+            self, "get_row_actions_column_position", None
+        )
+        kwargs["row_actions_column_position"] = (
+            row_actions_position_getter()
+            if callable(row_actions_position_getter)
+            else getattr(cfg, "row_actions_column_position", "end")
+        )
+        row_actions_sticky_getter = getattr(
+            self, "get_row_actions_column_sticky", None
+        )
+        kwargs["row_actions_column_sticky"] = (
+            row_actions_sticky_getter()
+            if callable(row_actions_sticky_getter)
+            else bool(getattr(cfg, "row_actions_column_sticky", True))
+        )
 
         # Add HTMX-specific context if enabled
         if self.get_use_htmx():

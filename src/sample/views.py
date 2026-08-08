@@ -129,18 +129,29 @@ class BookCRUDView(SampleCRUDMixin):
 
     model = models.Book
     view_title = "My List of Books"
-    view_instructions = "Here you can edit books"
+    view_instructions = "Browse and manage the sample book catalogue."
     view_help = {
-        "summary": "About this feature demo",
+        "summary": "About the Books demo",
         "details": (
-            "This Books screen demonstrates many PowerCRUD features in one place."
+            "This is the sample app's main, full-featured Books screen. The source code "
+            "configures it with the traditional PowerCRUD class attributes."
             "\n\n"
-            "Use it to inspect list options, inline editing, saved filter favourites, "
-            "bulk actions, async workflows, modal links, external links, selection-aware "
-            "toolbar actions, and guarded update behaviour."
+            "Open Filters to add or remove search fields, open Cols to choose visible "
+            "columns, and use the heart button to save the current list setup. Select "
+            "one or more rows to try the selection summary and bulk-edit controls. "
+            "Selecting at least two rows causes a bulk update to run as a background job, "
+            "which also creates a record on the Async page."
             "\n\n"
-            "Use the sample login menu as viewer or manager to compare permission-hidden "
-            "actions with row-state disabled actions."
+            "On a wider screen, the standard View, Edit, and Delete icons stay visible at "
+            "the right of each row. The adjacent three-dot menu contains the additional "
+            "Normal Edit and Description Preview actions. Scroll the table horizontally "
+            "to see that these controls remain pinned to the right edge."
+            "\n\n"
+            "Use the account menu at the top to switch between sample-viewer and "
+            "sample-manager. The viewer cannot see manager-only create, edit, delete, or "
+            "custom actions. To see a row-level edit guard, create or use a book titled "
+            "exactly 'Guarded Sample Book'; its Edit and inline-edit controls are disabled "
+            "and explain why when hovered or focused."
         ),
         "color": "info",
     }
@@ -278,6 +289,8 @@ class BookCRUDView(SampleCRUDMixin):
     extra_button_classes = "btn-sm"
     extra_buttons_mode = "dropdown"
     extra_actions_mode = "dropdown"
+    row_actions_column_position = "end"
+    row_actions_column_sticky = True
     extra_actions_dropdown_open_upward_bottom_rows = 5
 
     inline_edit_always_visible = True  # default is True
@@ -513,7 +526,26 @@ class AnnotatedBookCRUDView(SampleCRUDMixin):
     use_modal = True
     url_base = "annotated-book"
     view_title = "Annotated Books"
-    view_instructions = "Book rows with queryset-backed operational columns."
+    view_instructions = "Browse sample books with a calculated long-book indicator."
+    view_help = {
+        "summary": "About the annotated-books demo",
+        "details": (
+            "This screen adds a calculated Long Book value to each book. A book is long "
+            "when its page count is 400 or more. Long Book is calculated by the database "
+            "query; it is not a field stored on the Book record."
+            "\n\n"
+            "Open Cols and enable Long Book to display it. You can also filter or sort by "
+            "that calculated value. Edit a row's Pages value and save it to see Long Book "
+            "recalculated; the Long Book cell itself cannot be edited."
+            "\n\n"
+            "Tick one or more row checkboxes to use Annotated Selection Summary. This "
+            "page intentionally provides selection for that custom action without showing "
+            "PowerCRUD's normal bulk-edit or bulk-delete controls. On wider screens, Open "
+            "Book appears as a direct row button at the left of the data columns; this "
+            "action column scrolls with the table rather than staying pinned."
+        ),
+        "color": "info",
+    }
     paginate_by = 25
 
     queryset = models.Book.objects.select_related("author").annotate(
@@ -538,6 +570,9 @@ class AnnotatedBookCRUDView(SampleCRUDMixin):
     inline_edit_fields = ["pages"]
     bulk_fields = []
     bulk_delete = False
+    extra_actions_mode = "buttons"
+    row_actions_column_position = "start"
+    row_actions_column_sticky = False
     extra_button_classes = "btn-sm"
     extra_buttons = [
         PowerButton(
@@ -551,7 +586,15 @@ class AnnotatedBookCRUDView(SampleCRUDMixin):
             selection_min_reason="Select at least one annotated book first.",
         )
     ]
-    extra_actions = []
+    extra_actions = [
+        {
+            "url_name": "sample:bigbook-detail",
+            "text": "Open Book",
+            "needs_pk": True,
+            "button_class": "btn-primary",
+            "display_modal": True,
+        }
+    ]
 
     def get_bulk_selection_key_suffix(self):
         """Keep the annotated-book demo selection separate from the main Book view."""
@@ -574,12 +617,25 @@ class PowerFieldBookCRUDView(SampleCRUDMixin):
     use_modal = True
     url_base = "powerfield-book"
     view_title = "PowerField Books"
-    view_instructions = "Book rows configured through PowerField declarations."
+    view_instructions = "Browse and manage the same book catalogue as the Books page."
     view_help = {
-        "summary": "About the PowerField demo",
+        "summary": "About the Power* Structured API demo",
         "details": (
-            "This Books variant demonstrates the PowerField helper API without "
-            "replacing the existing primitive Books sample."
+            "This page is intended to behave like the main Books page. It uses the same "
+            "book records, fields, initial columns, filters, forms, toolbar buttons, extra "
+            "row actions, permissions, and workflows."
+            "\n\n"
+            "The developer-facing difference is in the source code: this view declares "
+            "the same configuration through PowerField, PowerButton, and PowerAction, "
+            "known collectively as the Power* Structured API. The main Books view uses "
+            "the traditional PowerCRUD class attributes instead."
+            "\n\n"
+            "The only intentional visible difference is at the right of each row. Here, "
+            "one three-dot button opens a menu containing View, Edit, the additional "
+            "actions, and Delete. On Books, View, Edit, and Delete remain visible and the "
+            "three-dot menu contains only the additional actions. Scroll horizontally to "
+            "confirm that the action column remains pinned on both pages. Log in as "
+            "sample-manager if the manager-only actions are not visible."
         ),
         "color": "info",
     }
@@ -590,7 +646,7 @@ class PowerFieldBookCRUDView(SampleCRUDMixin):
     list_cell_link_default_open_in = "modal"
     form_class = forms.BookForm
     power_fields = [
-        PowerOverride(detail="__all__"),
+        PowerOverride(list="__all__", detail="__all__"),
         PowerField(
             "title",
             default_list=True,
@@ -696,7 +752,12 @@ class PowerFieldBookCRUDView(SampleCRUDMixin):
             },
         ),
         PowerField("uneditable_field", form_display=True),
-        PowerField("description", form=True, inline=True),
+        PowerField(
+            "description",
+            form=True,
+            inline=True,
+            exclude={"list": True},
+        ),
         PowerField(
             "there_are_so_many_pages_this_header_surely_will_wrap",
             property=True,
@@ -737,7 +798,9 @@ class PowerFieldBookCRUDView(SampleCRUDMixin):
     action_button_classes = "btn-xs"
     extra_button_classes = "btn-sm"
     extra_buttons_mode = "dropdown"
-    extra_actions_mode = "dropdown"
+    extra_actions_mode = "all_dropdown"
+    row_actions_column_position = "end"
+    row_actions_column_sticky = True
     extra_actions_dropdown_open_upward_bottom_rows = 5
     inline_edit_always_visible = True
     inline_preserve_required_fields = True
@@ -913,6 +976,26 @@ class GenreCRUDView(SampleCRUDMixin):
     base_template_path = "sample/base.html"
     use_htmx = True
     use_modal = True
+    view_instructions = "Browse and manage genres used by the sample books and authors."
+    view_help = {
+        "summary": "About the Genres demo",
+        "details": (
+            "The Name field is deliberately listed twice in this view's source "
+            "configuration. PowerCRUD removes the duplicate, so the table shows only one "
+            "Name column. You can change Name or Numeric string directly in the table to "
+            "try inline editing."
+            "\n\n"
+            "To see Delete disabled before it is clicked, create a genre named exactly "
+            "'Guarded Sample Genre' (or use the existing row if it is already present). "
+            "Its Delete icon is disabled. Hover or focus the icon to read the reason."
+            "\n\n"
+            "To see a deletion rejected after confirmation, create a genre named exactly "
+            "'Protected Sample Genre' (or use the existing row). Click its Delete icon and "
+            "confirm the deletion. The form stays open, shows the validation message, and "
+            "keeps the genre in the list. These names must match exactly."
+        ),
+        "color": "info",
+    }
 
     table_classes = "table-zebra table-sm"
     action_button_classes = "btn-xs"
@@ -943,6 +1026,25 @@ class ProfileCRUDView(SampleCRUDMixin):
     base_template_path = "sample/base.html"
     use_htmx = True
     use_modal = True
+    view_instructions = "Browse and manage profile details linked to sample authors."
+    view_help = {
+        "summary": "About the Profiles demo",
+        "details": (
+            "Each profile belongs to one author and may also refer to a favourite genre. "
+            "The initial table shows Author, Nickname, Status, and Priority band. Open Cols "
+            "to add Favourite genre and the other optional columns."
+            "\n\n"
+            "Try changing Nickname, Status, Priority band, or Favourite genre directly in "
+            "a row, or select rows and use Bulk Edit. Favourite genre deliberately offers "
+            "only genres whose names begin with 'S'. If you need another option, first "
+            "create a matching genre on the Genres page."
+            "\n\n"
+            "Status is centred, Priority band is right-aligned, and Favourite genre is "
+            "left-aligned to demonstrate column-specific alignment. This page provides "
+            "only the built-in Edit row action, so no additional three-dot menu is needed."
+        ),
+        "color": "info",
+    }
 
     table_classes = "table-zebra table-sm"
     action_button_classes = "btn-xs"
@@ -983,12 +1085,34 @@ class AuthorCRUDView(SampleCRUDMixin):
     base_template_path = "sample/base.html"
     use_htmx = True
     use_modal = True
+    view_instructions = "Browse and manage authors and their associated book genres."
+    view_help = {
+        "summary": "About the Authors demo",
+        "details": (
+            "This intentionally wide table includes ordinary author fields, calculated "
+            "properties, filters, inline editing, and bulk genre updates. Use the "
+            "horizontal scrollbar to move across the data columns."
+            "\n\n"
+            "The selection checkbox and the adjacent three-dot row-action button remain "
+            "pinned at the left while the data scrolls. When logged in as sample-manager, "
+            "open the three-dot button to find View, Edit, Home, View Again, and Delete "
+            "together in one menu."
+            "\n\n"
+            "Start inline editing on a supported field such as Name, Birth date, the "
+            "integer column, or Genres. Save and Cancel temporarily replace the three-dot "
+            "menu for that row; the menu returns after you save or cancel."
+        ),
+        "color": "info",
+    }
 
     show_record_count = True
 
     table_classes = "table-zebra table-sm"
     action_button_classes = "btn-xs"
     extra_button_classes = "btn-sm"
+    extra_actions_mode = "all_dropdown"
+    row_actions_column_position = "start"
+    row_actions_column_sticky = True
     column_width_policy = "semantic"
     column_width_modes = {
         "has_bio": "compact",
@@ -1047,6 +1171,25 @@ class AsyncTaskRecordCRUDView(SampleCRUDMixin):
     base_template_path = "sample/base.html"
     use_htmx = True
     use_modal = True
+    view_instructions = "Review background-task records created by the sample app."
+    view_help = {
+        "summary": "About the Async demo",
+        "details": (
+            "This page lists background jobs started by the sample app. To create a job, "
+            "log in as sample-manager, open Books, select at least two rows, and submit a "
+            "Bulk Edit. Then return here or refresh this page to see the task record and "
+            "its current status."
+            "\n\n"
+            "The time columns intentionally use different formats: Updated at shows only "
+            "the time, Completed at shows both date and time, and Created at and Failed at "
+            "use the default date-only format."
+            "\n\n"
+            "This list does not use PowerCRUD's normal View page. Open the three-dot menu "
+            "at the right of a task and choose View Progress to inspect its status in a "
+            "modal window."
+        ),
+        "color": "info",
+    }
     bulk_delete = True
     column_value_formats = {
         "updated_at": "time",

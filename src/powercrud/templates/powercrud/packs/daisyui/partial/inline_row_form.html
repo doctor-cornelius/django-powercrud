@@ -1,4 +1,5 @@
 {% load powercrud %}
+{% load powercrud_partials %}
 <tr
     {% if row.row_id %}id="{{ row.row_id }}"{% endif %}
     class="text-center bg-base-200"
@@ -9,12 +10,16 @@
     {% endif %}
 >
     {% if enable_selection_controls %}
-    <td class="py-0 align-middle">
+    <td class="py-0 align-middle w-10 text-center"
+        data-powercrud-selection-column="true">
         <input type="checkbox"
                class="checkbox checkbox-sm row-select-checkbox"
                data-id="{{ row.id }}"
                disabled>
     </td>
+    {% endif %}
+    {% if row_actions_column_position == "start" %}
+        {% partial inline_actions_cell %}
     {% endif %}
     {% for cell in row.cells %}
     <td class="py-0 align-middle px-2 truncate table-column-width" data-field-name="{{ cell.name }}" data-powercrud-column-width-mode="{{ cell.width_mode }}">
@@ -57,7 +62,17 @@
         {% endif %}
     </td>
     {% endfor %}
-    <td class="pc-inline-actions-column pc-inline-actions-cell text-right py-1 align-middle" data-inline-actions="true">
+    {% if row_actions_column_position != "start" %}
+        {% partial inline_actions_cell %}
+    {% endif %}
+</tr>
+
+{% partialdef inline_actions_cell %}
+    <td class="pc-inline-actions-column pc-inline-actions-cell {% if row_actions_column_position == 'start' %}text-start{% else %}text-right{% endif %} py-1 align-middle"
+        data-inline-actions="true"
+        data-powercrud-row-actions-column="true"
+        data-powercrud-row-actions-position="{% if row_actions_column_position == 'start' %}start{% else %}end{% endif %}"
+        {% if row_actions_column_sticky %}data-powercrud-row-actions-sticky="true"{% endif %}>
         <input type="hidden" name="pk" value="{{ row.id }}">
         {% csrf_token %}
         {% for hidden_field in inline_hidden_fields %}
@@ -68,7 +83,7 @@
             {{ form.non_field_errors|join:", " }}
         </div>
         {% endif %}
-        <div class="pc-inline-actions-controls flex flex-nowrap items-center justify-end gap-1 text-right">
+        <div class="pc-inline-actions-controls flex flex-nowrap items-center {% if row_actions_column_position == 'start' %}justify-start text-start{% else %}justify-end text-right{% endif %} gap-1">
             <button type="button"
                     class="btn {{ action_button_classes }} btn-primary btn-square"
                     aria-label="Save inline edit"
@@ -117,4 +132,4 @@
             </button>
         </div>
     </td>
-</tr>
+{% endpartialdef inline_actions_cell %}

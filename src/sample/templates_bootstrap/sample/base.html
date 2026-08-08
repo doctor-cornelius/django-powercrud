@@ -45,19 +45,19 @@
                 <a class="btn btn-sm btn-outline-secondary" href="{% url 'sample:bigbook-list' %}"
                     aria-label="Full page reload for books"><span aria-hidden="true">&#8635;</span></a>
             </div>
-            <div class="btn-group" role="group" aria-label="Annotated Book List buttons">
-                <a class="btn btn-sm btn-secondary" hx-get="{% url 'sample:annotated-book-list' %}" hx-target="#content"
-                    hx-swap="innerHTML" hx-replace-url="true" hx-push-url="true"
-                    aria-label="Load annotated books with HTMX">Annotated Books</a>
-                <a class="btn btn-sm btn-outline-secondary" href="{% url 'sample:annotated-book-list' %}"
-                    aria-label="Full page reload for annotated books"><span aria-hidden="true">&#8635;</span></a>
-            </div>
             <div class="btn-group" role="group" aria-label="PowerField Book List buttons">
                 <a class="btn btn-sm btn-secondary" hx-get="{% url 'sample:powerfield-book-list' %}" hx-target="#content"
                     hx-swap="innerHTML" hx-replace-url="true" hx-push-url="true"
                     aria-label="Load PowerField books with HTMX">PowerField Books</a>
                 <a class="btn btn-sm btn-outline-secondary" href="{% url 'sample:powerfield-book-list' %}"
                     aria-label="Full page reload for PowerField books"><span aria-hidden="true">&#8635;</span></a>
+            </div>
+            <div class="btn-group" role="group" aria-label="Annotated Book List buttons">
+                <a class="btn btn-sm btn-secondary" hx-get="{% url 'sample:annotated-book-list' %}" hx-target="#content"
+                    hx-swap="innerHTML" hx-replace-url="true" hx-push-url="true"
+                    aria-label="Load annotated books with HTMX">Annotated Books</a>
+                <a class="btn btn-sm btn-outline-secondary" href="{% url 'sample:annotated-book-list' %}"
+                    aria-label="Full page reload for annotated books"><span aria-hidden="true">&#8635;</span></a>
             </div>
             <div class="btn-group" role="group" aria-label="Author List buttons">
                 <a class="btn btn-sm btn-secondary" hx-get="{% url 'sample:author-list' %}" hx-target="#content"
