@@ -10,7 +10,13 @@ The default sample uses the compatible DaisyUI pack. Its runtime metadata footer
 
 ```bash
 ./manage.py runserver --settings=config.settings_focused_overrides 0:8001
-./manage.py runserver --settings=config.settings_bootstrap 0:8002
+./manage.py runbootstrap --port 8002
+```
+
+The `runbootstrap` command requires an explicit `--port` and starts Django's standard development server with `config.settings_bootstrap`, bound to all container interfaces. From the host, run it through the project wrapper, for example:
+
+```bash
+./runproj exec --command "cd src && ./manage.py runbootstrap --port 8003"
 ```
 
 There is no in-application template-pack switcher. Start the desired settings configuration explicitly; use different ports when running presentations side by side. Bootstrap 5 is a supported non-default pack selected at process startup, while the unconfigured default remains DaisyUI. Its sample shell is deliberately compact and includes a light/dark theme selector so you can inspect both Bootstrap colour modes without changing the selected pack. See [Selecting and configuring a template pack](../template_packs/selecting-and-configuring.md).
