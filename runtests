@@ -74,6 +74,7 @@ BOOTSTRAP_SERVER_TESTS=(
 )
 
 BOOTSTRAP_PLAYWRIGHT_TESTS=(
+    src/tests/playwright/test_template_pack_behaviour_matrix.py::test_shared_favourite_application_uses_the_same_list_shell
     src/tests/playwright/test_bootstrap_modal_presentation.py
     src/tests/playwright/test_bootstrap_manual_static_assets.py
     src/tests/playwright/test_row_actions_column_layout.py

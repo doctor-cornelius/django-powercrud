@@ -53,6 +53,56 @@ export function createBootstrap5SearchableSelectAdapter({ global, documentObject
         select.removeAttribute('aria-hidden');
     }
 
+    function recoverOrphanedNativeSelect(select) {
+        const hasNativeStyleSnapshot = select.hasAttribute(NATIVE_STYLE_ATTR);
+        const hasOrphanedTomSelectClass = select.classList.contains('ts-hidden-accessible');
+        if (
+            select.tomselect
+            || (!hasNativeStyleSnapshot && !hasOrphanedTomSelectClass)
+        ) {
+            return false;
+        }
+
+        // A detached panel clone does not retain Tom Select's JavaScript
+        // instance, but it can retain the hidden native select and generated
+        // wrapper markup. Return that clone to clean native markup before the
+        // normal visibility gate decides whether to enhance it again.
+        const orphanedWrapper = select.nextElementSibling;
+        if (
+            orphanedWrapper instanceof HTMLElement
+            && orphanedWrapper.classList.contains('ts-wrapper')
+        ) {
+            orphanedWrapper.remove();
+        }
+        restoreNativeSelect(select);
+        if (!hasNativeStyleSnapshot) {
+            const staleHiddenStyles = {
+                display: 'none',
+                visibility: 'hidden',
+                position: 'absolute',
+                width: '1px',
+                height: '1px',
+                pointerEvents: 'none',
+            };
+            Object.entries(staleHiddenStyles).forEach(([property, value]) => {
+                if (select.style[property] === value) {
+                    select.style[property] = '';
+                }
+            });
+            if (!select.getAttribute('style')) {
+                select.removeAttribute('style');
+            }
+            if (
+                !select.hasAttribute(NATIVE_TABINDEX_ATTR)
+                && select.getAttribute('tabindex') === '-1'
+            ) {
+                select.removeAttribute('tabindex');
+            }
+        }
+        select.classList.remove('tomselected');
+        return true;
+    }
+
     function normalise(instance) {
         instance.wrapper.classList.remove('form-select', 'form-select-sm', 'form-select-lg');
         instance.wrapper.classList.add('powercrud-bootstrap-tomselect');
@@ -198,7 +248,12 @@ export function createBootstrap5SearchableSelectAdapter({ global, documentObject
             hideNativeSelect(select);
             return;
         }
-        if (!visible) {
+        const recoveredNativeSelect = recoverOrphanedNativeSelect(select);
+        const isVisible = visible || (
+            recoveredNativeSelect
+            && select.getClientRects().length > 0
+        );
+        if (!isVisible) {
             return;
         }
         const isInlineSelect = Boolean(select.closest(INLINE_ROW_SELECTOR));
