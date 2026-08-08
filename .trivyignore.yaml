@@ -1,4 +1,17 @@
 vulnerabilities:
+  - id: GHSA-6v7p-g79w-8964
+    expired_at: 2026-11-30
+    statement: >-
+      pip-internal vendored msgpack in the dev/test Docker image. msgpack is
+      not installed as a PowerCRUD dependency or included in the PyPI package
+      artifact. Remove once upstream pip vendors msgpack >= 1.2.1.
+  - id: CVE-2025-47273
+    expired_at: 2026-11-30
+    statement: >-
+      pip-internal vendored setuptools in the dev/test Docker image. The
+      installed project environment uses setuptools 83.0.0; this 70.3.0 copy
+      is not a PowerCRUD dependency or PyPI package artifact. Remove once
+      upstream pip vendors setuptools >= 78.1.1.
   - id: CVE-2026-13149
     paths:
       - "usr/lib/node_modules/npm/node_modules/brace-expansion/package.json"
