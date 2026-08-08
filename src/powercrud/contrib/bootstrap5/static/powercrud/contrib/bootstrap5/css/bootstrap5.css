@@ -579,7 +579,7 @@
 
 [data-powercrud-object-list="true"] .pc-bootstrap-row-actions .pc-bootstrap-row-action-neutral,
 [data-powercrud-object-list="true"] .pc-bootstrap-row-actions .pc-row-actions-trigger {
-    color: var(--bs-secondary-color);
+    color: color-mix(in srgb, var(--bs-body-color) 80%, transparent);
     background-color: transparent;
     border-color: transparent;
     box-shadow: none;
