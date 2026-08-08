@@ -3198,8 +3198,13 @@ def test_author_list_escapes_view_instructions_html(client, monkeypatch):
 
 
 @pytest.mark.django_db
-def test_author_list_omits_view_help_when_unset(client):
+def test_author_list_omits_view_help_when_unset(client, monkeypatch):
     """Keep the list heading compact when collapsed view help is not configured."""
+    monkeypatch.setattr(
+        "sample.views.AuthorCRUDView.view_help",
+        None,
+        raising=False,
+    )
     Author.objects.create(name="Alice Jones")
 
     response = client.get(reverse("sample:author-list"))
@@ -3208,7 +3213,10 @@ def test_author_list_omits_view_help_when_unset(client):
     assert response.status_code == 200, (
         "Author list view should render successfully without view_help configured."
     )
-    assert '<details class="collapse collapse-arrow mt-3 border"' not in response_text, (
+    assert re.search(
+        r'<details\b[^>]*data-powercrud-view-help="true"',
+        response_text,
+    ) is None, (
         "List view should not render the collapsed help container when view_help is unset."
     )
 

@@ -1,7 +1,7 @@
 <div class="mb-2 flex max-w-full flex-wrap items-center gap-2"
      data-sample-runtime-meta="true">
     <details class="dropdown dropdown-start">
-        <summary class="btn btn-sm btn-outline">
+        <summary class="btn btn-sm btn-outline" data-sample-current-user="true">
             {% if request.user.is_authenticated %}
                 {{ request.user.get_username }}
             {% else %}

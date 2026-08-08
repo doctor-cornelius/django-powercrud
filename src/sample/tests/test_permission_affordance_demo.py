@@ -24,6 +24,15 @@ def _login_as(client, role):
     return client.post(reverse("sample:demo-login", args=[role]))
 
 
+def _rendered_current_user_label(response_text):
+    """Return the visible current-user label from the sample login control."""
+    marker = 'data-sample-current-user="true"'
+    marker_index = response_text.index(marker)
+    label_start = response_text.index(">", marker_index) + 1
+    label_end = response_text.index("<", label_start)
+    return response_text[label_start:label_end].strip()
+
+
 @pytest.mark.django_db
 def test_sample_login_bar_starts_anonymous_and_logs_in_viewer(client):
     _create_preview_book()
@@ -32,15 +41,19 @@ def test_sample_login_bar_starts_anonymous_and_logs_in_viewer(client):
 
     assert response.status_code == 200
     response_text = response.content.decode()
-    assert "Login" in response_text
-    assert SAMPLE_DEMO_USERS["viewer"]["username"] not in response_text
+    assert _rendered_current_user_label(response_text) == "Login", (
+        "The anonymous sample login control should identify itself as Login."
+    )
 
     login_response = _login_as(client, "viewer")
     assert login_response.status_code == 302
 
     response = client.get(reverse("sample:bigbook-list"))
     response_text = response.content.decode()
-    assert SAMPLE_DEMO_USERS["viewer"]["username"] in response_text
+    assert (
+        _rendered_current_user_label(response_text)
+        == SAMPLE_DEMO_USERS["viewer"]["username"]
+    ), "The sample login control should show the active viewer username after login."
 
 
 @pytest.mark.django_db
@@ -49,13 +62,14 @@ def test_sample_viewer_cannot_see_or_call_description_preview(client):
 
     _login_as(client, "viewer")
     response = client.get(reverse("sample:bigbook-list"))
+    preview_url = reverse("sample:bigbook-description-preview", args=[book.pk])
 
     assert response.status_code == 200
-    assert "Description Preview" not in response.content.decode()
-
-    response = client.get(
-        reverse("sample:bigbook-description-preview", args=[book.pk])
+    assert preview_url not in response.content.decode(), (
+        "Viewer users should not receive a row-action link to Description Preview."
     )
+
+    response = client.get(preview_url)
 
     assert response.status_code == 403
 
@@ -66,14 +80,18 @@ def test_sample_manager_can_see_and_call_description_preview(client):
 
     _login_as(client, "manager")
     response = client.get(reverse("sample:bigbook-list"))
+    preview_url = reverse("sample:bigbook-description-preview", args=[book.pk])
 
     assert response.status_code == 200
-    assert SAMPLE_DEMO_USERS["manager"]["username"] in response.content.decode()
-    assert "Description Preview" in response.content.decode()
-
-    response = client.get(
-        reverse("sample:bigbook-description-preview", args=[book.pk])
+    assert (
+        _rendered_current_user_label(response.content.decode())
+        == SAMPLE_DEMO_USERS["manager"]["username"]
     )
+    assert preview_url in response.content.decode(), (
+        "Manager users should receive a row-action link to Description Preview."
+    )
+
+    response = client.get(preview_url)
 
     assert response.status_code == 200
     assert book.title in response.content.decode()
@@ -81,17 +99,22 @@ def test_sample_manager_can_see_and_call_description_preview(client):
 
 @pytest.mark.django_db
 def test_sample_poweraction_demo_uses_same_permission_affordance(client):
-    _create_preview_book()
+    book = _create_preview_book()
+    preview_url = reverse("sample:bigbook-description-preview", args=[book.pk])
 
     _login_as(client, "viewer")
     response = client.get(reverse("sample:powerfield-book-list"))
     assert response.status_code == 200
-    assert "Description Preview" not in response.content.decode()
+    assert preview_url not in response.content.decode(), (
+        "The PowerAction sample should hide its preview URL from viewer users."
+    )
 
     _login_as(client, "manager")
     response = client.get(reverse("sample:powerfield-book-list"))
     assert response.status_code == 200
-    assert "Description Preview" in response.content.decode()
+    assert preview_url in response.content.decode(), (
+        "The PowerAction sample should expose its preview URL to manager users."
+    )
 
 
 @pytest.mark.django_db
@@ -185,14 +208,14 @@ def test_sample_viewer_cannot_see_builtin_book_mutation_affordances(client):
     assert response.status_code == 200, (
         "Viewer-accessible Book list should still render successfully."
     )
-    assert "Create book" not in response_text, (
-        "Viewer users should not see the built-in Create affordance."
+    assert reverse("sample:bigbook-create") not in response_text, (
+        "Viewer users should not receive the built-in Create URL."
     )
-    assert "Normal Edit" not in response_text, (
-        "Viewer users should not see the sample extra action that targets update."
-    )
-    assert "sr-only'>View</span>" not in response_text, (
-        "Viewer users should not see the built-in Detail/View row action."
+    assert (
+        "data-inline-action='view'" not in response_text
+        and 'data-inline-action="view"' not in response_text
+    ), (
+        "Viewer users should not receive the built-in Detail/View row action."
     )
     assert reverse("sample:bigbook-update", args=[book.pk]) not in response_text, (
         "Viewer users should not see built-in Edit URLs in row actions."
@@ -200,8 +223,8 @@ def test_sample_viewer_cannot_see_builtin_book_mutation_affordances(client):
     assert reverse("sample:bigbook-delete", args=[book.pk]) not in response_text, (
         "Viewer users should not see built-in Delete URLs in row actions."
     )
-    assert "Bulk Edit" not in response_text, (
-        "Viewer users should not see the built-in Bulk Edit affordance."
+    assert reverse("sample:bigbook-bulk-edit") not in response_text, (
+        "Viewer users should not receive the built-in Bulk Edit URL."
     )
     assert 'data-powercrud-row-select="true"' not in response_text, (
         "Viewer users should not see row selection controls when no permitted operation needs them."

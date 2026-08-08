@@ -1,6 +1,6 @@
 <div class="d-flex flex-wrap align-items-center gap-2 mb-2 pc-bootstrap-runtime-meta" data-sample-runtime-meta="true">
     <div class="dropdown">
-        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" data-sample-current-user="true">
             {% if request.user.is_authenticated %}
                 {{ request.user.get_username }}
             {% else %}
