@@ -3886,11 +3886,17 @@ def test_book_list_filter_form_uses_compact_grid_layout(client):
     assert 'class="grid gap-x-2 gap-y-0"' in response_text, (
         "Book list filter form should keep compact grid spacing without fixed breakpoint column classes."
     )
-    assert "grid-template-columns: repeat(3, minmax(0, 1fr));" in response_text, (
-        "Book list filter form should stop at three readable filter columns on wide viewports."
+    assert "container: powercrud-filter-panel / inline-size;" in response_text, (
+        "Book list filter layout should use the synced panel width as its responsive container."
     )
-    assert "grid-template-columns: repeat(2, minmax(0, 1fr));" in response_text, (
-        "Book list filter form should step down to two columns before its single-column mobile layout."
+    assert "@container powercrud-filter-panel (min-width: 1280px)" in response_text and "grid-template-columns: repeat(3, minmax(0, 1fr));" in response_text, (
+        "Book list filter form should stop at three readable columns when its panel is wide enough."
+    )
+    assert "@container powercrud-filter-panel (min-width: 640px)" in response_text and "grid-template-columns: repeat(2, minmax(0, 1fr));" in response_text, (
+        "Book list filter form should use two columns only when its panel is wide enough."
+    )
+    assert "@media (min-width: 640px)" not in response_text and "@media (min-width: 1280px)" not in response_text, (
+        "Filter column selection should not depend on the viewport when the synced panel can be much narrower."
     )
     assert "filter-field form-control w-full min-w-0" in response_text, (
         "Book list filter fields should use the compact wrapper class within the grid layout."
@@ -3901,8 +3907,11 @@ def test_book_list_filter_form_uses_compact_grid_layout(client):
     assert 'text-xs font-medium text-base-content/80' in response_text, (
         "Book list filter labels should use lighter compact label styling rather than loud heading-style labels."
     )
+    assert "text-align: left;" in response_text and "grid-column: 1 / -1;" in response_text, (
+        "Narrow filter panels should stack each input below a readable left-aligned label."
+    )
     assert "text-align: right;" in response_text and "justify-self: end;" in response_text, (
-        "Desktop filter labels should align tightly against their controls so the compact rows read as paired label-input units."
+        "Wider filter panels should align labels tightly against their controls so compact rows read as paired units."
     )
     assert "grid-template-columns: minmax(5.25rem, 6.75rem) minmax(0, 1fr) auto;" in response_text, (
         "Book list filter rows should keep a compact label column while leaving enough width for wrapped labels to stay readable."

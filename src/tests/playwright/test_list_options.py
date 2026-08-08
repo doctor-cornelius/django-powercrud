@@ -330,6 +330,152 @@ def test_book_list_column_controls_fit_table_or_viewport(
     )
 
 
+def test_filter_panel_layout_uses_synced_panel_width(
+    page, powerfield_books_url, sample_books, sample_manager_page
+):
+    """Wide viewports should not force narrow synced filter panels into three columns."""
+    del sample_manager_page
+
+    page.set_viewport_size({"width": 1600, "height": 900})
+    page.goto(powerfield_books_url)
+    page.wait_for_load_state("networkidle")
+
+    column_panel = open_column_chooser(page)
+    checked_values = column_panel.locator(
+        "input[name='visible_columns'][type='checkbox']:checked"
+    ).evaluate_all("(elements) => elements.map((element) => element.value)")
+    id_checkbox = column_panel.locator(
+        "input[name='visible_columns'][value='id']"
+    )
+    expect(id_checkbox).to_have_count(1)
+    id_checkbox.check()
+    if "id" not in checked_values:
+        checked_values.append("id")
+    assert "id" in checked_values, (
+        "The sample column set should expose ID for the minimum-width filter-panel regression."
+    )
+    for value in checked_values:
+        if value != "id":
+            column_panel.locator(
+                f"input[name='visible_columns'][value='{value}']"
+            ).uncheck()
+
+    with page.expect_response(re.compile(r"/sample/powerfield-book/")):
+        column_panel.get_by_role("button", name="Save").click()
+    expect(page.locator("[data-powercrud-list-columns='true'] summary")).to_contain_text(
+        re.compile(r"Cols\s+1/13")
+    )
+
+    page.get_by_role("button", name=re.compile("filters", re.I)).click()
+    filter_panel = page.locator("#filterCollapse")
+    expect(filter_panel).to_be_visible()
+
+    metrics = page.evaluate(
+        """
+        () => {
+            const panel = document.querySelector('#filterCollapse');
+            const form = panel.querySelector('[data-powercrud-filter-form="true"]');
+            const fields = Array.from(form.querySelectorAll('.filter-field'));
+            const firstField = fields[0];
+            const secondField = fields[1];
+            const firstLabel = firstField.querySelector('.filter-field-label, .form-label');
+            const firstInput = firstField.querySelector('.filter-field-input, .input-group');
+            const panelRect = panel.getBoundingClientRect();
+            const firstFieldRect = firstField.getBoundingClientRect();
+            const secondFieldRect = secondField.getBoundingClientRect();
+            const labelRect = firstLabel.getBoundingClientRect();
+            const inputRect = firstInput.getBoundingClientRect();
+            return {
+                viewportWidth: document.documentElement.clientWidth,
+                panelWidth: panelRect.width,
+                firstFieldWidth: firstFieldRect.width,
+                firstFieldTop: firstFieldRect.top,
+                secondFieldTop: secondFieldRect.top,
+                labelBottom: labelRect.bottom,
+                inputTop: inputRect.top,
+                inputLeft: inputRect.left,
+                inputRight: inputRect.right,
+                inputWidth: inputRect.width,
+                panelLeft: panelRect.left,
+                panelRight: panelRect.right,
+            };
+        }
+        """
+    )
+
+    assert metrics["viewportWidth"] >= 1280, (
+        "The regression must exercise a viewport wide enough to trigger the old three-column rules."
+    )
+    assert metrics["panelWidth"] < 640, (
+        "An ID-only table should produce a genuinely narrow synced filter panel at the wide viewport."
+    )
+    assert metrics["secondFieldTop"] > metrics["firstFieldTop"] + 1, (
+        "A narrow filter panel should place filter fields on separate rows regardless of viewport width."
+    )
+    assert metrics["inputTop"] >= metrics["labelBottom"] - 1, (
+        "A narrow filter field should stack its control below the label and remove action."
+    )
+    assert metrics["inputWidth"] >= metrics["firstFieldWidth"] * 0.7, (
+        "A stacked filter control should receive most of its field width instead of collapsing to a sliver."
+    )
+    assert (
+        metrics["inputLeft"] >= metrics["panelLeft"] - 1
+        and metrics["inputRight"] <= metrics["panelRight"] + 1
+    ), (
+        "The stacked filter control should stay within the synced panel bounds."
+    )
+
+    page.evaluate(
+        """
+        () => document.querySelector(
+            '#filter-form select[name="author"]'
+        ).tomselect.open()
+        """
+    )
+    page.wait_for_function(
+        """
+        () => document.querySelector(
+            '#filter-form select[name="author"]'
+        ).tomselect.isOpen
+        """
+    )
+    dropdown_metrics = page.evaluate(
+        """
+        () => {
+            const select = document.querySelector('#filter-form select[name="author"]');
+            const instance = select.tomselect;
+            const inputShell = select.closest('.filter-field-input, .input-group');
+            const inputShellRect = inputShell.getBoundingClientRect();
+            const wrapperRect = instance.wrapper.getBoundingClientRect();
+            const controlRect = instance.control.getBoundingClientRect();
+            const dropdownRect = instance.dropdown.getBoundingClientRect();
+            const wrapperStyle = getComputedStyle(instance.wrapper);
+            const controlStyle = getComputedStyle(instance.control);
+            return {
+                inputShellWidth: inputShellRect.width,
+                wrapperWidth: wrapperRect.width,
+                controlWidth: controlRect.width,
+                dropdownWidth: dropdownRect.width,
+                wrapperCssWidth: wrapperStyle.width,
+                wrapperFlex: wrapperStyle.flex,
+                controlCssWidth: controlStyle.width,
+                controlDisplay: controlStyle.display,
+            };
+        }
+        """
+    )
+    assert dropdown_metrics["wrapperWidth"] >= dropdown_metrics["inputShellWidth"] * 0.7, (
+        "The Author searchable-select wrapper should fill the extreme narrow panel input row."
+    )
+    assert dropdown_metrics["controlWidth"] >= dropdown_metrics["inputShellWidth"] * 0.7, (
+        "The Author searchable-select control should remain wide enough to display its value. "
+        f"Observed geometry: {dropdown_metrics}."
+    )
+    assert dropdown_metrics["dropdownWidth"] >= dropdown_metrics["inputShellWidth"] * 0.7, (
+        "The Author option menu should remain wide enough to display option text."
+    )
+
+
 def test_book_list_wide_table_scroll_stays_inside_table_wrapper(
     page, books_url, sample_books
 ):

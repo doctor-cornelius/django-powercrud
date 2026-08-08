@@ -54,6 +54,7 @@ export function createBootstrap5SearchableSelectAdapter({ global, documentObject
     }
 
     function normalise(instance) {
+        instance.wrapper.classList.remove('form-select', 'form-select-sm', 'form-select-lg');
         instance.wrapper.classList.add('powercrud-bootstrap-tomselect');
         instance.control.classList.add('form-control');
     }

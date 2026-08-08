@@ -190,6 +190,58 @@ def test_bootstrap_namespace_contains_only_pack_owned_baseline_templates():
             )
 
 
+def test_bootstrap_filter_layout_responds_to_synced_panel_width():
+    """Bootstrap filter columns should follow panel width rather than viewport width."""
+    package_root = Path(settings.BASE_DIR) / "powercrud" / "contrib" / "bootstrap5"
+    filter_template = (
+        package_root
+        / "templates"
+        / "powercrud"
+        / "packs"
+        / "bootstrap5"
+        / "partial"
+        / "filter_form.html"
+    ).read_text(encoding="utf-8")
+    stylesheet = (
+        package_root / "static" / "powercrud" / "contrib" / "bootstrap5" / "css" / "bootstrap5.css"
+    ).read_text(encoding="utf-8")
+    searchable_select_adapter = (
+        package_root
+        / "static"
+        / "powercrud"
+        / "contrib"
+        / "bootstrap5"
+        / "js"
+        / "runtime"
+        / "bootstrap5-searchable-select-adapter.js"
+    ).read_text(encoding="utf-8")
+
+    assert 'class="col-12 filter-field"' in filter_template, (
+        "Bootstrap filter fields should retain their full-width base column without viewport-responsive column classes."
+    )
+    assert "col-md-6" not in filter_template and "col-xl-4" not in filter_template, (
+        "Bootstrap filter columns should not select two or three columns from viewport breakpoints."
+    )
+    assert "container: powercrud-filter-panel / inline-size;" in stylesheet, (
+        "Bootstrap should expose the synced filter panel as the responsive layout container."
+    )
+    assert "@container powercrud-filter-panel (min-width: 768px)" in stylesheet and "width: 50%;" in stylesheet, (
+        "Bootstrap should use two filter columns only when the panel itself reaches its medium width."
+    )
+    assert "@container powercrud-filter-panel (min-width: 1200px)" in stylesheet and "width: 33.33333333%;" in stylesheet, (
+        "Bootstrap should use three filter columns only when the panel itself reaches its wide width."
+    )
+    assert ".pc-bootstrap-filter-field-shell .powercrud-bootstrap-tomselect" in stylesheet and "flex: 1 1 100%;" in stylesheet, (
+        "Bootstrap searchable filter controls should fill the stacked input row even in an extreme narrow panel."
+    )
+    assert "classList.remove('form-select', 'form-select-sm', 'form-select-lg')" in searchable_select_adapter, (
+        "Tom Select wrappers should not retain Bootstrap's native-select padding and chevron styles."
+    )
+    assert "@media (max-width: 767.98px)" not in stylesheet, (
+        "Bootstrap field stacking should not depend on viewport width when the panel can be narrower."
+    )
+
+
 def test_bootstrap_roots_and_required_fragments_compile():
     """The validator's baseline resources must resolve through Django's app loader."""
     for relative_path in BOOTSTRAP_TEMPLATE_PATHS:
