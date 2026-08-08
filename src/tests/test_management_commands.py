@@ -1496,8 +1496,8 @@ def test_starttemplatepack_creates_a_standalone_public_contract_starter(tmp_path
     assert (destination / "tests" / "test_contract.py").exists()
     assert (package_root / "templates" / "powercrud" / "packs" / "example-powercrud-pack" / "object_list.html").exists()
     assert 'server_adapter="example_powercrud_pack.adapter:server_adapter"' in declaration
-    assert "contract_version=4" in declaration, (
-        "Independent starters should pin the numeric version-4 template-pack contract."
+    assert "contract_version=3" in declaration, (
+        "Independent starters should pin the numeric version-3 template-pack contract."
     )
     assert "TEMPLATE_PACK_CONTRACT_VERSION" not in declaration, (
         "Generated independent packs should not follow a moving current-version constant silently."

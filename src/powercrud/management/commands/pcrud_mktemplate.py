@@ -364,8 +364,10 @@ class Command(BaseCommand):
         elif component == "row-actions":
             contract_guidance = (
                 "Keep object and resolved row_actions context, including dropdown_actions, "
-                "standard_dropdown_actions, extra_dropdown_actions, show_dropdown, show_extra_dropdown, "
-                "show_all_dropdown, and dropdown_scope; do not repeat permission, ordering, state-hook, "
+                "standard_dropdown_actions, extra_dropdown_actions, responsive_dropdown_actions, "
+                "show_dropdown, show_extra_dropdown, show_all_dropdown, "
+                "show_responsive_dropdown, and dropdown_scope; do not repeat permission, "
+                "ordering, state-hook, "
                 "or URL decisions in the template. Preserve the accessible compact trigger, standard icon "
                 "group, supplied colours/tooltips, labelled extras, action-kind, dropdown-scope, lazy-state, "
                 "disabled-tooltip, HTMX, modal, and modal-close-refresh hooks.\n"
@@ -413,7 +415,8 @@ class Command(BaseCommand):
                 "This component is a three-mode renderer selected with selection_control=matching, "
                 "select_all, or row. Keep the matching-record state, request, and list_view_url context; "
                 "all_selected and some_selected for select_all; and row, selected_ids, and list_view_url for row. "
-                "Preserve select-all, row-select, initial-state, matching-action, HTMX target, and outer-swap hooks.\n"
+                "Preserve select-all, row-select, initial-state, matching-action, HTMX target, "
+                "outer-swap hooks, and data-powercrud-selection-column on both table-cell modes.\n"
                 "The results wrapper, table header, table row, and legacy fragments remain owned by their existing façades through 0.x; "
                 "selection state remains server-session and package-runtime owned, and no copied PowerCRUD JavaScript is required."
             )

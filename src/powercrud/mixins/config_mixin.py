@@ -241,9 +241,9 @@ class ConfigMixin:
     action_button_classes: str = ""
     extra_button_classes: str = ""
     extra_buttons_mode: str = "buttons"
-    extra_actions_mode: str = "buttons"
+    extra_actions_mode: str = "dropdown"
     row_actions_column_position: str = "end"
-    row_actions_column_sticky: bool = False
+    row_actions_column_sticky: bool = True
     extra_actions_dropdown_open_upward_bottom_rows: int = 3
     show_record_count: bool = False
     show_bulk_selection_meta: bool = True
@@ -1772,7 +1772,7 @@ class ConfigMixin:
             if (
                 hidden_if_mode == "lazy"
                 and not is_row_actions_dropdown_mode(
-                    getattr(self, "extra_actions_mode", "buttons")
+                    getattr(self, "extra_actions_mode", "dropdown")
                 )
             ):
                 raise ValueError(
@@ -1800,7 +1800,7 @@ class ConfigMixin:
             if (
                 disabled_state_mode == "lazy"
                 and not is_row_actions_dropdown_mode(
-                    getattr(self, "extra_actions_mode", "buttons")
+                    getattr(self, "extra_actions_mode", "dropdown")
                 )
             ):
                 raise ValueError(

@@ -48,6 +48,36 @@ def test_sticky_end_actions_and_more_menu_remain_usable_after_horizontal_scroll(
     expect(page.locator("#powercrudBaseModal")).to_be_visible()
 
 
+def test_selection_column_remains_visible_and_usable_after_horizontal_scroll(
+    page, books_url, sample_books
+):
+    """Selection should stay pinned at logical start opposite sticky end actions."""
+    target_book = sample_books[0]
+    page.set_viewport_size({"width": 640, "height": 720})
+    page.goto(books_url)
+    page.wait_for_load_state("networkidle")
+
+    scroll_table_horizontally(page)
+
+    select_all = page.locator(
+        "thead [data-powercrud-selection-column='true'] [data-powercrud-select-all='true']"
+    )
+    row = page.locator(
+        "tbody tr[data-inline-row='true']", has_text=target_book.title
+    )
+    row_checkbox = row.locator(
+        "[data-powercrud-selection-column='true'] [data-powercrud-row-select='true']"
+    )
+    end_actions = row.locator("[data-powercrud-row-actions-position='end']")
+
+    expect(select_all).to_be_in_viewport()
+    expect(row_checkbox).to_be_in_viewport()
+    expect(end_actions).to_be_in_viewport()
+
+    row_checkbox.click()
+    expect(row_checkbox).to_be_checked()
+
+
 def test_annotated_book_actions_render_between_selection_and_data_columns(
     page, annotated_books_url, sample_books
 ):
@@ -62,6 +92,76 @@ def test_annotated_book_actions_render_between_selection_and_data_columns(
         "data-powercrud-row-actions-column", "true"
     )
     expect(cells.nth(2)).to_have_attribute("data-field-name", "title")
+
+
+def test_dropdown_mode_collapses_native_and_extra_actions_on_narrow_viewports(
+    page, books_url, sample_books
+):
+    """The desktop extras-only layout should become one all-actions menu."""
+    target_book = sample_books[0]
+    page.set_viewport_size({"width": 480, "height": 720})
+    page.goto(books_url)
+    page.wait_for_load_state("networkidle")
+
+    row = page.locator(
+        "tbody tr[data-inline-row='true']", has_text=target_book.title
+    )
+    desktop_actions = row.locator(
+        "[data-powercrud-row-actions-responsive='desktop']"
+    )
+    mobile_actions = row.locator(
+        "[data-powercrud-row-actions-responsive='mobile']"
+    )
+    expect(desktop_actions).to_be_hidden()
+    expect(mobile_actions).to_be_visible()
+    expect(mobile_actions.get_by_role("button")).to_have_count(1)
+
+    mobile_actions.get_by_role("button", name="Actions", exact=True).click()
+    panel = page.locator("[data-powercrud-row-actions-floating-panel='true']")
+    expect(panel).to_be_visible()
+    labels = panel.locator("li > a").all_inner_texts()
+    assert labels[:2] == ["View", "Edit"] and labels[-1] == "Delete", (
+        "The narrow Book menu should place native View/Edit first and Delete last."
+    )
+    assert "Normal Edit" in labels, (
+        "The narrow Book menu should include extras that remain desktop-menu-only at wider widths."
+    )
+
+    panel.get_by_role("link", name="Normal Edit", exact=True).click()
+    expect(page.locator("#powercrudBaseModal")).to_be_visible()
+
+
+def test_button_mode_collapses_pinned_actions_on_narrow_viewports(
+    page, profiles_url, sample_profile
+):
+    """A visible native button should move behind the responsive kebab."""
+    page.set_viewport_size({"width": 480, "height": 720})
+    page.goto(profiles_url)
+    page.wait_for_load_state("networkidle")
+
+    row = page.locator(
+        "tbody tr[data-inline-row='true']", has_text=sample_profile.nickname
+    )
+    expect(
+        row.locator("[data-powercrud-row-actions-responsive='desktop']")
+    ).to_be_hidden()
+    mobile_actions = row.locator(
+        "[data-powercrud-row-actions-responsive='mobile']"
+    )
+    expect(mobile_actions).to_be_visible()
+
+    trigger = mobile_actions.get_by_role("button", name="Actions", exact=True)
+    scroll_table_horizontally(page)
+    expect(trigger).to_be_in_viewport()
+    trigger.click()
+    panel = page.locator("[data-powercrud-row-actions-floating-panel='true']")
+    expect(panel).to_be_visible()
+    assert panel.locator("li > a").all_inner_texts() == ["Edit"], (
+        "Button mode should move its permitted pinned native action into the narrow menu."
+    )
+
+    panel.get_by_role("link", name="Edit", exact=True).click()
+    expect(page.locator("#powercrudBaseModal")).to_be_visible()
 
 
 def test_powerfield_books_contrast_all_actions_on_the_sticky_end(
@@ -84,14 +184,11 @@ def test_powerfield_books_contrast_all_actions_on_the_sticky_end(
 
     panel = page.locator("[data-powercrud-row-actions-floating-panel='true']")
     expect(panel).to_be_visible()
-    native_actions = panel.locator(
-        "[data-powercrud-row-actions-standard-group='true'] a"
-    )
+    native_actions = panel.locator("[data-powercrud-row-action-kind='standard'] a")
     expect(native_actions).to_have_count(3)
     for index in range(3):
         expect(native_actions.nth(index).locator("svg")).to_be_visible()
-    native_actions.first.hover()
-    expect(page.get_by_role("tooltip").filter(has_text="View")).to_be_visible()
+    expect(native_actions.first).to_have_text("View")
     expect(panel.get_by_role("link", name="Normal Edit", exact=True)).to_be_visible()
 
 
@@ -114,23 +211,19 @@ def test_start_sticky_actions_remain_usable_with_selection_enabled(
     actions_trigger = row.get_by_role("button", name="Actions", exact=True)
     expect(actions_header).to_be_in_viewport()
     expect(actions_trigger).to_be_in_viewport()
+    row_checkbox = row.locator("[data-powercrud-row-select='true']")
+    expect(row_checkbox).to_be_in_viewport()
 
     actions_trigger.click()
     panel = page.locator("[data-powercrud-row-actions-floating-panel='true']")
     expect(panel).to_be_visible()
-    assert panel.locator(
-        "[data-powercrud-row-actions-standard-group='true'] a"
-    ).evaluate_all("links => links.map(link => link.getAttribute('aria-label'))") == [
+    assert panel.locator("li > a").all_inner_texts() == [
         "View",
         "Edit",
-        "Delete",
-    ], "The Author menu should put its permitted native actions in the centred icon row."
-    assert panel.locator(
-        "[data-powercrud-row-action-kind='extra'] a"
-    ).all_inner_texts() == [
         "Home",
         "View Again",
-    ], "The Author menu should keep configured extras as labelled rows below the native icon row."
+        "Delete",
+    ], "The Author menu should keep Delete last in one ordered, labelled action list."
 
     panel.get_by_role("link", name="View", exact=True).click()
     modal = page.locator("#powercrudBaseModal")

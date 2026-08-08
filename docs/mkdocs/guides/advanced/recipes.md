@@ -214,7 +214,7 @@ Notes:
 
 1. Keep the business rule in server-side hooks.
 2. `display_modal` controls presentation, not whether the operation is allowed.
-3. Use `extra_actions_mode = "dropdown"` when only configured extras should move into **More**. Use `"all_dropdown"` when the standard actions should also move behind one compact **Actions** trigger.
+3. Use `extra_actions_mode = "dropdown"` when only configured extras should move behind the desktop kebab. Use `"all_dropdown"` when the standard actions should also move behind one compact **Actions** trigger at every width. Below 640px both choices, and `"buttons"`, use the all-actions layout automatically.
 
 ## Selection-Aware Header Action
 

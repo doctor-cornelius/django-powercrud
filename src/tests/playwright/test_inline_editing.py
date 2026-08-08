@@ -668,8 +668,11 @@ def test_inline_actions_fit_reduced_profile_action_column(
     """Save and Cancel should fit when the sample view has only Edit."""
     page.set_viewport_size({"width": 1220, "height": 760})
     open_profiles_page(page, profiles_url)
-    expect(page.locator(".pc-actions-default .btn")).to_have_count(1)
-    expect(page.locator(".pc-actions-default .btn")).to_have_text("Edit")
+    desktop_actions = page.locator(
+        ".pc-actions-default [data-powercrud-row-actions-responsive='desktop'] .btn"
+    )
+    expect(desktop_actions).to_have_count(1)
+    expect(desktop_actions).to_have_text("Edit")
     expect(page.locator("thead .pc-inline-actions-column")).to_have_count(0)
 
     row_path = build_inline_row_path(profiles_url, sample_profile.pk)

@@ -159,6 +159,14 @@ def test_bootstrap_sample_base_preserves_shared_navigation_and_runtime_metadata(
             f"Bootstrap sample navigation should retain the {role_label} group label."
         )
 
+    assert (
+        base.index('aria-label="Book List buttons"')
+        < base.index('aria-label="PowerField Book List buttons"')
+        < base.index('aria-label="Annotated Book List buttons"')
+    ), (
+        "Bootstrap sample navigation should match the shared Books, PowerField Books, Annotated Books order."
+    )
+
     assert '{% include "sample/_runtime_meta.html" %}' in base, (
         "Bootstrap sample pages should retain the shared runtime metadata placement."
     )

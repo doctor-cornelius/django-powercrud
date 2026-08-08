@@ -30,7 +30,9 @@ def test_row_actions_menu_stays_visible_for_top_and_bottom_rows(
     page.goto(f"{books_url}?page_size=5")
     page.wait_for_load_state("networkidle")
 
-    row_action_triggers = page.locator("[data-powercrud-row-actions-trigger='true']")
+    row_action_triggers = page.locator(
+        "[data-powercrud-row-actions-trigger='true']:visible"
+    )
     expect(row_action_triggers).to_have_count(2)
 
     typography = row_action_triggers.first.evaluate(
@@ -68,6 +70,12 @@ def test_row_actions_menu_stays_visible_for_top_and_bottom_rows(
         expect(floating_panel).to_have_count(1)
         expect(floating_panel).to_be_visible()
         expect(trigger).to_have_attribute("aria-expanded", "true")
+        assert floating_panel.evaluate(
+            "element => window.getComputedStyle(element).fontSize"
+        ) == typography["cell"], (
+            "The detached row-actions menu should inherit the originating table "
+            "cell's configured font size."
+        )
         assert floating_panel.evaluate("element => element.parentElement === document.body"), (
             "Expected the row-actions shell to be cloned directly under the document body."
         )

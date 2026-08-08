@@ -1129,8 +1129,14 @@ def test_bulk_selection_controls_render_all_three_modes():
     assert 'data-powercrud-select-all="true"' in select_all and 'data-powercrud-initial-indeterminate="true"' in select_all, (
         "Select-all mode should retain truthful initial header state."
     )
+    assert 'data-powercrud-selection-column="true"' in select_all, (
+        "Select-all mode should expose the semantic sticky selection-column marker."
+    )
     assert 'data-powercrud-row-select="true"' in row and 'data-powercrud-initial-checked="true"' in row, (
         "Row mode should retain selected-row hydration metadata."
+    )
+    assert 'data-powercrud-selection-column="true"' in row, (
+        "Row mode should expose the same semantic sticky selection-column marker."
     )
     assert 'hx-post="/books/toggle-selection/7/"' in row and 'hx-swap="outerHTML"' in row, (
         "Row mode should retain its selection endpoint and outer swap."
@@ -2103,8 +2109,11 @@ def test_row_actions_component_renders_resolved_presentation_metadata():
                 "show_extra_dropdown": True,
                 "show_all_dropdown": False,
                 "dropdown_scope": "extras",
+                "dropdown_trigger_label": "More actions",
                 "row_action_states_url": "/books/1/action-states/",
                 "dropdown_trigger_class": "btn btn-secondary",
+                "show_responsive_dropdown": False,
+                "responsive_dropdown_actions": [],
             }
         },
     )
@@ -2129,6 +2138,9 @@ def test_row_actions_component_renders_resolved_presentation_metadata():
     )
     assert "data-powercrud-row-action-state-mode='lazy'" in rendered and "data-powercrud-row-action-index='4'" in rendered and "data-powercrud-row-action-hidden-mode='lazy'" in rendered, (
         "The component should retain resolved lazy-state metadata and original action index."
+    )
+    assert "aria-label='More actions'" in rendered and ">More<" not in rendered, (
+        "The DaisyUI extras-only dropdown should use the accessible compact kebab without visible More text."
     )
 
 
@@ -2234,8 +2246,8 @@ def test_table_header_component_preserves_sort_help_selection_and_actions_contra
     assert "hx-get" not in computed_header and "onclick=" not in computed_header, (
         "Non-sortable headers should not gain navigation behavior."
     )
-    assert '<span class="text-center block w-full h-full">Actions</span>' in rendered, (
-        "The component should retain the centred conditional row-actions heading."
+    assert '<span class="text-center block w-full h-full pc-row-actions-heading-label">Actions</span>' in rendered, (
+        "The component should retain the centred row-actions heading with its responsive visibility hook."
     )
 
     normal_rendered = render_to_string(
@@ -2273,6 +2285,7 @@ def test_daisyui_row_actions_column_defaults_to_end_and_moves_consistently_to_st
         ],
         "enable_selection_controls": True,
         "has_row_actions": True,
+        "row_actions_column_sticky": True,
     }
     row = {
         "id": "7",
@@ -2299,11 +2312,13 @@ def test_daisyui_row_actions_column_defaults_to_end_and_moves_consistently_to_st
         "enable_selection_controls": True,
         "selected_ids": [],
         "has_row_actions": True,
+        "row_actions_column_sticky": True,
     }
     form_context = {
         "row": row,
         "form": None,
         "enable_selection_controls": True,
+        "row_actions_column_sticky": True,
     }
 
     default_header = render_to_string(
@@ -2321,8 +2336,8 @@ def test_daisyui_row_actions_column_defaults_to_end_and_moves_consistently_to_st
     assert 'data-powercrud-row-actions-position="end"' in default_header, (
         "The default Actions header should expose its logical-end position."
     )
-    assert 'data-powercrud-row-actions-sticky="true"' not in default_header, (
-        "The default Actions header should continue scrolling horizontally."
+    assert 'data-powercrud-row-actions-sticky="true"' in default_header, (
+        "The default Actions header should remain visible during horizontal scrolling."
     )
 
     layout = {
@@ -2356,6 +2371,9 @@ def test_daisyui_row_actions_column_defaults_to_end_and_moves_consistently_to_st
         )
         assert 'data-powercrud-row-actions-sticky="true"' in rendered, (
             "DaisyUI action columns should expose the enabled sticky marker."
+        )
+        assert 'data-powercrud-selection-column="true"' in rendered, (
+            "DaisyUI selection cells should expose the default sticky-column marker in every row state."
         )
 
 

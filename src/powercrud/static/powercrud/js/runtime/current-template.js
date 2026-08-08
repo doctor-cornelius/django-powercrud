@@ -247,6 +247,15 @@ export function createCurrentTemplateRuntime(context) {
         return template instanceof HTMLElement ? template : null;
     }
 
+    function inheritRowActionsTableTypography(menuElement, trigger) {
+        if (!(menuElement instanceof HTMLElement) || !(trigger instanceof HTMLElement)) {
+            return;
+        }
+        const tableCell = trigger.closest('td, th');
+        const typographySource = tableCell instanceof HTMLElement ? tableCell : trigger;
+        menuElement.style.fontSize = global.getComputedStyle(typographySource).fontSize;
+    }
+
     function closeRowActionsMenu() {
         if (activeRowActionsTrigger instanceof HTMLElement) {
             activeRowActionsTrigger.setAttribute('aria-expanded', 'false');
@@ -386,6 +395,8 @@ export function createCurrentTemplateRuntime(context) {
         if (!(menuElement instanceof HTMLElement)) {
             return;
         }
+
+        inheritRowActionsTableTypography(menuElement, trigger);
 
         const hasLazyRowActionState = getLazyRowActionLinks(menuElement).length > 0;
         if (hasLazyRowActionState) {

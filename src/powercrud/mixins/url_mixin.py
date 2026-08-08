@@ -572,7 +572,7 @@ class UrlMixin:
         kwargs["extra_actions_mode"] = (
             extra_actions_mode_getter()
             if callable(extra_actions_mode_getter)
-            else getattr(cfg, "extra_actions_mode", "buttons")
+            else getattr(cfg, "extra_actions_mode", "dropdown")
         )
         row_actions_position_getter = getattr(
             self, "get_row_actions_column_position", None
@@ -588,7 +588,7 @@ class UrlMixin:
         kwargs["row_actions_column_sticky"] = (
             row_actions_sticky_getter()
             if callable(row_actions_sticky_getter)
-            else bool(getattr(cfg, "row_actions_column_sticky", False))
+            else bool(getattr(cfg, "row_actions_column_sticky", True))
         )
 
         # Add HTMX-specific context if enabled

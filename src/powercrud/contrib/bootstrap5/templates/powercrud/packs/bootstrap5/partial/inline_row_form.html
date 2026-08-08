@@ -1,6 +1,6 @@
 {% load powercrud powercrud_bootstrap5 powercrud_partials %}
     <tr{% if row.row_id %} id="{{ row.row_id }}"{% endif %} class="{% if row.is_selected %}table-active {% endif %}pc-inline-row-active{% if form.errors %} pc-inline-row-invalid{% endif %}" data-inline-row="true" data-inline-active="true"{% if inline_cancel_url or row.inline_url %} data-inline-row-url="{{ inline_cancel_url|default:row.inline_url }}"{% endif %}>
-    {% if enable_selection_controls %}<td class="pc-bootstrap-selection-column align-middle"><input type="checkbox" class="form-check-input row-select-checkbox" data-id="{{ row.id }}" disabled></td>{% endif %}
+    {% if enable_selection_controls %}<td class="pc-bootstrap-selection-column align-middle" data-powercrud-selection-column="true"><input type="checkbox" class="form-check-input row-select-checkbox" data-id="{{ row.id }}" disabled></td>{% endif %}
     {% if row_actions_column_position == "start" %}{% partial inline_actions_cell %}{% endif %}
     {% for cell in row.cells %}
         <td class="align-middle pc-table-column-width" data-field-name="{{ cell.name }}" data-powercrud-column-width-mode="{{ cell.width_mode }}">

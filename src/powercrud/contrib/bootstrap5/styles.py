@@ -44,9 +44,9 @@ def get_bootstrap5_framework_styles(view: Any) -> dict[str, dict[str, Any]]:
         "bootstrap5": {
             "base": "btn",
             "actions": {
-                "View": "btn-info",
-                "Edit": "btn-primary",
-                "Delete": "btn-danger",
+                "View": "pc-bootstrap-row-action-neutral",
+                "Edit": "pc-bootstrap-row-action-neutral",
+                "Delete": "pc-bootstrap-row-action-destructive",
             },
             "action_group_item": "",
             "extra_default": "btn-success",

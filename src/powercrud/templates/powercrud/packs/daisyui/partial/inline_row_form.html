@@ -10,7 +10,8 @@
     {% endif %}
 >
     {% if enable_selection_controls %}
-    <td class="py-0 align-middle">
+    <td class="py-0 align-middle w-10 text-center"
+        data-powercrud-selection-column="true">
         <input type="checkbox"
                class="checkbox checkbox-sm row-select-checkbox"
                data-id="{{ row.id }}"

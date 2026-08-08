@@ -4,7 +4,7 @@
         {% if enable_selection_controls %}
             {% if bulk_selection_controls_template_paths %}{% include bulk_selection_controls_template_paths with selection_control="select_all" %}{% else %}{% include framework_template_path|add:"/partial/bulk_selection_controls.html" with selection_control="select_all" %}{% endif %}
         {% endif %}
-        {% if has_row_actions and row_actions_column_position == "start" %}<th scope="col" class="pc-bootstrap-actions-column align-middle text-start" data-powercrud-row-actions-column="true" data-powercrud-row-actions-position="start"{% if row_actions_column_sticky %} data-powercrud-row-actions-sticky="true"{% endif %}>{% if extra_actions_mode == "all_dropdown" %}<span class="visually-hidden">Actions</span>{% else %}Actions{% endif %}</th>{% endif %}
+        {% if has_row_actions and row_actions_column_position == "start" %}<th scope="col" class="pc-bootstrap-actions-column align-middle text-start" data-powercrud-row-actions-column="true" data-powercrud-row-actions-position="start"{% if row_actions_column_sticky %} data-powercrud-row-actions-sticky="true"{% endif %}><span class="pc-row-actions-heading-label{% if extra_actions_mode == 'all_dropdown' %} visually-hidden{% endif %}">Actions</span></th>{% endif %}
         {% for header in headers %}
             <th scope="col" class="pc-table-column-width align-middle text-center" data-field-name="{{ header.field_name }}" data-powercrud-column-width-mode="{{ header.width_mode }}"{% if current_sort == header.field_name %} aria-sort="ascending"{% elif current_sort == '-'|add:header.field_name %} aria-sort="descending"{% endif %}>
                 {% if header.is_sortable %}
@@ -18,6 +18,6 @@
                 {% endif %}
             </th>
         {% endfor %}
-        {% if has_row_actions and row_actions_column_position != "start" %}<th scope="col" class="pc-bootstrap-actions-column align-middle text-center" data-powercrud-row-actions-column="true" data-powercrud-row-actions-position="end"{% if row_actions_column_sticky %} data-powercrud-row-actions-sticky="true"{% endif %}>{% if extra_actions_mode == "all_dropdown" %}<span class="visually-hidden">Actions</span>{% else %}Actions{% endif %}</th>{% endif %}
+        {% if has_row_actions and row_actions_column_position != "start" %}<th scope="col" class="pc-bootstrap-actions-column align-middle text-center" data-powercrud-row-actions-column="true" data-powercrud-row-actions-position="end"{% if row_actions_column_sticky %} data-powercrud-row-actions-sticky="true"{% endif %}><span class="pc-row-actions-heading-label{% if extra_actions_mode == 'all_dropdown' %} visually-hidden{% endif %}">Actions</span></th>{% endif %}
     </tr>
 </thead>

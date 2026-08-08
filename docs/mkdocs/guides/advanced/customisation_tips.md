@@ -155,7 +155,7 @@ To change the matching-record action, select-all cell, and row-selection cell to
 python manage.py pcrud_mktemplate myapp.Project --component bulk-selection-controls
 ```
 
-This creates `myapp/templates/myapp/project_bulk_selection_controls.html`. It is a three-mode component selected with `selection_control` set to `matching`, `select_all`, or `row`; retain all three branches. Keep the matching-action URL and query state, select-all and row hooks, initial-state metadata, and HTMX status target. Selection persistence and repeated initialization remain package-owned.
+This creates `myapp/templates/myapp/project_bulk_selection_controls.html`. It is a three-mode component selected with `selection_control` set to `matching`, `select_all`, or `row`; retain all three branches. Keep the matching-action URL and query state, select-all and row hooks, initial-state metadata, and HTMX status target. Preserve `data-powercrud-selection-column="true"` on the `select_all` and `row` cells so the default logical-start stickiness and adjacent sticky-action offset remain intact. Selection persistence and repeated initialization remain package-owned.
 
 ### Override the bulk form and fields
 

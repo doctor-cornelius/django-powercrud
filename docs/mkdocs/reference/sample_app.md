@@ -56,6 +56,8 @@ The sample app includes four interconnected models that showcase different relat
 
 Each model has a dedicated CRUD view demonstrating different powercrud features:
 
+The menu pages use `view_instructions` only for a short description of the records shown in the sample app. Their expandable `view_help` content explains the PowerCRUD behaviour each page demonstrates in user-facing terms: what to click or create, what should happen, and where to look for the result.
+
 ### BookCRUDView - Full Feature Demo
 
 ```python
@@ -65,15 +67,14 @@ from powercrud.mixins import PowerCRUDAsyncMixin
 class BookCRUDView(PowerCRUDAsyncMixin, CRUDView):
     # Comprehensive configuration showing:
     view_title = "My List of Books"
-    view_instructions = "Here you can edit books"
+    view_instructions = "Browse and manage the sample book catalogue."
     view_help = {
-        "summary": "About this feature demo",
+        "summary": "About the Books demo",
         "details": (
-            "This Books screen demonstrates many PowerCRUD features in one place."
+            "This is the sample app's main, full-featured Books screen."
             "\n\n"
-            "Use it to inspect list options, inline editing, saved filter favourites, "
-            "bulk actions, async workflows, modal links, external links, selection-aware "
-            "toolbar actions, and guarded update behaviour."
+            "Open Filters or Cols to change the list, select rows to try summary and "
+            "bulk controls, and use the row icons and three-dot menu for actions."
         ),
         "color": "info",
     }
@@ -160,7 +161,7 @@ class BookCRUDView(PowerCRUDAsyncMixin, CRUDView):
         return f"ISBN: {obj.isbn}"
 ```
 
-The sample `BookCRUDView` uses `view_title = "My List of Books"` plus `view_instructions = "Here you can edit books"` to demonstrate the narrow heading/helper-text overrides. It also sets `view_help` to demonstrate collapsed screen-level guidance with a one-line summary, escaped paragraph text, a subtle `info` colour tint, and table-aligned width. The Books list demonstrates restricted page-size controls with `page_size_options = [5, 10, 25, 50]` and `page_size_all_enabled = False`, so oversized `100` and `All` choices are not offered. Its wide table explicitly keeps row actions at logical end and pins that column horizontally, including inline Save/Cancel controls and the extras-only row `More` trigger. The `column_help_text` mapping covers fields and properties so the sample list shows the header-help tooltip pattern; on linked demo columns, the header help explicitly says whether the link opens in the current page, a new tab/window, or the PowerCRUD modal. `list_cell_tooltip_fields` maps selected fields/properties to row-specific tooltip hooks for the inline-editable `title`, the visible non-inline `pages` field, and the boolean-like `isbn_empty` property cell. The `pages` tooltip uses `mode="lazy"` so its content is fetched only when the page-count cell is hovered or focused. The optional `description_empty` property column can be added through **Cols** when checking lazy row-action availability for books with no description. The sample `title` tooltip intentionally uses a newline so the demo shows multiline semantic list-cell tooltip rendering, while header-help tooltips and other tooltip surfaces keep their normal single-line behavior. That changes only the list surface above and inside the table; other UI copy such as the create button still comes from the model verbose names, and the instructions text, collapsed screen help, header help text, and semantic cell tooltip text are all rendered as plain escaped text rather than HTML.
+The sample `BookCRUDView` uses `view_title = "My List of Books"` plus a concise `view_instructions` description of the sample catalogue. Its expandable `view_help` contains the PowerCRUD-oriented walkthrough, demonstrating collapsed screen-level guidance with a one-line summary, escaped paragraph text, a subtle `info` colour tint, and table-aligned width. The Books list demonstrates restricted page-size controls with `page_size_options = [5, 10, 25, 50]` and `page_size_all_enabled = False`, so oversized `100` and `All` choices are not offered. Its wide table explicitly keeps row actions at logical end and pins that column horizontally, including inline Save/Cancel controls and the extras-only row kebab. At narrow widths, the same row instead demonstrates the automatic all-actions kebab. The `column_help_text` mapping covers fields and properties so the sample list shows the header-help tooltip pattern; on linked demo columns, the header help explicitly says whether the link opens in the current page, a new tab/window, or the PowerCRUD modal. `list_cell_tooltip_fields` maps selected fields/properties to row-specific tooltip hooks for the inline-editable `title`, the visible non-inline `pages` field, and the boolean-like `isbn_empty` property cell. The `pages` tooltip uses `mode="lazy"` so its content is fetched only when the page-count cell is hovered or focused. The optional `description_empty` property column can be added through **Cols** when checking lazy row-action availability for books with no description. The sample `title` tooltip intentionally uses a newline so the demo shows multiline semantic list-cell tooltip rendering, while header-help tooltips and other tooltip surfaces keep their normal single-line behavior. That changes only the list surface above and inside the table; other UI copy such as the create button still comes from the model verbose names, and the instructions text, collapsed screen help, header help text, and semantic cell tooltip text are all rendered as plain escaped text rather than HTML.
 
 The same sample view now also demonstrates list-cell linking through the narrow declarative `link_fields` API. The live sample uses the non-inline property column `a_really_long_property_header_for_title` so the screen can keep its primary `title` and `author` columns reserved for inline-edit and dependency demos. That is deliberate: PowerCRUD never turns inline-editable cells into links. The sample sets `list_cell_link_default_open_in = "modal"` and uses the dict form with `pk_attr = "author_id"` plus `modal_presentation`, so that existing non-inline link opens the related author detail through a noticeably larger PowerCRUD modal when the sample page is running with modal support. In views that omit `list_cell_link_default_open_in`, PowerCRUD assumes `"new"`. The sample links `pages` to the current book detail with explicit `open_in = "current"`, and keeps `isbn` out of `inline_edit_fields` so that visible field can link to a static external ISBN reference with explicit `open_in = "new"`.
 
@@ -213,6 +214,7 @@ class AnnotatedBookCRUDView(PowerCRUDAsyncMixin, CRUDView):
     inline_edit_fields = ["pages"]
     bulk_fields = []
     bulk_delete = False
+    extra_actions_mode = "buttons"
     row_actions_column_position = "start"
     extra_buttons = [
         PowerButton(
@@ -235,9 +237,9 @@ class AnnotatedBookCRUDView(PowerCRUDAsyncMixin, CRUDView):
 
 The `long_book` column is not a model field. It is the public queryset annotation name, and PowerCRUD uses that same name in `fields`, generated filters, sorting, header help, cell tooltips, and list-column selection. The sample sets `list_options_enabled = True` and keeps `long_book` out of `default_list_fields` so it appears as an optional selectable column in the **Cols** control. The sample makes the real `pages` model field inline-editable while keeping `long_book` out of inline edit and bulk edit config because annotation fields are read-only.
 
-The same annotated list also demonstrates selection controls for a selection-aware toolbar button without enabling built-in bulk edit/delete. `Annotated Selection Summary` uses `uses_selection=True`, while `bulk_fields = []` and `bulk_delete = False`, so row selection exists solely for the custom modal endpoint. Its `Open Book` action makes the logical-start Actions column visible immediately after that selection column; stickiness remains disabled here so relocation can be inspected independently. See [Queryset Annotation Fields](../guides/advanced/queryset_annotation_fields.md) for the declaration details behind this sample.
+The same annotated list also demonstrates selection controls for a selection-aware toolbar button without enabling built-in bulk edit/delete. `Annotated Selection Summary` uses `uses_selection=True`, while `bulk_fields = []` and `bulk_delete = False`, so row selection exists solely for the custom modal endpoint. Its `extra_actions_mode = "buttons"` setting keeps the configured `Open Book` action directly visible on wider screens, making this the sample catalogue's explicit button-mode example. The logical-start Actions column appears immediately after the default-sticky selection column; action-column stickiness remains disabled here so relocation can be inspected independently. See [Queryset Annotation Fields](../guides/advanced/queryset_annotation_fields.md) for the declaration details behind this sample.
 
-The **Authors** list combines `extra_actions_mode = "all_dropdown"` with a logical-start sticky action column. Its compact vertical-ellipsis trigger follows the selection checkbox, the visible header label is omitted, and the menu shows permitted View/Edit/Delete controls as a coloured icon row above the labelled Home and View Again extras. Inline Save/Cancel temporarily replace that trigger and the compact menu returns after the HTMX row replacement.
+The **Authors** list combines `extra_actions_mode = "all_dropdown"` with a logical-start sticky action column. Its quiet vertical-ellipsis trigger pins immediately after the default-sticky selection checkbox, the visible header label is omitted, and the menu is one labelled list: View, Edit, Home, View Again, then Delete. Inline Save/Cancel temporarily replace that trigger and the compact menu returns after the HTMX row replacement.
 
 The **PowerField Books** list provides the opposite-edge comparison: it uses the same compact all-actions menu on a logical-end sticky column. The main **Books** list deliberately remains on the extras-only `"dropdown"` mode so both menu choices can be inspected against equivalent Book fields and default columns.
 
@@ -284,6 +286,18 @@ class PowerFieldBookCRUDView(PowerCRUDAsyncMixin, CRUDView):
     model = Book
     namespace = "sample"
     url_base = "powerfield-book"
+    view_instructions = "Browse and manage the same book catalogue as the Books page."
+    view_help = {
+        "summary": "About the Power* Structured API demo",
+        "details": (
+            "This page is intended to behave like the main Books page. The source code "
+            "declares the same setup through PowerField, PowerButton, and PowerAction."
+            "\n\n"
+            "Open a row's three-dot button to see the only intentional visible "
+            "difference: every row action is inside that menu."
+        ),
+        "color": "info",
+    }
     list_options_enabled = True
     column_width_policy = "semantic"
     extra_actions_mode = "all_dropdown"
@@ -469,15 +483,15 @@ When the user changes `author` inline, PowerCRUD posts the current row data to t
 
 ### Other Views
 
-- **GenreCRUDView**: Minimal configuration example plus two focused delete demos: a guarded row (`Guarded Sample Genre`) that disables the built-in Delete action before click, and a protected row (`Protected Sample Genre`) that demonstrates handled single-delete `ValidationError` responses after submit
-- **ProfileCRUDView**: OneToOneField, the sample app's column-alignment demo (`status` centered, `priority_band` right-aligned, `favorite_genre` left-aligned), inline editing, bulk operations, merged nullable relation filtering on `favorite_genre`, and a static queryset rule that limits `favorite_genre` choices to genres whose names start with `S`
-- **AuthorCRUDView**: Properties, filtering, template debugging, companion nullable scalar filtering on `birth_date`, the sample app's red inline-edit highlight accent demo, the compact all-actions menu with coloured standard icons and labelled extras, and the combined logical-start-plus-sticky action column with selection and inline editing enabled
+- **GenreCRUDView**: Its help explains how to edit directly in the table and tells users to create, or use, records named exactly `Guarded Sample Genre` and `Protected Sample Genre` to try the two different Delete refusal paths
+- **ProfileCRUDView**: Its help explains how to reveal optional columns, edit or bulk-edit profile values, and create a Genre whose name begins with `S` when another favourite-genre choice is needed
+- **AuthorCRUDView**: Its help tells users to scroll the wide table, open the pinned three-dot menu, and start inline editing to see Save and Cancel replace that menu temporarily
 - **BookCRUDView**: Async bulk editing, dependent `author -> genres` queryset scoping, restricted page-size options without `All`, `view_title` / `view_instructions` / `view_help` heading-area overrides, `column_help_text` header tooltips, list options through **Cols**, semantic field-level list-cell tooltips on inline and non-inline columns, declarative modal and external list-cell link demos, permission-aware Create/Detail/Edit/Delete and custom action affordances, default clear-on-success and explicit opt-out selection-aware `extra_buttons` in the top toolbar overflow menu, an end-positioned sticky row-actions column, extras-only dropdown row actions that open upward for the last five rendered rows, and a guarded sample row for built-in Edit and inline update guards
-- **PowerFieldBookCRUDView**: The same Book fields, default columns, toolbar actions, and row-action declarations expressed through PowerField, PowerButton, and PowerAction, with the compact all-actions menu on the logical-end sticky column for comparison with Authors and Books
-- **AnnotatedBookCRUDView**: Queryset annotation fields, annotation filters, list options, inline editing of the real `pages` model field, a non-sticky start-positioned `Open Book` row action, and a selection-aware toolbar button that renders selector controls without built-in bulk edit/delete
-- **AsyncTaskRecordCRUDView**: The temporal list-format sample. It shows `updated_at` as time-only, `completed_at` as date-and-time, and leaves `created_at` / `failed_at` on PowerCRUD's legacy date-only default.
+- **PowerFieldBookCRUDView**: Its help asks users to compare it with Books and explains both the developer-facing Power* Structured API and the one visible difference: all row actions are inside the pinned three-dot menu
+- **AnnotatedBookCRUDView**: Its help explains that Long Book means at least 400 pages, how to reveal it through Cols, how changing Pages recalculates it, and how selection and the direct Open Book action differ from the main Books page
+- **AsyncTaskRecordCRUDView**: Its help tells users how to create a background-job record from a bulk edit on Books, explains the different date/time formats, and points to View Progress in the row's three-dot menu
 
-The `Genre` sample keeps these delete demos deliberately narrow:
+The `Genre` sample keeps these delete demos deliberately narrow. If the named row is not already present, create it from the Genres page; the name must match exactly:
 
 - If a row is named `Guarded Sample Genre`, `GenreCRUDView.can_delete_object(...)` returns `False` and the built-in Delete action renders disabled with a tooltip reason before the modal opens.
 - If a row is named `Protected Sample Genre`, its `delete()` method raises `ValidationError("Protected Sample Genre exists to demonstrate handled delete refusals.")`.

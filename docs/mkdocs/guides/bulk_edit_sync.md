@@ -212,6 +212,8 @@ This keeps each user’s selection independent.
     End users can `Shift` + click row checkboxes to select or clear a contiguous range on the currently visible page.
     This shortcut only applies to rows rendered on the current page; it does not span pagination boundaries.
 
+    The select-all header and row checkbox column are pinned to the logical start of the table by default. They remain visible during horizontal table scrolling. When row actions are also sticky at logical start, the action column pins immediately after selection; logical-end actions can remain pinned at the opposite edge.
+
 ### Select all matching records
 
 When at least one row is selected and the active filtered queryset still contains additional rows, PowerCRUD can offer a contextual bulk-selection action on the metadata line above the table.

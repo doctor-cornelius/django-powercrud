@@ -42,8 +42,8 @@ For the mental model behind the option groups, see [PowerCRUD Concepts](../guide
 | `detail_properties_exclude` (`list[str]`) | `list[str]` | `[]` | All listed detail properties render | Remove specific properties from the detail page. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
 | `dropdown_sort_options` (`dict`) | `dict[str, str]` | `{}` | PowerCRUD orders dropdowns by `name/title/...` heuristics | Explicit ordering for dropdowns in filters, forms, and bulk edit widgets. | [Bulk editing (synchronous)](../guides/bulk_edit_sync.md) |
 | `exclude` (`list[str]`) | `list[str]` | `[]` | Every concrete model field is shown | Remove individual fields from the list view while keeping the rest. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
-| `extra_actions` (`list[dict \| PowerAction]`) | `list[action spec]` | `[]` | Only the default action buttons render | Define extra per-row actions (URL, label, attributes). Modal actions may set partial `modal_presentation`, `refresh_list_on_modal_close`, `hidden_if`, disabled-state hooks, and permission affordance fields. | [Complete Example](complete_example.md) |
-| `extra_actions_mode` (`str`) | `'buttons'`, `'dropdown'`, `'all_dropdown'` | `'buttons'` | Extra row actions render as visible buttons after the standard actions | Control row-action presentation. `'dropdown'` keeps permitted `View/Edit/Delete` controls visible and moves only extras into `More`; `'all_dropdown'` puts every permitted row action behind one compact `Actions` trigger. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
+| `extra_actions` (`list[dict \| PowerAction]`) | `list[action spec]` | `[]` | Only the built-in row actions render | Define extra per-row actions (URL, label, attributes). Modal actions may set partial `modal_presentation`, `refresh_list_on_modal_close`, `hidden_if`, disabled-state hooks, and permission affordance fields. | [Complete Example](complete_example.md) |
+| `extra_actions_mode` (`str`) | `'buttons'`, `'dropdown'`, `'all_dropdown'` | `'dropdown'` | Built-in actions remain visible and configured extras use a kebab menu | Control row-action presentation on wider viewports. `'dropdown'` keeps permitted `View/Edit/Delete` controls visible and moves only extras behind a kebab; `'all_dropdown'` puts every permitted row action behind one kebab. On narrow viewports every mode collapses to the all-actions layout. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
 | `extra_actions_dropdown_open_upward_bottom_rows` (`int`) | `int >= 0` | `3` | All row-action menus open downward | In either dropdown mode, open the row-action menu upward for the last N rendered rows on the current page. Set `0` to disable this behavior. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
 | `extra_button_classes` (`str`) | `str` | `""` | Extra buttons use the default button styling | Additional CSS classes shared by every entry in `extra_buttons`. | [Styling & Tailwind](../guides/styling_tailwind.md) |
 | `extra_button_selection_controls_disabled` (`bool`) | `True`, `False` | `False` | Selection-aware extra buttons can render row selection controls | Set to `True` if the button uses selected rows, but this list should not show checkboxes just because of that button. Bulk edit and bulk delete still show checkboxes because they need them. | [Setup & Core CRUD basics](../guides/setup_core_crud.md#extra-buttons) |
@@ -89,7 +89,7 @@ For the mental model behind the option groups, see [PowerCRUD Concepts](../guide
 | `properties` (`list/str`) | `None`, `'__all__'`, `list[str]` | `[]` | No computed properties show in the list view | Computed properties to display alongside fields. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
 | `properties_exclude` (`list[str]`) | `list[str]` | `[]` | Every listed property renders | Remove individual properties from the list view. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
 | `row_actions_column_position` (`str`) | `'start'`, `'end'` | `'end'` | The Actions column remains after the data columns | Place the Actions column at the logical start or end of list tables. In LTR layouts start is left and end is right; RTL reverses those physical edges. When selection controls are present, their checkbox column remains the outermost start column. | [Setup & Core CRUD basics](../guides/setup_core_crud.md#row-actions-column-layout) |
-| `row_actions_column_sticky` (`bool`) | `True`, `False` | `False` | The Actions column scrolls horizontally with the table | Pin the Actions header and display/inline action cells to their configured logical edge during horizontal table scrolling. This does not fix them vertically or change the floating `More` menu. | [Styling & Tailwind](../guides/styling_tailwind.md#row-actions-column-layout) |
+| `row_actions_column_sticky` (`bool`) | `True`, `False` | `True` | The Actions column remains pinned during horizontal table scrolling | Pin the Actions header and display/inline action cells to their configured logical edge during horizontal table scrolling. This does not fix them vertically or change the floating `More` menu. | [Styling & Tailwind](../guides/styling_tailwind.md#row-actions-column-layout) |
 | `searchable_selects` (`bool`) | `None`, `True`, `False` | `True` | Select widgets render as native `<select>` controls | Enable Tom Select enhancement for eligible select fields in regular forms, inline editing, bulk edit forms, and filter forms. | [Form controls](#form-controls) |
 | `show_bulk_selection_meta` (`bool`) | `True`, `False` | `True` | Bulk-selection metadata actions appear above the table when a selection exists | Control the contextual bulk-selection action row independently of `show_record_count`. | [Bulk editing (synchronous)](../guides/bulk_edit_sync.md) |
 | `show_record_count` (`bool`) | `True`, `False` | `False` | No results-count metadata is shown above the table | Display a small status line above the list table showing the total filtered queryset size, or the current page slice plus total when pagination is enabled. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
@@ -402,9 +402,11 @@ Use `extra_actions` to add per-row actions beyond the built-in `View`, `Edit`, a
 
 `extra_actions_mode` controls how those extra row actions are displayed:
 
-- `'buttons'` keeps the legacy behavior and renders extra row actions as visible joined buttons.
-- `'dropdown'` keeps the standard row actions visible and moves only `extra_actions` into a `More` dropdown.
-- `'all_dropdown'` replaces the visible row controls with one vertical-ellipsis **Actions** trigger using the pack's semantic `info` colour. The menu renders the permitted standard actions as a centred, icon-only row using their configured colours, followed by labelled extra-action rows using their configured colours. If no standard action is permitted, the icon row is omitted.
+- `'buttons'` keeps compact built-in icon controls visible and renders configured extra actions as labelled buttons.
+- `'dropdown'` keeps the built-in icon controls visible and moves only `extra_actions` behind a neutral vertical-ellipsis trigger whose accessible name is **More actions**.
+- `'all_dropdown'` replaces the visible row controls with one neutral vertical-ellipsis **Actions** trigger. Its labelled menu order is View, Edit, configured extras in declaration order, then Delete last.
+
+Below 640px, the first-party packs collapse all three modes to the `all_dropdown` presentation. The single **Actions** kebab contains every permitted native and configured action in canonical order. This is a responsive default rather than another configuration value; inline Save and Cancel remain visible while editing.
 
 The all-actions trigger and its tooltip have the accessible name **Actions**. The table's visual **Actions** heading is omitted in this compact mode, while a screen-reader-only heading preserves the column name. Inline Save and Cancel remain visible while a row is being edited.
 
@@ -415,7 +417,7 @@ row_actions_column_position = "start"
 row_actions_column_sticky = True
 ```
 
-`position` is logical rather than physical, so it follows LTR/RTL direction. Selection checkboxes always remain the outermost start column; start-positioned actions follow them. Stickiness applies only while the table scrolls horizontally and is carried through the header, normal rows, inline edit controls, and HTMX-returned replacement rows. The default combination remains `"end"` plus `False`.
+`position` is logical rather than physical, so it follows LTR/RTL direction. Selection checkboxes always remain the outermost start column; start-positioned actions follow them. Stickiness applies only while the table scrolls horizontally and is carried through the header, normal rows, inline edit controls, and HTMX-returned replacement rows. The default combination is `"end"` plus `True`.
 
 Example:
 
@@ -443,10 +445,13 @@ extra_actions = [
 
 Notes:
 
-- The default is `'buttons'` for backward compatibility.
+- The default is `'dropdown'`: built-in actions remain visible while configured extras move behind the kebab. Set `'buttons'` to restore the previous wider-screen presentation.
 - `extra_actions_mode` controls row-action presentation only; it does not affect top-of-page `extra_buttons`.
-- In extras-only dropdown mode, the `More` trigger uses the framework’s `extra_default` button styling unless you override the framework styles.
-- In all-dropdown mode, standard and extra menu actions reuse their normal configured/default action colours. Permission-hidden standard actions are omitted, and disabled reasons, modal behavior, HTMX behavior, history, guards, and refresh-on-close metadata are preserved.
+- In either dropdown mode, configured `button_class` values do not colour menu entries. They still apply to visible configured extras in `'buttons'` mode.
+- The first-party packs render View, Edit, and both kebab scopes as quiet neutral controls. Delete alone retains restrained destructive colour. Menus use neutral rows, a consistent icon gutter in all-actions scope, and a divider before Delete only when another visible item precedes it.
+- Selection checkboxes are a system column pinned to logical start by default; this is not separately parameterised. Sticky logical-start actions sit immediately after selection, while sticky logical-end actions remain pinned at the opposite edge.
+- To restore the previous scrolling action column, set `row_actions_column_sticky = False`.
+- Permission-hidden standard actions are omitted. Disabled reasons, modal behavior, HTMX behavior, history, guards, lazy state, and refresh-on-close metadata are preserved.
 - `extra_actions_dropdown_open_upward_bottom_rows` counts from the bottom of the currently rendered rows after filtering and pagination.
 - Set `extra_actions_dropdown_open_upward_bottom_rows = 0` to keep every dropdown opening downward.
 - `modal_presentation` is only used when `display_modal=True`; it merges with the view presentation while this row action's modal is open.

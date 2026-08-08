@@ -313,8 +313,11 @@ def test_bootstrap_optional_components_preserve_shared_semantic_hooks():
                 show_extra_dropdown=True,
                 show_all_dropdown=False,
                 dropdown_scope="extras",
+                dropdown_trigger_label="More actions",
                 dropdown_trigger_class="",
                 row_action_states_url="/books/7/action-states/",
+                show_responsive_dropdown=False,
+                responsive_dropdown_actions=[],
                 extra_actions=[
                     SimpleNamespace(
                         href="/books/7/archive/",
@@ -357,6 +360,12 @@ def test_bootstrap_optional_components_preserve_shared_semantic_hooks():
     )
     assert 'data-powercrud-row-action-kind="extra"' in row_actions and '<a href="/books/7/archive/"' in row_actions and 'data-powercrud-row-action-state-mode="lazy"' in row_actions, (
         "Bootstrap row-action menus should preserve list-item semantics and lazy action-state metadata."
+    )
+    assert 'aria-label="More actions"' in row_actions and ">More<" not in row_actions, (
+        "Bootstrap extras-only dropdowns should use the accessible compact kebab without visible More text."
+    )
+    assert "pc-bootstrap-row-actions-caret" not in row_actions, (
+        "Bootstrap extras-only dropdowns should not retain the old chevron indicator."
     )
 
 
@@ -478,8 +487,11 @@ def test_bootstrap_row_actions_render_one_accessible_all_actions_menu():
                 show_extra_dropdown=False,
                 show_all_dropdown=True,
                 dropdown_scope="all",
-                dropdown_trigger_class="btn btn-secondary",
+                dropdown_trigger_label="Actions",
+                dropdown_trigger_class="btn",
                 row_action_states_url="",
+                show_responsive_dropdown=False,
+                responsive_dropdown_actions=dropdown_actions,
             )
         },
     )
@@ -493,15 +505,24 @@ def test_bootstrap_row_actions_render_one_accessible_all_actions_menu():
     assert all(
         marker in rendered
         for marker in (
-            'data-powercrud-row-actions-standard-group="true"',
-            'aria-label="View"',
-            'aria-label="Edit"',
-            'aria-label="Delete"',
-            "btn btn-warning w-100",
+            '<span>View</span>',
+            '<span>Edit</span>',
             "<span>Archive</span>",
+            '<span>Delete</span>',
+            'class="pc-row-action-menu-icon"',
         )
     ), (
-        "Bootstrap should render coloured native icons as one group and labelled configured extras below it."
+        "Bootstrap should render native and configured actions as one labelled vertical menu."
+    )
+    rendered_positions = [
+        rendered.index(f"<span>{name}</span>")
+        for name in ("View", "Edit", "Archive", "Delete")
+    ]
+    assert rendered_positions == sorted(rendered_positions), (
+        "Bootstrap should place configured actions after View and Edit while keeping Delete last."
+    )
+    assert "btn btn-warning" not in rendered, (
+        "Dropdown entries should not reuse decorative extra-button fills."
     )
     assert 'data-powercrud-row-action-destructive="true"' in rendered, (
         "Bootstrap should retain the semantic marker used for conditional Delete separation."
@@ -585,6 +606,9 @@ def test_bootstrap_row_actions_column_honours_portable_start_and_sticky_layout()
         )
         assert 'data-powercrud-row-actions-sticky="true"' in rendered, (
             "Bootstrap action columns should expose the enabled sticky marker."
+        )
+        assert 'data-powercrud-selection-column="true"' in rendered, (
+            "Bootstrap selection cells should expose the default sticky-column marker in every row state."
         )
 
 

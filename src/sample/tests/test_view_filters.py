@@ -238,6 +238,9 @@ def test_sample_views_demonstrate_row_actions_column_layout_options():
     assert annotated_view.get_row_actions_column_position() == "start" and annotated_view.get_row_actions_column_sticky() is False, (
         "AnnotatedBookCRUDView should demonstrate relocation to logical start independently of stickiness."
     )
+    assert annotated_view.get_extra_actions_mode() == "buttons", (
+        "AnnotatedBookCRUDView should demonstrate directly visible configured row-action buttons."
+    )
     assert author_view.get_row_actions_column_position() == "start" and author_view.get_row_actions_column_sticky() is True, (
         "AuthorCRUDView should demonstrate the combined logical-start and sticky layout."
     )
@@ -280,9 +283,7 @@ def test_author_sample_all_actions_menu_survives_inline_htmx_rows():
     )
     header_start = list_html.index("<thead")
     header_html = list_html[header_start:list_html.index("</thead>", header_start)]
-    assert '<span class="sr-only">Actions</span>' in header_html and '>Actions</span>' not in header_html.replace(
-        '<span class="sr-only">Actions</span>', ""
-    ), (
+    assert '<span class="sr-only pc-row-actions-heading-label">Actions</span>' in header_html, (
         "The all-dropdown Author header should retain an accessible name without a visible Actions label."
     )
     assert display_response.status_code == 200 and b"data-powercrud-row-actions-scope='all'" in display_response.content, (

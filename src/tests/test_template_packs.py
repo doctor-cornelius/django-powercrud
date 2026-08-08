@@ -539,7 +539,7 @@ def test_bootstrap_helpers_cover_the_optional_pack_public_surface():
 
     first_styles = get_bootstrap5_framework_styles(object())
     first_styles["bootstrap5"]["actions"]["View"] = "changed"
-    assert get_bootstrap5_framework_styles(object())["bootstrap5"]["actions"]["View"] == "btn-info"
+    assert get_bootstrap5_framework_styles(object())["bootstrap5"]["actions"]["View"] == "pc-bootstrap-row-action-neutral"
 
     config = PowercrudBootstrap5Config("powercrud.contrib.bootstrap5", import_module("powercrud.contrib.bootstrap5"))
     assert config.name == "powercrud.contrib.bootstrap5"

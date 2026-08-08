@@ -1,9 +1,13 @@
 {% load powercrud_partials %}
-<div class="btn-group btn-group-sm pc-bootstrap-row-action-group" role="group" aria-label="Row actions">
+<div class="btn-group btn-group-sm pc-bootstrap-row-action-group pc-row-actions pc-row-actions-desktop"
+     role="group"
+     aria-label="Row actions"
+     data-powercrud-row-actions-responsive="desktop">
     {% if not row_actions.show_all_dropdown %}
         {% for action in row_actions.standard_actions %}
             <a href="{{ action.href }}"
-               class="{{ action.class_name }}"
+               class="{{ action.class_name }} pc-row-action-icon-button"
+               data-powercrud-row-action-kind="standard"{% if action.is_destructive %} data-powercrud-row-action-destructive="true"{% endif %}
                {% if action.label_html %}aria-label="{{ action.text }}"{% endif %}
                {% if action.tooltip_text %}data-bs-title="{{ action.tooltip_text }}" data-powercrud-tooltip="semantic"{% endif %}{% if action.style %}style="{{ action.style }}"{% endif %}
                {% if action.use_htmx %}{% if action.hx_post %}hx-post="{{ action.href }}"{% else %}hx-get="{{ action.href }}"{% endif %}{% if action.target %} hx-target="{{ action.target }}"{% endif %}{% if action.use_history %} hx-replace-url="true" hx-push-url="true"{% endif %}{% endif %}
@@ -11,55 +15,9 @@
         {% endfor %}
     {% endif %}
     {% if row_actions.show_dropdown %}
-        <div class="dropdown"
-             data-powercrud-row-actions-dropdown="true"
-             data-powercrud-row-actions-scope="{{ row_actions.dropdown_scope }}">
-            {% if row_actions.show_all_dropdown %}
-                <button type="button"
-                        class="pc-bootstrap-row-actions-all {{ row_actions.dropdown_trigger_class }}"
-                        aria-label="Actions"
-                        aria-expanded="false"
-                        data-bs-title="Actions"
-                        data-powercrud-tooltip="semantic"
-                        data-inline-action="more"
-                        data-powercrud-row-actions-trigger="true"{% if row_actions.row_action_states_url %} data-powercrud-row-action-states-url="{{ row_actions.row_action_states_url }}"{% endif %}>
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                        <circle cx="12" cy="5" r="1.75"></circle>
-                        <circle cx="12" cy="12" r="1.75"></circle>
-                        <circle cx="12" cy="19" r="1.75"></circle>
-                    </svg>
-                </button>
-            {% else %}
-                <button type="button" class="pc-bootstrap-row-actions-more {{ row_actions.dropdown_trigger_class }}" aria-label="More actions" aria-expanded="false" data-inline-action="more" data-powercrud-row-actions-trigger="true"{% if row_actions.row_action_states_url %} data-powercrud-row-action-states-url="{{ row_actions.row_action_states_url }}"{% endif %}><span>More</span><span aria-hidden="true" class="pc-bootstrap-row-actions-caret"></span></button>
-            {% endif %}
-            <div hidden data-powercrud-row-actions-template="true">
-                <ul class="dropdown-menu shadow pc-bootstrap-row-actions-panel"
-                    role="menu"
-                    data-powercrud-row-actions-panel="true"
-                    data-powercrud-row-actions-scope="{{ row_actions.dropdown_scope }}">
-                    {% if row_actions.show_all_dropdown and row_actions.standard_dropdown_actions %}
-                        <li data-powercrud-row-actions-standard-group="true">
-                            <div class="d-flex align-items-center justify-content-center gap-1 p-1" role="group" aria-label="Standard actions">
-                                {% for action in row_actions.standard_dropdown_actions %}
-                                    <a href="{{ action.href }}"
-                                       class="{{ action.class_name }} pc-bootstrap-row-action-menu-icon"
-                                       aria-label="{{ action.text }}"
-                                       data-powercrud-row-action-kind="standard"{% if action.is_destructive %} data-powercrud-row-action-destructive="true"{% endif %}
-                                       {% if action.tooltip_text %}data-bs-title="{{ action.tooltip_text }}" data-powercrud-tooltip="semantic"{% endif %}{% if action.style %}style="{{ action.style }}"{% endif %}
-                                       {% if action.use_htmx %}{% if action.hx_post %}hx-post="{{ action.href }}"{% else %}hx-get="{{ action.href }}"{% endif %}{% if action.target %} hx-target="{{ action.target }}"{% endif %}{% if action.use_history %} hx-replace-url="true" hx-push-url="true"{% endif %}{% endif %}
-                                       {% if action.modal_attrs %}{{ action.modal_attrs|safe }}{% endif %}{% if action.modal_box_classes %}data-powercrud-modal-box-classes="{{ action.modal_box_classes }}"{% endif %}{% if action.modal_presentation_attrs %}{{ action.modal_presentation_attrs|safe }}{% endif %}{% if action.refresh_list_on_modal_close %}data-powercrud-refresh-list-on-modal-close="true"{% endif %}{% if action.disable %}aria-disabled="true"{% endif %} data-inline-action="{{ action.inline_action }}">{{ action.label_html|safe }}</a>
-                                {% endfor %}
-                            </div>
-                        </li>
-                    {% endif %}
-                    {% if row_actions.show_all_dropdown %}
-                        {% for action in row_actions.extra_dropdown_actions %}{% partial dropdown_action %}{% endfor %}
-                    {% else %}
-                        {% for action in row_actions.dropdown_actions %}{% partial dropdown_action %}{% endfor %}
-                    {% endif %}
-                </ul>
-            </div>
-        </div>
+        {% with rendered_dropdown_actions=row_actions.dropdown_actions rendered_dropdown_scope=row_actions.dropdown_scope trigger_label=row_actions.dropdown_trigger_label %}
+            {% partial dropdown_control %}
+        {% endwith %}
     {% else %}
         {% for action in row_actions.extra_actions %}
             <a href="{{ action.href }}"
@@ -71,12 +29,52 @@
     {% endif %}
 </div>
 
+{% if row_actions.show_responsive_dropdown %}
+    <div class="btn-group btn-group-sm pc-bootstrap-row-action-group pc-row-actions pc-row-actions-mobile"
+         role="group"
+         aria-label="Row actions"
+         data-powercrud-row-actions-responsive="mobile">
+        {% with rendered_dropdown_actions=row_actions.responsive_dropdown_actions rendered_dropdown_scope='all' trigger_label='Actions' %}
+            {% partial dropdown_control %}
+        {% endwith %}
+    </div>
+{% endif %}
+
+{% partialdef dropdown_control %}
+<div class="dropdown"
+     data-powercrud-row-actions-dropdown="true"
+     data-powercrud-row-actions-scope="{{ rendered_dropdown_scope }}">
+    <button type="button"
+            class="pc-bootstrap-row-actions-all pc-row-actions-trigger {{ row_actions.dropdown_trigger_class }}"
+            aria-label="{{ trigger_label }}"
+            aria-expanded="false"
+            data-bs-title="{{ trigger_label }}"
+            data-powercrud-tooltip="semantic"
+            data-inline-action="more"
+            data-powercrud-row-actions-trigger="true"{% if row_actions.row_action_states_url %} data-powercrud-row-action-states-url="{{ row_actions.row_action_states_url }}"{% endif %}>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <circle cx="12" cy="5" r="1.75"></circle>
+            <circle cx="12" cy="12" r="1.75"></circle>
+            <circle cx="12" cy="19" r="1.75"></circle>
+        </svg>
+    </button>
+    <div hidden data-powercrud-row-actions-template="true">
+        <ul class="dropdown-menu shadow pc-bootstrap-row-actions-panel"
+            role="menu"
+            data-powercrud-row-actions-panel="true"
+            data-powercrud-row-actions-scope="{{ rendered_dropdown_scope }}">
+            {% for action in rendered_dropdown_actions %}{% partial dropdown_action %}{% endfor %}
+        </ul>
+    </div>
+</div>
+{% endpartialdef dropdown_control %}
+
 {% partialdef dropdown_action %}
-<li data-powercrud-row-action-kind="{{ action.kind }}">
+<li data-powercrud-row-action-kind="{{ action.kind }}"{% if action.is_destructive %} data-powercrud-row-action-destructive="true"{% endif %}>
     <a href="{{ action.href }}"
-       class="{% if row_actions.show_all_dropdown %}{{ action.menu_button_class }} w-100 justify-content-start text-start{% else %}dropdown-item {{ action.class_name }}{% endif %}"
+       class="dropdown-item pc-row-action-menu-item d-flex align-items-center text-start{% if action.disable %} disabled{% endif %}"
        {% if action.tooltip_text %}data-bs-title="{{ action.tooltip_text }}" data-powercrud-tooltip="semantic"{% endif %}{% if action.style %}style="{{ action.style }}"{% endif %}
        {% if action.use_htmx %}{% if action.hx_post %}hx-post="{{ action.href }}"{% else %}hx-get="{{ action.href }}"{% endif %}{% if action.target %} hx-target="{{ action.target }}"{% endif %}{% if action.use_history %} hx-replace-url="true" hx-push-url="true"{% endif %}{% endif %}
-       {% if action.modal_attrs %}{{ action.modal_attrs|safe }}{% endif %}{% if action.modal_box_classes %}data-powercrud-modal-box-classes="{{ action.modal_box_classes }}"{% endif %}{% if action.modal_presentation_attrs %}{{ action.modal_presentation_attrs|safe }}{% endif %}{% if action.refresh_list_on_modal_close %}data-powercrud-refresh-list-on-modal-close="true"{% endif %}{% if action.disable %}aria-disabled="true"{% endif %}{% if action.lazy_row_action_state %} data-powercrud-row-action-state-mode="lazy" data-powercrud-row-action-index="{{ action.action_index }}"{% if action.lazy_hidden_if %} data-powercrud-row-action-hidden-mode="lazy"{% endif %}{% endif %} data-inline-action="{{ action.inline_action }}"><span>{{ action.text }}</span></a>
+       {% if action.modal_attrs %}{{ action.modal_attrs|safe }}{% endif %}{% if action.modal_box_classes %}data-powercrud-modal-box-classes="{{ action.modal_box_classes }}"{% endif %}{% if action.modal_presentation_attrs %}{{ action.modal_presentation_attrs|safe }}{% endif %}{% if action.refresh_list_on_modal_close %}data-powercrud-refresh-list-on-modal-close="true"{% endif %}{% if action.disable %}aria-disabled="true"{% endif %}{% if action.lazy_row_action_state %} data-powercrud-row-action-state-mode="lazy" data-powercrud-row-action-index="{{ action.action_index }}"{% if action.lazy_hidden_if %} data-powercrud-row-action-hidden-mode="lazy"{% endif %}{% endif %} data-inline-action="{{ action.inline_action }}">{% if rendered_dropdown_scope == 'all' %}<span class="pc-row-action-menu-icon" aria-hidden="true">{% if action.label_html %}{{ action.label_html|safe }}{% endif %}</span>{% endif %}<span>{{ action.text }}</span></a>
 </li>
 {% endpartialdef dropdown_action %}
