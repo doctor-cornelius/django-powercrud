@@ -137,6 +137,10 @@
     background-color: var(--bs-secondary-bg) !important;
 }
 
+[data-powercrud-object-list="true"] #filterCollapse {
+    container: powercrud-filter-panel / inline-size;
+}
+
 [data-powercrud-object-list="true"] .pc-bootstrap-filter-panel-actions {
     min-height: 2rem;
 }
@@ -154,24 +158,29 @@
 
 [data-powercrud-object-list="true"] .pc-bootstrap-filter-form .filter-field {
     min-width: 0;
+    width: 100%;
 }
 
 [data-powercrud-object-list="true"] .pc-bootstrap-filter-field-shell {
     display: grid;
-    grid-template-columns: minmax(5.5rem, 6.75rem) minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
-    gap: .5rem;
+    gap: .25rem;
     min-width: 0;
 }
 
 [data-powercrud-object-list="true"] .pc-bootstrap-filter-field-shell .form-label {
+    grid-column: 1;
+    grid-row: 1;
     font-size: .75rem;
     font-weight: 500;
     line-height: 1.15;
-    text-align: end;
+    text-align: start;
 }
 
 [data-powercrud-object-list="true"] .pc-bootstrap-filter-field-shell .input-group {
+    grid-column: 1 / -1;
+    grid-row: 2;
     min-width: 0;
     flex-wrap: nowrap;
 }
@@ -185,8 +194,8 @@
 
 [data-powercrud-object-list="true"] .pc-bootstrap-filter-field-shell .powercrud-bootstrap-tomselect {
     min-width: 0;
-    width: 1%;
-    flex: 1 1 auto;
+    width: 100%;
+    flex: 1 1 100%;
 }
 
 [data-powercrud-object-list="true"] .pc-bootstrap-filter-field-shell .ts-control {
@@ -194,6 +203,8 @@
 }
 
 [data-powercrud-object-list="true"] .pc-bootstrap-filter-remove {
+    grid-column: 2;
+    grid-row: 1;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -219,24 +230,36 @@
     height: .875rem;
 }
 
-@media (max-width: 767.98px) {
+@container powercrud-filter-panel (min-width: 768px) {
+    [data-powercrud-object-list="true"] .pc-bootstrap-filter-form .filter-field {
+        width: 50%;
+    }
+
     [data-powercrud-object-list="true"] .pc-bootstrap-filter-field-shell {
-        grid-template-columns: minmax(0, 1fr) auto;
-        gap: .25rem;
+        grid-template-columns: minmax(5.5rem, 6.75rem) minmax(0, 1fr) auto;
+        gap: .5rem;
     }
 
     [data-powercrud-object-list="true"] .pc-bootstrap-filter-field-shell .form-label {
-        grid-column: 1;
-        text-align: start;
+        grid-column: auto;
+        grid-row: auto;
+        text-align: end;
     }
 
     [data-powercrud-object-list="true"] .pc-bootstrap-filter-field-shell .input-group {
-        grid-column: 1 / -1;
+        grid-column: auto;
+        grid-row: auto;
     }
 
     [data-powercrud-object-list="true"] .pc-bootstrap-filter-remove {
-        grid-column: 2;
-        grid-row: 1;
+        grid-column: auto;
+        grid-row: auto;
+    }
+}
+
+@container powercrud-filter-panel (min-width: 1200px) {
+    [data-powercrud-object-list="true"] .pc-bootstrap-filter-form .filter-field {
+        width: 33.33333333%;
     }
 }
 

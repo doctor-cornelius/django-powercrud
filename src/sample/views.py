@@ -11,8 +11,7 @@ from powercrud.conf import get_powercrud_setting
 from powercrud.actions import PowerAction, PowerButton
 from powercrud.powerfields import PowerField, PowerOverride
 
-from . import models
-from . import forms
+from . import filters, forms, models
 from .services import BookBulkUpdateService
 
 
@@ -1184,6 +1183,11 @@ class AsyncTaskRecordCRUDView(SampleCRUDMixin):
             "the time, Completed at shows both date and time, and Created at and Failed at "
             "use the default date-only format."
             "\n\n"
+            "The default filters include an inclusive Completed from/to range so the "
+            "sample also demonstrates the selected template pack's native "
+            "datetime-local controls at minute precision without relying on exact "
+            "timestamp matches."
+            "\n\n"
             "This list does not use PowerCRUD's normal View page. Open the three-dot menu "
             "at the right of a task and choose View Progress to inspect its status in a "
             "modal window."
@@ -1206,6 +1210,13 @@ class AsyncTaskRecordCRUDView(SampleCRUDMixin):
         "updated_at",
         "completed_at",
         "failed_at",
+    ]
+    filterset_class = filters.AsyncTaskRecordFilterSet
+    default_filterset_fields = [
+        "task_name",
+        "status",
+        "completed_from",
+        "completed_to",
     ]
     paginate_by = 25
     table_header_min_wrap_width = "15"  # characters

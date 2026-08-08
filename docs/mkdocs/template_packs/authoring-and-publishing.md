@@ -85,6 +85,16 @@ from django import forms
 from powercrud.template_packs import BaseServerAdapter, WidgetPresentation
 
 
+class NativeDateInput(forms.DateInput):
+    """Render a native date control with an HTML-compatible value."""
+
+    input_type = "date"
+
+    def __init__(self, attrs=None):
+        """Use the format expected by a native date input."""
+        super().__init__(attrs=attrs, format="%Y-%m-%d")
+
+
 class LocalDateTimeInput(forms.DateTimeInput):
     """Render a browser-local datetime control while preserving seconds."""
 
@@ -95,16 +105,30 @@ class LocalDateTimeInput(forms.DateTimeInput):
         super().__init__(attrs=attrs, format="%Y-%m-%dT%H:%M:%S")
 
 
+class NativeTimeInput(forms.TimeInput):
+    """Render a native time control while preserving seconds."""
+
+    input_type = "time"
+
+    def __init__(self, attrs=None):
+        """Use the format expected by a native time input."""
+        super().__init__(attrs=attrs, format="%H:%M:%S")
+
+
 class ServerAdapter(BaseServerAdapter):
     """Supply this pack's server-side widget presentation."""
 
     widget_defaults = {
         "date": WidgetPresentation(
-            widget_class=forms.DateInput,
-            attrs={"type": "date", "class": "my-input"},
+            widget_class=NativeDateInput,
+            attrs={"class": "my-input"},
         ),
         "datetime": WidgetPresentation(
             widget_class=LocalDateTimeInput,
+            attrs={"step": "1", "class": "my-input"},
+        ),
+        "time": WidgetPresentation(
+            widget_class=NativeTimeInput,
             attrs={"step": "1", "class": "my-input"},
         ),
         "select": WidgetPresentation(enhancement="searchable-select"),
@@ -123,6 +147,13 @@ class ServerAdapter(BaseServerAdapter):
 
 server_adapter = ServerAdapter()
 ```
+
+For native date and time controls, set `input_type` on a dedicated widget class
+and give that widget the matching HTML-compatible value format. Do not add
+`type` through `WidgetPresentation.attrs`: Django renders a widget's
+`input_type` separately, so expressing the same semantic through attrs can
+produce duplicate, conflicting attributes. When the time format includes
+seconds, use `step="1"` as shown above.
 
 #### Understand the context-to-presentation exchange
 

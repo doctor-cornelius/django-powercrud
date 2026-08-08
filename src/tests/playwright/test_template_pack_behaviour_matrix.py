@@ -224,7 +224,7 @@ def test_shared_favourite_application_uses_the_same_list_shell(page, client, boo
         [{"name": settings.SESSION_COOKIE_NAME, "value": session_cookie, "url": books_url}]
     )
     target_book, other_book = sample_books
-    SavedFilterFavourite.objects.create(
+    favourite = SavedFilterFavourite.objects.create(
         user=user,
         view_key=BOOK_VIEW_KEY,
         name="Matrix favourite",
@@ -247,6 +247,34 @@ def test_shared_favourite_application_uses_the_same_list_shell(page, client, boo
     expect(
         page.locator("[data-powercrud-filter-favourites-trigger='true']:visible").first
     ).to_have_attribute("data-powercrud-filter-favourites-selected", "true")
+    reopened_panel = _open_favourites(page)
+    reopened_select = reopened_panel.locator("select[name='favourite_id']")
+    expect(reopened_select).to_have_value(str(favourite.pk))
+    reopened_select_state = reopened_select.evaluate(
+        """
+        element => ({
+            hasTomSelect: Boolean(element.tomselect),
+            hidden: element.hidden,
+            className: element.className,
+            style: element.getAttribute('style'),
+            nativeStyle: element.getAttribute('data-powercrud-native-style'),
+            rectCount: element.getClientRects().length,
+            nextSiblingClass: element.nextElementSibling?.className || '',
+        })
+        """
+    )
+    assert reopened_select_state["hasTomSelect"], (
+        "The reopened favourites selector should retain a live searchable-select "
+        f"instance; observed state: {reopened_select_state}."
+    )
+    reopened_control = reopened_panel.locator(
+        ".powercrud-filter-favourite-select-control"
+    )
+    expect(reopened_control).to_be_visible()
+    reopened_control.click()
+    expect(
+        page.locator(".powercrud-filter-favourite-select-dropdown:visible")
+    ).to_be_visible()
     expect(page.locator("nav[aria-label='Sample navigation']")).to_be_visible()
 
 

@@ -1,10 +1,40 @@
 from django import forms
-from django_filters import FilterSet, CharFilter, DateFilter
 from crispy_forms.helper import FormHelper
+from django_filters import CharFilter, DateFilter, DateTimeFilter, FilterSet
 
-
-from .models import Book, Author
 from powercrud.mixins import HTMXFilterSetMixin
+
+from .models import AsyncTaskRecord, Author, Book
+
+
+class AsyncTaskRecordFilterSet(HTMXFilterSetMixin, FilterSet):
+    """Filter async task records by an inclusive completion range."""
+
+    completed_from = DateTimeFilter(
+        field_name="completed_at",
+        lookup_expr="gte",
+        label="Completed from",
+        widget=forms.DateTimeInput(attrs={"step": "60"}),
+    )
+    completed_to = DateTimeFilter(
+        field_name="completed_at",
+        lookup_expr="lte",
+        label="Completed to",
+        widget=forms.DateTimeInput(attrs={"step": "60"}),
+    )
+
+    class Meta:
+        """Expose useful task metadata without exact timestamp filters."""
+
+        model = AsyncTaskRecord
+        fields = [
+            "task_name",
+            "user_label",
+            "status",
+            "cleaned_up",
+            "completed_from",
+            "completed_to",
+        ]
 
 
 class AuthorFilterSet(HTMXFilterSetMixin, FilterSet):

@@ -16,6 +16,16 @@ from powercrud.template_packs import (
 )
 
 
+class DaisyUIDateInput(forms.DateInput):
+    """Render date values in the browser's native date control."""
+
+    input_type = "date"
+
+    def __init__(self, attrs=None):
+        """Use the HTML-compatible date value format."""
+        super().__init__(attrs=attrs, format="%Y-%m-%d")
+
+
 class DaisyUIDateTimeLocalInput(forms.DateTimeInput):
     """Render datetime values in the browser's native local datetime control."""
 
@@ -26,6 +36,16 @@ class DaisyUIDateTimeLocalInput(forms.DateTimeInput):
         super().__init__(attrs=attrs, format="%Y-%m-%dT%H:%M:%S")
 
 
+class DaisyUITimeInput(forms.TimeInput):
+    """Render time values in the browser's native time control."""
+
+    input_type = "time"
+
+    def __init__(self, attrs=None):
+        """Keep seconds in the HTML-compatible time value."""
+        super().__init__(attrs=attrs, format="%H:%M:%S")
+
+
 class DaisyUIServerAdapter(BaseServerAdapter):
     """Translate PowerCRUD's semantic presentation requests into DaisyUI classes."""
 
@@ -34,16 +54,16 @@ class DaisyUIServerAdapter(BaseServerAdapter):
         "textarea": WidgetPresentation(),
         "number": WidgetPresentation(),
         "date": WidgetPresentation(
-            widget_class=forms.DateInput,
-            attrs={"type": "date", "class": "form-control"},
+            widget_class=DaisyUIDateInput,
+            attrs={"class": "form-control"},
         ),
         "datetime": WidgetPresentation(
             widget_class=DaisyUIDateTimeLocalInput,
             attrs={"step": "1", "class": "form-control"},
         ),
         "time": WidgetPresentation(
-            widget_class=forms.TimeInput,
-            attrs={"type": "time", "class": "form-control"},
+            widget_class=DaisyUITimeInput,
+            attrs={"step": "1", "class": "form-control"},
         ),
         "boolean": WidgetPresentation(),
         "select": WidgetPresentation(enhancement="searchable-select"),
@@ -72,7 +92,7 @@ class DaisyUIServerAdapter(BaseServerAdapter):
             }
         ),
         ("filter", "date"): WidgetPresentation(
-            attrs={"class": "input input-bordered input-sm w-full text-xs h-10 min-h-10", "type": "date"}
+            attrs={"class": "input input-bordered input-sm w-full text-xs h-10 min-h-10"}
         ),
         ("filter", "datetime"): WidgetPresentation(
             attrs={"class": "input input-bordered input-sm w-full text-xs h-10 min-h-10", "step": "1"}
@@ -81,7 +101,7 @@ class DaisyUIServerAdapter(BaseServerAdapter):
             attrs={"class": "input input-bordered input-sm w-full text-xs h-10 min-h-10", "step": "any"}
         ),
         ("filter", "time"): WidgetPresentation(
-            attrs={"class": "input input-bordered input-sm w-full text-xs h-10 min-h-10", "type": "time"}
+            attrs={"class": "input input-bordered input-sm w-full text-xs h-10 min-h-10"}
         ),
         ("filter", "boolean"): WidgetPresentation(
             attrs={"class": "select select-bordered select-sm w-full text-xs h-10 min-h-10"}
@@ -99,13 +119,13 @@ class DaisyUIServerAdapter(BaseServerAdapter):
             attrs={"class": "input input-bordered w-full"}
         ),
         ("bulk", "date"): WidgetPresentation(
-            attrs={"class": "input input-bordered w-full", "type": "date"}
+            attrs={"class": "input input-bordered w-full"}
         ),
         ("bulk", "datetime"): WidgetPresentation(
             attrs={"class": "input input-bordered w-full"}
         ),
         ("bulk", "time"): WidgetPresentation(
-            attrs={"class": "input input-bordered w-full", "type": "time"}
+            attrs={"class": "input input-bordered w-full"}
         ),
         ("bulk", "boolean"): WidgetPresentation(
             attrs={"class": "select select-bordered w-full"}
