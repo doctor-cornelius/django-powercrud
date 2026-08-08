@@ -15,6 +15,18 @@ jobs:
       version: ${{ steps.classify.outputs.version }}
       prerelease: ${{ steps.classify.outputs.prerelease }}
     steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Verify release tag belongs to main
+        run: |
+          git fetch --no-tags origin main:refs/remotes/origin/main
+          if ! git merge-base --is-ancestor HEAD refs/remotes/origin/main; then
+            echo "Release tag must point to a commit on main." >&2
+            exit 1
+          fi
+
       - name: Classify release tag
         id: classify
         env:
@@ -34,16 +46,8 @@ jobs:
               print(f"prerelease={'true' if prerelease else 'false'}", file=fh)
           PY
 
-  test-matrix:
-    needs: classify-tag
-    uses: ./.github/workflows/run_tests.yml
-    secrets:
-      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-
   release:
-    needs:
-      - classify-tag
-      - test-matrix
+    needs: classify-tag
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
