@@ -16,6 +16,16 @@ from powercrud.template_packs import (
 )
 
 
+class Bootstrap5DateInput(forms.DateInput):
+    """Render date values in the browser's native date control."""
+
+    input_type = "date"
+
+    def __init__(self, attrs=None):
+        """Use the HTML-compatible date value format."""
+        super().__init__(attrs=attrs, format="%Y-%m-%d")
+
+
 class Bootstrap5DateTimeLocalInput(forms.DateTimeInput):
     """Render datetime values in the browser's native local datetime control."""
 
@@ -26,6 +36,16 @@ class Bootstrap5DateTimeLocalInput(forms.DateTimeInput):
         super().__init__(attrs=attrs, format="%Y-%m-%dT%H:%M:%S")
 
 
+class Bootstrap5TimeInput(forms.TimeInput):
+    """Render time values in the browser's native time control."""
+
+    input_type = "time"
+
+    def __init__(self, attrs=None):
+        """Keep seconds in the HTML-compatible time value."""
+        super().__init__(attrs=attrs, format="%H:%M:%S")
+
+
 class Bootstrap5ServerAdapter(BaseServerAdapter):
     """Translate PowerCRUD's semantic presentation requests into Bootstrap classes."""
 
@@ -34,16 +54,16 @@ class Bootstrap5ServerAdapter(BaseServerAdapter):
         "textarea": WidgetPresentation(),
         "number": WidgetPresentation(),
         "date": WidgetPresentation(
-            widget_class=forms.DateInput,
-            attrs={"type": "date", "class": "form-control"},
+            widget_class=Bootstrap5DateInput,
+            attrs={"class": "form-control"},
         ),
         "datetime": WidgetPresentation(
             widget_class=Bootstrap5DateTimeLocalInput,
             attrs={"step": "1", "class": "form-control"},
         ),
         "time": WidgetPresentation(
-            widget_class=forms.TimeInput,
-            attrs={"type": "time", "class": "form-control"},
+            widget_class=Bootstrap5TimeInput,
+            attrs={"step": "1", "class": "form-control"},
         ),
         "boolean": WidgetPresentation(),
         "select": WidgetPresentation(enhancement="searchable-select"),
@@ -59,18 +79,18 @@ class Bootstrap5ServerAdapter(BaseServerAdapter):
         ("filter", "textarea"): WidgetPresentation(attrs={"class": "form-control form-control-sm"}),
         ("filter", "select"): WidgetPresentation(attrs={"class": "form-select form-select-sm"}),
         ("filter", "multiselect"): WidgetPresentation(attrs={"class": "form-select form-select-sm", "size": "5"}),
-        ("filter", "date"): WidgetPresentation(attrs={"class": "form-control form-control-sm", "type": "date"}),
+        ("filter", "date"): WidgetPresentation(attrs={"class": "form-control form-control-sm"}),
         ("filter", "datetime"): WidgetPresentation(attrs={"class": "form-control form-control-sm", "step": "1"}),
         ("filter", "number"): WidgetPresentation(attrs={"class": "form-control form-control-sm", "step": "any"}),
-        ("filter", "time"): WidgetPresentation(attrs={"class": "form-control form-control-sm", "type": "time"}),
+        ("filter", "time"): WidgetPresentation(attrs={"class": "form-control form-control-sm"}),
         ("filter", "boolean"): WidgetPresentation(attrs={"class": "form-select form-select-sm"}),
         ("filter", "file"): WidgetPresentation(attrs={"class": "form-control form-control-sm"}),
         ("bulk", "text"): WidgetPresentation(attrs={"class": "form-control"}),
         ("bulk", "textarea"): WidgetPresentation(attrs={"class": "form-control"}),
         ("bulk", "number"): WidgetPresentation(attrs={"class": "form-control"}),
-        ("bulk", "date"): WidgetPresentation(attrs={"class": "form-control", "type": "date"}),
+        ("bulk", "date"): WidgetPresentation(attrs={"class": "form-control"}),
         ("bulk", "datetime"): WidgetPresentation(attrs={"class": "form-control"}),
-        ("bulk", "time"): WidgetPresentation(attrs={"class": "form-control", "type": "time"}),
+        ("bulk", "time"): WidgetPresentation(attrs={"class": "form-control"}),
         ("bulk", "boolean"): WidgetPresentation(attrs={"class": "form-select"}),
         ("bulk", "select"): WidgetPresentation(attrs={"class": "form-select"}),
         ("bulk", "multiselect"): WidgetPresentation(attrs={"class": "form-select"}),

@@ -5,6 +5,7 @@ from typing import Mapping
 
 from django import forms
 from django.db import models
+from django.forms.widgets import Input
 
 from powercrud.template_packs import WidgetKind, WidgetPresentation
 
@@ -103,6 +104,11 @@ def apply_widget_presentation(
             widget = current_widget
         widget.attrs = attrs
         field.widget = widget
+
+    if isinstance(field.widget, Input):
+        presented_input_type = field.widget.attrs.pop("type", None)
+        if presented_input_type is not None:
+            field.widget.input_type = presented_input_type
 
     field.widget.attrs.pop("data-powercrud-searchable-select", None)
     field.widget.attrs.pop("data-powercrud-searchable-multiselect", None)

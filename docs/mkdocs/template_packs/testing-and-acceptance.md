@@ -34,7 +34,7 @@ Use this matrix to choose evidence for the widget policy:
 | Surfaces | Normal forms, inline forms, generated filters, and bulk value controls receive the intended semantic defaults and surface variants. |
 | Rendering | Native rendering and every declared Crispy integration preserve values, validation, errors, required/disabled state, and policy markers. |
 | Ownership | Neutral presentation keeps Django's compatible widget; silent model-backed custom-form fields may receive the policy; explicit application widgets remain unchanged. |
-| Datetime | Generated form, inline, and filter controls round-trip date and time, including seconds, under the pack. |
+| Temporal controls | Generated and custom filters, normal and inline forms, and bulk controls render exactly one native date/time type, use HTML-compatible values, and preserve seconds for time and datetime-local controls. |
 | Selects | Default, explicitly enabled, and explicitly disabled searchable-select intent resolve correctly. |
 | Multiselects | Standard and compact variants preserve checked state, mouse and keyboard toggling, clear-all, submitted values, placement, and the compact selected count. |
 | Browser lifecycle | HTMX replacement reinitialises controls, modal timing and dropdown ownership are correct, and successful inline save does not flash the native control. |

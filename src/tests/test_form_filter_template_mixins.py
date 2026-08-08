@@ -101,6 +101,15 @@ def test_generated_datetime_form_and_filter_use_true_datetime_controls(
     assert filter_widget.input_type == "datetime-local", (
         "Generated DateTimeField filters must render a browser datetime-local control."
     )
+    rendered_datetime_controls = {
+        "form": form_widget.render("completed_at", completed_at),
+        "inline": inline_form["completed_at"].as_widget(),
+        "filter": filterset.form["completed_at"].as_widget(),
+    }
+    for control_name, rendered in rendered_datetime_controls.items():
+        assert re.findall(r'\btype="([^"]+)"', rendered) == ["datetime-local"], (
+            f"Generated datetime {control_name} controls must render exactly one datetime-local type."
+        )
     assert form_widget.format == "%Y-%m-%dT%H:%M:%S", (
         "Generated datetime controls must preserve seconds in their browser value."
     )

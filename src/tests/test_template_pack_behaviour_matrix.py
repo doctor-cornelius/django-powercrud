@@ -1,6 +1,7 @@
 """Shared server-side behaviour matrix for selectable template packs."""
 
 import json
+import re
 from datetime import date
 
 import pytest
@@ -8,10 +9,16 @@ from crispy_forms.helper import FormHelper
 from django import forms
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.db import models
 from django.template.loader import render_to_string
+from django.test import RequestFactory
 from django.urls import reverse
+from django_filters import DateFilter, FilterSet
 
 from powercrud.contrib.favourites.models import SavedFilterFavourite
+from powercrud.mixins.filtering_mixin import FilteringMixin
+from powercrud.mixins.form_mixin import FormMixin
+from powercrud.mixins.htmx_mixin import HtmxMixin
 from powercrud.mixins.list_options_mixin import LIST_OPTIONS_SESSION_KEY
 from powercrud.template_packs import get_configured_template_pack
 from sample.models import Author, Book
@@ -21,6 +28,45 @@ from sample.views import BookCRUDView
 
 BOOTSTRAP_SELECTOR = "powercrud.contrib.bootstrap5:template_pack"
 BOOK_VIEW_KEY = f"{BookCRUDView.__module__}.{BookCRUDView.__name__}"
+
+
+class OrdinaryDateFilterSet(FilterSet):
+    """Custom filterset that relies on django-filter's ordinary DateInput."""
+
+    measured_from = DateFilter(field_name="published_date")
+
+    class Meta:
+        """Bind the downstream-shaped date filter to the shared Book model."""
+
+        model = Book
+        fields = ["measured_from"]
+
+
+class GeneratedDateMatrixView(HtmxMixin, FormMixin, FilteringMixin):
+    """Exercise generated date forms and filters through the selected pack."""
+
+    model = Book
+    form_fields = ["published_date"]
+    filterset_fields = ["published_date"]
+    form_class = None
+    use_crispy = False
+    use_htmx = False
+
+    def get_use_crispy(self):
+        """Keep the widget assertions on Django's native renderer."""
+        return False
+
+
+class CustomDateMatrixView(GeneratedDateMatrixView):
+    """Exercise an ordinary custom django-filter date filter."""
+
+    filterset_class = OrdinaryDateFilterSet
+    filterset_fields = None
+
+
+def _input_type_values(rendered: str) -> list[str]:
+    """Return rendered input types without coupling tests to attribute ordering."""
+    return re.findall(r'\btype="([^"]+)"', rendered)
 
 
 def _create_shared_books() -> tuple[Author, list[Book]]:
@@ -76,6 +122,85 @@ def test_shared_catalogue_and_selected_pack_matrix():
         assert template_pack.identity == "daisyui", (
             "Default settings must retain the compatible DaisyUI pack for the shared matrix."
         )
+
+
+@pytest.mark.django_db
+def test_shared_native_date_controls_cover_generated_custom_inline_and_bulk_paths():
+    """Both packs must render one native date type across every affected lifecycle."""
+    author = Author.objects.create(name="Temporal Matrix Author")
+    book = Book.objects.create(
+        title="Temporal Matrix Book",
+        author=author,
+        published_date=date(2026, 8, 9),
+        bestseller=False,
+        isbn="9780000007001",
+        pages=200,
+    )
+
+    generated_view = GeneratedDateMatrixView()
+    generated_view.request = RequestFactory().get(
+        "/", {"published_date": "2026-08-09"}
+    )
+    form_class = generated_view.get_form_class()
+    normal_form = generated_view._finalize_form(
+        form_class(instance=book), inline=False
+    )
+    inline_form = generated_view.build_inline_form(instance=book)
+    generated_filterset = generated_view.get_filterset(Book.objects.all())
+
+    assert generated_filterset.is_valid(), (
+        "The selected pack's generated date filter must accept an ISO browser value."
+    )
+    assert list(generated_filterset.qs) == [book], (
+        "The selected pack's generated date filter must retain django-filter behavior."
+    )
+
+    custom_view = CustomDateMatrixView()
+    custom_view.request = RequestFactory().get(
+        "/", {"measured_from": "2026-08-09"}
+    )
+    custom_filterset = custom_view.get_filterset(Book.objects.all())
+    assert custom_filterset.is_valid(), (
+        "An ordinary custom DateFilter must accept an ISO browser value after pack presentation."
+    )
+    assert list(custom_filterset.qs) == [book], (
+        "An ordinary custom DateFilter must retain its queryset behavior after pack presentation."
+    )
+
+    bulk_view = BookCRUDView()
+    bulk_view.request = RequestFactory().get("/")
+    bulk_control = bulk_view._get_bulk_field_info(["published_date"])[
+        "published_date"
+    ]["control"]
+    bulk_time_control = bulk_view._build_bulk_value_control(
+        field_name="measured_at",
+        field=models.TimeField(),
+        info={"is_m2m": False},
+    )
+
+    rendered_controls = {
+        "normal form": normal_form["published_date"].as_widget(),
+        "inline form": inline_form["published_date"].as_widget(),
+        "generated filter": generated_filterset.form["published_date"].as_widget(),
+        "custom filter": custom_filterset.form["measured_from"].as_widget(),
+        "bulk date control": str(bulk_control),
+    }
+    for control_name, rendered in rendered_controls.items():
+        assert _input_type_values(rendered) == ["date"], (
+            f"The selected pack's {control_name} must render exactly one native date type."
+        )
+
+    for control_name in ("normal form", "inline form", "generated filter", "custom filter"):
+        assert 'value="2026-08-09"' in rendered_controls[control_name], (
+            f"The selected pack's {control_name} must retain the HTML-compatible date value."
+        )
+    rendered_bulk_time = str(bulk_time_control)
+    assert _input_type_values(rendered_bulk_time) == ["time"], (
+        "The selected pack's bulk time control must render exactly one native time type."
+    )
+    assert 'step="1"' in rendered_bulk_time, (
+        "The selected pack's bulk time control must permit its configured seconds."
+    )
 
 
 @pytest.mark.django_db

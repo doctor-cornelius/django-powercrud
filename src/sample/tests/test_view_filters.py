@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 import re
-from datetime import date
+from datetime import date, datetime
 
 import pytest
 from django.test import Client
 from django.test import RequestFactory
 from django.urls import reverse
+from django.utils import timezone
 from django_filters import BooleanFilter
 
 from powercrud.mixins.config_mixin import resolve_class_config
@@ -14,7 +15,7 @@ from powercrud.mixins.list_options_mixin import LIST_OPTIONS_SESSION_KEY
 from powercrud.mixins.filtering_mixin import NULL_FILTER_SENTINEL
 from powercrud.templatetags import powercrud as powercrud_tags
 from sample import views as sample_views
-from sample.models import Author, Book, Genre, Profile
+from sample.models import AsyncTaskRecord, Author, Book, Genre, Profile
 
 
 def _login_sample_manager(client):
@@ -168,6 +169,98 @@ def test_async_task_sample_view_demonstrates_temporal_list_formats():
         "completed_at",
         "failed_at",
     ], "The sample list should include all datetime columns needed to inspect defaults and overrides."
+
+
+@pytest.mark.django_db
+def test_async_task_sample_view_exposes_native_datetime_filter_by_default(client):
+    """The async sample should visibly demonstrate the selected pack's datetime control."""
+    view = sample_views.AsyncTaskRecordCRUDView()
+    view.request = RequestFactory().get("/")
+    filterset = view.get_filterset(AsyncTaskRecord.objects.all())
+    visibility = view.get_filter_visibility_context(filterset)
+
+    assert filterset is not None, (
+        "AsyncTaskRecordCRUDView should generate its configured task filters."
+    )
+    assert [field.name for field in visibility["visible_filter_fields"]] == [
+        "task_name",
+        "status",
+        "completed_from",
+        "completed_to",
+    ], "The async sample should show its useful task and completion-range filters by default."
+
+    for field_name in ("completed_from", "completed_to"):
+        widget = filterset.form.fields[field_name].widget
+        rendered = widget.render(field_name, "2026-08-09T14:05")
+        assert widget.input_type == "datetime-local", (
+            f"The selected pack should present {field_name} as a native datetime-local control."
+        )
+        assert widget.attrs.get("step") == "60", (
+            f"The async sample's {field_name} control should use minute precision."
+        )
+        assert re.findall(r'\btype="([^"]+)"', rendered) == ["datetime-local"], (
+            f"The visible {field_name} filter should render exactly one datetime-local type."
+        )
+        assert 'value="2026-08-09T14:05"' in rendered, (
+            f"The visible {field_name} filter should retain its minute-precision value."
+        )
+
+    response = client.get(reverse("sample:asynctaskrecord-list"))
+    response_text = response.content.decode()
+    assert response.status_code == 200, (
+        "The Async Tasks list should render with its generated filter controls."
+    )
+    for field_name in ("completed_from", "completed_to"):
+        assert f'name="{field_name}"' in response_text, (
+            f"The rendered Async Tasks filter panel should include {field_name} by default."
+        )
+    assert re.findall(r'\btype="([^"]+)"', response_text).count(
+        "datetime-local"
+    ) == 2, (
+        "The rendered Async Tasks page should contain two visible native datetime filters."
+    )
+    assert response_text.count('step="60"') == 2, (
+        "Both rendered completion-range controls should use minute precision."
+    )
+
+
+@pytest.mark.django_db
+def test_async_task_sample_completion_range_is_inclusive():
+    """Completion ranges should include both boundaries and sub-second values within them."""
+    timestamps = {
+        "before": datetime(2026, 8, 9, 14, 4, 59, 999999),
+        "at-lower": datetime(2026, 8, 9, 14, 5),
+        "inside": datetime(2026, 8, 9, 14, 5, 37, 482913),
+        "at-upper": datetime(2026, 8, 9, 14, 6),
+        "after": datetime(2026, 8, 9, 14, 6, 0, 1),
+    }
+    for task_name, timestamp in timestamps.items():
+        record = AsyncTaskRecord.objects.create(
+            task_name=task_name,
+            status=AsyncTaskRecord.STATUS.SUCCESS,
+        )
+        AsyncTaskRecord.objects.filter(pk=record.pk).update(
+            completed_at=timezone.make_aware(timestamp)
+        )
+
+    view = sample_views.AsyncTaskRecordCRUDView()
+    view.request = RequestFactory().get(
+        "/",
+        {
+            "completed_from": "2026-08-09T14:05",
+            "completed_to": "2026-08-09T14:06",
+        },
+    )
+    filterset = view.get_filterset(AsyncTaskRecord.objects.all())
+
+    assert filterset.is_valid(), (
+        "The async sample completion range should accept datetime-local values."
+    )
+    assert set(filterset.qs.values_list("task_name", flat=True)) == {
+        "at-lower",
+        "inside",
+        "at-upper",
+    }, "The completion range should include both selected boundaries and values between them."
 
 
 @pytest.mark.django_db
