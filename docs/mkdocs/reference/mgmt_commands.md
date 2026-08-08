@@ -2,6 +2,28 @@
 
 powercrud provides several management commands to help with setup, template customization, and Tailwind CSS integration.
 
+## `runbootstrap` - Run The Bootstrap Sample Presentation {#runbootstrap}
+
+!!! note "Bundled sample app only"
+
+    `runbootstrap` belongs to the sample app in the PowerCRUD source checkout. It is a development convenience rather than an installable `pcrud_*` package command.
+
+The command starts Django's standard development server with `config.settings_bootstrap`, bound to all container interfaces. The `--port` option is required and has no default:
+
+```bash
+./manage.py runbootstrap --port 8003
+```
+
+Running `./manage.py runbootstrap` without `--port` exits with an error that gives the required syntax above. The port must be an integer from `1` through `65535`.
+
+From the repository root on the host, run the command in the existing development container:
+
+```bash
+./runproj exec --command "cd src && ./manage.py runbootstrap --port 8003"
+```
+
+Use a different exposed port for each presentation when comparing the Bootstrap sample with another sample-app process. See [Sample Application](sample_app.md#presentation-variants) for the available presentation settings.
+
 ## `pcrud_mktemplate` - Copy CRUD Templates And Assets {#pcrud-mktemplate}
 
 Copy PowerCRUD templates and, when explicitly requested, pack assets to your project for customisation. For pack selection and customisation boundaries, see [Template Packs](../template_packs/index.md). To choose a focused `--component` value, use the [focused component table](../template_packs/customising.md#focused-component-overrides).
