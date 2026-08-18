@@ -78,7 +78,8 @@
             role='menu'
             class='menu bg-base-100 rounded-box z-[1200] min-w-40 p-2 shadow border border-base-300 pc-row-actions-panel'
             data-powercrud-row-actions-panel='true'
-            data-powercrud-row-actions-scope='{{ rendered_dropdown_scope }}'>
+            data-powercrud-row-actions-scope='{{ rendered_dropdown_scope }}'
+            {% if rendered_dropdown_scope == 'all' and row_actions.standard_actions %}data-powercrud-row-actions-has-icons='true'{% endif %}>
             {% for action in rendered_dropdown_actions %}
                 {% partial dropdown_action %}
             {% endfor %}
@@ -100,6 +101,6 @@
        {% if action.refresh_list_on_modal_close %}data-powercrud-refresh-list-on-modal-close='true'{% endif %}
        {% if action.disable %}aria-disabled='true'{% endif %}
        {% if action.lazy_row_action_state %}data-powercrud-row-action-state-mode='lazy' data-powercrud-row-action-index='{{ action.action_index }}'{% if action.lazy_hidden_if %} data-powercrud-row-action-hidden-mode='lazy'{% endif %}{% endif %}
-       data-inline-action='{{ action.inline_action }}'>{% if rendered_dropdown_scope == 'all' %}<span class='pc-row-action-menu-icon' aria-hidden='true'>{% if action.label_html %}{{ action.label_html|safe }}{% endif %}</span>{% endif %}<span>{{ action.text }}</span></a>
+       data-inline-action='{{ action.inline_action }}'>{% if rendered_dropdown_scope == 'all' and row_actions.standard_actions %}<span class='pc-row-action-menu-icon' aria-hidden='true'>{% if action.label_html %}{{ action.label_html|safe }}{% endif %}</span>{% endif %}<span>{{ action.text }}</span></a>
 </li>
 {% endpartialdef dropdown_action %}

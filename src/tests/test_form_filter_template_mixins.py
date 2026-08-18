@@ -2153,6 +2153,60 @@ def test_row_actions_component_renders_resolved_presentation_metadata():
     )
 
 
+def test_daisyui_all_dropdown_without_standard_actions_has_no_icon_gutter():
+    """Extras-only all-actions menus should not reserve an unused icon column."""
+    extra_action = {
+        "href": "/tasks/1/progress/",
+        "text": "View Progress",
+        "class_name": "justify-start whitespace-nowrap",
+        "label_html": None,
+        "style": "",
+        "use_htmx": False,
+        "hx_post": False,
+        "target": "",
+        "use_history": False,
+        "modal_attrs": "",
+        "modal_box_classes": "",
+        "modal_presentation_attrs": "",
+        "refresh_list_on_modal_close": False,
+        "disable": False,
+        "tooltip_text": None,
+        "inline_action": "view-progress",
+        "lazy_row_action_state": False,
+        "lazy_hidden_if": False,
+    }
+
+    rendered = render_to_string(
+        "powercrud/daisyUI/partial/row_actions.html",
+        {
+            "row_actions": {
+                "standard_actions": [],
+                "extra_actions": [extra_action],
+                "dropdown_actions": [extra_action],
+                "show_dropdown": True,
+                "show_extra_dropdown": False,
+                "show_all_dropdown": True,
+                "dropdown_scope": "all",
+                "dropdown_trigger_label": "Actions",
+                "row_action_states_url": "",
+                "dropdown_trigger_class": "btn btn-ghost",
+                "show_responsive_dropdown": False,
+                "responsive_dropdown_actions": [],
+            }
+        },
+    )
+
+    assert "data-powercrud-row-actions-scope='all'" in rendered, (
+        "The compact extras-only menu should retain its all-actions scope."
+    )
+    assert "data-powercrud-row-actions-has-icons='true'" not in rendered, (
+        "An extras-only menu should not opt into the icon-grid layout."
+    )
+    assert "pc-row-action-menu-icon" not in rendered, (
+        "An extras-only menu should not render an empty icon placeholder."
+    )
+
+
 def test_row_actions_component_prefers_downstream_model_override(tmp_path):
     """A model-scoped row-actions template should replace markup without JavaScript."""
 

@@ -335,7 +335,11 @@ def test_bootstrap_optional_components_preserve_shared_semantic_hooks():
         f"{BOOTSTRAP_NAMESPACE}/partial/row_actions.html",
         {
             "row_actions": SimpleNamespace(
-                standard_actions=[],
+                standard_actions=[
+                    dropdown_actions[0],
+                    dropdown_actions[1],
+                    dropdown_actions[3],
+                ],
                 dropdown_actions=[
                     SimpleNamespace(
                         href="/books/7/archive/",
@@ -526,7 +530,11 @@ def test_bootstrap_row_actions_render_one_accessible_all_actions_menu():
         f"{BOOTSTRAP_NAMESPACE}/partial/row_actions.html",
         {
             "row_actions": SimpleNamespace(
-                standard_actions=[],
+                standard_actions=[
+                    dropdown_actions[0],
+                    dropdown_actions[1],
+                    dropdown_actions[3],
+                ],
                 extra_actions=[],
                 dropdown_actions=dropdown_actions,
                 standard_dropdown_actions=[
@@ -578,6 +586,61 @@ def test_bootstrap_row_actions_render_one_accessible_all_actions_menu():
     )
     assert 'data-powercrud-row-action-destructive="true"' in rendered, (
         "Bootstrap should retain the semantic marker used for conditional Delete separation."
+    )
+
+
+def test_bootstrap_extras_only_all_dropdown_has_no_icon_gutter():
+    """Extras-only Bootstrap all-actions menus should not reserve an icon column."""
+    extra_action = SimpleNamespace(
+        href="/tasks/1/progress/",
+        class_name="justify-start whitespace-nowrap",
+        tooltip_text="",
+        style="",
+        use_htmx=False,
+        hx_post=False,
+        target="",
+        use_history=False,
+        modal_attrs="",
+        modal_box_classes="",
+        modal_presentation_attrs="",
+        refresh_list_on_modal_close=False,
+        disable=False,
+        lazy_row_action_state=False,
+        action_index=0,
+        lazy_hidden_if=False,
+        inline_action="view-progress",
+        text="View Progress",
+        label_html=None,
+        kind="extra",
+        is_destructive=False,
+    )
+    rendered = render_to_string(
+        f"{BOOTSTRAP_NAMESPACE}/partial/row_actions.html",
+        {
+            "row_actions": SimpleNamespace(
+                standard_actions=[],
+                extra_actions=[extra_action],
+                dropdown_actions=[extra_action],
+                standard_dropdown_actions=[],
+                extra_dropdown_actions=[extra_action],
+                show_dropdown=True,
+                show_extra_dropdown=False,
+                show_all_dropdown=True,
+                dropdown_scope="all",
+                dropdown_trigger_label="Actions",
+                dropdown_trigger_class="btn",
+                row_action_states_url="",
+                show_responsive_dropdown=False,
+                responsive_dropdown_actions=[],
+            )
+        },
+    )
+
+    assert 'data-powercrud-row-actions-scope="all"' in rendered, (
+        "The compact extras-only menu should retain its all-actions scope."
+    )
+    assert "pc-row-action-menu-icon" not in rendered, (
+        "An extras-only menu should not render an empty icon placeholder."
     )
 
 
