@@ -4,7 +4,7 @@
     {% if not row_actions.show_all_dropdown %}
         {% for action in row_actions.standard_actions %}
             <a href='{{ action.href }}'
-               class='{{ action.class_name }} btn-square pc-row-action-icon-button'
+               class='{{ action.class_name }} pc-row-action-icon-button'
                data-powercrud-row-action-kind='standard'
                {% if action.is_destructive %}data-powercrud-row-action-destructive='true'{% endif %}
                {% if action.label_html %}aria-label='{{ action.text }}'{% endif %}
@@ -55,7 +55,7 @@
      data-powercrud-row-actions-dropdown='true'
      data-powercrud-row-actions-scope='{{ rendered_dropdown_scope }}'>
     <button type='button'
-            class='{{ row_actions.dropdown_trigger_class }} btn-square pc-row-actions-trigger'
+            class='{{ row_actions.dropdown_trigger_class }} pc-row-actions-trigger'
             aria-label='{{ trigger_label }}'
             aria-expanded='false'
             data-tippy-content='{{ trigger_label }}'
