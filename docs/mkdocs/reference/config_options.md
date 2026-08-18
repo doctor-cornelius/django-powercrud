@@ -448,7 +448,8 @@ Notes:
 - The default is `'dropdown'`: built-in actions remain visible while configured extras move behind the kebab. Set `'buttons'` to restore the previous wider-screen presentation.
 - `extra_actions_mode` controls row-action presentation only; it does not affect top-of-page `extra_buttons`.
 - In either dropdown mode, configured `button_class` values do not colour menu entries. They still apply to visible configured extras in `'buttons'` mode.
-- The first-party packs render View, Edit, and both kebab scopes as quiet neutral controls. Delete alone retains restrained destructive colour. Menus use neutral rows, a consistent icon gutter in all-actions scope, and a divider before Delete only when another visible item precedes it.
+- `icon_svg` accepts trusted inline SVG markup for a configured action. Define it as a named application-source constant and never derive it from request, database, or other untrusted data. `icon_only` defaults to `False`, requires `icon_svg`, and affects direct buttons only; dropdown entries always retain their visible label.
+- The first-party packs render View, Edit, and both kebab scopes as quiet neutral controls. Delete alone retains restrained destructive colour. Menus use neutral rows, reserve an icon gutter only when at least one currently rendered action has an icon, and add a divider before Delete only when another visible item precedes it.
 - Selection checkboxes are a system column pinned to logical start by default; this is not separately parameterised. Sticky logical-start actions sit immediately after selection, while sticky logical-end actions remain pinned at the opposite edge.
 - To restore the previous scrolling action column, set `row_actions_column_sticky = False`.
 - Permission-hidden standard actions are omitted. Disabled reasons, modal behavior, HTMX behavior, history, guards, lazy state, and refresh-on-close metadata are preserved.
@@ -474,6 +475,8 @@ Notes:
     | `text` | `str` | Visible label for the action button or dropdown entry. |
     | `needs_pk` | `bool` | Usually `True` so the row primary key is included in the URL. |
     | `button_class` | `str` | Styling class used when the action renders as a visible button. |
+    | `icon_svg` | `str` | Trusted inline SVG markup. Define it in application source code; never derive it from request, database, or other untrusted data. |
+    | `icon_only` | `bool` | Defaults to `False`. Renders only the icon in direct button mode and requires `icon_svg`; dropdown entries always retain their text. |
     | `display_modal` | `bool` | Opens the response in the standard modal target when `True`. |
     | `modal_presentation` | `dict` | Portable per-action modal override. It accepts the documented size, maximum dimension, scroll, fullscreen, and alignment keys. |
     | `refresh_list_on_modal_close` | `bool` | Refreshes the current list partial when this modal action's dialog closes. Defaults to `False`; ignored unless `display_modal=True`. |

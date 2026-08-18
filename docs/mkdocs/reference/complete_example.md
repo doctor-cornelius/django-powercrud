@@ -10,6 +10,12 @@ from powercrud.mixins import PowerCRUDMixin
 from . import models
 from .forms import ProjectForm
 
+ARCHIVE_ICON_SVG = """
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+    <path stroke-linecap="round" stroke-linejoin="round" d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13" />
+</svg>
+"""
+
 
 class ProjectCRUDView(PowerCRUDMixin, CRUDView):
     # ------------------------------------------------------------------
@@ -235,6 +241,7 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
             "url_name": "projects:project-archive",
             "text": "Archive",
             "needs_pk": True,
+            "icon_svg": ARCHIVE_ICON_SVG,
             "hx_post": True,
             "button_class": "btn-warning",
             "display_modal": False,
@@ -343,6 +350,7 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
 - A good use case for `view_title` is when the page heading needs UX-friendly wording such as `My List of Books` or `Active Client Projects`, while the underlying model metadata should stay reusable elsewhere.
 - `extra_buttons_mode = "dropdown"` is optional. When omitted, top-level `extra_buttons` keep the legacy visible-button behavior. Dropdown mode keeps built-in actions such as Create visible and moves only configured `extra_buttons` into the top toolbar `More` menu.
 - `extra_actions_mode = "all_dropdown"` is optional. The default extras-only `"dropdown"` keeps native icons visible and moves configured extras behind a neutral kebab with the accessible name **More actions**. `"buttons"` restores directly visible configured extras. `"all_dropdown"` uses one neutral compact **Actions** trigger and a labelled View, Edit, configured extras, Delete menu. Below 640px every mode automatically uses that all-actions layout. Delete remains last and visually separated when another item precedes it. Inline Save/Cancel remain visible.
+- This example's `ARCHIVE_ICON_SVG` is a named, trusted inline-SVG constant defined in application source. Add it with `"icon_svg": ARCHIVE_ICON_SVG` to render an icon beside a direct extra-action label, or also set `"icon_only": True` for a direct icon-only control with an accessible name and tooltip. Do not pass SVG from request, database, or other untrusted data. Dropdown entries always keep their visible label, and a menu reserves an icon gutter only when at least one visible action has an icon.
 - When bulk or selection-aware controls enable the selection column, its header and row checkboxes remain pinned at logical start during horizontal scrolling. This is the default system-column behavior and has no view setting.
 - `row_actions_column_position = "start"` moves the Actions column before data columns while leaving a selection checkbox outermost. Row actions default to logical end with `row_actions_column_sticky = True`, keeping the Actions header, row controls, and inline Save/Cancel controls visible during horizontal table scrolling. Set stickiness to `False` for the previous scrolling behaviour.
 - `extra_actions_dropdown_open_upward_bottom_rows = 3` makes the row-action menu open upward for the last three rendered rows on the current page. Set it to `0` if you want every dropdown to keep opening downward.

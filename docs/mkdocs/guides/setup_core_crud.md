@@ -172,6 +172,29 @@ The wider-screen default is `"dropdown"`. Set `"buttons"` when configured extras
 
 Below 640px, every desktop mode automatically uses the `all_dropdown` presentation: one **Actions** kebab containing every permitted native and configured action. The heading also becomes visually compact. This responsive behavior needs no extra setting. Inline Save and Cancel are never moved into the menu.
 
+### Optional action icons
+
+An `extra_actions` dictionary can include trusted inline SVG markup with `icon_svg`. Keep the SVG in application source code, normally as a named module constant. PowerCRUD renders this value as markup and does not sanitise it, so never build it from request data, database content, or another untrusted source.
+
+```python
+TIMELINE_ICON_SVG = """
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+    <path stroke-linecap="round" stroke-linejoin="round" d="M4 5h16M4 12h10M4 19h16" />
+</svg>
+"""
+
+extra_actions = [
+    {
+        "url_name": "projects:project-timeline",
+        "text": "Timeline",
+        "needs_pk": True,
+        "icon_svg": TIMELINE_ICON_SVG,
+    },
+]
+```
+
+In `extra_actions_mode = "buttons"`, an icon normally appears beside the text. Set `icon_only=True` to render only the icon; this requires `icon_svg` and PowerCRUD supplies the action text as the accessible name and tooltip. In either dropdown mode, entries always retain their visible text. When at least one rendered action in a dropdown has an icon, the first-party packs reserve one shared icon gutter for every entry; a menu with no icons has no empty gutter.
+
 In `all_dropdown` mode the table heading is visually empty at every width to save space, but its screen-reader name and the trigger's accessible name remain **Actions**.
 
 When bulk or selection-aware features enable the checkbox column, PowerCRUD pins it to logical start by default. Sticky start actions sit immediately after it; sticky end actions can remain visible at the opposite edge. Selection-column stickiness is not a separate view option.
@@ -207,6 +230,8 @@ class AuthorCRUDView(PowerCRUDMixin, CRUDView):
     | `text` | `str` | Visible label for the row action button or dropdown entry. |
     | `needs_pk` | `bool` | Usually `True` for row actions so PowerCRUD includes the current row primary key in the URL. |
     | `button_class` | `str` | CSS class used when the action is rendered as a visible button. |
+    | `icon_svg` | `str` | Trusted inline SVG markup for this action. Define it in application source code; never derive it from request, database, or other untrusted data. |
+    | `icon_only` | `bool` | Defaults to `False`. In direct button mode, renders an icon-only control with an accessible name and tooltip. Requires `icon_svg`; dropdown entries always keep their visible label. |
     | `display_modal` | `bool` | If `True`, the response opens in the standard modal instead of replacing page content. |
     | `modal_presentation` | `dict` | Optional portable override for this modal action: size, maximum width/height, scroll ownership, fullscreen, and vertical alignment. |
     | `refresh_list_on_modal_close` | `bool` | Optional. When `True` on a modal action, closing that modal refreshes the current list partial. Defaults to `False`. |

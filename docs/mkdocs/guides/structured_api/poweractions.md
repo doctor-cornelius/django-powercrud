@@ -109,6 +109,28 @@ def can_preview_description(self, request, obj=None):
 
 `PowerAction.needs_pk` defaults to `True`, matching the normal row-action case.
 
+### Optional action icons
+
+`PowerAction` accepts the same `icon_svg` and `icon_only` options as a Base API action dictionary. Define SVGs as named application-source constants. The SVG is trusted markup: PowerCRUD deliberately renders it without sanitising it, so it must never come from request data, the database, or another untrusted source.
+
+```python
+VIEW_PROGRESS_ICON_SVG = """
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+    <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6l4 2" />
+    <circle cx="12" cy="12" r="9" />
+</svg>
+"""
+
+VIEW_PROGRESS = PowerAction(
+    text="View Progress",
+    url_name="sample:task-progress",
+    icon_svg=VIEW_PROGRESS_ICON_SVG,
+    icon_only=True,
+)
+```
+
+`icon_only` defaults to `False` and requires `icon_svg`. It applies only to direct button presentation; dropdown entries always show their text. In a dropdown, the first-party packs add a shared icon gutter only when at least one currently rendered action has an icon.
+
 ## PowerButtons
 
 Use `PowerButton` for list-level `extra_buttons`.

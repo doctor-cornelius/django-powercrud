@@ -21,6 +21,8 @@ PowerAction(
     *,
     needs_pk=True,
     button_class=None,
+    icon_svg=None,
+    icon_only=False,
     htmx_target=None,
     display_modal=None,
     modal_presentation=None,
@@ -46,6 +48,8 @@ PowerAction(
 | `url_name` | required | Django URL name for the row action endpoint. |
 | `needs_pk` | `True` | Include the current row primary key in the URL. |
 | `button_class` | `None` | Styling class used when actions render as visible buttons. |
+| `icon_svg` | `None` | Trusted inline SVG markup. Define it in application source code; never derive it from request, database, or another untrusted source. |
+| `icon_only` | `False` | Render only the icon for a direct button, retaining `text` as the accessible name and tooltip. Requires `icon_svg`; dropdown entries always keep their visible label. |
 | `htmx_target` | `None` | Custom HTMX target for non-modal or custom-target flows. |
 | `display_modal` | `None` | `True` opens in a modal. `None` preserves the base row-action fallback behavior. |
 | `modal_presentation` | `None` | Partial portable modal presentation override for this modal action. |
@@ -66,6 +70,8 @@ PowerAction(
 `to_dict()` returns the base `extra_actions` dictionary. `with_options(...)` returns a new `PowerAction` with selected values changed.
 
 Any constructor parameter in the table above can be passed to `with_options(...)`.
+
+`icon_svg` is rendered as trusted developer-provided markup and is not sanitised. Use a named inline SVG constant in Python source, not a value supplied by a request, database, or other untrusted source. When a dropdown contains at least one rendered action with an icon, the first-party packs reserve an icon gutter for every entry; menus without icons have no gutter.
 
 ```python
 ROW_MODAL = PowerAction(
