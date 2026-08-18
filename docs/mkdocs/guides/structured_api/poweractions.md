@@ -12,9 +12,15 @@ from powercrud.actions import PowerAction, PowerButton
 
 Use Base API dictionaries for one-off buttons and actions.
 
-Use `PowerAction` or `PowerButton` when you want to name and reuse a pattern:
+Use `PowerAction` or `PowerButton` when you want to name and reuse a pattern. That keeps the repeated mechanics in one declaration and leaves each view focused on the user operation.
 
-??? example "Base API and Structured API"
+Any constructor option can be changed in a derived declaration by passing it to `with_options(...)`.
+
+## PowerActions
+
+Use `PowerAction` for row-level `extra_actions`.
+
+!!! example "Action Base API and Structured API Examples"
 
     === "Base API"
 
@@ -22,12 +28,12 @@ Use `PowerAction` or `PowerButton` when you want to name and reuse a pattern:
         extra_actions = [
             {
                 "text": "Workflow Action",
-                "url_name": "cases:workflow-action",
-                "needs_pk": True,
-                "display_modal": True,
-                "modal_presentation": {"size": "extra_wide"},
-                "hidden_if": "should_hide_workflow_action",
-                "disabled_state": "get_workflow_action_disabled_state",
+                    "url_name": "cases:workflow-action",
+                    "needs_pk": True,
+                    "display_modal": True,
+                    "modal_presentation": {"size": "extra_wide"},
+                    "hidden_if": "should_hide_workflow_action",
+                    "disabled_state": "get_workflow_action_disabled_state",
             },
             {
                 "text": "Timeline",
@@ -36,7 +42,7 @@ Use `PowerAction` or `PowerButton` when you want to name and reuse a pattern:
                 "display_modal": True,
                 "modal_presentation": {"size": "extra_wide"},
             },
-        ]
+        ]         
         ```
 
     === "PowerAction"
@@ -61,13 +67,8 @@ Use `PowerAction` or `PowerButton` when you want to name and reuse a pattern:
         ]
         ```
 
-That keeps the repeated mechanics in one declaration and leaves each view focused on the user operation.
-
-Any constructor option can be changed in a derived declaration by passing it to `with_options(...)`.
-
-## PowerActions
-
-Use `PowerAction` for row-level `extra_actions`.
+!!! info "`PowerAction` Reference"
+    For the complete `PowerAction` constructor, defaults, validation, and `with_options(...)` behaviour, see the [PowerAction reference](../../reference/poweractions.md#poweraction).
 
 `PowerAction` also supports `disabled_state` for row actions that should stay visible but unavailable with a reason.
 
@@ -109,11 +110,33 @@ def can_preview_description(self, request, obj=None):
 
 `PowerAction.needs_pk` defaults to `True`, matching the normal row-action case.
 
+### Optional action icons
+
+`PowerAction` accepts the same `icon_svg` and `icon_only` options as a Base API action dictionary. Define SVGs as named application-source constants. The SVG is trusted markup: PowerCRUD deliberately renders it without sanitising it, so it must never come from request data, the database, or another untrusted source.
+
+```python
+VIEW_PROGRESS_ICON_SVG = """
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+    <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6l4 2" />
+    <circle cx="12" cy="12" r="9" />
+</svg>
+"""
+
+VIEW_PROGRESS = PowerAction(
+    text="View Progress",
+    url_name="sample:task-progress",
+    icon_svg=VIEW_PROGRESS_ICON_SVG,
+    icon_only=True,
+)
+```
+
+`icon_only` defaults to `False` and requires `icon_svg`. It applies only to direct button presentation; dropdown entries always show their text. In a dropdown, the first-party packs add a shared icon gutter only when at least one currently rendered action has an icon.
+
 ## PowerButtons
 
 Use `PowerButton` for list-level `extra_buttons`.
 
-??? example "Base API and Structured API"
+!!! example "Button Base API and Structured API Examples"
 
     === "Base API"
 
@@ -169,6 +192,9 @@ Use `PowerButton` for list-level `extra_buttons`.
             ),
         ]
         ```
+
+!!! info "`PowerButton` Reference"
+    For the complete `PowerButton` constructor, defaults, validation, and `with_options(...)` behaviour, see the [PowerButton reference](../../reference/poweractions.md#powerbutton).
 
 `PowerButton.needs_pk` defaults to `False`, matching the normal toolbar-button case.
 

@@ -200,6 +200,12 @@ The sample app includes a focused list-only view at `/sample/annotated-book/` fo
 from django.db.models import BooleanField, Case, Value, When
 from powercrud.actions import PowerButton
 
+OPEN_BOOK_ICON_SVG = """
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+    <path stroke-linecap="round" stroke-linejoin="round" d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5v-16Z" />
+</svg>
+"""
+
 
 class AnnotatedBookCRUDView(PowerCRUDAsyncMixin, CRUDView):
     model = Book
@@ -237,17 +243,21 @@ class AnnotatedBookCRUDView(PowerCRUDAsyncMixin, CRUDView):
             "url_name": "sample:bigbook-detail",
             "text": "Open Book",
             "display_modal": True,
+            "icon_svg": OPEN_BOOK_ICON_SVG,
+            "icon_only": True,
         }
     ]
 ```
 
 The `long_book` column is not a model field. It is the public queryset annotation name, and PowerCRUD uses that same name in `fields`, generated filters, sorting, header help, cell tooltips, and list-column selection. The sample sets `list_options_enabled = True` and keeps `long_book` out of `default_list_fields` so it appears as an optional selectable column in the **Cols** control. The sample makes the real `pages` model field inline-editable while keeping `long_book` out of inline edit and bulk edit config because annotation fields are read-only.
 
-The same annotated list also demonstrates selection controls for a selection-aware toolbar button without enabling built-in bulk edit/delete. `Annotated Selection Summary` uses `uses_selection=True`, while `bulk_fields = []` and `bulk_delete = False`, so row selection exists solely for the custom modal endpoint. Its `extra_actions_mode = "buttons"` setting keeps the configured `Open Book` action directly visible on wider screens, making this the sample catalogue's explicit button-mode example. The logical-start Actions column appears immediately after the default-sticky selection column; action-column stickiness remains disabled here so relocation can be inspected independently. See [Queryset Annotation Fields](../guides/advanced/queryset_annotation_fields.md) for the declaration details behind this sample.
+The same annotated list also demonstrates selection controls for a selection-aware toolbar button without enabling built-in bulk edit/delete. `Annotated Selection Summary` uses `uses_selection=True`, while `bulk_fields = []` and `bulk_delete = False`, so row selection exists solely for the custom modal endpoint. Its `extra_actions_mode = "buttons"` setting keeps the configured `Open Book` action directly visible on wider screens, making this the sample catalogue's explicit button-mode example. `OPEN_BOOK_ICON_SVG` is a named source-code constant and `icon_only=True` turns that direct action into an accessible icon-only control. The logical-start Actions column appears immediately after the default-sticky selection column; action-column stickiness remains disabled here so relocation can be inspected independently. See [Queryset Annotation Fields](../guides/advanced/queryset_annotation_fields.md) for the declaration details behind this sample.
 
 The **Authors** list combines `extra_actions_mode = "all_dropdown"` with a logical-start sticky action column. Its quiet vertical-ellipsis trigger pins immediately after the default-sticky selection checkbox, the visible header label is omitted, and the menu is one labelled list: View, Edit, Home, View Again, then Delete. Inline Save/Cancel temporarily replace that trigger and the compact menu returns after the HTMX row replacement.
 
-The **PowerField Books** list provides the opposite-edge comparison: it uses the same compact all-actions menu on a logical-end sticky column. The main **Books** list deliberately remains on the extras-only `"dropdown"` mode so both menu choices can be inspected against equivalent Book fields and default columns.
+The **PowerField Books** list provides the opposite-edge comparison: it uses the same compact all-actions menu on a logical-end sticky column. Its reusable `Normal Edit` `PowerAction` has `NORMAL_EDIT_ICON_SVG`, while the derived `Description Preview` action explicitly removes that icon. The resulting menu demonstrates a shared icon gutter for mixed standard and configured actions. The main **Books** list deliberately remains on the extras-only `"dropdown"` mode so both menu choices can be inspected against equivalent Book fields and default columns.
+
+The **Async** list has no standard row actions. Its `View Progress` extra action uses `VIEW_PROGRESS_ICON_SVG`, demonstrating that an extras-only dropdown gains an icon gutter when an extra supplies an icon. A dropdown with no icons has no empty gutter.
 
 The main Books list has two selected-summary toolbar demos. `Selected Summary` reads the current selection and uses the default selection-aware behavior, so PowerCRUD clears the persisted selection after the HTMX request succeeds. `Selected Summary (Do Not Clear)` reads the same selection but sets `clear_selection_on_success=False`, so the modal can preview selected rows without clearing them.
 

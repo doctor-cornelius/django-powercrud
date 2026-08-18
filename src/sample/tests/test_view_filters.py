@@ -342,6 +342,34 @@ def test_sample_views_demonstrate_row_actions_column_layout_options():
     )
 
 
+def test_sample_views_demonstrate_extra_action_custom_icon_presentations():
+    """Keep the sample catalogue aligned with the documented custom-icon API."""
+    annotated_view = sample_views.AnnotatedBookCRUDView()
+    powerfield_view = sample_views.PowerFieldBookCRUDView()
+    async_view = sample_views.AsyncTaskRecordCRUDView()
+
+    annotated_action = annotated_view.extra_actions[0]
+    assert (
+        annotated_action["icon_svg"] == sample_views.OPEN_BOOK_ICON_SVG
+        and annotated_action["icon_only"] is True
+    ), (
+        "Annotated Books should demonstrate an icon-only direct dictionary action."
+    )
+
+    normal_edit, description_preview = powerfield_view.extra_actions
+    assert normal_edit["icon_svg"] == sample_views.NORMAL_EDIT_ICON_SVG, (
+        "PowerField Books should demonstrate a PowerAction custom SVG in its all-actions menu."
+    )
+    assert description_preview.get("icon_svg") is None, (
+        "The derived PowerAction should deliberately remain iconless for mixed-menu alignment."
+    )
+
+    async_action = async_view.extra_actions[0]
+    assert async_action["icon_svg"] == sample_views.VIEW_PROGRESS_ICON_SVG, (
+        "Async records should demonstrate an extras-only dropdown action with a custom SVG."
+    )
+
+
 @pytest.mark.django_db
 def test_author_sample_all_actions_menu_survives_inline_htmx_rows():
     """Author list and replacement rows should share the all-actions contract."""

@@ -504,6 +504,8 @@ def _resolve_action_presentation(
     modal_presentation_attrs: str = "",
     refresh_list_on_modal_close: bool = False,
     label_html: str | None = None,
+    icon_html: str | None = None,
+    icon_only: bool = False,
 ) -> dict[str, Any]:
     """
     Resolve presentation-only metadata for one row-action anchor.
@@ -512,7 +514,7 @@ def _resolve_action_presentation(
     disabled_classes = " btn-disabled opacity-50" if disable else ""
     style_declarations = []
     tooltip_text = None
-    if label_html:
+    if label_html or icon_only:
         tooltip_text = lock_label if disable and lock_label else anchor_text
 
     if disable:
@@ -531,6 +533,8 @@ def _resolve_action_presentation(
         "text": anchor_text,
         "class_name": f"{class_name}{disabled_classes}",
         "label_html": label_html,
+        "icon_html": icon_html,
+        "icon_only": icon_only,
         "style": " ".join(style_declarations),
         "use_htmx": use_htmx,
         "hx_post": hx_post,
@@ -547,6 +551,16 @@ def _resolve_action_presentation(
         "tooltip_text": tooltip_text,
         "inline_action": anchor_text.lower(),
     }
+
+
+def _resolve_extra_action_icon_html(action: dict[str, Any]) -> str | None:
+    """Return trusted developer-supplied SVG markup for a configured extra action.
+
+    ``icon_svg`` is intentionally an application-source configuration escape hatch.
+    It must never be populated from request, database, or other untrusted content.
+    """
+    icon_svg = action.get("icon_svg")
+    return mark_safe(icon_svg) if icon_svg else None
 
 
 def _resolve_view_option(
@@ -1109,6 +1123,8 @@ def _resolve_row_action_context(view: Any, object: Any) -> dict[str, Any]:
                     "url": url,
                     "text": action["text"],
                     "button_class": button_class,
+                    "icon_html": _resolve_extra_action_icon_html(action),
+                    "icon_only": action.get("icon_only", False),
                     "target": htmx_target,
                     "hx_post": action.get("hx_post", False),
                     "show_modal": show_modal,
@@ -1132,6 +1148,8 @@ def _resolve_row_action_context(view: Any, object: Any) -> dict[str, Any]:
             url=action["url"],
             anchor_text=action["text"],
             label_html=action["label_html"],
+            icon_html=action["label_html"],
+            icon_only=True,
             class_name=(
                 f"{styles['base']}{action_group_item_class} {action['button_class']} "
                 f"{action_button_classes}"
@@ -1175,6 +1193,7 @@ def _resolve_row_action_context(view: Any, object: Any) -> dict[str, Any]:
             modal_box_classes=action["modal_box_classes"],
             modal_presentation_attrs=action["modal_presentation_attrs"],
             refresh_list_on_modal_close=action["refresh_list_on_modal_close"],
+            icon_html=action["icon_html"],
         )
         presentation.update(
             {
@@ -1214,6 +1233,8 @@ def _resolve_row_action_context(view: Any, object: Any) -> dict[str, Any]:
                 modal_box_classes=action["modal_box_classes"],
                 modal_presentation_attrs=action["modal_presentation_attrs"],
                 refresh_list_on_modal_close=action["refresh_list_on_modal_close"],
+                icon_html=action["icon_html"],
+                icon_only=action["icon_only"],
             )
             for action in extra_action_items
         ]
@@ -1241,6 +1262,8 @@ def _resolve_row_action_context(view: Any, object: Any) -> dict[str, Any]:
         presentation.update(
             {
                 "label_html": action["menu_label_html"],
+                "icon_html": action["menu_label_html"],
+                "icon_only": False,
                 "kind": "standard",
                 "is_destructive": action["text"] == "Delete",
             }
@@ -1269,6 +1292,11 @@ def _resolve_row_action_context(view: Any, object: Any) -> dict[str, Any]:
     elif extra_actions_mode == "all_dropdown":
         dropdown_actions = responsive_dropdown_actions
 
+    dropdown_has_icons = any(action.get("icon_html") for action in dropdown_actions)
+    responsive_dropdown_has_icons = any(
+        action.get("icon_html") for action in responsive_dropdown_actions
+    )
+
     has_lazy_presentation = any(
         action.get("lazy_row_action_state")
         for action in extra_dropdown_presentations
@@ -1281,6 +1309,8 @@ def _resolve_row_action_context(view: Any, object: Any) -> dict[str, Any]:
         "extra_dropdown_actions": extra_dropdown_presentations,
         "dropdown_actions": dropdown_actions,
         "responsive_dropdown_actions": responsive_dropdown_actions,
+        "dropdown_has_icons": dropdown_has_icons,
+        "responsive_dropdown_has_icons": responsive_dropdown_has_icons,
         "extra_actions_mode": extra_actions_mode,
         "show_extra_dropdown": bool(
             extra_actions_mode == "dropdown" and extra_presentations

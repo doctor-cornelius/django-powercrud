@@ -8,7 +8,7 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.urls import reverse
 
-from sample.models import Author, Book, Genre, Profile
+from sample.models import AsyncTaskRecord, Author, Book, Genre, Profile
 from sample.views import SAMPLE_DEMO_USERS
 
 
@@ -36,6 +36,16 @@ def annotated_books_url(live_server):
 @pytest.fixture
 def powerfield_books_url(live_server):
     path = reverse("sample:powerfield-book-list")
+    base = os.getenv("PLAYWRIGHT_BASE_URL")
+    if base:
+        return f"{base.rstrip('/')}{path}"
+    return f"{live_server.url.rstrip('/')}{path}"
+
+
+@pytest.fixture
+def async_task_records_url(live_server):
+    """Return the sample async task-record list URL for browser coverage."""
+    path = reverse("sample:asynctaskrecord-list")
     base = os.getenv("PLAYWRIGHT_BASE_URL")
     if base:
         return f"{base.rstrip('/')}{path}"
@@ -147,4 +157,15 @@ def sample_profile(db, sample_author, sample_genre):
         status=Profile.Status.ACTIVE,
         priority_band=Profile.PriorityBand.MEDIUM,
         favorite_genre=sample_genre,
+    )
+
+
+@pytest.fixture
+def sample_async_task_record(db):
+    """Create one completed task record for the async row-action example."""
+    return AsyncTaskRecord.objects.create(
+        task_name="playwright-custom-icon-task",
+        status=AsyncTaskRecord.STATUS.SUCCESS,
+        user_label="Playwright",
+        cleaned_up=True,
     )

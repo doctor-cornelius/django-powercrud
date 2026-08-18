@@ -94,6 +94,24 @@ def test_annotated_book_actions_render_between_selection_and_data_columns(
     expect(cells.nth(2)).to_have_attribute("data-field-name", "title")
 
 
+def test_annotated_book_icon_only_extra_action_retains_accessible_label(
+    page, annotated_books_url, sample_books
+):
+    """The direct dictionary action should render as an icon-only accessible control."""
+    target_book = sample_books[0]
+    page.goto(annotated_books_url)
+    page.wait_for_load_state("networkidle")
+
+    row = page.locator(
+        "tbody tr[data-inline-row='true']", has_text=target_book.title
+    )
+    open_book = row.get_by_role("link", name="Open Book", exact=True)
+    expect(open_book).to_have_attribute("aria-label", "Open Book")
+    expect(open_book).to_have_attribute("data-powercrud-tooltip", "semantic")
+    expect(open_book.locator("svg")).to_be_visible()
+    expect(open_book).to_have_text("")
+
+
 def test_dropdown_mode_collapses_native_and_extra_actions_on_narrow_viewports(
     page, books_url, sample_books
 ):
@@ -189,7 +207,28 @@ def test_powerfield_books_contrast_all_actions_on_the_sticky_end(
     for index in range(3):
         expect(native_actions.nth(index).locator("svg")).to_be_visible()
     expect(native_actions.first).to_have_text("View")
-    expect(panel.get_by_role("link", name="Normal Edit", exact=True)).to_be_visible()
+    normal_edit = panel.get_by_role("link", name="Normal Edit", exact=True)
+    expect(normal_edit).to_be_visible()
+    expect(normal_edit.locator("svg")).to_be_visible()
+
+
+def test_async_extras_only_dropdown_uses_its_custom_icon_gutter(
+    page, async_task_records_url, sample_async_task_record
+):
+    """An extras-only menu should gain a gutter from its configured custom SVG."""
+    page.goto(async_task_records_url)
+    page.wait_for_load_state("networkidle")
+
+    row = page.locator(
+        "tbody tr[data-inline-row='true']", has_text=sample_async_task_record.task_name
+    )
+    row.get_by_role("button", name="Actions", exact=True).click()
+    panel = page.locator("[data-powercrud-row-actions-floating-panel='true']")
+    expect(panel).to_be_visible()
+    action = panel.get_by_role("link", name="View Progress", exact=True)
+    expect(action).to_be_visible()
+    expect(panel.locator(".pc-row-action-menu-icon")).to_have_count(1)
+    expect(action.locator("svg")).to_be_visible()
 
 
 def test_start_sticky_actions_remain_usable_with_selection_enabled(

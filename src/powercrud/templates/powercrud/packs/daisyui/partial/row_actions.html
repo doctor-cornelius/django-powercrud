@@ -21,13 +21,14 @@
     {% endif %}
 
     {% if row_actions.show_dropdown %}
-        {% with rendered_dropdown_actions=row_actions.dropdown_actions rendered_dropdown_scope=row_actions.dropdown_scope trigger_label=row_actions.dropdown_trigger_label %}
+        {% with rendered_dropdown_actions=row_actions.dropdown_actions rendered_dropdown_scope=row_actions.dropdown_scope rendered_dropdown_has_icons=row_actions.dropdown_has_icons trigger_label=row_actions.dropdown_trigger_label %}
             {% partial dropdown_control %}
         {% endwith %}
     {% else %}
         {% for action in row_actions.extra_actions %}
             <a href='{{ action.href }}'
-               class='{{ action.class_name }}'
+               class='{{ action.class_name }}{% if action.icon_only %} pc-row-action-icon-button{% endif %}'
+               {% if action.icon_only %}aria-label='{{ action.text }}'{% endif %}
                {% if action.tooltip_text %}data-tippy-content='{{ action.tooltip_text }}' data-powercrud-tooltip='semantic'{% endif %}
                {% if action.style %}style='{{ action.style }}'{% endif %}
                {% if action.use_htmx %}{% if action.hx_post %}hx-post='{{ action.href }}'{% else %}hx-get='{{ action.href }}'{% endif %}{% if action.target %} hx-target='{{ action.target }}'{% endif %}{% if action.use_history %} hx-replace-url='true' hx-push-url='true'{% endif %}{% endif %}
@@ -36,7 +37,7 @@
                {% if action.modal_presentation_attrs %}{{ action.modal_presentation_attrs|safe }}{% endif %}
                {% if action.refresh_list_on_modal_close %}data-powercrud-refresh-list-on-modal-close='true'{% endif %}
                {% if action.disable %}aria-disabled='true'{% endif %}
-               data-inline-action='{{ action.inline_action }}'>{{ action.text }}</a>
+               data-inline-action='{{ action.inline_action }}'>{% if action.icon_html %}<span class='pc-row-action-custom-icon' aria-hidden='true'>{{ action.icon_html|safe }}</span>{% endif %}{% if not action.icon_only %}<span>{{ action.text }}</span>{% endif %}</a>
         {% endfor %}
     {% endif %}
 </div>
@@ -44,7 +45,7 @@
 {% if row_actions.show_responsive_dropdown %}
     <div class='join pc-row-actions pc-row-actions-mobile'
          data-powercrud-row-actions-responsive='mobile'>
-        {% with rendered_dropdown_actions=row_actions.responsive_dropdown_actions rendered_dropdown_scope='all' trigger_label='Actions' %}
+        {% with rendered_dropdown_actions=row_actions.responsive_dropdown_actions rendered_dropdown_scope='all' rendered_dropdown_has_icons=row_actions.responsive_dropdown_has_icons trigger_label='Actions' %}
             {% partial dropdown_control %}
         {% endwith %}
     </div>
@@ -78,7 +79,8 @@
             role='menu'
             class='menu bg-base-100 rounded-box z-[1200] min-w-40 p-2 shadow border border-base-300 pc-row-actions-panel'
             data-powercrud-row-actions-panel='true'
-            data-powercrud-row-actions-scope='{{ rendered_dropdown_scope }}'>
+            data-powercrud-row-actions-scope='{{ rendered_dropdown_scope }}'
+            {% if rendered_dropdown_has_icons %}data-powercrud-row-actions-has-icons='true'{% endif %}>
             {% for action in rendered_dropdown_actions %}
                 {% partial dropdown_action %}
             {% endfor %}
@@ -100,6 +102,6 @@
        {% if action.refresh_list_on_modal_close %}data-powercrud-refresh-list-on-modal-close='true'{% endif %}
        {% if action.disable %}aria-disabled='true'{% endif %}
        {% if action.lazy_row_action_state %}data-powercrud-row-action-state-mode='lazy' data-powercrud-row-action-index='{{ action.action_index }}'{% if action.lazy_hidden_if %} data-powercrud-row-action-hidden-mode='lazy'{% endif %}{% endif %}
-       data-inline-action='{{ action.inline_action }}'>{% if rendered_dropdown_scope == 'all' %}<span class='pc-row-action-menu-icon' aria-hidden='true'>{% if action.label_html %}{{ action.label_html|safe }}{% endif %}</span>{% endif %}<span>{{ action.text }}</span></a>
+       data-inline-action='{{ action.inline_action }}'>{% if rendered_dropdown_has_icons %}<span class='pc-row-action-menu-icon' aria-hidden='true'>{% if action.icon_html %}{{ action.icon_html|safe }}{% endif %}</span>{% endif %}<span>{{ action.text }}</span></a>
 </li>
 {% endpartialdef dropdown_action %}

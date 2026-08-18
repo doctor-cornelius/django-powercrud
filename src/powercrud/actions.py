@@ -77,6 +77,8 @@ class PowerAction:
     url_name: str
     needs_pk: bool = True
     button_class: str | None = None
+    icon_svg: str | None = None
+    icon_only: bool = False
     htmx_target: str | None = None
     display_modal: bool | None = None
     modal_box_classes: str | None = None
@@ -103,11 +105,15 @@ class PowerAction:
         for field_name in (
             "needs_pk",
             "display_modal",
+            "icon_only",
             "hx_post",
             "lock_sensitive",
             "refresh_list_on_modal_close",
         ):
             _validate_bool(getattr(self, field_name), field_name, class_name)
+        _validate_optional_string(self.icon_svg, "icon_svg", class_name)
+        if self.icon_only and not self.icon_svg:
+            raise ValueError("PowerAction.icon_only=True requires icon_svg")
         if self.modal_box_classes is not None and self.modal_presentation is not None:
             raise ValueError(
                 "PowerAction cannot combine modal_box_classes with modal_presentation"
@@ -172,6 +178,8 @@ class PowerAction:
                 "text": self.text,
                 "needs_pk": self.needs_pk,
                 "button_class": self.button_class,
+                "icon_svg": self.icon_svg,
+                "icon_only": self.icon_only,
                 "htmx_target": self.htmx_target,
                 "display_modal": self.display_modal,
                 "modal_box_classes": self.modal_box_classes,

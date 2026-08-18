@@ -2153,6 +2153,130 @@ def test_row_actions_component_renders_resolved_presentation_metadata():
     )
 
 
+def test_daisyui_all_dropdown_without_standard_actions_has_no_icon_gutter():
+    """Extras-only all-actions menus should not reserve an unused icon column."""
+    extra_action = {
+        "href": "/tasks/1/progress/",
+        "text": "View Progress",
+        "class_name": "justify-start whitespace-nowrap",
+        "label_html": None,
+        "style": "",
+        "use_htmx": False,
+        "hx_post": False,
+        "target": "",
+        "use_history": False,
+        "modal_attrs": "",
+        "modal_box_classes": "",
+        "modal_presentation_attrs": "",
+        "refresh_list_on_modal_close": False,
+        "disable": False,
+        "tooltip_text": None,
+        "inline_action": "view-progress",
+        "lazy_row_action_state": False,
+        "lazy_hidden_if": False,
+        "icon_html": None,
+        "icon_only": False,
+    }
+
+    rendered = render_to_string(
+        "powercrud/daisyUI/partial/row_actions.html",
+        {
+            "row_actions": {
+                "standard_actions": [],
+                "extra_actions": [extra_action],
+                "dropdown_actions": [extra_action],
+                "show_dropdown": True,
+                "show_extra_dropdown": False,
+                "show_all_dropdown": True,
+                "dropdown_scope": "all",
+                "dropdown_trigger_label": "Actions",
+                "row_action_states_url": "",
+                "dropdown_trigger_class": "btn btn-ghost",
+                "show_responsive_dropdown": False,
+                "responsive_dropdown_actions": [],
+                "dropdown_has_icons": False,
+                "responsive_dropdown_has_icons": False,
+            }
+        },
+    )
+
+    assert "data-powercrud-row-actions-scope='all'" in rendered, (
+        "The compact extras-only menu should retain its all-actions scope."
+    )
+    assert "data-powercrud-row-actions-has-icons='true'" not in rendered, (
+        "An extras-only menu should not opt into the icon-grid layout."
+    )
+    assert "pc-row-action-menu-icon" not in rendered, (
+        "An extras-only menu should not render an empty icon placeholder."
+    )
+
+
+def test_daisyui_custom_extra_icon_enables_shared_dropdown_gutter():
+    """Extra icons should align iconless rows without depending on standard actions."""
+    icon_svg = "<svg viewBox='0 0 24 24'><path d='M4 12h16'/></svg>"
+    icon_action = {
+        "href": "/tasks/1/progress/",
+        "text": "View Progress",
+        "class_name": "justify-start whitespace-nowrap",
+        "style": "",
+        "use_htmx": False,
+        "hx_post": False,
+        "target": "",
+        "use_history": False,
+        "modal_attrs": "",
+        "modal_box_classes": "",
+        "modal_presentation_attrs": "",
+        "refresh_list_on_modal_close": False,
+        "disable": False,
+        "tooltip_text": None,
+        "inline_action": "view-progress",
+        "lazy_row_action_state": False,
+        "lazy_hidden_if": False,
+        "icon_html": icon_svg,
+        "icon_only": False,
+        "kind": "extra",
+        "is_destructive": False,
+    }
+    text_action = {
+        **icon_action,
+        "text": "Retry",
+        "inline_action": "retry",
+        "icon_html": None,
+    }
+
+    rendered = render_to_string(
+        "powercrud/daisyUI/partial/row_actions.html",
+        {
+            "row_actions": {
+                "standard_actions": [],
+                "extra_actions": [icon_action, text_action],
+                "dropdown_actions": [icon_action, text_action],
+                "show_dropdown": True,
+                "show_extra_dropdown": True,
+                "show_all_dropdown": False,
+                "dropdown_scope": "extras",
+                "dropdown_trigger_label": "More actions",
+                "row_action_states_url": "",
+                "dropdown_trigger_class": "btn btn-ghost",
+                "show_responsive_dropdown": False,
+                "responsive_dropdown_actions": [],
+                "dropdown_has_icons": True,
+                "responsive_dropdown_has_icons": False,
+            }
+        },
+    )
+
+    assert "data-powercrud-row-actions-has-icons='true'" in rendered, (
+        "A custom extra icon should opt an extras-only dropdown into the shared icon grid."
+    )
+    assert rendered.count("pc-row-action-menu-icon") == 2, (
+        "Both icon-bearing and iconless rows should receive a fixed icon slot for aligned labels."
+    )
+    assert icon_svg in rendered and "<span>Retry</span>" in rendered, (
+        "The custom SVG should render while the iconless action keeps its aligned visible label."
+    )
+
+
 def test_row_actions_component_prefers_downstream_model_override(tmp_path):
     """A model-scoped row-actions template should replace markup without JavaScript."""
 

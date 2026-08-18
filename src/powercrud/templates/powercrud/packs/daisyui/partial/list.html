@@ -105,6 +105,20 @@
         padding-inline: 0.25rem;
     }
 
+    .pc-row-actions .pc-row-action-custom-icon {
+        display: inline-flex;
+        flex: none;
+        width: 1rem;
+        height: 1rem;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .pc-row-actions .pc-row-action-custom-icon svg {
+        width: 1rem;
+        height: 1rem;
+    }
+
     .pc-row-actions .pc-row-actions-trigger {
         border-color: transparent;
         background-color: transparent;
@@ -138,7 +152,7 @@
         color: var(--color-base-content);
     }
 
-    .pc-row-actions-panel[data-powercrud-row-actions-scope="all"] .pc-row-action-menu-item {
+    .pc-row-actions-panel[data-powercrud-row-actions-has-icons="true"] .pc-row-action-menu-item {
         display: grid;
         grid-template-columns: 1rem minmax(0, 1fr);
         align-items: center;

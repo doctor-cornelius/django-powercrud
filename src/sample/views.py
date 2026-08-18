@@ -15,6 +15,30 @@ from . import filters, forms, models
 from .services import BookBulkUpdateService
 
 
+OPEN_BOOK_ICON_SVG = (
+    "<svg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' "
+    "stroke-width='1.5' stroke='currentColor'>"
+    "<path stroke-linecap='round' stroke-linejoin='round' "
+    "d='M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.105 0-2.16.2-3.133.57A1.5 1.5 0 0 0 1.875 5.72v12.56a1.5 1.5 0 0 0 2.01 1.405A8.97 8.97 0 0 1 6 19.5c2.2 0 4.217.79 5.78 2.1m.22-15.558A8.967 8.967 0 0 1 18 3.75c1.105 0 2.16.2 3.133.57a1.5 1.5 0 0 1 .992 1.4v12.56a1.5 1.5 0 0 1-2.01 1.405A8.97 8.97 0 0 0 18 19.5a8.967 8.967 0 0 0-6 2.1m0-15.558v15.558'/>"
+    "</svg>"
+)
+NORMAL_EDIT_ICON_SVG = (
+    "<svg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' "
+    "stroke-width='1.5' stroke='currentColor'>"
+    "<path stroke-linecap='round' stroke-linejoin='round' "
+    "d='m16.862 4.487 1.688-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13l-3.164.949.949-3.164a4.5 4.5 0 0 1 1.13-1.897l9.262-9.262Z'/>"
+    "<path stroke-linecap='round' stroke-linejoin='round' d='M19.5 7.125 16.875 4.5'/>"
+    "</svg>"
+)
+VIEW_PROGRESS_ICON_SVG = (
+    "<svg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' "
+    "stroke-width='1.5' stroke='currentColor'>"
+    "<path stroke-linecap='round' stroke-linejoin='round' "
+    "d='M3.75 3v18m0-4.5h16.5M7.5 16.5v-4.875a.375.375 0 0 1 .375-.375h2.25a.375.375 0 0 1 .375.375V16.5m0 0V9.375A.375.375 0 0 1 10.875 9h2.25a.375.375 0 0 1 .375.375V16.5m0 0v-2.625a.375.375 0 0 1 .375-.375h2.25a.375.375 0 0 1 .375.375V16.5'/>"
+    "</svg>"
+)
+
+
 SAMPLE_DEMO_USERS = {
     "viewer": {
         "username": "sample-viewer",
@@ -592,6 +616,8 @@ class AnnotatedBookCRUDView(SampleCRUDMixin):
             "needs_pk": True,
             "button_class": "btn-primary",
             "display_modal": True,
+            "icon_svg": OPEN_BOOK_ICON_SVG,
+            "icon_only": True,
         }
     ]
 
@@ -851,6 +877,7 @@ class PowerFieldBookCRUDView(SampleCRUDMixin):
         text="Normal Edit",
         url_name="sample:bigbook-update",
         button_class="btn-info",
+        icon_svg=NORMAL_EDIT_ICON_SVG,
         htmx_target="powercrudModalContent",
         display_modal=True,
         lock_sensitive=True,
@@ -865,6 +892,7 @@ class PowerFieldBookCRUDView(SampleCRUDMixin):
             text="Description Preview",
             url_name="sample:bigbook-description-preview",
             button_class="btn-secondary",
+            icon_svg=None,
             lock_sensitive=False,
             refresh_list_on_modal_close=False,
             permission_check="can_preview_description",
@@ -1170,6 +1198,7 @@ class AsyncTaskRecordCRUDView(SampleCRUDMixin):
     base_template_path = "sample/base.html"
     use_htmx = True
     use_modal = True
+    table_classes = "table-zebra table-sm"
     extra_actions_mode = "all_dropdown"
     view_instructions = "Review background-task records created by the sample app."
     view_help = {
@@ -1231,6 +1260,7 @@ class AsyncTaskRecordCRUDView(SampleCRUDMixin):
             "needs_pk": True,  # if the URL doesn't need the object's primary key
             "htmx_target": "#powercrudModalContent",
             "display_modal": True,
+            "icon_svg": VIEW_PROGRESS_ICON_SVG,
         },
     ]
 

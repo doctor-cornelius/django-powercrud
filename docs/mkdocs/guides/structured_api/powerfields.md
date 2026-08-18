@@ -97,6 +97,8 @@ PowerField compiles to the same base configuration before PowerCRUD registers fe
 
 Prefer one `PowerField` entry per field.
 
+For the complete `PowerField` kwargs, Base API targets, and validation rules, see the [PowerField reference](../../reference/powerfields.md#powerfield).
+
 ```python
 PowerField(
     "title",
