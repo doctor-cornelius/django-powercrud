@@ -565,10 +565,10 @@
 }
 
 [data-powercrud-object-list="true"] .pc-bootstrap-row-actions .btn {
-    min-width: 2rem;
     min-height: 2rem;
     height: 2rem;
-    padding: 0;
+    padding-block: 0;
+    padding-inline: .25rem;
     font-size: inherit;
     line-height: 1;
     display: inline-flex;
@@ -615,12 +615,6 @@
 
 [data-powercrud-object-list="true"] .pc-bootstrap-row-actions .dropdown {
     display: inline-flex;
-}
-
-[data-powercrud-object-list="true"] .pc-bootstrap-row-actions-all {
-    width: 1.75rem;
-    min-width: 1.75rem !important;
-    padding-inline: 0;
 }
 
 [data-powercrud-object-list="true"] .pc-bootstrap-row-actions-all svg {
