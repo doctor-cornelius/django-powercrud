@@ -12,9 +12,15 @@ from powercrud.actions import PowerAction, PowerButton
 
 Use Base API dictionaries for one-off buttons and actions.
 
-Use `PowerAction` or `PowerButton` when you want to name and reuse a pattern:
+Use `PowerAction` or `PowerButton` when you want to name and reuse a pattern. That keeps the repeated mechanics in one declaration and leaves each view focused on the user operation.
 
-??? example "Base API and Structured API"
+Any constructor option can be changed in a derived declaration by passing it to `with_options(...)`.
+
+## PowerActions
+
+Use `PowerAction` for row-level `extra_actions`.
+
+??? example "Action Base API and Structured API"
 
     === "Base API"
 
@@ -22,12 +28,12 @@ Use `PowerAction` or `PowerButton` when you want to name and reuse a pattern:
         extra_actions = [
             {
                 "text": "Workflow Action",
-                "url_name": "cases:workflow-action",
-                "needs_pk": True,
-                "display_modal": True,
-                "modal_presentation": {"size": "extra_wide"},
-                "hidden_if": "should_hide_workflow_action",
-                "disabled_state": "get_workflow_action_disabled_state",
+                    "url_name": "cases:workflow-action",
+                    "needs_pk": True,
+                    "display_modal": True,
+                    "modal_presentation": {"size": "extra_wide"},
+                    "hidden_if": "should_hide_workflow_action",
+                    "disabled_state": "get_workflow_action_disabled_state",
             },
             {
                 "text": "Timeline",
@@ -36,7 +42,7 @@ Use `PowerAction` or `PowerButton` when you want to name and reuse a pattern:
                 "display_modal": True,
                 "modal_presentation": {"size": "extra_wide"},
             },
-        ]
+        ]         
         ```
 
     === "PowerAction"
@@ -60,14 +66,6 @@ Use `PowerAction` or `PowerButton` when you want to name and reuse a pattern:
             ),
         ]
         ```
-
-That keeps the repeated mechanics in one declaration and leaves each view focused on the user operation.
-
-Any constructor option can be changed in a derived declaration by passing it to `with_options(...)`.
-
-## PowerActions
-
-Use `PowerAction` for row-level `extra_actions`.
 
 For the complete `PowerAction` constructor, defaults, validation, and `with_options(...)` behaviour, see the [PowerAction reference](../../reference/poweractions.md#poweraction).
 
@@ -137,9 +135,7 @@ VIEW_PROGRESS = PowerAction(
 
 Use `PowerButton` for list-level `extra_buttons`.
 
-For the complete `PowerButton` constructor, defaults, validation, and `with_options(...)` behaviour, see the [PowerButton reference](../../reference/poweractions.md#powerbutton).
-
-??? example "Base API and Structured API"
+??? example "Button Base API and Structured API"
 
     === "Base API"
 
@@ -195,6 +191,8 @@ For the complete `PowerButton` constructor, defaults, validation, and `with_opti
             ),
         ]
         ```
+
+For the complete `PowerButton` constructor, defaults, validation, and `with_options(...)` behaviour, see the [PowerButton reference](../../reference/poweractions.md#powerbutton).
 
 `PowerButton.needs_pk` defaults to `False`, matching the normal toolbar-button case.
 
