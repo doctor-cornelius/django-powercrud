@@ -1170,6 +1170,7 @@ class AsyncTaskRecordCRUDView(SampleCRUDMixin):
     base_template_path = "sample/base.html"
     use_htmx = True
     use_modal = True
+    extra_actions_mode = "all_dropdown"
     view_instructions = "Review background-task records created by the sample app."
     view_help = {
         "summary": "About the Async demo",
