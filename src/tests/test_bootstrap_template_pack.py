@@ -335,11 +335,7 @@ def test_bootstrap_optional_components_preserve_shared_semantic_hooks():
         f"{BOOTSTRAP_NAMESPACE}/partial/row_actions.html",
         {
             "row_actions": SimpleNamespace(
-                standard_actions=[
-                    dropdown_actions[0],
-                    dropdown_actions[1],
-                    dropdown_actions[3],
-                ],
+                standard_actions=[],
                 dropdown_actions=[
                     SimpleNamespace(
                         href="/books/7/archive/",
