@@ -1043,6 +1043,116 @@ def test_action_links_resolve_all_actions_for_narrow_viewports(
 
 
 @pytest.mark.django_db
+def test_row_actions_resolve_custom_extra_icons_and_menu_gutters():
+    """Custom extra SVGs should participate in each rendered menu's icon layout."""
+    author = Author.objects.create(name="Custom Icon Author")
+    book = Book.objects.create(
+        title="Custom Icon",
+        author=author,
+        published_date=date(2024, 8, 6),
+        bestseller=False,
+        isbn="9876543210133",
+        pages=84,
+        description="Custom icon row action",
+    )
+    icon_svg = "<svg viewBox='0 0 24 24'><path d='M4 12h16'/></svg>"
+    view = TemplateViewStub(apply_session(RequestFactory().get("/")))
+    view.extra_actions_mode = "dropdown"
+    view.extra_actions = [
+        {
+            "url_name": "sample:book-detail",
+            "text": "Preview",
+            "icon_svg": icon_svg,
+        },
+        {
+            "url_name": "sample:book-list",
+            "text": "Refresh",
+            "needs_pk": False,
+        },
+    ]
+
+    row_actions = powercrud._resolve_row_action_context(view, book)["row_actions"]
+    preview, refresh = row_actions["dropdown_actions"]
+
+    assert row_actions["dropdown_has_icons"] is True, (
+        "An extras-only desktop dropdown should reserve an icon gutter when one rendered extra has an icon."
+    )
+    assert row_actions["responsive_dropdown_has_icons"] is True, (
+        "The responsive all-actions dropdown should preserve the custom icon gutter."
+    )
+    assert str(preview["icon_html"]) == icon_svg and refresh["icon_html"] is None, (
+        "Only actions declaring icon_svg should supply trusted icon presentation markup."
+    )
+    assert preview["icon_only"] is False and refresh["icon_only"] is False, (
+        "Dropdown actions should keep visible labels regardless of direct-button icon preferences."
+    )
+
+
+@pytest.mark.django_db
+def test_row_actions_resolve_icon_only_extra_buttons_with_tooltips():
+    """Icon-only extras should retain text-only and icon-plus-text alternatives."""
+    author = Author.objects.create(name="Icon Only Author")
+    book = Book.objects.create(
+        title="Icon Only",
+        author=author,
+        published_date=date(2024, 8, 7),
+        bestseller=False,
+        isbn="9876543210134",
+        pages=85,
+        description="Icon-only row action",
+    )
+    icon_svg = "<svg viewBox='0 0 24 24'><path d='M4 12h16'/></svg>"
+    view = TemplateViewStub(apply_session(RequestFactory().get("/")))
+    view.extra_actions_mode = "buttons"
+    view.extra_actions = [
+        {
+            "url_name": "sample:book-detail",
+            "text": "Inspect",
+            "icon_svg": icon_svg,
+            "icon_only": True,
+        },
+        {
+            "url_name": "sample:book-list",
+            "text": "Refresh",
+            "needs_pk": False,
+            "icon_svg": icon_svg,
+        },
+        {
+            "url_name": "sample:book-list",
+            "text": "Plain",
+            "needs_pk": False,
+        },
+    ]
+
+    context = powercrud._resolve_row_action_context(view, book)
+    actions = {action["text"]: action for action in context["row_actions"]["extra_actions"]}
+    html = powercrud._render_row_actions(view, context)
+
+    assert actions["Inspect"]["icon_only"] is True and actions["Inspect"]["tooltip_text"] == "Inspect", (
+        "Icon-only direct extras should use their text as the semantic tooltip and accessible name."
+    )
+    assert actions["Refresh"]["icon_html"] and not actions["Refresh"]["icon_only"], (
+        "Extra buttons with an icon should retain their visible text by default."
+    )
+    assert actions["Plain"]["icon_html"] is None and not actions["Plain"]["icon_only"], (
+        "Extra buttons without icon_svg should remain text-only."
+    )
+    responsive_actions = {
+        action["text"]: action
+        for action in context["row_actions"]["responsive_dropdown_actions"]
+    }
+    assert responsive_actions["Inspect"]["icon_only"] is False, (
+        "The responsive dropdown should retain the icon-only action's visible label."
+    )
+    assert "aria-label='Inspect'" in html and "data-tippy-content='Inspect'" in html, (
+        "The rendered icon-only extra should remain discoverable to assistive technology and mouse users."
+    )
+    assert "<span>Refresh</span>" in html and "<span>Plain</span>" in html, (
+        "Icon-plus-text and text-only direct extras should retain their visible labels."
+    )
+
+
+@pytest.mark.django_db
 def test_action_links_all_dropdown_respects_native_permissions_and_disabled_state():
     """Unified menus should reuse native permission and disabled-state decisions."""
     author = Author.objects.create(name="Restricted Unified Actions Author")

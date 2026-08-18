@@ -510,6 +510,8 @@ def test_bootstrap_row_actions_render_one_accessible_all_actions_menu():
             inline_action=text.lower(),
             text=text,
             label_html=label_html,
+            icon_html=label_html,
+            icon_only=False,
             menu_button_class="btn btn-warning",
             kind=kind,
             is_destructive=destructive,
@@ -552,6 +554,8 @@ def test_bootstrap_row_actions_render_one_accessible_all_actions_menu():
                 row_action_states_url="",
                 show_responsive_dropdown=False,
                 responsive_dropdown_actions=dropdown_actions,
+                dropdown_has_icons=True,
+                responsive_dropdown_has_icons=True,
             )
         },
     )
@@ -611,6 +615,8 @@ def test_bootstrap_extras_only_all_dropdown_has_no_icon_gutter():
         inline_action="view-progress",
         text="View Progress",
         label_html=None,
+        icon_html=None,
+        icon_only=False,
         kind="extra",
         is_destructive=False,
     )
@@ -632,6 +638,8 @@ def test_bootstrap_extras_only_all_dropdown_has_no_icon_gutter():
                 row_action_states_url="",
                 show_responsive_dropdown=False,
                 responsive_dropdown_actions=[],
+                dropdown_has_icons=False,
+                responsive_dropdown_has_icons=False,
             )
         },
     )
@@ -641,6 +649,152 @@ def test_bootstrap_extras_only_all_dropdown_has_no_icon_gutter():
     )
     assert "pc-row-action-menu-icon" not in rendered, (
         "An extras-only menu should not render an empty icon placeholder."
+    )
+
+
+def test_bootstrap_custom_extra_icon_enables_shared_dropdown_gutter():
+    """Bootstrap should align iconless extras when another extra supplies an SVG."""
+    icon_svg = "<svg viewBox='0 0 24 24'><path d='M4 12h16'/></svg>"
+    icon_action = SimpleNamespace(
+        href="/tasks/1/progress/",
+        class_name="justify-start whitespace-nowrap",
+        tooltip_text=None,
+        style="",
+        use_htmx=False,
+        hx_post=False,
+        target="",
+        use_history=False,
+        modal_attrs="",
+        modal_box_classes="",
+        modal_presentation_attrs="",
+        refresh_list_on_modal_close=False,
+        disable=False,
+        lazy_row_action_state=False,
+        action_index=0,
+        lazy_hidden_if=False,
+        inline_action="view-progress",
+        text="View Progress",
+        label_html=None,
+        icon_html=icon_svg,
+        icon_only=False,
+        kind="extra",
+        is_destructive=False,
+    )
+    text_action = SimpleNamespace(
+        **{
+            **vars(icon_action),
+            "text": "Retry",
+            "inline_action": "retry",
+            "icon_html": None,
+        }
+    )
+    rendered = render_to_string(
+        f"{BOOTSTRAP_NAMESPACE}/partial/row_actions.html",
+        {
+            "row_actions": SimpleNamespace(
+                standard_actions=[],
+                extra_actions=[icon_action, text_action],
+                dropdown_actions=[icon_action, text_action],
+                standard_dropdown_actions=[],
+                extra_dropdown_actions=[icon_action, text_action],
+                show_dropdown=True,
+                show_extra_dropdown=True,
+                show_all_dropdown=False,
+                dropdown_scope="extras",
+                dropdown_trigger_label="More actions",
+                dropdown_trigger_class="btn",
+                row_action_states_url="",
+                show_responsive_dropdown=False,
+                responsive_dropdown_actions=[],
+                dropdown_has_icons=True,
+                responsive_dropdown_has_icons=False,
+            )
+        },
+    )
+
+    assert rendered.count('class="pc-row-action-menu-icon"') == 2, (
+        "Bootstrap should render an icon slot for every row when a custom extra icon is present."
+    )
+    assert icon_svg in rendered and "<span>Retry</span>" in rendered, (
+        "Bootstrap should render the custom SVG and retain the aligned iconless label."
+    )
+
+
+def test_bootstrap_extra_button_icon_modes_are_accessible():
+    """Bootstrap direct extras should support icon-only, icon-plus-text, and text-only rendering."""
+    icon_svg = "<svg viewBox='0 0 24 24'><path d='M4 12h16'/></svg>"
+
+    def action(text, *, icon_html=None, icon_only=False, tooltip_text=None):
+        """Build one direct extra action presentation for the focused template."""
+        return SimpleNamespace(
+            href="/tasks/1/progress/",
+            class_name="btn btn-secondary",
+            tooltip_text=tooltip_text,
+            style="",
+            use_htmx=False,
+            hx_post=False,
+            target="",
+            use_history=False,
+            modal_attrs="",
+            modal_box_classes="",
+            modal_presentation_attrs="",
+            refresh_list_on_modal_close=False,
+            disable=False,
+            inline_action=text.lower(),
+            text=text,
+            icon_html=icon_html,
+            icon_only=icon_only,
+            kind="extra",
+            is_destructive=False,
+        )
+
+    icon_only_action = action(
+        "Inspect",
+        icon_html=icon_svg,
+        icon_only=True,
+        tooltip_text="Inspect",
+    )
+    labelled_icon_action = action("Refresh", icon_html=icon_svg)
+    text_only_action = action("Retry")
+    rendered = render_to_string(
+        f"{BOOTSTRAP_NAMESPACE}/partial/row_actions.html",
+        {
+            "row_actions": SimpleNamespace(
+                standard_actions=[],
+                extra_actions=[
+                    icon_only_action,
+                    labelled_icon_action,
+                    text_only_action,
+                ],
+                dropdown_actions=[],
+                standard_dropdown_actions=[],
+                extra_dropdown_actions=[],
+                show_dropdown=False,
+                show_extra_dropdown=False,
+                show_all_dropdown=False,
+                dropdown_scope=None,
+                dropdown_trigger_label="",
+                dropdown_trigger_class="btn",
+                row_action_states_url="",
+                show_responsive_dropdown=False,
+                responsive_dropdown_actions=[],
+                dropdown_has_icons=False,
+                responsive_dropdown_has_icons=False,
+            )
+        },
+    )
+
+    assert 'aria-label="Inspect"' in rendered and 'data-bs-title="Inspect"' in rendered, (
+        "Bootstrap icon-only extras should retain an accessible name and semantic tooltip."
+    )
+    assert 'class="btn btn-secondary pc-row-action-icon-button"' in rendered, (
+        "Bootstrap icon-only extras should opt into the compact row-action button treatment."
+    )
+    assert "<span>Refresh</span>" in rendered and "<span>Retry</span>" in rendered, (
+        "Bootstrap should keep visible labels for icon-plus-text and text-only extras."
+    )
+    assert rendered.count(icon_svg) == 2, (
+        "Bootstrap should render custom SVGs for both icon-only and labelled icon actions."
     )
 
 

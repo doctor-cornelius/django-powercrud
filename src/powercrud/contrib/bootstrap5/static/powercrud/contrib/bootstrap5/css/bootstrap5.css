@@ -468,6 +468,20 @@
     flex: 0 0 auto;
 }
 
+[data-powercrud-object-list="true"] .pc-row-actions .pc-row-action-custom-icon {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    width: 1rem;
+    height: 1rem;
+}
+
+[data-powercrud-object-list="true"] .pc-row-actions .pc-row-action-custom-icon svg {
+    width: 1rem;
+    height: 1rem;
+}
+
 [data-powercrud-object-list="true"] .pc-boolean-icon {
     display: inline-block;
     width: 1rem;
