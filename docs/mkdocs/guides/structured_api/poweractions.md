@@ -20,7 +20,7 @@ Any constructor option can be changed in a derived declaration by passing it to 
 
 Use `PowerAction` for row-level `extra_actions`.
 
-??? example "Action Base API and Structured API"
+!!! example "Action Base API and Structured API Examples"
 
     === "Base API"
 
@@ -67,7 +67,8 @@ Use `PowerAction` for row-level `extra_actions`.
         ]
         ```
 
-For the complete `PowerAction` constructor, defaults, validation, and `with_options(...)` behaviour, see the [PowerAction reference](../../reference/poweractions.md#poweraction).
+!!! info "`PowerAction` Reference"
+    For the complete `PowerAction` constructor, defaults, validation, and `with_options(...)` behaviour, see the [PowerAction reference](../../reference/poweractions.md#poweraction).
 
 `PowerAction` also supports `disabled_state` for row actions that should stay visible but unavailable with a reason.
 
@@ -135,7 +136,7 @@ VIEW_PROGRESS = PowerAction(
 
 Use `PowerButton` for list-level `extra_buttons`.
 
-??? example "Button Base API and Structured API"
+!!! example "Button Base API and Structured API Examples"
 
     === "Base API"
 
@@ -192,7 +193,8 @@ Use `PowerButton` for list-level `extra_buttons`.
         ]
         ```
 
-For the complete `PowerButton` constructor, defaults, validation, and `with_options(...)` behaviour, see the [PowerButton reference](../../reference/poweractions.md#powerbutton).
+!!! info "`PowerButton` Reference"
+    For the complete `PowerButton` constructor, defaults, validation, and `with_options(...)` behaviour, see the [PowerButton reference](../../reference/poweractions.md#powerbutton).
 
 `PowerButton.needs_pk` defaults to `False`, matching the normal toolbar-button case.
 
