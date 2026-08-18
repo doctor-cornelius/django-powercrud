@@ -69,6 +69,8 @@ Any constructor option can be changed in a derived declaration by passing it to 
 
 Use `PowerAction` for row-level `extra_actions`.
 
+For the complete `PowerAction` constructor, defaults, validation, and `with_options(...)` behaviour, see the [PowerAction reference](../../reference/poweractions.md#poweraction).
+
 `PowerAction` also supports `disabled_state` for row actions that should stay visible but unavailable with a reason.
 
 It also supports permission affordance fields. Use those for user capability, and keep `hidden_if` / `disabled_state` for row or workflow state.
@@ -134,6 +136,8 @@ VIEW_PROGRESS = PowerAction(
 ## PowerButtons
 
 Use `PowerButton` for list-level `extra_buttons`.
+
+For the complete `PowerButton` constructor, defaults, validation, and `with_options(...)` behaviour, see the [PowerButton reference](../../reference/poweractions.md#powerbutton).
 
 ??? example "Base API and Structured API"
 
