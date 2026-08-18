@@ -1751,6 +1751,25 @@ class ConfigMixin:
                 )
 
             normalized = action.copy()
+            icon_svg = normalized.get("icon_svg")
+            if icon_svg is not None:
+                if not isinstance(icon_svg, str) or not icon_svg.strip():
+                    raise ValueError(
+                        f"extra_actions[{index}].icon_svg must be a non-empty string"
+                    )
+                normalized["icon_svg"] = icon_svg.strip()
+
+            icon_only = normalized.get("icon_only", False)
+            if not isinstance(icon_only, bool):
+                raise ValueError(
+                    f"extra_actions[{index}].icon_only must be True or False"
+                )
+            if icon_only and not normalized.get("icon_svg"):
+                raise ValueError(
+                    f"extra_actions[{index}].icon_only=True requires icon_svg"
+                )
+            normalized["icon_only"] = icon_only
+
             hidden_if = self._resolve_extra_action_method(
                 normalized.get("hidden_if"),
                 index,

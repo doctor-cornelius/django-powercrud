@@ -18,6 +18,7 @@ def test_poweraction_to_dict_exposes_primitive_extra_action_config():
         "text": "Preview",
         "needs_pk": True,
         "button_class": "btn-secondary",
+        "icon_only": False,
         "display_modal": True,
         "hx_post": False,
         "lock_sensitive": False,
@@ -48,6 +49,49 @@ def test_poweraction_with_options_returns_changed_copy_without_mutating_original
     assert copied.to_dict()["modal_box_classes"] == "modal-box max-w-5xl", (
         "with_options should preserve unchanged action options."
     )
+
+
+def test_poweraction_serializes_custom_icon_and_icon_only_presentation():
+    """Expose custom SVG icons through the primitive extra-actions API."""
+    icon_svg = "<svg viewBox='0 0 24 24'><path d='M4 12h16'/></svg>"
+    action = PowerAction(
+        text="Preview",
+        url_name="sample:book-detail",
+        icon_svg=icon_svg,
+        icon_only=True,
+    )
+
+    assert action.to_dict()["icon_svg"] == icon_svg, (
+        "PowerAction should preserve developer-supplied inline SVG markup."
+    )
+    assert action.to_dict()["icon_only"] is True, (
+        "PowerAction should expose icon_only to the primitive action declaration."
+    )
+    copied = action.with_options(icon_only=False)
+    assert copied.icon_only is False and action.icon_only is True, (
+        "with_options should allow icon-only presentation to change without mutating the source action."
+    )
+
+
+@pytest.mark.parametrize("icon_svg", ("", "   ", 7))
+def test_poweraction_rejects_invalid_custom_icon_svg(icon_svg):
+    """Reject empty or non-string SVG declarations before view configuration."""
+    with pytest.raises(ValueError, match="icon_svg"):
+        PowerAction(
+            text="Preview",
+            url_name="sample:book-detail",
+            icon_svg=icon_svg,
+        )
+
+
+def test_poweraction_rejects_icon_only_without_custom_icon_svg():
+    """Require a drawable icon before accepting icon-only rendering."""
+    with pytest.raises(ValueError, match="icon_only=True requires icon_svg"):
+        PowerAction(
+            text="Preview",
+            url_name="sample:book-detail",
+            icon_only=True,
+        )
 
 
 def test_poweraction_serializes_portable_modal_presentation():

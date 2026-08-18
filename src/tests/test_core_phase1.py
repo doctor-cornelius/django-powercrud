@@ -1551,6 +1551,63 @@ def test_core_mixin_accepts_poweraction_in_extra_actions():
 
 
 @pytest.mark.django_db
+def test_core_mixin_normalizes_extra_action_custom_icon_settings():
+    """Keep the Base API custom icon settings ready for row-action rendering."""
+    icon_svg = "<svg viewBox='0 0 24 24'><path d='M4 12h16'/></svg>"
+
+    class ActionView(CoreMixin):
+        model = Book
+        fields = "__all__"
+        base_template_path = "sample/base.html"
+        extra_actions = [
+            {
+                "url_name": "sample:bigbook-description-preview",
+                "text": "Description Preview",
+                "icon_svg": f"  {icon_svg}  ",
+                "icon_only": True,
+            }
+        ]
+
+    view = ActionView()
+
+    assert view.extra_actions[0]["icon_svg"] == icon_svg, (
+        "Primitive custom SVG should be trimmed and preserved during configuration."
+    )
+    assert view.extra_actions[0]["icon_only"] is True, (
+        "Primitive icon-only configuration should remain available to presentation resolution."
+    )
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    ("config", "message"),
+    [
+        ({"icon_svg": ""}, "icon_svg"),
+        ({"icon_svg": 7}, "icon_svg"),
+        ({"icon_only": "yes"}, "icon_only"),
+        ({"icon_only": True}, "icon_only=True requires icon_svg"),
+    ],
+)
+def test_core_mixin_rejects_invalid_extra_action_custom_icon_settings(config, message):
+    """Reject invalid Base API custom icon declarations during configuration."""
+
+    class BrokenView(CoreMixin):
+        model = Book
+        fields = "__all__"
+        base_template_path = "sample/base.html"
+        extra_actions = [
+            {
+                "url_name": "sample:bigbook-description-preview",
+                "text": "Description Preview",
+                **config,
+            }
+        ]
+
+    with pytest.raises(ImproperlyConfigured, match=message):
+        BrokenView()
+
+
+@pytest.mark.django_db
 def test_core_mixin_accepts_permission_config_in_extra_actions():
     """Accept primitive extra action permission affordance settings."""
     class ActionView(CoreMixin):
