@@ -330,6 +330,13 @@ select.ts-hidden-accessible {
     max-width: calc(100vw - 2rem) !important;
 }
 
+[data-inline-row="true"] .inline-field-widget,
+[data-inline-row="true"] .inline-field-widget input,
+[data-inline-row="true"] .inline-field-widget select,
+[data-inline-row="true"] .inline-field-widget textarea {
+    font-size: inherit;
+}
+
 [data-inline-row="true"] .ts-wrapper.powercrud-inline-single,
 [data-inline-row="true"] .ts-wrapper.powercrud-inline-single .ts-control,
 [data-inline-row="true"] .ts-wrapper.powercrud-inline-single .ts-control > .item,

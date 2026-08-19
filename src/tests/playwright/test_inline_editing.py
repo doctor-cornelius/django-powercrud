@@ -631,14 +631,14 @@ def test_inline_edit_saves_after_hiding_non_trigger_column(
     assert book.title == new_title
 
 
-def test_inline_searchable_select_focus_opens_dropdown(
-    page: Page, books_url: str, inline_ready_books
+def test_inline_widgets_inherit_cell_typography_and_searchable_select_opens(
+    page: Page, powerfield_books_url: str, inline_ready_books
 ):
-    """Inline single selects should open on focus and inherit cell typography."""
+    """Inline widgets should inherit cell type without obscuring selected values."""
     book = inline_ready_books[0]
-    row_path = build_inline_row_path(books_url, book.pk)
+    row_path = build_inline_row_path(powerfield_books_url, book.pk)
 
-    open_books_page(page, books_url)
+    open_books_page(page, powerfield_books_url)
 
     active_row = open_inline_row(page, row=get_inline_row(page, row_path), field_name="author")
     select = active_row.locator("select[name='author']")
@@ -682,12 +682,38 @@ def test_inline_searchable_select_focus_opens_dropdown(
     wrapper = active_row.locator(".ts-wrapper.powercrud-inline-single")
     control = wrapper.locator(".ts-control")
     dropdown = page.locator(".ts-dropdown.powercrud-inline-single-dropdown")
+    expect(active_row.locator("input[name='title']")).to_have_css(
+        "font-size", "17px"
+    )
     expect(wrapper).to_have_css("font-size", "17px")
     expect(control).to_have_css("font-size", "17px")
     expect(control.locator(".item")).to_have_css("font-size", "17px")
     expect(control.locator("input")).to_have_css("font-size", "17px")
     expect(dropdown).to_have_css("font-size", "17px")
     expect(dropdown.locator(".option").first).to_be_visible()
+    expect(control.locator(".item")).to_be_visible()
+    placement = page.evaluate(
+        """
+        () => {
+            const control = document.querySelector(
+                'tr[data-inline-active="true"] .powercrud-inline-single .ts-control'
+            );
+            const dropdown = document.querySelector(
+                '.ts-dropdown.powercrud-inline-single-dropdown'
+            );
+            const controlBox = control.getBoundingClientRect();
+            const dropdownBox = dropdown.getBoundingClientRect();
+            return {
+                controlBottom: controlBox.bottom,
+                dropdownTop: dropdownBox.top,
+            };
+        }
+        """
+    )
+    assert placement["dropdownTop"] >= placement["controlBottom"] - 1, (
+        "The inline single-select dropdown should start below the control so it does "
+        f"not obscure the selected value. Placement: {placement}"
+    )
 
 
 def test_inline_actions_fit_reduced_profile_action_column(

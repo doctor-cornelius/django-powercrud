@@ -791,6 +791,13 @@
     max-width: calc(100vw - 2rem) !important;
 }
 
+[data-powercrud-object-list="true"] [data-inline-row="true"] .inline-field-widget,
+[data-powercrud-object-list="true"] [data-inline-row="true"] .inline-field-widget input,
+[data-powercrud-object-list="true"] [data-inline-row="true"] .inline-field-widget select,
+[data-powercrud-object-list="true"] [data-inline-row="true"] .inline-field-widget textarea {
+    font-size: inherit;
+}
+
 [data-powercrud-object-list="true"] [data-inline-row="true"] .ts-wrapper.powercrud-inline-single,
 [data-powercrud-object-list="true"] [data-inline-row="true"] .ts-wrapper.powercrud-inline-single .ts-control,
 [data-powercrud-object-list="true"] [data-inline-row="true"] .ts-wrapper.powercrud-inline-single .ts-control > .item,
