@@ -461,10 +461,12 @@ def test_bootstrap_table_alignment_and_dropdown_button_classes_use_portable_valu
             "enable_selection_controls": False,
             "headers": [
                 {
+                    "label": "Title",
                     "field_name": "title",
                     "align": "left",
                     "is_sortable": False,
                     "width_mode": "bounded",
+                    "help_text": "Primary display title",
                 },
                 {
                     "field_name": "pages",
@@ -505,6 +507,15 @@ def test_bootstrap_table_alignment_and_dropdown_button_classes_use_portable_valu
     )
     assert 'data-powercrud-column-width-mode="auto"' in table_header, (
         "Bootstrap headers should receive the resolved auto width mode."
+    )
+    assert 'aria-label="Help for Title"' in table_header, (
+        "Bootstrap header help should use a dedicated focusable trigger."
+    )
+    assert 'data-bs-title="Primary display title"' in table_header, (
+        "Bootstrap header help should provide its text through the pack tooltip adapter."
+    )
+    assert 'data-powercrud-tooltip="semantic"' in table_header and 'onclick="event.stopPropagation();"' in table_header, (
+        "Bootstrap header help should preserve semantic tooltip initialization without sorting the column."
     )
     assert "shared-extra-class btn-primary" in dropdown, (
         "Dropdown entries must receive the same configured extra-button classes as button mode."
