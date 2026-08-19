@@ -675,6 +675,22 @@ def test_inline_widgets_inherit_cell_typography_and_searchable_select_opens(
         "The display-only boolean indicator should remain centred in its table cell "
         f"while the row is edited. Horizontal offset: {static_boolean_alignment}px"
     )
+    if not using_bootstrap_pack():
+        static_text_font_sizes = active_row.locator(
+            "td[data-field-name='really_long_title']"
+        ).evaluate(
+            """
+            cell => ({
+                cell: getComputedStyle(cell).fontSize,
+                value: getComputedStyle(cell.firstElementChild).fontSize,
+            })
+            """
+        )
+        assert static_text_font_sizes["value"] == static_text_font_sizes["cell"], (
+            "A daisyUI display-only cell must inherit the table cell font size while "
+            "the row is edited. "
+            f"Computed sizes: {static_text_font_sizes}"
+        )
     select = active_row.locator("select[name='author']")
     expect(select).to_have_attribute("data-powercrud-searchable-select", "true")
     select.evaluate(

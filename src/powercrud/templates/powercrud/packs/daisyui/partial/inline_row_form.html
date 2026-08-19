@@ -58,7 +58,7 @@
             {% endif %}
             {% endwith %}
         {% else %}
-            <div class="text-sm text-base-content/70 truncate {% if cell.align == 'center' %}flex justify-center items-center w-full text-center{% elif cell.align == 'right' %}w-full text-right{% else %}w-full text-left{% endif %}">{{ cell.value }}</div>
+            <div class="text-base-content/70 truncate {% if cell.align == 'center' %}flex justify-center items-center w-full text-center{% elif cell.align == 'right' %}w-full text-right{% else %}w-full text-left{% endif %}">{{ cell.value }}</div>
         {% endif %}
     </td>
     {% endfor %}
