@@ -657,6 +657,24 @@ def test_inline_widgets_inherit_cell_typography_and_searchable_select_opens(
         "The inline boolean control should remain centred in its table cell. "
         f"Horizontal offset: {boolean_alignment}px"
     )
+    static_boolean_alignment = active_row.locator(
+        "td[data-field-name='isbn_empty'] .pc-boolean-icon"
+    ).evaluate(
+        """
+        element => {
+            const cellBox = element.closest('td').getBoundingClientRect();
+            const indicatorBox = element.getBoundingClientRect();
+            return Math.abs(
+                (indicatorBox.left + (indicatorBox.width / 2))
+                - (cellBox.left + (cellBox.width / 2))
+            );
+        }
+        """
+    )
+    assert static_boolean_alignment <= 1, (
+        "The display-only boolean indicator should remain centred in its table cell "
+        f"while the row is edited. Horizontal offset: {static_boolean_alignment}px"
+    )
     select = active_row.locator("select[name='author']")
     expect(select).to_have_attribute("data-powercrud-searchable-select", "true")
     select.evaluate(
