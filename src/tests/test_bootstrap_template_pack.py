@@ -421,6 +421,38 @@ def test_bootstrap_optional_components_preserve_shared_semantic_hooks():
     )
 
 
+def test_bootstrap_row_actions_do_not_force_table_row_height():
+    """Keep Bootstrap row actions from imposing a fixed control height on rows."""
+    stylesheet = (
+        Path(settings.BASE_DIR)
+        / "powercrud"
+        / "contrib"
+        / "bootstrap5"
+        / "static"
+        / "powercrud"
+        / "contrib"
+        / "bootstrap5"
+        / "css"
+        / "bootstrap5.css"
+    ).read_text(encoding="utf-8")
+    control_rule = re.search(
+        r"\[data-powercrud-object-list=\"true\"\] \.pc-bootstrap-row-actions \.btn \{.*?^}",
+        stylesheet,
+        flags=re.MULTILINE | re.DOTALL,
+    )
+
+    assert control_rule is not None, (
+        "The Bootstrap pack should retain a dedicated row-action control rule."
+    )
+    control_styles = control_rule.group(0)
+    assert "min-height: 2rem;" not in control_styles and "height: 2rem;" not in control_styles, (
+        "Bootstrap row actions should not impose a fixed 2rem height on every table row."
+    )
+    assert "min-height: 0;" in control_styles and "height: auto;" in control_styles, (
+        "Bootstrap row actions should size from their content and table-cell padding."
+    )
+
+
 def test_bootstrap_table_alignment_and_dropdown_button_classes_use_portable_values():
     """Bootstrap must translate semantic alignment and preserve shared dropdown classes."""
     table_header = render_to_string(

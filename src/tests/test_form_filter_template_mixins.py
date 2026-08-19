@@ -7,7 +7,7 @@ from crispy_forms.helper import FormHelper
 from django import forms
 from django.conf import settings
 from django.core.paginator import Paginator
-from django.template.loader import render_to_string
+from django.template.loader import get_template, render_to_string
 from django.test import RequestFactory, override_settings
 from django.utils.formats import date_format
 from django.utils.safestring import mark_safe
@@ -2150,6 +2150,35 @@ def test_row_actions_component_renders_resolved_presentation_metadata():
     )
     assert "aria-label='More actions'" in rendered and ">More<" not in rendered, (
         "The DaisyUI extras-only dropdown should use the accessible compact kebab without visible More text."
+    )
+
+
+def test_daisyui_row_actions_allow_table_size_to_control_row_height():
+    """Keep DaisyUI row actions from imposing a fixed control height on table rows."""
+    list_template = get_template("powercrud/packs/daisyui/partial/list.html")
+    row_template = get_template(
+        "powercrud/packs/daisyui/partial/inline_row_display.html"
+    )
+    source = list_template.template.source
+    row_source = row_template.template.source
+    control_rule = re.search(
+        r"\.pc-row-actions \.pc-row-action-icon-button,.*?^    }",
+        source,
+        flags=re.MULTILINE | re.DOTALL,
+    )
+
+    assert control_rule is not None, (
+        "The DaisyUI list template should retain a dedicated row-action control rule."
+    )
+    control_styles = control_rule.group(0)
+    assert "min-height: 2rem;" not in control_styles and "height: 2rem;" not in control_styles, (
+        "DaisyUI row-action controls should not impose a fixed 2rem height on every table row."
+    )
+    assert "min-height: 0;" in control_styles and "height: auto;" in control_styles and "font-size: inherit;" in control_styles, (
+        "DaisyUI row-action controls should size from their table row rather than the default button size."
+    )
+    assert 'class="text-start py-1 align-middle"' not in row_source and 'class="text-right py-1 align-middle"' not in row_source, (
+        "DaisyUI action cells should retain the table size modifier's own vertical padding."
     )
 
 
