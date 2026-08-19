@@ -15,7 +15,7 @@
         {% endif %}
     </div>
 {% elif selection_control == "select_all" %}
-    <th class="bg-neutral text-neutral-content text-center align-middle sticky-header w-10"
+    <th class="bg-neutral text-neutral-content text-center align-middle sticky-header w-10 px-0"
         data-powercrud-selection-column="true">
         <input type="checkbox"
                id="select-all-checkbox"
@@ -27,7 +27,7 @@
                {% if some_selected and not all_selected %}indeterminate{% endif %}>
     </th>
 {% elif selection_control == "row" %}
-    <td class="py-0 align-middle w-10 text-center"
+    <td class=" align-middle w-10 text-center px-0"
         data-powercrud-selection-column="true">
         <input type="checkbox"
                class="checkbox checkbox-sm row-select-checkbox"

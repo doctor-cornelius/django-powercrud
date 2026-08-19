@@ -593,6 +593,7 @@ class AnnotatedBookCRUDView(SampleCRUDMixin):
     inline_edit_fields = ["pages"]
     bulk_fields = []
     bulk_delete = False
+    table_classes = "table-zebra table-xs"
     extra_actions_mode = "buttons"
     row_actions_column_position = "start"
     row_actions_column_sticky = False

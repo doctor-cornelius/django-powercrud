@@ -15,7 +15,7 @@
     {% endif %}
 
     {% if has_row_actions and row_actions_column_position == "start" %}
-    <td class="text-start py-1 align-middle"
+    <td class="text-start align-middle "
         data-inline-actions="true"
         data-powercrud-row-actions-column="true"
         data-powercrud-row-actions-position="start"
@@ -28,7 +28,7 @@
 
     {% for cell in row.cells %}
         {% with value_str=cell.value|stringformat:"s" %}
-    <td class="{% if forloop.first %}font-medium{% endif %} py-0 align-middle px-2 truncate table-column-width"
+    <td class="{% if forloop.first %}font-medium{% endif %}  align-middle px-2 truncate table-column-width"
         style="text-align:{% if cell.align == 'center' %}center{% elif cell.align == 'right' %}right{% else %}left{% endif %};"
         data-field-name="{{ cell.name }}"
         data-powercrud-column-width-mode="{{ cell.width_mode }}"
@@ -98,7 +98,7 @@
         {% endwith %}
     {% endfor %}
     {% if has_row_actions and row_actions_column_position != "start" %}
-    <td class="text-right py-1 align-middle"
+    <td class="text-right align-middle "
         data-inline-actions="true"
         data-powercrud-row-actions-column="true"
         data-powercrud-row-actions-position="end"
