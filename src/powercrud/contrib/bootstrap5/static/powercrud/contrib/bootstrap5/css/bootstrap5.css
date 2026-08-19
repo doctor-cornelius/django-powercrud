@@ -791,6 +791,13 @@
     max-width: calc(100vw - 2rem) !important;
 }
 
+[data-powercrud-object-list="true"] [data-inline-row="true"] .ts-wrapper.powercrud-inline-single,
+[data-powercrud-object-list="true"] [data-inline-row="true"] .ts-wrapper.powercrud-inline-single .ts-control,
+[data-powercrud-object-list="true"] [data-inline-row="true"] .ts-wrapper.powercrud-inline-single .ts-control > .item,
+[data-powercrud-object-list="true"] [data-inline-row="true"] .ts-wrapper.powercrud-inline-single .ts-control > input {
+    font-size: inherit;
+}
+
 [data-powercrud-object-list="true"] [data-inline-row="true"] .ts-wrapper.powercrud-inline-multiselect {
     width: 100%;
     min-width: 10rem;

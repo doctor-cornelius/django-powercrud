@@ -330,6 +330,13 @@ select.ts-hidden-accessible {
     max-width: calc(100vw - 2rem) !important;
 }
 
+[data-inline-row="true"] .ts-wrapper.powercrud-inline-single,
+[data-inline-row="true"] .ts-wrapper.powercrud-inline-single .ts-control,
+[data-inline-row="true"] .ts-wrapper.powercrud-inline-single .ts-control > .item,
+[data-inline-row="true"] .ts-wrapper.powercrud-inline-single .ts-control > input {
+    font-size: inherit;
+}
+
 [data-inline-row="true"] .ts-wrapper.powercrud-inline-multiselect {
     width: 100%;
     min-width: 10rem;

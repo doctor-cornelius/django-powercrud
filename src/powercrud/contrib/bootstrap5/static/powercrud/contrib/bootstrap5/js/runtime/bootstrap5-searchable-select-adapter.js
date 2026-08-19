@@ -192,6 +192,18 @@ export function createBootstrap5SearchableSelectAdapter({ global, documentObject
         });
     }
 
+    function copyInlineSingleDropdownTypography(instance) {
+        const tableCell = instance.control.closest('td');
+        if (
+            tableCell
+            && instance.dropdown.parentElement === documentObject.body
+        ) {
+            // The single-select menu is detached from its table cell, so carry
+            // the cell typography to the body-level dropdown when it opens.
+            instance.dropdown.style.fontSize = global.getComputedStyle(tableCell).fontSize;
+        }
+    }
+
     function enableCompactMultiselectSummary(instance) {
         const summary = documentObject.createElement('span');
         summary.className = 'powercrud-compact-multiselect-summary';
@@ -303,8 +315,10 @@ export function createBootstrap5SearchableSelectAdapter({ global, documentObject
             copyInlineTomSelectPalette(instance);
         }
         if (isInlineSelect && !multiple) {
+            instance.wrapper.classList.add('powercrud-inline-single');
             instance.dropdown.classList.add('powercrud-inline-single-dropdown');
             instance.on('dropdown_open', function onInlineDropdownOpen() {
+                copyInlineSingleDropdownTypography(instance);
                 const controlWidth = Math.ceil(instance.control.getBoundingClientRect().width);
                 const viewportMax = Math.max(240, global.innerWidth - 32);
                 const desiredWidth = Math.min(Math.max(controlWidth, 320), viewportMax);

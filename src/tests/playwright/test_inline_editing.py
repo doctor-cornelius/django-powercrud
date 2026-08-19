@@ -634,6 +634,7 @@ def test_inline_edit_saves_after_hiding_non_trigger_column(
 def test_inline_searchable_select_focus_opens_dropdown(
     page: Page, books_url: str, inline_ready_books
 ):
+    """Inline single selects should open on focus and inherit cell typography."""
     book = inline_ready_books[0]
     row_path = build_inline_row_path(books_url, book.pk)
 
@@ -659,7 +660,34 @@ def test_inline_searchable_select_focus_opens_dropdown(
     assert select.evaluate(
         "el => el.tomselect.isOpen === true"
     ), "Inline searchable select should open its dropdown when the author field enters edit mode."
-    expect(page.locator(".ts-dropdown .option").first).to_be_visible()
+    active_row.evaluate(
+        """
+        row => {
+            const table = row.closest('table');
+            table.classList.add('powercrud-test-inline-single-typography');
+            const style = document.createElement('style');
+            style.textContent = `
+                .powercrud-test-inline-single-typography tbody td {
+                    font-size: 17px !important;
+                }
+            `;
+            document.head.appendChild(style);
+        }
+        """
+    )
+    select.evaluate(
+        "element => { element.tomselect.close(); element.tomselect.open(); }"
+    )
+
+    wrapper = active_row.locator(".ts-wrapper.powercrud-inline-single")
+    control = wrapper.locator(".ts-control")
+    dropdown = page.locator(".ts-dropdown.powercrud-inline-single-dropdown")
+    expect(wrapper).to_have_css("font-size", "17px")
+    expect(control).to_have_css("font-size", "17px")
+    expect(control.locator(".item")).to_have_css("font-size", "17px")
+    expect(control.locator("input")).to_have_css("font-size", "17px")
+    expect(dropdown).to_have_css("font-size", "17px")
+    expect(dropdown.locator(".option").first).to_be_visible()
 
 
 def test_inline_actions_fit_reduced_profile_action_column(
