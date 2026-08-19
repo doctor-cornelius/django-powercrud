@@ -344,6 +344,24 @@ select.ts-hidden-accessible {
     font-size: inherit;
 }
 
+[data-inline-row="true"] .ts-wrapper.powercrud-inline-single .ts-control {
+    display: flex;
+    flex-wrap: nowrap;
+}
+
+[data-inline-row="true"] .ts-wrapper.powercrud-inline-single .ts-control > .item {
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+[data-inline-row="true"] .ts-wrapper.powercrud-inline-single .ts-control > input {
+    flex: 1 1 2ch;
+    min-width: 2ch;
+}
+
 [data-inline-row="true"] .ts-wrapper.powercrud-inline-multiselect {
     width: 100%;
     min-width: 10rem;

@@ -714,6 +714,20 @@ def test_inline_widgets_inherit_cell_typography_and_searchable_select_opens(
         "The inline single-select dropdown should start below the control so it does "
         f"not obscure the selected value. Placement: {placement}"
     )
+    if not using_bootstrap_pack():
+        same_line = control.evaluate(
+            """
+            element => {
+                const itemBox = element.querySelector('.item').getBoundingClientRect();
+                const inputBox = element.querySelector('input').getBoundingClientRect();
+                return itemBox.top < inputBox.bottom && inputBox.top < itemBox.bottom;
+            }
+            """
+        )
+        assert same_line, (
+            "The daisyUI selected item and inline search input should share one "
+            "control line."
+        )
 
 
 def test_inline_actions_fit_reduced_profile_action_column(
