@@ -330,6 +330,38 @@ select.ts-hidden-accessible {
     max-width: calc(100vw - 2rem) !important;
 }
 
+[data-inline-row="true"] .inline-field-widget,
+[data-inline-row="true"] .inline-field-widget input,
+[data-inline-row="true"] .inline-field-widget select,
+[data-inline-row="true"] .inline-field-widget textarea {
+    font-size: inherit;
+}
+
+[data-inline-row="true"] .ts-wrapper.powercrud-inline-single,
+[data-inline-row="true"] .ts-wrapper.powercrud-inline-single .ts-control,
+[data-inline-row="true"] .ts-wrapper.powercrud-inline-single .ts-control > .item,
+[data-inline-row="true"] .ts-wrapper.powercrud-inline-single .ts-control > input {
+    font-size: inherit;
+}
+
+[data-inline-row="true"] .ts-wrapper.powercrud-inline-single .ts-control {
+    display: flex;
+    flex-wrap: nowrap;
+}
+
+[data-inline-row="true"] .ts-wrapper.powercrud-inline-single .ts-control > .item {
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+[data-inline-row="true"] .ts-wrapper.powercrud-inline-single .ts-control > input {
+    flex: 1 1 2ch;
+    min-width: 2ch;
+}
+
 [data-inline-row="true"] .ts-wrapper.powercrud-inline-multiselect {
     width: 100%;
     min-width: 10rem;

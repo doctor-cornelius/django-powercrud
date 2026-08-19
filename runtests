@@ -80,6 +80,7 @@ BOOTSTRAP_PLAYWRIGHT_TESTS=(
     src/tests/playwright/test_row_actions_column_layout.py
     src/tests/playwright/test_modal_crud.py::test_modal_multiselect_uses_pack_widget_and_clear_all
     src/tests/playwright/test_inline_editing.py::test_inline_m2m_uses_compact_pack_multiselect
+    src/tests/playwright/test_inline_editing.py::test_inline_widgets_inherit_cell_typography_and_searchable_select_opens
 )
 
 function run_bootstrap_server_tests {

@@ -22,6 +22,88 @@ def scroll_table_horizontally(page, *, to_end: bool = True) -> None:
     )
 
 
+def open_inline_row(page, row, *, field_name: str):
+    """Open one list row for inline editing through the named field."""
+    row.locator(
+        f".inline-edit-trigger[data-inline-field='{field_name}']"
+    ).click(force=True)
+    active_row = page.locator(
+        'tbody tr[data-inline-row="true"][data-inline-active="true"]'
+    )
+    expect(active_row).to_have_count(1, timeout=15000)
+    return active_row
+
+
+def assert_inline_actions_are_contained(active_row, *, expected_position: str) -> None:
+    """Assert compact inline actions stay inside their table column."""
+    actions_cell = active_row.locator("[data-inline-actions='true']")
+    expect(actions_cell).to_have_attribute(
+        "data-powercrud-row-actions-position", expected_position
+    )
+    metrics = actions_cell.evaluate(
+        """
+        (cell) => {
+            const position = cell.dataset.powercrudRowActionsPosition;
+            const adjacentCell = position === 'start'
+                ? cell.nextElementSibling
+                : cell.previousElementSibling;
+            const controls = cell.querySelector('.pc-inline-actions-controls');
+            const save = cell.querySelector('[data-inline-save]');
+            const cancel = cell.querySelector('[data-inline-cancel]');
+            const cellBox = cell.getBoundingClientRect();
+            const adjacentBox = adjacentCell.getBoundingClientRect();
+            const controlsBox = controls.getBoundingClientRect();
+            const saveBox = save.getBoundingClientRect();
+            const cancelBox = cancel.getBoundingClientRect();
+            const tableBox = cell.closest('table').getBoundingClientRect();
+            return {
+                position,
+                adjacentLeft: adjacentBox.left,
+                adjacentRight: adjacentBox.right,
+                cellLeft: cellBox.left,
+                cellRight: cellBox.right,
+                cellWidth: cellBox.width,
+                controlsLeft: controlsBox.left,
+                controlsRight: controlsBox.right,
+                saveLeft: saveBox.left,
+                saveRight: saveBox.right,
+                cancelLeft: cancelBox.left,
+                cancelRight: cancelBox.right,
+                tableLeft: tableBox.left,
+                tableRight: tableBox.right,
+            };
+        }
+        """
+    )
+    tolerance = 1
+    controls_inside_cell = (
+        metrics["controlsLeft"] >= metrics["cellLeft"] - tolerance
+        and metrics["controlsRight"] <= metrics["cellRight"] + tolerance
+        and metrics["saveLeft"] >= metrics["cellLeft"] - tolerance
+        and metrics["saveRight"] <= metrics["cellRight"] + tolerance
+        and metrics["cancelLeft"] >= metrics["cellLeft"] - tolerance
+        and metrics["cancelRight"] <= metrics["cellRight"] + tolerance
+    )
+    assert controls_inside_cell, (
+        "Inline Save and Cancel controls should remain inside their actions cell. "
+        f"Metrics: {metrics}"
+    )
+    assert (
+        metrics["cellLeft"] >= metrics["tableLeft"] - tolerance
+        and metrics["cellRight"] <= metrics["tableRight"] + tolerance
+    ), f"The active actions cell should remain inside the table. Metrics: {metrics}"
+    if expected_position == "start":
+        assert metrics["controlsRight"] <= metrics["adjacentLeft"] + tolerance, (
+            "Start-positioned inline actions should not overlap the following data cell. "
+            f"Metrics: {metrics}"
+        )
+    else:
+        assert metrics["controlsLeft"] >= metrics["adjacentRight"] - tolerance, (
+            "End-positioned inline actions should not overlap the preceding data cell. "
+            f"Metrics: {metrics}"
+        )
+
+
 def test_sticky_end_actions_and_more_menu_remain_usable_after_horizontal_scroll(
     page, books_url, sample_books
 ):
@@ -210,6 +292,54 @@ def test_powerfield_books_contrast_all_actions_on_the_sticky_end(
     normal_edit = panel.get_by_role("link", name="Normal Edit", exact=True)
     expect(normal_edit).to_be_visible()
     expect(normal_edit.locator("svg")).to_be_visible()
+
+
+def test_inline_actions_stay_inside_configured_table_edge(
+    page, powerfield_books_url, annotated_books_url, sample_books
+):
+    """Both action-column positions should contain Save and Cancel controls."""
+    target_book = sample_books[0]
+    page.set_viewport_size({"width": 640, "height": 720})
+    page.goto(powerfield_books_url)
+    page.wait_for_load_state("networkidle")
+
+    row = page.locator(
+        "tbody tr[data-inline-row='true']", has_text=target_book.title
+    )
+    active_row = open_inline_row(page, row, field_name="title")
+    scroll_table_horizontally(page)
+    assert_inline_actions_are_contained(active_row, expected_position="end")
+
+    active_row.locator("[data-inline-cancel]").click()
+    expect(
+        page.locator('tbody tr[data-inline-row="true"][data-inline-active="true"]')
+    ).to_have_count(0)
+    display_row = page.locator(
+        "tbody tr[data-inline-row='true']", has_text=target_book.title
+    )
+    expect(
+        display_row.get_by_role("button", name="Actions", exact=True)
+    ).to_be_visible()
+
+    page.goto(annotated_books_url)
+    page.wait_for_load_state("networkidle")
+
+    row = page.locator(
+        "tbody tr[data-inline-row='true']", has_text=target_book.title
+    )
+    active_row = open_inline_row(page, row, field_name="pages")
+    assert_inline_actions_are_contained(active_row, expected_position="start")
+
+    active_row.locator("[data-inline-save]").click()
+    expect(
+        page.locator('tbody tr[data-inline-row="true"][data-inline-active="true"]')
+    ).to_have_count(0)
+    display_row = page.locator(
+        "tbody tr[data-inline-row='true']", has_text=target_book.title
+    )
+    expect(
+        display_row.get_by_role("link", name="Open Book", exact=True)
+    ).to_be_visible()
 
 
 def test_async_extras_only_dropdown_uses_its_custom_icon_gutter(

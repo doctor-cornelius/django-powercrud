@@ -1,7 +1,14 @@
 {
-  "_preload-helper-Duv5Sc9v.js": {
-    "file": "django_assets/preload-helper-Duv5Sc9v.js",
+  "_dom-vF7lhvrP.js": {
+    "file": "django_assets/dom-vF7lhvrP.js",
+    "name": "dom"
+  },
+  "_preload-helper-DzvkEEb-.js": {
+    "file": "django_assets/preload-helper-DzvkEEb-.js",
     "name": "preload-helper",
+    "imports": [
+      "_dom-vF7lhvrP.js"
+    ],
     "css": [
       "django_assets/preload-helper-dJhxz_Yn.css"
     ]
@@ -11,42 +18,44 @@
     "src": "_preload-helper-dJhxz_Yn.css"
   },
   "config/static/js/bootstrap5.js": {
-    "file": "django_assets/bootstrap5-0H4T2Xge.js",
+    "file": "django_assets/bootstrap5-BTYjAJFI.js",
     "name": "bootstrap5",
     "src": "config/static/js/bootstrap5.js",
     "isEntry": true,
     "imports": [
-      "_preload-helper-Duv5Sc9v.js"
+      "_dom-vF7lhvrP.js",
+      "_preload-helper-DzvkEEb-.js"
     ],
     "dynamicImports": [
       "powercrud/static/powercrud/js/powercrud.js"
     ],
     "css": [
-      "django_assets/bootstrap5-7k3EICYn.css"
+      "django_assets/bootstrap5-xPRVmLNO.css"
     ]
   },
   "config/static/js/main.js": {
-    "file": "django_assets/powercrud-B2QuH29x.js",
+    "file": "django_assets/powercrud-CD5N5KXX.js",
     "name": "powercrud",
     "src": "config/static/js/main.js",
     "isEntry": true,
     "imports": [
-      "_preload-helper-Duv5Sc9v.js"
+      "_dom-vF7lhvrP.js",
+      "_preload-helper-DzvkEEb-.js"
     ],
     "dynamicImports": [
       "powercrud/static/powercrud/js/powercrud.js"
     ],
     "css": [
-      "django_assets/powercrud-C84kKxwS.css"
+      "django_assets/powercrud-_dkxa6Co.css"
     ]
   },
   "powercrud/static/powercrud/js/powercrud.js": {
-    "file": "django_assets/powercrud-CSevIm1a.js",
+    "file": "django_assets/powercrud-DkzPSKHl.js",
     "name": "powercrud",
     "src": "powercrud/static/powercrud/js/powercrud.js",
     "isDynamicEntry": true,
     "imports": [
-      "_preload-helper-Duv5Sc9v.js"
+      "_dom-vF7lhvrP.js"
     ]
   }
 }

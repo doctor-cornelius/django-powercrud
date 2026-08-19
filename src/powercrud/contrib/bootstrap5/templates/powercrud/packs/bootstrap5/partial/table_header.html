@@ -7,15 +7,41 @@
         {% if has_row_actions and row_actions_column_position == "start" %}<th scope="col" class="pc-bootstrap-actions-column align-middle text-start" data-powercrud-row-actions-column="true" data-powercrud-row-actions-position="start"{% if row_actions_column_sticky %} data-powercrud-row-actions-sticky="true"{% endif %}><span class="pc-row-actions-heading-label{% if extra_actions_mode == 'all_dropdown' %} visually-hidden{% endif %}">Actions</span></th>{% endif %}
         {% for header in headers %}
             <th scope="col" class="pc-table-column-width align-middle text-center" data-field-name="{{ header.field_name }}" data-powercrud-column-width-mode="{{ header.width_mode }}"{% if current_sort == header.field_name %} aria-sort="ascending"{% elif current_sort == '-'|add:header.field_name %} aria-sort="descending"{% endif %}>
-                {% if header.is_sortable %}
-                    <a class="link-light text-decoration-none" href="?sort={% if current_sort == header.field_name %}-{% elif current_sort == '-'|add:header.field_name %}{% else %}{% endif %}{{ header.field_name }}{% if request.GET.page_size %}&page_size={{ request.GET.page_size }}{% endif %}{% if filter_params %}&{{ filter_params }}{% endif %}"
-                       {% if use_htmx %}hx-get="?sort={% if current_sort == header.field_name %}-{% elif current_sort == '-'|add:header.field_name %}{% else %}{% endif %}{{ header.field_name }}{% if request.GET.page_size %}&page_size={{ request.GET.page_size }}{% endif %}{% if filter_params %}&{{ filter_params }}{% endif %}" hx-headers='{"X-Filter-Sort-Request": "true"}' hx-target="#filtered_results" hx-push-url="true"{% endif %}
-                       {% if header.help_text %}title="{{ header.help_text }}"{% endif %}>
-                        {{ header.label }}{% if current_sort == header.field_name %} <span aria-hidden="true">▲</span>{% elif current_sort == '-'|add:header.field_name %} <span aria-hidden="true">▼</span>{% endif %}
-                    </a>
-                {% else %}
-                    <span{% if header.help_text %} title="{{ header.help_text }}"{% endif %}>{{ header.label }}</span>
-                {% endif %}
+                <span class="d-inline-flex align-items-center justify-content-center gap-1">
+                    {% if header.is_sortable %}
+                        <a class="link-light text-decoration-none" href="?sort={% if current_sort == header.field_name %}-{% elif current_sort == '-'|add:header.field_name %}{% else %}{% endif %}{{ header.field_name }}{% if request.GET.page_size %}&page_size={{ request.GET.page_size }}{% endif %}{% if filter_params %}&{{ filter_params }}{% endif %}"
+                           {% if use_htmx %}hx-get="?sort={% if current_sort == header.field_name %}-{% elif current_sort == '-'|add:header.field_name %}{% else %}{% endif %}{{ header.field_name }}{% if request.GET.page_size %}&page_size={{ request.GET.page_size }}{% endif %}{% if filter_params %}&{{ filter_params }}{% endif %}" hx-headers='{"X-Filter-Sort-Request": "true"}' hx-target="#filtered_results" hx-push-url="true"{% endif %}>
+                            {{ header.label }}{% if current_sort == header.field_name %} <span aria-hidden="true">▲</span>{% elif current_sort == '-'|add:header.field_name %} <span aria-hidden="true">▼</span>{% endif %}
+                        </a>
+                    {% else %}
+                        <span>{{ header.label }}</span>
+                    {% endif %}
+                    {% if header.help_text %}
+                        <button type="button"
+                                class="btn btn-link link-light border-0 p-0 d-inline-flex align-items-center"
+                                aria-label="Help for {{ header.label }}"
+                                data-bs-title="{{ header.help_text }}"
+                                data-powercrud-tooltip="semantic"
+                                onclick="event.stopPropagation();"
+                                title="">
+                            <svg xmlns="http://www.w3.org/2000/svg"
+                                 fill="none"
+                                 viewBox="0 0 24 24"
+                                 stroke-width="1.5"
+                                 stroke="currentColor"
+                                 width="1em"
+                                 height="1em"
+                                 aria-hidden="true">
+                                <path stroke-linecap="round"
+                                      stroke-linejoin="round"
+                                      d="M11.25 11.25l.041-.02a.75.75 0 0 1 1.09.852l-.708 2.836a.75.75 0 0 0 1.09.852l.041-.02M12 6.75h.008v.008H12V6.75Z" />
+                                <path stroke-linecap="round"
+                                      stroke-linejoin="round"
+                                      d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                            </svg>
+                        </button>
+                    {% endif %}
+                </span>
             </th>
         {% endfor %}
         {% if has_row_actions and row_actions_column_position != "start" %}<th scope="col" class="pc-bootstrap-actions-column align-middle text-center" data-powercrud-row-actions-column="true" data-powercrud-row-actions-position="end"{% if row_actions_column_sticky %} data-powercrud-row-actions-sticky="true"{% endif %}><span class="pc-row-actions-heading-label{% if extra_actions_mode == 'all_dropdown' %} visually-hidden{% endif %}">Actions</span></th>{% endif %}

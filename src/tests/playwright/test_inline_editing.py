@@ -631,15 +631,66 @@ def test_inline_edit_saves_after_hiding_non_trigger_column(
     assert book.title == new_title
 
 
-def test_inline_searchable_select_focus_opens_dropdown(
-    page: Page, books_url: str, inline_ready_books
+def test_inline_widgets_inherit_cell_typography_and_searchable_select_opens(
+    page: Page, powerfield_books_url: str, inline_ready_books
 ):
+    """Inline widgets should retain cell typography, boolean alignment, and select placement."""
     book = inline_ready_books[0]
-    row_path = build_inline_row_path(books_url, book.pk)
+    row_path = build_inline_row_path(powerfield_books_url, book.pk)
 
-    open_books_page(page, books_url)
+    open_books_page(page, powerfield_books_url)
 
     active_row = open_inline_row(page, row=get_inline_row(page, row_path), field_name="author")
+    boolean_alignment = active_row.locator("input[name='bestseller']").evaluate(
+        """
+        element => {
+            const cellBox = element.closest('td').getBoundingClientRect();
+            const controlBox = element.getBoundingClientRect();
+            return Math.abs(
+                (controlBox.left + (controlBox.width / 2))
+                - (cellBox.left + (cellBox.width / 2))
+            );
+        }
+        """
+    )
+    assert boolean_alignment <= 1, (
+        "The inline boolean control should remain centred in its table cell. "
+        f"Horizontal offset: {boolean_alignment}px"
+    )
+    static_boolean_alignment = active_row.locator(
+        "td[data-field-name='isbn_empty'] .pc-boolean-icon"
+    ).evaluate(
+        """
+        element => {
+            const cellBox = element.closest('td').getBoundingClientRect();
+            const indicatorBox = element.getBoundingClientRect();
+            return Math.abs(
+                (indicatorBox.left + (indicatorBox.width / 2))
+                - (cellBox.left + (cellBox.width / 2))
+            );
+        }
+        """
+    )
+    assert static_boolean_alignment <= 1, (
+        "The display-only boolean indicator should remain centred in its table cell "
+        f"while the row is edited. Horizontal offset: {static_boolean_alignment}px"
+    )
+    if not using_bootstrap_pack():
+        static_text_font_sizes = active_row.locator(
+            "td[data-field-name='a_really_long_property_header_for_title']"
+        ).evaluate(
+            """
+            cell => ({
+                cell: getComputedStyle(cell).fontSize,
+                value: getComputedStyle(cell.firstElementChild).fontSize,
+            })
+            """
+        )
+        assert static_text_font_sizes["value"] == static_text_font_sizes["cell"], (
+            "A daisyUI display-only cell must inherit the table cell font size while "
+            "the row is edited. "
+            f"Computed sizes: {static_text_font_sizes}"
+        )
     select = active_row.locator("select[name='author']")
     expect(select).to_have_attribute("data-powercrud-searchable-select", "true")
     select.evaluate(
@@ -659,7 +710,99 @@ def test_inline_searchable_select_focus_opens_dropdown(
     assert select.evaluate(
         "el => el.tomselect.isOpen === true"
     ), "Inline searchable select should open its dropdown when the author field enters edit mode."
-    expect(page.locator(".ts-dropdown .option").first).to_be_visible()
+    page.evaluate("() => new Promise(resolve => requestAnimationFrame(resolve))")
+    initial_placement = page.evaluate(
+        """
+        () => {
+            const control = document.querySelector(
+                'tr[data-inline-active="true"] .powercrud-inline-single .ts-control'
+            );
+            const dropdown = document.querySelector(
+                '.ts-dropdown.powercrud-inline-single-dropdown'
+            );
+            const controlBox = control.getBoundingClientRect();
+            const dropdownBox = dropdown.getBoundingClientRect();
+            return {
+                controlBottom: controlBox.bottom,
+                dropdownTop: dropdownBox.top,
+            };
+        }
+        """
+    )
+    assert initial_placement["dropdownTop"] >= initial_placement["controlBottom"] - 1, (
+        "The initially opened inline single-select dropdown should start below the "
+        "control so it does not obscure the selected value. "
+        f"Placement: {initial_placement}"
+    )
+    active_row.evaluate(
+        """
+        row => {
+            const table = row.closest('table');
+            table.classList.add('powercrud-test-inline-single-typography');
+            const style = document.createElement('style');
+            style.textContent = `
+                .powercrud-test-inline-single-typography tbody td {
+                    font-size: 17px !important;
+                }
+            `;
+            document.head.appendChild(style);
+        }
+        """
+    )
+    select.evaluate(
+        "element => { element.tomselect.close(); element.tomselect.open(); }"
+    )
+    page.evaluate("() => new Promise(resolve => requestAnimationFrame(resolve))")
+
+    wrapper = active_row.locator(".ts-wrapper.powercrud-inline-single")
+    control = wrapper.locator(".ts-control")
+    dropdown = page.locator(".ts-dropdown.powercrud-inline-single-dropdown")
+    expect(active_row.locator("input[name='title']")).to_have_css(
+        "font-size", "17px"
+    )
+    expect(wrapper).to_have_css("font-size", "17px")
+    expect(control).to_have_css("font-size", "17px")
+    expect(control.locator(".item")).to_have_css("font-size", "17px")
+    expect(control.locator("input")).to_have_css("font-size", "17px")
+    expect(dropdown).to_have_css("font-size", "17px")
+    expect(dropdown.locator(".option").first).to_be_visible()
+    expect(control.locator(".item")).to_be_visible()
+    placement = page.evaluate(
+        """
+        () => {
+            const control = document.querySelector(
+                'tr[data-inline-active="true"] .powercrud-inline-single .ts-control'
+            );
+            const dropdown = document.querySelector(
+                '.ts-dropdown.powercrud-inline-single-dropdown'
+            );
+            const controlBox = control.getBoundingClientRect();
+            const dropdownBox = dropdown.getBoundingClientRect();
+            return {
+                controlBottom: controlBox.bottom,
+                dropdownTop: dropdownBox.top,
+            };
+        }
+        """
+    )
+    assert placement["dropdownTop"] >= placement["controlBottom"] - 1, (
+        "The inline single-select dropdown should start below the control so it does "
+        f"not obscure the selected value. Placement: {placement}"
+    )
+    if not using_bootstrap_pack():
+        same_line = control.evaluate(
+            """
+            element => {
+                const itemBox = element.querySelector('.item').getBoundingClientRect();
+                const inputBox = element.querySelector('input').getBoundingClientRect();
+                return itemBox.top < inputBox.bottom && inputBox.top < itemBox.bottom;
+            }
+            """
+        )
+        assert same_line, (
+            "The daisyUI selected item and inline search input should share one "
+            "control line."
+        )
 
 
 def test_inline_actions_fit_reduced_profile_action_column(

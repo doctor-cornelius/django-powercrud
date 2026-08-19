@@ -28,7 +28,7 @@
             {% if inline_field %}
                 <label class="sr-only" for="{{ inline_field.id_for_label }}">{{ inline_field.label|default:cell.label }}</label>
                 <div
-                    class="inline-field-widget w-full{% if inline_field.errors %} pc-inline-field-error{% endif %}"
+                    class="inline-field-widget w-full{% if inline_field.field.widget.input_type == 'checkbox' %} pc-inline-boolean-widget{% endif %}{% if inline_field.errors %} pc-inline-field-error{% endif %}"
                     data-inline-field="{{ cell.name }}"
                     {% if inline_field.errors %}
                         data-inline-field-error="true"
@@ -58,7 +58,7 @@
             {% endif %}
             {% endwith %}
         {% else %}
-            <div class="text-sm text-base-content/70 truncate text-left">{{ cell.value }}</div>
+            <div class="text-base-content/70 truncate {% if cell.align == 'center' %}flex justify-center items-center w-full text-center{% elif cell.align == 'right' %}w-full text-right{% else %}w-full text-left{% endif %}">{{ cell.value }}</div>
         {% endif %}
     </td>
     {% endfor %}
@@ -85,7 +85,7 @@
         {% endif %}
         <div class="pc-inline-actions-controls flex flex-nowrap items-center {% if row_actions_column_position == 'start' %}justify-start text-start{% else %}justify-end text-right{% endif %} gap-1">
             <button type="button"
-                    class="btn {{ action_button_classes }} btn-primary btn-square"
+                    class="btn {{ action_button_classes }} btn-primary btn-square pc-inline-action-button"
                     aria-label="Save inline edit"
                     title="Save"
                     data-inline-save
@@ -107,7 +107,7 @@
                 </svg>
             </button>
             <button type="button"
-                    class="btn {{ action_button_classes }} btn-ghost btn-square"
+                    class="btn {{ action_button_classes }} btn-ghost btn-square pc-inline-action-button"
                     aria-label="Cancel inline edit"
                     title="Cancel"
                     data-inline-cancel

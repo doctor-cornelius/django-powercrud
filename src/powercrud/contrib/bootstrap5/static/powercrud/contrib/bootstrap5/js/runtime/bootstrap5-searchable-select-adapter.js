@@ -192,6 +192,56 @@ export function createBootstrap5SearchableSelectAdapter({ global, documentObject
         });
     }
 
+    function copyInlineSingleDropdownTypography(instance) {
+        const tableCell = instance.control.closest('td');
+        if (
+            tableCell
+            && instance.dropdown.parentElement === documentObject.body
+        ) {
+            // The single-select menu is detached from its table cell, so carry
+            // the cell typography to the body-level dropdown when it opens.
+            instance.dropdown.style.fontSize = global.getComputedStyle(tableCell).fontSize;
+        }
+    }
+
+    function positionInlineSingleDropdown(instance) {
+        const dropdown = instance.dropdown;
+        const controlRect = instance.control.getBoundingClientRect();
+        const viewportWidth = documentObject.documentElement.clientWidth || global.innerWidth;
+        const viewportEdge = 16;
+        const dropdownGap = 4;
+        const preferredWidth = Math.max(controlRect.width, 320);
+        const maxWidth = Math.max(0, viewportWidth - (viewportEdge * 2));
+        const width = Math.min(preferredWidth, maxWidth);
+
+        copyInlineSingleDropdownTypography(instance);
+        dropdown.style.setProperty('min-width', `${width}px`, 'important');
+
+        if (dropdown.parentElement !== documentObject.body) {
+            return;
+        }
+
+        // Tom Select positions its detached panel before focus makes Bootstrap's
+        // search input expand the control. Recalculate from the settled control
+        // geometry so the panel cannot cover the selected value on first open.
+        const left = Math.max(
+            viewportEdge,
+            Math.min(controlRect.left, viewportWidth - width - viewportEdge),
+        );
+        dropdown.style.margin = '0';
+        dropdown.style.width = `${width}px`;
+        dropdown.style.left = `${global.scrollX + left}px`;
+        dropdown.style.top = `${global.scrollY + controlRect.bottom + dropdownGap}px`;
+    }
+
+    function enableInlineSingleDropdownPlacement(instance) {
+        instance.on('dropdown_open', () => {
+            // Let the focus event and Bootstrap's flex layout settle before
+            // reading the control box used for the detached dropdown position.
+            global.requestAnimationFrame(() => positionInlineSingleDropdown(instance));
+        });
+    }
+
     function enableCompactMultiselectSummary(instance) {
         const summary = documentObject.createElement('span');
         summary.className = 'powercrud-compact-multiselect-summary';
@@ -303,13 +353,9 @@ export function createBootstrap5SearchableSelectAdapter({ global, documentObject
             copyInlineTomSelectPalette(instance);
         }
         if (isInlineSelect && !multiple) {
+            instance.wrapper.classList.add('powercrud-inline-single');
             instance.dropdown.classList.add('powercrud-inline-single-dropdown');
-            instance.on('dropdown_open', function onInlineDropdownOpen() {
-                const controlWidth = Math.ceil(instance.control.getBoundingClientRect().width);
-                const viewportMax = Math.max(240, global.innerWidth - 32);
-                const desiredWidth = Math.min(Math.max(controlWidth, 320), viewportMax);
-                instance.dropdown.style.setProperty('min-width', `${desiredWidth}px`, 'important');
-            });
+            enableInlineSingleDropdownPlacement(instance);
         }
         if (isInlineSelect && multiple) {
             instance.wrapper.classList.add('powercrud-inline-multiselect');

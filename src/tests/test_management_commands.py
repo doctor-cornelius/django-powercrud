@@ -438,8 +438,12 @@ def test_mktemplate_copies_focused_inline_field_component(
     copied_file = tmp_path / "templates" / "fake_app" / "book_inline_field.html"
     assert copied_file.exists(), "Inline fields should use the model-specific destination."
     copied_content = copied_file.read_text()
-    assert 'class="inline-field-widget w-full"' in copied_content and 'data-inline-field="{{ field_name }}"' in copied_content, (
+    assert 'class="inline-field-widget w-full' in copied_content and 'data-inline-field="{{ field_name }}"' in copied_content, (
         "The copied field should retain its stable replacement root and marker."
+    )
+    assert "field.field.widget.input_type == 'checkbox'" in copied_content, (
+        "The copied field should retain the native-Django checkbox hook used to "
+        "centre editable boolean widgets without a crispy-forms dependency."
     )
     assert "field_dependency.depends_on" in copied_content and "dependency_endpoint_url" in copied_content, (
         "The copied field should retain dependency metadata and endpoint fallback."
