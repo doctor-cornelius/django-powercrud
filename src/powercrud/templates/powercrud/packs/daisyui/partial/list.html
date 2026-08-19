@@ -370,6 +370,16 @@
         max-width: 100%;
     }
 
+    tr[data-inline-active="true"] .inline-field-widget.pc-inline-boolean-widget {
+        justify-content: center;
+    }
+
+    tr[data-inline-active="true"] .inline-field-widget.pc-inline-boolean-widget input[type="checkbox"] {
+        flex: 0 0 auto;
+        width: auto;
+        max-width: none;
+    }
+
     tr[data-inline-active="true"] > td:not(.pc-inline-actions-cell) {
         overflow: hidden;
         box-sizing: border-box;

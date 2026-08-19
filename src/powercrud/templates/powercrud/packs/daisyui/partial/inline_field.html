@@ -1,5 +1,6 @@
+{% load powercrud %}
 <div
-    class="inline-field-widget w-full"
+    class="inline-field-widget w-full{% if field.field.widget.input_type == 'checkbox' %} pc-inline-boolean-widget{% endif %}"
     data-inline-field="{{ field_name }}"
     {% if field_dependency %}
         data-inline-dependent="true"

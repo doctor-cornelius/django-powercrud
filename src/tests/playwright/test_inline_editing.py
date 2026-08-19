@@ -634,13 +634,29 @@ def test_inline_edit_saves_after_hiding_non_trigger_column(
 def test_inline_widgets_inherit_cell_typography_and_searchable_select_opens(
     page: Page, powerfield_books_url: str, inline_ready_books
 ):
-    """Inline widgets should inherit cell type without obscuring selected values."""
+    """Inline widgets should retain cell typography, boolean alignment, and select placement."""
     book = inline_ready_books[0]
     row_path = build_inline_row_path(powerfield_books_url, book.pk)
 
     open_books_page(page, powerfield_books_url)
 
     active_row = open_inline_row(page, row=get_inline_row(page, row_path), field_name="author")
+    boolean_alignment = active_row.locator("input[name='bestseller']").evaluate(
+        """
+        element => {
+            const cellBox = element.closest('td').getBoundingClientRect();
+            const controlBox = element.getBoundingClientRect();
+            return Math.abs(
+                (controlBox.left + (controlBox.width / 2))
+                - (cellBox.left + (cellBox.width / 2))
+            );
+        }
+        """
+    )
+    assert boolean_alignment <= 1, (
+        "The inline boolean control should remain centred in its table cell. "
+        f"Horizontal offset: {boolean_alignment}px"
+    )
     select = active_row.locator("select[name='author']")
     expect(select).to_have_attribute("data-powercrud-searchable-select", "true")
     select.evaluate(
