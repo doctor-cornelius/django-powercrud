@@ -819,7 +819,7 @@ class PowerFieldBookCRUDView(SampleCRUDMixin):
     table_max_height = 100
     table_header_min_wrap_width = "15"
     table_max_col_width = "25"
-    table_classes = "table-zebra table-sm"
+    table_classes = "table-zebra table-xs"
     action_button_classes = "btn-xs"
     extra_button_classes = "btn-sm"
     extra_buttons_mode = "dropdown"

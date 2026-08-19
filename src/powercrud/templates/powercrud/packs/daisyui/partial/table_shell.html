@@ -5,7 +5,7 @@
     data-powercrud-table-scroll="true"
     {% if enable_selection_controls %}data-selection-key="{{ keyBase }}_{{ selection_key_suffix }}_selected"{% endif %}
     >
-    <table class="table {{ table_classes }} w-max min-w-0"
+    <table class="table {{ table_classes }} pc-list-table w-max min-w-0"
         {% if inline_enabled %}data-inline-enabled="true"{% endif %}>
         {% if table_header_template_paths %}
             {% include table_header_template_paths %}

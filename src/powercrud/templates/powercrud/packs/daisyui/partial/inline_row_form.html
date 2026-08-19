@@ -10,7 +10,7 @@
     {% endif %}
 >
     {% if enable_selection_controls %}
-    <td class="py-0 align-middle w-10 text-center"
+    <td class=" align-middle w-10 text-center"
         data-powercrud-selection-column="true">
         <input type="checkbox"
                class="checkbox checkbox-sm row-select-checkbox"
@@ -22,7 +22,7 @@
         {% partial inline_actions_cell %}
     {% endif %}
     {% for cell in row.cells %}
-    <td class="py-0 align-middle px-2 truncate table-column-width" data-field-name="{{ cell.name }}" data-powercrud-column-width-mode="{{ cell.width_mode }}">
+    <td class=" align-middle px-2 truncate table-column-width" data-field-name="{{ cell.name }}" data-powercrud-column-width-mode="{{ cell.width_mode }}">
         {% if cell.is_inline_editable and form %}
             {% with inline_field=form|get_form_field:cell.name %}
             {% if inline_field %}
