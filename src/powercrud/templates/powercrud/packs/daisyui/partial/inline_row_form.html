@@ -10,7 +10,7 @@
     {% endif %}
 >
     {% if enable_selection_controls %}
-    <td class=" align-middle w-10 text-center"
+    <td class="align-middle w-10 px-0 text-center"
         data-powercrud-selection-column="true">
         <input type="checkbox"
                class="checkbox checkbox-sm row-select-checkbox"
@@ -68,7 +68,7 @@
 </tr>
 
 {% partialdef inline_actions_cell %}
-    <td class="pc-inline-actions-column pc-inline-actions-cell {% if row_actions_column_position == 'start' %}text-start{% else %}text-right{% endif %} py-1 align-middle"
+    <td class="pc-inline-actions-column pc-inline-actions-cell {% if row_actions_column_position == 'start' %}text-start{% else %}text-right{% endif %} align-middle"
         data-inline-actions="true"
         data-powercrud-row-actions-column="true"
         data-powercrud-row-actions-position="{% if row_actions_column_position == 'start' %}start{% else %}end{% endif %}"
