@@ -593,6 +593,7 @@ class AnnotatedBookCRUDView(SampleCRUDMixin):
     inline_edit_fields = ["pages"]
     bulk_fields = []
     bulk_delete = False
+    table_classes = "table-zebra table-xs"
     extra_actions_mode = "buttons"
     row_actions_column_position = "start"
     row_actions_column_sticky = False
@@ -819,7 +820,7 @@ class PowerFieldBookCRUDView(SampleCRUDMixin):
     table_max_height = 100
     table_header_min_wrap_width = "15"
     table_max_col_width = "25"
-    table_classes = "table-zebra table-xs"
+    table_classes = "table-zebra table-sm"
     action_button_classes = "btn-xs"
     extra_button_classes = "btn-sm"
     extra_buttons_mode = "dropdown"
