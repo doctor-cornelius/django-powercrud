@@ -85,7 +85,7 @@
         {% endif %}
         <div class="pc-inline-actions-controls flex flex-nowrap items-center {% if row_actions_column_position == 'start' %}justify-start text-start{% else %}justify-end text-right{% endif %} gap-1">
             <button type="button"
-                    class="btn {{ action_button_classes }} btn-primary btn-square"
+                    class="btn {{ action_button_classes }} btn-primary btn-square pc-inline-action-button"
                     aria-label="Save inline edit"
                     title="Save"
                     data-inline-save
@@ -107,7 +107,7 @@
                 </svg>
             </button>
             <button type="button"
-                    class="btn {{ action_button_classes }} btn-ghost btn-square"
+                    class="btn {{ action_button_classes }} btn-ghost btn-square pc-inline-action-button"
                     aria-label="Cancel inline edit"
                     title="Cancel"
                     data-inline-cancel
