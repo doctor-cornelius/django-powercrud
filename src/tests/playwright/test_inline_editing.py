@@ -660,6 +660,30 @@ def test_inline_widgets_inherit_cell_typography_and_searchable_select_opens(
     assert select.evaluate(
         "el => el.tomselect.isOpen === true"
     ), "Inline searchable select should open its dropdown when the author field enters edit mode."
+    page.evaluate("() => new Promise(resolve => requestAnimationFrame(resolve))")
+    initial_placement = page.evaluate(
+        """
+        () => {
+            const control = document.querySelector(
+                'tr[data-inline-active="true"] .powercrud-inline-single .ts-control'
+            );
+            const dropdown = document.querySelector(
+                '.ts-dropdown.powercrud-inline-single-dropdown'
+            );
+            const controlBox = control.getBoundingClientRect();
+            const dropdownBox = dropdown.getBoundingClientRect();
+            return {
+                controlBottom: controlBox.bottom,
+                dropdownTop: dropdownBox.top,
+            };
+        }
+        """
+    )
+    assert initial_placement["dropdownTop"] >= initial_placement["controlBottom"] - 1, (
+        "The initially opened inline single-select dropdown should start below the "
+        "control so it does not obscure the selected value. "
+        f"Placement: {initial_placement}"
+    )
     active_row.evaluate(
         """
         row => {
@@ -678,6 +702,7 @@ def test_inline_widgets_inherit_cell_typography_and_searchable_select_opens(
     select.evaluate(
         "element => { element.tomselect.close(); element.tomselect.open(); }"
     )
+    page.evaluate("() => new Promise(resolve => requestAnimationFrame(resolve))")
 
     wrapper = active_row.locator(".ts-wrapper.powercrud-inline-single")
     control = wrapper.locator(".ts-control")
