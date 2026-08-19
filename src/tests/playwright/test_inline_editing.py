@@ -677,7 +677,7 @@ def test_inline_widgets_inherit_cell_typography_and_searchable_select_opens(
     )
     if not using_bootstrap_pack():
         static_text_font_sizes = active_row.locator(
-            "td[data-field-name='really_long_title']"
+            "td[data-field-name='a_really_long_property_header_for_title']"
         ).evaluate(
             """
             cell => ({
