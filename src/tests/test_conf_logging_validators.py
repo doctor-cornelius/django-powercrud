@@ -362,6 +362,18 @@ def test_validator_rejects_invalid_extra_actions_mode():
         PowerCRUDMixinValidator(extra_actions_mode="menu")
 
 
+def test_validator_normalizes_extra_buttons_dropdown_label():
+    """Extra-button dropdown labels should be non-empty and trimmed."""
+    validator = PowerCRUDMixinValidator(extra_buttons_dropdown_label="  Tools  ")
+
+    assert validator.extra_buttons_dropdown_label == "Tools", (
+        "Validator should trim surrounding whitespace from extra-button dropdown labels."
+    )
+
+    with pytest.raises(ValueError, match="extra_buttons_dropdown_label"):
+        PowerCRUDMixinValidator(extra_buttons_dropdown_label="   ")
+
+
 @pytest.mark.parametrize("mode", ["buttons", "dropdown", "all_dropdown"])
 def test_validator_accepts_extra_actions_mode(mode):
     validator = PowerCRUDMixinValidator(extra_actions_mode=mode)

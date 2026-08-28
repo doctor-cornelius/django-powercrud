@@ -767,6 +767,9 @@ def test_table_mixin_toolbar_layout_defaults_to_table_split():
     assert view.get_list_toolbar_alignment() == "split", (
         "Toolbar groups should default to split placement."
     )
+    assert view.get_extra_buttons_dropdown_label() == "Actions", (
+        "Extra-button dropdowns should default to the Actions label."
+    )
 
 
 def test_table_mixin_toolbar_layout_accepts_container_adjacent_override():
