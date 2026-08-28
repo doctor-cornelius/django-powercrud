@@ -98,7 +98,7 @@ class TableMixin:
 
     def get_extra_buttons_dropdown_label(self):
         """Get the trigger label for the list-level extra-button dropdown."""
-        return resolve_config(self).extra_buttons_dropdown_label
+        return resolve_config(self).extra_buttons_dropdown_label or "Actions"
 
     def get_extra_actions_mode(self):
         """
