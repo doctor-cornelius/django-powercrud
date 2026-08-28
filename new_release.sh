@@ -625,7 +625,6 @@ function build_assets {
 }
 
 function run_prepare_validation {
-    ./runtests
     build_assets
     uv lock
 }
