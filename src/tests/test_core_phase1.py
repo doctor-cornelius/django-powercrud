@@ -4546,8 +4546,8 @@ def test_powerfield_book_list_defers_poweraction_hidden_hook(client):
     assert "data-powercrud-row-action-hidden-mode='lazy'" in response_text, (
         "PowerFieldBookCRUDView should mark the PowerAction for lazy hidden-if hydration."
     )
-    assert "aria-label='More actions'" in response_text, (
-        "The row should keep the extras kebab available because the Normal Edit PowerAction still applies."
+    assert "aria-label='Actions'" in response_text, (
+        "The all-actions row menu should keep its accessible Actions trigger because the Normal Edit PowerAction still applies."
     )
 
 
@@ -4691,8 +4691,11 @@ def test_author_list_renders_all_actions_dropdown(client):
     assert "data-powercrud-row-actions-scope='all'" in response_text, (
         "Sample author menus should include both standard and configured row actions."
     )
-    assert ">More<" not in response_text, (
-        "The all-actions sample should use its accessible ellipsis trigger rather than the extras-only More label."
+    assert ">More<" in response_text, (
+        "The Author sample should render its configured list-level More menu label."
+    )
+    assert "aria-label='Actions'" in response_text, (
+        "The Author sample should retain Actions as the accessible label for its row-level all-actions trigger."
     )
 
 
