@@ -72,6 +72,10 @@
             margin-inline-start: 0.5rem;
         }
 
+        [data-powercrud-list-toolbar][data-powercrud-list-toolbar-alignment="adjacent"] > [data-powercrud-action-controls]:not(:has(> :not(.hidden):not(.d-none):not([hidden]))) + [data-powercrud-view-controls] {
+            column-gap: 0;
+        }
+
         [data-powercrud-view-controls] svg {
             width: 1rem;
             height: 1rem;
