@@ -98,7 +98,7 @@ Queryset annotations are read-only list fields. They can filter and sort when th
 
 Skip this section until the standard list is working. Use `extra_buttons` for page-level actions above the table, such as a report, an import, or a summary of selected records. They are not actions on an individual row. The standard configuration API uses dictionaries for these entries.
 
-Use `extra_buttons_mode = "dropdown"` when several page-level actions would make the toolbar hard to scan. The built-in Create button remains visible because it is not part of `extra_buttons`.
+Use `extra_buttons_mode = "dropdown"` when several page-level actions would make the toolbar hard to scan. The built-in Create button remains visible because it is not part of `extra_buttons`. The dropdown trigger is labelled **Actions** by default; set `extra_buttons_dropdown_label` when a view needs more specific wording.
 
 Typical uses:
 
@@ -117,6 +117,13 @@ extra_buttons = [
         "display_modal": False,
     },
 ]
+```
+
+The label can be overridden per view:
+
+```python
+extra_buttons_mode = "dropdown"
+extra_buttons_dropdown_label = "More"
 ```
 
 ??? info "Selection, permissions, and modal buttons"

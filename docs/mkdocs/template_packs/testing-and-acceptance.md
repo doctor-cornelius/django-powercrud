@@ -65,4 +65,4 @@ Run the broad project suite for release preparation and use focused test selecti
 - Browser-only risks have focused Playwright evidence where relevant.
 - Documentation tells users how to select the pack, load its assets, align Crispy Forms, and meet any vendor requirements.
 - Widget policy is covered across every supported surface, rendering mode, fallback, and application-override boundary.
-- A version-4 pack honours list-toolbar width/alignment plus version-3 row-action placement and horizontal stickiness across header, display, inline, and HTMX replacement rows, and renders both dropdown scopes with the canonical action semantics.
+- A version-5 pack renders the supplied list-level extra-button dropdown label, honours version-4 list-toolbar width/alignment plus version-3 row-action placement and horizontal stickiness across header, display, inline, and HTMX replacement rows, and renders both dropdown scopes with the canonical action semantics.

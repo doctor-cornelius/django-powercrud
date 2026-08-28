@@ -46,8 +46,9 @@ For the mental model behind the option groups, see [PowerCRUD Concepts](../guide
 | `extra_actions_mode` (`str`) | `'buttons'`, `'dropdown'`, `'all_dropdown'` | `'dropdown'` | Built-in actions remain visible and configured extras use a kebab menu | Control row-action presentation on wider viewports. `'dropdown'` keeps permitted `View/Edit/Delete` controls visible and moves only extras behind a kebab; `'all_dropdown'` puts every permitted row action behind one kebab. On narrow viewports every mode collapses to the all-actions layout. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
 | `extra_actions_dropdown_open_upward_bottom_rows` (`int`) | `int >= 0` | `3` | All row-action menus open downward | In either dropdown mode, open the row-action menu upward for the last N rendered rows on the current page. Set `0` to disable this behavior. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
 | `extra_button_classes` (`str`) | `str` | `""` | Extra buttons use the default button styling | Additional CSS classes shared by every entry in `extra_buttons`. | [Styling & Tailwind](../guides/styling_tailwind.md) |
+| `extra_buttons_dropdown_label` (`str`) | non-empty `str` | `"Actions"` | The list-level extra-button dropdown is labelled **Actions** | Override the visible and accessible trigger label used when `extra_buttons_mode = "dropdown"`. | [Setup & Core CRUD basics](../guides/setup_core_crud.md#extra-buttons) |
 | `extra_button_selection_controls_disabled` (`bool`) | `True`, `False` | `False` | Selection-aware extra buttons can render row selection controls | Set to `True` if the button uses selected rows, but this list should not show checkboxes just because of that button. Bulk edit and bulk delete still show checkboxes because they need them. | [Setup & Core CRUD basics](../guides/setup_core_crud.md#extra-buttons) |
-| `extra_buttons_mode` (`str`) | `'buttons'`, `'dropdown'` | `'buttons'` | Extra header buttons render as visible toolbar buttons | Control how list-level `extra_buttons` are rendered. Use `'dropdown'` to move configured extra buttons into a top toolbar `More` menu. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
+| `extra_buttons_mode` (`str`) | `'buttons'`, `'dropdown'` | `'buttons'` | Extra header buttons render as visible toolbar buttons | Control how list-level `extra_buttons` are rendered. Use `'dropdown'` to move configured extra buttons into a top toolbar **Actions** menu. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
 | `extra_buttons` (`list[dict \| PowerButton]`) | `list[button spec]` | `[]` | No extra header buttons are shown | Add top-of-page buttons (e.g., custom actions, links). Buttons with `uses_selection=True` can render row selection controls even when built-in bulk edit/delete is not configured and clear the persisted selection after a successful HTMX request by default. Set `clear_selection_on_success=False` for read-only summary or preview buttons that should preserve selection. Modal buttons may set partial `modal_presentation`, `refresh_list_on_modal_close`, and permission affordance fields. | [Complete Example](complete_example.md) |
 | `filter_favourites_enabled` (`bool`) | `True`, `False` | `False` | No saved-favourites toolbar is rendered | Enable the optional saved favourites UI for this list view when the `powercrud.contrib.favourites` app is installed and `powercrud.urls` is mounted under the `powercrud` namespace. | [Saved Favourites](../guides/advanced/filter_favourites.md) |
 | `fields` (`list/str`) | `None`, `'__all__'`, `list[str]` | `'__all__'` | All concrete model fields show in the list view | Columns displayed in the list view. Explicit lists may contain model field names and queryset annotation names. Combine with `exclude`. | [Setup & Core CRUD basics](../guides/setup_core_crud.md) |
@@ -330,7 +331,16 @@ Use `extra_buttons` for list-level actions above the table.
 directly in the toolbar or move into a compact overflow menu:
 
 - `'buttons'` keeps the default behavior and renders every configured extra button visibly.
-- `'dropdown'` keeps built-in actions such as Create outside the overflow and moves only configured `extra_buttons` into a top toolbar `More` menu.
+- `'dropdown'` keeps built-in actions such as Create outside the overflow and moves only configured `extra_buttons` into a top toolbar **Actions** menu.
+
+Set `extra_buttons_dropdown_label` to change that menu's visible and accessible
+trigger text for a particular view. The label must be a non-empty string and is
+used only when `extra_buttons_mode = "dropdown"`:
+
+```python
+extra_buttons_mode = "dropdown"
+extra_buttons_dropdown_label = "More"
+```
 
 Selection-aware buttons can opt into the current persisted PowerCRUD selection:
 
