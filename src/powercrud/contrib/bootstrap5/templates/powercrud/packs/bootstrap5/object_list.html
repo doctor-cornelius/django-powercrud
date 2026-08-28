@@ -33,7 +33,7 @@
                 </details>
             {% endif %}
         {% endwith %}
-        <div class="d-flex flex-wrap align-items-center row-gap-3 my-3 w-100 mw-100 pc-bootstrap-list-toolbar" data-powercrud-list-toolbar="true"
+        <div class="d-flex flex-wrap align-items-center row-gap-3 my-3{% if list_toolbar_width_policy == 'container' %} w-100 mw-100{% endif %} pc-bootstrap-list-toolbar" data-powercrud-list-toolbar="true"
              data-powercrud-list-toolbar-width-policy="{{ list_toolbar_width_policy }}"
              data-powercrud-list-toolbar-alignment="{{ list_toolbar_alignment }}">
             <div class="d-flex flex-wrap align-items-center gap-2" data-powercrud-action-controls>
