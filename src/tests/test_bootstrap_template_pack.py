@@ -482,6 +482,7 @@ def test_bootstrap_table_alignment_and_dropdown_button_classes_use_portable_valu
         f"{BOOTSTRAP_NAMESPACE}/partial/extra_buttons.html",
         {
             "extra_buttons_mode": "dropdown",
+            "extra_buttons_dropdown_label": "Actions",
             "extra_button_classes": "shared-extra-class",
             "extra_buttons": [
                 {
@@ -519,6 +520,9 @@ def test_bootstrap_table_alignment_and_dropdown_button_classes_use_portable_valu
     )
     assert "shared-extra-class btn-primary" in dropdown, (
         "Dropdown entries must receive the same configured extra-button classes as button mode."
+    )
+    assert 'aria-label="Actions"' in dropdown and ">Actions<" in dropdown, (
+        "Bootstrap extra-button dropdowns must render the resolved trigger label."
     )
     assert "dropdown-menu show" not in dropdown, (
         "Bootstrap extra-button menus must remain closed until their details control opens."

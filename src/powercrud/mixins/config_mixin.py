@@ -241,6 +241,7 @@ class ConfigMixin:
     action_button_classes: str = ""
     extra_button_classes: str = ""
     extra_buttons_mode: str = "buttons"
+    extra_buttons_dropdown_label: str = "Actions"
     extra_actions_mode: str = "dropdown"
     list_toolbar_width_policy: str = "table"
     list_toolbar_alignment: str = "split"
@@ -288,6 +289,7 @@ class ConfigMixin:
         "action_button_classes",
         "extra_button_classes",
         "extra_buttons_mode",
+        "extra_buttons_dropdown_label",
         "extra_actions_mode",
         "list_toolbar_width_policy",
         "list_toolbar_alignment",

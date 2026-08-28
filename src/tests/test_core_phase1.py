@@ -719,6 +719,7 @@ def test_table_mixin_returns_expected_css_values():
         action_button_classes = "btn-xs"
         extra_button_classes = "btn-sm"
         extra_buttons_mode = "dropdown"
+        extra_buttons_dropdown_label = "Tools"
         extra_actions_mode = "dropdown"
         row_actions_column_position = "start"
         row_actions_column_sticky = True
@@ -733,6 +734,9 @@ def test_table_mixin_returns_expected_css_values():
     assert view.get_action_button_classes() == "btn-xs"
     assert view.get_extra_button_classes() == "btn-sm"
     assert view.get_extra_buttons_mode() == "dropdown"
+    assert view.get_extra_buttons_dropdown_label() == "Tools", (
+        "TableMixin should expose the configured extra-button dropdown label."
+    )
     assert view.get_extra_actions_mode() == "dropdown"
     assert view.get_row_actions_column_position() == "start", (
         "TableMixin should expose the resolved logical action-column position."

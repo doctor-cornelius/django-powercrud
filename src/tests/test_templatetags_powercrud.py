@@ -40,6 +40,7 @@ class TemplateViewStub:
     url_base = "book"
     dropdown_sort_options = {"author": "name"}
     extra_buttons_mode = "buttons"
+    extra_buttons_dropdown_label = "Actions"
     extra_actions_mode = "buttons"
     extra_actions_dropdown_open_upward_bottom_rows = 3
 
@@ -118,6 +119,9 @@ class TemplateViewStub:
 
     def get_extra_buttons_mode(self):
         return self.extra_buttons_mode
+
+    def get_extra_buttons_dropdown_label(self):
+        return self.extra_buttons_dropdown_label
 
     def get_extra_actions_mode(self):
         return self.extra_actions_mode
@@ -3214,6 +3218,7 @@ def test_extra_buttons_dropdown_mode_preserves_button_attributes():
     request.session["selected"] = ["1"]
     view = TemplateViewStub(request)
     view.extra_buttons_mode = "dropdown"
+    view.extra_buttons_dropdown_label = "Tools"
     view.extra_buttons[0]["extra_attrs"] = 'data-custom-action="reload"'
     view.extra_buttons[0]["extra_class_attrs"] = "tracking-wide"
     view.extra_buttons[1]["modal_box_classes"] = "modal-box w-11/12 max-w-5xl"
@@ -3224,8 +3229,8 @@ def test_extra_buttons_dropdown_mode_preserves_button_attributes():
     assert "data-powercrud-extra-buttons-dropdown='true'" in html, (
         "Dropdown mode should render a top toolbar overflow wrapper for configured extra buttons."
     )
-    assert ">More" in html, (
-        "Dropdown mode should expose a More trigger for top-level extra buttons."
+    assert ">Tools" in html, (
+        "Dropdown mode should expose the configured trigger label for top-level extra buttons."
     )
     assert "<li><a" in html, (
         "Dropdown mode should render configured extra buttons as menu items."

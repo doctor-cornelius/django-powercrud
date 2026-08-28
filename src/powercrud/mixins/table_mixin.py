@@ -96,6 +96,10 @@ class TableMixin:
         """
         return resolve_config(self).extra_buttons_mode
 
+    def get_extra_buttons_dropdown_label(self):
+        """Get the trigger label for the list-level extra-button dropdown."""
+        return resolve_config(self).extra_buttons_dropdown_label
+
     def get_extra_actions_mode(self):
         """
         Get the rendering mode for row-level extra actions.

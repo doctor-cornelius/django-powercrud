@@ -142,6 +142,7 @@ class PowerCRUDMixinValidator(BaseModel):
     action_button_classes: Optional[str] = None
     extra_button_classes: Optional[str] = None
     extra_buttons_mode: Optional[Literal["buttons", "dropdown"]] = None
+    extra_buttons_dropdown_label: Optional[str] = None
     extra_actions_mode: Optional[
         Literal["buttons", "dropdown", "all_dropdown"]
     ] = None
@@ -291,6 +292,18 @@ class PowerCRUDMixinValidator(BaseModel):
                 "view_instructions must be a non-empty string when provided"
             )
         return v
+
+    @field_validator("extra_buttons_dropdown_label")
+    @classmethod
+    def validate_extra_buttons_dropdown_label(cls, v):
+        """Ensure the optional extra-button dropdown label is non-empty."""
+        if v is None:
+            return v
+        if not isinstance(v, str) or not v.strip():
+            raise ValueError(
+                "extra_buttons_dropdown_label must be a non-empty string when provided"
+            )
+        return v.strip()
 
     @field_validator("view_help")
     @classmethod

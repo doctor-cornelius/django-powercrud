@@ -2057,6 +2057,12 @@ def extra_buttons(context: Dict[str, Any], view: Any) -> str:
         attr_name="extra_buttons_mode",
         default="buttons",
     )
+    extra_buttons_dropdown_label = _resolve_view_option(
+        view,
+        method_name="get_extra_buttons_dropdown_label",
+        attr_name="extra_buttons_dropdown_label",
+        default="Actions",
+    )
 
     button_models: List[Dict[str, Any]] = []
     for button in extra_buttons:
@@ -2196,6 +2202,7 @@ def extra_buttons(context: Dict[str, Any], view: Any) -> str:
     template_context = {
         "extra_buttons": button_models,
         "extra_buttons_mode": extra_buttons_mode,
+        "extra_buttons_dropdown_label": extra_buttons_dropdown_label,
         "extra_button_classes": extra_button_classes,
         "styles": styles,
     }

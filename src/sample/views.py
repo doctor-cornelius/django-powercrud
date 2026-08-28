@@ -1142,6 +1142,8 @@ class AuthorCRUDView(SampleCRUDMixin):
     table_classes = "table-zebra table-sm"
     action_button_classes = "btn-xs"
     extra_button_classes = "btn-sm"
+    extra_buttons_mode = "dropdown"
+    extra_buttons_dropdown_label = "More"
     extra_actions_mode = "all_dropdown"
     row_actions_column_position = "start"
     row_actions_column_sticky = True
@@ -1152,6 +1154,17 @@ class AuthorCRUDView(SampleCRUDMixin):
     }
 
     paginate_by = 15
+
+    extra_buttons = [
+        {
+            "url_name": "sample:genre-list",
+            "text": "Genres",
+            "button_class": "btn-secondary",
+            "htmx_target": "content",
+            "needs_pk": False,
+            "display_modal": False,
+        },
+    ]
 
     # fields = ["name","bio","birth_date",]
     fields = "__all__"

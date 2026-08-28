@@ -12,7 +12,7 @@ from django.core.exceptions import ImproperlyConfigured
 from powercrud.conf import get_powercrud_setting
 
 
-TEMPLATE_PACK_CONTRACT_VERSION = 4
+TEMPLATE_PACK_CONTRACT_VERSION = 5
 SERVER_ADAPTER_API_VERSION = 2
 BROWSER_ADAPTER_API_VERSION = 1
 _BUILTIN_TEMPLATE_PACKS = {"daisyui": "powercrud.packs.daisyui:template_pack"}
