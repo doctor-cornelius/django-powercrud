@@ -122,12 +122,15 @@ export function createCurrentTemplateRuntime(context) {
             return;
         }
 
-        // The current template visually aligns the toolbar and filter panel to
-        // the rendered table instead of letting those controls span the page.
+        // The toolbar can follow either the rendered table or the full list
+        // container. Filter and pagination geometry remains table-aligned.
+        const widthPolicy = toolbar.dataset.powercrudListToolbarWidthPolicy || 'table';
         const tableWidth = Math.ceil(table.getBoundingClientRect().width || table.offsetWidth);
         if (!tableWidth) {
-            toolbar.style.width = '';
-            toolbar.style.maxWidth = '';
+            if (widthPolicy === 'table') {
+                toolbar.style.width = '';
+                toolbar.style.maxWidth = '';
+            }
             if (filterCollapse instanceof HTMLElement) {
                 filterCollapse.style.width = '';
                 filterCollapse.style.maxWidth = '';
@@ -142,8 +145,13 @@ export function createCurrentTemplateRuntime(context) {
             }
             return;
         }
-        toolbar.style.width = `${tableWidth}px`;
-        toolbar.style.maxWidth = '100%';
+        if (widthPolicy === 'table') {
+            toolbar.style.width = `${tableWidth}px`;
+            toolbar.style.maxWidth = '100%';
+        } else {
+            toolbar.style.width = '';
+            toolbar.style.maxWidth = '100%';
+        }
         if (filterCollapse instanceof HTMLElement) {
             filterCollapse.style.width = `${tableWidth}px`;
             filterCollapse.style.maxWidth = '100%';

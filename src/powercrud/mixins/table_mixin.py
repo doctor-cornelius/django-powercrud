@@ -96,6 +96,10 @@ class TableMixin:
         """
         return resolve_config(self).extra_buttons_mode
 
+    def get_extra_buttons_dropdown_label(self):
+        """Get the trigger label for the list-level extra-button dropdown."""
+        return resolve_config(self).extra_buttons_dropdown_label or "Actions"
+
     def get_extra_actions_mode(self):
         """
         Get the rendering mode for row-level extra actions.
@@ -109,6 +113,14 @@ class TableMixin:
     def get_row_actions_column_sticky(self) -> bool:
         """Return whether row actions remain visible during horizontal scrolling."""
         return bool(resolve_config(self).row_actions_column_sticky)
+
+    def get_list_toolbar_width_policy(self) -> str:
+        """Return whether the list toolbar follows the table or list container."""
+        return str(resolve_config(self).list_toolbar_width_policy)
+
+    def get_list_toolbar_alignment(self) -> str:
+        """Return whether toolbar groups are adjacent or split across the row."""
+        return str(resolve_config(self).list_toolbar_alignment)
 
     def get_extra_actions_dropdown_open_upward_bottom_rows(self) -> int:
         """

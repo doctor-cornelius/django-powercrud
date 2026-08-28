@@ -719,6 +719,7 @@ def test_table_mixin_returns_expected_css_values():
         action_button_classes = "btn-xs"
         extra_button_classes = "btn-sm"
         extra_buttons_mode = "dropdown"
+        extra_buttons_dropdown_label = "Tools"
         extra_actions_mode = "dropdown"
         row_actions_column_position = "start"
         row_actions_column_sticky = True
@@ -733,6 +734,9 @@ def test_table_mixin_returns_expected_css_values():
     assert view.get_action_button_classes() == "btn-xs"
     assert view.get_extra_button_classes() == "btn-sm"
     assert view.get_extra_buttons_mode() == "dropdown"
+    assert view.get_extra_buttons_dropdown_label() == "Tools", (
+        "TableMixin should expose the configured extra-button dropdown label."
+    )
     assert view.get_extra_actions_mode() == "dropdown"
     assert view.get_row_actions_column_position() == "start", (
         "TableMixin should expose the resolved logical action-column position."
@@ -750,6 +754,38 @@ def test_table_mixin_row_actions_column_layout_defaults_to_sticky_end():
     )
     assert view.get_row_actions_column_sticky() is True, (
         "Action columns should remain visible during horizontal scrolling by default."
+    )
+
+
+def test_table_mixin_toolbar_layout_defaults_to_table_split():
+    """Toolbar controls should preserve the established table-aligned layout."""
+    view = TableMixin()
+
+    assert view.get_list_toolbar_width_policy() == "table", (
+        "Toolbar width should default to the rendered table."
+    )
+    assert view.get_list_toolbar_alignment() == "split", (
+        "Toolbar groups should default to split placement."
+    )
+    assert view.get_extra_buttons_dropdown_label() == "Actions", (
+        "Extra-button dropdowns should default to the Actions label."
+    )
+
+
+def test_table_mixin_toolbar_layout_accepts_container_adjacent_override():
+    """Views should be able to opt into the compact-table-safe layout."""
+
+    class CompactToolbarView(TableMixin):
+        list_toolbar_width_policy = "container"
+        list_toolbar_alignment = "adjacent"
+
+    view = CompactToolbarView()
+
+    assert view.get_list_toolbar_width_policy() == "container", (
+        "Explicit container width policy should be resolved."
+    )
+    assert view.get_list_toolbar_alignment() == "adjacent", (
+        "Explicit adjacent alignment should be resolved."
     )
 
 
@@ -4510,8 +4546,8 @@ def test_powerfield_book_list_defers_poweraction_hidden_hook(client):
     assert "data-powercrud-row-action-hidden-mode='lazy'" in response_text, (
         "PowerFieldBookCRUDView should mark the PowerAction for lazy hidden-if hydration."
     )
-    assert "aria-label='More actions'" in response_text, (
-        "The row should keep the extras kebab available because the Normal Edit PowerAction still applies."
+    assert "aria-label='Actions'" in response_text, (
+        "The all-actions row menu should keep its accessible Actions trigger because the Normal Edit PowerAction still applies."
     )
 
 
@@ -4655,8 +4691,11 @@ def test_author_list_renders_all_actions_dropdown(client):
     assert "data-powercrud-row-actions-scope='all'" in response_text, (
         "Sample author menus should include both standard and configured row actions."
     )
-    assert ">More<" not in response_text, (
-        "The all-actions sample should use its accessible ellipsis trigger rather than the extras-only More label."
+    assert ">More<" in response_text, (
+        "The Author sample should render its configured list-level More menu label."
+    )
+    assert "aria-label='Actions'" in response_text, (
+        "The Author sample should retain Actions as the accessible label for its row-level all-actions trigger."
     )
 
 

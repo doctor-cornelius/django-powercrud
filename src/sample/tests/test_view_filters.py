@@ -340,6 +340,15 @@ def test_sample_views_demonstrate_row_actions_column_layout_options():
     assert author_view.get_extra_actions_mode() == "all_dropdown", (
         "AuthorCRUDView should demonstrate the compact menu containing native and configured row actions."
     )
+    assert author_view.get_extra_buttons_mode() == "dropdown", (
+        "AuthorCRUDView should demonstrate the list-level extra-button dropdown mode."
+    )
+    assert author_view.get_extra_buttons_dropdown_label() == "More", (
+        "AuthorCRUDView should demonstrate a per-view override of the default Actions label."
+    )
+    assert author_view.extra_buttons[0]["text"] == "Genres", (
+        "AuthorCRUDView should expose the existing Genre list as its toolbar demo action."
+    )
 
 
 def test_sample_views_demonstrate_extra_action_custom_icon_presentations():

@@ -98,7 +98,7 @@ Queryset annotations are read-only list fields. They can filter and sort when th
 
 Skip this section until the standard list is working. Use `extra_buttons` for page-level actions above the table, such as a report, an import, or a summary of selected records. They are not actions on an individual row. The standard configuration API uses dictionaries for these entries.
 
-Use `extra_buttons_mode = "dropdown"` when several page-level actions would make the toolbar hard to scan. The built-in Create button remains visible because it is not part of `extra_buttons`.
+Use `extra_buttons_mode = "dropdown"` when several page-level actions would make the toolbar hard to scan. The built-in Create button remains visible because it is not part of `extra_buttons`. The dropdown trigger is labelled **Actions** by default; set `extra_buttons_dropdown_label` when a view needs more specific wording.
 
 Typical uses:
 
@@ -117,6 +117,13 @@ extra_buttons = [
         "display_modal": False,
     },
 ]
+```
+
+The label can be overridden per view:
+
+```python
+extra_buttons_mode = "dropdown"
+extra_buttons_dropdown_label = "More"
 ```
 
 ??? info "Selection, permissions, and modal buttons"
@@ -755,6 +762,19 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
 The two settings are independent. Use `"start"` or `"end"` for logical placement and `True` or `False` for horizontal pinning. Defaults are `"end"` and `True`, keeping row actions at logical end and visible during horizontal scrolling. In LTR pages, start is the left edge; in RTL pages it is the right edge. Set `row_actions_column_sticky = False` to restore the previous scrolling column.
 
 When row selection is enabled, its checkbox remains the outermost logical-start column. A start-positioned Actions column comes immediately after it, followed by data columns. PowerCRUD preserves that same order in the header, display rows, active inline forms, and HTMX row replacements. Sticky actions stay with their row vertically; only horizontal table scrolling pins them to the configured edge. Both body-level floating row-action menus continue to work without additional JavaScript configuration.
+
+### List toolbar layout {#list-toolbar-layout}
+
+By default, the list toolbar follows the rendered table width and keeps action controls at logical start with view controls at logical end. These are independent per-view settings, so each CRUD view can choose its own width and alignment. To keep view controls usable when semantic column sizing produces a compact table, use the PowerCRUD list container width—not the browser viewport—and keep the view-controls group beside the action buttons:
+
+```python
+class ProjectCRUDView(PowerCRUDMixin, CRUDView):
+    # Opt in to the compact-table-friendly arrangement.
+    list_toolbar_width_policy = "container"
+    list_toolbar_alignment = "adjacent"
+```
+
+The defaults are `list_toolbar_width_policy = "table"` and `list_toolbar_alignment = "split"`, preserving the legacy table-aligned arrangement. All four combinations are valid, and controls wrap naturally rather than overflowing on narrow screens.
 
 ### How dates and times appear in lists {#temporal-list-value-formats}
 

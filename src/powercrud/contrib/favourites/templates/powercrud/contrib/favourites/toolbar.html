@@ -6,7 +6,7 @@
      data-powercrud-toolbar-dom-id="{{ filter_favourites_toolbar_dom_id }}"
      data-powercrud-current-state-json="{{ current_list_state_json|escape }}">
     <button type="button"
-            class="btn btn-outline btn-secondary {{ view.get_extra_button_classes }}"
+            class="btn btn-sm btn-outline btn-secondary"
             aria-label="{% if selected_filter_favourite_name %}Saved favourite: {{ selected_filter_favourite_name }}{% else %}Saved favourites{% endif %}"
             data-powercrud-filter-favourites-selected="{% if selected_filter_favourite_name %}true{% else %}false{% endif %}"
             data-powercrud-filter-favourites-default-label="Saved favourites"

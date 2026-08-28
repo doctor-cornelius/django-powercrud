@@ -241,7 +241,10 @@ class ConfigMixin:
     action_button_classes: str = ""
     extra_button_classes: str = ""
     extra_buttons_mode: str = "buttons"
+    extra_buttons_dropdown_label: str = "Actions"
     extra_actions_mode: str = "dropdown"
+    list_toolbar_width_policy: str = "table"
+    list_toolbar_alignment: str = "split"
     row_actions_column_position: str = "end"
     row_actions_column_sticky: bool = True
     extra_actions_dropdown_open_upward_bottom_rows: int = 3
@@ -286,7 +289,10 @@ class ConfigMixin:
         "action_button_classes",
         "extra_button_classes",
         "extra_buttons_mode",
+        "extra_buttons_dropdown_label",
         "extra_actions_mode",
+        "list_toolbar_width_policy",
+        "list_toolbar_alignment",
         "row_actions_column_position",
         "row_actions_column_sticky",
         "extra_actions_dropdown_open_upward_bottom_rows",
@@ -2282,6 +2288,16 @@ class _ConfigShim:
             return self._raw(
                 "row_actions_column_position",
                 ConfigMixin.row_actions_column_position,
+            )
+        if name == "list_toolbar_width_policy":
+            return self._raw(
+                "list_toolbar_width_policy",
+                ConfigMixin.list_toolbar_width_policy,
+            )
+        if name == "list_toolbar_alignment":
+            return self._raw(
+                "list_toolbar_alignment",
+                ConfigMixin.list_toolbar_alignment,
             )
         if name == "row_actions_column_sticky":
             return bool(

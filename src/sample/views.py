@@ -182,6 +182,8 @@ class BookCRUDView(SampleCRUDMixin):
     base_template_path = "sample/base.html"
     use_htmx = True
     use_modal = True
+    list_toolbar_width_policy = "container"
+    list_toolbar_alignment = "adjacent"
     # use_crispy = False
 
     # standard neapolitan setting; this demonstrates how to override the default url_base (ie model name)
@@ -669,6 +671,8 @@ class PowerFieldBookCRUDView(SampleCRUDMixin):
 
     list_options_enabled = True
     column_width_policy = "semantic"
+    list_toolbar_width_policy = "container"
+    list_toolbar_alignment = "adjacent"
     list_cell_link_default_open_in = "modal"
     form_class = forms.BookForm
     power_fields = [
@@ -1138,6 +1142,8 @@ class AuthorCRUDView(SampleCRUDMixin):
     table_classes = "table-zebra table-sm"
     action_button_classes = "btn-xs"
     extra_button_classes = "btn-sm"
+    extra_buttons_mode = "dropdown"
+    extra_buttons_dropdown_label = "More"
     extra_actions_mode = "all_dropdown"
     row_actions_column_position = "start"
     row_actions_column_sticky = True
@@ -1148,6 +1154,17 @@ class AuthorCRUDView(SampleCRUDMixin):
     }
 
     paginate_by = 15
+
+    extra_buttons = [
+        {
+            "url_name": "sample:genre-list",
+            "text": "Genres",
+            "button_class": "btn-secondary",
+            "htmx_target": "content",
+            "needs_pk": False,
+            "display_modal": False,
+        },
+    ]
 
     # fields = ["name","bio","birth_date",]
     fields = "__all__"

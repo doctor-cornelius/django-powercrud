@@ -36,6 +36,8 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
 - `action_button_classes` targets edit/delete/etc. buttons per row.
 - `extra_button_classes` targets the buttons above the table.
 
+The list toolbar defaults to `list_toolbar_width_policy = "table"` and `list_toolbar_alignment = "split"`, preserving the legacy table-aligned arrangement. Use `list_toolbar_width_policy = "container"` and `list_toolbar_alignment = "adjacent"` when a view should keep controls beside the action group without pushing them to the viewport edge or squeezing them to a compact table's width. Both DaisyUI and Bootstrap 5 implement these settings with logical spacing and natural narrow-screen wrapping.
+
 ### Tooltip theme variables
 
 PowerCRUD exposes a small set of CSS custom properties for tooltip styling, so downstream projects can restyle tooltips in app CSS without adding Python configuration:
