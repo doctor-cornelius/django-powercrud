@@ -772,6 +772,10 @@
     width: 100%;
 }
 
+[data-powercrud-object-list="true"] [data-powercrud-list-toolbar][data-powercrud-list-toolbar-alignment="adjacent"] > [data-powercrud-action-controls]:has(> *) + [data-powercrud-view-controls] {
+    margin-inline-start: .5rem;
+}
+
 .powercrud-bootstrap-tomselect .ts-control {
     border-color: var(--bs-border-color);
     border-radius: var(--bs-border-radius);

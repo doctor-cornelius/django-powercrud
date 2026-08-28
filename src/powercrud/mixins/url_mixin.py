@@ -590,6 +590,18 @@ class UrlMixin:
             if callable(row_actions_sticky_getter)
             else bool(getattr(cfg, "row_actions_column_sticky", True))
         )
+        toolbar_width_getter = getattr(self, "get_list_toolbar_width_policy", None)
+        kwargs["list_toolbar_width_policy"] = (
+            toolbar_width_getter()
+            if callable(toolbar_width_getter)
+            else getattr(cfg, "list_toolbar_width_policy", "container")
+        )
+        toolbar_alignment_getter = getattr(self, "get_list_toolbar_alignment", None)
+        kwargs["list_toolbar_alignment"] = (
+            toolbar_alignment_getter()
+            if callable(toolbar_alignment_getter)
+            else getattr(cfg, "list_toolbar_alignment", "adjacent")
+        )
 
         # Add HTMX-specific context if enabled
         if self.get_use_htmx():

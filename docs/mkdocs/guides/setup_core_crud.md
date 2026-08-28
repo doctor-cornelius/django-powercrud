@@ -756,6 +756,19 @@ The two settings are independent. Use `"start"` or `"end"` for logical placement
 
 When row selection is enabled, its checkbox remains the outermost logical-start column. A start-positioned Actions column comes immediately after it, followed by data columns. PowerCRUD preserves that same order in the header, display rows, active inline forms, and HTMX row replacements. Sticky actions stay with their row vertically; only horizontal table scrolling pins them to the configured edge. Both body-level floating row-action menus continue to work without additional JavaScript configuration.
 
+### List toolbar layout {#list-toolbar-layout}
+
+The list toolbar is independent of the table width by default. This keeps filters, columns, favourites, page size, and other view controls usable when semantic column sizing produces a compact table. These are independent per-view settings, so each CRUD view can choose its own width and alignment. The toolbar uses the PowerCRUD list container width, not the browser viewport, and the view-controls group follows the action buttons with a small gap:
+
+```python
+class ProjectCRUDView(PowerCRUDMixin, CRUDView):
+    # These are the defaults.
+    list_toolbar_width_policy = "container"
+    list_toolbar_alignment = "adjacent"
+```
+
+Set `list_toolbar_width_policy = "table"` to align the toolbar to the rendered table. Set `list_toolbar_alignment = "split"` to place view controls at logical end when there is room. All four combinations are valid, and controls wrap naturally rather than overflowing on narrow screens.
+
 ### How dates and times appear in lists {#temporal-list-value-formats}
 
 Date, time, and datetime columns use Django's `DATE_FORMAT`, `TIME_FORMAT`, and `DATETIME_FORMAT` settings. `DateField` shows a date, `TimeField` shows a time, and `DateTimeField` shows a date by default.

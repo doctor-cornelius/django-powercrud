@@ -64,7 +64,18 @@
         [data-powercrud-list-toolbar][data-powercrud-toolbar-wrapped="true"] [data-powercrud-view-controls] {
             justify-content: flex-start;
             margin-left: 0 !important;
+            margin-inline-start: 0 !important;
             width: 100%;
+        }
+
+        [data-powercrud-list-toolbar][data-powercrud-list-toolbar-alignment="adjacent"] > [data-powercrud-action-controls]:has(> *) + [data-powercrud-view-controls] {
+            margin-inline-start: 0.5rem;
+        }
+
+        [data-powercrud-filter-toggle] > svg.bi-funnel,
+        [data-powercrud-filter-toggle] > svg.bi-funnel-fill {
+            width: 1rem;
+            height: 1rem;
         }
 
         [data-powercrud-view-help="true"] {
@@ -327,8 +338,10 @@
             {% endif %}
         {% endwith %}
 
-        <div class="my-3 flex flex-wrap items-center gap-3"
-             data-powercrud-list-toolbar="true">
+        <div class="my-3 flex w-full max-w-full flex-wrap items-center gap-y-3"
+             data-powercrud-list-toolbar="true"
+             data-powercrud-list-toolbar-width-policy="{{ list_toolbar_width_policy }}"
+             data-powercrud-list-toolbar-alignment="{{ list_toolbar_alignment }}">
             <div class="flex flex-wrap items-center gap-3"
                  data-powercrud-action-controls>
             {% if enable_selection_controls %}
@@ -338,7 +351,7 @@
             {% partial list_actions %}
             </div>
 
-            <div class="flex flex-wrap items-center gap-2 sm:ml-auto"
+            <div class="flex flex-wrap items-center gap-2{% if list_toolbar_alignment == 'split' %} sm:ms-auto{% endif %}"
                  data-powercrud-view-controls>
             {% if filter_favourites_enabled %}
                 {% include "powercrud/contrib/favourites/toolbar.html" %}

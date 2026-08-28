@@ -33,14 +33,16 @@
                 </details>
             {% endif %}
         {% endwith %}
-        <div class="d-flex flex-wrap align-items-center gap-2 my-3 pc-bootstrap-list-toolbar" data-powercrud-list-toolbar="true">
+        <div class="d-flex flex-wrap align-items-center row-gap-3 my-3 w-100 mw-100 pc-bootstrap-list-toolbar" data-powercrud-list-toolbar="true"
+             data-powercrud-list-toolbar-width-policy="{{ list_toolbar_width_policy }}"
+             data-powercrud-list-toolbar-alignment="{{ list_toolbar_alignment }}">
             <div class="d-flex flex-wrap align-items-center gap-2" data-powercrud-action-controls>
                 {% if enable_selection_controls %}
                     {% partial bulk_selection_status %}
                 {% endif %}
                 {% partial list_actions %}
             </div>
-            <div class="d-flex flex-wrap align-items-center gap-2 ms-md-auto" data-powercrud-view-controls>
+            <div class="d-flex flex-wrap align-items-center gap-2{% if list_toolbar_alignment == 'split' %} ms-md-auto{% endif %}" data-powercrud-view-controls>
                 {% if filter_favourites_enabled %}
                     {% include framework_template_path|add:"/partial/filter_favourites.html" %}
                 {% endif %}

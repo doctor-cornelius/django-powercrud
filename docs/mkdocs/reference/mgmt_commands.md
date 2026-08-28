@@ -159,7 +159,7 @@ python manage.py pcrud_starttemplatepack my_powercrud_pack ../my-powercrud-pack 
 
 The first argument is the Python package name. The second is a new or empty destination directory; the command refuses to overwrite a populated directory. Use `--identity` only when the public pack identity should differ from the package name.
 
-The starter has no framework-name registration. Its generated declaration pins the current numeric template-pack contract version (`contract_version=3`); it does not import a moving current-version constant. Edit the copied templates and the optional adapter hooks, then test and publish it as a normal Python distribution. A later PowerCRUD contract bump is an explicit pack upgrade obligation. See [Authoring and publishing a template pack](../template_packs/authoring-and-publishing.md) for the complete workflow.
+The starter has no framework-name registration. Its generated declaration pins the current numeric template-pack contract version (`contract_version=4`); it does not import a moving current-version constant. Edit the copied templates and the optional adapter hooks, then test and publish it as a normal Python distribution. A later PowerCRUD contract bump is an explicit pack upgrade obligation. See [Authoring and publishing a template pack](../template_packs/authoring-and-publishing.md) for the complete workflow.
 
 ### Copy templates for one model
 

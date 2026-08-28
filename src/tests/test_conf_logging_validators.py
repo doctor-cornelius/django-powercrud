@@ -384,6 +384,34 @@ def test_validator_rejects_invalid_row_actions_column_position():
         PowerCRUDMixinValidator(row_actions_column_position="left")
 
 
+def test_validator_accepts_toolbar_width_and_alignment_policies():
+    """Toolbar geometry settings should accept each documented combination value."""
+    validator = PowerCRUDMixinValidator(
+        list_toolbar_width_policy="container",
+        list_toolbar_alignment="adjacent",
+    )
+
+    assert validator.list_toolbar_width_policy == "container", (
+        "Validator should preserve the selected toolbar width policy."
+    )
+    assert validator.list_toolbar_alignment == "adjacent", (
+        "Validator should preserve the selected toolbar alignment."
+    )
+
+
+@pytest.mark.parametrize(
+    ("field_name", "value"),
+    [
+        ("list_toolbar_width_policy", "viewport"),
+        ("list_toolbar_alignment", "right"),
+    ],
+)
+def test_validator_rejects_invalid_toolbar_layout_values(field_name, value):
+    """Toolbar geometry settings should reject values outside the portable contract."""
+    with pytest.raises(ValueError):
+        PowerCRUDMixinValidator(**{field_name: value})
+
+
 def test_validator_accepts_row_actions_column_sticky_toggle():
     validator = PowerCRUDMixinValidator(row_actions_column_sticky=True)
 

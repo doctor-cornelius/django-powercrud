@@ -145,6 +145,8 @@ class PowerCRUDMixinValidator(BaseModel):
     extra_actions_mode: Optional[
         Literal["buttons", "dropdown", "all_dropdown"]
     ] = None
+    list_toolbar_width_policy: Optional[Literal["container", "table"]] = None
+    list_toolbar_alignment: Optional[Literal["adjacent", "split"]] = None
     row_actions_column_position: Optional[Literal["start", "end"]] = None
     row_actions_column_sticky: Optional[bool] = None
     extra_actions_dropdown_open_upward_bottom_rows: Optional[int] = Field(

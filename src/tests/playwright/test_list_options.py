@@ -262,10 +262,10 @@ def test_book_list_column_chooser_discards_unsaved_draft_on_close(
     expect(panel.locator("input[name='visible_columns'][value='isbn']")).to_be_checked()
 
 
-def test_book_list_column_controls_fit_table_or_viewport(
+def test_book_list_column_controls_fit_container_or_viewport(
     page, books_url, sample_books
 ):
-    """The right-aligned view controls should not overshoot the table/page edge."""
+    """The adjacent view controls should not overshoot the list container/page edge."""
 
     page.set_viewport_size({"width": 640, "height": 720})
 
@@ -282,13 +282,13 @@ def test_book_list_column_controls_fit_table_or_viewport(
             const viewportRight = document.documentElement.clientWidth;
             return {
                 controlsRight: controlsRect.right,
-                expectedRight: Math.min(tableRect.right, viewportRight),
+                expectedRight: viewportRight,
             };
         }
         """
     )
     assert metrics["controlsRight"] <= metrics["expectedRight"] + 2, (
-        "View controls should align within the narrower of the table edge or viewport edge."
+        "View controls should remain within the list container and viewport edge."
     )
 
     panel = open_column_chooser(page)
