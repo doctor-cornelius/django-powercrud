@@ -6,6 +6,11 @@ During the `0.x` series, breaking changes can occur, although we try to minimise
 
 Version numbers below correspond to published git tags. The more important releases include a little extra narrative and upgrade context; smaller patch releases remain deliberately brief. For full detail between any two versions, use the GitHub compare view for the matching tags.
 
+## 0.9.11 (2026-08-28)
+
+- **Feature**: support configurable rhs controls placement and extra buttons dropdown name (#236)
+- **Fix**: avoid duplicate release test runs (#237)
+
 ## 0.9.10 (2026-08-19)
 
 - **Style (list)**: reduce table row height proportional to table sizing (#230)
