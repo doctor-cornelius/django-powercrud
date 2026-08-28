@@ -1771,8 +1771,8 @@ def test_filter_trigger_fragment_renders_focused_component():
         """Minimal view contract used by the focused filter trigger."""
 
         def get_extra_button_classes(self):
-            """Return compact toolbar classes for the trigger button."""
-            return "btn-sm"
+            """Return action-only classes that toolbar controls must not inherit."""
+            return "btn-lg action-only-class"
 
     rendered = render_to_string(
         "powercrud/daisyUI/object_list.html#filter_trigger",
@@ -1792,6 +1792,9 @@ def test_filter_trigger_fragment_renders_focused_component():
     )
     assert 'data-powercrud-filter-toggle-icon-outline="true"' in rendered and 'data-powercrud-filter-toggle-icon-filled="true"' in rendered, (
         "The focused trigger should retain both icons used for active-filter state."
+    )
+    assert 'class="btn btn-sm btn-outline btn-secondary"' in rendered and "action-only-class" not in rendered, (
+        "The filter trigger should use its own compact toolbar size instead of inheriting extra-action classes."
     )
 
 
@@ -1967,8 +1970,8 @@ def test_list_columns_fragment_renders_focused_component():
         """Provide the button-class contract needed by the chooser component."""
 
         def get_extra_button_classes(self):
-            """Return a recognizable class for the rendered chooser trigger."""
-            return "btn-sm"
+            """Return an action-only class the chooser trigger must not inherit."""
+            return "action-only-class"
 
     request = RequestFactory().get(
         "/books/?author=1&author=2&page=3&csrfmiddlewaretoken=query-token"
@@ -2011,6 +2014,9 @@ def test_list_columns_fragment_renders_focused_component():
 
     assert 'data-powercrud-list-columns="true"' in rendered and 'data-powercrud-list-columns-trigger="true"' in rendered, (
         "The focused component should retain its chooser and trigger hooks."
+    )
+    assert 'class="btn btn-sm btn-outline btn-secondary"' in rendered and "action-only-class" not in rendered, (
+        "The chooser trigger should use its own compact toolbar size instead of inheriting extra-action classes."
     )
     assert 'data-powercrud-list-columns-template="true"' in rendered and 'data-powercrud-list-columns-panel="true"' in rendered, (
         "The focused component should retain the detachable template and panel hooks."
