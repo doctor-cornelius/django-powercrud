@@ -594,13 +594,13 @@ class UrlMixin:
         kwargs["list_toolbar_width_policy"] = (
             toolbar_width_getter()
             if callable(toolbar_width_getter)
-            else getattr(cfg, "list_toolbar_width_policy", "container")
+            else getattr(cfg, "list_toolbar_width_policy", "table")
         )
         toolbar_alignment_getter = getattr(self, "get_list_toolbar_alignment", None)
         kwargs["list_toolbar_alignment"] = (
             toolbar_alignment_getter()
             if callable(toolbar_alignment_getter)
-            else getattr(cfg, "list_toolbar_alignment", "adjacent")
+            else getattr(cfg, "list_toolbar_alignment", "split")
         )
 
         # Add HTMX-specific context if enabled

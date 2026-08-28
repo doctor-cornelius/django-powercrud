@@ -182,6 +182,8 @@ class BookCRUDView(SampleCRUDMixin):
     base_template_path = "sample/base.html"
     use_htmx = True
     use_modal = True
+    list_toolbar_width_policy = "container"
+    list_toolbar_alignment = "adjacent"
     # use_crispy = False
 
     # standard neapolitan setting; this demonstrates how to override the default url_base (ie model name)
@@ -669,6 +671,8 @@ class PowerFieldBookCRUDView(SampleCRUDMixin):
 
     list_options_enabled = True
     column_width_policy = "semantic"
+    list_toolbar_width_policy = "container"
+    list_toolbar_alignment = "adjacent"
     list_cell_link_default_open_in = "modal"
     form_class = forms.BookForm
     power_fields = [

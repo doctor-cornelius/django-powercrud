@@ -242,8 +242,8 @@ class ConfigMixin:
     extra_button_classes: str = ""
     extra_buttons_mode: str = "buttons"
     extra_actions_mode: str = "dropdown"
-    list_toolbar_width_policy: str = "container"
-    list_toolbar_alignment: str = "adjacent"
+    list_toolbar_width_policy: str = "table"
+    list_toolbar_alignment: str = "split"
     row_actions_column_position: str = "end"
     row_actions_column_sticky: bool = True
     extra_actions_dropdown_open_upward_bottom_rows: int = 3

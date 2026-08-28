@@ -753,32 +753,32 @@ def test_table_mixin_row_actions_column_layout_defaults_to_sticky_end():
     )
 
 
-def test_table_mixin_toolbar_layout_defaults_to_container_adjacent():
-    """Toolbar controls should default to compact-table-safe container adjacency."""
+def test_table_mixin_toolbar_layout_defaults_to_table_split():
+    """Toolbar controls should preserve the established table-aligned layout."""
     view = TableMixin()
 
-    assert view.get_list_toolbar_width_policy() == "container", (
-        "Toolbar width should default to the PowerCRUD list container."
-    )
-    assert view.get_list_toolbar_alignment() == "adjacent", (
-        "Toolbar groups should default to adjacent placement."
-    )
-
-
-def test_table_mixin_toolbar_layout_accepts_table_split_override():
-    """Views should retain an explicit compatibility path for the old layout."""
-
-    class LegacyToolbarView(TableMixin):
-        list_toolbar_width_policy = "table"
-        list_toolbar_alignment = "split"
-
-    view = LegacyToolbarView()
-
     assert view.get_list_toolbar_width_policy() == "table", (
-        "Explicit table width policy should be resolved for compatibility."
+        "Toolbar width should default to the rendered table."
     )
     assert view.get_list_toolbar_alignment() == "split", (
-        "Explicit split alignment should be resolved for compatibility."
+        "Toolbar groups should default to split placement."
+    )
+
+
+def test_table_mixin_toolbar_layout_accepts_container_adjacent_override():
+    """Views should be able to opt into the compact-table-safe layout."""
+
+    class CompactToolbarView(TableMixin):
+        list_toolbar_width_policy = "container"
+        list_toolbar_alignment = "adjacent"
+
+    view = CompactToolbarView()
+
+    assert view.get_list_toolbar_width_policy() == "container", (
+        "Explicit container width policy should be resolved."
+    )
+    assert view.get_list_toolbar_alignment() == "adjacent", (
+        "Explicit adjacent alignment should be resolved."
     )
 
 

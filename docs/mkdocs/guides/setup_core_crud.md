@@ -758,16 +758,16 @@ When row selection is enabled, its checkbox remains the outermost logical-start 
 
 ### List toolbar layout {#list-toolbar-layout}
 
-The list toolbar is independent of the table width by default. This keeps filters, columns, favourites, page size, and other view controls usable when semantic column sizing produces a compact table. These are independent per-view settings, so each CRUD view can choose its own width and alignment. The toolbar uses the PowerCRUD list container width, not the browser viewport, and the view-controls group follows the action buttons with a small gap:
+By default, the list toolbar follows the rendered table width and keeps action controls at logical start with view controls at logical end. These are independent per-view settings, so each CRUD view can choose its own width and alignment. To keep view controls usable when semantic column sizing produces a compact table, use the PowerCRUD list container width—not the browser viewport—and keep the view-controls group beside the action buttons:
 
 ```python
 class ProjectCRUDView(PowerCRUDMixin, CRUDView):
-    # These are the defaults.
+    # Opt in to the compact-table-friendly arrangement.
     list_toolbar_width_policy = "container"
     list_toolbar_alignment = "adjacent"
 ```
 
-Set `list_toolbar_width_policy = "table"` to align the toolbar to the rendered table. Set `list_toolbar_alignment = "split"` to place view controls at logical end when there is room. All four combinations are valid, and controls wrap naturally rather than overflowing on narrow screens.
+The defaults are `list_toolbar_width_policy = "table"` and `list_toolbar_alignment = "split"`, preserving the legacy table-aligned arrangement. All four combinations are valid, and controls wrap naturally rather than overflowing on narrow screens.
 
 ### How dates and times appear in lists {#temporal-list-value-formats}
 
