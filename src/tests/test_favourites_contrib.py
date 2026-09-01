@@ -417,6 +417,7 @@ def test_book_view_silently_disables_favourites_when_shared_routes_are_unavailab
 
 
 @override_settings(ROOT_URLCONF="tests.urls_without_powercrud")
+@pytest.mark.django_db
 def test_favourites_system_check_warns_when_shared_routes_are_unavailable():
     """Installing favourites without mounting the shared PowerCRUD URLs should emit a warning."""
 
@@ -438,6 +439,7 @@ def test_favourites_system_check_warns_when_shared_routes_are_unavailable():
     )
 
 
+@pytest.mark.django_db
 def test_favourites_system_check_is_clean_when_shared_routes_are_available():
     """The favourites configuration warning should disappear when the shared routes are mounted."""
 
