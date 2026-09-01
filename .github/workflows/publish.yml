@@ -54,7 +54,7 @@ jobs:
 
       - uses: actions/setup-python@v6
         with:
-          python-version: "3.14.6"
+          python-version: "3.14.7"
 
       - name: Validate project version
         env:
@@ -134,11 +134,11 @@ jobs:
 
       - uses: actions/setup-python@v6
         with:
-          python-version: "3.14.6"
+          python-version: "3.14.7"
 
       - uses: astral-sh/setup-uv@v8.3.2
         with:
-          version: "0.12.1"
+          version: "0.12.5"
 
       - name: Validate project version
         env:
