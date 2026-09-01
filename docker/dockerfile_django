@@ -8,7 +8,7 @@ ARG USERHOME=/home/${USER}
 ARG NPM_VERSION=11.19.1
 # renovate: datasource=pypi depName=wheel versioning=pep440
 ARG WHEEL_VERSION=0.47.0
-ARG PLAYWRIGHT_VERSION=1.58.0
+ARG PLAYWRIGHT_VERSION=1.62.0
 ARG PROMPT_CODE='\n\[\e[0m\]🐳 \[\e[0m\][\[\e[0;38;5;226m\]$(git branch 2>/dev/null | grep '"'"'^*'"'"' | colrm 1 2)\[\e[0m\]] \[\e[0;91m\]\u\[\e[0m\]: \[\e[0;96m\]\w\n\[\e[0m\]\$\[\e[0m\] '
 
 ENV PYTHONUNBUFFERED=1 \
