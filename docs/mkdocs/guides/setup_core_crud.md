@@ -10,7 +10,7 @@ Use this guide after [Getting Started](./getting_started.md) when your first Pow
 
 ## Prerequisites
 
-- A working Django project running Django 5.2 or 6.0.
+- A working Django project running Django 5.2 or 6.1.
 - Python 3.12 or later.
 
 If you have not yet installed PowerCRUD and its base dependencies, complete the steps in [Getting Started](./getting_started.md) first.

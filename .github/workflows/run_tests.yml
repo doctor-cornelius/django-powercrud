@@ -40,25 +40,25 @@ jobs:
             constraints-file: "requirements/constraints-django52.txt"
             label: "Python 3.12 / Django 5.2"
           - python-version: "3.12"
-            django: "6.0"
-            constraints-file: "requirements/constraints-django60.txt"
-            label: "Python 3.12 / Django 6.0"
+            django: "6.1"
+            constraints-file: "requirements/constraints-django61.txt"
+            label: "Python 3.12 / Django 6.1"
           - python-version: "3.13"
             django: "5.2"
             constraints-file: "requirements/constraints-django52.txt"
             label: "Python 3.13 / Django 5.2"
           - python-version: "3.13"
-            django: "6.0"
-            constraints-file: "requirements/constraints-django60.txt"
-            label: "Python 3.13 / Django 6.0"
+            django: "6.1"
+            constraints-file: "requirements/constraints-django61.txt"
+            label: "Python 3.13 / Django 6.1"
           - python-version: "3.14"
             django: "5.2"
             constraints-file: "requirements/constraints-django52.txt"
             label: "Python 3.14 / Django 5.2"
           - python-version: "3.14"
-            django: "6.0"
-            constraints-file: "requirements/constraints-django60.txt"
-            label: "Python 3.14 / Django 6.0"
+            django: "6.1"
+            constraints-file: "requirements/constraints-django61.txt"
+            label: "Python 3.14 / Django 6.1"
     steps:
       - uses: actions/checkout@v6
 
@@ -98,18 +98,18 @@ jobs:
             src/tests/test_bulk_view_mixin.py::test_bulk_field_info_uses_policy_owned_controls_for_selects
 
       - name: Preserve canonical core coverage data
-        if: matrix.python-version == '3.14' && matrix.django == '6.0'
+        if: matrix.python-version == '3.14' && matrix.django == '6.1'
         run: cp .coverage coverage-core.sqlite
 
       - name: Upload canonical core coverage data
-        if: matrix.python-version == '3.14' && matrix.django == '6.0'
+        if: matrix.python-version == '3.14' && matrix.django == '6.1'
         uses: actions/upload-artifact@v7
         with:
-          name: coverage-core-py314-django60
+          name: coverage-core-py314-django61
           path: coverage-core.sqlite
 
   playwright-smoke:
-    name: Python 3.14 / Django 6.0 / Playwright Smoke (Required)
+    name: Python 3.14 / Django 6.1 / Playwright Smoke (Required)
     runs-on: ubuntu-latest
     needs: tests
     env:
@@ -128,7 +128,7 @@ jobs:
       - name: Install Python dependencies
         run: |
           PYTHON="$(python -c 'import sys; print(sys.executable)')"
-          uv pip install --python "$PYTHON" --constraint requirements/constraints-django60.txt ".[tests-core]" ".[tests-ui]"
+          uv pip install --python "$PYTHON" --constraint requirements/constraints-django61.txt ".[tests-core]" ".[tests-ui]"
 
       - name: Set up Node.js
         uses: actions/setup-node@v6
@@ -156,7 +156,7 @@ jobs:
       - name: Download canonical core coverage data
         uses: actions/download-artifact@v8
         with:
-          name: coverage-core-py314-django60
+          name: coverage-core-py314-django61
           path: .
 
       - name: Restore canonical core coverage data
@@ -187,7 +187,7 @@ jobs:
           fail_ci_if_error: true
 
   playwright-full:
-    name: Playwright Full / Django 6.0 (Manual)
+    name: Playwright Full / Django 6.1 (Manual)
     if: ${{ inputs.run_playwright_full }}
     continue-on-error: true
     outputs:
@@ -212,7 +212,7 @@ jobs:
       - name: Install Python dependencies
         run: |
           PYTHON="$(python -c 'import sys; print(sys.executable)')"
-          uv pip install --python "$PYTHON" --constraint requirements/constraints-django60.txt ".[tests-core]" ".[tests-ui]"
+          uv pip install --python "$PYTHON" --constraint requirements/constraints-django61.txt ".[tests-core]" ".[tests-ui]"
 
       - name: Set up Node.js
         uses: actions/setup-node@v6

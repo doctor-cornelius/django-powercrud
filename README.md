@@ -7,7 +7,7 @@
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 [![Python](https://img.shields.io/badge/python-3.12%20%7C%203.13%20%7C%203.14-blue)](#supported-versions)
-[![Django](https://img.shields.io/badge/django-5.2%20%7C%206.0-0C4B33)](#supported-versions)
+[![Django](https://img.shields.io/badge/django-5.2%20%7C%206.1-0C4B33)](#supported-versions)
 
 **Advanced CRUD for perfectionists with deadlines. An opinionated Django package for shipping production-grade CRUD screens with filtering, bulk operations, inline editing, and async workflows.**
 
@@ -148,9 +148,9 @@ Here async queueing is explicit: you opt in by using `PowerCRUDAsyncMixin`, enab
 
 PowerCRUD is tested against the following combinations:
 
-- Python 3.12 with Django 5.2 and 6.0
-- Python 3.13 with Django 5.2 and 6.0
-- Python 3.14 with Django 5.2 and 6.0
+- Python 3.12 with Django 5.2 and 6.1
+- Python 3.13 with Django 5.2 and 6.1
+- Python 3.14 with Django 5.2 and 6.1
 
 The CI matrix exercises each supported pairing automatically.
 
