@@ -70,7 +70,7 @@ POWERCRUD_SETTINGS = {
 }
 ```
 
-If your own templates define partials and need to support both Django 5.2 and 6.0, load PowerCRUD's compatibility tag library:
+If your own templates define partials and need to support both Django 5.2 and 6.1, load PowerCRUD's compatibility tag library:
 
 ```django
 {% load powercrud_partials %}
@@ -80,7 +80,7 @@ If your own templates define partials and need to support both Django 5.2 and 6.
 {% partial toolbar %}
 ```
 
-Django 6.0 includes template partials in core, so do not add `template_partials` to `INSTALLED_APPS` on Django 6 projects.
+Django 6.1 includes template partials in core, so do not add `template_partials` to `INSTALLED_APPS` on Django 6 projects.
 
 If you want the optional saved favourites feature:
 
