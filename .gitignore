@@ -1,3 +1,7 @@
+.kilocode
+.ruff_cache/
+.kilo/
+
 # exclude secrets files
 *.secret
 
