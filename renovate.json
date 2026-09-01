@@ -93,7 +93,8 @@
       "internalChecksFilter": "strict",
       "automerge": true,
       "automergeType": "pr",
-      "addLabels": [
+      "labels": [
+        "dependencies",
         "automerge"
       ]
     },
@@ -116,7 +117,10 @@
       ],
       "allowedVersions": ">=5.2,<7",
       "rangeStrategy": "update-lockfile",
-      "automerge": false
+      "automerge": false,
+      "labels": [
+        "dependencies"
+      ]
     },
     {
       "description": "Keep django-crispy-forms within the declared range.",
