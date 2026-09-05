@@ -51,7 +51,7 @@ jobs:
           pip install zensical==0.0.59
 
       - name: Build documentation
-        run: zensical build --config-file mkdocs.yml --clean --strict
+        run: zensical build --config-file zensical.toml --clean --strict
 
       - name: Setup Pages
         uses: actions/configure-pages@v6
