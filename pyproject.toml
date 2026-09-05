@@ -43,11 +43,7 @@ dev = [
     "ruff>=0.15.2",
 ]
 docs = [
-    "mkdocs>=1.6.1,<2",
-    "mkdocs-material>=9.7.3,<10",
-    "mkdocs-mermaid2-plugin>=1.2.3,<2",
-    "mkdocs-enumerate-headings-plugin>=0.7,<0.8",
-    "mkdocs-awesome-nav>=3.3.0,<4"
+    "zensical==0.0.59",
 ]
 
 [build-system]
@@ -105,6 +101,9 @@ dev = [
     "commitizen>=4.13.8,<5",
     "ipykernel>=7.2.0,<8",
     "ruff>=0.15.2",
+]
+docs = [
+    "zensical>=0.0.59",
 ]
 
 [tool.ruff.lint.per-file-ignores]

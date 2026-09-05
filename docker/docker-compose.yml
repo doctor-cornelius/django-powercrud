@@ -55,7 +55,7 @@ services:
       - 8001:8001
       - 8002:8002  # Bootstrap sample presentation when run beside the default sample
       - 8003:8003  # Additional sample presentation during template-pack comparison
-      - 10005:10005  # for mkdocs serve
+      - 10005:10005  # for zensical serve
     depends_on:
       - powercrud_postgres
     stdin_open: true

@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+
+{% block extrahead %}
+  {{ super() }}
+  <script>
+    sessionStorage.removeItem(`${__md_scope.pathname}.__source`)
+  </script>
+{% endblock %}

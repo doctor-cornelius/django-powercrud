@@ -1,0 +1,99 @@
+[project]
+site_name = "Django PowerCRUD"
+site_author = "Michael Foulds"
+
+docs_dir = "docs/mkdocs"
+site_dir = "site"
+dev_addr = "0.0.0.0:10005"
+
+repo_url = "https://github.com/doctor-cornelius/django-powercrud"
+edit_uri = "blob/mkdocs/docs/"
+
+watch = ["docs/mkdocs"]
+
+extra_css = ["stylesheets/extra.css"]
+extra_javascript = [
+  "javascripts/mathjax.js",
+  "https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js",
+  "https://unpkg.com/tablesort@5.6.0/dist/tablesort.min.js",
+  "javascripts/tablesort.js",
+]
+
+[project.extra]
+generator = false
+
+[project.plugins.search]
+
+[project.plugins.awesome-nav]
+
+[project.markdown_extensions]
+admonition = {}
+abbr = {}
+attr_list = {}
+md_in_html = {}
+pymdownx.details = {}
+pymdownx.caret = {}
+pymdownx.tilde = {}
+pymdownx.superfences.custom_fences = [{ name = "mermaid", class = "mermaid", format = "pymdownx.superfences.fence_code_format" }]
+pymdownx.emoji.emoji_index = "zensical.extensions.emoji.twemoji"
+pymdownx.emoji.emoji_generator = "zensical.extensions.emoji.to_svg"
+pymdownx.highlight.anchor_linenums = true
+pymdownx.highlight.line_spans = "__span"
+pymdownx.highlight.pygments_lang_class = true
+pymdownx.tabbed.alternate_style = true
+pymdownx.inlinehilite = {}
+pymdownx.snippets = {}
+pymdownx.arithmatex.generic = true
+pymdownx.tasklist.custom_checkbox = true
+
+[project.theme]
+name = "material"
+variant = "classic"
+custom_dir = "docs/mkdocs/overrides"
+features = [
+  "content.code.copy",
+  "content.code.annotate",
+  "navigation.instant",
+  "navigation.indexes",
+  "navigation.tabs",
+  "navigation.tabs.sticky",
+  "navigation.sections",
+  "search.suggest",
+  "search.highlight",
+  "search.share",
+  "header.autohide",
+]
+
+[[project.theme.palette]]
+primary = "blue grey"
+
+[[project.theme.palette]]
+scheme = "default"
+toggle.icon = "material/brightness-7"
+toggle.name = "Switch to dark mode"
+
+[[project.theme.palette]]
+scheme = "slate"
+toggle.icon = "material/brightness-4"
+toggle.name = "Switch to light mode"
+
+[project.theme.font]
+text = "Inter"
+code = "Fira Code"
+
+[project.theme.icon]
+repo = "fontawesome/brands/github"
+
+[project.theme.icon.admonition]
+note = "octicons/tag-16"
+abstract = "octicons/checklist-16"
+info = "octicons/info-16"
+tip = "octicons/squirrel-16"
+success = "octicons/check-16"
+question = "octicons/question-16"
+warning = "octicons/alert-16"
+failure = "octicons/x-circle-16"
+danger = "octicons/zap-16"
+bug = "octicons/bug-16"
+example = "octicons/beaker-16"
+quote = "octicons/quote-16"

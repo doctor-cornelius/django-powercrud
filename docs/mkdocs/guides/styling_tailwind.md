@@ -1,6 +1,6 @@
 # Styling, Template Packs & Tailwind
 
-Use this page after the first screen works. Most applications need only to use the DaisyUI default or select Bootstrap 5, then follow the frontend-loading route in [Getting Started](./getting_started.md#3-load-frontend-assets). The later sections are for application CSS, table tuning, a project-owned Tailwind build, and manual assets.
+Use this page after the first screen works. Most applications need only to use the DaisyUI default or select Bootstrap 5, then follow the frontend-loading route in [Getting Started](./getting_started.md#frontend-integration). The later sections are for application CSS, table tuning, a project-owned Tailwind build, and manual assets.
 
 ## 1. Choose the selected template pack {#1-daisyui-default-and-bootstrap-selection}
 
@@ -207,7 +207,7 @@ Re-run the command whenever you upgrade PowerCRUD or adjust templates heavily.
 
 ## 4. External assets
 
-The complete, copyable setup for either frontend-loading route is in [Getting Started](./getting_started.md#3-load-frontend-assets). The same rules apply here; this summary is for styling work that needs to check asset order.
+The complete, copyable setup for either frontend-loading route is in [Getting Started](./getting_started.md#frontend-integration). The same rules apply here; this summary is for styling work that needs to check asset order.
 
 Choose one loading path for PowerCRUD's frontend assets:
 
