@@ -102,6 +102,9 @@ dev = [
     "ipykernel>=7.2.0,<8",
     "ruff>=0.15.2",
 ]
+docs = [
+    "zensical>=0.0.59",
+]
 
 [tool.ruff.lint.per-file-ignores]
 # F401: ignore "imported but unused" for explicit package re-exports.
