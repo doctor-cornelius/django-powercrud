@@ -351,7 +351,7 @@ Upgrade notes:
         return f"user_{self.request.user.pk}"
     ```
 
-- Related docs: [Bulk editing (synchronous)](../guides/bulk_edit_sync.md#4-selection-persistence), [Customisation tips](../guides/advanced/customisation_tips.md)
+- Related docs: [Bulk editing (synchronous)](../guides/bulk_edit_sync.md#4-work-with-selection-across-pages), [Customisation tips](../guides/advanced/customisation_tips.md)
 
 ---
 
@@ -527,7 +527,7 @@ Upgrade notes:
         return obj.status != "archived"
     ```
 
-- Related docs: [Inline editing](../guides/inline_editing.md#3-respect-locks-and-permissions), [Configuration options](./config_options.md)
+- Related docs: [Inline editing](../guides/inline_editing.md#3-add-locks-and-permissions-when-needed), [Configuration options](./config_options.md)
 
 ### `is_inline_row_locked()`
 
@@ -536,7 +536,7 @@ Upgrade notes:
 - Signature: `def is_inline_row_locked(self, obj) -> bool`
 - Default behavior: Uses async conflict-checking helpers when available and returns `False` otherwise.
 - Return contract: `True` when the row should be treated as locked.
-- Related docs: [Inline editing](../guides/inline_editing.md#3-respect-locks-and-permissions), [Async architecture & reference](./async.md)
+- Related docs: [Inline editing](../guides/inline_editing.md#3-add-locks-and-permissions-when-needed), [Async architecture & reference](./async.md)
 
 ### `get_inline_lock_details()`
 
@@ -545,7 +545,7 @@ Upgrade notes:
 - Signature: `def get_inline_lock_details(self, obj) -> dict[str, Any]`
 - Default behavior: Returns metadata derived from the async manager cache when available, otherwise an empty dict.
 - Return contract: A dict describing the current lock state for the row.
-- Related docs: [Inline editing](../guides/inline_editing.md#3-respect-locks-and-permissions), [Async architecture & reference](./async.md)
+- Related docs: [Inline editing](../guides/inline_editing.md#3-add-locks-and-permissions-when-needed), [Async architecture & reference](./async.md)
 
 Inline row persistence itself does not use a separate hook. It routes through [`persist_single_object()`](#persist_single_object).
 

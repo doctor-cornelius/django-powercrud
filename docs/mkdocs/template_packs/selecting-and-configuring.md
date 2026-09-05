@@ -138,7 +138,7 @@ CRISPY_TEMPLATE_PACK = "bootstrap5"
 
 Install and add the related Crispy integration app, then configure any allowed-pack setting required by your Crispy setup. PowerCRUD's pack selection and Crispy's template-pack setting are separate choices, so keep them aligned. An independently published PowerCRUD pack must state whether it supports Crispy Forms and, if so, which Crispy integration it expects.
 
-The selected pack also supplies the default visible widget presentation for generated controls. Application-declared custom widgets remain authoritative; see [Forms](../guides/forms.md#template-pack-form-rendering) for the application boundary and [Authoring and publishing](authoring-and-publishing.md#define-the-server-side-widget-policy) for the pack contract.
+The selected pack also supplies the default visible widget presentation for generated controls. Application-declared custom widgets remain authoritative; see [Forms](../guides/forms.md#form-rendering-and-widget-ownership) for the application boundary and [Authoring and publishing](authoring-and-publishing.md#define-the-server-side-widget-policy) for the pack contract.
 
 ## Know which template root is in use
 
