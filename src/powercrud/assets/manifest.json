@@ -1,13 +1,9 @@
 {
-  "_dom-vF7lhvrP.js": {
-    "file": "django_assets/dom-vF7lhvrP.js",
-    "name": "dom"
-  },
-  "_preload-helper-DzvkEEb-.js": {
-    "file": "django_assets/preload-helper-DzvkEEb-.js",
+  "_preload-helper-B2otD-KD.js": {
+    "file": "django_assets/preload-helper-B2otD-KD.js",
     "name": "preload-helper",
     "imports": [
-      "_dom-vF7lhvrP.js"
+      "_rolldown-runtime-hePW80VL.js"
     ],
     "css": [
       "django_assets/preload-helper-dJhxz_Yn.css"
@@ -17,14 +13,18 @@
     "file": "django_assets/preload-helper-dJhxz_Yn.css",
     "src": "_preload-helper-dJhxz_Yn.css"
   },
+  "_rolldown-runtime-hePW80VL.js": {
+    "file": "django_assets/rolldown-runtime-hePW80VL.js",
+    "name": "rolldown-runtime"
+  },
   "config/static/js/bootstrap5.js": {
-    "file": "django_assets/bootstrap5-CnOGMDLs.js",
+    "file": "django_assets/bootstrap5-Cw0eu8vD.js",
     "name": "bootstrap5",
     "src": "config/static/js/bootstrap5.js",
     "isEntry": true,
     "imports": [
-      "_dom-vF7lhvrP.js",
-      "_preload-helper-DzvkEEb-.js"
+      "_rolldown-runtime-hePW80VL.js",
+      "_preload-helper-B2otD-KD.js"
     ],
     "dynamicImports": [
       "powercrud/static/powercrud/js/powercrud.js"
@@ -34,28 +34,28 @@
     ]
   },
   "config/static/js/main.js": {
-    "file": "django_assets/powercrud-J-SBXZEg.js",
+    "file": "django_assets/powercrud-BKMJV-rf.js",
     "name": "powercrud",
     "src": "config/static/js/main.js",
     "isEntry": true,
     "imports": [
-      "_dom-vF7lhvrP.js",
-      "_preload-helper-DzvkEEb-.js"
+      "_rolldown-runtime-hePW80VL.js",
+      "_preload-helper-B2otD-KD.js"
     ],
     "dynamicImports": [
       "powercrud/static/powercrud/js/powercrud.js"
     ],
     "css": [
-      "django_assets/powercrud-CjRw4wIg.css"
+      "django_assets/powercrud-DI_EAdul.css"
     ]
   },
   "powercrud/static/powercrud/js/powercrud.js": {
-    "file": "django_assets/powercrud-F0ymC9ZS.js",
+    "file": "django_assets/powercrud-Dt90XwAn.js",
     "name": "powercrud",
     "src": "powercrud/static/powercrud/js/powercrud.js",
     "isDynamicEntry": true,
     "imports": [
-      "_dom-vF7lhvrP.js"
+      "_preload-helper-B2otD-KD.js"
     ]
   }
 }
