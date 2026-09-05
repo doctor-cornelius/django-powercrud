@@ -5,8 +5,7 @@
 # exclude secrets files
 *.secret
 
-# exclude mkdocs site docs build
-docs/site/
+# exclude generated documentation site
 
 # exclude django staticfiles
 **/staticfiles/
@@ -133,7 +132,7 @@ venv.bak/
 # Rope project settings
 .ropeproject
 
-# mkdocs documentation
+# generated documentation site
 /site
 
 # mypy
