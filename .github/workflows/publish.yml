@@ -138,7 +138,7 @@ jobs:
 
       - uses: astral-sh/setup-uv@v8.3.2
         with:
-          version: "0.12.5"
+          version: "0.12.7"
 
       - name: Validate project version
         env:
