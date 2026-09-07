@@ -7,7 +7,7 @@ ARG USERHOME=/home/${USER}
 # renovate: datasource=npm depName=npm versioning=semver
 ARG NPM_VERSION=11.19.1
 # renovate: datasource=pypi depName=wheel versioning=pep440
-ARG WHEEL_VERSION=0.47.0
+ARG WHEEL_VERSION=0.48.0
 ARG PLAYWRIGHT_VERSION=1.62.0
 ARG PROMPT_CODE='\n\[\e[0m\]🐳 \[\e[0m\][\[\e[0;38;5;226m\]$(git branch 2>/dev/null | grep '"'"'^*'"'"' | colrm 1 2)\[\e[0m\]] \[\e[0;91m\]\u\[\e[0m\]: \[\e[0;96m\]\w\n\[\e[0m\]\$\[\e[0m\] '
 
