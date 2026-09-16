@@ -97,8 +97,13 @@ export function createDaisyuiTooltipLifecycleAdapter(context) {
             if (!(trigger instanceof HTMLElement)) {
                 return;
             }
-            if (trigger._tippy) {
-                trigger._tippy.destroy();
+            const existingInstance = trigger._tippy;
+            if (existingInstance && !existingInstance.state.isDestroyed) {
+                // Fragment initialisation can run after swap, after settle, and
+                // on a delayed layout refresh. Preserve the live instance so a
+                // refresh cannot remove a tooltip that is being hovered.
+                existingInstance.popperInstance?.update();
+                return;
             }
             const isOverflowTarget = isTooltipOverflowTarget(trigger);
             const isSemanticTarget = isTooltipSemanticTarget(trigger);
