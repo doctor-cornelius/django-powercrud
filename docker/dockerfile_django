@@ -17,9 +17,10 @@ ENV PYTHONUNBUFFERED=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=on \
     PIP_DEFAULT_TIMEOUT=100
 
-# Install git, node.js, nano and clean up
+# Install git, node.js, nano and clean up. Explicitly request libpcre2 so
+# inherited slim-image packages receive Debian's security update too.
 RUN apt-get update -y && \
-    apt-get install --no-install-recommends -y curl git git-lfs openssh-client bsdmainutils nano && \
+    apt-get install --no-install-recommends -y curl git git-lfs openssh-client bsdmainutils nano libpcre2-8-0 && \
     apt-get install -y ca-certificates gnupg && \
     mkdir -p /etc/apt/keyrings && \
     curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg && \
