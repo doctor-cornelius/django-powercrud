@@ -87,6 +87,64 @@ pytestmark = pytest.mark.skipif(
 )
 
 
+def test_bootstrap_blocked_inline_cells_keep_their_cell_tooltips():
+    """Blocked Bootstrap inline cells should use their own tooltip metadata."""
+    rendered = render_to_string(
+        f"{BOOTSTRAP_NAMESPACE}/partial/inline_row_display.html",
+        {
+            "inline_edit": {"enabled": True},
+            "enable_selection_controls": False,
+            "has_row_actions": False,
+            "row": {
+                "row_id": "book-row-7",
+                "is_selected": False,
+                "inline_allowed": False,
+                "inline_blocked_reason": "locked",
+                "inline_blocked_label": "Editing locked by policy.",
+                "inline_url": "/books/7/inline/",
+                "cells": [
+                    {
+                        "name": "title",
+                        "value": "Blocked title",
+                        "align": "left",
+                        "width_mode": "bounded",
+                        "is_inline_editable": True,
+                        "dependency": None,
+                        "tooltip_text": "Full blocked title",
+                        "tooltip_url": None,
+                        "link": None,
+                    },
+                    {
+                        "name": "author",
+                        "value": "A deliberately long blocked author name",
+                        "align": "left",
+                        "width_mode": "bounded",
+                        "is_inline_editable": True,
+                        "dependency": None,
+                        "tooltip_text": None,
+                        "tooltip_url": None,
+                        "link": None,
+                    },
+                ],
+                "actions": "",
+            },
+        },
+    )
+
+    assert 'data-inline-status="locked"' in rendered and 'aria-disabled="true"' in rendered, (
+        "Blocked Bootstrap rows should retain their disabled inline affordance."
+    )
+    assert 'data-bs-title="Editing locked by policy."' not in rendered, (
+        "Blocked Bootstrap cells should not override their own tooltip with the editing reason."
+    )
+    assert 'data-bs-title="Full blocked title" data-powercrud-tooltip="semantic-cell"' in rendered, (
+        "Blocked Bootstrap cells should retain configured semantic tooltip metadata."
+    )
+    assert 'data-bs-title="A deliberately long blocked author name" data-powercrud-tooltip="overflow"' in rendered, (
+        "Blocked Bootstrap cells should retain fallback overflow tooltip metadata."
+    )
+
+
 def test_bootstrap_declaration_is_opt_in_with_completed_modal_lifecycle():
     """The Bootstrap declaration should advertise only completed capabilities."""
     template_pack = resolve_template_pack(BOOTSTRAP_SELECTOR)

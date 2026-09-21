@@ -119,7 +119,7 @@ Upgrade notes:
 - Return contract: A plain string tooltip, or `None` when no semantic tooltip should be shown for that cell.
 - Important note: Prefer `list_cell_tooltip_fields = {"field": "get_field_tooltip"}` with field-specific hooks. The list form shown below is deprecated and targeted for removal before v1.0.
 - Important note: PowerCRUD only calls this hook for configured names that are actually rendered in the list. Configured names not present in the current list are ignored silently.
-- Important note: Semantic list-cell tooltips take precedence over the fallback overflow tooltip for the same cell, but existing blocked-inline tooltip states still win when the row is not editable inline.
+- Important note: Semantic list-cell tooltips take precedence over the fallback overflow tooltip for the same cell. This remains true when the row is not editable inline; the cell's own tooltip is shown instead of a generic blocked-editing explanation.
 - Important note: Returned text may contain newline characters. PowerCRUD preserves those as multiple displayed lines for hook-backed semantic list-cell tooltips only.
 - Deprecated example:
 
