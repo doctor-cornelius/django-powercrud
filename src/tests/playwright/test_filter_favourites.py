@@ -157,6 +157,17 @@ def ensure_htmx_available(page):
     )
 
 
+def wait_for_htmx_idle(page) -> None:
+    """Wait for the active HTMX request, swap, and settle lifecycle to finish."""
+    page.wait_for_function(
+        """
+        () => !document.querySelector(
+            '.htmx-request, .htmx-swapping, .htmx-settling'
+        )
+        """
+    )
+
+
 def select_saved_favourite(page, favourite_label: str):
     """Select one saved favourite through the rendered TomSelect/native control."""
 
@@ -1266,9 +1277,13 @@ def test_updating_dirty_selected_favourite_refreshes_heart_state(
 
     open_filters_panel(page)
     open_favourites_dropdown(page)
-    select_saved_favourite(page, "Clean my heart")
-    page.wait_for_load_state("networkidle")
+    with page.expect_response(re.compile(r"/powercrud/favourites/apply/")) as apply_response:
+        select_saved_favourite(page, "Clean my heart")
+    assert apply_response.value.ok, (
+        "Expected applying the saved favourite to return a successful HTMX response."
+    )
     expect(page.locator("#filter-form input[name='title']")).to_have_value(original_book.title)
+    wait_for_htmx_idle(page)
     open_filters_panel(page)
 
     title_filter = page.locator("#filter-form input[name='title']")

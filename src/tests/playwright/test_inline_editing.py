@@ -42,6 +42,17 @@ def open_books_page(page: Page, books_url: str) -> None:
     expect(page.locator("table[data-inline-enabled='true']")).to_be_visible()
 
 
+def wait_for_htmx_idle(page: Page) -> None:
+    """Wait for the active HTMX request, swap, and settle lifecycle to finish."""
+    page.wait_for_function(
+        """
+        () => !document.querySelector(
+            '.htmx-request, .htmx-swapping, .htmx-settling'
+        )
+        """
+    )
+
+
 def open_authors_page(page: Page, authors_url: str) -> None:
     """Open the Author list with enough rows for the viewport-placement proof."""
     page.goto(f"{authors_url}?page_size=50")
@@ -113,7 +124,15 @@ def open_inline_row(
         row = page.locator(INLINE_ROW_SELECTOR).nth(row_index)
     expect(row).to_be_visible()
     trigger = row.locator(f".inline-edit-trigger[data-inline-field='{field_name}']")
-    trigger.click(force=True)
+    expect(trigger).to_be_visible()
+    inline_url = trigger.get_attribute("hx-get")
+    assert inline_url, "Expected the inline trigger to expose its row endpoint."
+    with page.expect_response(
+        lambda response: response.request.method == "GET"
+        and urlparse(response.url).path == inline_url
+    ) as inline_response:
+        trigger.click(force=True)
+    assert inline_response.value.ok, "Expected opening the inline row to return a successful response."
     active_row = page.locator(INLINE_ACTIVE_SELECTOR)
     expect(active_row).to_have_count(1, timeout=15000)
     return active_row
@@ -611,8 +630,8 @@ def test_inline_edit_saves_after_hiding_non_trigger_column(
     panel.locator("input[name='visible_columns'][value='genres']").uncheck()
     with page.expect_response(re.compile(r"/sample/bigbook/")):
         panel.get_by_role("button", name="Save").click()
-    page.wait_for_load_state("networkidle")
     expect(page.locator("td[data-field-name='genres']")).to_have_count(0)
+    wait_for_htmx_idle(page)
 
     watch_inline_event(page, "inline-row-saved")
     active_row = open_inline_row(page, row=get_inline_row(page, row_path))
