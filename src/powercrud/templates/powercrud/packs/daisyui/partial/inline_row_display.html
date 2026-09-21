@@ -64,10 +64,9 @@
             <button type="button"
                     class="inline-edit-trigger w-full px-0 opacity-60 cursor-not-allowed {% if align_class == 'center' %}pc-inline-align-center flex justify-center text-center{% elif align_class == 'right' %}text-right{% else %}text-left{% endif %}"
                     aria-disabled="true"
-                    tabindex="-1"
-                    data-tippy-content="{{ row.inline_blocked_label }}"
-                    data-powercrud-tooltip="semantic">
-                <span class="pc-inline-display-label {% if align_class == 'center' %}text-center{% elif align_class == 'right' %}w-full text-right{% else %}w-full{% endif %}">
+                    tabindex="-1">
+                <span class="pc-inline-display-label {% if align_class == 'center' %}text-center{% elif align_class == 'right' %}w-full text-right{% else %}w-full{% endif %}"
+                    {% if cell.tooltip_text %}data-tippy-content="{{ cell.tooltip_text }}" data-powercrud-tooltip="semantic-cell"{% elif cell.tooltip_url %}data-tippy-content="" data-powercrud-tooltip="semantic-cell" data-powercrud-tooltip-mode="lazy" data-powercrud-tooltip-url="{{ cell.tooltip_url }}"{% elif value_str|slice:":1" != "<" %}data-tippy-content="{{ cell.value }}" data-powercrud-tooltip="overflow"{% endif %}>
                     {{ cell.value }}
                 </span>
             </button>

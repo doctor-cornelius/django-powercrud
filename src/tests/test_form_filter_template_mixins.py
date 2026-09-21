@@ -2693,14 +2693,24 @@ def test_table_row_component_preserves_cells_inline_selection_and_actions_contra
                 "inline_allowed": False,
                 "inline_blocked_reason": "locked",
                 "inline_blocked_label": "Editing locked by policy.",
+                "cells": [
+                    *row["cells"][:-1],
+                    {**row["cells"][-1], "is_inline_editable": True},
+                ],
             },
         },
     )
     assert 'data-inline-status="locked"' in blocked_rendered and 'aria-disabled="true"' in blocked_rendered, (
         "Blocked inline rows should retain status and disabled affordances."
     )
-    assert 'data-tippy-content="Editing locked by policy."' in blocked_rendered, (
-        "Blocked inline cells should retain their semantic reason tooltip."
+    assert 'data-tippy-content="Editing locked by policy."' not in blocked_rendered, (
+        "Blocked inline cells should not override their own tooltip with the editing reason."
+    )
+    assert 'data-tippy-content="Full focused title"' in blocked_rendered and 'data-powercrud-tooltip="semantic-cell"' in blocked_rendered, (
+        "Blocked inline cells should retain configured semantic cell tooltip metadata."
+    )
+    assert 'data-tippy-content="250" data-powercrud-tooltip="overflow"' in blocked_rendered, (
+        "Blocked inline cells should retain their fallback overflow tooltip metadata."
     )
 
 
