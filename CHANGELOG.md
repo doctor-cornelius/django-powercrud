@@ -6,6 +6,10 @@ During the `0.x` series, breaking changes can occur, although we try to minimise
 
 Version numbers below correspond to published git tags. The more important releases include a little extra narrative and upgrade context; smaller patch releases remain deliberately brief. For full detail between any two versions, use the GitHub compare view for the matching tags.
 
+## 0.9.14 (2026-10-16)
+- **Feature (template-packs)**: expose list density variables across packs
+- **Fix (deps)**: update python-packages (#248)
+
 ## 0.9.13 (2026-09-21)
 
 - **Fix (list)**: do not override cell tooltips for uneditable rows (#252)
