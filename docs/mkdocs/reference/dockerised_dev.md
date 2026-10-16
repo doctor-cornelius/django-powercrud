@@ -156,7 +156,7 @@ For additional Django container access (new terminal window):
   uv sync --all-extras
   ```
 
-- Playwright's Chromium browser is baked into `/usr/local/ms-playwright` in a Docker layer keyed by the explicit `PLAYWRIGHT_VERSION` build argument. Routine Python and JavaScript dependency updates therefore do not redownload it. When upgrading Playwright, update that argument to match the version in `uv.lock`; the build fails if they differ.
+- Playwright's Chromium browser is baked into `/usr/local/ms-playwright` in a Docker layer keyed by the `PLAYWRIGHT_VERSION` build argument. `./runproj up` reads the locked Playwright version from `uv.lock` and passes it to the image build, so routine Python and JavaScript dependency updates do not redownload Chromium and Playwright upgrades do not require a second version pin.
 
 ### 6. **Testing Async Features** 
 
