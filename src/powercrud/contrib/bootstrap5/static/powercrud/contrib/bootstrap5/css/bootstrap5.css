@@ -148,8 +148,8 @@
 [data-powercrud-object-list="true"] .pc-bootstrap-filter-panel-actions .btn,
 [data-powercrud-object-list="true"] .pc-bootstrap-filter-panel-actions .form-select,
 [data-powercrud-object-list="true"] .pc-bootstrap-filter-panel-actions .ts-control {
-    min-height: 2rem;
-    font-size: .8125rem;
+    min-height: var(--pc-filter-control-height, 2rem);
+    font-size: var(--pc-filter-font-size, .8125rem);
 }
 
 [data-powercrud-object-list="true"] .pc-bootstrap-filter-panel-actions .ts-control {
@@ -188,8 +188,8 @@
 [data-powercrud-object-list="true"] .pc-bootstrap-filter-field-shell .form-control,
 [data-powercrud-object-list="true"] .pc-bootstrap-filter-field-shell .form-select,
 [data-powercrud-object-list="true"] .pc-bootstrap-filter-field-shell .ts-control {
-    min-height: 2rem;
-    font-size: .8125rem;
+    min-height: var(--pc-filter-control-height, 2rem);
+    font-size: var(--pc-filter-font-size, .8125rem);
 }
 
 [data-powercrud-object-list="true"] .pc-bootstrap-filter-field-shell .powercrud-bootstrap-tomselect {
@@ -324,6 +324,10 @@
 
 [data-powercrud-object-list="true"] .table-responsive > .table > :not(caption) > * > * {
     padding: .2rem .375rem;
+}
+
+[data-powercrud-object-list="true"] .table-responsive > .table > tbody > tr > td {
+    padding-block: var(--pc-list-cell-padding-block, .2rem);
 }
 
 [data-powercrud-object-list="true"] .table-responsive > .table thead th {
@@ -589,7 +593,7 @@
 [data-powercrud-object-list="true"] .pc-bootstrap-row-action-group {
     display: inline-flex;
     vertical-align: middle;
-    gap: .125rem;
+    gap: var(--pc-row-actions-gap, .125rem);
 }
 
 [data-powercrud-object-list="true"] .pc-row-actions-mobile {
@@ -607,6 +611,11 @@
     align-items: center;
     justify-content: center;
     border-radius: var(--bs-border-radius-sm) !important;
+}
+
+[data-powercrud-object-list="true"] .pc-bootstrap-row-actions .pc-row-action-icon-button,
+[data-powercrud-object-list="true"] .pc-bootstrap-row-actions .pc-row-actions-trigger {
+    padding-inline: var(--pc-row-action-padding-inline, .25rem);
 }
 
 [data-powercrud-object-list="true"] .pc-bootstrap-row-actions .pc-bootstrap-row-action-neutral,

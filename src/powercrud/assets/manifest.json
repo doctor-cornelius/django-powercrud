@@ -18,7 +18,7 @@
     "name": "rolldown-runtime"
   },
   "config/static/js/bootstrap5.js": {
-    "file": "django_assets/bootstrap5-CtBT1MUL.js",
+    "file": "django_assets/bootstrap5-DODW61q1.js",
     "name": "bootstrap5",
     "src": "config/static/js/bootstrap5.js",
     "isEntry": true,
@@ -30,7 +30,7 @@
       "powercrud/static/powercrud/js/powercrud.js"
     ],
     "css": [
-      "django_assets/bootstrap5-CNC6jPP5.css"
+      "django_assets/bootstrap5-_UtFIO8J.css"
     ]
   },
   "config/static/js/main.js": {

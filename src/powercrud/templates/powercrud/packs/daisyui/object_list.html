@@ -8,12 +8,6 @@
 
 {% partialdef pcrud_content %}
     <style>
-        :root {
-            --pc-inline-icon-buffer: 2.25ch;
-            --pc-filter-control-height: 2rem;
-            --pc-filter-font-size: 0.8125rem;
-        }
-
         .inline-field-widget[data-inline-refreshing="true"] {
             opacity: 0.7;
             cursor: wait;
@@ -166,19 +160,19 @@
 
         #filter-form input:not([type="checkbox"]),
         #filter-form select:not([multiple]) {
-            height: var(--pc-filter-control-height) !important;
-            min-height: var(--pc-filter-control-height) !important;
-            max-height: var(--pc-filter-control-height) !important;
+            height: var(--pc-filter-control-height, 2rem) !important;
+            min-height: var(--pc-filter-control-height, 2rem) !important;
+            max-height: var(--pc-filter-control-height, 2rem) !important;
             padding-top: 0.1875rem !important;
             padding-bottom: 0.1875rem !important;
-            font-size: var(--pc-filter-font-size) !important;
+            font-size: var(--pc-filter-font-size, 0.8125rem) !important;
             line-height: 1.2 !important;
         }
 
         #filter-form select:not([multiple]):not(.ts-hidden-accessible) {
             padding-top: 0 !important;
             padding-bottom: 0 !important;
-            line-height: calc(var(--pc-filter-control-height) - 2px) !important;
+            line-height: calc(var(--pc-filter-control-height, 2rem) - 2px) !important;
         }
 
         #filter-form .filter-field-input {
@@ -196,8 +190,8 @@
         }
 
         #filter-form .ts-wrapper .ts-control {
-            min-height: var(--pc-filter-control-height);
-            font-size: var(--pc-filter-font-size);
+            min-height: var(--pc-filter-control-height, 2rem);
+            font-size: var(--pc-filter-font-size, 0.8125rem);
             line-height: 1.2;
         }
 
@@ -205,7 +199,7 @@
             align-items: center;
             padding-top: 0.125rem;
             padding-bottom: 0.125rem;
-            min-height: var(--pc-filter-control-height);
+            min-height: var(--pc-filter-control-height, 2rem);
         }
 
         #filter-form .ts-wrapper.multi .ts-control > .item {
@@ -213,13 +207,13 @@
         }
 
         #filter-form select[multiple] {
-            min-height: var(--pc-filter-control-height) !important;
-            max-height: var(--pc-filter-control-height) !important;
-            font-size: var(--pc-filter-font-size) !important;
+            min-height: var(--pc-filter-control-height, 2rem) !important;
+            max-height: var(--pc-filter-control-height, 2rem) !important;
+            font-size: var(--pc-filter-font-size, 0.8125rem) !important;
         }
 
         #filter-form .ts-dropdown {
-            font-size: var(--pc-filter-font-size);
+            font-size: var(--pc-filter-font-size, 0.8125rem);
         }
 
         [data-powercrud-add-filter-container]:not(.hidden) {
