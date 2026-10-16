@@ -38,6 +38,20 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
 
 The list toolbar defaults to `list_toolbar_width_policy = "table"` and `list_toolbar_alignment = "split"`, preserving the legacy table-aligned arrangement. Use `list_toolbar_width_policy = "container"` and `list_toolbar_alignment = "adjacent"` when a view should keep controls beside the action group without pushing them to the viewport edge or squeezing them to a compact table's width. Both DaisyUI and Bootstrap 5 implement these settings with logical spacing and natural narrow-screen wrapping.
 
+### DaisyUI list presentation variables
+
+The DaisyUI pack exposes CSS custom properties for table-cell density and row-action spacing. Set them in your application stylesheet without copying the list template:
+
+```css
+:root {
+    --pc-list-cell-padding-block: 0.3em;
+    --pc-row-actions-gap: 0.25rem;
+    --pc-row-action-padding-inline: 0.5rem;
+}
+```
+
+These variables default to `0.15em`, `0.125rem`, and `0.25rem`, respectively. You can set them on `[data-powercrud-object-list="true"]` to scope the values to one list. Row-action padding applies to icon buttons and the dropdown trigger; text actions and dropdown menu items keep their own spacing.
+
 ### Tooltip theme variables
 
 PowerCRUD exposes a small set of CSS custom properties for tooltip styling, so downstream projects can restyle tooltips in app CSS without adding Python configuration:
