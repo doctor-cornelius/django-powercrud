@@ -38,6 +38,34 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
 
 The list toolbar defaults to `list_toolbar_width_policy = "table"` and `list_toolbar_alignment = "split"`, preserving the legacy table-aligned arrangement. Use `list_toolbar_width_policy = "container"` and `list_toolbar_alignment = "adjacent"` when a view should keep controls beside the action group without pushing them to the viewport edge or squeezing them to a compact table's width. Both DaisyUI and Bootstrap 5 implement these settings with logical spacing and natural narrow-screen wrapping.
 
+### List presentation variables
+
+Both maintained packs expose CSS custom properties for list density, row-action spacing, and filter controls. Set them in your application stylesheet without copying a list template:
+
+```css
+:root {
+    --pc-list-cell-padding-block: 0.3em;
+    --pc-row-actions-gap: 0.25rem;
+    --pc-row-action-padding-inline: 0.5rem;
+    --pc-filter-control-height: 2.25rem;
+    --pc-filter-font-size: 0.875rem;
+
+    /* DaisyUI only: inline-edit icon clearance. */
+    --pc-inline-icon-buffer: 2.75ch;
+}
+```
+
+You can set these variables on `[data-powercrud-object-list="true"]` to scope the values to one list. Defaults and effects are pack-specific where noted:
+
+| Variable | DaisyUI default | Bootstrap 5 default | Effect |
+| --- | --- | --- | --- |
+| `--pc-list-cell-padding-block` | `0.15em` | `0.2rem` | Vertical padding on body cells; header cells are unchanged. |
+| `--pc-row-actions-gap` | `0.125rem` | `0.125rem` | Gap between row-action controls on desktop and mobile. |
+| `--pc-row-action-padding-inline` | `0.25rem` | `0.25rem` | Horizontal padding on icon actions and the dropdown trigger. Text actions and dropdown menu items keep their own spacing. |
+| `--pc-filter-control-height` | `2rem` | `2rem` | DaisyUI fixes control height; Bootstrap sets the minimum height. |
+| `--pc-filter-font-size` | `0.8125rem` | `0.8125rem` | Filter field controls; DaisyUI also applies it to filter dropdowns. |
+| `--pc-inline-icon-buffer` | `2.25ch` | — | DaisyUI only; controls the inline-edit icon clearance and cell minimum width. |
+
 ### Tooltip theme variables
 
 PowerCRUD exposes a small set of CSS custom properties for tooltip styling, so downstream projects can restyle tooltips in app CSS without adding Python configuration:

@@ -109,6 +109,8 @@ function exec_in {
 }
 
 if [[ "$ACTION" == "up" ]]; then
+    PLAYWRIGHT_VERSION="$(python3 ./scripts/get_playwright_version.py)"
+    export PLAYWRIGHT_VERSION
     DEPLOYMENT_ENV=${DEPLOYMENT_ENV} \
     COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_BUILDKIT=1 \
     docker compose -f ./docker/docker-compose.yml \

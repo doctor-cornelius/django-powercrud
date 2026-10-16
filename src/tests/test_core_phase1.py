@@ -4009,8 +4009,8 @@ def test_book_list_filter_form_uses_compact_grid_layout(client):
     assert "grid-template-columns: minmax(5.25rem, 6.75rem) minmax(0, 1fr) auto;" in response_text, (
         "Book list filter rows should keep a compact label column while leaving enough width for wrapped labels to stay readable."
     )
-    assert "--pc-filter-control-height: 2rem;" in response_text, (
-        "Book list filters should use shorter controls so the compact panel does not feel like a full data-entry form."
+    assert "height: var(--pc-filter-control-height, 2rem) !important;" in response_text, (
+        "Book list filters should default to shorter controls while allowing the public CSS variable to override their height."
     )
     assert "max-width: 78rem;" not in response_text, (
         "The filter panel shell should no longer cap below the synced table width."

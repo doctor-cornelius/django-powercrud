@@ -42,6 +42,7 @@ services:
         PROJECT_DIR: $PROJECT_DIR
         DOCKER_DIRECTORY: docker
         USER: ${DEPLOYMENT_ENV}user
+        PLAYWRIGHT_VERSION: ${PLAYWRIGHT_VERSION:?runproj must set this from uv.lock}
     environment:
       PROJECT_DIR: ${PROJECT_DIR}
       env: DISPLAY
