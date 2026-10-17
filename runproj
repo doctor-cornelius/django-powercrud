@@ -82,6 +82,11 @@ echo "running runproj script to run docker-compose. ACTION=${ACTION}; DEPLOYMENT
 source ./docker/.env
 source ./docker/${DEPLOYMENT_ENV}/${DEPLOYMENT_ENV}.secret
 
+if [[ "$ACTION" == "up" || "$ACTION" == "down" ]]; then
+    PLAYWRIGHT_VERSION="$(python3 ./scripts/get_playwright_version.py)"
+    export PLAYWRIGHT_VERSION
+fi
+
 function exec_in {
     local exec_mode="${1:-user}"
     local command_string="${2:-}"
@@ -109,8 +114,6 @@ function exec_in {
 }
 
 if [[ "$ACTION" == "up" ]]; then
-    PLAYWRIGHT_VERSION="$(python3 ./scripts/get_playwright_version.py)"
-    export PLAYWRIGHT_VERSION
     DEPLOYMENT_ENV=${DEPLOYMENT_ENV} \
     COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_BUILDKIT=1 \
     docker compose -f ./docker/docker-compose.yml \
