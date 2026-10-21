@@ -44,8 +44,8 @@ RUN useradd -m -s /bin/bash --create-home ${USER} && \
 
 WORKDIR ${USERHOME}/${PROJECT_DIR}
 
-# Install uv
-RUN curl -LsSf https://astral.sh/uv/install.sh | sh && \
+# uv 0.13.4 removes the compromised emSign CA from its bundled certificate store.
+RUN curl --proto '=https' --tlsv1.2 -LsSf https://releases.astral.sh/github/uv/releases/download/0.13.4/uv-installer.sh | sh && \
     install -Dm755 /root/.local/bin/uv /usr/local/bin/uv && \
     install -Dm755 /root/.local/bin/uvx /usr/local/bin/uvx
 
