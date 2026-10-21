@@ -54,7 +54,8 @@ RUN curl --proto '=https' --tlsv1.2 -LsSf https://releases.astral.sh/github/uv/r
 # Use the refreshed system CA store to install a patched pip without
 # downgrading a newer pip supplied by the base image. Reinstall it to remove
 # files left behind by older pip versions, including its outdated vendored certifi.
-RUN UV_SYSTEM_CERTS=true uv pip install --system --reinstall "pip>=26.2.2"
+RUN UV_SYSTEM_CERTS=true uv pip install --system --reinstall "pip>=26.2.2" && \
+    uv cache clean
 
 ENV UV_PROJECT_ENVIRONMENT=/usr/local \
     UV_LINK_MODE=copy \
