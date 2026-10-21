@@ -8,6 +8,8 @@ ARG USERHOME=/home/${USER}
 ARG NPM_VERSION=11.19.1
 # renovate: datasource=pypi depName=wheel versioning=pep440
 ARG WHEEL_VERSION=0.48.0
+# renovate: datasource=github-releases depName=astral-sh/uv versioning=semver
+ARG UV_VERSION=0.13.4
 ARG PLAYWRIGHT_VERSION
 ARG PROMPT_CODE='\n\[\e[0m\]🐳 \[\e[0m\][\[\e[0;38;5;226m\]$(git branch 2>/dev/null | grep '"'"'^*'"'"' | colrm 1 2)\[\e[0m\]] \[\e[0;91m\]\u\[\e[0m\]: \[\e[0;96m\]\w\n\[\e[0m\]\$\[\e[0m\] '
 
@@ -44,10 +46,15 @@ RUN useradd -m -s /bin/bash --create-home ${USER} && \
 
 WORKDIR ${USERHOME}/${PROJECT_DIR}
 
-# Install uv
-RUN curl -LsSf https://astral.sh/uv/install.sh | sh && \
+# Pin uv to a release with the emSign CA removed; Renovate tracks UV_VERSION.
+RUN curl --proto '=https' --tlsv1.2 -LsSf https://releases.astral.sh/github/uv/releases/download/${UV_VERSION}/uv-installer.sh | sh && \
     install -Dm755 /root/.local/bin/uv /usr/local/bin/uv && \
     install -Dm755 /root/.local/bin/uvx /usr/local/bin/uvx
+
+# Use the refreshed system CA store to install a patched pip without
+# downgrading a newer pip supplied by the base image.
+RUN UV_SYSTEM_CERTS=true uv pip install --system "pip>=26.2.2"
+
 ENV UV_PROJECT_ENVIRONMENT=/usr/local \
     UV_LINK_MODE=copy \
     PLAYWRIGHT_BROWSERS_PATH=/usr/local/ms-playwright

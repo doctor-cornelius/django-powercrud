@@ -43,7 +43,7 @@ jobs:
           skip-setup-trivy: true
 
       - name: Build Django Docker image
-        run: docker build -f docker/dockerfile_django -t django-powercrud:${{ github.sha }} .
+        run: docker build --build-arg PLAYWRIGHT_VERSION="$(python3 scripts/get_playwright_version.py)" -f docker/dockerfile_django -t django-powercrud:${{ github.sha }} .
 
       - name: Run Trivy image scan
         uses: aquasecurity/trivy-action@v0.36.0
