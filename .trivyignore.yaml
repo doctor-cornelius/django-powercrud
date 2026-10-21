@@ -12,6 +12,20 @@ vulnerabilities:
       installed project environment uses setuptools 83.0.0; this 70.3.0 copy
       is not a PowerCRUD dependency or PyPI package artifact. Remove once
       upstream pip vendors setuptools >= 78.1.1.
+  - id: CVE-2026-97687
+    expired_at: 2026-11-30
+    statement: >-
+      pip-internal vendored urllib3 in the dev/test Docker image. The
+      installed project environment uses urllib3 2.8.0; this 2.7.0 copy is
+      bundled inside pip 26.2.2. Remove once upstream pip vendors urllib3
+      >= 2.8.0.
+  - id: CVE-2026-97689
+    expired_at: 2026-11-30
+    statement: >-
+      pip-internal vendored urllib3 in the dev/test Docker image. The
+      installed project environment uses urllib3 2.8.0; this 2.7.0 copy is
+      bundled inside pip 26.2.2. Remove once upstream pip vendors urllib3
+      >= 2.8.0.
   - id: CVE-2026-13149
     paths:
       - "usr/lib/node_modules/npm/node_modules/brace-expansion/package.json"
