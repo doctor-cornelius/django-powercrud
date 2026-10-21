@@ -31,8 +31,6 @@ RUN apt-get update -y && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-RUN python -m pip install --no-deps "pip @ https://files.pythonhosted.org/packages/3f/06/3e4420302363fbb71be3c7f35ce042f54bfca330e3e66b3a2e3c4cca579f/pip-26.2.2-py3-none-any.whl#sha256=fd7f4dfa8190e014013b9f08f3e973f4e4c26ffd179a204895533a7254813a70"
-
 # User setup (FROM YOUR WORKING VERSION)
 RUN useradd -m -s /bin/bash --create-home ${USER} && \
     cd ${USERHOME} && mkdir .local && mkdir .local/bin && mkdir .local/scripts && mkdir ${USERHOME}/${PROJECT_DIR} && \
@@ -50,6 +48,11 @@ WORKDIR ${USERHOME}/${PROJECT_DIR}
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh && \
     install -Dm755 /root/.local/bin/uv /usr/local/bin/uv && \
     install -Dm755 /root/.local/bin/uvx /usr/local/bin/uvx
+
+# Use the refreshed system CA store to install a patched pip without
+# downgrading a newer pip supplied by the base image.
+RUN UV_SYSTEM_CERTS=true uv pip install --system "pip>=26.2.2"
+
 ENV UV_PROJECT_ENVIRONMENT=/usr/local \
     UV_LINK_MODE=copy \
     PLAYWRIGHT_BROWSERS_PATH=/usr/local/ms-playwright
