@@ -6,6 +6,12 @@ During the `0.x` series, breaking changes can occur, although we try to minimise
 
 Version numbers below correspond to published git tags. The more important releases include a little extra narrative and upgrade context; smaller patch releases remain deliberately brief. For full detail between any two versions, use the GitHub compare view for the matching tags.
 
+## 0.9.15 (2026-10-22)
+- **Fix (deps)**: update python-packages (#254)
+- **Fix (security)**: refresh vulnerable image tooling
+- **Fix (security)**: remediate emSign CA trust
+- **Fix (docker)**: set Playwright version for compose down
+
 ## 0.9.14 (2026-10-16)
 - **Feature (template-packs)**: expose list density variables across packs
 - **Fix (deps)**: update python-packages (#248)
