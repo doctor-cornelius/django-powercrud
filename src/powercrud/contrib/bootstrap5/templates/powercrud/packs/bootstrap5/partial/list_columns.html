@@ -28,8 +28,10 @@
                         <button type="button"
                                 class="btn btn-link btn-sm p-0"
                                 data-powercrud-list-columns-show-all="true"
+                                data-powercrud-tooltip="semantic"
+                                data-bs-title="Select every available column, including filtered columns"
                                 {% if list_column_state.active_columns|length == list_column_state.allowed_columns|length %}disabled{% endif %}>
-                            Show all columns
+                            Select all
                         </button>
                     </div>
                 </div>
@@ -55,8 +57,8 @@
                 <div class="d-flex justify-content-between border-top mt-3 pt-3">
                     <span class="small text-body-secondary">* = Default</span>
                     <div class="btn-group btn-group-sm">
-                        <button type="submit" name="list_columns_action" value="reset" class="btn btn-outline-secondary">Reset</button>
-                        <button type="submit" name="list_columns_action" value="apply" class="btn btn-primary">Save</button>
+                        <button type="submit" name="list_columns_action" value="reset" class="btn btn-outline-secondary" data-powercrud-tooltip="semantic" data-bs-title="Restore the default columns for this view">Reset</button>
+                        <button type="submit" name="list_columns_action" value="apply" class="btn btn-primary" data-powercrud-tooltip="semantic" data-bs-title="Save and apply the selected columns">Save</button>
                     </div>
                 </div>
             </form>

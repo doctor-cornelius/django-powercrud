@@ -51,8 +51,10 @@
                         <button type="button"
                                 class="btn btn-sm"
                                 data-powercrud-list-columns-show-all="true"
+                                data-powercrud-tooltip="semantic"
+                                data-tippy-content="Select every available column, including filtered columns"
                                 {% if list_column_state.active_columns|length == list_column_state.allowed_columns|length %}disabled{% endif %}>
-                            Show all columns
+                            Select all
                         </button>
                     </div>
                 </div>
@@ -88,13 +90,17 @@
                         <button type="submit"
                                 name="list_columns_action"
                                 value="reset"
-                                class="btn btn-outline btn-sm">
+                                class="btn btn-outline btn-sm"
+                                data-powercrud-tooltip="semantic"
+                                data-tippy-content="Restore the default columns for this view">
                             Reset
                         </button>
                         <button type="submit"
                                 name="list_columns_action"
                                 value="apply"
-                                class="btn btn-primary btn-sm">
+                                class="btn btn-primary btn-sm"
+                                data-powercrud-tooltip="semantic"
+                                data-tippy-content="Save and apply the selected columns">
                             Save
                         </button>
                     </div>

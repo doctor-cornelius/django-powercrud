@@ -92,7 +92,7 @@ The **Cols** chooser includes:
 
 - **Search columns** to find options by their displayed label. Matching is case-insensitive.
 - **Selected only** to temporarily show checked columns, which can make it faster to narrow a selection.
-- **Show all columns** to check every allowed data column, including options hidden by search or Selected only.
+- **Select all** to check every allowed data column, including options hidden by search or Selected only.
 - **Reset** to discard the current preference and return to the view's configured defaults.
 
 Search and Selected only change which options are shown in the chooser; they do not change checkbox state. Clear the search or turn off Selected only to see other options again. Save applies the checked columns. The chooser always keeps at least one data column selected.

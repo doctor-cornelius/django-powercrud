@@ -33,6 +33,15 @@ def test_book_list_renders_column_chooser_for_anonymous_user(client):
     assert 'name="visible_columns"' in response_text, (
         "The chooser should render checkbox inputs for selectable columns."
     )
+    assert 'data-tippy-content="Select every available column, including filtered columns"' in response_text, (
+        "Select all should explain that it also selects columns hidden by the current filters."
+    )
+    assert 'data-tippy-content="Restore the default columns for this view"' in response_text, (
+        "Reset should explain that it restores the configured defaults."
+    )
+    assert 'data-tippy-content="Save and apply the selected columns"' in response_text, (
+        "Save should explain that it applies the selected columns."
+    )
     assert 'name="list_columns_action"' in response_text and 'value="reset"' in response_text, (
         "The chooser should render a reset action for returning to default columns."
     )

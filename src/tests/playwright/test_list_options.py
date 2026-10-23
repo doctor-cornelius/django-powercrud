@@ -189,10 +189,10 @@ test_book_list_column_chooser_saves_and_resets_columns = pytest.mark.playwright_
 )
 
 
-def test_book_list_column_chooser_filters_options_and_shows_all_columns(
+def test_book_list_column_chooser_filters_options_and_selects_all_columns(
     page, books_url, sample_books
 ):
-    """Chooser filters should preserve draft state and show-all should include hidden options."""
+    """Chooser filters preserve draft state and Select all includes hidden options."""
 
     del sample_books
     page.goto(books_url)
@@ -203,7 +203,20 @@ def test_book_list_column_chooser_filters_options_and_shows_all_columns(
     selected_only = panel.locator(
         "[data-powercrud-list-columns-selected-only='true']"
     )
-    show_all = panel.locator("[data-powercrud-list-columns-show-all='true']")
+    select_all = panel.locator("[data-powercrud-list-columns-show-all='true']")
+    tooltip_attribute = (
+        "data-bs-title" if using_bootstrap_pack() else "data-tippy-content"
+    )
+    tooltip_text = {
+        "Select all": "Select every available column, including filtered columns",
+        "Reset": "Restore the default columns for this view",
+        "Save": "Save and apply the selected columns",
+    }
+    for label, tooltip in tooltip_text.items():
+        button = panel.get_by_role("button", name=label)
+        expect(button).to_have_attribute("data-powercrud-tooltip", "semantic")
+        expect(button).to_have_attribute(tooltip_attribute, tooltip)
+
     isbn_option = panel.locator(
         "[data-powercrud-list-column-option='true']:has("
         "input[name='visible_columns'][value='isbn'])"
@@ -217,8 +230,8 @@ def test_book_list_column_chooser_filters_options_and_shows_all_columns(
     expect(isbn_option).to_be_visible()
     expect(uneditable_option).not_to_be_visible()
 
-    show_all.click()
-    expect(show_all).to_be_disabled()
+    select_all.click()
+    expect(select_all).to_be_disabled()
     expect(
         panel.locator("input[name='visible_columns']:not(:checked)")
     ).to_have_count(0)
