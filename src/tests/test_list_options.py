@@ -36,6 +36,9 @@ def test_book_list_renders_column_chooser_for_anonymous_user(client):
     assert 'data-tippy-content="Select every available column, including filtered columns"' in response_text, (
         "Select all should explain that it also selects columns hidden by the current filters."
     )
+    assert 'data-tippy-content="Show only columns that are currently selected"' in response_text, (
+        "Show selected only should explain that it filters the chooser to checked columns."
+    )
     assert 'data-tippy-content="Restore the default columns for this view"' in response_text, (
         "Reset should explain that it restores the configured defaults."
     )

@@ -208,14 +208,20 @@ def test_book_list_column_chooser_filters_options_and_selects_all_columns(
         "data-bs-title" if using_bootstrap_pack() else "data-tippy-content"
     )
     tooltip_text = {
+        "Show selected only": "Show only columns that are currently selected",
         "Select all": "Select every available column, including filtered columns",
         "Reset": "Restore the default columns for this view",
         "Save": "Save and apply the selected columns",
     }
     for label, tooltip in tooltip_text.items():
-        button = panel.get_by_role("button", name=label)
-        expect(button).to_have_attribute("data-powercrud-tooltip", "semantic")
-        expect(button).to_have_attribute(tooltip_attribute, tooltip)
+        if label == "Show selected only":
+            trigger = panel.locator(
+                "label:has([data-powercrud-list-columns-selected-only='true'])"
+            )
+        else:
+            trigger = panel.get_by_role("button", name=label)
+        expect(trigger).to_have_attribute("data-powercrud-tooltip", "semantic")
+        expect(trigger).to_have_attribute(tooltip_attribute, tooltip)
 
     isbn_option = panel.locator(
         "[data-powercrud-list-column-option='true']:has("
