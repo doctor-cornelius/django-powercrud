@@ -85,6 +85,7 @@ BOOTSTRAP_PLAYWRIGHT_TESTS=(
 
 function run_bootstrap_server_tests {
     echo "Running focused Bootstrap server coverage..."
+    DJANGO_SETTINGS_MODULE=tests.settings_bootstrap python scripts/check_database_collation.py
     DJANGO_SETTINGS_MODULE=tests.settings_bootstrap \
         pytest -m "not playwright" --cov-append --no-cov-on-fail \
         "${BOOTSTRAP_SERVER_TESTS[@]}"
@@ -92,9 +93,14 @@ function run_bootstrap_server_tests {
 
 function run_bootstrap_playwright_tests {
     echo "Running focused Bootstrap browser coverage..."
+    DJANGO_SETTINGS_MODULE=tests.settings_bootstrap python scripts/check_database_collation.py
     DJANGO_SETTINGS_MODULE=tests.settings_bootstrap \
         pytest -m playwright --cov-append --no-cov-on-fail \
         "${BOOTSTRAP_PLAYWRIGHT_TESTS[@]}"
+}
+
+function check_database_collation {
+    python scripts/check_database_collation.py
 }
 
 if [ "${#TEST_PATHS[@]}" -gt 0 ]; then
@@ -125,6 +131,8 @@ if [ "${#TEST_PATHS[@]}" -gt 0 ]; then
         fi
     fi
 
+    check_database_collation
+
     if [ "$MODE" = "playwright" ] || [ "$REBUILD_ASSETS" = "true" ]; then
         build_assets
     fi
@@ -139,14 +147,15 @@ if [ "${#TEST_PATHS[@]}" -gt 0 ]; then
     exit $?
 fi
 
+# Default suites use the lightweight settings; focused pack coverage selects
+# its explicit settings overlay for the duration of each pytest command.
+export DJANGO_SETTINGS_MODULE=tests.settings
+check_database_collation
+
 # delete any existing coverage reports
 coverage erase
 rm -rf htmlcov
 rm -f coverage.xml
-
-# Default suites use the lightweight settings; focused pack coverage selects
-# its explicit settings overlay for the duration of each pytest command.
-export DJANGO_SETTINGS_MODULE=tests.settings
 
 if [ "$MODE" = "pytest" ]; then
     if [ "$REBUILD_ASSETS" = "true" ]; then

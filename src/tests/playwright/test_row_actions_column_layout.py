@@ -22,6 +22,22 @@ def scroll_table_horizontally(page, *, to_end: bool = True) -> None:
     )
 
 
+def close_modal_and_wait_for_settle(page, modal) -> None:
+    """Close a modal and wait for its animations and queued layout events."""
+    modal.locator("[aria-label='Close modal'], [aria-label='Close']").first.click()
+    expect(modal).not_to_be_visible()
+    modal.evaluate(
+        """async dialog => {
+            await Promise.all(
+                dialog.getAnimations({ subtree: true })
+                    .map(animation => animation.finished.catch(() => {}))
+            );
+            await new Promise(requestAnimationFrame);
+            await new Promise(requestAnimationFrame);
+        }"""
+    )
+
+
 def open_inline_row(page, row, *, field_name: str):
     """Open one list row for inline editing through the named field."""
     row.locator(
@@ -397,14 +413,13 @@ def test_start_sticky_actions_remain_usable_with_selection_enabled(
     panel.get_by_role("link", name="View", exact=True).click()
     modal = page.locator("#powercrudBaseModal")
     expect(modal).to_be_visible()
-    modal.locator("[aria-label='Close modal'], [aria-label='Close']").first.click()
-    expect(modal).not_to_be_visible()
+    close_modal_and_wait_for_settle(page, modal)
 
     actions_trigger.click()
+    expect(panel).to_be_visible()
     panel.get_by_role("link", name="View Again", exact=True).click()
     expect(modal).to_be_visible()
-    modal.locator("[aria-label='Close modal'], [aria-label='Close']").first.click()
-    expect(modal).not_to_be_visible()
+    close_modal_and_wait_for_settle(page, modal)
 
     actions_trigger.click()
     panel.get_by_role("link", name="Delete", exact=True).click()

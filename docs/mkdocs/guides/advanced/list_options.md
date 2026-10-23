@@ -86,6 +86,17 @@ This applies to authenticated and anonymous users. Choices survive reloads and n
 
 For durable named list states, install the optional saved favourites contrib app. Saved favourites include visible columns alongside filters, optional filter visibility, sort, and page size for authenticated users.
 
+## Chooser Controls
+
+The **Cols** chooser includes:
+
+- **Search columns** to find options by their displayed label. Matching is case-insensitive.
+- **Show selected only** to temporarily show checked columns, which can make it faster to narrow a selection.
+- **Select all** to check every allowed data column, including options hidden by search or Show selected only.
+- **Reset** to discard the current preference and return to the view's configured defaults.
+
+Search and Show selected only change which options are shown in the chooser; they do not change checkbox state. Clear the search or turn off Show selected only to see other options again. Save applies the checked columns. The chooser always keeps at least one data column selected.
+
 Column choices are separate from temporary filter experiments: PowerCRUD can keep the user's current column selection, but it does not automatically restore unsaved filters, sort, page size, pagination, optional filter visibility, or filter-panel open state after navigation.
 
 ## Behavior Rules

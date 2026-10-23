@@ -24,6 +24,9 @@ export function createListColumnsRuntime(context) {
     const LIST_COLUMNS_FLOATING_SELECTOR = '[data-powercrud-list-columns-floating-panel="true"]';
     const LIST_COLUMNS_TEMPLATE_SELECTOR = '[data-powercrud-list-columns-template="true"]';
     const LIST_COLUMNS_TRIGGER_SELECTOR = '[data-powercrud-list-columns-trigger="true"]';
+    const LIST_COLUMN_SEARCH_SELECTOR = '[data-powercrud-list-columns-search="true"]';
+    const LIST_COLUMN_SELECTED_ONLY_SELECTOR = '[data-powercrud-list-columns-selected-only="true"]';
+    const LIST_COLUMN_SHOW_ALL_SELECTOR = '[data-powercrud-list-columns-show-all="true"]';
 
     let nextChooserId = 0;
     let activePanel = null;
@@ -88,6 +91,17 @@ export function createListColumnsRuntime(context) {
 
         const checkboxes = getListColumnCheckboxes(container);
         const checkedBoxes = checkboxes.filter(checkbox => checkbox.checked);
+        const search = container.querySelector(LIST_COLUMN_SEARCH_SELECTOR);
+        const selectedOnly = container.querySelector(LIST_COLUMN_SELECTED_ONLY_SELECTOR);
+        const noMatches = container.querySelector('[data-powercrud-list-columns-no-matches="true"]');
+        const showAll = container.querySelector(LIST_COLUMN_SHOW_ALL_SELECTOR);
+        const searchTerm = search instanceof HTMLInputElement
+            ? search.value.trim().toLowerCase()
+            : '';
+        const selectedOnlyEnabled = selectedOnly instanceof HTMLInputElement
+            && selectedOnly.checked;
+        let visibleOptionCount = 0;
+
         checkboxes.forEach(checkbox => {
             // Preserve at least one visible column; the adapter callback only
             // renders the disabled visual state for the current template.
@@ -96,7 +110,28 @@ export function createListColumnsRuntime(context) {
             checkbox.dataset.powercrudLastVisibleColumn = isLastChecked ? 'true' : 'false';
             const option = checkbox.closest('[data-powercrud-list-column-option="true"]');
             applyListColumnOptionDisabledState?.(option, isLastChecked);
+            if (option instanceof HTMLElement) {
+                const label = option.textContent?.trim().toLowerCase() || '';
+                const matchesSearch = !searchTerm || label.includes(searchTerm);
+                const matchesSelection = !selectedOnlyEnabled || checkbox.checked;
+                const isVisible = matchesSearch && matchesSelection;
+                option.hidden = !isVisible;
+                const hiddenClass = option.dataset.powercrudListColumnOptionHiddenClass;
+                if (hiddenClass) {
+                    option.classList.toggle(hiddenClass, !isVisible);
+                }
+                if (!option.hidden) {
+                    visibleOptionCount += 1;
+                }
+            }
         });
+
+        if (noMatches instanceof HTMLElement) {
+            noMatches.hidden = visibleOptionCount > 0;
+        }
+        if (showAll instanceof HTMLButtonElement) {
+            showAll.disabled = checkedBoxes.length === checkboxes.length;
+        }
     }
 
     function getListColumnTrigger(container) {
@@ -151,6 +186,14 @@ export function createListColumnsRuntime(context) {
         getListColumnCheckboxes(container).forEach(checkbox => {
             checkbox.checked = checkbox.dataset.powercrudInitialChecked === 'true';
         });
+        const search = container.querySelector(LIST_COLUMN_SEARCH_SELECTOR);
+        if (search instanceof HTMLInputElement) {
+            search.value = '';
+        }
+        const selectedOnly = container.querySelector(LIST_COLUMN_SELECTED_ONLY_SELECTOR);
+        if (selectedOnly instanceof HTMLInputElement) {
+            selectedOnly.checked = false;
+        }
         // Closing without save discards the draft and returns to the server
         // rendered initial state for this chooser.
         syncListColumnChooser(container);
@@ -312,6 +355,50 @@ export function createListColumnsRuntime(context) {
         return true;
     }
 
+    function handleListColumnSearchInput(event) {
+        const target = event.target instanceof Element ? event.target : null;
+        if (!(target instanceof HTMLInputElement) || !target.matches(LIST_COLUMN_SEARCH_SELECTOR)) {
+            return false;
+        }
+        const chooserSurface = target.closest(LIST_COLUMNS_FLOATING_SELECTOR)
+            || target.closest(LIST_COLUMNS_SELECTOR);
+        if (chooserSurface instanceof Element) {
+            syncListColumnChooser(chooserSurface);
+        }
+        return true;
+    }
+
+    function handleListColumnFilterChange(target) {
+        if (!(target instanceof Element) || !target.matches(LIST_COLUMN_SELECTED_ONLY_SELECTOR)) {
+            return false;
+        }
+        const chooserSurface = target.closest(LIST_COLUMNS_FLOATING_SELECTOR)
+            || target.closest(LIST_COLUMNS_SELECTOR);
+        if (chooserSurface instanceof Element) {
+            syncListColumnChooser(chooserSurface);
+        }
+        return true;
+    }
+
+    function handleListColumnShowAllClick(target) {
+        if (!(target instanceof Element)) {
+            return false;
+        }
+        const button = target.closest(LIST_COLUMN_SHOW_ALL_SELECTOR);
+        if (!(button instanceof HTMLButtonElement)) {
+            return false;
+        }
+        const chooserSurface = button.closest(LIST_COLUMNS_FLOATING_SELECTOR)
+            || button.closest(LIST_COLUMNS_SELECTOR);
+        if (chooserSurface instanceof Element) {
+            getListColumnCheckboxes(chooserSurface).forEach(checkbox => {
+                checkbox.checked = true;
+            });
+            syncListColumnChooser(chooserSurface);
+        }
+        return true;
+    }
+
     function handleListColumnsHtmxBeforeRequest(target) {
         if (!(target instanceof Element)) {
             return false;
@@ -350,6 +437,9 @@ export function createListColumnsRuntime(context) {
         getVisibleListColumnNames,
         handleListColumnsHtmxBeforeRequest,
         handleListColumnCheckboxChange,
+        handleListColumnFilterChange,
+        handleListColumnSearchInput,
+        handleListColumnShowAllClick,
         handleListColumnsToggle,
         isListColumnsForm,
         syncListColumnChoosers,

@@ -35,7 +35,32 @@
                         {% endfor %}
                     {% endif %}
                 {% endfor %}
-                <div class="max-h-72 space-y-0 overflow-y-auto pr-1 text-sm">
+                <div class="space-y-2">
+                    <input type="search"
+                           class="input input-sm w-full"
+                           aria-label="Search columns"
+                           placeholder="Search columns"
+                           data-powercrud-list-columns-search="true">
+                    <div class="flex items-center justify-between gap-2">
+                        <label class="flex cursor-pointer items-center gap-2 px-2 text-sm"
+                               data-powercrud-tooltip="semantic"
+                               data-tippy-content="Show only columns that are currently selected">
+                            <input type="checkbox"
+                                   class="checkbox checkbox-xs"
+                                   data-powercrud-list-columns-selected-only="true">
+                            <span>Show selected only</span>
+                        </label>
+                        <button type="button"
+                                class="btn btn-sm"
+                                data-powercrud-list-columns-show-all="true"
+                                data-powercrud-tooltip="semantic"
+                                data-tippy-content="Select every available column, including filtered columns"
+                                {% if list_column_state.active_columns|length == list_column_state.allowed_columns|length %}disabled{% endif %}>
+                            Select all
+                        </button>
+                    </div>
+                </div>
+                <div class="max-h-60 space-y-0 overflow-y-auto pr-1 text-sm">
                     {% for column in list_column_state.choices %}
                         <label class="flex cursor-pointer items-center justify-between gap-2 rounded px-2 py-0.5 hover:bg-base-200"
                                data-powercrud-list-column-option="true">
@@ -56,19 +81,28 @@
                         </label>
                     {% endfor %}
                 </div>
+                <p class="px-2 text-sm text-base-content/60"
+                   data-powercrud-list-columns-no-matches="true"
+                   role="status"
+                   aria-live="polite"
+                   hidden>No matching columns.</p>
                 <div class="flex items-center justify-between gap-2 border-t border-base-300 pt-3">
                     <span class="text-xs text-base-content/60">* = Default</span>
                     <div class="flex justify-end gap-2">
                         <button type="submit"
                                 name="list_columns_action"
                                 value="reset"
-                                class="btn btn-outline btn-sm">
+                                class="btn btn-outline btn-sm"
+                                data-powercrud-tooltip="semantic"
+                                data-tippy-content="Restore the default columns for this view">
                             Reset
                         </button>
                         <button type="submit"
                                 name="list_columns_action"
                                 value="apply"
-                                class="btn btn-primary btn-sm">
+                                class="btn btn-primary btn-sm"
+                                data-powercrud-tooltip="semantic"
+                                data-tippy-content="Save and apply the selected columns">
                             Save
                         </button>
                     </div>

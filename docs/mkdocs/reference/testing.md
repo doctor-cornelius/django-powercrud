@@ -97,6 +97,7 @@ To point Playwright at a different host, set `PLAYWRIGHT_BASE_URL` (defaults to 
   - `pytest -m playwright_smoke` for the curated browser smoke subset
   - `pytest -m playwright` for the full browser suite
 - `./runtests` is the easiest way to reproduce the intended local workflow: it resets coverage, runs the default core suite, adds focused server coverage under `tests.settings_bootstrap`, builds static assets, then runs the default and focused Bootstrap Playwright coverage in order.
+- `./runtests` checks the PostgreSQL cluster's recorded database collation versions before starting. If the PostgreSQL image's OS collation changes while its data volume persists, the check reports affected databases before Django tries to create the test database. Back up and rebuild affected indexes before refreshing recorded versions.
 - `./runtests --playwright <node-id>` runs a focused Playwright subset with the normal test settings unless you explicitly set another module such as `DJANGO_SETTINGS_MODULE=tests.settings_bootstrap`.
 - `./runtests --rebuild-assets <node-id>` is useful when debugging frontend flakes or asset-sensitive browser failures and you want to force a fresh bundle before a focused run.
 - `./runtests` also accepts multiple explicit pytest node ids or paths in one invocation. In plain path mode it auto-selects `tests.settings_minimal` only if every requested path is a minimal-settings test; mixed minimal and regular test selections are rejected unless you set `DJANGO_SETTINGS_MODULE` explicitly.

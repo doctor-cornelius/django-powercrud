@@ -157,8 +157,19 @@ def test_book_list_column_chooser_saves_and_resets_columns(
     expect(
         panel.locator("input[name='visible_columns'][value='uneditable_field']")
     ).to_be_checked()
+    panel.locator("[data-powercrud-list-columns-search='true']").fill("isbn")
+    panel.locator("[data-powercrud-list-columns-selected-only='true']").check()
     page.keyboard.press("Escape")
     expect(page.locator("[data-powercrud-list-columns-floating-panel='true']")).to_have_count(0)
+
+    panel = open_column_chooser(page)
+    expect(
+        panel.locator("[data-powercrud-list-columns-search='true']")
+    ).to_have_value("")
+    expect(
+        panel.locator("[data-powercrud-list-columns-selected-only='true']")
+    ).not_to_be_checked()
+    page.keyboard.press("Escape")
 
     page.reload()
     page.wait_for_load_state("networkidle")
@@ -176,6 +187,95 @@ def test_book_list_column_chooser_saves_and_resets_columns(
 test_book_list_column_chooser_saves_and_resets_columns = pytest.mark.playwright_smoke(
     test_book_list_column_chooser_saves_and_resets_columns
 )
+
+
+def test_book_list_column_chooser_filters_options_and_selects_all_columns(
+    page, books_url, sample_books
+):
+    """Chooser filters preserve draft state and Select all includes hidden options."""
+
+    del sample_books
+    page.goto(books_url)
+    page.wait_for_load_state("networkidle")
+
+    panel = open_column_chooser(page)
+    search = panel.locator("[data-powercrud-list-columns-search='true']")
+    selected_only = panel.locator(
+        "[data-powercrud-list-columns-selected-only='true']"
+    )
+    select_all = panel.locator("[data-powercrud-list-columns-show-all='true']")
+    tooltip_attribute = (
+        "data-bs-title" if using_bootstrap_pack() else "data-tippy-content"
+    )
+    tooltip_text = {
+        "Show selected only": "Show only columns that are currently selected",
+        "Select all": "Select every available column, including filtered columns",
+        "Reset": "Restore the default columns for this view",
+        "Save": "Save and apply the selected columns",
+    }
+    for label, tooltip in tooltip_text.items():
+        if label == "Show selected only":
+            trigger = panel.locator(
+                "label:has([data-powercrud-list-columns-selected-only='true'])"
+            )
+        else:
+            trigger = panel.get_by_role("button", name=label)
+        expect(trigger).to_have_attribute("data-powercrud-tooltip", "semantic")
+        expect(trigger).to_have_attribute(tooltip_attribute, tooltip)
+
+    isbn_option = panel.locator(
+        "[data-powercrud-list-column-option='true']:has("
+        "input[name='visible_columns'][value='isbn'])"
+    )
+    uneditable_option = panel.locator(
+        "[data-powercrud-list-column-option='true']:has("
+        "input[name='visible_columns'][value='uneditable_field'])"
+    )
+
+    search.fill("iSbN")
+    expect(isbn_option).to_be_visible()
+    expect(uneditable_option).not_to_be_visible()
+
+    select_all.click()
+    expect(select_all).to_be_disabled()
+    expect(
+        panel.locator("input[name='visible_columns']:not(:checked)")
+    ).to_have_count(0)
+    expect(uneditable_option).not_to_be_visible()
+    expect(
+        uneditable_option.locator("input[name='visible_columns']")
+    ).to_be_checked()
+
+    search.fill("")
+    expect(uneditable_option).to_be_visible()
+    isbn_option.locator("input[name='visible_columns']").uncheck()
+    uneditable_option.locator("input[name='visible_columns']").uncheck()
+
+    selected_only.check()
+    expect(isbn_option).not_to_be_visible()
+    expect(uneditable_option).not_to_be_visible()
+    search.fill("uneditable")
+    expect(panel.get_by_text("No matching columns.")).to_be_visible()
+    search.fill("")
+    expect(panel.get_by_text("No matching columns.")).not_to_be_visible()
+    expect(isbn_option).not_to_be_visible()
+    expect(uneditable_option).not_to_be_visible()
+
+    selected_only.uncheck()
+    expect(isbn_option).to_be_visible()
+    expect(uneditable_option).to_be_visible()
+    expect(
+        isbn_option.locator("input[name='visible_columns']")
+    ).not_to_be_checked()
+    expect(
+        uneditable_option.locator("input[name='visible_columns']")
+    ).not_to_be_checked()
+
+    with page.expect_response(re.compile(r"/sample/bigbook/")):
+        panel.get_by_role("button", name="Save").click()
+    expect(page.locator("td[data-field-name='isbn']")).to_have_count(0)
+    expect(page.locator("td[data-field-name='uneditable_field']")).to_have_count(0)
+    expect(page.locator("td[data-field-name='title']").first).to_be_visible()
 
 
 def test_book_list_column_chooser_guards_last_visible_column(
