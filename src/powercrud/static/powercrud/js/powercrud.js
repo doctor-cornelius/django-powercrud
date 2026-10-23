@@ -487,6 +487,10 @@ export function installPowercrudRuntime({ createComposition } = {}) {
                     return;
                 }
 
+                if (listColumns.handleListColumnShowAllClick(trigger)) {
+                    return;
+                }
+
                 const filterToggle = trigger.closest('[data-powercrud-filter-toggle]');
                 if (filterToggle) {
                     closeToolbarTransientControls();
@@ -621,6 +625,10 @@ export function installPowercrudRuntime({ createComposition } = {}) {
                     bulkActions.handleRowSelectionChange(target, event);
                 }
 
+                if (listColumns.handleListColumnFilterChange(target)) {
+                    return;
+                }
+
                 if (listColumns.handleListColumnCheckboxChange(target)) {
                     return;
                 }
@@ -649,6 +657,9 @@ export function installPowercrudRuntime({ createComposition } = {}) {
             },
             handleFilterInput(event) {
                 const target = asElement(event.target);
+                if (listColumns.handleListColumnSearchInput(event)) {
+                    return;
+                }
                 if (isFilterValueField(target)) {
                     scheduleFilterValueRefresh(target);
                 }
