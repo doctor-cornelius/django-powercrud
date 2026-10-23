@@ -6,6 +6,9 @@ During the `0.x` series, breaking changes can occur, although we try to minimise
 
 Version numbers below correspond to published git tags. The more important releases include a little extra narrative and upgrade context; smaller patch releases remain deliberately brief. For full detail between any two versions, use the GitHub compare view for the matching tags.
 
+## 0.9.16 (2026-10-23)
+- **Feature (list-options)**: improve column chooser and test reliability
+
 ## 0.9.15 (2026-10-22)
 - **Fix (deps)**: update python-packages (#254)
 - **Fix (security)**: refresh vulnerable image tooling
