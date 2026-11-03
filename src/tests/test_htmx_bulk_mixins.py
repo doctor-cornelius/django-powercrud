@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import json
+from copy import deepcopy
 from types import SimpleNamespace
 
 import pytest
+from django.conf import settings
 from django.http import HttpResponse
 from django.template import TemplateDoesNotExist
 from django.test import RequestFactory, override_settings
@@ -13,6 +15,7 @@ from neapolitan.views import Role
 from powercrud.actions import PowerButton
 from powercrud.mixins.htmx_mixin import HtmxMixin
 from powercrud.mixins.config_mixin import get_template_name
+from powercrud.mixins.url_mixin import UrlMixin
 from powercrud.mixins.bulk_mixin import (
     SelectionMixin,
     MetadataMixin,
@@ -36,6 +39,67 @@ class DummyHtmxView(HtmxMixin):
         self.request = SimpleNamespace(
             htmx=SimpleNamespace(target=None), path="/example/"
         )
+
+
+@pytest.mark.parametrize(
+    ("htmx", "filter_sort", "expected_content"),
+    [
+        (False, False, "Pack root"),
+        (True, False, "Pack content"),
+        (True, True, "Pack filtered results"),
+    ],
+)
+def test_partial_project_override_falls_back_to_pack_template(
+    tmp_path, htmx, filter_sort, expected_content
+):
+    """A missing override root must not hide the pack's full or HTMX template."""
+
+    class PartialOverrideView(HtmxMixin, UrlMixin):
+        """Expose the real three-candidate list for a project with partial overrides."""
+
+        model = Book
+        template_name = None
+        template_name_suffix = "_list"
+        template_override_path = "issue_256_overrides"
+        templates_path = "issue_256_pack"
+        role = Role.LIST
+
+    pack_template = tmp_path / "issue_256_pack" / "object_list.html"
+    pack_template.parent.mkdir()
+    pack_template.write_text(
+        "{% load powercrud_partials %}"
+        "Pack root"
+        "{% partialdef pcrud_content %}Pack content{% endpartialdef pcrud_content %}"
+        "{% partialdef filtered_results %}"
+        "Pack filtered results"
+        "{% endpartialdef filtered_results %}",
+        encoding="utf-8",
+    )
+    override_partial = tmp_path / "issue_256_overrides" / "partial" / "table_header.html"
+    override_partial.parent.mkdir(parents=True)
+    override_partial.write_text("Project table header", encoding="utf-8")
+
+    template_settings = deepcopy(settings.TEMPLATES)
+    template_settings[0]["DIRS"] = [str(tmp_path), *template_settings[0]["DIRS"]]
+    request = RequestFactory().get(
+        "/books/",
+        **({"HTTP_X_FILTER_SORT_REQUEST": "true"} if filter_sort else {}),
+    )
+    request.htmx = htmx
+    view = PartialOverrideView()
+    view.request = request
+
+    with override_settings(TEMPLATES=template_settings):
+        response = view.render_to_response({})
+        if not htmx:
+            response.render()
+
+    assert response.status_code == 200, (
+        "A partial project override should fall through to the selected pack template."
+    )
+    assert response.content.decode().strip() == expected_content, (
+        "Full and HTMX responses should render the matching pack template or fragment."
+    )
 
 
 @pytest.mark.parametrize(
