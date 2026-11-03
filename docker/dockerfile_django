@@ -9,7 +9,7 @@ ARG NPM_VERSION=11.21.1
 # renovate: datasource=pypi depName=wheel versioning=pep440
 ARG WHEEL_VERSION=0.48.0
 # renovate: datasource=github-releases depName=astral-sh/uv versioning=semver
-ARG UV_VERSION=0.13.4
+ARG UV_VERSION=0.13.6
 ARG PLAYWRIGHT_VERSION
 ARG PROMPT_CODE='\n\[\e[0m\]🐳 \[\e[0m\][\[\e[0;38;5;226m\]$(git branch 2>/dev/null | grep '"'"'^*'"'"' | colrm 1 2)\[\e[0m\]] \[\e[0;91m\]\u\[\e[0m\]: \[\e[0;96m\]\w\n\[\e[0m\]\$\[\e[0m\] '
 
