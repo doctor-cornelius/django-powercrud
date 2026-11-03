@@ -84,6 +84,8 @@ class UrlMixin:
             ImproperlyConfigured: If neither template_name nor model and template_name_suffix are defined.
         """
         if self.template_name is not None:
+            if isinstance(self.template_name, (list, tuple)):
+                return list(self.template_name)
             return [self.template_name]
 
         if self.model is not None and self.template_name_suffix is not None:
