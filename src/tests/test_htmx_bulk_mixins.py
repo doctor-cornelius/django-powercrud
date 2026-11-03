@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import json
+from copy import deepcopy
 from types import SimpleNamespace
 
 import pytest
+from django.conf import settings
 from django.http import HttpResponse
-from django.template import TemplateDoesNotExist
+from django.template import TemplateDoesNotExist, TemplateSyntaxError
 from django.test import RequestFactory, override_settings
 from django.contrib.sessions.middleware import SessionMiddleware
 from neapolitan.views import Role
@@ -13,6 +15,7 @@ from neapolitan.views import Role
 from powercrud.actions import PowerButton
 from powercrud.mixins.htmx_mixin import HtmxMixin
 from powercrud.mixins.config_mixin import get_template_name
+from powercrud.mixins.url_mixin import UrlMixin
 from powercrud.mixins.bulk_mixin import (
     SelectionMixin,
     MetadataMixin,
@@ -36,6 +39,255 @@ class DummyHtmxView(HtmxMixin):
         self.request = SimpleNamespace(
             htmx=SimpleNamespace(target=None), path="/example/"
         )
+
+
+@pytest.fixture
+def issue_256_template_root(tmp_path):
+    """Make temporary templates available to the real Django template loader."""
+    template_settings = deepcopy(settings.TEMPLATES)
+    template_settings[0]["DIRS"] = [str(tmp_path), *template_settings[0]["DIRS"]]
+    with override_settings(TEMPLATES=template_settings):
+        yield tmp_path
+
+
+def write_test_template(template_root, template_name, source):
+    """Write a small template under the test's temporary template root."""
+    path = template_root / template_name
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(source, encoding="utf-8")
+
+
+@pytest.mark.parametrize(
+    ("htmx", "filter_sort", "expected_content"),
+    [
+        (False, False, "Pack root"),
+        (True, False, "Pack content"),
+        (True, True, "Pack filtered results"),
+    ],
+)
+def test_partial_project_override_falls_back_to_pack_template(
+    tmp_path, htmx, filter_sort, expected_content
+):
+    """A missing override root must not hide the pack's full or HTMX template."""
+
+    class PartialOverrideView(HtmxMixin, UrlMixin):
+        """Expose the real three-candidate list for a project with partial overrides."""
+
+        model = Book
+        template_name = None
+        template_name_suffix = "_list"
+        template_override_path = "issue_256_overrides"
+        templates_path = "issue_256_pack"
+        role = Role.LIST
+
+    pack_template = tmp_path / "issue_256_pack" / "object_list.html"
+    pack_template.parent.mkdir()
+    pack_template.write_text(
+        "{% load powercrud_partials %}"
+        "Pack root"
+        "{% partialdef pcrud_content %}Pack content{% endpartialdef pcrud_content %}"
+        "{% partialdef filtered_results %}"
+        "Pack filtered results"
+        "{% endpartialdef filtered_results %}",
+        encoding="utf-8",
+    )
+    override_partial = tmp_path / "issue_256_overrides" / "partial" / "table_header.html"
+    override_partial.parent.mkdir(parents=True)
+    override_partial.write_text("Project table header", encoding="utf-8")
+
+    template_settings = deepcopy(settings.TEMPLATES)
+    template_settings[0]["DIRS"] = [str(tmp_path), *template_settings[0]["DIRS"]]
+    request = RequestFactory().get(
+        "/books/",
+        **({"HTTP_X_FILTER_SORT_REQUEST": "true"} if filter_sort else {}),
+    )
+    request.htmx = htmx
+    view = PartialOverrideView()
+    view.request = request
+
+    with override_settings(TEMPLATES=template_settings):
+        response = view.render_to_response({})
+        if not htmx:
+            response.render()
+
+    assert response.status_code == 200, (
+        "A partial project override should fall through to the selected pack template."
+    )
+    assert response.content.decode().strip() == expected_content, (
+        "Full and HTMX responses should render the matching pack template or fragment."
+    )
+
+
+@pytest.mark.parametrize(
+    ("available_templates", "expected_content"),
+    [
+        (("model", "project", "pack"), "Model template"),
+        (("project", "pack"), "Project template"),
+    ],
+)
+def test_normal_template_candidates_keep_model_and_project_precedence(
+    issue_256_template_root, available_templates, expected_content
+):
+    """Normal responses should use the first existing model/project/pack candidate."""
+
+    class CandidateView(HtmxMixin, UrlMixin):
+        """Use the standard ordered candidate chain for a list view."""
+
+        model = Book
+        template_name = None
+        template_name_suffix = "_list"
+        template_override_path = "issue_256_overrides"
+        templates_path = "issue_256_pack"
+
+    candidate_paths = {
+        "model": "sample/book_list.html",
+        "project": "issue_256_overrides/object_list.html",
+        "pack": "issue_256_pack/object_list.html",
+    }
+    for candidate in available_templates:
+        write_test_template(
+            issue_256_template_root,
+            candidate_paths[candidate],
+            f"{candidate.title()} template",
+        )
+
+    view = CandidateView()
+    view.request = RequestFactory().get("/books/")
+    view.request.htmx = False
+    response = view.render_to_response({})
+    response.render()
+
+    assert response.content.decode().strip() == expected_content, (
+        "Normal responses should use the highest-priority available template."
+    )
+
+
+@pytest.mark.parametrize(
+    ("filter_sort", "expected_content"),
+    [(False, "Pack content"), (True, "Pack filtered results")],
+)
+def test_redisplayed_list_renders_pack_fragment_after_partial_override(
+    issue_256_template_root, filter_sort, expected_content
+):
+    """List redisplay should try all configured roots for the requested fragment."""
+
+    class RedisplayedListView(HtmxMixin, UrlMixin):
+        """Provide the ordinary list candidates and project override configuration."""
+
+        model = Book
+        template_name = None
+        template_name_suffix = "_list"
+        template_override_path = "issue_256_overrides"
+        templates_path = "issue_256_pack"
+        role = Role.LIST
+
+    write_test_template(
+        issue_256_template_root,
+        "issue_256_pack/object_list.html",
+        "{% load powercrud_partials %}"
+        "Pack root"
+        "{% partialdef pcrud_content %}Pack content{% endpartialdef pcrud_content %}"
+        "{% partialdef filtered_results %}"
+        "Pack filtered results"
+        "{% endpartialdef filtered_results %}",
+    )
+    write_test_template(
+        issue_256_template_root,
+        "issue_256_overrides/partial/table_header.html",
+        "Project table header",
+    )
+    request = RequestFactory().get(
+        "/books/",
+        HTTP_X_REDISPLAY_OBJECT_LIST="true",
+        **({"HTTP_X_FILTER_SORT_REQUEST": "true"} if filter_sort else {}),
+    )
+    request.htmx = True
+    view = RedisplayedListView()
+    view.request = request
+
+    response = view.render_to_response({})
+
+    assert response.status_code == 200, (
+        "A missing project list root should fall through during HTMX list redisplay."
+    )
+    assert response.content.decode().strip() == expected_content, (
+        "List redisplay should render the requested fragment from the selected pack."
+    )
+
+
+def test_explicit_template_candidate_list_preserves_fragment_names(issue_256_template_root):
+    """Explicit template candidates with fragments should remain a flat render list."""
+
+    class ExplicitCandidateView(HtmxMixin, UrlMixin):
+        """Use an explicit ordered pair of candidates for an HTMX response."""
+
+        template_name = [
+            "issue_256_overrides/object_list.html#pcrud_content",
+            "issue_256_pack/object_list.html#pcrud_content",
+        ]
+        template_override_path = "issue_256_overrides"
+        templates_path = "issue_256_pack"
+        role = Role.LIST
+
+    write_test_template(
+        issue_256_template_root,
+        "issue_256_pack/object_list.html",
+        "{% load powercrud_partials %}"
+        "Pack root"
+        "{% partialdef pcrud_content %}Pack content{% endpartialdef pcrud_content %}",
+    )
+    request = RequestFactory().get("/books/")
+    request.htmx = True
+    view = ExplicitCandidateView()
+    view.request = request
+
+    response = view.render_to_response({})
+
+    assert response.content.decode().strip() == "Pack content", (
+        "The existing fragment should render from the next explicit template candidate."
+    )
+
+
+@pytest.mark.parametrize(
+    ("failure", "expected_exception"),
+    [
+        ("missing", TemplateDoesNotExist),
+        ("syntax", TemplateSyntaxError),
+    ],
+)
+def test_template_candidate_errors_are_reported(
+    issue_256_template_root, failure, expected_exception
+):
+    """Missing templates and invalid higher-priority templates should remain visible."""
+
+    class CandidateView(HtmxMixin, UrlMixin):
+        """Use the standard ordered candidate chain for an ordinary response."""
+
+        model = Book
+        template_name = None
+        template_name_suffix = "_list"
+        template_override_path = "issue_256_overrides"
+        templates_path = "issue_256_pack"
+
+    if failure == "syntax":
+        write_test_template(
+            issue_256_template_root,
+            "sample/book_list.html",
+            "{% invalid_template_tag %}",
+        )
+        write_test_template(
+            issue_256_template_root,
+            "issue_256_overrides/object_list.html",
+            "Project fallback",
+        )
+
+    view = CandidateView()
+    view.request = RequestFactory().get("/books/")
+    view.request.htmx = False
+    response = view.render_to_response({})
+
+    with pytest.raises(expected_exception):
+        response.render()
 
 
 @pytest.mark.parametrize(

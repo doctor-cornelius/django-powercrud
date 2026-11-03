@@ -203,7 +203,7 @@ class ProjectCRUDView(PowerCRUDMixin, CRUDView):
     template_override_path = "myapp/powercrud/daisyui"
 ```
 
-Model-specific templates still come first. After that, PowerCRUD tries the project root and then the selected pack. The four-template default is therefore a practical way to adjust the main screen layouts while leaving components and nested templates in the selected pack.
+Model-specific templates still come first. After that, PowerCRUD tries the project root and then the selected pack. This order applies to full-page responses and HTMX fragments such as `pcrud_content` and `filtered_results`, so an incomplete project copy can fall through to the selected pack. The four-template default is therefore a practical way to adjust the main screen layouts while leaving components and nested templates in the selected pack.
 
 The one-root choices write `object_list.html`, `object_detail.html`, `object_form.html`, or `object_confirm_delete.html` under that same directory. They are useful when all configured views need one shared screen change, while all other roots and components should continue to use the selected package.
 

@@ -12,7 +12,6 @@ from django.template.response import TemplateResponse
 
 import json
 from neapolitan.views import Role
-from powercrud.logging import get_logger
 from powercrud.query_params import build_navigation_query_string
 from powercrud.template_packs import (
     ServerAdapterContext,
@@ -21,7 +20,21 @@ from powercrud.template_packs import (
 )
 from .config_mixin import get_template_name, resolve_config
 
-log = get_logger(__name__)
+def _template_candidates(template_names):
+    """Return a flat list for one or many ordered template candidates."""
+    if isinstance(template_names, str):
+        return [template_names]
+    return list(template_names)
+
+
+def _with_template_fragment(template_names, fragment):
+    """Append a fragment to candidates that do not already specify one."""
+    return [
+        template_name
+        if "#" in template_name
+        else f"{template_name}#{fragment}"
+        for template_name in _template_candidates(template_names)
+    ]
 
 
 class HtmxMixin:
@@ -286,60 +299,27 @@ class HtmxMixin:
         Render the response, handling both HTMX and regular requests.
         Ensure modal context is maintained when forms have errors.
         """
-        template_names = self.get_template_names()
-
-        # Try the first template (app-specific), fall back to second (generic)
-        from django.template.loader import get_template
-        from django.template.exceptions import TemplateDoesNotExist
-
-        try:
-            # try to use overriden template if it exists
-            template_name = template_names[0]
-            # this call check if valid template
-            get_template(template_name)
-        except TemplateDoesNotExist:
-            template_name = template_names[1]
-            get_template(template_name)
-        except Exception as e:
-            log.error(f"Unexpected error checking template {template_name}: {str(e)}")
-            template_name = template_names[1]
-
         # Check if this is a form with errors being redisplayed
         form_has_errors = hasattr(self, "form_has_errors") and self.form_has_errors
 
         if self.request.htmx:
             if self.request.headers.get("X-Redisplay-Object-List"):
-                # Use object_list template
-                object_list_template = get_template_name(
+                template_names = get_template_name(
                     resolve_config(self), "object_list.html"
                 )
-
-                if self.request.headers.get("X-Filter-Sort-Request"):
-                    if isinstance(object_list_template, list):
-                        template_name = [
-                            f"{template_name}#filtered_results"
-                            for template_name in object_list_template
-                        ]
-                    else:
-                        template_name = f"{object_list_template}#filtered_results"
-                else:
-                    if isinstance(object_list_template, list):
-                        template_name = [
-                            f"{template_name}#pcrud_content"
-                            for template_name in object_list_template
-                        ]
-                    else:
-                        template_name = f"{object_list_template}#pcrud_content"
             else:
-                # Use whatever template was determined normally
-                if self.request.headers.get("X-Filter-Sort-Request"):
-                    template_name = f"{template_name}#filtered_results"
-                else:
-                    template_name = f"{template_name}#pcrud_content"
+                template_names = self.get_template_names()
+
+            fragment = (
+                "filtered_results"
+                if self.request.headers.get("X-Filter-Sort-Request")
+                else "pcrud_content"
+            )
+            template_names = _with_template_fragment(template_names, fragment)
 
             response = render(
                 request=self.request,
-                template_name=template_name,
+                template_name=template_names,
                 context=context,
             )
 
@@ -368,5 +348,7 @@ class HtmxMixin:
             return response
         else:
             return TemplateResponse(
-                request=self.request, template=template_name, context=context
+                request=self.request,
+                template=_template_candidates(self.get_template_names()),
+                context=context,
             )
