@@ -1,4 +1,5 @@
-# for running tests locally and reporting coverage only on powercrud
+#!/usr/bin/env bash
+# Run PowerCRUD consumer and independent coordinator tests with separate data.
 set -euo pipefail
 
 function show_help {
@@ -7,62 +8,134 @@ Usage: ./runtests [OPTION] [TEST_PATH ...]
 
 Options:
   --help, -h        Show this help message and exit.
-  --pytest          Run the default non-Playwright suite and focused Bootstrap server coverage.
+  --pytest          Run server suites and focused Bootstrap server coverage.
   --playwright      Run the default Playwright suite and focused Bootstrap browser coverage.
-  --rebuild-assets  Build static assets before running the selected tests.
+  --suite NAME      Select coordinator, powercrud, or all server suites.
+  --collect-only    Collect selected pytest tests without preflight or coverage.
+  --rebuild-assets  Build static assets before running tests.
 
 Arguments:
-  TEST_PATH         Run one or more pytest test paths/node ids in a single run.
-
-Examples:
-  ./runtests --playwright
-  ./runtests --playwright src/tests/playwright/test_bulk_selection.py::test_bulk_selection_toggle
-  ./runtests --rebuild-assets src/tests/playwright/test_bulk_selection.py::test_bulk_selection_toggle
+  TEST_PATH         Repository-root-relative pytest path or node ID.
 EOF
 }
 
 MODE="all"
 REBUILD_ASSETS="false"
+SUITE=""
+COLLECT_ONLY="false"
 declare -a TEST_PATHS=()
 
 for arg in "$@"; do
     case "$arg" in
-        --help|-h)
-            show_help
-            exit 0
-            ;;
+        --help|-h) show_help; exit 0 ;;
         --pytest)
-            if [ "$MODE" != "all" ]; then
-                show_help
-                exit 1
-            fi
+            if [ "$MODE" != "all" ]; then show_help; exit 1; fi
             MODE="pytest"
             ;;
         --playwright)
-            if [ "$MODE" != "all" ]; then
-                show_help
-                exit 1
-            fi
+            if [ "$MODE" != "all" ]; then show_help; exit 1; fi
             MODE="playwright"
             ;;
-        --rebuild-assets)
-            REBUILD_ASSETS="true"
+        --rebuild-assets) REBUILD_ASSETS="true" ;;
+        --collect-only) COLLECT_ONLY="true" ;;
+        --suite)
+            if [ -n "$SUITE" ]; then echo "Error: --suite may be specified only once."; exit 1; fi
+            SUITE="__missing__"
             ;;
-        --*)
-            echo "Error: unknown option '$arg'."
-            show_help
-            exit 1
-            ;;
+        --*) echo "Error: unknown option '$arg'."; show_help; exit 1 ;;
         *)
-            TEST_PATHS+=("$arg")
+            if [ "$SUITE" = "__missing__" ]; then SUITE="$arg"; else TEST_PATHS+=("$arg"); fi
             ;;
     esac
 done
 
-function build_assets {
-    echo "Building static assets..."
-    npm run build
+if [ "$SUITE" = "__missing__" ]; then echo "Error: --suite requires coordinator, powercrud, or all."; exit 1; fi
+if [ -n "$SUITE" ] && [[ ! "$SUITE" =~ ^(coordinator|powercrud|all)$ ]]; then echo "Error: unknown suite '$SUITE'."; exit 1; fi
+if [ "$COLLECT_ONLY" = "true" ] && { [ "$MODE" = "playwright" ] || [ "$REBUILD_ASSETS" = "true" ]; }; then
+    echo "Error: --collect-only cannot be combined with browser or asset-build options."
+    exit 1
+fi
+if [ -n "$SUITE" ] && [ "$COLLECT_ONLY" != "true" ] && [ "$MODE" != "pytest" ]; then
+    echo "Error: --suite can be used only with --pytest or --collect-only."
+    exit 1
+fi
+
+function normalize_path {
+    # Resolve directory aliases without interpreting parameterized node IDs as paths.
+    realpath -m --relative-to="$PWD" -- "${1%%::*}"
 }
+
+COORDINATOR_PATHS="false"
+POWERCRUD_PATHS="false"
+MINIMAL_PATHS="false"
+ORDINARY_POWERCRUD_PATHS="false"
+EXCLUDES_MINIMAL="false"
+MINIMAL_TEST_PATH="src/tests/test_minimal_settings_no_async.py"
+declare -a FOCUSED_PYTEST_OPTIONS=()
+declare -a NORMALIZED_TEST_PATHS=()
+for test_path in "${TEST_PATHS[@]}"; do
+    normalized_path="$(normalize_path "$test_path")"
+    node_selector=""
+    if [[ "$test_path" == *::* ]]; then node_selector="::${test_path#*::}"; fi
+    NORMALIZED_TEST_PATHS+=("$normalized_path$node_selector")
+    if [[ "$normalized_path" == "." || "$normalized_path" == "src" || "$normalized_path" =~ ^\.\.(\/\.\.)*$ ]]; then
+        echo "Error: '$test_path' contains both coordinator and PowerCRUD tests; use --suite all --pytest to run them separately."
+        exit 1
+    fi
+    if [[ "$normalized_path" == "src/coordinator_tests" || "$normalized_path" == src/coordinator_tests/* ]]; then
+        COORDINATOR_PATHS="true"
+    else
+        POWERCRUD_PATHS="true"
+        if [ "$normalized_path" = "$MINIMAL_TEST_PATH" ]; then
+            MINIMAL_PATHS="true"
+        else
+            ORDINARY_POWERCRUD_PATHS="true"
+        fi
+    fi
+    if [ "$normalized_path" = "src/tests" ]; then EXCLUDES_MINIMAL="true"; fi
+done
+TEST_PATHS=("${NORMALIZED_TEST_PATHS[@]}")
+
+if [ "$COORDINATOR_PATHS" = "true" ] && [ "$POWERCRUD_PATHS" = "true" ]; then
+    echo "Error: cannot mix coordinator and PowerCRUD test paths in one ./runtests call."
+    exit 1
+fi
+if [ "$MINIMAL_PATHS" = "true" ] && [ "$ORDINARY_POWERCRUD_PATHS" = "true" ]; then
+    echo "Error: minimal-settings tests must run separately from ordinary consumer tests."
+    exit 1
+fi
+if [ "$SUITE" = "all" ] && [ "${#TEST_PATHS[@]}" -gt 0 ]; then
+    echo "Error: --suite all cannot be combined with focused test paths."
+    exit 1
+fi
+if [ "$SUITE" = "coordinator" ] && [ "$POWERCRUD_PATHS" = "true" ]; then echo "Error: PowerCRUD paths require --suite powercrud."; exit 1; fi
+if [ "$SUITE" = "powercrud" ] && [ "$COORDINATOR_PATHS" = "true" ]; then echo "Error: coordinator paths require --suite coordinator."; exit 1; fi
+
+# Coordinator paths select their dedicated suite in every server invocation.
+# Consumer paths are inferred for pytest and collection; plain and browser
+# consumer invocations retain the existing focused-run behavior.
+if [ -z "$SUITE" ] && [ "${#TEST_PATHS[@]}" -gt 0 ]; then
+    if [ "$COORDINATOR_PATHS" = "true" ]; then
+        SUITE="coordinator"
+        if [ "$MODE" = "all" ]; then MODE="pytest"; fi
+    elif [ "$MODE" = "pytest" ] || [ "$COLLECT_ONLY" = "true" ]; then
+        SUITE="powercrud"
+    fi
+fi
+if [ "$SUITE" = "coordinator" ] && { [ "$MODE" = "playwright" ] || [ "$REBUILD_ASSETS" = "true" ]; }; then
+    echo "Error: coordinator tests cannot be combined with browser or asset-build options."
+    exit 1
+fi
+if [ "$SUITE" = "all" ] && [ "$MODE" = "playwright" ]; then
+    echo "Error: suite selection is for server tests; browser runs use ./runtests without --suite."
+    exit 1
+fi
+if [ -z "$SUITE" ] && [ "$COLLECT_ONLY" = "true" ]; then SUITE="all"; fi
+
+if [ "$EXCLUDES_MINIMAL" = "true" ]; then
+    FOCUSED_PYTEST_OPTIONS+=("--ignore=$MINIMAL_TEST_PATH")
+    echo "Note: directory selection excludes $MINIMAL_TEST_PATH; run it separately with ./runtests --pytest $MINIMAL_TEST_PATH."
+fi
 
 BOOTSTRAP_SERVER_TESTS=(
     src/tests/test_bootstrap_template_pack.py
@@ -72,7 +145,6 @@ BOOTSTRAP_SERVER_TESTS=(
     src/tests/test_inline_editing_mixin.py::test_generated_inline_m2m_requests_pack_multiselect_enhancement
     src/tests/test_bulk_view_mixin.py::test_bulk_field_info_uses_policy_owned_controls_for_selects
 )
-
 BOOTSTRAP_PLAYWRIGHT_TESTS=(
     src/tests/playwright/test_template_pack_behaviour_matrix.py::test_shared_favourite_application_uses_the_same_list_shell
     src/tests/playwright/test_bootstrap_modal_presentation.py
@@ -83,101 +155,163 @@ BOOTSTRAP_PLAYWRIGHT_TESTS=(
     src/tests/playwright/test_inline_editing.py::test_inline_widgets_inherit_cell_typography_and_searchable_select_opens
 )
 
+function build_assets { echo "Building static assets..."; npm run build; }
+function check_database_collation { python scripts/check_database_collation.py; }
 function run_bootstrap_server_tests {
-    echo "Running focused Bootstrap server coverage..."
     DJANGO_SETTINGS_MODULE=tests.settings_bootstrap python scripts/check_database_collation.py
-    DJANGO_SETTINGS_MODULE=tests.settings_bootstrap \
-        pytest -m "not playwright" --cov-append --no-cov-on-fail \
-        "${BOOTSTRAP_SERVER_TESTS[@]}"
+    local preflight_status=$?
+    if [ "$preflight_status" -ne 0 ]; then return "$preflight_status"; fi
+    DJANGO_SETTINGS_MODULE=tests.settings_bootstrap pytest -m "not playwright" --cov-append --no-cov-on-fail "${BOOTSTRAP_SERVER_TESTS[@]}"
 }
-
 function run_bootstrap_playwright_tests {
-    echo "Running focused Bootstrap browser coverage..."
     DJANGO_SETTINGS_MODULE=tests.settings_bootstrap python scripts/check_database_collation.py
-    DJANGO_SETTINGS_MODULE=tests.settings_bootstrap \
-        pytest -m playwright --cov-append --no-cov-on-fail \
-        "${BOOTSTRAP_PLAYWRIGHT_TESTS[@]}"
+    local preflight_status=$?
+    if [ "$preflight_status" -ne 0 ]; then return "$preflight_status"; fi
+    DJANGO_SETTINGS_MODULE=tests.settings_bootstrap pytest -m playwright --cov-append --no-cov-on-fail "${BOOTSTRAP_PLAYWRIGHT_TESTS[@]}"
 }
-
-function check_database_collation {
-    python scripts/check_database_collation.py
-}
-
-if [ "${#TEST_PATHS[@]}" -gt 0 ]; then
-    # An explicit settings module selects an intentional presentation-specific
-    # test environment, including for focused Playwright coverage. Fall back
-    # to the normal test settings only when the caller has not selected one.
-    if [ -z "${DJANGO_SETTINGS_MODULE:-}" ] || [ "${DJANGO_SETTINGS_MODULE:-}" = "config.settings" ]; then
-        use_minimal_settings="false"
-        use_default_settings="false"
-        for test_path in "${TEST_PATHS[@]}"; do
-            if [[ "$test_path" == *"minimal"* ]]; then
-                use_minimal_settings="true"
-            else
-                use_default_settings="true"
-            fi
-        done
-
-        if [ "$use_minimal_settings" = "true" ] && [ "$use_default_settings" = "true" ]; then
-            echo "Error: cannot mix minimal-settings tests with regular tests in one ./runtests call."
-            echo "Set DJANGO_SETTINGS_MODULE explicitly if you really want to override this safeguard."
-            exit 1
+function combine_server_coverage {
+    local input
+    for input in .coverage .test-artifacts/coverage/coordinator/.coverage; do
+        if [ ! -f "$input" ]; then
+            echo "Error: aggregate coverage requires both suite results; missing $input."
+            return 1
         fi
+    done
+    mkdir -p .test-artifacts/coverage/combined
+    coverage combine --keep --data-file=.test-artifacts/coverage/combined/.coverage .coverage .test-artifacts/coverage/coordinator/.coverage
+}
+function report_combined_coverage {
+    COVERAGE_FILE=.test-artifacts/coverage/combined/.coverage coverage html
+}
 
-        if [ "$use_minimal_settings" = "true" ]; then
-            export DJANGO_SETTINGS_MODULE=tests.settings_minimal
+function run_coordinator_suite {
+    export DJANGO_SETTINGS_MODULE=coordinator_tests.settings
+    export COVERAGE_FILE=.test-artifacts/coverage/coordinator/.coverage
+    if [ "$COLLECT_ONLY" = "true" ]; then
+        pytest -c pytest-coordinator.ini -o addopts= --collect-only "${TEST_PATHS[@]}"
+    else
+        mkdir -p .test-artifacts/coverage/coordinator
+        pytest -c pytest-coordinator.ini -m "not playwright" "${TEST_PATHS[@]}"
+    fi
+}
+
+function run_powercrud_suite {
+    export COVERAGE_FILE=.coverage
+    if [ "$COLLECT_ONLY" = "true" ]; then
+        if [ "${#TEST_PATHS[@]}" -gt 0 ]; then
+            if [ "$MINIMAL_PATHS" = "true" ]; then export DJANGO_SETTINGS_MODULE=tests.settings_minimal
+            elif [ -z "${DJANGO_SETTINGS_MODULE:-}" ] || [ "${DJANGO_SETTINGS_MODULE:-}" = "config.settings" ]; then export DJANGO_SETTINGS_MODULE=tests.settings
+            fi
+            pytest -c pytest.ini -o addopts= --collect-only "${FOCUSED_PYTEST_OPTIONS[@]}" "${TEST_PATHS[@]}"
         else
             export DJANGO_SETTINGS_MODULE=tests.settings
+            pytest -c pytest.ini -o addopts= --collect-only --ignore=src/tests/test_minimal_settings_no_async.py
         fi
+        return 0
     fi
-
+    if [ "${#TEST_PATHS[@]}" -gt 0 ]; then
+        if [ "$MINIMAL_PATHS" = "true" ]; then export DJANGO_SETTINGS_MODULE=tests.settings_minimal
+        elif [ -z "${DJANGO_SETTINGS_MODULE:-}" ] || [ "${DJANGO_SETTINGS_MODULE:-}" = "config.settings" ]; then export DJANGO_SETTINGS_MODULE=tests.settings
+        fi
+        if [ "$MODE" = "pytest" ]; then
+            check_database_collation
+            local preflight_status=$?
+            if [ "$preflight_status" -ne 0 ]; then return "$preflight_status"; fi
+            pytest -c pytest.ini -m "not playwright" "${FOCUSED_PYTEST_OPTIONS[@]}" "${TEST_PATHS[@]}"
+        elif [ "$MODE" = "playwright" ]; then
+            check_database_collation
+            local preflight_status=$?
+            if [ "$preflight_status" -ne 0 ]; then return "$preflight_status"; fi
+            build_assets
+            local asset_status=$?
+            if [ "$asset_status" -ne 0 ]; then return "$asset_status"; fi
+            pytest -c pytest.ini -m playwright --no-cov-on-fail "${FOCUSED_PYTEST_OPTIONS[@]}" "${TEST_PATHS[@]}"
+        else
+            pytest -c pytest.ini "${FOCUSED_PYTEST_OPTIONS[@]}" "${TEST_PATHS[@]}"
+        fi
+        return $?
+    fi
+    export DJANGO_SETTINGS_MODULE=tests.settings
+    rm -f .coverage
     check_database_collation
+    local preflight_status=$?
+    if [ "$preflight_status" -ne 0 ]; then return "$preflight_status"; fi
+    pytest -c pytest.ini -m "not playwright" --ignore=src/tests/test_minimal_settings_no_async.py
+    local consumer_status=$?
+    if [ "$consumer_status" -ne 0 ]; then return "$consumer_status"; fi
+    DJANGO_SETTINGS_MODULE=tests.settings_minimal COVERAGE_FILE=.coverage pytest -c pytest.ini -m "not playwright" --cov-append src/tests/test_minimal_settings_no_async.py
+    local minimal_status=$?
+    if [ "$minimal_status" -ne 0 ]; then return "$minimal_status"; fi
+    run_bootstrap_server_tests
+}
 
-    if [ "$MODE" = "playwright" ] || [ "$REBUILD_ASSETS" = "true" ]; then
-        build_assets
+if [ "$COLLECT_ONLY" = "true" ] || [ -n "$SUITE" ]; then
+    if [ "$REBUILD_ASSETS" = "true" ]; then build_assets; fi
+    if [ "$SUITE" = "coordinator" ]; then run_coordinator_suite; exit $?; fi
+    if [ "$SUITE" = "powercrud" ]; then run_powercrud_suite; exit $?; fi
+    if [ "$SUITE" = "all" ]; then
+        if [ "$COLLECT_ONLY" = "true" ]; then
+            run_powercrud_suite
+            run_coordinator_suite
+            exit 0
+        fi
+        run_powercrud_suite
+        run_coordinator_suite
+        combine_server_coverage
+        report_combined_coverage
+        exit 0
     fi
+fi
 
-    if [ "$MODE" = "pytest" ]; then
-        pytest -m "not playwright" "${TEST_PATHS[@]}"
-    elif [ "$MODE" = "playwright" ]; then
-        pytest -m playwright --no-cov-on-fail "${TEST_PATHS[@]}"
+if [ "${#TEST_PATHS[@]}" -gt 0 ] && [ -z "$SUITE" ]; then
+    export COVERAGE_FILE=.coverage
+    if [ "$MINIMAL_PATHS" = "true" ]; then
+        export DJANGO_SETTINGS_MODULE=tests.settings_minimal
+    elif [ -z "${DJANGO_SETTINGS_MODULE:-}" ] || [ "${DJANGO_SETTINGS_MODULE:-}" = "config.settings" ]; then
+        export DJANGO_SETTINGS_MODULE=tests.settings
+    fi
+    check_database_collation
+    if [ "$REBUILD_ASSETS" = "true" ] || [ "$MODE" = "playwright" ]; then build_assets; fi
+    if [ "$MODE" = "playwright" ]; then
+        pytest -c pytest.ini -m playwright --no-cov-on-fail "${FOCUSED_PYTEST_OPTIONS[@]}" "${TEST_PATHS[@]}"
+    elif [ "$MODE" = "pytest" ]; then
+        pytest -c pytest.ini -m "not playwright" "${FOCUSED_PYTEST_OPTIONS[@]}" "${TEST_PATHS[@]}"
     else
-        pytest "${TEST_PATHS[@]}"
+        pytest -c pytest.ini "${FOCUSED_PYTEST_OPTIONS[@]}" "${TEST_PATHS[@]}"
     fi
     exit $?
 fi
 
-# Default suites use the lightweight settings; focused pack coverage selects
-# its explicit settings overlay for the duration of each pytest command.
-export DJANGO_SETTINGS_MODULE=tests.settings
-check_database_collation
-
-# delete any existing coverage reports
-coverage erase
-rm -rf htmlcov
-rm -f coverage.xml
-
 if [ "$MODE" = "pytest" ]; then
-    if [ "$REBUILD_ASSETS" = "true" ]; then
-        build_assets
-    fi
-    pytest -m "not playwright"
-    run_bootstrap_server_tests
-elif [ "$MODE" = "playwright" ]; then
+    if [ "$REBUILD_ASSETS" = "true" ]; then build_assets; fi
+    run_powercrud_suite
+    run_coordinator_suite
+    combine_server_coverage
+    report_combined_coverage
+    exit 0
+fi
+
+if [ "$MODE" = "playwright" ]; then
+    export DJANGO_SETTINGS_MODULE=tests.settings
+    export COVERAGE_FILE=.coverage
+    check_database_collation
     build_assets
     pytest -m playwright --no-cov-on-fail
     run_bootstrap_playwright_tests
-else
-    # Core + async suite with coverage (skips Playwright)
-    pytest -m "not playwright"
-    run_bootstrap_server_tests
-
-    # Ensure the built bundle exists for manifest mode
-    build_assets
-
-    # Playwright UI checks
-    pytest -m playwright --cov-append --no-cov-on-fail
-    run_bootstrap_playwright_tests
+    exit 0
 fi
 
-coverage html
+# The full default workflow runs both server suites before building browser assets.
+export DJANGO_SETTINGS_MODULE=tests.settings
+rm -rf htmlcov
+rm -f coverage.xml
+run_powercrud_suite
+run_coordinator_suite
+combine_server_coverage
+build_assets
+export DJANGO_SETTINGS_MODULE=tests.settings
+export COVERAGE_FILE=.coverage
+pytest -c pytest.ini -m playwright --cov-append --no-cov-on-fail
+run_bootstrap_playwright_tests
+combine_server_coverage
+report_combined_coverage

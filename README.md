@@ -142,7 +142,7 @@ Here async queueing is explicit: you opt in by using `PowerCRUDAsyncMixin`, enab
 - **Sample app** – complete walkthrough of every feature.  
 - **Docker dev environment** – Django, Postgres, Redis, Vite, django-q2.  
 - **Management commands** – template and pack scaffolding, Tailwind safelist extraction, async cleanup.
-- **Testing** – pytest matrix, blocking Playwright smoke tests, and a fuller local browser regression suite.
+- **Testing** – [suite selection, focused commands, coverage, and browser testing](https://doctor-cornelius.github.io/django-powercrud/reference/testing/).
 
 ## Supported Versions
 
@@ -160,7 +160,8 @@ PowerCRUD’s development environment is Docker-first. From the project root:
 
 ```bash
 ./runproj up          # build images, start services, enter the Django container
-./runtests           # run the full local suite, including Playwright and focused Bootstrap coverage
+./runproj exec "./runtests --pytest"  # run both server suites and focused Bootstrap server coverage
+./runproj exec "./runtests"           # run server suites, build assets, and run browser suites
 ```
 
 Dependencies are managed with [`uv`](https://github.com/astral-sh/uv); the Docker image installs them into the system interpreter so you never need to activate a virtual environment inside the container. See the [Dockerised Development Environment guide](https://doctor-cornelius.github.io/django-powercrud/reference/dockerised_dev/) for full details.

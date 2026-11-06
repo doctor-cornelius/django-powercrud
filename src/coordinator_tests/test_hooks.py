@@ -18,24 +18,24 @@ class DummyTask(SimpleNamespace):
 
 def test_parse_task_kwargs_handles_json():
     task = DummyTask(kwargs=json.dumps({"foo": "bar"}))
-    assert _parse_task_kwargs(task) == {"foo": "bar"}
+    assert _parse_task_kwargs(task) == {"foo": "bar"}, "JSON task kwargs should be parsed"
 
     task.kwargs = "{'foo': 'bar'}"
-    assert _parse_task_kwargs(task)["foo"] == "bar"
+    assert _parse_task_kwargs(task)["foo"] == "bar", "Python-dict task kwargs should remain supported"
 
     task.kwargs = object()
-    assert _parse_task_kwargs(task) == {}
+    assert _parse_task_kwargs(task) == {}, "Unusable task kwargs should produce an empty mapping"
 
 
 def test_extract_manager_helpers():
     task = DummyTask(
         kwargs={"manager_class": "module.Manager", "manager_config": {"foo": "bar"}}
     )
-    assert _extract_manager_class_path(task) == "module.Manager"
-    assert _extract_manager_config(task) == {"foo": "bar"}
+    assert _extract_manager_class_path(task) == "module.Manager", "Manager class path should be extracted"
+    assert _extract_manager_config(task) == {"foo": "bar"}, "Manager configuration should be extracted"
 
     task.kwargs = {"manager_config": "not-a-dict"}
-    assert _extract_manager_config(task) is None
+    assert _extract_manager_config(task) is None, "Non-dict manager config should be ignored"
 
 
 def test_progress_update_decorator(monkeypatch):
@@ -55,5 +55,5 @@ def test_progress_update_decorator(monkeypatch):
             progress_callback(f"Processed {item}")
         return True
 
-    assert worker([1, 2], task_name="task-123") is True
-    assert updates["task-123"] == ["Processed 1", "Processed 2"]
+    assert worker([1, 2], task_name="task-123") is True, "Decorator should preserve worker result"
+    assert updates["task-123"] == ["Processed 1", "Processed 2"], "Decorator should forward progress messages"

@@ -81,8 +81,14 @@ jobs:
           PYTHON="$(python -c 'import sys; print(sys.executable)')"
           uv pip install --python "$PYTHON" --constraint "${{ matrix.constraints-file }}" ".[tests-core]"
 
-      - name: Run pytest
-        run: pytest -m "not playwright"
+      - name: Run PowerCRUD consumer suite
+        run: pytest -c pytest.ini -m "not playwright" --ignore=src/tests/test_minimal_settings_no_async.py
+
+      - name: Run minimal-settings consumer coverage
+        env:
+          DJANGO_SETTINGS_MODULE: tests.settings_minimal
+          COVERAGE_FILE: .coverage
+        run: pytest -c pytest.ini -m "not playwright" --cov-append src/tests/test_minimal_settings_no_async.py
 
       - name: Run focused Bootstrap server coverage
         if: matrix.python-version == '3.14'
@@ -97,9 +103,35 @@ jobs:
             src/tests/test_inline_editing_mixin.py::test_generated_inline_m2m_requests_pack_multiselect_enhancement \
             src/tests/test_bulk_view_mixin.py::test_bulk_field_info_uses_policy_owned_controls_for_selects
 
+      - name: Run coordinator suite
+        env:
+          DJANGO_SETTINGS_MODULE: coordinator_tests.settings
+          COVERAGE_FILE: .test-artifacts/coverage/coordinator/.coverage
+        run: pytest -c pytest-coordinator.ini --cov-report=xml:.test-artifacts/coverage/coordinator/coverage.xml
+
       - name: Preserve canonical core coverage data
         if: matrix.python-version == '3.14' && matrix.django == '6.1'
-        run: cp .coverage coverage-core.sqlite
+        run: |
+          cp .coverage coverage-consumer.sqlite
+          cp .test-artifacts/coverage/coordinator/.coverage coverage-coordinator.sqlite
+          mkdir -p .test-artifacts/coverage/combined
+          test -f .coverage && test -f .test-artifacts/coverage/coordinator/.coverage
+          coverage combine --keep --data-file=.test-artifacts/coverage/combined/.coverage .coverage .test-artifacts/coverage/coordinator/.coverage
+          cp .test-artifacts/coverage/combined/.coverage coverage-core.sqlite
+
+      - name: Upload canonical consumer coverage data
+        if: matrix.python-version == '3.14' && matrix.django == '6.1'
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-consumer-py314-django61
+          path: coverage-consumer.sqlite
+
+      - name: Upload canonical coordinator coverage data
+        if: matrix.python-version == '3.14' && matrix.django == '6.1'
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-coordinator-py314-django61
+          path: coverage-coordinator.sqlite
 
       - name: Upload canonical core coverage data
         if: matrix.python-version == '3.14' && matrix.django == '6.1'
