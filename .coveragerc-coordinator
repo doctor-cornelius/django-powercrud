@@ -1,0 +1,7 @@
+[run]
+data_file = .test-artifacts/coverage/coordinator/.coverage
+include =
+    */src/powercrud/async_manager.py
+    */src/powercrud/async_context.py
+    */src/powercrud/async_hooks.py
+    */src/powercrud/async_dashboard.py

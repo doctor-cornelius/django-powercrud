@@ -70,6 +70,7 @@ htmlcov/
 .nox/
 .coverage
 .coverage.*
+.test-artifacts/coverage/
 .cache
 nosetests.xml
 coverage.xml

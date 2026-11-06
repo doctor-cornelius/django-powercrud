@@ -23,11 +23,25 @@ def scroll_table_horizontally(page, *, to_end: bool = True) -> None:
 
 
 def close_modal_and_wait_for_settle(page, modal) -> None:
-    """Close a modal and wait for its animations and queued layout events."""
+    """Wait for close completion before reopening menus affected by modal scrolling."""
+    # Bootstrap becomes invisible before its backdrop/scrollbar cleanup finishes.
+    # Register before clicking so either pack's close event cannot be missed.
+    modal.evaluate(
+        """dialog => {
+            dialog.dataset.powercrudTestCloseComplete = 'false';
+            const eventName = dialog instanceof HTMLDialogElement
+                ? 'close' : 'hidden.bs.modal';
+            dialog.addEventListener(eventName, () => {
+                dialog.dataset.powercrudTestCloseComplete = 'true';
+            }, { once: true });
+        }"""
+    )
     modal.locator("[aria-label='Close modal'], [aria-label='Close']").first.click()
     expect(modal).not_to_be_visible()
+    expect(modal).to_have_attribute("data-powercrud-test-close-complete", "true")
     modal.evaluate(
         """async dialog => {
+            delete dialog.dataset.powercrudTestCloseComplete;
             await Promise.all(
                 dialog.getAnimations({ subtree: true })
                     .map(animation => animation.finished.catch(() => {}))
