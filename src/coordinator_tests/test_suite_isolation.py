@@ -9,3 +9,4 @@ def test_coordinator_uses_owned_django_configuration():
     assert "coordinator_tests.testapp.apps.CoordinatorTestAppConfig" in installed, "Coordinator test app must be installed"
     assert "powercrud" not in installed, "PowerCRUD must not be installed in coordinator settings"
     assert "sample" not in installed, "Sample app must not be installed in coordinator settings"
+    assert not hasattr(settings, "POWERCRUD_SETTINGS"), "Coordinator settings must not define PowerCRUD settings"

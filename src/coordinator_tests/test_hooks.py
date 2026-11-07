@@ -4,12 +4,7 @@ import json
 from types import SimpleNamespace
 
 
-from powercrud.async_hooks import (
-    _extract_manager_class_path,
-    _extract_manager_config,
-    _parse_task_kwargs,
-    progress_update_decorator,
-)
+from powercrud._coordinator.q2 import Q2Adapter
 
 
 class DummyTask(SimpleNamespace):
@@ -18,42 +13,23 @@ class DummyTask(SimpleNamespace):
 
 def test_parse_task_kwargs_handles_json():
     task = DummyTask(kwargs=json.dumps({"foo": "bar"}))
-    assert _parse_task_kwargs(task) == {"foo": "bar"}, "JSON task kwargs should be parsed"
+    assert Q2Adapter().parse_task_kwargs(task) == {"foo": "bar"}, "JSON task kwargs should be parsed"
 
     task.kwargs = "{'foo': 'bar'}"
-    assert _parse_task_kwargs(task)["foo"] == "bar", "Python-dict task kwargs should remain supported"
+    assert Q2Adapter().parse_task_kwargs(task)["foo"] == "bar", "Python-dict task kwargs should remain supported"
 
     task.kwargs = object()
-    assert _parse_task_kwargs(task) == {}, "Unusable task kwargs should produce an empty mapping"
+    assert Q2Adapter().parse_task_kwargs(task) == {}, "Unusable task kwargs should produce an empty mapping"
 
 
 def test_extract_manager_helpers():
     task = DummyTask(
         kwargs={"manager_class": "module.Manager", "manager_config": {"foo": "bar"}}
     )
-    assert _extract_manager_class_path(task) == "module.Manager", "Manager class path should be extracted"
-    assert _extract_manager_config(task) == {"foo": "bar"}, "Manager configuration should be extracted"
+    path, config = Q2Adapter().extract_manager_metadata(task)
+    assert path == "module.Manager", "Manager class path should be extracted"
+    assert config == {"foo": "bar"}, "Manager configuration should be extracted"
 
     task.kwargs = {"manager_config": "not-a-dict"}
-    assert _extract_manager_config(task) is None, "Non-dict manager config should be ignored"
-
-
-def test_progress_update_decorator(monkeypatch):
-    updates = {}
-
-    class FakeManager:
-        def update_progress(self, task_name, message):
-            updates.setdefault(task_name, []).append(message)
-
-    monkeypatch.setattr(
-        "powercrud.async_manager.AsyncManager", lambda: FakeManager(), raising=False
-    )
-
-    @progress_update_decorator
-    def worker(data, progress_callback=None, **kwargs):
-        for item in data:
-            progress_callback(f"Processed {item}")
-        return True
-
-    assert worker([1, 2], task_name="task-123") is True, "Decorator should preserve worker result"
-    assert updates["task-123"] == ["Processed 1", "Processed 2"], "Decorator should forward progress messages"
+    _path, config = Q2Adapter().extract_manager_metadata(task)
+    assert config is None, "Non-dict manager config should be ignored"

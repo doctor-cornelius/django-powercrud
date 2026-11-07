@@ -29,5 +29,13 @@ def reject_powercrud_consumer_imports():
         or module_name.startswith("powercrud.mixins.")
         or module_name == "powercrud.views"
         or module_name.startswith("powercrud.views.")
+        or module_name in {
+            "powercrud.conf",
+            "powercrud.logging",
+            "powercrud.async_manager",
+            "powercrud.async_hooks",
+            "powercrud.async_context",
+            "powercrud.async_dashboard",
+        }
     ]
     assert not forbidden, f"Coordinator suite imported consumer modules: {forbidden}"

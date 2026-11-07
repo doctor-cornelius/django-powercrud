@@ -8,9 +8,12 @@ from unittest.mock import Mock, patch
 from django.test import RequestFactory, TestCase
 from django.utils import timezone
 
-from powercrud.async_manager import AsyncManager
-from powercrud.async_dashboard import AsyncDashboardConfig, ModelTrackingAsyncManager
-from powercrud.async_hooks import _extract_manager_class_path, task_completion_hook
+from coordinator_tests.managers import CoordinatorAsyncManager as AsyncManager
+from coordinator_tests.managers import CoordinatorTrackingManager as ModelTrackingAsyncManager
+from powercrud._coordinator.tracking import AsyncDashboardConfig
+from powercrud._coordinator.q2 import Q2Adapter
+from powercrud._coordinator.types import Completion
+from coordinator_tests.managers import coordinator_manager_factory
 from coordinator_tests.testapp.models import AsyncTaskRecord
 from coordinator_tests.workers import simple_test_worker
 
@@ -60,8 +63,8 @@ class TestCleanupUtilities(AsyncManagerTestMixin, TestCase):
         conflict_ids = {"coordinator_testapp.Book": {42}}
         self._prepare_active_task(task_name, conflict_ids)
 
-        with patch("powercrud.async_manager.Task") as mock_task_model:
-            mock_task_model.objects.filter.return_value.first.return_value = (
+        with patch("powercrud._coordinator.q2.task_model") as mock_task_model:
+            mock_task_model.return_value.objects.filter.return_value.first.return_value = (
                 SimpleNamespace(
                     success=True,
                     result={"ok": True},
@@ -85,8 +88,8 @@ class TestCleanupUtilities(AsyncManagerTestMixin, TestCase):
         conflict_ids = {"coordinator_testapp.Book": {99}}
         self._prepare_active_task(task_name, conflict_ids)
 
-        with patch("powercrud.async_manager.Task") as mock_task_model:
-            mock_task_model.objects.filter.return_value.first.return_value = (
+        with patch("powercrud._coordinator.q2.task_model") as mock_task_model:
+            mock_task_model.return_value.objects.filter.return_value.first.return_value = (
                 SimpleNamespace(
                     success=None,
                     started=timezone.now(),
@@ -107,14 +110,14 @@ class TestTask3LaunchPattern(AsyncManagerTestMixin, TestCase):
             return f"Processed: {message}"
 
         # Launch task without conflicts
-        with patch("powercrud.async_manager.async_task") as mock_async_task:
+        with patch("powercrud._coordinator.q2.async_task") as mock_async_task:
             mock_async_task.return_value = "django_q2_task_123"
 
             with patch.object(
                 self.async_manager, "async_task_lifecycle"
             ) as mock_lifecycle:
-                task_key = self.async_manager.launch_async_task(
-                    func=dummy_worker, message="test message", user="test_user"
+                task_key = self.async_manager.launch(
+                    dummy_worker, worker_kwargs={"message": "test message"}, user="test_user"
                 )
 
             # Verify task_key is a UUID
@@ -131,7 +134,7 @@ class TestTask3LaunchPattern(AsyncManagerTestMixin, TestCase):
 
             # Check hook and task_name
             self.assertEqual(
-                call_args[1]["hook"], "powercrud.async_hooks.task_completion_hook"
+                call_args[1]["hook"], "powercrud._coordinator.q2.task_completion_hook"
             )
             self.assertEqual(call_args[1]["task_name"], task_key)
 
@@ -147,6 +150,29 @@ class TestTask3LaunchPattern(AsyncManagerTestMixin, TestCase):
             )
             self.assertEqual(lifecycle_kwargs["message"], "Task queued")
 
+    def test_internal_launch_transports_snapshot_and_preserves_uuid_argument(self):
+        """The core API carries reconstruction data without consuming worker args."""
+        literal_uuid = str(uuid.uuid4())
+
+        def dummy_worker(value, **kwargs):
+            return value
+
+        with patch("powercrud._coordinator.q2.async_task", return_value="execution-id") as enqueue:
+            task_key = self.async_manager.launch(
+                dummy_worker,
+                literal_uuid,
+                task_key="logical-key",
+                execution_options={"sync": True},
+            )
+        self.assertEqual(task_key, "logical-key", "Core launch must return its logical key")
+        self.assertEqual(enqueue.call_args.args[1], literal_uuid, "A UUID positional worker value must remain intact")
+        kwargs = enqueue.call_args.kwargs
+        self.assertEqual(kwargs["task_name"], "logical-key", "The logical key must be q2's task name")
+        self.assertEqual(kwargs["task_key"], "logical-key", "The worker must receive the logical key")
+        self.assertEqual(kwargs["manager_class"], f"{type(self.async_manager).__module__}.{type(self.async_manager).__qualname__}")
+        self.assertEqual(kwargs["_coordinator_config"]["version"], 1, "The worker must receive a versioned snapshot")
+        self.assertEqual(kwargs["hook"], "powercrud._coordinator.q2.task_completion_hook", "Core launch must use the internal hook")
+
     def test_launch_async_task_with_conflict_ids_success(self):
         """Test successful launch with conflict reservation."""
 
@@ -155,11 +181,11 @@ class TestTask3LaunchPattern(AsyncManagerTestMixin, TestCase):
 
         conflict_ids = {"myapp.Book": {1, 2, 3}}
 
-        with patch("powercrud.async_manager.async_task") as mock_async_task:
+        with patch("powercrud._coordinator.q2.async_task") as mock_async_task:
             mock_async_task.return_value = "django_q2_task_456"
 
-            task_key = self.async_manager.launch_async_task(
-                func=dummy_worker,
+            task_key = self.async_manager.launch(
+                dummy_worker,
                 conflict_ids=conflict_ids,
                 user="test_user",
                 affected_objects=["Book:1", "Book:2", "Book:3"],
@@ -209,10 +235,10 @@ class TestTask3LaunchPattern(AsyncManagerTestMixin, TestCase):
         # Test: Try to launch with overlapping conflict
         conflict_ids = {"myapp.Book": {1, 2, 4}}  # 2 conflicts with existing
 
-        with patch("powercrud.async_manager.async_task") as mock_async_task:
+        with patch("powercrud._coordinator.q2.async_task") as mock_async_task:
             with self.assertRaises(Exception) as cm:
-                self.async_manager.launch_async_task(
-                    func=dummy_worker, conflict_ids=conflict_ids
+                self.async_manager.launch(
+                    dummy_worker, conflict_ids=conflict_ids
                 )
 
             # Verify exception message
@@ -243,7 +269,7 @@ class TestTask3LaunchPattern(AsyncManagerTestMixin, TestCase):
         self.assertIsInstance(instance, DummyCustomManager)
 
     def test_resolve_manager_with_config(self):
-        path = "powercrud.async_dashboard.ModelTrackingAsyncManager"
+        path = "coordinator_tests.managers.CoordinatorTrackingManager"
         instance = AsyncManager.resolve_manager(
             path,
             config={"record_model_path": "coordinator_testapp.AsyncTaskRecord"},
@@ -263,12 +289,12 @@ class TestTask3LaunchPattern(AsyncManagerTestMixin, TestCase):
         conflict_ids = {"myapp.Book": {10, 11}}
 
         # Test 1: async_task raises exception
-        with patch("powercrud.async_manager.async_task") as mock_async_task:
+        with patch("powercrud._coordinator.q2.async_task") as mock_async_task:
             mock_async_task.side_effect = Exception("Enqueue failed!")
 
             with self.assertRaises(Exception) as cm:
-                self.async_manager.launch_async_task(
-                    func=dummy_worker, conflict_ids=conflict_ids
+                self.async_manager.launch(
+                    dummy_worker, conflict_ids=conflict_ids
                 )
 
             self.assertIn("Failed to enqueue async task", str(cm.exception))
@@ -284,12 +310,12 @@ class TestTask3LaunchPattern(AsyncManagerTestMixin, TestCase):
             self.assertIsNone(lock_11)
 
         # Test 2: async_task returns falsy
-        with patch("powercrud.async_manager.async_task") as mock_async_task:
+        with patch("powercrud._coordinator.q2.async_task") as mock_async_task:
             mock_async_task.return_value = None  # Falsy return
 
             with self.assertRaises(Exception) as cm:
-                self.async_manager.launch_async_task(
-                    func=dummy_worker, conflict_ids=conflict_ids
+                self.async_manager.launch(
+                    dummy_worker, conflict_ids=conflict_ids
                 )
 
             self.assertIn("returned falsy task_id", str(cm.exception))
@@ -300,11 +326,11 @@ class TestTask3LaunchPattern(AsyncManagerTestMixin, TestCase):
         def dummy_worker(data, task_key=None, **kwargs):
             return f"Received task_key: {task_key}"
 
-        with patch("powercrud.async_manager.async_task") as mock_async_task:
+        with patch("powercrud._coordinator.q2.async_task") as mock_async_task:
             mock_async_task.return_value = "django_q2_task_789"
 
-            returned_task_key = self.async_manager.launch_async_task(
-                func=dummy_worker, data="test"
+            returned_task_key = self.async_manager.launch(
+                dummy_worker, worker_kwargs={"data": "test"}
             )
 
             # Verify the same task_key was used for task_name
@@ -328,19 +354,19 @@ class TestTask3CompletionHooks(AsyncManagerTestMixin, TestCase):
         def dummy_worker():
             return "test"
 
-        with patch("powercrud.async_manager.async_task") as mock_async_task:
+        with patch("powercrud._coordinator.q2.async_task") as mock_async_task:
             mock_async_task.return_value = "task_id_hook_test"
 
-            self.async_manager.launch_async_task(func=dummy_worker)
+            self.async_manager.launch(dummy_worker)
 
             # Verify hook parameter was passed correctly
             call_args = mock_async_task.call_args
             hook_arg = call_args[1]["hook"]
 
-            self.assertEqual(hook_arg, "powercrud.async_hooks.task_completion_hook")
+            self.assertEqual(hook_arg, "powercrud._coordinator.q2.task_completion_hook")
 
-    def test_handle_task_completion_customizable(self):
-        """Test that downstream projects can override completion behavior."""
+    def test_core_completion_customizable(self):
+        """Downstream core managers can override normalized completion behavior."""
 
         class CustomAsyncManager(AsyncManager):
             def __init__(self):
@@ -348,19 +374,13 @@ class TestTask3CompletionHooks(AsyncManagerTestMixin, TestCase):
                 self.completion_called = False
                 self.completion_task_key = None
 
-            def handle_task_completion(self, task, task_key: str):
+            def complete(self, completion):
+                """Record the logical key supplied by normalized completion."""
                 self.completion_called = True
-                self.completion_task_key = task_key
-
-        # Create mock Task object
-        mock_task = type(
-            "MockTask",
-            (),
-            {"name": "test_task_key_123", "id": "mock_task_id", "success": True},
-        )()
+                self.completion_task_key = completion.task_key
 
         custom_manager = CustomAsyncManager()
-        custom_manager.handle_task_completion(mock_task, "test_task_key_123")
+        custom_manager.complete(Completion(task_key="test_task_key_123", success=True))
 
         # Verify custom method was called
         self.assertTrue(custom_manager.completion_called)
@@ -381,11 +401,11 @@ class TestTask3CompletionHooks(AsyncManagerTestMixin, TestCase):
 
         manager = LifecycleTrackingManager()
 
-        with patch("powercrud.async_manager.async_task") as mock_async_task:
+        with patch("powercrud._coordinator.q2.async_task") as mock_async_task:
             mock_async_task.return_value = "lifecycle_test_task"
 
-            task_key = manager.launch_async_task(
-                func=lambda: "test", user="test_user", affected_objects=["obj1", "obj2"]
+            task_key = manager.launch(
+                lambda: "test", user="test_user", affected_objects=["obj1", "obj2"]
             )
 
             # Verify 'create' event was fired
@@ -400,7 +420,8 @@ class TestTask3CompletionHooks(AsyncManagerTestMixin, TestCase):
                 event["kwargs"]["django_q2_task_id"], "lifecycle_test_task"
             )
 
-    def test_handle_task_completion_emits_events(self):
+    def test_core_completion_emits_events(self):
+        """Normalized successful completion preserves lifecycle payloads."""
         class TrackingManager(AsyncManager):
             def __init__(self):
                 super().__init__()
@@ -410,10 +431,8 @@ class TestTask3CompletionHooks(AsyncManagerTestMixin, TestCase):
                 self.events.append((event, task_name, kwargs))
 
         manager = TrackingManager()
-        mock_task = type("MockTask", (), {"success": True, "result": "ok"})()
-
         with patch.object(manager, "remove_active_task", return_value=True):
-            manager.handle_task_completion(mock_task, "task-123")
+            manager.complete(Completion(task_key="task-123", success=True, result="ok"))
 
         event_names = [call[0] for call in manager.events]
         self.assertIn("complete", event_names)
@@ -424,7 +443,8 @@ class TestTask3CompletionHooks(AsyncManagerTestMixin, TestCase):
         self.assertEqual(complete_kwargs["status"], manager.STATUSES.SUCCESS)
         self.assertEqual(complete_kwargs["message"], "Task completed successfully")
 
-    def test_handle_task_completion_failure_event(self):
+    def test_core_completion_failure_event(self):
+        """Normalized failed completion preserves failure message and status."""
         class TrackingManager(AsyncManager):
             def __init__(self):
                 super().__init__()
@@ -434,10 +454,8 @@ class TestTask3CompletionHooks(AsyncManagerTestMixin, TestCase):
                 self.events.append((event, task_name, kwargs))
 
         manager = TrackingManager()
-        mock_task = type("MockTask", (), {"success": False, "result": "boom"})()
-
         with patch.object(manager, "remove_active_task", return_value=True):
-            manager.handle_task_completion(mock_task, "task-456")
+            manager.complete(Completion(task_key="task-456", success=False, result="boom"))
 
         event_names = [call[0] for call in manager.events]
         self.assertIn("fail", event_names)
@@ -500,11 +518,11 @@ class TestTask3ProgressIntegration(AsyncManagerTestMixin, TestCase):
             received_kwargs.update(kwargs)
             return "captured"
 
-        with patch("powercrud.async_manager.async_task") as mock_async_task:
+        with patch("powercrud._coordinator.q2.async_task") as mock_async_task:
             mock_async_task.return_value = "worker_kwargs_test"
 
-            task_key = self.async_manager.launch_async_task(
-                func=capturing_worker, test_param="test_value"
+            task_key = self.async_manager.launch(
+                capturing_worker, worker_kwargs={"test_param": "test_value"}
             )
 
             # Check that task_key was added to kwargs passed to async_task
@@ -528,7 +546,7 @@ class TestTask3StatusMethods(AsyncManagerTestMixin, TestCase):
         mock_running_task = type("MockTask", (), {"success": None, "id": task_id})()
 
         # Test blocking method with successful task
-        with patch("powercrud.async_manager.fetch") as mock_fetch:
+        with patch("powercrud._coordinator.q2.fetch") as mock_fetch:
             mock_fetch.return_value = mock_success_task
 
             status = self.async_manager.get_task_status(task_id)
@@ -538,7 +556,7 @@ class TestTask3StatusMethods(AsyncManagerTestMixin, TestCase):
             mock_fetch.assert_called_with(task_id, wait=300)
 
         # Test non-blocking method with running task
-        with patch("powercrud.async_manager.fetch") as mock_fetch:
+        with patch("powercrud._coordinator.q2.fetch") as mock_fetch:
             mock_fetch.return_value = mock_running_task
 
             status = self.async_manager.get_task_status_nowait(task_id)
@@ -548,7 +566,7 @@ class TestTask3StatusMethods(AsyncManagerTestMixin, TestCase):
             mock_fetch.assert_called_with(task_id, wait=0)
 
         # Test no task found
-        with patch("powercrud.async_manager.fetch") as mock_fetch:
+        with patch("powercrud._coordinator.q2.fetch") as mock_fetch:
             mock_fetch.return_value = None
 
             status_blocking = self.async_manager.get_task_status(task_id)
@@ -572,10 +590,10 @@ class TestTask3EndToEndIntegration(AsyncManagerTestMixin, TestCase):
             )
             return "mock_django_q_task_id"
 
-        with patch("powercrud.async_manager.async_task", side_effect=run_sync):
-            task_key = self.async_manager.launch_async_task(
-                func=simple_test_worker,
-                message="E2E Test Message",
+        with patch("powercrud._coordinator.q2.async_task", side_effect=run_sync):
+            task_key = self.async_manager.launch(
+                simple_test_worker,
+                worker_kwargs={"message": "E2E Test Message"},
                 user="e2e_test_user",
             )
 
@@ -607,7 +625,7 @@ class TestProgressPolling(AsyncManagerTestMixin, TestCase):
 
     def test_as_view_missing_task_name(self):
         """Test as_view returns 400 when task_name is missing."""
-        view = AsyncManager.as_view()
+        view = AsyncManager.as_view(manager_factory=coordinator_manager_factory)
         request = self.factory.get("/progress/")
         response = view(request)
 
@@ -624,7 +642,7 @@ class TestProgressPolling(AsyncManagerTestMixin, TestCase):
         manager = AsyncManager()
         manager.update_progress(self.task_name, self.progress_data)
 
-        view = AsyncManager.as_view()
+        view = AsyncManager.as_view(manager_factory=coordinator_manager_factory)
         request = self.factory.get(f"/progress/?task_name={self.task_name}")
         response = view(request)
 
@@ -642,7 +660,7 @@ class TestProgressPolling(AsyncManagerTestMixin, TestCase):
         with patch.object(
             AsyncManager, "get_task_status_nowait", return_value="success"
         ):
-            view = AsyncManager.as_view()
+            view = AsyncManager.as_view(manager_factory=coordinator_manager_factory)
             request = self.factory.get(f"/progress/?task_name={self.task_name}")
             response = view(request)
 
@@ -657,7 +675,7 @@ class TestProgressPolling(AsyncManagerTestMixin, TestCase):
     def test_as_view_unknown_status(self):
         """When cache indicates completion but status lookup returns None, treat as success."""
         with patch.object(AsyncManager, "get_task_status_nowait", return_value=None):
-            view = AsyncManager.as_view()
+            view = AsyncManager.as_view(manager_factory=coordinator_manager_factory)
             request = self.factory.get(f"/progress/?task_name={self.task_name}")
             response = view(request)
 
@@ -676,7 +694,7 @@ class TestProgressPolling(AsyncManagerTestMixin, TestCase):
         with patch.object(
             AsyncManager, "get_progress", side_effect=Exception("Test error")
         ):
-            view = AsyncManager.as_view()
+            view = AsyncManager.as_view(manager_factory=coordinator_manager_factory)
             request = self.factory.get(f"/progress/?task_name={self.task_name}")
             response = view(request)
 
@@ -695,16 +713,16 @@ class TestProgressPolling(AsyncManagerTestMixin, TestCase):
             manager.update_progress(task_key, self.progress_data)
             return "done"
 
-        with patch("powercrud.async_manager.async_task") as mock_async:
+        with patch("powercrud._coordinator.q2.async_task") as mock_async:
             mock_async.return_value = "mock_task_id"
-            task_id = self.async_manager.launch_async_task(func=dummy_worker)
+            task_id = self.async_manager.launch(dummy_worker)
 
         # Since we're mocking async_task, the dummy_worker doesn't actually run
         # So we need to manually set the progress data for this test
         self.async_manager.update_progress(task_id, self.progress_data)
 
         # Now test the view with this task_id
-        view = AsyncManager.as_view()
+        view = AsyncManager.as_view(manager_factory=coordinator_manager_factory)
         request = self.factory.get(f"/progress/?task_name={task_id}")
         response = view(request)
 
@@ -719,7 +737,7 @@ class TestProgressPolling(AsyncManagerTestMixin, TestCase):
         """Test as_view works with POST requests (for hx-vals)."""
         manager = AsyncManager()
         manager.update_progress(self.task_name, self.progress_data)
-        view = AsyncManager.as_view()
+        view = AsyncManager.as_view(manager_factory=coordinator_manager_factory)
         request = self.factory.post("/progress/", {"task_name": self.task_name})
         response = view(request)
 
@@ -734,7 +752,7 @@ class TestProgressPolling(AsyncManagerTestMixin, TestCase):
         # Test in_progress (1000ms)
         manager = AsyncManager()
         manager.update_progress(self.task_name, self.progress_data)
-        view = AsyncManager.as_view()
+        view = AsyncManager.as_view(manager_factory=coordinator_manager_factory)
         request = self.factory.get(f"/progress/?task_name={self.task_name}")
         response = view(request)
         import json
@@ -775,70 +793,19 @@ class TestAsyncHookHelpers(TestCase):
             name="dummy",
             kwargs={"manager_class": "coordinator_tests.managers.CoordinatorAsyncManager"},
         )
-        path = _extract_manager_class_path(task)
+        path, _config = Q2Adapter().extract_manager_metadata(task)
         self.assertEqual(path, "coordinator_tests.managers.CoordinatorAsyncManager")
 
     def test_extract_manager_class_from_serialized_kwargs(self):
         json_payload = '{"manager_class": "coordinator_tests.managers.CoordinatorAsyncManager"}'
         task = SimpleNamespace(name="dummy", kwargs=json_payload)
-        path = _extract_manager_class_path(task)
+        path, _config = Q2Adapter().extract_manager_metadata(task)
         self.assertEqual(path, "coordinator_tests.managers.CoordinatorAsyncManager")
 
     def test_extract_manager_class_returns_none_for_unparseable_payload(self):
         task = SimpleNamespace(name="dummy", kwargs="not valid json")
-        path = _extract_manager_class_path(task)
+        path, _config = Q2Adapter().extract_manager_metadata(task)
         self.assertIsNone(path)
-
-    @patch("powercrud.async_manager.AsyncManager")
-    def test_task_completion_hook_uses_resolved_manager(self, mock_async_manager):
-        mock_manager = Mock()
-        mock_async_manager.resolve_manager.return_value = mock_manager
-
-        task = SimpleNamespace(
-            name="task123",
-            kwargs={"manager_class": "coordinator_tests.managers.CoordinatorAsyncManager"},
-        )
-
-        task_completion_hook(task)
-
-        mock_async_manager.resolve_manager.assert_called_once_with(
-            "coordinator_tests.managers.CoordinatorAsyncManager", config=None
-        )
-        mock_manager.handle_task_completion.assert_called_once_with(task, "task123")
-
-    @patch("powercrud.async_manager.AsyncManager")
-    def test_task_completion_hook_handles_missing_manager(self, mock_async_manager):
-        mock_manager = Mock()
-        mock_async_manager.resolve_manager.return_value = mock_manager
-
-        task = SimpleNamespace(name="task456", kwargs=None)
-
-        task_completion_hook(task)
-
-        mock_async_manager.resolve_manager.assert_called_once_with(None, config=None)
-        mock_manager.handle_task_completion.assert_called_once_with(task, "task456")
-
-    @patch("powercrud.async_manager.AsyncManager")
-    def test_task_completion_hook_passes_manager_config(self, mock_async_manager):
-        mock_manager = Mock()
-        mock_async_manager.resolve_manager.return_value = mock_manager
-
-        cfg = {"record_model_path": "coordinator_testapp.AsyncTaskRecord"}
-        task = SimpleNamespace(
-            name="task789",
-            kwargs={
-                "manager_class": "powercrud.async_dashboard.ModelTrackingAsyncManager",
-                "manager_config": cfg,
-            },
-        )
-
-        task_completion_hook(task)
-
-        mock_async_manager.resolve_manager.assert_called_once_with(
-            "powercrud.async_dashboard.ModelTrackingAsyncManager",
-            config=cfg,
-        )
-        mock_manager.handle_task_completion.assert_called_once_with(task, "task789")
 
 class TestModelTrackingAsyncManager(AsyncManagerTestMixin, TestCase):
     def setUp(self):

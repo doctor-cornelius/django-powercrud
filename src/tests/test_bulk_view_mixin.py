@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import pickle
 from datetime import date
 from types import SimpleNamespace
 
@@ -484,6 +485,84 @@ def test_bulk_edit_process_post_async(rf, monkeypatch):
     response = view.bulk_edit(request)
     assert called["invoked"] is True
     assert response == "async"
+
+
+@pytest.mark.django_db
+def test_async_bulk_update_submits_pickle_safe_field_metadata(rf, monkeypatch):
+    """Async workers receive field values, not bound form/rendering objects."""
+    author = Author.objects.create(name="Ada")
+    original_author = Author.objects.create(name="Grace")
+    book = Book.objects.create(
+        title="Before async relation update",
+        author=original_author,
+        published_date=date(2024, 1, 1),
+        isbn="8888888888888",
+        pages=20,
+    )
+    request = make_htmx_request(rf, method="post")
+    request.user = SimpleNamespace(id=author.pk, is_anonymous=False)
+    view = HarnessView(request)
+    field_info = view._get_bulk_field_info(["author"])["author"]
+    captured = {}
+
+    class CapturingManager:
+        """Capture the q2 call to inspect its positional worker payload."""
+
+        def generate_task_name(self):
+            """Return a stable logical task key for the test."""
+            return "async-field-metadata-test"
+
+        def launch_async_task(self, *args, **kwargs):
+            """Retain submitted arguments without invoking q2."""
+            captured["args"] = args
+            captured["kwargs"] = kwargs
+
+    manager = CapturingManager()
+    monkeypatch.setattr(view, "get_async_manager", lambda: manager)
+    monkeypatch.setattr(view, "get_async_manager_class_path", lambda: "sample.Manager")
+    monkeypatch.setattr(view, "get_async_manager_config", lambda: None)
+    monkeypatch.setattr(view, "_check_for_conflicts", lambda selected_ids: False)
+    monkeypatch.setattr(
+        view, "async_queue_success", lambda request, task_name, ids: "queued"
+    )
+
+    response = view._handle_async_bulk_operation(
+        request,
+        [book.pk],
+        delete_selected=False,
+        bulk_fields=["author"],
+        fields_to_update=["author"],
+        field_data=[
+            {
+                "field": "author",
+                "value": str(author.pk),
+                "info": field_info,
+                "m2m_action": None,
+                "m2m_values": [],
+            }
+        ],
+    )
+
+    worker_field_data = captured["args"][6]
+    assert response == "queued"
+    assert "control" in field_info, "The display metadata should include its BoundField."
+    assert "control" not in worker_field_data[0]["info"], (
+        "Async worker metadata must omit the BoundField and its template renderer."
+    )
+    assert "field" not in worker_field_data[0]["info"], (
+        "Async worker metadata must reconstruct the model field from its model."
+    )
+    pickle.dumps(worker_field_data)
+
+    result = view._perform_bulk_update(
+        Book.objects.filter(pk=book.pk),
+        bulk_fields=["author"],
+        fields_to_update=["author"],
+        field_data=worker_field_data,
+    )
+    book.refresh_from_db()
+    assert result["success"], "The sanitized worker metadata should still apply the update."
+    assert book.author_id == author.pk, "Relation values should resolve from the model field."
 
 
 @pytest.mark.django_db
