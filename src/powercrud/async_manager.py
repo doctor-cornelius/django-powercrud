@@ -6,9 +6,11 @@ import uuid
 from typing import Callable
 
 from django.urls import include, path
+from django.core.exceptions import ImproperlyConfigured
 
 from powercrud.conf import DEFAULTS, get_powercrud_setting
 from powercrud._coordinator.config import CoordinatorConfig
+from powercrud._coordinator.exceptions import AsyncConfigurationError, AsyncDisabledError
 from powercrud._coordinator.manager import AsyncManager as CoordinatorAsyncManager
 from powercrud._coordinator.q2 import Q2Adapter
 from powercrud._coordinator.reconstruction import construct_manager
@@ -20,18 +22,21 @@ log = logging.getLogger(__name__)
 
 def _powercrud_coordination_config():
     """Translate public PowerCRUD settings into explicit coordinator values."""
-    return CoordinatorConfig(
-        enabled=get_powercrud_setting("ASYNC_ENABLED", DEFAULTS["ASYNC_ENABLED"]),
-        cache_name=get_powercrud_setting("CACHE_NAME", DEFAULTS["CACHE_NAME"]),
-        conflict_ttl=get_powercrud_setting("CONFLICT_TTL", DEFAULTS["CONFLICT_TTL"]),
-        progress_ttl=get_powercrud_setting("PROGRESS_TTL", DEFAULTS["PROGRESS_TTL"]),
-        cleanup_grace_period=get_powercrud_setting(
-            "CLEANUP_GRACE_PERIOD", DEFAULTS["CLEANUP_GRACE_PERIOD"]
-        ),
-        max_task_duration=get_powercrud_setting(
-            "MAX_TASK_DURATION", DEFAULTS["MAX_TASK_DURATION"]
-        ),
-    )
+    try:
+        return CoordinatorConfig(
+            enabled=get_powercrud_setting("ASYNC_ENABLED", DEFAULTS["ASYNC_ENABLED"]),
+            cache_name=get_powercrud_setting("CACHE_NAME", DEFAULTS["CACHE_NAME"]),
+            conflict_ttl=get_powercrud_setting("CONFLICT_TTL", DEFAULTS["CONFLICT_TTL"]),
+            progress_ttl=get_powercrud_setting("PROGRESS_TTL", DEFAULTS["PROGRESS_TTL"]),
+            cleanup_grace_period=get_powercrud_setting(
+                "CLEANUP_GRACE_PERIOD", DEFAULTS["CLEANUP_GRACE_PERIOD"]
+            ),
+            max_task_duration=get_powercrud_setting(
+                "MAX_TASK_DURATION", DEFAULTS["MAX_TASK_DURATION"]
+            ),
+        )
+    except ImproperlyConfigured as exc:
+        raise AsyncConfigurationError(str(exc)) from exc
 
 
 class AsyncManager(CoordinatorAsyncManager):
@@ -41,12 +46,15 @@ class AsyncManager(CoordinatorAsyncManager):
 
     def __init__(self, *, coordination_config=None, executor=None):
         """Build a public manager with an explicit or translated configuration."""
-        self.cleanup_schedule_interval = get_powercrud_setting(
-            "CLEANUP_SCHEDULE_INTERVAL", DEFAULTS["CLEANUP_SCHEDULE_INTERVAL"]
-        )
-        self._probe_timeout_ms = get_powercrud_setting(
-            "QCLUSTER_PROBE_TIMEOUT_MS", DEFAULTS["QCLUSTER_PROBE_TIMEOUT_MS"]
-        )
+        try:
+            self.cleanup_schedule_interval = get_powercrud_setting(
+                "CLEANUP_SCHEDULE_INTERVAL", DEFAULTS["CLEANUP_SCHEDULE_INTERVAL"]
+            )
+            self._probe_timeout_ms = get_powercrud_setting(
+                "QCLUSTER_PROBE_TIMEOUT_MS", DEFAULTS["QCLUSTER_PROBE_TIMEOUT_MS"]
+            )
+        except ImproperlyConfigured as exc:
+            raise AsyncConfigurationError(str(exc)) from exc
         binding = current_binding()
         super().__init__(
             coordination_config=(
@@ -68,6 +76,13 @@ class AsyncManager(CoordinatorAsyncManager):
         return super().validate_async_qcluster(
             self._probe_timeout_ms if timeout_ms is None else timeout_ms
         )
+
+    def _async_launch_enabled(self):
+        """Read current PowerCRUD launch permission, not a retained snapshot."""
+        try:
+            return get_powercrud_setting("ASYNC_ENABLED", DEFAULTS["ASYNC_ENABLED"])
+        except ImproperlyConfigured as exc:
+            raise AsyncConfigurationError(str(exc)) from exc
 
     def launch_async_task(
         self,
@@ -185,4 +200,9 @@ class AsyncManager(CoordinatorAsyncManager):
         return path(prefix, include(("powercrud.urls", "powercrud"), namespace="powercrud"))
 
 
-__all__ = ["AsyncManager", "CoordinatorConfig"]
+__all__ = [
+    "AsyncConfigurationError",
+    "AsyncDisabledError",
+    "AsyncManager",
+    "CoordinatorConfig",
+]

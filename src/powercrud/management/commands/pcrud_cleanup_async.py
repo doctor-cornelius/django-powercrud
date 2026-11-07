@@ -1,8 +1,9 @@
 import json
+from django.core.exceptions import ImproperlyConfigured
+from django.core.management import CommandError
 from django.core.management.base import BaseCommand
 
-from powercrud.async_manager import AsyncManager
-from powercrud.conf import get_powercrud_setting
+from powercrud.async_manager import AsyncConfigurationError, AsyncManager
 
 
 class Command(BaseCommand):
@@ -16,16 +17,10 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
-        if not get_powercrud_setting("ASYNC_ENABLED", False):
-            self.stdout.write(
-                self.style.WARNING(
-                    "PowerCRUD async features are disabled; nothing to clean. "
-                    "Set POWERCRUD_SETTINGS['ASYNC_ENABLED'] = True to enable."
-                )
-            )
-            return
-
-        manager = AsyncManager()
+        try:
+            manager = AsyncManager()
+        except (AsyncConfigurationError, ImproperlyConfigured) as exc:
+            raise CommandError(f"Async cleanup is unavailable: {exc}") from exc
         summary = manager.cleanup_completed_tasks()
 
         if options.get("json"):

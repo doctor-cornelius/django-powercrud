@@ -2,18 +2,19 @@
 
 ## Status
 
-- 🔳 Initial discussion draft prepared on 2026-11-07 from the [overall checklist](../0_async_hardening-plan.md#phase-c-harden-configuration-and-lifecycle), [A1 contracts](../phase_A/phase_A_notes.md#a1-draft-contracts-for-discussion), [B1 specification](../phase_B/phase_B_notes.md#b1-technical-specification--2026-11-07), and [B4 handoff](../phase_B/phase_B_notes.md#phase-c-handoff).
+- ✅ Initial discussion draft prepared on 2026-11-07 from the [overall checklist](../0_async_hardening-plan.md#phase-c-harden-configuration-and-lifecycle), [A1 contracts](../phase_A/phase_A_notes.md#a1-draft-contracts-for-discussion), [B1 specification](../phase_B/phase_B_notes.md#b1-technical-specification--2026-11-07), and [B4 handoff](../phase_B/phase_B_notes.md#phase-c-handoff).
 - ✅ Sequence and C1 error-handling approach agreed on 2026-11-07; see the [decision record](phase_C_notes.md#agreed-discussion-decisions--2026-11-07).
-- 🔳 Phase C implementation has not started; all [hardening issues 1–13](../0_async_hardening-notes.md#key-async-hardening-issues) remain open.
+- ✅ C1 implementation completed on 2026-11-07; see the [C1 implementation record](phase_C_notes.md#c1-implementation-record--2026-11-07).
+- 🔳 All [hardening issues 1–13](../0_async_hardening-notes.md#key-async-hardening-issues) remain open pending their complete acceptance evidence.
 
 ## Next
 
-- 🔳 Discuss remaining [open technical decisions](phase_C_notes.md#open-technical-decisions), including the shared-state/q2 feasibility checkpoint after C1; implementation remains on hold.
+- 🔳 Hold the shared-state/q2 feasibility checkpoint before starting C2–C6 implementation; remaining decisions are listed in [open technical decisions](phase_C_notes.md#open-technical-decisions).
 
 ## C1: Validate explicit use and enforce launch enablement
 
-1. 🔳 Keep dormant imports and synchronous use safe; explicit async use produces targeted configuration/dependency errors (issues 1–4).
-2. 🔳 Enforce enablement for new launches and threshold-triggered async work while preserving existing-task observation, completion, and cleanup (issues 2–4).
+1. ✅ Keep dormant imports and synchronous use safe; explicit async use produces targeted configuration/dependency errors (issues 1–4).
+2. ✅ Enforce enablement for new launches and threshold-triggered async work while preserving existing-task observation, completion, and cleanup (issues 2–4).
 
 ## C2: Preserve identity, context, and execution evidence
 

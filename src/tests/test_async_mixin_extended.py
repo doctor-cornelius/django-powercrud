@@ -21,6 +21,10 @@ class CustomManager:
     def launch_async_task(self, *args, **kwargs):
         return "queued"
 
+    def validate_async_configuration(self):
+        """Stand in for the manager's explicit-use preflight contract."""
+        return None
+
 
 class DummyAsyncView(AsyncMixin):
     bulk_async = True
@@ -50,6 +54,50 @@ def test_should_process_async_respects_flags():
 
     view.bulk_async = False
     assert view.should_process_async(5) is False
+
+
+def test_should_process_async_does_not_fall_back_when_q2_is_unavailable(monkeypatch):
+    """An opted-in above-threshold action reaches validation instead of sync work."""
+    from powercrud.mixins import async_mixin
+
+    monkeypatch.setattr(async_mixin.Q2Adapter, "is_available", staticmethod(lambda: False))
+    view = DummyAsyncView()
+    assert view.should_process_async(5) is True, (
+        "Backend availability must not silently route an opted-in operation to synchronous processing."
+    )
+
+
+def test_async_bulk_configuration_error_precedes_conflict_check(monkeypatch):
+    """Setup errors are rendered before conflict checks or either CRUD branch."""
+    from powercrud._coordinator.exceptions import AsyncDisabledError
+
+    for delete_selected in (True, False):
+        captured = {}
+
+        class DisabledManager(CustomManager):
+            def validate_async_configuration(self):
+                raise AsyncDisabledError("Async task launches are disabled; enable async tasks.")
+
+        view = DummyAsyncView()
+        view.async_manager_class = DisabledManager
+        monkeypatch.setattr(view, "_check_for_conflicts", lambda ids: (_ for _ in ()).throw(AssertionError("conflict checks must follow async validation")))
+        monkeypatch.setattr(view, "async_queue_failure", lambda request, error, ids: captured.setdefault("error", error) or "error")
+
+        response = view._handle_async_bulk_operation(
+            SimpleNamespace(user=SimpleNamespace(is_anonymous=False, id=1)),
+            [1, 2, 3],
+            delete_selected=delete_selected,
+            bulk_fields=[],
+            fields_to_update=[],
+            field_data=[],
+        )
+
+        assert isinstance(captured["error"], AsyncDisabledError), (
+            "Known async setup failures should reach the queue failure response."
+        )
+        assert response is captured["error"] or response == "error", (
+            "The async queue failure handler should control the response."
+        )
 
 
 def test_handle_async_bulk_operation_enqueues(monkeypatch):

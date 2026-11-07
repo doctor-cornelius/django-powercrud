@@ -43,11 +43,20 @@ def test_extract_tailwind_requires_config_or_output(monkeypatch):
             call_command("pcrud_extract_tailwind_classes")
 
 
-def test_cleanup_async_warns_when_disabled(monkeypatch, capsys):
+def test_cleanup_async_runs_when_launches_are_disabled(monkeypatch, capsys):
+    calls = []
+
+    class DummyManager:
+        def cleanup_completed_tasks(self):
+            calls.append("cleanup")
+            return {"active_tasks": 0, "cleaned": {}, "skipped": {}}
+
+    monkeypatch.setattr(cleanup_cmd, "AsyncManager", lambda: DummyManager())
     with override_settings(POWERCRUD_SETTINGS={"ASYNC_ENABLED": False}):
         call_command("pcrud_cleanup_async")
     out = capsys.readouterr().out
-    assert "async features are disabled" in out
+    assert calls == ["cleanup"], "Cleanup must remain available when new launches are disabled"
+    assert "PowerCRUD Async Cleanup Summary" in out
 
 
 def test_cleanup_async_json_output(monkeypatch, capsys):

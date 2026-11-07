@@ -1,11 +1,15 @@
 import json
 
+from django.core.exceptions import ImproperlyConfigured
 from django.http import HttpResponse, HttpResponseForbidden, HttpResponseServerError
 from typing import List, Tuple
 from django.shortcuts import render
 from django.urls import reverse
 
 from ..async_manager import AsyncManager
+from ..async_manager import AsyncConfigurationError
+from ..async_manager import AsyncDisabledError
+from powercrud.conf import DEFAULTS, get_powercrud_setting
 from .._coordinator.q2 import Q2Adapter
 from powercrud.logging import get_logger
 from .config_mixin import get_template_candidates, get_template_name, resolve_config
@@ -21,14 +25,14 @@ class AsyncMixin:
     # bulk async methods
     def get_bulk_async_enabled(self) -> bool:
         """
-        Determine if async bulk processing should be enabled.
+        Determine whether this view opts into async bulk processing.
 
         Returns:
-            bool: True if async processing is enabled and backend is available
+            bool: True when this view opts into async bulk processing
         """
 
         cfg = resolve_config(self)
-        return bool(cfg.bulk_async and self.is_async_backend_available())
+        return bool(cfg.bulk_async)
 
     def get_bulk_min_async_records(self) -> int:
         """
@@ -67,12 +71,9 @@ class AsyncMixin:
         Returns:
             bool: True if operation should be async, False for sync processing
         """
-        # log.debug("running should_process_async")
         if not self.get_bulk_async_enabled():
-            log.warning("async not enabled")
             return False
         result = record_count >= self.get_bulk_min_async_records()
-        # log.debug(f"should_process_async: {result} for {record_count} records")
         return result
 
     def is_async_backend_available(self) -> bool:
@@ -92,10 +93,36 @@ class AsyncMixin:
 
     def validate_async_configuration(self) -> Tuple[bool, List[str]]:
         """
-        Placeholder for validating async config.
+        Return a quiet diagnostic result for the selected view manager.
         """
+        try:
+            self._validate_async_manager(self.get_async_manager())
+        except AsyncConfigurationError as exc:
+            return False, [str(exc)]
+        return True, []
 
-        return (False, [])
+    def _validate_async_manager(self, async_manager):
+        """Run explicit-use checks and retain an actionable backend boundary."""
+        try:
+            enabled = get_powercrud_setting("ASYNC_ENABLED", DEFAULTS["ASYNC_ENABLED"])
+        except ImproperlyConfigured as exc:
+            raise AsyncConfigurationError(str(exc)) from exc
+        if not isinstance(enabled, bool):
+            raise AsyncConfigurationError("ASYNC_ENABLED must be a boolean value.")
+        if not enabled:
+            raise AsyncDisabledError(
+                "Async task launches are disabled; set POWERCRUD_SETTINGS['ASYNC_ENABLED'] = True."
+            )
+        if self.get_bulk_async_backend() != "q2":
+            raise AsyncConfigurationError(
+                f"Unsupported async backend '{self.get_bulk_async_backend()}'; configure the supported 'q2' backend."
+            )
+        validator = getattr(async_manager, "validate_async_configuration", None)
+        if not callable(validator):
+            raise AsyncConfigurationError(
+                "The configured async manager must implement validate_async_configuration()."
+            )
+        validator()
 
     def get_conflict_checking_enabled(self):
         """Check if conflict checking is enabled using new AsyncManager system."""
@@ -401,20 +428,24 @@ class AsyncMixin:
                 )
             user = None  # Handle anonymous user
 
-        # ✅ Check for conflicts using new system
+        # Initialize AsyncManager
+        try:
+            async_manager = self.get_async_manager()
+            self._validate_async_manager(async_manager)
+        except AsyncConfigurationError as e:
+            log.error("Async bulk operation is unavailable: %s", e)
+            return self.async_queue_failure(request, e, selected_ids)
+        except Exception as e:
+            log.error(f"Failed to initialize AsyncManager: {e}")
+            return HttpResponseServerError("Async system unavailable")
+
+        # Check for conflicts only after explicit async setup has been validated.
         if self.get_conflict_checking_enabled() and self._check_for_conflicts(
             selected_ids
         ):
             return self._render_bulk_conflict_response(
                 request, selected_ids, delete_selected
             )
-
-        # Initialize AsyncManager
-        try:
-            async_manager = self.get_async_manager()
-        except Exception as e:
-            log.error(f"Failed to initialize AsyncManager: {e}")
-            return HttpResponseServerError("Async system unavailable")
 
         # Prepare conflict_ids for new system
         model_name = f"{self.model._meta.app_label}.{self.model._meta.model_name}"
