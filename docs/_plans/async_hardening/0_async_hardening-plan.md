@@ -7,11 +7,12 @@
 - ✅ A2 qualified all 13 findings, inventoried current support claims, mapped test ownership, and recorded three focused existing-test batches in the [A2 results](phase_A/phase_A_a2_results.md).
 - ✅ A3 established the independent coordinator suite, relocated 63 reusable cases, and added separate runner/CI selection ([A3 results](phase_A/phase_A_a3_results.md)).
 - ✅ Phase A complete on 2026-11-04: contracts, qualification, test separation, server verification, and infrastructure follow-ups reviewed ([handoff](0_async_hardening-notes.md#phase-a-completion-and-handoff)).
-- 🔳 Production implementation has not started; django-q2 remains the only execution backend, and hardening issues 1–13 remain open.
+- ✅ B1 technical specification complete on 2026-11-07; configuration, modules/interfaces, compatibility, identity lookup, and implementation handoff are recorded in the [Phase B notes](phase_B/phase_B_notes.md#b1-technical-specification--2026-11-07).
+- ✅ Phase B complete on 2026-11-07: q2 isolation, coordinator separation, compatibility review/repairs, assertion ownership, and server verification are recorded in the [handoff](0_async_hardening-notes.md#phase-b-completion-and-handoff). django-q2 remains the only execution backend; issues 1–13 remain open.
 
 ## Next
 
-- 🔳 Prepare Phase B's plan/notes from the [Phase A handoff](0_async_hardening-notes.md#phase-a-completion-and-handoff), then establish the internal boundary before intentional behavior fixes.
+- 🔳 Continue the [Phase C technical discussion](phase_C/phase_C_notes.md#open-technical-decisions); sequence and C1 error-handling direction are [agreed](phase_C/phase_C_notes.md#agreed-discussion-decisions--2026-11-07), with implementation on hold.
 
 ## ✅ Phase A: Define ownership and behavior
 
@@ -24,14 +25,18 @@ Detailed work: [Phase A plan](phase_A/phase_A_plan.md) and [notes](phase_A/phase
 5. ✅ Run both suites separately, verify discovery and migration coverage, and distinguish mocked execution from real q2/concurrency evidence; keep all subsequent tests in their owning suite ([A4 results](phase_A/phase_A_a4_results.md); issues 4 and 6–13).
 6. ✅ Audit sample background-task demonstrations and record current evidence, ownership, gaps, and acceptance criteria in the [coverage matrix](0_async_hardening-notes.md#sample-demonstration-coverage-matrix).
 
-## Phase B: Establish the internal boundary
+## ✅ Phase B: Establish the internal boundary
 
-1. 🔳 Isolate q2 imports, enqueueing, result access, completion translation, and execution options behind an internal adapter ([issues 1–2 and 13](0_async_hardening-notes.md#key-async-hardening-issues)).
-2. 🔳 Give coordination explicit configuration and dependencies without importing PowerCRUD views, mixins, templates, or configuration helpers ([issues 2–3 and 13](0_async_hardening-notes.md#key-async-hardening-issues)).
-3. 🔳 Keep CRUD decisions, workers, persistence, and presentation in PowerCRUD, with existing public imports preserved where practical ([issue 13](0_async_hardening-notes.md#key-async-hardening-issues)).
-4. 🔳 Verify the structural change preserves established behavior before applying intentional fixes, keeping coordinator and PowerCRUD test dependencies separate ([issues 4 and 13](0_async_hardening-notes.md#key-async-hardening-issues)).
+Detailed work: [Phase B plan](phase_B/phase_B_plan.md) and [notes](phase_B/phase_B_notes.md).
+
+1. ✅ Isolate q2 imports, enqueueing, result access, completion translation, and execution options behind an internal adapter ([issues 1–2 and 13](0_async_hardening-notes.md#key-async-hardening-issues)).
+2. ✅ Give coordination explicit configuration and dependencies without importing PowerCRUD views, mixins, templates, or configuration helpers ([issues 2–3 and 13](0_async_hardening-notes.md#key-async-hardening-issues)).
+3. ✅ Keep CRUD decisions, workers, persistence, and presentation in PowerCRUD, with existing public imports preserved where practical ([issue 13](0_async_hardening-notes.md#key-async-hardening-issues)).
+4. ✅ Verify the structural change preserves established behavior before applying intentional fixes, keeping coordinator and PowerCRUD test dependencies separate ([issues 4 and 13](0_async_hardening-notes.md#key-async-hardening-issues)).
 
 ## Phase C: Harden configuration and lifecycle
+
+Detailed discussion draft: [Phase C plan](phase_C/phase_C_plan.md) and [notes](phase_C/phase_C_notes.md).
 
 1. 🔳 Keep dormant imports safe and make explicit background-task use produce targeted configuration errors, with consistent enablement, inactivity logs, and cleanup rules; pass misconfiguration regressions ([issues 1–4](0_async_hardening-notes.md#key-async-hardening-issues)).
 2. 🔳 Preserve manager identity/configuration through launch, worker context, completion, and descendant conflict registration ([issue 12](0_async_hardening-notes.md#key-async-hardening-issues)).

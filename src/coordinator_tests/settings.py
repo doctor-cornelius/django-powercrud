@@ -39,17 +39,6 @@ CACHES = {
     for alias in ("default", "coordinator_async")
 }
 
-POWERCRUD_SETTINGS = {
-    "ASYNC_ENABLED": True,
-    "CONFLICT_TTL": 3600,
-    "PROGRESS_TTL": 7200,
-    "CLEANUP_GRACE_PERIOD": 86400,
-    "MAX_TASK_DURATION": 3600,
-    "CLEANUP_SCHEDULE_INTERVAL": 300,
-    "CACHE_NAME": "coordinator_async",
-    "QCLUSTER_PROBE_TIMEOUT_MS": 1500,
-}
-
 Q_CLUSTER = {
     "name": "coordinator-tests",
     "workers": 1,

@@ -1,13 +1,12 @@
-import importlib.util
 import json
 
 from django.http import HttpResponse, HttpResponseForbidden, HttpResponseServerError
 from typing import List, Tuple
-from django.conf import settings
 from django.shortcuts import render
 from django.urls import reverse
 
 from ..async_manager import AsyncManager
+from .._coordinator.q2 import Q2Adapter
 from powercrud.logging import get_logger
 from .config_mixin import get_template_candidates, get_template_name, resolve_config
 
@@ -86,11 +85,7 @@ class AsyncMixin:
         backend = self.get_bulk_async_backend()
 
         if backend == "q2":
-            if importlib.util.find_spec("django_q") is None:
-                return False
-            if "django_q" not in settings.INSTALLED_APPS:
-                return False
-            return True
+            return Q2Adapter.is_available()
 
         # Future backends (celery, etc.) would be checked here
         return False
@@ -194,6 +189,35 @@ class AsyncMixin:
         except TypeError:
             # Some manager classes may not accept config kwarg
             return manager_class()
+
+    def _prepare_async_bulk_field_data(self, field_data):
+        """Reduce display-oriented bulk metadata to q2-safe worker values."""
+        prepared = []
+        for item in field_data:
+            field_name = item["field"]
+            model_field = self.model._meta.get_field(field_name)
+            source_info = item.get("info") or {}
+            info = {
+                "type": model_field.get_internal_type(),
+                "is_relation": model_field.is_relation,
+                "is_m2m": model_field.many_to_many,
+                "null": bool(getattr(model_field, "null", False)),
+                "blank": bool(getattr(model_field, "blank", False)),
+                "choices": bool(getattr(model_field, "choices", None)),
+                "verbose_name": str(
+                    source_info.get("verbose_name", model_field.verbose_name)
+                ),
+            }
+            prepared.append(
+                {
+                    "field": field_name,
+                    "value": item.get("value"),
+                    "info": info,
+                    "m2m_action": item.get("m2m_action"),
+                    "m2m_values": list(item.get("m2m_values") or []),
+                }
+            )
+        return prepared
 
     def _coerce_manager_config(self, manager_class, config):
         if config is None:
@@ -399,6 +423,11 @@ class AsyncMixin:
         # Prepare task arguments
         model_path = f"{self.model._meta.app_label}.{self.model.__name__}"
         user_id = user.id if user else None
+        worker_field_data = (
+            []
+            if delete_selected
+            else self._prepare_async_bulk_field_data(field_data)
+        )
 
         # Generate task_name BEFORE calling launch_async_task
         task_name = async_manager.generate_task_name()
@@ -434,7 +463,7 @@ class AsyncMixin:
                     user_id,  # positional arg 4
                     bulk_fields,  # positional arg 5
                     fields_to_update,  # positional arg 6
-                    field_data,  # positional arg 7
+                    worker_field_data,  # positional arg 7
                     task_name,  # positional arg 8 - THIS IS THE KEY!
                     # django-q2 specific params as kwargs
                     conflict_ids=conflict_ids,

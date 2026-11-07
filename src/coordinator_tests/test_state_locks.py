@@ -2,7 +2,7 @@ from unittest.mock import patch
 
 from django.test import TestCase
 
-from powercrud.async_manager import AsyncManager
+from coordinator_tests.managers import CoordinatorAsyncManager as AsyncManager
 
 
 class AsyncManagerTestMixin:
@@ -46,7 +46,7 @@ class TestActiveTasks(AsyncManagerTestMixin, TestCase):
         self.assertIn(task_id_1, active_tasks)
         self.assertIn(task_id_2, active_tasks)
 
-        with patch("powercrud.async_manager.Task") as mock_task:
+        with patch("powercrud._coordinator.q2.task_model") as mock_task:
             mock_task.objects.filter.return_value.values_list.return_value = [task_id_1, task_id_2]
             self.async_manager.cleanup_active_tasks()
 

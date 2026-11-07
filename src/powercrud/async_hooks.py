@@ -6,56 +6,14 @@ The hooks are designed to be simple stubs that delegate to AsyncManager methods
 which can be overridden by downstream projects.
 """
 
-import ast
-import json
-from typing import Optional
-
-from django_q.models import Task
-
 from powercrud.logging import get_logger
+from powercrud._coordinator.q2 import Q2Adapter
 
 log = get_logger(__name__)
+_q2_adapter = Q2Adapter()
 
 
-def _parse_task_kwargs(task: Task) -> dict:
-    raw_kwargs = getattr(task, "kwargs", None)
-    if not raw_kwargs:
-        return {}
-
-    if isinstance(raw_kwargs, dict):
-        return raw_kwargs
-
-    if isinstance(raw_kwargs, str):
-        for parser in (json.loads, ast.literal_eval):
-            try:
-                parsed_kwargs = parser(raw_kwargs)
-                if isinstance(parsed_kwargs, dict):
-                    return parsed_kwargs
-            except Exception:
-                continue
-
-    log.debug(
-        "task_completion_hook could not parse Task.kwargs for task %s; defaulting to base AsyncManager",
-        getattr(task, "name", "unknown"),
-    )
-    return {}
-
-
-def _extract_manager_class_path(task: Task) -> Optional[str]:
-    """Return stored manager class path from task kwargs (if any)."""
-    kwargs_dict = _parse_task_kwargs(task)
-    return kwargs_dict.get("manager_class")
-
-
-def _extract_manager_config(task: Task) -> Optional[dict]:
-    kwargs_dict = _parse_task_kwargs(task)
-    config = kwargs_dict.get("manager_config")
-    if isinstance(config, dict):
-        return config
-    return None
-
-
-def task_completion_hook(task: Task) -> None:
+def task_completion_hook(task: object) -> None:
     """
     Completion hook function for django-q2 tasks.
 
@@ -71,22 +29,15 @@ def task_completion_hook(task: Task) -> None:
         logic is in AsyncManager.handle_task_completion() which can be overridden.
     """
     try:
-        from powercrud.async_manager import AsyncManager
+        def legacy_factory(manager_class_path, manager_config):
+            """Resolve managers through the public compatibility API."""
+            from powercrud.async_manager import AsyncManager
 
-        # Derive task_key from Task.name (preferred) or fallback to Task.id
-        # task_key = task.name if task.name else str(task.id)
-        task_name = str(task.name)
+            return AsyncManager.resolve_manager(
+                manager_class_path, config=manager_config
+            )
 
-        log.debug(
-            f"async_hooks.task_completion_hook triggered for task_name: {task_name}"
-        )
-        # Delegate to AsyncManager method (can be overridden by subclasses)
-        manager_class_path = _extract_manager_class_path(task)
-        manager_config = _extract_manager_config(task)
-        manager = AsyncManager.resolve_manager(
-            manager_class_path, config=manager_config
-        )
-        manager.handle_task_completion(task, task_name)
+        _q2_adapter.dispatch_completion(task, legacy_factory=legacy_factory)
 
     except Exception as e:
         # Never let hook failures break the worker

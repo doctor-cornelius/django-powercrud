@@ -459,7 +459,9 @@ class OperationMixin:
                             else:
                                 try:
                                     # Get the related model
-                                    related_model = info["field"].related_model
+                                    related_model = obj._meta.get_field(
+                                        field
+                                    ).related_model
 
                                     # Fetch the actual instance
                                     instance = related_model.objects.get(pk=int(value))

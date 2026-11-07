@@ -9,6 +9,8 @@ from django.test import override_settings
 
 from powercrud.bulk_persistence import BulkUpdatePersistenceBackend
 from powercrud import schedules, tasks, urls
+from powercrud._coordinator.config import CoordinatorConfig
+from powercrud._coordinator.reconstruction import current_binding
 
 
 class DummyAsyncManager:
@@ -26,6 +28,15 @@ class DummyManagerConfig(DummyAsyncManager):
 
     def cleanup_completed_tasks(self):
         return {"cleaned": {"foo": {"reason": "done"}}}
+
+
+class SnapshotWorkerManager(tasks.AsyncManager):
+    """Exercise actual CRUD worker reconstruction through the public resolver."""
+
+    def __init__(self, config=None):
+        """Consume scoped coordination config and retain ordinary application config."""
+        super().__init__()
+        self.application_config = config
 
 
 class DummyQueryset(list):
@@ -83,6 +94,110 @@ class RecordingAsyncBulkBackend(BulkUpdatePersistenceBackend):
             "success_records": len(queryset),
             "errors": [],
         }
+
+
+def test_bulk_workers_reconstruct_manager_under_snapshot(monkeypatch):
+    """Both CRUD workers bind snapshot config before invoking the legacy resolver."""
+    snapshot = CoordinatorConfig(cache_name="worker-cache").to_snapshot()
+    scopes = []
+    inside_scope = {"active": False}
+    manager = DummyAsyncManager()
+
+    @contextlib.contextmanager
+    def capture_scope(config, executor):
+        scopes.append((config, executor))
+        inside_scope["active"] = True
+        try:
+            yield
+        finally:
+            inside_scope["active"] = False
+
+    def resolve(cls, manager_class_path=None, config=None):
+        assert inside_scope["active"], "CRUD manager resolution must run inside the snapshot scope"
+        return manager
+
+    class StubBulkMixin:
+        def _perform_bulk_delete(self, queryset, progress_callback=None):
+            return {"success": True, "success_records": len(queryset), "errors": []}
+
+    class StubBackend:
+        def persist_bulk_update(self, **kwargs):
+            return {"success": True, "success_records": len(kwargs["queryset"]), "errors": []}
+
+    monkeypatch.setattr(tasks, "construction_scope", capture_scope)
+    monkeypatch.setattr(tasks.AsyncManager, "resolve_manager", classmethod(resolve))
+    monkeypatch.setattr(tasks, "apps", SimpleNamespace(get_model=lambda path: DummyModel([SimpleNamespace(pk=1)])))
+    monkeypatch.setattr(tasks, "BulkMixin", StubBulkMixin)
+    monkeypatch.setattr(tasks, "resolve_bulk_update_persistence_backend", lambda path, config=None: StubBackend())
+
+    deleted = tasks.bulk_delete_task(
+        "sample.Book", [1], 1, task_key="delete-key", _coordinator_config=snapshot
+    )
+    updated = tasks.bulk_update_task(
+        "sample.Book", [1], 1, [], [], [], task_key="update-key",
+        _coordinator_config=snapshot,
+    )
+    assert deleted is True, "Bulk delete should keep its existing successful result"
+    assert updated is True, "Bulk update should keep its existing successful result"
+    assert [config.cache_name for config, _executor in scopes] == [
+        "worker-cache", "worker-cache"
+    ], "Each worker must reconstruct the supplied coordinator cache configuration"
+    assert all(executor is not None for _config, executor in scopes), "Snapshot scopes must bind a q2 adapter"
+
+
+@pytest.mark.parametrize("worker,args", [
+    (tasks.bulk_delete_task, ("sample.Book", [1], 1)),
+    (tasks.bulk_update_task, ("sample.Book", [1], 1, [], [], [])),
+])
+@pytest.mark.parametrize("with_snapshot", [False, True])
+def test_crud_worker_actual_resolver_location_and_legacy_arguments(monkeypatch, worker, args, with_snapshot):
+    """Actual public resolution must honor snapshots while preserving snapshot-free calls."""
+    resolved = []
+    public_resolve = tasks.AsyncManager.resolve_manager
+    config = CoordinatorConfig(cache_name="default", key_namespace="crud-worker-snapshot", progress_ttl=43)
+    application_config = ("worker", frozenset({1, 2}))
+    path = f"{SnapshotWorkerManager.__module__}.{SnapshotWorkerManager.__qualname__}"
+
+    def resolve(cls, manager_class_path, config=None):
+        """Observe the legacy resolver arguments without replacing its behavior."""
+        manager = public_resolve(manager_class_path, config=config)
+        resolved.append((manager_class_path, config, manager, current_binding()))
+        return manager
+
+    class StubBulkMixin:
+        """Keep delete business work separate from reconstruction verification."""
+
+        def _perform_bulk_delete(self, queryset, progress_callback=None):
+            """Return the existing successful operation payload."""
+            return {"success": True, "success_records": 1, "errors": []}
+
+    class StubBackend:
+        """Keep update persistence separate from reconstruction verification."""
+
+        def persist_bulk_update(self, **kwargs):
+            """Return the existing successful persistence payload."""
+            return {"success": True, "success_records": 1, "errors": []}
+
+    monkeypatch.setattr(tasks.AsyncManager, "resolve_manager", classmethod(resolve))
+    monkeypatch.setattr(tasks, "apps", SimpleNamespace(get_model=lambda path: DummyModel([SimpleNamespace(pk=1)])))
+    monkeypatch.setattr(tasks, "BulkMixin", StubBulkMixin)
+    monkeypatch.setattr(tasks, "resolve_bulk_update_persistence_backend", lambda path, config=None: StubBackend())
+    kwargs = {"task_key": "worker-location", "manager_class": path, "manager_config": application_config}
+    if with_snapshot:
+        kwargs["_coordinator_config"] = config.to_snapshot()
+    assert worker(*args, **kwargs) is True, "Both CRUD workers must retain their boolean operation result"
+    assert len(resolved) == 1, "Each worker must resolve its manager exactly once"
+    selected_path, selected_config, manager, binding = resolved[0]
+    assert selected_path == path and selected_config is application_config, "Both worker modes must retain the legacy resolver argument shape"
+    assert manager.application_config is application_config, "Reconstruction must retain supported Python application config"
+    if with_snapshot:
+        assert manager.get_coordination_config().to_snapshot() == config.to_snapshot(), "Worker progress must use the supplied coordination location"
+        assert binding is not None, "Snapshot-bearing resolution must run under a real construction scope"
+    else:
+        assert binding is None, "Snapshot-free calls must keep their established resolver route"
+        assert manager.get_coordination_config().key_namespace == "powercrud", "Snapshot-free calls must use public defaults"
+    assert manager.get_progress("worker-location").startswith("completed"), "Actual progress must be written in the reconstructed location"
+    assert current_binding() is None, "CRUD worker reconstruction must reset its binding"
 
 
 @pytest.fixture(autouse=True)

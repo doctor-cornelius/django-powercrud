@@ -12,6 +12,9 @@ from powercrud.bulk_persistence import (
 
 from .mixins.bulk_mixin import BulkMixin
 from .async_manager import AsyncManager
+from powercrud._coordinator.config import CoordinatorConfig
+from powercrud._coordinator.reconstruction import construction_scope
+from powercrud._coordinator.q2 import Q2Adapter
 
 log = get_logger(__name__)
 
@@ -26,6 +29,7 @@ def bulk_delete_task(model_path, selected_ids, user_id, **kwargs):
     """
     manager_class_path = kwargs.pop("manager_class", None)
     manager_config = kwargs.pop("manager_config", None)
+    coordinator_snapshot = kwargs.pop("_coordinator_config", None)
     bulk_update_persistence_backend_path = kwargs.pop(
         "bulk_update_persistence_backend_path", None
     )
@@ -43,9 +47,13 @@ def bulk_delete_task(model_path, selected_ids, user_id, **kwargs):
     log.debug(f"[WORKER] kwargs keys={list(kwargs.keys())}")
 
     try:
-        manager = AsyncManager.resolve_manager(
-            manager_class_path, config=manager_config
-        )
+        if coordinator_snapshot is not None:
+            with construction_scope(
+                CoordinatorConfig.from_snapshot(coordinator_snapshot), Q2Adapter()
+            ):
+                manager = AsyncManager.resolve_manager(manager_class_path, config=manager_config)
+        else:
+            manager = AsyncManager.resolve_manager(manager_class_path, config=manager_config)
         if task_name:
             manager.update_progress(task_name, "starting delete")
 
@@ -104,6 +112,7 @@ def bulk_update_task(
     """
     manager_class_path = kwargs.pop("manager_class", None)
     manager_config = kwargs.pop("manager_config", None)
+    coordinator_snapshot = kwargs.pop("_coordinator_config", None)
     bulk_update_persistence_backend_path = kwargs.pop(
         "bulk_update_persistence_backend_path", None
     )
@@ -121,9 +130,13 @@ def bulk_update_task(
     log.debug(f"[WORKER] kwargs keys={list(kwargs.keys())}")
 
     try:
-        manager = AsyncManager.resolve_manager(
-            manager_class_path, config=manager_config
-        )
+        if coordinator_snapshot is not None:
+            with construction_scope(
+                CoordinatorConfig.from_snapshot(coordinator_snapshot), Q2Adapter()
+            ):
+                manager = AsyncManager.resolve_manager(manager_class_path, config=manager_config)
+        else:
+            manager = AsyncManager.resolve_manager(manager_class_path, config=manager_config)
         if task_name:
             manager.update_progress(task_name, "starting update")
 

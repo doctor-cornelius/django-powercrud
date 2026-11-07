@@ -18,7 +18,7 @@ def test_real_pytest_cov_artifacts_are_independent_and_combine_without_loss(tmp_
     pytest_config = tmp_path / "pytest.ini"
     pytest_config.write_text("[pytest]\n")
     probe = tmp_path / "test_probe.py"
-    context_path = REPOSITORY_ROOT / "src/powercrud/async_context.py"
+    context_path = REPOSITORY_ROOT / "src/powercrud/_coordinator/context.py"
     probe.write_text(
         "import runpy\n"
         "def test_context_probe():\n"
