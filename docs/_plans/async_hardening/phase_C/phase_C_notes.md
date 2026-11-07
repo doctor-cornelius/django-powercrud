@@ -114,6 +114,27 @@ These are implementation questions within settled A1/B1 contracts, not reopened 
 
 Final package branding/settings namespace and publication decisions remain E/F. Durable orchestration/replay, guaranteed notifications, exactly-once business effects, and rolling in-flight upgrades remain outside the agreed scope; retain Q9's compatibility window and drained-upgrade procedure.
 
+## Paste-ready handover for C2
+
+```text
+Continue the django_powercrud async-hardening work on the existing branch `async_hardening/phase_c`.
+
+Repository: /home/mfo/projects/packages/django_powercrud
+Starting commit: 301d6c0784c0132795bf97e0898f76210107b2e9 (`feat(async): validate explicit launches before reservation`). The tree was clean at handoff.
+
+Read `AGENTS/AGENTS.md`, `AGENTS/AGENTS_planning.md`, `docs/_plans/async_hardening/AGENTS.md`, then the Phase C plan/notes, Phase A A1 contracts and A2 support inventory, Phase B B1 specification, the D7 identity review, and the seven-wrinkle assignment. Treat `docs/_plans/async_hardening/0_async_hardening-notes.md` as the only issue-completion register.
+
+C1 is complete and committed. It adds typed explicit-use configuration errors and pre-reservation launch validation, validates q2 lazily, makes current enablement govern each new launch, routes opted-in threshold failures through the existing error response, and keeps cleanup available while launches are disabled. Full server evidence at C1: coordinator 154 passed; PowerCRUD 1,084 passed, 23 skipped, 110 deselected; minimal-settings 4 passed; Bootstrap 31 passed. C1 tests do not prove live-worker delivery, distributed locking, leases, or concurrency. Issues 1–13 remain open.
+
+Objective: implement only C2, preserving selected manager identity, application configuration, coordinator configuration, and q2 execution/result routing across supported launch, worker, completion, polling, descendant-helper, and cleanup paths. C2 owns issues 12–13 and contributes to 2 and 10; do not mark shared issues complete without their full acceptance evidence.
+
+Before production edits, complete the agreed shared-state/q2 feasibility checkpoint. Use the A1/B1 contracts and C5 feasibility requirements to establish which existing configured coordination location and operations can safely retain and read versioned task identity and execution references. The planned key is `{key_namespace}:async:task:{task_key}`; required operations are `get_identity`, `put_identity`, and `attach_execution`. Identity must not redirect lookup to another cache/namespace. Missing or expired identity is unknown, not proof of completion or worker termination. If the safe storage assumptions cannot be established, report the concrete gap and decision needed before proceeding; do not invent a backend, support reduction, cross-cache discovery, database model, or recovery guarantee.
+
+Implement the seven C2 corrections: preserve literal final UUID worker arguments while checking legacy parsing/aliases; automatically capture the actual selected manager and strict explicit metadata; resolve class/path precedence from that selected instance; restore parent context and selected-manager descendant registration while preserving primary-key types and stopping protected work on acquisition failure; reconstruct polling/cleanup from retained identity and execution routing; validate supported serialized kwargs/application configuration; and ensure progress helpers use the parent manager/configuration. Preserve constructor signatures, subclass overrides and `super()` behavior, keep application config distinct from coordinator snapshots, and do not add a worker wrapper or injected callable argument without source-backed compatibility analysis.
+
+Keep reusable behavior tests in `src/coordinator_tests/`; keep public compatibility, CRUD persistence, command/schedule, and rendering tests in `src/tests/`. Reuse the existing single q2 submission path. Run focused regressions, then `./runproj exec "./runtests --suite coordinator --pytest"` and `./runproj exec "./runtests --suite powercrud --pytest"`. Do not build assets or run browser tests for backend-only work. Record evidence and limitations in the Phase C notes, update only the C2 checklist items actually complete, run local link/anchor checks and `git diff --check`, and make a semantic commit on this branch. Stop after C2; do not start C3–C7 automatically.
+```
+
 ## C1 documentation verification
 
 All 69 local links/anchors in the three updated planning documents passed, and `git diff --check` passed. The full runtime outcomes are recorded above.
