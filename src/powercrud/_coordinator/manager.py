@@ -1,14 +1,18 @@
 import json
 import logging
 import uuid
+from collections.abc import Mapping
 from datetime import timedelta
 from typing import Any, Callable, Dict, Hashable, Optional, Set
 
-from django.core.cache import caches
+from django.apps import apps
+from django.conf import settings
+from django.core.cache import InvalidCacheBackendError, caches
 from django.core.exceptions import ImproperlyConfigured
 from django.utils import timezone
 
 from .config import CoordinatorConfig
+from .exceptions import AsyncConfigurationError, AsyncDisabledError
 from .q2 import Q2Adapter
 from .reconstruction import current_binding
 from .types import Completion, ManagerSpec, TaskCall
@@ -37,6 +41,10 @@ class AsyncManager:
             raise ImproperlyConfigured(
                 "Coordinator AsyncManager requires an explicit CoordinatorConfig."
             )
+        if not isinstance(config, CoordinatorConfig):
+            raise AsyncConfigurationError(
+                "Coordinator configuration must be a CoordinatorConfig instance."
+            )
         self._coordination_config = config
         self._factory_manager_config = None
         self._q2_adapter = (
@@ -47,6 +55,22 @@ class AsyncManager:
             else Q2Adapter()
         )
         self.cache_name = self.get_cache_name()
+        self._require_nonempty_string(self.cache_name, "CACHE_NAME")
+        self._require_nonempty_string(config.key_namespace, "Coordinator key namespace")
+        if config.key_prefixes is not None and not isinstance(config.key_prefixes, Mapping):
+            raise AsyncConfigurationError("Coordinator key_prefixes must be a mapping when defined.")
+        if config.key_prefixes is not None:
+            unknown_prefixes = set(config.key_prefixes) - {
+                "active_prefix",
+                "conflict_prefix",
+                "conflict_model_prefix",
+                "progress_prefix",
+            }
+            if unknown_prefixes:
+                raise AsyncConfigurationError("Coordinator key_prefixes contains an unknown prefix name.")
+        prefixes = config.resolved_key_prefixes()
+        for prefix_name, prefix_value in prefixes.items():
+            self._require_nonempty_string(prefix_value, f"Coordinator {prefix_name}")
         self.cache = self.get_cache()
         self.validate_cache_backend()
         self._qcluster_settings_override = None
@@ -54,7 +78,6 @@ class AsyncManager:
         self.progress_ttl = config.progress_ttl
         self.cleanup_grace_period = config.cleanup_grace_period
         self.max_task_duration = config.max_task_duration
-        prefixes = config.resolved_key_prefixes()
         self.active_prefix = prefixes["active_prefix"]
         self.conflict_prefix = prefixes["conflict_prefix"]
         self.conflict_model_prefix = prefixes["conflict_model_prefix"]
@@ -78,6 +101,10 @@ class AsyncManager:
             max_task_duration=self.max_task_duration,
             terminal_result_ttl=self._coordination_config.terminal_result_ttl,
         )
+
+    def _async_launch_enabled(self):
+        """Return the configured permission for this coordinator to launch work."""
+        return self._coordination_config.enabled
 
     @classmethod
     def prepare_manager_config(cls, config):
@@ -141,17 +168,18 @@ class AsyncManager:
     # =============================================================================
 
     def validate_async_qcluster(self, timeout_ms: Optional[int] = None) -> bool:
-        """Validate that django-q2 workers are running by executing a probe.
+        """Run a q2 task/result probe without claiming separate worker delivery.
 
         Args:
             timeout_ms: Maximum time in milliseconds to wait for the probe task.
 
         Returns:
-            bool: True if the probe completes (cluster healthy), otherwise False.
+            bool: True if the q2 probe completes, otherwise False.
 
         Notes:
             Uses a unique group/name to avoid collisions and attempts cleanup of
-            Task rows and cached entries afterwards.
+            Task rows and cached entries afterwards. Synchronous q2 configuration
+            may execute inline, so success does not prove a separate worker is live.
         """
         self._q2_adapter.cluster_settings = self.qcluster_settings
         return self._q2_adapter.probe(timeout_ms=timeout_ms)
@@ -172,17 +200,117 @@ class AsyncManager:
         Returns:
             BaseCache | None: Cache specified by get_cache_name(), or None if missing.
         """
+        if not getattr(settings, "configured", False):
+            return None
         try:
             return caches[self.get_cache_name()]
-        except KeyError:
-            log.warning(f"Cache '{self.get_cache_name()}' not found in caches.")
+        except (KeyError, InvalidCacheBackendError):
             return None
+
+    @staticmethod
+    def _require_nonempty_string(value, label):
+        """Require a string cache/key setting without changing its spelling."""
+        if not isinstance(value, str) or not value.strip():
+            raise AsyncConfigurationError(f"{label} must be a non-empty string.")
+
+    @staticmethod
+    def _validate_lifetime(name, value, *, optional=False):
+        """Retain documented zero/None values while rejecting invalid lifetimes."""
+        if optional and value is None:
+            return
+        if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+            raise AsyncConfigurationError(
+                f"{name} must be a non-negative integer"
+                + (" or None" if optional else "")
+                + "."
+            )
+
+    def validate_async_configuration(self, *, call=None, options=None):
+        """Validate explicit-use prerequisites without probing a worker or cache."""
+        if not getattr(settings, "configured", False):
+            raise AsyncConfigurationError(
+                "Django settings are not configured; configure Django before using async tasks."
+            )
+        if not apps.ready:
+            raise AsyncConfigurationError(
+                "Django's app registry is not ready; call django.setup() before using async tasks."
+            )
+
+        powercrud_settings = getattr(settings, "POWERCRUD_SETTINGS", None)
+        if powercrud_settings is not None and not isinstance(powercrud_settings, dict):
+            raise AsyncConfigurationError(
+                "POWERCRUD_SETTINGS must be a dictionary when defined."
+            )
+
+        enabled = self._async_launch_enabled()
+        if not isinstance(enabled, bool):
+            raise AsyncConfigurationError("ASYNC_ENABLED must be a boolean value.")
+        if not enabled:
+            raise AsyncDisabledError(
+                "Async task launches are disabled; set POWERCRUD_SETTINGS['ASYNC_ENABLED'] = True."
+            )
+
+        self._require_nonempty_string(self.cache_name, "CACHE_NAME")
+        self._require_nonempty_string(
+            self._coordination_config.key_namespace, "Coordinator key namespace"
+        )
+        for prefix_name in (
+            "active_prefix",
+            "conflict_prefix",
+            "conflict_model_prefix",
+            "progress_prefix",
+        ):
+            self._require_nonempty_string(
+                getattr(self, prefix_name), f"Coordinator {prefix_name}"
+            )
+        self._validate_lifetime("CONFLICT_TTL", self.conflict_ttl, optional=True)
+        self._validate_lifetime("PROGRESS_TTL", self.progress_ttl, optional=True)
+        self._validate_lifetime(
+            "CLEANUP_GRACE_PERIOD", self.cleanup_grace_period, optional=True
+        )
+        self._validate_lifetime("MAX_TASK_DURATION", self.max_task_duration, optional=True)
+
+        if call is not None:
+            self._validate_launch_call(call)
+        self._q2_adapter.validate_configuration(call=call, options=options)
+
+    def _validate_launch_call(self, call):
+        """Validate launch-owned identifiers before cache reservations occur."""
+        self._require_nonempty_string(call.task_key, "Async task key")
+        conflict_ids = call.conflict_ids
+        if conflict_ids is None:
+            return
+        if not isinstance(conflict_ids, Mapping):
+            raise AsyncConfigurationError("Conflict resources must be a mapping of model labels to primary keys.")
+        for model_label, identifiers in conflict_ids.items():
+            self._require_nonempty_string(model_label, "Conflict resource model label")
+            try:
+                iterator = iter(identifiers)
+            except TypeError as exc:
+                raise AsyncConfigurationError(
+                    f"Conflict resource IDs for '{model_label}' must be iterable."
+                ) from exc
+            for identifier in iterator:
+                if identifier is None:
+                    raise AsyncConfigurationError(
+                        f"Conflict resource IDs for '{model_label}' cannot contain None."
+                    )
+                try:
+                    hash(identifier)
+                except TypeError as exc:
+                    raise AsyncConfigurationError(
+                        f"Conflict resource IDs for '{model_label}' must be hashable."
+                    ) from exc
 
     def validate_cache_backend(self) -> None:
         """Ensure the configured cache backend supports multi-process access."""
         if not self.cache:
-            raise ImproperlyConfigured(
-                f"AsyncManager requires cache alias '{self.cache_name}' to be defined. "
+            if not getattr(settings, "configured", False):
+                raise AsyncConfigurationError(
+                    "Django settings are not configured; configure Django before creating an AsyncManager."
+                )
+            raise AsyncConfigurationError(
+                f"CACHE_NAME refers to undefined cache alias '{self.cache_name}'. "
                 "Add the alias to Django CACHES."
             )
 
@@ -191,7 +319,7 @@ class AsyncManager:
         )
         lowered = backend_path.lower()
         if any(token in lowered for token in ("locmem", "dummycache", "dummy")):
-            raise ImproperlyConfigured(
+            raise AsyncConfigurationError(
                 "Coordinator progress tracking requires a shared cache backend. "
                 f"Alias '{self.cache_name}' currently resolves to '{backend_path}', "
                 "which is single-process only. Configure a shared backend such as "
@@ -224,7 +352,7 @@ class AsyncManager:
         if self.validate_async_qcluster() and self.validate_async_cache():
             return True
         else:
-            log.error("Async system validation failed, disabling async features")
+            log.error("Async system probes did not complete successfully")
             return False
 
     # =============================================================================
@@ -251,7 +379,11 @@ class AsyncManager:
         execution_options=None,
     ) -> str:
         """Launch a job through the reusable coordinator API."""
-        task_name = task_key or self.generate_task_name()
+        if worker_kwargs is not None and not isinstance(worker_kwargs, Mapping):
+            raise AsyncConfigurationError("worker_kwargs must be a mapping when supplied.")
+        if execution_options is not None and not isinstance(execution_options, Mapping):
+            raise AsyncConfigurationError("execution_options must be a mapping when supplied.")
+        task_name = task_key if task_key is not None else self.generate_task_name()
         manager_config = self.export_manager_config()
         worker_args = tuple(args)
         kwargs = dict(worker_kwargs or {})
@@ -292,13 +424,14 @@ class AsyncManager:
         """Reserve, initialize, submit, register, and announce one task."""
         task_name = call.task_key
         conflict_ids = call.conflict_ids
+        options = dict(options or call.execution_options)
+        self.validate_async_configuration(call=call, options=options)
         if conflict_ids and not self.add_conflict_ids(task_name, conflict_ids):
             log.error("Conflict reservation failed for task %s", task_name)
             raise Exception("Cannot launch task - conflicts detected with existing operations")
         self.create_progress_key(task_name)
         worker_kwargs = dict(call.kwargs)
         worker_kwargs.setdefault("task_key", task_name)
-        options = dict(options or call.execution_options)
         try:
             execution_ref = self._q2_adapter.submit(
                 TaskCall(

@@ -6,6 +6,7 @@ from django.test import TestCase, override_settings
 from django.urls import URLPattern, URLResolver
 
 from powercrud.async_manager import AsyncManager
+from powercrud.async_manager import AsyncConfigurationError, AsyncDisabledError
 from powercrud._coordinator.config import CoordinatorConfig
 from powercrud._coordinator.reconstruction import current_binding
 
@@ -176,6 +177,22 @@ class TestAsyncCompatibility(TestCase):
         self.assertEqual(manager.cleanup_grace_period, 0)
         self.assertEqual(manager.max_task_duration, 0)
 
+    def test_public_manager_rechecks_current_launch_enablement(self):
+        """A manager created while enabled must honor a later disable before launch."""
+        with override_settings(POWERCRUD_SETTINGS={"ASYNC_ENABLED": True}):
+            manager = AsyncManager()
+        with (
+            override_settings(POWERCRUD_SETTINGS={"ASYNC_ENABLED": False}),
+            patch.object(manager._q2_adapter, "submit") as submit,
+            patch.object(manager, "add_conflict_ids") as reserve,
+            patch.object(manager, "create_progress_key") as progress,
+        ):
+            with self.assertRaisesRegex(AsyncDisabledError, "ASYNC_ENABLED"):
+                manager.launch_async_task(lambda: "done", task_key="later-disabled")
+        submit.assert_not_called()
+        reserve.assert_not_called()
+        progress.assert_not_called()
+
     def test_public_tracking_types_and_mro_remain_compatible(self):
         """Public tracking keeps the same config object and public manager ancestry."""
         from powercrud.async_dashboard import AsyncDashboardConfig, ModelTrackingAsyncManager
@@ -292,7 +309,7 @@ class TestAsyncCompatibility(TestCase):
                 self.assertEqual(enqueue.call_args.args, ("worker", "payload"), "Only the final UUID argument is consumed")
                 self.assertEqual(enqueue.call_args.kwargs["task_name"], value, "Transport identity must retain the original spelling")
         with patch("powercrud._coordinator.q2.async_task", return_value="exec") as enqueue:
-            with self.assertRaisesRegex(ValueError, "task_name cannot be empty"):
+            with self.assertRaisesRegex(AsyncConfigurationError, "task key must be a non-empty string"):
                 manager.launch_async_task("worker", values[0], task_key="")
         enqueue.assert_not_called()
 

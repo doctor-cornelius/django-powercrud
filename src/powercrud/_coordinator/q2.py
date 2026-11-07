@@ -2,13 +2,19 @@
 
 import ast
 import importlib
+import importlib.util
 import json
 import logging
 import time
 import uuid
+from collections.abc import Mapping
 from typing import Any, Callable
 
+from django.apps import apps
 from django.conf import settings
+from django.core.exceptions import AppRegistryNotReady
+
+from .exceptions import AsyncConfigurationError
 
 from .types import Completion, ExecutionRef, ResultLookup, TaskCall
 
@@ -76,23 +82,34 @@ class Q2Adapter:
             return self.broker_factory()
         return None
 
-    def submit(
-        self, call: TaskCall, *, options: dict[str, Any] | None = None
-    ) -> ExecutionRef:
-        """Submit the original callable and arguments directly to q2."""
-        task_options = dict(
-            call.execution_options if options is None else options
-        )
+    def _effective_cluster_settings(self):
+        """Return the configured q2 cluster mapping, including the legacy override."""
+        cluster = self.cluster_settings
+        if cluster is None:
+            return {}
+        if not isinstance(cluster, Mapping):
+            raise AsyncConfigurationError("Q_CLUSTER must be a mapping when defined.")
+        return dict(cluster)
+
+    def _prepared_submission(self, call, options=None):
+        """Resolve q2's actual option precedence without enqueueing a task."""
+        selected_options = call.execution_options if options is None else options
+        if not isinstance(selected_options, Mapping):
+            raise AsyncConfigurationError("django-q2 execution options must be a mapping.")
+        if not isinstance(call.kwargs, Mapping):
+            raise AsyncConfigurationError("Async worker keyword arguments must be a mapping.")
+        task_options = dict(selected_options)
         worker_kwargs = dict(call.kwargs)
-        task_key = call.task_key
-        worker_kwargs.setdefault("task_key", task_key)
+        worker_kwargs.setdefault("task_key", call.task_key)
         save_value = worker_kwargs.pop("save", "not_set")
         local_timeout = task_options.pop("timeout", None)
         if local_timeout is None:
-            local_timeout = self.cluster_settings.get("timeout", 60)
+            local_timeout = self._effective_cluster_settings().get("timeout", 60)
 
-        q_options_clean = task_options.pop("q_options", None)
-        q_options_clean = dict(q_options_clean) if q_options_clean else {}
+        q_options = task_options.pop("q_options", None)
+        if q_options is not None and not isinstance(q_options, Mapping):
+            raise AsyncConfigurationError("django-q2 option 'q_options' must be a mapping.")
+        q_options = dict(q_options) if q_options else {}
         async_task_kwargs = {
             "hook": task_options.pop(
                 "hook", "powercrud.async_hooks.task_completion_hook"
@@ -102,13 +119,161 @@ class Q2Adapter:
             "sync": task_options.pop("sync", False),
             "cached": task_options.pop("cached", False),
             "broker": task_options.pop("broker", None),
-            "task_name": task_options.pop("task_name", task_key),
-            "q_options": q_options_clean,
+            "task_name": task_options.pop("task_name", call.task_key),
+            "q_options": q_options,
             **task_options,
             **worker_kwargs,
         }
         if save_value != "not_set":
             async_task_kwargs["save"] = save_value
+
+        effective_options = dict(async_task_kwargs)
+        effective_options.update(q_options)
+        effective_options["task_name"] = async_task_kwargs["task_name"]
+        return async_task_kwargs, q_options, effective_options
+
+    @staticmethod
+    def _validate_option_value(name, value):
+        """Validate q2 option values while preserving documented value forms."""
+        if value is None:
+            return
+        if name in {"sync", "save", "ack_failure"} and not isinstance(value, bool):
+            raise AsyncConfigurationError(f"django-q2 option '{name}' must be a boolean.")
+        if name == "cached" and not (
+            isinstance(value, bool)
+            or (isinstance(value, int) and not isinstance(value, bool) and value >= 0)
+        ):
+            raise AsyncConfigurationError(
+                "django-q2 option 'cached' must be a boolean or non-negative cache lifetime."
+            )
+        if name == "timeout" and (
+            isinstance(value, bool) or not isinstance(value, int) or value <= 0
+        ):
+            raise AsyncConfigurationError(
+                "django-q2 option 'timeout' must be a positive integer."
+            )
+        if name == "iter_count" and (
+            isinstance(value, bool) or not isinstance(value, int) or value < 0
+        ):
+            raise AsyncConfigurationError(
+                "django-q2 option 'iter_count' must be a non-negative integer."
+            )
+        if name == "iter_cached" and not isinstance(value, bool):
+            raise AsyncConfigurationError("django-q2 option 'iter_cached' must be a boolean.")
+        if name == "chain" and not isinstance(value, (list, tuple)):
+            raise AsyncConfigurationError("django-q2 option 'chain' must be a list or tuple.")
+        if name == "hook" and not (
+            callable(value) or (isinstance(value, str) and bool(value.strip()))
+        ):
+            raise AsyncConfigurationError(
+                "django-q2 option 'hook' must be a callable or non-empty import path."
+            )
+        if name in {"group", "cluster", "task_name"} and not isinstance(value, str):
+            raise AsyncConfigurationError(f"django-q2 option '{name}' must be a string.")
+        if name in {"group", "cluster", "task_name"} and not value.strip():
+            raise AsyncConfigurationError(f"django-q2 option '{name}' cannot be empty.")
+
+    def validate_configuration(self, *, call=None, options=None):
+        """Validate q2 configuration and selected dependencies without probing."""
+        if not getattr(settings, "configured", False):
+            raise AsyncConfigurationError(
+                "Django settings are not configured; configure Django before using django-q2."
+            )
+        if not apps.ready:
+            raise AsyncConfigurationError(
+                "Django's app registry is not ready; call django.setup() before using django-q2."
+            )
+        try:
+            available = importlib.util.find_spec("django_q") is not None
+        except (ImportError, ValueError):
+            available = False
+        if not available:
+            raise AsyncConfigurationError(
+                "django-q2 is not installed; install the django-q2 optional dependency to launch background tasks."
+            )
+        if not apps.is_installed("django_q"):
+            raise AsyncConfigurationError(
+                "django-q2 is installed but 'django_q' is missing from INSTALLED_APPS."
+            )
+
+        cluster = self._effective_cluster_settings()
+        orm = cluster.get("orm")
+        if orm is True:
+            database_alias = "default"
+        elif isinstance(orm, str):
+            database_alias = orm
+            if not database_alias.strip():
+                raise AsyncConfigurationError("Q_CLUSTER['orm'] must name a configured database alias.")
+        elif orm is not None and orm is not False:
+            raise AsyncConfigurationError(
+                "Q_CLUSTER['orm'] must be a boolean or configured database alias."
+            )
+        else:
+            database_alias = None
+        if database_alias is not None:
+            if database_alias not in getattr(settings, "DATABASES", {}):
+                raise AsyncConfigurationError(
+                    f"Q_CLUSTER['orm'] refers to unknown database alias '{database_alias}'."
+                )
+
+        if "sqs" in cluster and cluster["sqs"] is not None and not isinstance(cluster["sqs"], Mapping):
+            raise AsyncConfigurationError("Q_CLUSTER['sqs'] must be a mapping when defined.")
+
+        cache_alias = cluster.get("cache", "default")
+        if not isinstance(cache_alias, str) or not cache_alias.strip():
+            raise AsyncConfigurationError("Q_CLUSTER['cache'] must name a configured cache alias.")
+        try:
+            from django.core.cache import caches
+
+            caches[cache_alias]
+        except Exception as exc:
+            raise AsyncConfigurationError(
+                f"Q_CLUSTER['cache'] refers to unavailable cache alias '{cache_alias}'."
+            ) from exc
+
+        broker_module = None
+        custom_broker = cluster.get("broker_class")
+        if custom_broker is not None:
+            if not isinstance(custom_broker, str) or "." not in custom_broker:
+                raise AsyncConfigurationError("Q_CLUSTER['broker_class'] must be a dotted import path.")
+            broker_module = custom_broker.rsplit(".", 1)[0]
+        elif cluster.get("iron_mq"):
+            broker_module = "django_q.brokers.ironmq"
+        elif isinstance(cluster.get("sqs"), dict):
+            broker_module = "django_q.brokers.aws_sqs"
+        elif cluster.get("orm"):
+            broker_module = "django_q.brokers.orm"
+        elif cluster.get("mongo"):
+            broker_module = "django_q.brokers.mongo"
+        else:
+            broker_module = "django_q.brokers.redis_broker"
+        try:
+            broker_module_object = importlib.import_module(broker_module)
+            if custom_broker and not hasattr(
+                broker_module_object, custom_broker.rsplit(".", 1)[1]
+            ):
+                raise ImportError("configured broker class was not found")
+        except Exception as exc:
+            raise AsyncConfigurationError(
+                f"The configured django-q2 broker dependency '{broker_module}' is unavailable."
+            ) from exc
+
+        if call is None:
+            return
+        _, q_options, effective = self._prepared_submission(call, options)
+        for source in (q_options, effective):
+            for name in (
+                "timeout", "sync", "cached", "save", "ack_failure", "group",
+                "cluster", "task_name", "hook", "iter_count", "iter_cached", "chain",
+            ):
+                if name in source:
+                    self._validate_option_value(name, source[name])
+
+    def submit(
+        self, call: TaskCall, *, options: dict[str, Any] | None = None
+    ) -> ExecutionRef:
+        """Submit the original callable and arguments directly to q2."""
+        async_task_kwargs, q_options_clean, effective_options = self._prepared_submission(call, options)
 
         task_id = async_task(
             call.func, *call.args, **async_task_kwargs
@@ -116,9 +281,6 @@ class Q2Adapter:
         # q2 applies q_options over individual values, while explicit task_name
         # remains authoritative. Preserve that effective route separately from
         # the original options dict passed unchanged into q2.
-        effective_options = dict(async_task_kwargs)
-        effective_options.update(q_options_clean)
-        effective_options["task_name"] = async_task_kwargs["task_name"]
         serializable_option_names = {
             "group",
             "timeout",
@@ -295,7 +457,7 @@ class Q2Adapter:
 
 
     def probe(self, *, timeout_ms: int | None = None) -> bool:
-        """Run and clean up the legacy q2 worker health probe."""
+        """Run a q2 task/result probe; synchronous mode may execute it inline."""
         if timeout_ms is None:
             timeout_ms = self.probe_timeout_ms
         task_model_class = None
@@ -340,11 +502,16 @@ class Q2Adapter:
 
     @staticmethod
     def is_available() -> bool:
-        """Return whether q2 is importable and installed in Django settings."""
-        from django.apps import apps
-        from importlib.util import find_spec
-
-        return find_spec("django_q") is not None and apps.is_installed("django_q")
+        """Return false quietly when Django or q2 is unavailable or unready."""
+        try:
+            return (
+                getattr(settings, "configured", False)
+                and apps.ready
+                and importlib.util.find_spec("django_q") is not None
+                and apps.is_installed("django_q")
+            )
+        except (AppRegistryNotReady, ImportError, ValueError):
+            return False
 
 
 def task_completion_hook(raw_task: object) -> None:

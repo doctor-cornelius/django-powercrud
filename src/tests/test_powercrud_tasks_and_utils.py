@@ -29,6 +29,10 @@ class DummyManagerConfig(DummyAsyncManager):
     def cleanup_completed_tasks(self):
         return {"cleaned": {"foo": {"reason": "done"}}}
 
+    def validate_async_configuration(self):
+        """Support async view preflight when reused as a test manager."""
+        return None
+
 
 class SnapshotWorkerManager(tasks.AsyncManager):
     """Exercise actual CRUD worker reconstruction through the public resolver."""
@@ -455,10 +459,18 @@ def test_bulk_update_task_reports_failure(monkeypatch):
 
 
 @override_settings(POWERCRUD_SETTINGS={"ASYNC_ENABLED": False})
-def test_cleanup_async_artifacts_skips_when_disabled(monkeypatch, caplog):
-    caplog.set_level("DEBUG")
+def test_cleanup_async_artifacts_runs_when_launches_are_disabled(monkeypatch, caplog):
+    called = []
+
+    class DummyManager:
+        def cleanup_completed_tasks(self):
+            called.append(True)
+            return {"active_tasks": 0, "cleaned": {}, "skipped": {}}
+
+    monkeypatch.setattr("powercrud.async_manager.AsyncManager", lambda: DummyManager())
     schedules.cleanup_async_artifacts()
-    assert "Skipping scheduled cleanup" in caplog.text
+    assert called == [True], "Scheduled cleanup must run when new launches are disabled"
+    assert "Skipping scheduled cleanup" not in caplog.text
 
 
 @override_settings(POWERCRUD_SETTINGS={"ASYNC_ENABLED": True})

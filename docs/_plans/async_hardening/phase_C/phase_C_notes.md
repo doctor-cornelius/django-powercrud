@@ -1,6 +1,6 @@
 # Phase C notes: Configuration and lifecycle hardening
 
-Initial discussion draft prepared on 2026-11-07. The [phase plan](phase_C_plan.md) proposes reviewable increments. Sequence and C1 error-handling direction are now agreed below; remaining technical decisions are still under discussion. Implementation remains on hold.
+Initial discussion draft prepared on 2026-11-07. The [phase plan](phase_C_plan.md) proposes reviewable increments. Sequence and C1 error-handling direction were agreed before implementation. C1 is complete; the shared-state/q2 feasibility checkpoint is next, before C2–C6.
 
 ## Scope and sources of truth
 
@@ -12,11 +12,11 @@ Reusable code remains in `src/powercrud/_coordinator/`, inside the PowerCRUD dis
 
 ## Baseline and evidence limits
 
-The starting branch is `async_hardening/phase_b`, clean and matching its remote-tracking branch at `1a8c07d6` when inspected. B3 separation is `0c476b61`; B4 repairs are `b74f2d22`. No remote fetch was performed for this documentation task.
+The planning baseline was `async_hardening/phase_b`, clean and matching its remote-tracking branch at `1a8c07d6` when inspected. C1 implementation started on `async_hardening/phase_c` from the user-specified Phase B baseline `1b5d2686`.
 
 Repository briefing also covered the README, documentation index, `runproj`, `runtests`, `pyproject.toml`, tracked Docker configuration/sample environment files, and project settings/URLs. The checked-in development configuration uses the ORM q2 broker and Redis coordination cache; DatabaseCache aliases are also configured. This is configuration inspection, not evidence that any service is running or that backend guarantees pass.
 
-The [B4 evidence](../phase_B/phase_B_notes.md#b4-verification-evidence) records 141 coordinator passes (86% coordinator coverage), 1,081 PowerCRUD passes with 23 skips, 110 deselections and eight existing warnings, plus separate minimal-settings (4) and Bootstrap (31) passes. These are historical results, not tests rerun for this draft.
+The [B4 evidence](../phase_B/phase_B_notes.md#b4-verification-evidence) records 141 coordinator passes (86% coordinator coverage), 1,081 PowerCRUD passes with 23 skips, 110 deselections and eight existing warnings, plus separate minimal-settings (4) and Bootstrap (31) passes. C1 verification is recorded below.
 
 Patched enqueue/fetch/hooks, inline workers, synchronous probes, sequential cache effects, and actual tracking ORM checks do not establish separate worker delivery, distributed concurrency/lease safety, cached-result completion reliability, genuinely absent distributions, the allowed q2 version range, or installed-package behavior. Preserve those distinctions in every Phase C result.
 
@@ -24,18 +24,27 @@ Patched enqueue/fetch/hooks, inline workers, synchronous probes, sequential cach
 
 Agreed sequence: C1 → shared-state/q2 feasibility checkpoint → C2 → C3 → C4 → C5 → C6 → C7. The checkpoint precedes C2–C6 implementation: C2 retention, C3 monotonic transitions, and C4 rollback all need the safe operations finalized in C5. C6 depends on those ownership/lifetime guarantees. Each implementation increment should pair a deliberate correction with behavioral coverage in its owning suite. Stage headings remain unchanged; they do not require deferring shared-state design until C5.
 
-No production edits, tests, dependency changes, infrastructure actions, or issue-status changes are part of preparing this draft. Future fixture/service needs must be identified concretely; this plan does not authorize provisioning them.
+No dependency changes or infrastructure actions were needed for C1. The shared issue register remains unchanged because its broader outcomes still require later-phase and runtime evidence.
 
 ## Agreed discussion decisions — 2026-11-07
 
-The user accepted the sequence and C1 approach during discussion. This agreement settles direction, not exact interfaces or implementation authorization.
+The user accepted the sequence and C1 approach during discussion and later explicitly authorized the C1 implementation. The following behavior is implemented and verified as described below.
 
 - Complete C1 first, then hold the shared-state/q2 feasibility checkpoint before implementing C2–C6. Investigate operations supporting retained identity, monotonic outcomes, completion delivery, and lease protection before building dependent state behavior.
 - Direct manager operations raise specific, catchable errors; PowerCRUD translates those errors into actionable user feedback.
 - Launch validation occurs before reservations or submission. Validate configuration and required capabilities during routine explicit use; keep connectivity and worker probes separate.
 - Preserve the agreed enablement behavior: safe dormant/synchronous use, explicit enablement for direct launches, actionable errors above the async threshold, and continued operations for existing tasks after launches are disabled.
 
-Exact exception symbols/hierarchy, response payloads, logging, and capability-validation mechanics remain open. No cache algorithm, worker wrapper, completion mechanism, or support reduction was selected.
+No cache algorithm, worker wrapper, completion mechanism, or support reduction was selected.
+
+### C1 implementation record — 2026-11-07
+
+- Added `AsyncConfigurationError` and `AsyncDisabledError`; manager and q2 adapter validation now check Django readiness/settings, PowerCRUD and q2 configuration, aliases, launch options, and task/resource keys before reservation. The q2 dependency remains lazily loaded, and `is_available()` is a quiet boolean check.
+- Routed per-view async opt-in through launch validation. Above-threshold update/delete setup failures use the existing queue-failure response path. Direct launches reread current enablement; cleanup commands and scheduled cleanup continue while new launches are disabled.
+- Preserved the shared reservation/progress/submission sequence and transport precedence. The intentional compatibility change is that an explicit empty task key now raises the typed configuration error before any task state is created; it no longer raises the legacy `ValueError`. Invalid async setup no longer silently falls back to synchronous persistence.
+- Focused coordinator selection: 25 passed. Focused consumer selection: 144 passed.
+- Full verification via `./runproj exec`: coordinator 154 passed; PowerCRUD 1,084 passed, 23 skipped, 110 deselected, 8 warnings; minimal-settings 4 passed; Bootstrap 31 passed. No assets or browser tests were run.
+- Documentation link/anchor checks and `git diff --check` are recorded at completion. These tests validate configuration and mocked/sequential paths; they do not establish live-worker delivery, safe distributed locking, lease protection, or backend concurrency guarantees. Issues 1–13 therefore remain open.
 
 ## Plan Phases
 
@@ -95,7 +104,7 @@ These are implementation questions within settled A1/B1 contracts, not reopened 
 
 | Decision | Required investigation / discussion | Needed by |
 |---|---|---|
-| Validation and error interface | Direction agreed: catchable manager errors translated by PowerCRUD, launch validation before reservations/submission, and separate probes. Exact error types/payloads/logging, capability checks, and reconciliation with existing public validators remain open. | C1, C4 |
+| Validation and error interface | C1 defines catchable manager errors, pre-reservation validation, PowerCRUD translation, and separate probes. Revisit only if C4 reveals a concrete interface gap. | C4 |
 | Retained state and identity lifetime | Live writes/refresh/expiry, execution attachment, failure handling, and atomic transition primitives; retain identity throughout live work and terminal retention without cross-cache discovery. | C2–C5 |
 | Legacy worker/context integration | Automatic capture/context with existing callable signatures, constructor/config export, reserved metadata conflicts, and alias/deprecation behavior; preserve B's one submission path. | C2, C4 |
 | Outcome and observation encoding | Explicit business-result type/wire representation, bounded retained result/error data, unknown polling stop behavior, and endpoint/tracking compatibility. Ordinary return semantics and 24-hour default are settled. | C3 |
@@ -105,10 +114,8 @@ These are implementation questions within settled A1/B1 contracts, not reopened 
 
 Final package branding/settings namespace and publication decisions remain E/F. Durable orchestration/replay, guaranteed notifications, exactly-once business effects, and rolling in-flight upgrades remain outside the agreed scope; retain Q9's compatibility window and drained-upgrade procedure.
 
-## Draft verification
+## C1 documentation verification
 
-Documentation-only preparation: all 67 local links/anchors in the three changed documents passed, and `git diff --check` passed. No runtime tests were run; historical B4 passes remain linked above.
-
-After recording the discussion decisions, all 68 local links/anchors in the three updated documents and `git diff --check` passed. No runtime tests were run for this documentation update.
+All 69 local links/anchors in the three updated planning documents passed, and `git diff --check` passed. The full runtime outcomes are recorded above.
 
 A broader check of 415 local links/anchors also found three pre-existing historical references: `phase_B_audit.md` targets the absent `testing.md#test-suites` anchor; `phase_A_a2_results.md` targets the removed `src/tests/test_async_hooks.py`; and `phase_A_a3_results.md` targets the absent `phase_A_a2_results.md#test-ownership-map` anchor. Those Phase A/B records were left unchanged.

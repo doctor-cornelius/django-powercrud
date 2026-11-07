@@ -18,8 +18,8 @@ class TestCoordinationFactories(SimpleTestCase):
 
     def setUp(self):
         """Use different configured cache aliases and namespaces for each location."""
-        self.first = AsyncManager(coordination_config=CoordinatorConfig(cache_name="default", key_namespace="factory-first"))
-        self.second = AsyncManager(coordination_config=CoordinatorConfig(cache_name="coordinator_async", key_namespace="factory-second"))
+        self.first = AsyncManager(coordination_config=CoordinatorConfig(enabled=True, cache_name="default", key_namespace="factory-first"))
+        self.second = AsyncManager(coordination_config=CoordinatorConfig(enabled=True, cache_name="coordinator_async", key_namespace="factory-second"))
         self.first.cache.clear()
         self.second.cache.clear()
 

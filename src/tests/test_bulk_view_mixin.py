@@ -512,6 +512,10 @@ def test_async_bulk_update_submits_pickle_safe_field_metadata(rf, monkeypatch):
             """Return a stable logical task key for the test."""
             return "async-field-metadata-test"
 
+        def validate_async_configuration(self):
+            """Accept the configured explicit-use preflight in this transport test."""
+            return None
+
         def launch_async_task(self, *args, **kwargs):
             """Retain submitted arguments without invoking q2."""
             captured["args"] = args
@@ -521,6 +525,7 @@ def test_async_bulk_update_submits_pickle_safe_field_metadata(rf, monkeypatch):
     monkeypatch.setattr(view, "get_async_manager", lambda: manager)
     monkeypatch.setattr(view, "get_async_manager_class_path", lambda: "sample.Manager")
     monkeypatch.setattr(view, "get_async_manager_config", lambda: None)
+    monkeypatch.setattr(view, "get_bulk_async_backend", lambda: "q2")
     monkeypatch.setattr(view, "_check_for_conflicts", lambda selected_ids: False)
     monkeypatch.setattr(
         view, "async_queue_success", lambda request, task_name, ids: "queued"

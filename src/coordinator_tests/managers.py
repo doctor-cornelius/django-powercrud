@@ -7,6 +7,7 @@ from powercrud._coordinator.reconstruction import current_binding
 from powercrud._coordinator.tracking import ModelTrackingMixin
 
 COORDINATOR_CONFIG = CoordinatorConfig(
+    enabled=True,
     cache_name="coordinator_async",
     conflict_ttl=3600,
     progress_ttl=7200,

@@ -1,6 +1,8 @@
 """Focused contracts for the lazy q2 execution boundary."""
 
 import os
+import tempfile
+from pathlib import Path
 import subprocess
 import sys
 from types import SimpleNamespace
@@ -31,6 +33,7 @@ class TestQ2Adapter(SimpleTestCase):
             "from django.conf import settings; "
             "Q2Adapter(); "
             "assert not settings.configured; "
+            "assert not Q2Adapter.is_available(); "
             "assert not any(name in sys.modules for name in ('powercrud.conf', 'powercrud.logging', 'powercrud.async_manager', 'powercrud.async_hooks', 'powercrud.async_context', 'powercrud.async_dashboard')); "
             "assert 'django_q' not in sys.modules; "
             "assert 'django_q.tasks' not in sys.modules; "
@@ -46,6 +49,68 @@ class TestQ2Adapter(SimpleTestCase):
             env=env,
         )
         self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_q2_absence_in_isolated_import_environment(self):
+        """Explicit async validation diagnoses q2 when its distribution is absent."""
+        site_roots = [
+            Path(path)
+            for path in sys.path
+            if path and Path(path).is_dir() and "site-packages" in path
+        ]
+        self.assertTrue(site_roots, "The test process must expose an installed dependency directory")
+        with tempfile.TemporaryDirectory(prefix="powercrud-no-q2-") as temp_dir:
+            isolated_site = Path(temp_dir) / "site-packages"
+            isolated_site.mkdir()
+            for entry in site_roots[0].iterdir():
+                if entry.name == "django_q" or entry.name.startswith("django_q2-"):
+                    continue
+                destination = isolated_site / entry.name
+                try:
+                    destination.symlink_to(entry, target_is_directory=entry.is_dir())
+                except OSError as exc:
+                    self.fail(f"Could not expose dependency {entry.name} to the isolated process: {exc}")
+
+            source_root = Path(__file__).resolve().parents[1]
+            source = f"""
+import importlib.metadata
+import importlib.util
+import sys
+sys.path[:0] = [{str(isolated_site)!r}, {str(source_root)!r}]
+from powercrud._coordinator.q2 import Q2Adapter
+assert importlib.util.find_spec("django_q") is None
+try:
+    importlib.metadata.distribution("django-q2")
+except importlib.metadata.PackageNotFoundError:
+    pass
+else:
+    raise AssertionError("q2 distribution must be absent from the isolated environment")
+assert not Q2Adapter.is_available()
+"""
+            result = subprocess.run(
+                [sys.executable, "-I", "-S", "-c", source],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_unready_app_registry_is_reported_without_loading_broker(self):
+        """Explicit q2 validation waits until Django has completed app setup."""
+        from powercrud._coordinator.exceptions import AsyncConfigurationError
+
+        with patch("powercrud._coordinator.q2.apps", SimpleNamespace(ready=False)):
+            with self.assertRaisesRegex(AsyncConfigurationError, "app registry is not ready"):
+                Q2Adapter().validate_configuration()
+
+    def test_missing_q2_app_registration_is_targeted(self):
+        """An installed q2 distribution must also be enabled in INSTALLED_APPS."""
+        from django.apps import apps
+        from powercrud._coordinator.exceptions import AsyncConfigurationError
+
+        installed_apps = [config.name for config in apps.get_app_configs() if config.name != "django_q"]
+        with self.settings(INSTALLED_APPS=installed_apps):
+            with self.assertRaisesRegex(AsyncConfigurationError, "missing from INSTALLED_APPS"):
+                Q2Adapter().validate_configuration()
 
     def test_snapshot_completion_reconstructs_core_manager(self):
         """Snapshot submissions complete through the selected internal manager."""

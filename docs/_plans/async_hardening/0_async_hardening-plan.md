@@ -12,7 +12,7 @@
 
 ## Next
 
-- 🔳 Continue the [Phase C technical discussion](phase_C/phase_C_notes.md#open-technical-decisions); sequence and C1 error-handling direction are [agreed](phase_C/phase_C_notes.md#agreed-discussion-decisions--2026-11-07), with implementation on hold.
+- 🔳 Complete the [shared-state/q2 feasibility checkpoint](phase_C/phase_C_notes.md#open-technical-decisions) after completed C1 and before beginning C2–C6 implementation; the sequence and C1 error-handling direction are [recorded](phase_C/phase_C_notes.md#agreed-discussion-decisions--2026-11-07).
 
 ## ✅ Phase A: Define ownership and behavior
 
