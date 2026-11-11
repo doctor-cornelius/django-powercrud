@@ -9,10 +9,11 @@
 - ✅ Phase A complete on 2026-11-04: contracts, qualification, test separation, server verification, and infrastructure follow-ups reviewed ([handoff](0_async_hardening-notes.md#phase-a-completion-and-handoff)).
 - ✅ B1 technical specification complete on 2026-11-07; configuration, modules/interfaces, compatibility, identity lookup, and implementation handoff are recorded in the [Phase B notes](phase_B/phase_B_notes.md#b1-technical-specification--2026-11-07).
 - ✅ Phase B complete on 2026-11-07: q2 isolation, coordinator separation, compatibility review/repairs, assertion ownership, and server verification are recorded in the [handoff](0_async_hardening-notes.md#phase-b-completion-and-handoff). django-q2 remains the only execution backend; issues 1–13 remain open.
+- ✅ C2.1 static feasibility checkpoint and C2.2 implementation planning completed on 2026-11-11; see the [findings and handoff](phase_C/phase_C_notes.md#c21-feasibility-findings--2026-11-11). C2 production implementation and runtime verification remain outstanding.
 
 ## Next
 
-- 🔳 Complete the [shared-state/q2 feasibility checkpoint](phase_C/phase_C_notes.md#open-technical-decisions) after completed C1 and before beginning C2–C6 implementation; the sequence and C1 error-handling direction are [recorded](phase_C/phase_C_notes.md#agreed-discussion-decisions--2026-11-07).
+- 🔳 Implement C2.3–C2.8 using the [C2.2 handoff](phase_C/phase_C_notes.md#c22-implementation-handoff--2026-11-11), preserving the boundary before C3–C7.
 
 ## ✅ Phase A: Define ownership and behavior
 
