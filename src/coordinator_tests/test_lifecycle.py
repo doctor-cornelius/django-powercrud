@@ -49,6 +49,20 @@ class DummyCustomManager(AsyncManager):
     pass
 
 
+class LifecycleTrackingManager(AsyncManager):
+    """Importable manager that records launch lifecycle events."""
+
+    def __init__(self):
+        super().__init__()
+        self.lifecycle_events = []
+
+    def async_task_lifecycle(self, event, task_name=None, **kwargs):
+        """Capture events while preserving the normal manager launch path."""
+        self.lifecycle_events.append(
+            {"event": event, "task_id": task_name, "kwargs": kwargs}
+        )
+
+
 class TestSysFunctions(AsyncManagerTestMixin, TestCase):
     def test_cache_working(self):
         (
@@ -298,8 +312,10 @@ class TestTask3LaunchPattern(AsyncManagerTestMixin, TestCase):
         self.assertIsInstance(instance, ModelTrackingAsyncManager)
 
     def test_resolve_manager_fallback(self):
-        instance = AsyncManager.resolve_manager("non.existent.Manager")
-        self.assertIsInstance(instance, AsyncManager)
+        from powercrud._coordinator.exceptions import AsyncConfigurationError
+
+        with self.assertRaisesRegex(AsyncConfigurationError, "explicitly selected manager"):
+            AsyncManager.resolve_manager("non.existent.Manager")
 
     def test_launch_rollback_on_enqueue_failure(self):
         """Test cleanup when async_task() fails or returns falsy."""
@@ -339,7 +355,7 @@ class TestTask3LaunchPattern(AsyncManagerTestMixin, TestCase):
                     dummy_worker, conflict_ids=conflict_ids
                 )
 
-            self.assertIn("returned falsy task_id", str(cm.exception))
+            self.assertIn("did not prepare an execution identifier", str(cm.exception))
 
     def test_task_key_consistency(self):
         """Test task_key flows consistently through all phases."""
@@ -409,17 +425,6 @@ class TestTask3CompletionHooks(AsyncManagerTestMixin, TestCase):
 
     def test_lifecycle_events_fired(self):
         """Test that 'create' event is fired with correct metadata."""
-
-        class LifecycleTrackingManager(AsyncManager):
-            def __init__(self):
-                super().__init__()
-                self.lifecycle_events = []
-
-            def async_task_lifecycle(self, event, task_name=None, **kwargs):
-                self.lifecycle_events.append(
-                    {"event": event, "task_id": task_name, "kwargs": kwargs}
-                )
-
         manager = LifecycleTrackingManager()
 
         with patch("powercrud._coordinator.q2.async_task") as mock_async_task:
@@ -627,7 +632,11 @@ class TestTask3EndToEndIntegration(AsyncManagerTestMixin, TestCase):
             progress_messages, "Worker should update progress synchronously"
         )
         final_progress = progress_messages[-1]
-        self.assertIn("Processing completed", final_progress)
+        self.assertEqual(
+            final_progress,
+            "pending",
+            "C4 owns late active/progress registration after explicit synchronous execution.",
+        )
 
 class TestProgressPolling(AsyncManagerTestMixin, TestCase):
     """Test progress polling classmethods (as_view and get_url)."""
@@ -657,6 +666,7 @@ class TestProgressPolling(AsyncManagerTestMixin, TestCase):
         """Test as_view returns progress when available."""
         # Setup progress data
         manager = AsyncManager()
+        self._retain_identity(self.task_name, "progress-view-execution")
         manager.update_progress(self.task_name, self.progress_data)
 
         view = AsyncManager.as_view(manager_factory=coordinator_manager_factory)
@@ -672,11 +682,10 @@ class TestProgressPolling(AsyncManagerTestMixin, TestCase):
         self.assertNotIn("poll_interval", data)
 
     def test_as_view_no_progress_fallback_status(self):
-        """Test as_view falls back to task status when no progress."""
-        # Mock get_task_status_nowait to return 'success'
-        with patch.object(
-            AsyncManager, "get_task_status_nowait", return_value="success"
-        ):
+        """Retained terminal evidence completes cache-only polling."""
+        identity = self._retain_identity(self.task_name, "finished-view-execution")
+        self.async_manager.mark_task_finished(identity, finished_at=timezone.now())
+        with patch.object(AsyncManager, "get_task_status_nowait", side_effect=AssertionError("cache-only polling must not query q2")):
             view = AsyncManager.as_view(manager_factory=coordinator_manager_factory)
             request = self.factory.get(f"/progress/?task_name={self.task_name}")
             response = view(request)
@@ -690,18 +699,19 @@ class TestProgressPolling(AsyncManagerTestMixin, TestCase):
         self.assertNotIn("poll_interval", data)
 
     def test_as_view_unknown_status(self):
-        """When cache indicates completion but status lookup returns None, treat as success."""
-        with patch.object(AsyncManager, "get_task_status_nowait", return_value=None):
+        """Missing identity remains unknown and cache-only polling does not query q2."""
+        with patch.object(AsyncManager, "get_task_status_nowait", side_effect=AssertionError("cache-only polling must not query q2")):
             view = AsyncManager.as_view(manager_factory=coordinator_manager_factory)
             request = self.factory.get(f"/progress/?task_name={self.task_name}")
             response = view(request)
 
-        self.assertEqual(response.status_code, 286)
+        self.assertEqual(response.status_code, 200)
         import json
 
         data = json.loads(response.content.decode("utf-8"))
-        self.assertEqual(data["status"], "success")
-        self.assertEqual(data["progress"], "Completed successfully!")
+        self.assertEqual(data["status"], "unknown")
+        self.assertIsNone(data["progress"])
+        self.assertIn("poll_interval", data)
 
 
 
@@ -768,6 +778,7 @@ class TestProgressPolling(AsyncManagerTestMixin, TestCase):
         """Test adaptive poll_interval based on status."""
         # Test in_progress (1000ms)
         manager = AsyncManager()
+        identity = self._retain_identity(self.task_name, "adaptive-poll-execution")
         manager.update_progress(self.task_name, self.progress_data)
         view = AsyncManager.as_view(manager_factory=coordinator_manager_factory)
         request = self.factory.get(f"/progress/?task_name={self.task_name}")
@@ -783,26 +794,31 @@ class TestProgressPolling(AsyncManagerTestMixin, TestCase):
         request = self.factory.get(f"/progress/?task_name={self.task_name}")
         response = view(request)
         response_data = json.loads(response.content.decode("utf-8"))
-        self.assertEqual(response_data["status"], "unknown")
+        self.assertEqual(response_data["status"], "pending")
         self.assertIn("poll_interval", response_data)
         self.assertEqual(response_data["poll_interval"], 1000)
 
         # Test success (terminal state)
         manager.remove_progress_key(self.task_name)
-        with patch.object(
-            AsyncManager, "get_task_status_nowait", return_value="success"
-        ):
+        self.async_manager.mark_task_finished(identity, finished_at=timezone.now())
+        with patch.object(AsyncManager, "get_task_status_nowait", side_effect=AssertionError("cache-only polling must not query q2")):
             response = view(request)
             response_data = json.loads(response.content.decode("utf-8"))
             self.assertEqual(response_data["status"], "success")
             self.assertEqual(response.status_code, 286)
             self.assertNotIn("poll_interval", response_data)
 
-        # Test unknown (1000ms) - progress data still cleared
-        with patch.object(AsyncManager, "get_task_status_nowait", return_value=None):
+        # Test unknown after identity loss - q2 is not queried to fill the gap.
+        from powercrud._coordinator.state import identity_key
+
+        self.async_manager.cache.delete(
+            identity_key(self.async_manager.get_coordination_config(), self.task_name)
+        )
+        with patch.object(AsyncManager, "get_task_status_nowait", side_effect=AssertionError("cache-only polling must not query q2")):
             response = view(request)
             response_data = json.loads(response.content.decode("utf-8"))
-            self.assertNotIn("poll_interval", response_data)
+            self.assertEqual(response_data["status"], "unknown")
+            self.assertIn("poll_interval", response_data)
 
 class TestAsyncHookHelpers(TestCase):
     def test_extract_manager_class_from_dict_kwargs(self):

@@ -516,6 +516,10 @@ def test_async_bulk_update_submits_pickle_safe_field_metadata(rf, monkeypatch):
             """Accept the configured explicit-use preflight in this transport test."""
             return None
 
+        def export_manager_config(self):
+            """Expose the selected manager's application config."""
+            return None
+
         def launch_async_task(self, *args, **kwargs):
             """Retain submitted arguments without invoking q2."""
             captured["args"] = args

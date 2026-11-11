@@ -36,9 +36,12 @@ def progress_view(*, manager_factory, template_name=None):
                 )
             if progress_data is not None:
                 return JsonResponse(
-                    {"task_name": task_name, "status": status, "progress": progress_data}
+                    {
+                        "task_name": task_name,
+                        "status": status or "unknown",
+                        "progress": progress_data,
+                    }
                 )
-            status = manager.get_task_status_nowait(task_name)
             return JsonResponse(
                 {
                     "task_name": task_name,

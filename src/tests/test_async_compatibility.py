@@ -254,7 +254,10 @@ class TestAsyncCompatibility(TestCase):
             def update_progress(self, task_name, message):
                 updates.append((task_name, message))
 
-        with patch("powercrud.async_manager.AsyncManager", return_value=ManagerStub()):
+        with patch(
+            "powercrud.async_manager.AsyncManager.resolve_manager",
+            return_value=ManagerStub(),
+        ):
             @progress_update_decorator
             def worker(data, progress_callback=None, **kwargs):
                 """Exercise repeated callbacks and the retained task_name lookup."""

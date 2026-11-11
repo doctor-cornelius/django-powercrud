@@ -9,7 +9,7 @@ import sys
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
-from django.test import SimpleTestCase
+from django.test import TestCase
 
 from powercrud._coordinator.q2 import Q2Adapter
 from powercrud._coordinator.config import CoordinatorConfig
@@ -18,7 +18,7 @@ from powercrud._coordinator.context import get_current_task
 from coordinator_tests.managers import CompletionRecordingManager
 
 
-class TestQ2Adapter(SimpleTestCase):
+class TestQ2Adapter(TestCase):
     """Exercise q2 call translation without claiming real worker behavior."""
 
     def test_import_and_construction_do_not_load_q2_runtime(self):
@@ -291,7 +291,12 @@ assert not Q2Adapter.is_available()
             task_key, spec, config.to_snapshot(), ExecutionRef("q2", "worker-exec", {"cached": False})
         )
         put_identity(config, identity)
-        task = {"id": "worker-exec", "name": task_key, "kwargs": {"_coordinator_identity": identity.to_mapping()}}
+        task = {
+            "id": "worker-exec",
+            "name": task_key,
+            "kwargs": {"task_key": task_key},
+            "_coordinator_identity": identity.to_mapping(),
+        }
         _pre_execute(None, task)
         active = get_current_task()
         self.assertEqual(active.task_name, task_key, "Worker context must use the logical task key")
@@ -327,7 +332,8 @@ assert not Q2Adapter.is_available()
         task = {
             "id": identity.execution.id,
             "name": task_key,
-            "kwargs": {"_coordinator_identity": identity.to_mapping()},
+            "kwargs": {"task_key": task_key},
+            "_coordinator_identity": identity.to_mapping(),
         }
         _pre_execute(None, task)
         task.update({"stopped": datetime.now(timezone.utc), "success": False})
@@ -363,7 +369,8 @@ assert not Q2Adapter.is_available()
         task = {
             "id": identity.execution.id,
             "name": task_key,
-            "kwargs": {"_coordinator_identity": identity.to_mapping()},
+            "kwargs": {"task_key": task_key},
+            "_coordinator_identity": identity.to_mapping(),
         }
         _pre_execute(None, task)
         task.update({"stopped": datetime.now(timezone.utc), "success": False, "ack_failure": True})
@@ -375,7 +382,7 @@ assert not Q2Adapter.is_available()
     def test_registered_signals_cross_a_separate_process_with_shared_file_cache(self):
         """A spawned worker reconstructs identity through the suite-owned file cache."""
         from django.conf import settings
-        from powercrud._coordinator.state import put_identity
+        from powercrud._coordinator.state import get_identity, put_identity
         from powercrud._coordinator.types import TaskIdentity
         from coordinator_tests.managers import COORDINATOR_CONFIG, CoordinatorAsyncManager
         from coordinator_tests.workers import run_q2_signal_process

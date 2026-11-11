@@ -25,6 +25,10 @@ class CustomManager:
         """Stand in for the manager's explicit-use preflight contract."""
         return None
 
+    def export_manager_config(self):
+        """Expose the config supplied by the selected manager factory."""
+        return self.config
+
 
 class DummyAsyncView(AsyncMixin):
     bulk_async = True

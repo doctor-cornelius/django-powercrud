@@ -68,9 +68,11 @@ def bulk_delete_task(model_path, selected_ids, user_id, **kwargs):
             if manager is None:
                 manager = AsyncManager.resolve_manager(manager_class_path, config=manager_config)
         if task_name and get_current_task() is None:
+            get_config = getattr(manager, "get_coordination_config", None)
+            coordination_config = get_config() if callable(get_config) else None
             context_token = bind_task_context(
                 task_name, manager_class_path, manager=manager,
-                coordination_config=manager.get_coordination_config(),
+                coordination_config=coordination_config,
             )
         if task_name:
             manager.update_progress(task_name, "starting delete")
@@ -167,9 +169,11 @@ def bulk_update_task(
             if manager is None:
                 manager = AsyncManager.resolve_manager(manager_class_path, config=manager_config)
         if task_name and get_current_task() is None:
+            get_config = getattr(manager, "get_coordination_config", None)
+            coordination_config = get_config() if callable(get_config) else None
             context_token = bind_task_context(
                 task_name, manager_class_path, manager=manager,
-                coordination_config=manager.get_coordination_config(),
+                coordination_config=coordination_config,
             )
         if task_name:
             manager.update_progress(task_name, "starting update")
