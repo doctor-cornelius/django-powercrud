@@ -5,11 +5,12 @@
 - ✅ Initial discussion draft prepared on 2026-11-07 from the [overall checklist](../0_async_hardening-plan.md#phase-c-harden-configuration-and-lifecycle), [A1 contracts](../phase_A/phase_A_notes.md#a1-draft-contracts-for-discussion), [B1 specification](../phase_B/phase_B_notes.md#b1-technical-specification--2026-11-07), and [B4 handoff](../phase_B/phase_B_notes.md#phase-c-handoff).
 - ✅ Sequence and C1 error-handling approach agreed on 2026-11-07; see the [decision record](phase_C_notes.md#agreed-discussion-decisions--2026-11-07).
 - ✅ C1 implementation completed on 2026-11-07; see the [C1 implementation record](phase_C_notes.md#c1-implementation-record--2026-11-07).
+- ✅ C2.1 static feasibility investigation and C2.2 implementation plan completed on 2026-11-11; see the [findings and handoff](phase_C_notes.md#c21-feasibility-findings--2026-11-11). No C2 production changes or runtime verification have started.
 - 🔳 All [hardening issues 1–13](../0_async_hardening-notes.md#key-async-hardening-issues) remain open pending their complete acceptance evidence.
 
 ## Next
 
-- 🔳 Complete C2.1, the shared-state/q2 feasibility investigation, then C2.2, the implementation plan, before starting C2 implementation; see [C2 sequencing and completion](phase_C_notes.md#c2-sequencing-and-completion).
+- 🔳 Implement C2.3–C2.8 from the [C2.2 implementation handoff](phase_C_notes.md#c22-implementation-handoff--2026-11-11), then stop after C2.
 
 ## C1: Validate explicit use and enforce launch enablement
 
@@ -18,8 +19,8 @@
 
 ## C2: Preserve identity, context, and execution evidence
 
-1. 🔳 Investigate shared-state/q2 feasibility and record evidence for safe identity retention, execution attachment, and compatible worker/context integration; identify any concrete blocker before implementation (issues 12–13).
-2. 🔳 Produce an implementation plan from the feasibility findings, covering all [seven identity wrinkles](../phase_B/phase_B_notes.md#5-seven-identity-wrinkles-implementation-assignment), compatibility constraints, test ownership, and dependencies on C3–C6; resolve any blocking decision (issues 2, 10, 12–13).
+1. ✅ Investigate shared-state/q2 feasibility and record evidence for safe identity retention, execution attachment, and compatible worker/context integration; identify any concrete blocker before implementation (issues 12–13).
+2. ✅ Produce an implementation plan from the feasibility findings, covering all [seven identity wrinkles](../phase_B/phase_B_notes.md#5-seven-identity-wrinkles-implementation-assignment), compatibility constraints, test ownership, and dependencies on C3–C6; resolve any blocking decision (issues 2, 10, 12–13).
 3. 🔳 Implement automatic identity capture from the actual selected manager, strict explicit metadata/configuration validation, and UUID/key-alias compatibility (issues 2, 12–13).
 4. 🔳 Implement versioned identity retention and execution/result-reference attachment in the configured coordination location, including missing/invalid identity and persistence-failure behavior (issues 12–13).
 5. 🔳 Carry and reconstruct that identity through supported worker and completion paths, preserving supported serialized kwargs/application config, constructor signatures, subclass overrides, and the single q2 submission path (issues 12–13).
