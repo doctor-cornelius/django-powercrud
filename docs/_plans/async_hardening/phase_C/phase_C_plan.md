@@ -9,7 +9,7 @@
 
 ## Next
 
-- 🔳 Hold the shared-state/q2 feasibility checkpoint before starting C2–C6 implementation; remaining decisions are listed in [open technical decisions](phase_C_notes.md#open-technical-decisions).
+- 🔳 Complete C2.1, the shared-state/q2 feasibility investigation, then C2.2, the implementation plan, before starting C2 implementation; see [C2 sequencing and completion](phase_C_notes.md#c2-sequencing-and-completion).
 
 ## C1: Validate explicit use and enforce launch enablement
 
@@ -18,8 +18,14 @@
 
 ## C2: Preserve identity, context, and execution evidence
 
-1. 🔳 Capture the selected manager/configuration automatically and retain versioned identity plus execution/result routing in the configured location (issues 12–13).
-2. 🔳 Resolve all [seven identity wrinkles](../phase_B/phase_B_notes.md#5-seven-identity-wrinkles-implementation-assignment), including strict explicit metadata, parent context, descendant PK types, aliases, polling, and cleanup reconstruction (issues 2, 10, 12–13).
+1. 🔳 Investigate shared-state/q2 feasibility and record evidence for safe identity retention, execution attachment, and compatible worker/context integration; identify any concrete blocker before implementation (issues 12–13).
+2. 🔳 Produce an implementation plan from the feasibility findings, covering all [seven identity wrinkles](../phase_B/phase_B_notes.md#5-seven-identity-wrinkles-implementation-assignment), compatibility constraints, test ownership, and dependencies on C3–C6; resolve any blocking decision (issues 2, 10, 12–13).
+3. 🔳 Implement automatic identity capture from the actual selected manager, strict explicit metadata/configuration validation, and UUID/key-alias compatibility (issues 2, 12–13).
+4. 🔳 Implement versioned identity retention and execution/result-reference attachment in the configured coordination location, including missing/invalid identity and persistence-failure behavior (issues 12–13).
+5. 🔳 Carry and reconstruct that identity through supported worker and completion paths, preserving supported serialized kwargs/application config, constructor signatures, subclass overrides, and the single q2 submission path (issues 12–13).
+6. 🔳 Establish parent context in supported worker paths; make descendant registration and progress helpers use the parent manager/configuration, preserve original PK types, and stop protected descendant work on acquisition failure (issues 10, 12–13).
+7. 🔳 Make polling and cleanup reconstruct the originating manager/configuration and q2 execution/result route from retained identity in their selected location; missing identity remains unknown (issues 2, 12–13).
+8. 🔳 Complete focused regressions and both full server suites through `./runproj exec`; update C2 evidence and checklist, check links/anchors and `git diff --check`, and make a semantic commit before stopping at C2 (issues 2, 10, 12–13).
 
 ## C3: Report truthful outcomes and retain terminal state
 
