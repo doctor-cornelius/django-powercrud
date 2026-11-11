@@ -9,3 +9,7 @@ class AsyncConfigurationError(ImproperlyConfigured):
 
 class AsyncDisabledError(AsyncConfigurationError):
     """A new async launch was requested while launches are disabled."""
+
+
+class DescendantConflictError(Exception):
+    """A descendant could not join its parent's protected work set."""

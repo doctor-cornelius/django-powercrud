@@ -15,6 +15,11 @@ from .async_manager import AsyncManager
 from powercrud._coordinator.config import CoordinatorConfig
 from powercrud._coordinator.reconstruction import construction_scope
 from powercrud._coordinator.q2 import Q2Adapter
+from powercrud._coordinator.context import (
+    bind_task_context,
+    get_current_task,
+    reset_task_context,
+)
 
 log = get_logger(__name__)
 
@@ -46,14 +51,27 @@ def bulk_delete_task(model_path, selected_ids, user_id, **kwargs):
     log.debug(f"[WORKER] selected_ids={selected_ids}")
     log.debug(f"[WORKER] kwargs keys={list(kwargs.keys())}")
 
+    context_token = None
+    manager = None
     try:
         if coordinator_snapshot is not None:
             with construction_scope(
                 CoordinatorConfig.from_snapshot(coordinator_snapshot), Q2Adapter()
             ):
-                manager = AsyncManager.resolve_manager(manager_class_path, config=manager_config)
+                current = get_current_task()
+                manager = current.manager if current else None
+                if manager is None:
+                    manager = AsyncManager.resolve_manager(manager_class_path, config=manager_config)
         else:
-            manager = AsyncManager.resolve_manager(manager_class_path, config=manager_config)
+            current = get_current_task()
+            manager = current.manager if current else None
+            if manager is None:
+                manager = AsyncManager.resolve_manager(manager_class_path, config=manager_config)
+        if task_name and get_current_task() is None:
+            context_token = bind_task_context(
+                task_name, manager_class_path, manager=manager,
+                coordination_config=manager.get_coordination_config(),
+            )
         if task_name:
             manager.update_progress(task_name, "starting delete")
 
@@ -92,6 +110,9 @@ def bulk_delete_task(model_path, selected_ids, user_id, **kwargs):
         except Exception:
             pass
         return False
+    finally:
+        if context_token is not None:
+            reset_task_context(context_token)
 
 
 def bulk_update_task(
@@ -129,14 +150,27 @@ def bulk_update_task(
     log.debug(f"[WORKER] selected_ids={selected_ids}")
     log.debug(f"[WORKER] kwargs keys={list(kwargs.keys())}")
 
+    context_token = None
+    manager = None
     try:
         if coordinator_snapshot is not None:
             with construction_scope(
                 CoordinatorConfig.from_snapshot(coordinator_snapshot), Q2Adapter()
             ):
-                manager = AsyncManager.resolve_manager(manager_class_path, config=manager_config)
+                current = get_current_task()
+                manager = current.manager if current else None
+                if manager is None:
+                    manager = AsyncManager.resolve_manager(manager_class_path, config=manager_config)
         else:
-            manager = AsyncManager.resolve_manager(manager_class_path, config=manager_config)
+            current = get_current_task()
+            manager = current.manager if current else None
+            if manager is None:
+                manager = AsyncManager.resolve_manager(manager_class_path, config=manager_config)
+        if task_name and get_current_task() is None:
+            context_token = bind_task_context(
+                task_name, manager_class_path, manager=manager,
+                coordination_config=manager.get_coordination_config(),
+            )
         if task_name:
             manager.update_progress(task_name, "starting update")
 
@@ -190,6 +224,9 @@ def bulk_update_task(
         except Exception:
             pass
         return False
+    finally:
+        if context_token is not None:
+            reset_task_context(context_token)
 
 
 # # Future: Celery wrappers

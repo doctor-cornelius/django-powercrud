@@ -45,3 +45,42 @@ def simple_test_worker(message: str, task_key: str | None = None, **kwargs) -> s
         pass
 
     return f"Processed: {message}"
+
+
+def signal_context_worker(value: str, **kwargs) -> str:
+    """Return a value while proving a q2 pre-execute context reached the worker."""
+    from powercrud._coordinator.context import get_current_task
+
+    context = get_current_task()
+    if context is None or context.manager is None:
+        raise RuntimeError("q2 signal context was not installed in the worker")
+    if "_coordinator_identity" in kwargs:
+        raise RuntimeError("Coordinator transport identity leaked into callable kwargs")
+    return f"{context.task_name}:{value}"
+
+
+def run_q2_signal_process(task: dict, result_queue, cache_dir: str) -> None:
+    """Run registered q2 worker signals in a separate process with shared file cache."""
+    import os
+
+    os.environ["DJANGO_SETTINGS_MODULE"] = "coordinator_tests.settings"
+    os.environ["POWERCRUD_COORDINATOR_CACHE_DIR"] = cache_dir
+    import django
+
+    django.setup()
+    from django_q.signals import post_execute_in_worker, pre_execute
+    from powercrud._coordinator.q2 import register_signals
+
+    register_signals()
+    pre_execute.send(sender=None, task=task, func=signal_context_worker)
+    result = signal_context_worker(**task["kwargs"])
+    task.update(
+        {
+            "result": result,
+            "success": True,
+            "stopped": django.utils.timezone.now(),
+            "ack_failure": False,
+        }
+    )
+    post_execute_in_worker.send(sender=None, task=task, func=signal_context_worker)
+    result_queue.put((result, task["kwargs"].get("_coordinator_identity")))

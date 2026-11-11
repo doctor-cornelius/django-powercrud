@@ -29,13 +29,18 @@ from __future__ import annotations
 from contextlib import contextmanager
 from contextvars import ContextVar
 from dataclasses import dataclass
-from typing import Iterable, Optional
+from typing import Hashable, Iterable, Optional
 
 
 @dataclass
 class TaskContext:
+    """Describe the active logical task and its selected manager location."""
+
     task_name: str
     manager_class_path: Optional[str] = None
+    manager: object | None = None
+    manager_spec: object | None = None
+    coordination_config: object | None = None
 
 
 _task_context: ContextVar[Optional[TaskContext]] = ContextVar(
@@ -43,16 +48,49 @@ _task_context: ContextVar[Optional[TaskContext]] = ContextVar(
 )
 
 
+def bind_task_context(
+    task_name: str,
+    manager_class_path: Optional[str] = None,
+    *,
+    manager: object | None = None,
+    manager_spec: object | None = None,
+    coordination_config: object | None = None,
+):
+    """Set task context and return its reset token for signal-managed scopes."""
+    return _task_context.set(
+        TaskContext(
+            task_name,
+            manager_class_path,
+            manager,
+            manager_spec,
+            coordination_config,
+        )
+    )
+
+
+def reset_task_context(token: object) -> None:
+    """Restore the context that was active before task execution."""
+    _task_context.reset(token)
+
+
 @contextmanager
-def task_context(task_name: str, manager_class_path: Optional[str] = None):
+def task_context(
+    task_name: str,
+    manager_class_path: Optional[str] = None,
+    *,
+    manager: object | None = None,
+    manager_spec: object | None = None,
+    coordination_config: object | None = None,
+):
     """Context manager to set the current async task metadata."""
-    token = _task_context.set(
-        TaskContext(task_name=task_name, manager_class_path=manager_class_path)
+    token = bind_task_context(
+        task_name, manager_class_path, manager=manager,
+        manager_spec=manager_spec, coordination_config=coordination_config,
     )
     try:
         yield
     finally:
-        _task_context.reset(token)
+        reset_task_context(token)
 
 
 def get_current_task() -> Optional[TaskContext]:
@@ -66,7 +104,7 @@ def skip_nested_async() -> bool:
 
 
 def register_descendant_conflicts(
-    model_path: str, ids: Iterable[int], *, manager_factory
+    model_path: str, ids: Iterable[Hashable], *, manager_factory
 ) -> None:
     """
     Register descendant objects in the conflict store under the current task.
@@ -79,7 +117,7 @@ def register_descendant_conflicts(
     if not context:
         return
 
-    id_set = {int(pk) for pk in ids if pk is not None}
+    id_set = {pk for pk in ids if pk is not None}
     if not id_set:
         return
 
@@ -92,5 +130,10 @@ def register_descendant_conflicts(
     except Exception:
         pass
 
-    manager = manager_factory()
-    manager.add_conflict_ids(context.task_name, {model_label: id_set})
+    manager = context.manager if context.manager is not None else manager_factory()
+    if manager.add_conflict_ids(context.task_name, {model_label: id_set}) is False:
+        from .exceptions import DescendantConflictError
+
+        raise DescendantConflictError(
+            f"Could not register descendant conflicts for task {context.task_name!r}."
+        )

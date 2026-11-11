@@ -11,6 +11,27 @@ from powercrud._coordinator.config import CoordinatorConfig
 from powercrud._coordinator.reconstruction import current_binding
 
 
+def _capturing_q2_submit(execution_id):
+    """Return a q2 test seam that emits the real adapter pre-enqueue receiver."""
+    def submit(func, *args, **kwargs):
+        """Prepare a minimal task dictionary and run the registered capture path."""
+        from powercrud._coordinator.q2 import _pre_enqueue
+
+        q_options = kwargs.get("q_options") or {}
+        task = {
+            "id": execution_id,
+            "name": kwargs.get("task_name"),
+            "args": args,
+            "kwargs": kwargs,
+            "cached": q_options.get("cached", kwargs.get("cached", False)),
+            "cluster": q_options.get("cluster", kwargs.get("cluster")),
+        }
+        _pre_enqueue(None, task)
+        return execution_id
+
+    return submit
+
+
 class DefaultConfigManager(AsyncManager):
     """Distinguish an omitted constructor argument from an explicit None."""
 
@@ -221,7 +242,7 @@ class TestAsyncCompatibility(TestCase):
             with task_context("parent-task"):
                 self.assertIs(get_current_task(), core_get_current_task())
                 register_descendant_conflicts("sample.Book", [1, "2", None])
-        self.assertEqual(added, [("parent-task", {"sample.book": {1, 2}})])
+        self.assertEqual(added, [("parent-task", {"sample.book": {1, "2"}})])
 
     def test_progress_decorator_remains_a_public_compatibility_helper(self):
         """Legacy progress callback lookup continues to use task_name."""
@@ -242,15 +263,15 @@ class TestAsyncCompatibility(TestCase):
                 return True
 
             self.assertTrue(worker([1, 2], task_name="task-key"), "The decorator must retain the worker result")
-            self.assertTrue(worker([3], task_key="still-ignored"), "The legacy task_key alias defect remains for Phase C")
-        self.assertEqual(updates, [("task-key", "Processed 1"), ("task-key", "Processed 2")], "All task_name progress callbacks must survive the ownership move")
+            self.assertTrue(worker([3], task_key="normalized-key"), "The decorator must recognize the normalized task_key field")
+        self.assertEqual(updates, [("task-key", "Processed 1"), ("task-key", "Processed 2"), ("normalized-key", "Processed 3")], "Progress callbacks must use either supported task key spelling")
 
     def test_public_legacy_launch_still_consumes_trailing_uuid(self):
         """The compatibility launch keeps its old positional UUID convention."""
         import uuid
 
         task_key = str(uuid.uuid4())
-        with patch("powercrud._coordinator.q2.async_task", return_value="execution-id") as enqueue:
+        with patch("powercrud._coordinator.q2.async_task", side_effect=_capturing_q2_submit("execution-id")) as enqueue:
             returned = AsyncManager().launch_async_task(lambda value: value, "payload", task_key)
         self.assertEqual(returned, task_key)
         self.assertEqual(enqueue.call_args.args[1], "payload")
@@ -260,12 +281,12 @@ class TestAsyncCompatibility(TestCase):
         """Public reconstruction keeps no-argument, config, and invalid-path behavior."""
         no_config_path = f"{NoConfigManager.__module__}.{NoConfigManager.__qualname__}"
         config_path = f"{ConfigManager.__module__}.{ConfigManager.__qualname__}"
-        no_config = AsyncManager.resolve_manager(no_config_path, config={"legacy_ignored": True})
+        no_config = AsyncManager.resolve_manager(no_config_path)
         configured = AsyncManager.resolve_manager(config_path, config={"app": "value"})
-        fallback = AsyncManager.resolve_manager("missing.module.Manager")
+        with self.assertRaises(AsyncConfigurationError):
+            AsyncManager.resolve_manager("missing.module.Manager")
         self.assertIsInstance(no_config, NoConfigManager)
         self.assertEqual(configured.application_config, {"app": "value"})
-        self.assertIsInstance(fallback, AsyncManager)
 
     def test_public_tracking_config_mapping_is_coerced(self):
         """Legacy dictionary configuration still creates the public tracking config."""
@@ -285,8 +306,8 @@ class TestAsyncCompatibility(TestCase):
         resolved = NoConfigManager.resolve_manager(path, config={"app": "value"})
         self.assertIs(type(resolved), ConfigManager, "A sibling public manager must remain selectable")
         self.assertEqual(resolved.application_config, {"app": "value"}, "The selected constructor must receive config")
-        fallback = NoConfigManager.resolve_manager("missing.module.Manager")
-        self.assertIs(type(fallback), NoConfigManager, "Invalid paths must retain subclass fallback")
+        with self.assertRaises(AsyncConfigurationError, msg="Invalid explicit manager paths must fail visibly"):
+            NoConfigManager.resolve_manager("missing.module.Manager")
 
     def test_resolver_omits_config_for_absent_path_or_none_coercion(self):
         """Preserve the legacy distinction between missing config and explicit None."""
@@ -303,42 +324,72 @@ class TestAsyncCompatibility(TestCase):
         values = ["ABCDEFAB-CDEF-4ABC-8DEF-ABCDEFABCDEF", "abcdefabcdef4abc8defabcdefabcdef", "{abcdefab-cdef-4abc-8def-abcdefabcdef}"]
         manager = AsyncManager()
         for value in values:
-            with self.subTest(value=value), patch("powercrud._coordinator.q2.async_task", return_value="exec") as enqueue:
+            with self.subTest(value=value), patch("powercrud._coordinator.q2.async_task", side_effect=_capturing_q2_submit("exec")) as enqueue:
                 returned = manager.launch_async_task("worker", "payload", value)
                 self.assertEqual(returned, value, "Valid trailing UUID text must remain byte-for-byte unchanged")
                 self.assertEqual(enqueue.call_args.args, ("worker", "payload"), "Only the final UUID argument is consumed")
                 self.assertEqual(enqueue.call_args.kwargs["task_name"], value, "Transport identity must retain the original spelling")
         with patch("powercrud._coordinator.q2.async_task", return_value="exec") as enqueue:
-            with self.assertRaisesRegex(AsyncConfigurationError, "task key must be a non-empty string"):
+            with self.assertRaisesRegex(AsyncConfigurationError, "task_key must be a non-empty string"):
                 manager.launch_async_task("worker", values[0], task_key="")
         enqueue.assert_not_called()
 
-    def test_legacy_submission_has_exact_transport_shape(self):
-        """The public launch must add no coordinator metadata to legacy workers."""
+    def test_equal_task_key_aliases_are_accepted_and_explicit_uuid_args_are_preserved(self):
+        """Equivalent aliases work while an explicitly keyed UUID remains a worker arg."""
+        import uuid
+
         manager = AsyncManager()
-        broker = object()
-        options = {"timeout": 17, "cached": True}
-        with patch("powercrud._coordinator.q2.async_task", return_value="exec") as enqueue:
+        literal_uuid = str(uuid.uuid4())
+        with patch("powercrud._coordinator.q2.async_task", side_effect=_capturing_q2_submit("alias-exec")) as enqueue:
             returned = manager.launch_async_task(
-                "application.worker", 1, "payload", task_key="logical", group="bulk",
-                timeout=42, sync=False, cached=False, broker=broker, q_options=options,
-                save=True, hook="application.custom_hook", task_name="worker-name", value=3,
-                manager_class="application.Manager", manager_config={"app": True},
+                "worker", literal_uuid, task_key="same-key", task_name="same-key",
+                q_options={"task_name": "same-key"},
             )
-        enqueue.assert_called_once_with(
-            "application.worker", 1, "payload", task_key="logical", group="bulk",
-            timeout=42, sync=False, cached=False, broker=broker, q_options=options,
-            save=True, hook="application.custom_hook", task_name="worker-name", value=3,
-            manager_class="application.Manager", manager_config={"app": True},
-        )
-        self.assertEqual(returned, "logical", "Legacy task_name aliases must not replace the returned logical key")
+        self.assertEqual(returned, "same-key", "Equal public aliases must normalize to one logical key")
+        self.assertEqual(enqueue.call_args.args, ("worker", literal_uuid), "Explicit task_key must preserve positional UUID worker data")
+
+    def test_trailing_uuid_parsing_emits_deprecation_warning(self):
+        """The legacy UUID convention remains available with a warning."""
+        import uuid
+        import warnings
+
+        with patch("powercrud._coordinator.q2.async_task", side_effect=_capturing_q2_submit("warn-exec")):
+            with warnings.catch_warnings(record=True) as caught:
+                warnings.simplefilter("always", DeprecationWarning)
+                AsyncManager().launch_async_task("worker", "payload", str(uuid.uuid4()))
+        self.assertTrue(any(item.category is DeprecationWarning for item in caught), "Legacy positional UUID parsing must warn callers to use task_key=.")
+
+    def test_conflicting_q_options_task_name_fails_before_reservation(self):
+        """A q2 task-name alias cannot silently diverge from the logical key."""
+        manager = AsyncManager()
+        with patch("powercrud._coordinator.q2.async_task") as enqueue:
+            with self.assertRaisesRegex(AsyncConfigurationError, "task_key conflicts"):
+                manager.launch_async_task(
+                    "worker", task_key="logical-key", q_options={"task_name": "other-key"},
+                    conflict_ids={"sample.Book": {123}},
+                )
+        enqueue.assert_not_called()
+        self.assertIsNone(manager.get_progress("logical-key"), "Alias conflicts must fail before progress or reservation")
+
+    def test_public_launch_rejects_conflicting_manager_and_task_alias_metadata(self):
+        """Caller metadata cannot contradict the selected manager or logical key."""
+        manager = AsyncManager()
+        with patch("powercrud._coordinator.q2.async_task") as enqueue:
+            with self.assertRaisesRegex(AsyncConfigurationError, "task_key conflicts"):
+                manager.launch_async_task("application.worker", task_key="logical", task_name="other")
+            with self.assertRaisesRegex(AsyncConfigurationError, "Caller manager metadata conflicts"):
+                manager.launch_async_task(
+                    "application.worker", task_key="logical",
+                    manager_class="application.Manager", manager_config={"app": True},
+                )
+        enqueue.assert_not_called()
 
     def test_all_falsey_enqueue_ids_roll_back_legacy_launch(self):
         """Adapter translation must not turn an enqueue failure into a truthy ID."""
         manager = AsyncManager()
         for execution_id in (None, "", False, 0):
-            with self.subTest(execution_id=execution_id), patch("powercrud._coordinator.q2.async_task", return_value=execution_id):
-                with self.assertRaisesRegex(Exception, "returned falsy task_id"):
+            with self.subTest(execution_id=execution_id), patch("powercrud._coordinator.q2.async_task", side_effect=_capturing_q2_submit(execution_id)):
+                with self.assertRaisesRegex(Exception, "execution identifier|Failed to enqueue"):
                     manager.launch_async_task("worker", task_key="rejected", conflict_ids={"sample.Book": {987654}})
                 self.assertIsNone(manager.get_progress("rejected"), "Failed enqueue must remove progress")
                 self.assertNotIn("rejected", manager.get_active_tasks(), "Failed enqueue must not register active work")

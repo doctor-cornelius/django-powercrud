@@ -12,10 +12,11 @@ from coordinator_tests.managers import CoordinatorAsyncManager as AsyncManager
 from coordinator_tests.managers import CoordinatorTrackingManager as ModelTrackingAsyncManager
 from powercrud._coordinator.tracking import AsyncDashboardConfig
 from powercrud._coordinator.q2 import Q2Adapter
-from powercrud._coordinator.types import Completion
+from powercrud._coordinator.types import Completion, ExecutionRef, TaskIdentity
 from coordinator_tests.managers import coordinator_manager_factory
 from coordinator_tests.testapp.models import AsyncTaskRecord
 from coordinator_tests.workers import simple_test_worker
+from coordinator_tests.q2_testing import q2_submission
 
 
 class AsyncManagerTestMixin:
@@ -25,6 +26,21 @@ class AsyncManagerTestMixin:
         super().setUp()
         self.async_manager = AsyncManager()
         self.async_manager.cache.clear()
+
+    def _retain_identity(self, task_name, execution_id):
+        """Retain a task-to-q2 reference for polling and cleanup contracts."""
+        identity = TaskIdentity(
+            task_name,
+            self.async_manager.get_manager_spec(),
+            self.async_manager.get_coordination_config().to_snapshot(),
+            ExecutionRef(
+                "q2",
+                execution_id,
+                {"cached": False, "result_cache": "default", "options": {"ack_failure": True}},
+            ),
+        )
+        self.async_manager.put_task_identity(identity)
+        return identity
 
 
 class DummyCustomManager(AsyncManager):
@@ -60,17 +76,20 @@ class TestCleanupUtilities(AsyncManagerTestMixin, TestCase):
 
     def test_cleanup_completed_tasks_removes_artifacts(self):
         task_name = "cleanup-task-success"
+        execution_id = "cleanup-success-execution"
         conflict_ids = {"coordinator_testapp.Book": {42}}
         self._prepare_active_task(task_name, conflict_ids)
+        self._retain_identity(task_name, execution_id)
 
-        with patch("powercrud._coordinator.q2.task_model") as mock_task_model:
-            mock_task_model.return_value.objects.filter.return_value.first.return_value = (
-                SimpleNamespace(
-                    success=True,
-                    result={"ok": True},
-                )
-            )
+        with patch("powercrud._coordinator.q2.fetch", return_value=SimpleNamespace(
+            id=execution_id,
+            name=task_name,
+            success=True,
+            stopped=timezone.now(),
+            result={"ok": True},
+        )) as fetch:
             summary = self.async_manager.cleanup_completed_tasks()
+        fetch.assert_called_once_with(execution_id, wait=0, cached=False)
 
         self.assertIn(task_name, summary["cleaned"])
         clean_details = summary["cleaned"][task_name]
@@ -85,17 +104,19 @@ class TestCleanupUtilities(AsyncManagerTestMixin, TestCase):
 
     def test_cleanup_skips_running_tasks(self):
         task_name = "cleanup-task-running"
+        execution_id = "cleanup-running-execution"
         conflict_ids = {"coordinator_testapp.Book": {99}}
         self._prepare_active_task(task_name, conflict_ids)
+        self._retain_identity(task_name, execution_id)
 
-        with patch("powercrud._coordinator.q2.task_model") as mock_task_model:
-            mock_task_model.return_value.objects.filter.return_value.first.return_value = (
-                SimpleNamespace(
-                    success=None,
-                    started=timezone.now(),
-                )
-            )
+        with patch("powercrud._coordinator.q2.fetch", return_value=SimpleNamespace(
+            id=execution_id,
+            name=task_name,
+            success=None,
+            started=timezone.now(),
+        )) as fetch:
             summary = self.async_manager.cleanup_completed_tasks()
+        fetch.assert_called_once_with(execution_id, wait=0, cached=False)
 
         self.assertIn(task_name, summary["skipped"])
         self.assertIn(task_name, self.async_manager.get_active_tasks())
@@ -111,7 +132,7 @@ class TestTask3LaunchPattern(AsyncManagerTestMixin, TestCase):
 
         # Launch task without conflicts
         with patch("powercrud._coordinator.q2.async_task") as mock_async_task:
-            mock_async_task.return_value = "django_q2_task_123"
+            mock_async_task.side_effect = q2_submission("django_q2_task_123")
 
             with patch.object(
                 self.async_manager, "async_task_lifecycle"
@@ -157,7 +178,7 @@ class TestTask3LaunchPattern(AsyncManagerTestMixin, TestCase):
         def dummy_worker(value, **kwargs):
             return value
 
-        with patch("powercrud._coordinator.q2.async_task", return_value="execution-id") as enqueue:
+        with patch("powercrud._coordinator.q2.async_task", side_effect=q2_submission("execution-id")) as enqueue:
             task_key = self.async_manager.launch(
                 dummy_worker,
                 literal_uuid,
@@ -182,7 +203,7 @@ class TestTask3LaunchPattern(AsyncManagerTestMixin, TestCase):
         conflict_ids = {"myapp.Book": {1, 2, 3}}
 
         with patch("powercrud._coordinator.q2.async_task") as mock_async_task:
-            mock_async_task.return_value = "django_q2_task_456"
+            mock_async_task.side_effect = q2_submission("django_q2_task_456")
 
             task_key = self.async_manager.launch(
                 dummy_worker,
@@ -311,7 +332,7 @@ class TestTask3LaunchPattern(AsyncManagerTestMixin, TestCase):
 
         # Test 2: async_task returns falsy
         with patch("powercrud._coordinator.q2.async_task") as mock_async_task:
-            mock_async_task.return_value = None  # Falsy return
+            mock_async_task.side_effect = q2_submission(None)  # Falsy return
 
             with self.assertRaises(Exception) as cm:
                 self.async_manager.launch(
@@ -327,7 +348,7 @@ class TestTask3LaunchPattern(AsyncManagerTestMixin, TestCase):
             return f"Received task_key: {task_key}"
 
         with patch("powercrud._coordinator.q2.async_task") as mock_async_task:
-            mock_async_task.return_value = "django_q2_task_789"
+            mock_async_task.side_effect = q2_submission("django_q2_task_789")
 
             returned_task_key = self.async_manager.launch(
                 dummy_worker, worker_kwargs={"data": "test"}
@@ -355,7 +376,7 @@ class TestTask3CompletionHooks(AsyncManagerTestMixin, TestCase):
             return "test"
 
         with patch("powercrud._coordinator.q2.async_task") as mock_async_task:
-            mock_async_task.return_value = "task_id_hook_test"
+            mock_async_task.side_effect = q2_submission("task_id_hook_test")
 
             self.async_manager.launch(dummy_worker)
 
@@ -402,7 +423,7 @@ class TestTask3CompletionHooks(AsyncManagerTestMixin, TestCase):
         manager = LifecycleTrackingManager()
 
         with patch("powercrud._coordinator.q2.async_task") as mock_async_task:
-            mock_async_task.return_value = "lifecycle_test_task"
+            mock_async_task.side_effect = q2_submission("lifecycle_test_task")
 
             task_key = manager.launch(
                 lambda: "test", user="test_user", affected_objects=["obj1", "obj2"]
@@ -519,7 +540,7 @@ class TestTask3ProgressIntegration(AsyncManagerTestMixin, TestCase):
             return "captured"
 
         with patch("powercrud._coordinator.q2.async_task") as mock_async_task:
-            mock_async_task.return_value = "worker_kwargs_test"
+            mock_async_task.side_effect = q2_submission("worker_kwargs_test")
 
             task_key = self.async_manager.launch(
                 capturing_worker, worker_kwargs={"test_param": "test_value"}
@@ -538,12 +559,14 @@ class TestTask3StatusMethods(AsyncManagerTestMixin, TestCase):
     def test_status_methods_behavior(self):
         """Test both blocking and non-blocking status methods."""
         task_id = "status_test_task"
+        execution_id = "status-test-execution"
+        self._retain_identity(task_id, execution_id)
 
         # Mock successful task
-        mock_success_task = type("MockTask", (), {"success": True, "id": task_id})()
+        mock_success_task = type("MockTask", (), {"success": True, "id": execution_id, "name": task_id})()
 
         # Mock running task
-        mock_running_task = type("MockTask", (), {"success": None, "id": task_id})()
+        mock_running_task = type("MockTask", (), {"success": None, "id": execution_id, "name": task_id})()
 
         # Test blocking method with successful task
         with patch("powercrud._coordinator.q2.fetch") as mock_fetch:
@@ -552,8 +575,8 @@ class TestTask3StatusMethods(AsyncManagerTestMixin, TestCase):
             status = self.async_manager.get_task_status(task_id)
             self.assertEqual(status, "success")
 
-            # Verify it was called with wait=300 (blocking)
-            mock_fetch.assert_called_with(task_id, wait=300)
+            # Verify lookup uses the retained q2 execution ID, not the logical key.
+            mock_fetch.assert_called_with(execution_id, wait=300, cached=False)
 
         # Test non-blocking method with running task
         with patch("powercrud._coordinator.q2.fetch") as mock_fetch:
@@ -563,7 +586,7 @@ class TestTask3StatusMethods(AsyncManagerTestMixin, TestCase):
             self.assertEqual(status, "in_progress")
 
             # Verify it was called with wait=0 (non-blocking)
-            mock_fetch.assert_called_with(task_id, wait=0)
+            mock_fetch.assert_called_with(execution_id, wait=0, cached=False)
 
         # Test no task found
         with patch("powercrud._coordinator.q2.fetch") as mock_fetch:
@@ -583,19 +606,13 @@ class TestTask3EndToEndIntegration(AsyncManagerTestMixin, TestCase):
         # Execute worker synchronously by patching async_task call
         progress_messages = []
 
-        def run_sync(func, *args, **kwargs):
-            func(*args, **kwargs)
-            progress_messages.append(
-                self.async_manager.get_progress(kwargs["task_key"])
-            )
-            return "mock_django_q_task_id"
-
-        with patch("powercrud._coordinator.q2.async_task", side_effect=run_sync):
+        with patch("powercrud._coordinator.q2.async_task", side_effect=q2_submission("mock_django_q_task_id", execute=True)):
             task_key = self.async_manager.launch(
                 simple_test_worker,
                 worker_kwargs={"message": "E2E Test Message"},
                 user="e2e_test_user",
             )
+        progress_messages.append(self.async_manager.get_progress(task_key))
 
         # Verify task_key was returned
         self.assertIsInstance(task_key, str)
@@ -714,7 +731,7 @@ class TestProgressPolling(AsyncManagerTestMixin, TestCase):
             return "done"
 
         with patch("powercrud._coordinator.q2.async_task") as mock_async:
-            mock_async.return_value = "mock_task_id"
+            mock_async.side_effect = q2_submission("mock_task_id", execute=True)
             task_id = self.async_manager.launch(dummy_worker)
 
         # Since we're mocking async_task, the dummy_worker doesn't actually run

@@ -7,6 +7,8 @@ import json
 import logging
 import time
 import uuid
+from contextvars import ContextVar
+from dataclasses import dataclass
 from collections.abc import Mapping
 from typing import Any, Callable
 
@@ -16,9 +18,177 @@ from django.core.exceptions import AppRegistryNotReady
 
 from .exceptions import AsyncConfigurationError
 
-from .types import Completion, ExecutionRef, ResultLookup, TaskCall
+from .types import Completion, ExecutionRef, ManagerSpec, ResultLookup, TaskCall, TaskIdentity
+
+
+@dataclass
+class _SubmissionBinding:
+    """Process-local capture state for one q2 submission call."""
+
+    adapter: object
+    call: TaskCall
+    prepared: dict[str, Any]
+    identity: TaskIdentity | None = None
+
+
+_submission_binding: ContextVar[_SubmissionBinding | None] = ContextVar(
+    "powercrud_q2_submission_binding", default=None
+)
+_worker_binding: ContextVar[object | None] = ContextVar(
+    "powercrud_q2_worker_binding", default=None
+)
+_signal_receivers: list[Callable[..., Any]] = []
 
 log = logging.getLogger(__name__)
+
+
+def _pre_enqueue(sender, task, **kwargs):
+    """Persist and add identity to the matching q2 task before delivery."""
+    binding = _submission_binding.get()
+    if binding is None or binding.identity is not None or not isinstance(task, dict):
+        return
+    task_kwargs = task.get("kwargs")
+    if not isinstance(task_kwargs, dict) or task_kwargs.get("task_key") != binding.call.task_key:
+        return
+    if tuple(task.get("args", ())) != tuple(binding.call.args):
+        return
+    if task_kwargs.get("manager_class", binding.call.manager.class_path) != binding.call.manager.class_path:
+        return
+    if task_kwargs.get("_coordinator_config", binding.call.coordination) != binding.call.coordination:
+        return
+    if task.get("name") not in (None, binding.call.task_key):
+        return
+    if "_coordinator_identity" in task_kwargs or "_coordinator_identity" in task:
+        raise AsyncConfigurationError("_coordinator_identity is reserved for the coordinator.")
+    task_id = task.get("id")
+    if not task_id:
+        raise AsyncConfigurationError("django-q2 did not prepare an execution identifier before delivery.")
+    options = binding.prepared
+    cached = task.get("cached", options.get("cached", False))
+    cluster = task.get("cluster", options.get("cluster"))
+    result_alias = options.get("q2_result_cache")
+    locator_options = dict(options.get("locator_options", {}))
+    locator = {
+        "cached": cached,
+        "cluster": cluster,
+        "result_cache": result_alias,
+        "options": locator_options,
+    }
+    execution = ExecutionRef(id=str(task_id), locator=locator)
+    from .state import attach_execution
+
+    identity = attach_execution(
+        task_key=binding.call.task_key,
+        manager=binding.call.manager,
+        coordination=dict(binding.call.coordination),
+        execution=execution,
+    )
+    from .config import CoordinatorConfig
+    from .state import put_identity
+
+    config = CoordinatorConfig.from_snapshot(identity.coordination)
+    put_identity(config, identity)
+    binding.identity = identity
+    task["_coordinator_identity"] = identity.to_mapping()
+
+
+def _pre_execute(sender, task=None, func=None, **kwargs):
+    """Reconstruct the retained manager and establish worker task context."""
+    task = task if task is not None else kwargs.get("task")
+    mapping = task.get("_coordinator_identity") if isinstance(task, dict) else None
+    if mapping is None:
+        return
+    try:
+        identity = TaskIdentity.from_mapping(mapping)
+        from .config import CoordinatorConfig
+        from .context import bind_task_context
+        from .reconstruction import construct_manager
+        from .state import get_identity
+
+        config = CoordinatorConfig.from_snapshot(identity.coordination)
+        retained = get_identity(config, identity.task_key)
+        if retained != identity:
+            raise AsyncConfigurationError("Task identity is missing or differs from the q2 task envelope.")
+        manager = construct_manager(
+            identity.manager,
+            coordination_config=config,
+            executor=Q2Adapter(),
+            legacy=False,
+            prepare_config=lambda manager_cls, value: manager_cls.prepare_manager_config(value),
+        )
+        task_token = bind_task_context(
+            identity.task_key,
+            identity.manager.class_path,
+            manager=manager,
+            manager_spec=identity.manager,
+            coordination_config=config,
+        )
+        binding_record = [task_token, identity, manager, None]
+        binding_record[3] = _worker_binding.set(binding_record)
+    except Exception:
+        log.exception("Could not reconstruct coordinator identity before q2 worker execution")
+        raise
+
+
+def _post_execute_in_worker(sender, task=None, func=None, **kwargs):
+    """Reset worker context and add retained identity to q2 result metadata."""
+    task = task if task is not None else kwargs.get("task")
+    active = _worker_binding.get()
+    if active is None:
+        return
+    token, identity, manager, worker_token = active
+    try:
+        if isinstance(task, dict):
+            task_kwargs = task.get("kwargs")
+            task["kwargs"] = dict(task_kwargs) if isinstance(task_kwargs, dict) else {}
+            task["kwargs"]["_coordinator_identity"] = identity.to_mapping()
+            finished_at = task.get("stopped")
+            success = task.get("success")
+            ack_failure = task.get(
+                "ack_failure",
+                identity.execution.locator.get("options", {}).get("ack_failure", False),
+            )
+            if finished_at is not None and (success is True or (success is False and ack_failure is True)):
+                manager.mark_task_finished(identity, finished_at=finished_at)
+    except Exception:
+        log.exception("Could not attach coordinator identity to q2 worker result metadata")
+    finally:
+        from .context import reset_task_context
+
+        reset_task_context(token)
+        _worker_binding.reset(worker_token)
+
+
+def _restore_submission_worker_context(binding):
+    """Clean a synchronous worker binding if another q2 receiver aborted post signal."""
+    active = _worker_binding.get()
+    if active is None or binding.identity is None or active[1] != binding.identity:
+        return
+    from .context import reset_task_context
+
+    reset_task_context(active[0])
+    _worker_binding.reset(active[3])
+
+
+def register_signals() -> None:
+    """Connect the q2 identity/context receivers once in each process."""
+    from django_q import signals
+
+    if not all(
+        hasattr(signals, signal_name)
+        for signal_name in ("pre_enqueue", "pre_execute", "post_execute_in_worker")
+    ):
+        return
+
+    registrations = (
+        (signals.pre_enqueue, _pre_enqueue, "powercrud_coordinator_pre_enqueue_v1"),
+        (signals.pre_execute, _pre_execute, "powercrud_coordinator_pre_execute_v1"),
+        (signals.post_execute_in_worker, _post_execute_in_worker, "powercrud_coordinator_post_execute_worker_v1"),
+    )
+    for signal, callback, dispatch_uid in registrations:
+        signal.connect(callback, dispatch_uid=dispatch_uid, weak=False)
+        if callback not in _signal_receivers:
+            _signal_receivers.append(callback)
 
 
 def async_task(*args, **kwargs):
@@ -191,6 +361,22 @@ class Q2Adapter:
             raise AsyncConfigurationError(
                 "django-q2 is not installed; install the django-q2 optional dependency to launch background tasks."
             )
+        try:
+            from importlib.metadata import version
+
+            installed_version = tuple(
+                int(part) for part in version("django-q2").split(".")[:3]
+            )
+            signals = importlib.import_module("django_q.signals")
+            if installed_version < (1, 11, 1) or installed_version >= (2, 0, 0) or not all(
+                hasattr(signals, signal_name)
+                for signal_name in ("pre_enqueue", "pre_execute", "post_execute_in_worker")
+            ):
+                raise ValueError("required q2 signals are unavailable")
+        except Exception as exc:
+            raise AsyncConfigurationError(
+                "django-q2>=1.11.1,<2 with pre_enqueue, pre_execute, and post_execute_in_worker signals is required."
+            ) from exc
         if not apps.is_installed("django_q"):
             raise AsyncConfigurationError(
                 "django-q2 is installed but 'django_q' is missing from INSTALLED_APPS."
@@ -275,9 +461,45 @@ class Q2Adapter:
         """Submit the original callable and arguments directly to q2."""
         async_task_kwargs, q_options_clean, effective_options = self._prepared_submission(call, options)
 
-        task_id = async_task(
-            call.func, *call.args, **async_task_kwargs
-        )
+        binding_token = None
+        binding = None
+        if call.manager is not None:
+            cluster = self._effective_cluster_settings()
+            cache_name = cluster.get("cache", "default")
+            locator_options = {
+                key: value
+                for key, value in effective_options.items()
+                if key in {"group", "timeout", "sync", "cached", "task_name", "q_options", "save", "cluster", "ack_failure"}
+            }
+            locator_options.setdefault(
+                "ack_failure",
+                effective_options.get(
+                    "ack_failure", self._effective_cluster_settings().get("ack_failures", False)
+                ),
+            )
+            q_options = locator_options.get("q_options")
+            if isinstance(q_options, dict):
+                locator_options["q_options"] = {
+                    key: value for key, value in q_options.items()
+                    if key not in {"broker", "hook"}
+                }
+            binding = _SubmissionBinding(
+                adapter=self,
+                call=call,
+                prepared={
+                    "cached": effective_options.get("cached", False),
+                    "cluster": effective_options.get("cluster"),
+                    "q2_result_cache": cache_name,
+                    "locator_options": locator_options,
+                },
+            )
+            binding_token = _submission_binding.set(binding)
+        try:
+            task_id = async_task(call.func, *call.args, **async_task_kwargs)
+        finally:
+            if binding_token is not None:
+                _restore_submission_worker_context(binding)
+                _submission_binding.reset(binding_token)
         # q2 applies q_options over individual values, while explicit task_name
         # remains authoritative. Preserve that effective route separately from
         # the original options dict passed unchanged into q2.
@@ -306,9 +528,21 @@ class Q2Adapter:
         locator = {
             "cached": effective_options.get("cached", False),
             "cluster": effective_options.get("cluster"),
+            "result_cache": self._effective_cluster_settings().get("cache", "default"),
             "options": locator_options,
         }
-        return ExecutionRef(id=str(task_id) if task_id else None, locator=locator)
+        reference = ExecutionRef(id=str(task_id) if task_id else None, locator=locator)
+        if binding is not None:
+            if binding.identity is None:
+                raise AsyncConfigurationError(
+                    "q2 submission did not expose the task at pre_enqueue; identity was not retained."
+                )
+            if binding.identity.execution.id != reference.id:
+                raise AsyncConfigurationError(
+                    "q2 returned an execution identifier different from its pre_enqueue identity."
+                )
+            return binding.identity.execution
+        return reference
 
     def to_completion(
         self, raw_task: object, *, task_key: str | None = None
@@ -334,6 +568,12 @@ class Q2Adapter:
             return ResultLookup(kind="missing")
         try:
             if ref.locator.get("cached"):
+                recorded_cache = ref.locator.get("result_cache")
+                configured_cache = self._effective_cluster_settings().get("cache", "default")
+                if recorded_cache is not None and recorded_cache != configured_cache and not self.broker_factory:
+                    raise AsyncConfigurationError(
+                        "The recorded q2 result-cache alias differs from the configured lookup route."
+                    )
                 raw_task = fetch_cached(
                     ref.id, broker=self._resolve_broker(ref)
                 )
@@ -377,14 +617,14 @@ class Q2Adapter:
         raw_kwargs = getattr(raw_task, "kwargs", None)
         if not raw_kwargs:
             return {}
-        if isinstance(raw_kwargs, dict):
-            return raw_kwargs
+        if isinstance(raw_kwargs, Mapping):
+            return dict(raw_kwargs)
         if isinstance(raw_kwargs, str):
             for parser in (json.loads, ast.literal_eval):
                 try:
                     parsed_kwargs = parser(raw_kwargs)
-                    if isinstance(parsed_kwargs, dict):
-                        return parsed_kwargs
+                    if isinstance(parsed_kwargs, Mapping):
+                        return dict(parsed_kwargs)
                 except Exception:
                     continue
         log.debug(
@@ -412,6 +652,35 @@ class Q2Adapter:
         """Dispatch either snapshot-based core completion or a legacy raw task."""
         task_key = str(getattr(raw_task, "name", None) or getattr(raw_task, "id", ""))
         kwargs = self.parse_task_kwargs(raw_task)
+        identity_mapping = kwargs.get("_coordinator_identity")
+        if identity_mapping is not None:
+            identity = TaskIdentity.from_mapping(identity_mapping)
+            from .config import CoordinatorConfig
+            from .reconstruction import construct_manager
+            from .state import get_identity
+
+            if identity.task_key != task_key:
+                raise AsyncConfigurationError("q2 completion task name does not match retained identity.")
+            config = CoordinatorConfig.from_snapshot(identity.coordination)
+            retained = get_identity(config, identity.task_key)
+            if retained != identity:
+                raise AsyncConfigurationError("q2 completion identity is missing, expired, or mismatched.")
+            task_execution_id = getattr(raw_task, "id", None)
+            if task_execution_id is not None and str(task_execution_id) != identity.execution.id:
+                raise AsyncConfigurationError("q2 completion execution does not match retained identity.")
+            manager = construct_manager(
+                identity.manager,
+                coordination_config=config,
+                executor=self,
+                legacy=False,
+                prepare_config=lambda manager_cls, value: manager_cls.prepare_manager_config(value),
+            )
+            completion_style = getattr(manager, "completion_style", "legacy")
+            if completion_style == "core":
+                manager.complete(self.to_completion(raw_task, task_key=identity.task_key))
+            else:
+                manager.handle_task_completion(raw_task, identity.task_key)
+            return
         snapshot = kwargs.get("_coordinator_config")
         if isinstance(snapshot, dict):
             from .config import CoordinatorConfig

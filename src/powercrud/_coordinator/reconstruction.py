@@ -51,8 +51,19 @@ def construction_scope(config: CoordinatorConfig, executor: object | None = None
 
 def import_string(class_path: str) -> type:
     """Import and return a class from a dotted path."""
-    module_path, class_name = class_path.rsplit(".", 1)
-    return getattr(import_module(module_path), class_name)
+    parts = class_path.split(".")
+    for split in range(len(parts) - 1, 0, -1):
+        try:
+            value = import_module(".".join(parts[:split]))
+        except ImportError:
+            continue
+        try:
+            for attribute in parts[split:]:
+                value = getattr(value, attribute)
+            return value
+        except AttributeError:
+            continue
+    raise ImportError(f"Could not import '{class_path}'")
 
 
 def construct_manager(

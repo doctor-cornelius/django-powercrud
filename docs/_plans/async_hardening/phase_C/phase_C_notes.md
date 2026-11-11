@@ -1,6 +1,6 @@
 # Phase C notes: Configuration and lifecycle hardening
 
-Initial discussion draft prepared on 2026-11-07. The [phase plan](phase_C_plan.md) proposes reviewable increments. C1 is complete. C2.1 static feasibility and C2.2 implementation planning were completed on 2026-11-11; C2.3 is next. C2 production implementation and runtime verification have not started.
+Initial discussion draft prepared on 2026-11-07. The [phase plan](phase_C_plan.md) proposes reviewable increments. C1 is complete. C2.1 static feasibility and C2.2 implementation planning were completed on 2026-11-11. C2.3–C2.7 implementation and regression coverage are authored; C2.8 runtime verification remains blocked by the stopped `runproj` container.
 
 ## Scope and sources of truth
 
@@ -149,6 +149,25 @@ Run focused selections in their owning suite through `./runproj exec --command '
 
 Update this record with implementation/verification evidence, mark only completed C2 items, check links/anchors and `git diff --check`, and make a semantic commit on this branch. Keep issues 1–13 open unless their complete registered acceptance evidence is separately met. Stop after C2. C3 owns business outcomes, terminal snapshots, and reliable delivery across result modes; C4 owns wider ordering, transaction/uncertain-submission policy; C5 owns concurrent registries, locks/leases and ownership primitives; C6 owns physical reclamation/reconciliation/force cleanup.
 
+#### C2.3–C2.7 implementation record — 2026-11-11
+
+Implemented the C2.2 approach in the coordinator, q2 adapter, PowerCRUD compatibility layer, CRUD workers, sample, and owned regression suites:
+
+- `TaskIdentity` is a version-1 mapping persisted with create-only cache `add`; reads stay bound to the selected alias/namespace. A separate immutable finish marker records absolute logical expiry. Missing, corrupt, conflicting, or expired identity remains unknown. Physical reclamation is not added.
+- The q2 adapter captures the prepared execution ID and effective cached/cluster/result-cache route during `pre_enqueue`, verifies the retained record before allowing q2 to continue, and rejects a return ID that differs. The envelope travels on q2's task dictionary; it is not added to worker callable kwargs.
+- q2 `pre_execute` reconstructs the retained manager and enters task context. `post_execute_in_worker` copies the envelope to result kwargs, records only qualifying finish evidence, and restores nested context. Signal receivers register from PowerCRUD startup or the standalone coordinator app. Declared q2 minimum is now `>=1.11.1,<2`; the lock still selects 1.11.1.
+- Manager identity is exported from the selected initialized instance and checked for importability, constructor config acceptance, and pickle serialization. Explicit invalid manager metadata fails instead of falling back. PowerCRUD preserves class-before-path selection while passing the selected instance's metadata. UUID positional compatibility now warns; aliases are checked, and built-in launches use `task_key=`.
+- Parent context now carries the live reconstructed manager. Descendant registration preserves PK types and raises `DescendantConflictError` on explicit acquisition failure. CRUD workers and the progress helper reuse parent context; the sample uses that manager. Polling and cleanup reconstruct managers and route lookup through retained execution identity. Cleanup skips missing, invalid, mismatched, or uncertain evidence; `cleanup_active_tasks()` delegates to that inspection.
+- Added coordinator state, signal, real q2 sync/signing, cached-route, and spawned worker-process regression cases, plus PowerCRUD compatibility coverage. The process case uses the suite-owned file cache and labels it as baseline evidence only.
+
+**Verification status:** `python -m compileall -q src/powercrud src/coordinator_tests src/tests`, `git diff --check`, and a local-link/heading-anchor scan of 25 links in the changed Phase C planning files passed. The focused coordinator command
+`./runproj exec --command './runtests --pytest --suite coordinator src/coordinator_tests/test_context.py src/coordinator_tests/test_state.py src/coordinator_tests/test_reconstruction.py src/coordinator_tests/test_q2_adapter.py src/coordinator_tests/test_lifecycle.py src/coordinator_tests/test_state_locks.py'`
+was attempted, but `runproj` reported that container `powercrud_django_dev` is not running. The focused PowerCRUD command
+`./runproj exec --command './runtests --pytest --suite powercrud src/tests/test_async_compatibility.py src/tests/test_powercrud_tasks_and_utils.py src/sample/tests/test_async_samples.py'`
+and full command `./runproj exec --command './runtests --pytest --suite all'` reported the same condition. The handoff does not authorize starting or reconfiguring services, so no service was started. The coordinator, PowerCRUD, minimal-settings, Bootstrap, saved/cached q2, and separate-process tests have not run in this environment. C2.8 remains open pending those checks. No issues 1–13 are closed.
+
+`python -m compileall -q src/powercrud src/coordinator_tests src/tests` completed successfully. This checks Python syntax only and does not replace the blocked runtime suites.
+
 ### C3: Report truthful outcomes and retain terminal state
 
 Apply A1 contract C3: use one coherent observation for endpoint/tracking/consumer state. Ordinary arbitrary `False`, `None`, and dictionaries remain successful returns unless a worker opts into the explicit business-outcome contract. PowerCRUD translates bulk failure/partial failure with useful counts/errors. Execution failure and reporting failure remain separate; do not add automatic business retries.
@@ -209,4 +228,4 @@ A broader check of 415 local links/anchors also found three pre-existing histori
 
 ## C2.1–C2.2 planning verification — 2026-11-11
 
-All 70 local links/anchors in the three changed planning documents passed, and `git diff --check` passed. Changes are planning records only. No production code, dependency declarations, lockfile, cache configuration, or services were changed; no runtime tests were run and no currently installed dependency version was measured. The q2 version statements above refer to the inspected lockfile and tagged source. C2.3–C2.8 and issues 1–13 remain open.
+All 70 local links/anchors in the three planning documents as they stood during C2.1–C2.2 passed, and their planning-only `git diff --check` passed. That earlier result does not verify the current C2 implementation or its tests. The implementation record above captures current verification limits. Issues 1–13 remain open.
