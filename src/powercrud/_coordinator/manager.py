@@ -19,8 +19,11 @@ from .reconstruction import current_binding
 from .types import Completion, ManagerSpec, TaskCall, TaskIdentity
 from .state import (
     get_identity as read_task_identity,
+    get_terminal_record,
+    get_unresolved_record,
     is_finished,
     mark_finished,
+    publish_terminal,
     put_identity as write_task_identity,
 )
 
@@ -36,7 +39,7 @@ class AsyncManager:
         IN_PROGRESS = "in_progress"
         SUCCESS = "success"
         FAILED = "failed"
-        UNKNOWN = None
+        UNKNOWN = "unknown"
 
     completion_style = "core"
 
@@ -87,6 +90,8 @@ class AsyncManager:
         self.max_task_duration = config.max_task_duration
         if isinstance(config.terminal_result_ttl, bool) or not isinstance(config.terminal_result_ttl, int) or config.terminal_result_ttl <= 0:
             raise AsyncConfigurationError("TERMINAL_RESULT_TTL must be a positive integer.")
+        if isinstance(config.terminal_result_max_bytes, bool) or not isinstance(config.terminal_result_max_bytes, int) or config.terminal_result_max_bytes < 1024:
+            raise AsyncConfigurationError("TERMINAL_RESULT_MAX_BYTES must be an integer of at least 1024.")
         self.active_prefix = prefixes["active_prefix"]
         self.conflict_prefix = prefixes["conflict_prefix"]
         self.conflict_model_prefix = prefixes["conflict_model_prefix"]
@@ -109,6 +114,7 @@ class AsyncManager:
             cleanup_grace_period=self.cleanup_grace_period,
             max_task_duration=self.max_task_duration,
             terminal_result_ttl=self._coordination_config.terminal_result_ttl,
+            terminal_result_max_bytes=self._coordination_config.terminal_result_max_bytes,
         )
 
     def _async_launch_enabled(self):
@@ -373,6 +379,8 @@ class AsyncManager:
             "CLEANUP_GRACE_PERIOD", self.cleanup_grace_period, optional=True
         )
         self._validate_lifetime("MAX_TASK_DURATION", self.max_task_duration, optional=True)
+        if isinstance(self._coordination_config.terminal_result_max_bytes, bool) or not isinstance(self._coordination_config.terminal_result_max_bytes, int) or self._coordination_config.terminal_result_max_bytes < 1024:
+            raise AsyncConfigurationError("TERMINAL_RESULT_MAX_BYTES must be an integer of at least 1024.")
 
         if call is not None:
             self._validate_launch_call(call)
@@ -592,26 +600,8 @@ class AsyncManager:
             This method blocks for up to 300 seconds. For UI/request paths,
             prefer get_task_status_nowait() instead.
         """
-        try:
-            identity, manager = self.reconstruct_task_manager(task_name)
-        except Exception as exc:
-            log.warning("Could not reconstruct task %s for status polling: %s", task_name, exc)
-            return self.STATUSES.UNKNOWN
-        if identity is None:
-            return self.STATUSES.UNKNOWN
-        lookup = manager._q2_adapter.lookup(identity.execution, wait_ms=300)
-        if lookup.kind == "unavailable":
-            raise RuntimeError(lookup.reason or "django-q2 result lookup failed")
-        if lookup.completion:
-            if lookup.completion.execution and lookup.completion.execution.id != identity.execution.id:
-                return self.STATUSES.UNKNOWN
-            success = lookup.completion.success
-            if success is not None:
-                return "success" if success else "failed"
-            else:
-                return "executing"
-        # if task not fetched it means it is either queued or doesn't exist
-        return None
+        observation = self.get_task_observation(task_name, cache_only=False, wait_ms=300)
+        return observation["status"]
 
     def get_task_status_nowait(self, task_name: str) -> Optional[str]:
         """Fetch task execution status from django-q2 without blocking.
@@ -626,26 +616,7 @@ class AsyncManager:
         Note:
             This method returns immediately and is suitable for UI/request paths.
         """
-        try:
-            identity, manager = self.reconstruct_task_manager(task_name)
-        except Exception as exc:
-            log.warning("Could not reconstruct task %s for status polling: %s", task_name, exc)
-            return self.STATUSES.UNKNOWN
-        if identity is None:
-            return self.STATUSES.UNKNOWN
-        lookup = manager._q2_adapter.lookup(identity.execution, wait_ms=0)
-        if lookup.kind == "unavailable":
-            raise RuntimeError(lookup.reason or "django-q2 result lookup failed")
-        if lookup.completion:
-            if lookup.completion.execution and lookup.completion.execution.id != identity.execution.id:
-                return self.STATUSES.UNKNOWN
-            success = lookup.completion.success
-            if success is not None:
-                return self.STATUSES.SUCCESS if success else self.STATUSES.FAILED
-            else:
-                return self.STATUSES.IN_PROGRESS
-        # if task not fetched it means it is either queued or doesn't exist
-        return self.STATUSES.UNKNOWN  # None
+        return self.get_task_observation(task_name, cache_only=False)["status"]
 
     def is_task_complete(self, task_name: str) -> bool:
         """Return whether the task has finished (success or failure).
@@ -675,27 +646,7 @@ class AsyncManager:
         Returns:
             str: status indicator
         """
-        try:
-            identity = self.get_task_identity(task_name)
-        except Exception as exc:
-            log.warning("Could not read task %s identity for cache-only polling: %s", task_name, exc)
-            return self.STATUSES.UNKNOWN
-        if identity is None:
-            return self.STATUSES.UNKNOWN
-        progress_data = self.get_progress(task_name)
-        if progress_data == self.STATUSES.PENDING:
-            return self.STATUSES.PENDING
-        elif progress_data is not None:
-            return self.STATUSES.IN_PROGRESS  # Has actual progress data
-        # not pending but progress key has been cleaned up.
-        # So either complete or unknown.
-        # But if unknown, then progress key would not be cleared (ideally)
-        try:
-            config = CoordinatorConfig.from_snapshot(identity.coordination)
-            return "completed" if is_finished(config, identity) else self.STATUSES.UNKNOWN
-        except Exception as exc:
-            log.warning("Could not read task %s terminal marker: %s", task_name, exc)
-            return self.STATUSES.UNKNOWN
+        return self.get_task_observation(task_name, cache_only=True)["status"]
 
     def is_task_complete_cache_only(self, task_name: str) -> bool:
         """Returns boolean indicator as to whether task is completed or not.
@@ -707,8 +658,85 @@ class AsyncManager:
         Returns:
             bool: _description_
         """
-        task_status = self.get_task_status_cache_only(task_name)
-        return task_status == "completed"
+        return self.get_task_observation(task_name, cache_only=True)["terminal"]
+
+    def get_task_observation(self, task_key: str, *, cache_only: bool = True, wait_ms: int = 0):
+        """Return the canonical terminal-first observation for one task."""
+        base = {
+            "status": self.STATUSES.UNKNOWN,
+            "terminal": False,
+            "reason": "identity_missing_or_expired",
+            "progress": None,
+            "message": None,
+            "execution_outcome": None,
+            "business_outcome": None,
+            "details": None,
+            "finished_at": None,
+            "expires_at": None,
+        }
+        try:
+            identity = self.get_task_identity(task_key)
+        except Exception as exc:
+            log.warning("Could not read task %s identity: %s", task_key, exc)
+            base["reason"] = "identity_invalid_or_unavailable"
+            return base
+        if identity is None:
+            return base
+        try:
+            config = CoordinatorConfig.from_snapshot(identity.coordination)
+            terminal_record = get_terminal_record(config, identity)
+            if terminal_record is not None:
+                base.update({
+                    "status": terminal_record["status"],
+                    "terminal": terminal_record["status"] in {self.STATUSES.SUCCESS, self.STATUSES.FAILED},
+                    "reason": terminal_record.get("reason"),
+                    "execution_outcome": terminal_record.get("execution_outcome"),
+                    "business_outcome": terminal_record.get("business_outcome"),
+                    "details": terminal_record.get("details"),
+                    "finished_at": terminal_record.get("finished_at"),
+                    "expires_at": terminal_record.get("expires_at"),
+                })
+                return base
+            if is_finished(config, identity):
+                base["reason"] = "retention_only_outcome_unavailable"
+                return base
+            unresolved = get_unresolved_record(config, identity)
+            if unresolved is not None:
+                base["reason"] = unresolved["reason"]
+                base["finished_at"] = unresolved["observed_at"]
+                return base
+        except Exception as exc:
+            log.warning("Could not read task %s retained outcome: %s", task_key, exc)
+            base["reason"] = "coordination_state_unavailable_or_invalid"
+            return base
+
+        progress = self.get_progress(task_key)
+        if progress == self.STATUSES.PENDING:
+            base.update(status=self.STATUSES.PENDING, reason=None, progress=None, message="Task queued")
+            return base
+        if progress is not None:
+            base.update(status=self.STATUSES.IN_PROGRESS, reason=None, progress=progress, message=progress)
+            return base
+        base["reason"] = "progress_missing"
+        if not cache_only:
+            lookup = self._q2_adapter.lookup(identity.execution, wait_ms=wait_ms)
+            if lookup.kind == "unavailable":
+                base["reason"] = "result_lookup_unavailable"
+            elif lookup.kind == "found" and lookup.completion is not None:
+                completion = self._q2_adapter.finalize_completion(lookup.completion, identity=identity)
+                if completion.finality:
+                    try:
+                        publish_terminal(config, identity, completion)
+                    except Exception:
+                        log.exception("Could not retain q2 completion for task %s", task_key)
+                    return self.get_task_observation(task_key, cache_only=True)
+                if completion.success is None:
+                    base.update(status=self.STATUSES.IN_PROGRESS, reason="execution_finality_uncertain")
+                    return base
+                base["reason"] = completion.finality_reason or "execution_finality_uncertain"
+            else:
+                base["reason"] = "result_missing"
+        return base
 
     # =============================================================================
     # Conflict Management Functions
@@ -820,38 +848,37 @@ class AsyncManager:
             if identity is None:
                 summary["skipped"][task_name] = "task identity missing or expired"
                 continue
-            lookup = manager._q2_adapter.lookup(identity.execution, wait_ms=0)
-            if lookup.kind == "unavailable":
-                summary["skipped"][task_name] = (
-                    f"task lookup failed: {lookup.reason}"
-                )
+            observation = manager.get_task_observation(task_name, cache_only=True)
+            if not observation["terminal"]:
+                lookup = manager._q2_adapter.lookup(identity.execution, wait_ms=0)
+                if lookup.kind == "found" and lookup.completion is not None:
+                    completion = manager._q2_adapter.finalize_completion(lookup.completion, identity=identity)
+                    if completion.finality:
+                        try:
+                            publish_terminal(CoordinatorConfig.from_snapshot(identity.coordination), identity, completion)
+                        except Exception:
+                            log.exception("Could not retain cleanup outcome for task %s", task_name)
+                    elif completion.success is False:
+                        from .state import record_unresolved
+                        try:
+                            record_unresolved(
+                                CoordinatorConfig.from_snapshot(identity.coordination), identity,
+                                reason=completion.finality_reason or "failed_attempt_finality_uncertain",
+                                observed_at=completion.finished_at or manager._current_timestamp(),
+                            )
+                        except Exception:
+                            log.exception("Could not retain uncertain failure evidence for task %s", task_name)
+                    observation = manager.get_task_observation(task_name, cache_only=True)
+                elif lookup.kind in {"missing", "unavailable"}:
+                    summary["skipped"][task_name] = lookup.reason or "q2 execution result missing"
+                    continue
+            if not observation["terminal"]:
+                summary["skipped"][task_name] = observation["reason"] or "execution finality is uncertain"
                 continue
 
-            if lookup.kind == "missing":
-                summary["skipped"][task_name] = "q2 execution result missing"
-                continue
-
-            completion = lookup.completion
-            if completion is None:
-                summary["skipped"][task_name] = "q2 result did not include completion evidence"
-                continue
-            if completion.execution and completion.execution.id != identity.execution.id:
-                summary["skipped"][task_name] = "q2 execution ID does not match retained identity"
-                continue
-            success_flag = completion.success
-            terminal_failure = (
-                success_flag is False
-                and identity.execution.locator.get("options", {}).get("ack_failure") is True
-            )
-            if completion.finished_at is None or not (success_flag is True or terminal_failure):
-                summary["skipped"][task_name] = "q2 execution is not confirmed terminal"
-                continue
-
-            reason = (
-                "completed successfully" if success_flag else "completed with failure"
-            )
-            status = self.STATUSES.SUCCESS if success_flag else self.STATUSES.FAILED
-            result_payload = completion.result
+            reason = observation["reason"] or f"completed with {observation['status']} outcome"
+            status = observation["status"]
+            result_payload = observation["details"]
 
             summary["cleaned"][task_name] = manager._cleanup_task_artifacts(
                 task_name,
@@ -895,6 +922,8 @@ class AsyncManager:
             status=status or self.STATUSES.UNKNOWN,
             message=reason,
             result=result,
+            timestamp=self.get_task_observation(task_name, cache_only=True).get("finished_at"),
+            canonical_terminal=True,
         )
 
         return {
@@ -1065,6 +1094,9 @@ class AsyncManager:
             raise ValueError("Progress data must be a string")
         progress_key = f"{self.progress_prefix}{task_name}"
         try:
+            observation = self.get_task_observation(task_name, cache_only=True)
+            if observation["terminal"]:
+                return
             self.cache.set(progress_key, progress_data, self.progress_ttl)
             log.debug(f"Updated progress for {task_name}: {progress_data}")
             self._emit_lifecycle(
@@ -1145,52 +1177,61 @@ class AsyncManager:
 
     def handle_task_completion(self, task, task_name: str) -> None:
         """Translate a compatibility task object into a core completion value."""
-        self.complete(self._q2_adapter.to_completion(task, task_key=task_name))
+        completion = self._q2_adapter.to_completion(task, task_key=task_name)
+        identity = self.get_task_identity(task_name)
+        if identity is not None:
+            completion = self._q2_adapter.finalize_completion(
+                completion, identity=identity, raw_task=task
+            )
+        self.complete(completion)
 
     def complete(self, completion: Completion) -> None:
-        """Apply legacy lifecycle and cleanup behavior to plain completion data."""
+        """Retain terminal evidence before best-effort cleanup and reporting."""
         task_name = completion.task_key
         log.debug(f"handle_task_completion started for task_name: {task_name}")
         try:
-            # Perform default cleanup
-            self.remove_active_task(task_name)
-
-            success_flag = completion.success
-            result_payload = completion.result
-
-            if success_flag is True:
+            identity = self.get_task_identity(task_name)
+            if identity is None or not completion.finality:
+                log.warning("Ignoring completion without retained finality evidence for task %s", task_name)
+                return
+            if completion.execution and completion.execution.id != identity.execution.id:
+                log.warning("Ignoring completion for stale execution on task %s", task_name)
+                return
+            config = CoordinatorConfig.from_snapshot(identity.coordination)
+            accepted = publish_terminal(config, identity, completion)
+            if accepted is None:
+                log.warning("Ignoring expired completion evidence for task %s", task_name)
+                return
+            status = accepted["status"]
+            result_payload = accepted["details"]
+            detail_message = result_payload.get("message") if isinstance(result_payload, Mapping) else None
+            result_text = result_payload.get("value") if isinstance(result_payload, Mapping) else None
+            message = detail_message or (result_text if isinstance(result_text, str) else None) or accepted["reason"] or status
+            if status == self.STATUSES.SUCCESS:
                 self._emit_lifecycle(
                     event="complete",
                     task_name=task_name,
-                    status=self.STATUSES.SUCCESS,
-                    message="Task completed successfully",
+                    status=status,
+                    message=message,
                     result=result_payload,
-                )
-            elif success_flag is False:
-                failure_message = (
-                    str(result_payload) if result_payload else "Task failed"
-                )
-                self._emit_lifecycle(
-                    event="fail",
-                    task_name=task_name,
-                    status=self.STATUSES.FAILED,
-                    message=failure_message,
-                    result=result_payload,
+                    timestamp=accepted["finished_at"],
                 )
             else:
                 self._emit_lifecycle(
-                    event="complete",
+                    event="fail",
                     task_name=task_name,
-                    status=self.STATUSES.UNKNOWN,
-                    message="Task finished with unknown status",
+                    status=status,
+                    message=message,
                     result=result_payload,
+                    timestamp=accepted["finished_at"],
                 )
-
-            self._emit_lifecycle(
-                event="cleanup", task_name=task_name, status=self.STATUSES.UNKNOWN
-            )
+            try:
+                self.remove_active_task(task_name)
+            except Exception:
+                log.exception("Could not clean active task state for %s", task_name)
+            self._emit_lifecycle(event="cleanup", task_name=task_name, status=status)
             log.debug(
-                f"Handled completion for task_name {task_name} (success: {success_flag})"
+                "Handled completion for task_name %s (status: %s)", task_name, status
             )
         except Exception as e:
             log.error(f"Error in handle_task_completion for {task_name}: {e}")

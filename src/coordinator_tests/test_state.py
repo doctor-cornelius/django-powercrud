@@ -11,9 +11,11 @@ from powercrud._coordinator.state import (
     get_identity,
     identity_key,
     mark_finished,
+    get_terminal_record,
+    publish_terminal,
     put_identity,
 )
-from powercrud._coordinator.types import ExecutionRef, ManagerSpec, TaskIdentity
+from powercrud._coordinator.types import BusinessOutcome, Completion, ExecutionRef, ManagerSpec, TaskIdentity
 
 from coordinator_tests.managers import COORDINATOR_CONFIG
 
@@ -33,6 +35,7 @@ class TestTaskIdentityState(SimpleTestCase):
         self.task_key = "logical-task"
         self.cache.delete(identity_key(self.config, self.task_key))
         self.cache.delete(finished_key(self.config, self.task_key, "execution-1"))
+        self.cache.delete(f"{self.config.key_namespace}:async:task:{self.task_key}:unresolved:execution-1")
         self.identity = TaskIdentity(
             self.task_key,
             ManagerSpec("coordinator_tests.managers.CoordinatorAsyncManager", {"app": (1, 2)}, "legacy"),
@@ -122,3 +125,57 @@ class TestTaskIdentityState(SimpleTestCase):
             timeout=None,
         )
         self.assertIsNone(get_identity(self.config, self.task_key), "Expired identity must be reported as unknown")
+
+    def test_terminal_snapshot_is_bounded_immutable_and_preserves_both_outcomes(self):
+        """A business refusal is terminal while q2 execution itself succeeded."""
+        put_identity(self.config, self.identity)
+        outcome = BusinessOutcome(
+            status="partial",
+            processed_count=2,
+            total_count=5,
+            message="Partially updated",
+            errors=[{"field": "title", "message": "blocked"}],
+            value={"sample": "value" * 4000},
+        )
+        completion = Completion(
+            self.task_key,
+            self.identity.execution,
+            success=True,
+            result=outcome,
+            finality=True,
+            finality_reason="q2_successful_return",
+        )
+        first = publish_terminal(self.config, self.identity, completion)
+        second = publish_terminal(self.config, self.identity, completion)
+        self.assertEqual(first, second, "Duplicate terminal delivery must retain the first complete snapshot")
+        self.assertEqual(first["execution_outcome"], "success", "Explicit business failure must not rewrite q2 execution success")
+        self.assertEqual(first["business_outcome"], "partial", "Partial business outcome must remain explicit")
+        self.assertEqual(first["status"], "failed", "The settled public status maps partial work to failed")
+        self.assertEqual(first["details"]["processed_count"], 2, "Counts must survive display payload truncation")
+        self.assertTrue(first["truncated"], "Large result details must be explicitly marked truncated")
+        import json
+        self.assertLessEqual(len(json.dumps(first["details"]).encode()), self.config.terminal_result_max_bytes, "Retained display data must respect the configured byte bound")
+        self.assertEqual(get_terminal_record(self.config, self.identity), first, "Observation must read the accepted terminal snapshot")
+
+    def test_expired_terminal_event_is_not_recreated(self):
+        """A late callback cannot restart the completion-based retention period."""
+        put_identity(self.config, self.identity)
+        expired = datetime.now(timezone.utc) - timedelta(days=2)
+        completion = Completion(
+            self.task_key,
+            self.identity.execution,
+            success=True,
+            result=None,
+            finished_at=expired,
+            finality=True,
+            finality_reason="q2_successful_return",
+        )
+        self.assertIsNone(publish_terminal(self.config, self.identity, completion), "An expired completion timestamp must be rejected")
+        self.assertIsNone(self.cache.get(finished_key(self.config, self.task_key, "execution-1")), "Expired evidence must not create a new cache record")
+
+    def test_business_outcome_rejects_invalid_counts(self):
+        """Explicit business outcomes cannot carry negative or boolean counts."""
+        with self.assertRaisesRegex(ValueError, "nonnegative integer"):
+            BusinessOutcome(status="failed", processed_count=-1)
+        with self.assertRaisesRegex(ValueError, "nonnegative integer"):
+            BusinessOutcome(status="success", total_count=True)

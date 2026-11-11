@@ -13,43 +13,36 @@ def progress_view(*, manager_factory, template_name=None):
         task_name = request.GET.get("task_name") or request.POST.get("task_name")
         if not task_name:
             return JsonResponse({"error": "task_name required"}, status=400)
-        manager = manager_factory()
         try:
-            status = manager.get_task_status_cache_only(task_name)
-            is_complete = manager.is_task_complete_cache_only(task_name)
-            raw_progress = manager.get_progress(task_name)
-            progress_data = None if raw_progress == manager.STATUSES.PENDING else raw_progress
-            if is_complete:
-                display_status = (
-                    manager.STATUSES.SUCCESS
-                    if status == "completed"
-                    else (status or manager.STATUSES.SUCCESS)
-                )
-                return JsonResponse(
-                    {
-                        "task_name": task_name,
-                        "status": display_status,
-                        "progress": progress_data or "Completed successfully!",
-                        "message": "Task completed",
-                    },
-                    status=286,
-                )
-            if progress_data is not None:
-                return JsonResponse(
-                    {
-                        "task_name": task_name,
-                        "status": status or "unknown",
-                        "progress": progress_data,
-                    }
-                )
-            return JsonResponse(
-                {
-                    "task_name": task_name,
-                    "status": status or "unknown",
-                    "progress": None,
-                    "poll_interval": 1000,
-                }
-            )
+            manager = manager_factory()
+            observation = manager.get_task_observation(task_name, cache_only=True)
+            try:
+                unknown_elapsed = int(request.GET.get("unknown_elapsed_ms", "0"))
+            except (TypeError, ValueError):
+                unknown_elapsed = 0
+            unknown_elapsed = max(0, min(unknown_elapsed, 30_000))
+            unknown_exhausted = observation["status"] == manager.STATUSES.UNKNOWN and unknown_elapsed >= 30_000
+            response = {
+                "task_name": task_name,
+                "status": observation["status"],
+                "terminal": observation["terminal"],
+                "reason": observation["reason"],
+                "progress": observation["progress"],
+                "message": observation["message"],
+                "execution_outcome": observation["execution_outcome"],
+                "business_outcome": observation["business_outcome"],
+                "outcome": observation["details"],
+                "finished_at": observation["finished_at"],
+                "expires_at": observation["expires_at"],
+                "poll_interval": 1000,
+                "polling_stopped": unknown_exhausted,
+            }
+            if unknown_exhausted:
+                response["display_message"] = "Status currently unavailable"
+                return JsonResponse(response, status=286)
+            if observation["terminal"]:
+                return JsonResponse(response, status=286)
+            return JsonResponse(response)
         except Exception as exc:
             log.error("Error in progress view for task %s: %s", task_name, exc)
             return JsonResponse({"error": str(exc)}, status=500)

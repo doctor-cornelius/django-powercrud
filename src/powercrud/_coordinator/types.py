@@ -2,7 +2,8 @@
 
 from dataclasses import dataclass, field
 from collections.abc import Mapping
-from datetime import datetime
+from datetime import date, datetime
+from uuid import UUID
 from typing import Any, Callable
 
 
@@ -134,6 +135,148 @@ class Completion:
     result: object = None
     started_at: datetime | None = None
     finished_at: datetime | None = None
+    finality: bool = False
+    finality_reason: str | None = None
+    q2_attempt_count: int | None = None
+    q2_result_saved: bool = False
+
+
+@dataclass(frozen=True)
+class BusinessOutcome:
+    """Opt in to reporting an application-level success or failure."""
+
+    status: str
+    processed_count: int | None = None
+    total_count: int | None = None
+    message: str | None = None
+    errors: Any = field(default_factory=list)
+    value: Any = None
+
+    def __post_init__(self):
+        """Reject ambiguous statuses and invalid record counts early."""
+        if self.status not in {"success", "failed", "partial"}:
+            raise ValueError("BusinessOutcome.status must be success, failed, or partial")
+        for name in ("processed_count", "total_count"):
+            value = getattr(self, name)
+            if value is not None and (
+                isinstance(value, bool) or not isinstance(value, int) or value < 0
+            ):
+                raise ValueError(f"BusinessOutcome.{name} must be a nonnegative integer")
+
+
+def _bounded_value(value: Any, *, depth: int = 0, seen=None) -> tuple[Any, bool]:
+    """Convert display values without calling arbitrary object formatters."""
+    if seen is None:
+        seen = set()
+    if value is None or isinstance(value, (bool, int, float)):
+        return value, False
+    if isinstance(value, str):
+        return value[:2048], len(value) > 2048
+    if isinstance(value, (datetime, date, UUID)):
+        return value.isoformat() if isinstance(value, (datetime, date)) else str(value), False
+    if depth >= 4:
+        return {"omitted": "maximum nesting depth"}, True
+    marker = id(value)
+    if marker in seen:
+        return {"omitted": "recursive value"}, True
+    seen.add(marker)
+    truncated = False
+    if isinstance(value, Mapping):
+        result = {}
+        for index, (key, child) in enumerate(value.items()):
+            if index >= 32:
+                truncated = True
+                break
+            safe_key = key if isinstance(key, str) else type(key).__name__
+            safe_key = safe_key[:256]
+            result[safe_key], child_truncated = _bounded_value(
+                child, depth=depth + 1, seen=seen
+            )
+            truncated = truncated or child_truncated
+        if len(value) > 32:
+            truncated = True
+        return result, truncated
+    if isinstance(value, (list, tuple, set, frozenset)):
+        result = []
+        for index, child in enumerate(value):
+            if index >= 32:
+                truncated = True
+                break
+            safe_child, child_truncated = _bounded_value(
+                child, depth=depth + 1, seen=seen
+            )
+            result.append(safe_child)
+            truncated = truncated or child_truncated
+        if len(value) > 32:
+            truncated = True
+        return result, truncated
+    value_type = type(value)
+    return {"unrepresentable": f"{value_type.__module__}.{value_type.__qualname__}"}, True
+
+
+def bounded_business_payload(
+    outcome: BusinessOutcome | None,
+    *,
+    result: Any,
+    max_bytes: int,
+) -> tuple[dict[str, Any], bool, bool]:
+    """Return bounded JSON display data, preserving classification and counts."""
+    payload: dict[str, Any] = {
+        "business_status": outcome.status if outcome else None,
+        "processed_count": outcome.processed_count if outcome else None,
+        "total_count": outcome.total_count if outcome else None,
+        "message": outcome.message if outcome else None,
+        "errors": outcome.errors if outcome else None,
+        "value": outcome.value if outcome else result,
+    }
+    try:
+        normalized, truncated = _bounded_value(payload)
+    except Exception:
+        normalized = {
+            "business_status": outcome.status if outcome else None,
+            "processed_count": outcome.processed_count if outcome else None,
+            "total_count": outcome.total_count if outcome else None,
+            "message": None,
+            "errors": None,
+            "value": None,
+            "truncated": True,
+            "unrepresentable": True,
+        }
+        return normalized, True, True
+    omitted = False
+
+    def encoded_size():
+        import json
+
+        return len(json.dumps(normalized, ensure_ascii=True, separators=(",", ":")).encode())
+
+    if encoded_size() > max_bytes and normalized.get("value") is not None:
+        normalized["value"] = None
+        truncated = omitted = True
+    if encoded_size() > max_bytes:
+        normalized["errors"] = {"omitted": "payload byte limit"}
+        truncated = omitted = True
+    if encoded_size() > max_bytes and isinstance(normalized.get("message"), str):
+        normalized["message"] = normalized["message"][:256]
+        truncated = omitted = True
+    if encoded_size() > max_bytes:
+        normalized["message"] = None
+        normalized["errors"] = None
+        truncated = omitted = True
+    normalized["truncated"] = truncated
+    normalized["unrepresentable"] = omitted
+    if encoded_size() > max_bytes:
+        normalized = {
+            "business_status": outcome.status if outcome else None,
+            "processed_count": outcome.processed_count if outcome else None,
+            "total_count": outcome.total_count if outcome else None,
+            "message": None,
+            "errors": None,
+            "value": None,
+            "truncated": True,
+            "unrepresentable": True,
+        }
+    return normalized, truncated, omitted
 
 
 @dataclass(frozen=True)

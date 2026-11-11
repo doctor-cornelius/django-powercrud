@@ -1,6 +1,6 @@
 # Phase C notes: Configuration and lifecycle hardening
 
-Initial discussion draft prepared on 2026-11-07. The [phase plan](phase_C_plan.md) proposes reviewable increments. C1 and C2 are complete. C2.1 static feasibility, C2.2 implementation planning, and C2.3–C2.8 implementation and verification were completed on 2026-11-11. C3–C7 remain unstarted.
+Initial discussion draft prepared on 2026-11-07. The [phase plan](phase_C_plan.md) proposes reviewable increments. C1–C3 are complete. C2.1 static feasibility, C2.2 implementation planning, and C2.3–C2.8 implementation and verification were completed on 2026-11-11. C3 implementation and verification were completed on 2026-11-11. C4–C7 remain unstarted.
 
 ## Scope and sources of truth
 
@@ -175,7 +175,9 @@ Apply A1 contract C3: use one coherent observation for endpoint/tracking/consume
 
 Retain the agreed small terminal snapshot for a configurable 24 hours from completion, separately from live progress TTL and optional database history. Unknown evidence must remain unknown, with a reason and finite polling behavior. Terminal transitions must withstand duplicate callbacks, stale execution events, late progress/create, and callback errors. Repair optional tracking where retained evidence permits it.
 
-Investigate actual completion delivery across the existing claimed broker/result matrix, including cached results, save/pruning options, and custom hooks. Keep transport and result storage separate. B's normalized completion types and snapshot transport alone do not prove delivery. Outcome symbols/payloads, transition operations, and completion mechanism remain open technical decisions.
+Implementation: `BusinessOutcome` is the explicit business contract; ordinary return values preserve execution-success semantics. Version-2 terminal snapshots use immutable cache creation, retain a bounded payload, and expire logically from completion. One observation path feeds status, polling, cleanup classification, and guarded tracking. q2 worker evidence publishes core state before callbacks; a shared dispatch claim coordinates saved-result and monitor routes. PowerCRUD bulk workers return operation-specific counts/errors. Both built-in template packs share the finite unknown-polling handler. The observed C5 genre-lock conflict remains a business failure and was not repaired here.
+
+Completion-path evidence covers actual q2 synchronous signing/worker/monitor behavior for saved, cached, `save=False`, custom-hook, and synchronous-exception cases. It does not establish separate broker delivery, all pruning/attempt-limit combinations, every supported q2 1.x version, or concurrent publication/tracking on Redis, Memcached, and DatabaseCache. The separate-process file-cache test exercises signal/envelope reconstruction, not broker delivery. These limits do not change support claims; retain them as verification work and do not infer delivery guarantees beyond the tested routes. C4 still owns late launch registration; C5 owns backend concurrency, reservations and leases; C6 owns reconciliation and physical reclamation.
 
 ### C4: Make submission and lifecycle ordering safe
 
@@ -212,10 +214,10 @@ These are implementation questions within settled A1/B1 contracts, not reopened 
 | Decision | Required investigation / discussion | Needed by |
 |---|---|---|
 | Validation and error interface | C1 defines catchable manager errors, pre-reservation validation, PowerCRUD translation, and separate probes. Revisit only if C4 reveals a concrete interface gap. | C4 |
-| Retained state and identity lifetime | C2's create-only identity/retention design is specified above. Later outcome transitions, ownership primitives, and physical reclamation still need C3–C6 implementation/design; retain evidence without cross-cache discovery. | C3–C6 |
+| Retained state and identity lifetime | C2 identity plus C3 immutable terminal snapshots and unified observation are implemented. Ownership primitives, leases, and physical reclamation remain assigned to C5–C6; retain evidence without cross-cache discovery. | C5–C6 |
 | Legacy worker/context integration | C2's q2-signal/envelope and strict reconstruction approach is implemented and covered by the recorded suites, including the approved 1.11.1 floor. C4 still owns broader submission ordering/failure behavior, including the observed late progress registration after explicit synchronous execution. | C4 |
-| Outcome and observation encoding | Explicit business-result type/wire representation, bounded retained result/error data, unknown polling stop behavior, and endpoint/tracking compatibility. Ordinary return semantics and 24-hour default are settled. | C3 |
-| Reliable q2 completion | Mechanism for claimed cached/ORM results, hook overrides, save/pruning options, failure acknowledgement defaults, and version-range coverage. No support reduction or retry framework is selected. | C3–C4 |
+| Outcome and observation encoding | Implemented `BusinessOutcome`, bounded terminal payloads, literal unknown status with reasons, finite 30-second viewer polling, and compatible endpoint/tracking behavior. Ordinary return semantics and 24-hour default are settled. | Resolved for C3 |
+| Reliable q2 completion | Saved, cached, no-save and custom-hook paths have q2 synchronous runtime coverage and a shared dispatch claim. Separate broker delivery, all pruning/attempt-limit combinations, and full declared-version coverage remain unverified. No support reduction or retry framework is selected. | Evidence limits; retain for follow-up |
 | Ownership and lifetime algorithms | Backend-specific safe registry/index/lock primitives, timing/renewal strategy, loss-of-lease response, and stale-worker protection limits. Bring concrete feasibility limits back for agreement. | C2–C6 |
 | Submission and operator feedback | Actual transactional launch sites, before-commit return/response behavior where needed, uncertain enqueue evidence, and explicit force-cleanup API/CLI/report shape. | C4, C6 |
 
@@ -230,3 +232,16 @@ A broader check of 415 local links/anchors also found three pre-existing histori
 ## C2.1–C2.2 planning verification — 2026-11-11
 
 All 70 local links/anchors in the three planning documents as they stood during C2.1–C2.2 passed, and their planning-only `git diff --check` passed. The implementation and verification record above captures current C2 evidence and limits. Issues 1–13 remain open.
+
+## C3 implementation and verification — 2026-11-11
+
+Added explicit `BusinessOutcome`, bounded immutable terminal snapshots, unresolved-failure evidence, completion dispatch coordination, unified observation, guarded optional tracking, PowerCRUD bulk outcome translation, a compatible polling response, and shared DaisyUI/Bootstrap polling behavior. Configuration adds `TERMINAL_RESULT_TTL` (86400 seconds) and `TERMINAL_RESULT_MAX_BYTES` (16384 bytes). The 30-second budget limits only the current viewer's polling; unknown remains unknown and does not stop work or update dashboard status.
+
+Verification through the repository runner:
+
+- `./runproj exec --command './runtests --pytest --suite coordinator'`: 179 passed.
+- `./runproj exec --command './runtests --pytest --suite powercrud'`: 1087 passed, 23 skipped.
+- `./runproj exec --command './runtests --pytest --suite all'`: passed, including consumer, minimal-settings, Bootstrap server, and coordinator selections.
+- Focused async progress Playwright tests passed under default and Bootstrap settings (2 each). The test runner automatically rebuilt static assets; generated tracked/untracked build outputs were restored/removed after verification.
+
+Runtime evidence covers q2 synchronous saved, cached, no-save, custom-hook, and synchronous-exception routes. It is not proof of separate broker delivery. Synchronized terminal publication/tracking races across all claimed production cache backends and q2 pruning/attempt-limit/version permutations were not exercised. The separate-process test uses suite-owned file cache and signal/envelope handling, not broker delivery. No issue 1–13 was closed. C4 late registration, C5 genre-lock ownership/concurrency, and C6 reconciliation/reclamation remain untouched.

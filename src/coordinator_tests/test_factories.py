@@ -10,7 +10,7 @@ from coordinator_tests.q2_testing import q2_submission
 from powercrud._coordinator.config import CoordinatorConfig
 from powercrud._coordinator.context import get_current_task, register_descendant_conflicts, task_context
 from powercrud._coordinator.manager import AsyncManager
-from powercrud._coordinator.types import ExecutionRef
+from powercrud._coordinator.types import ExecutionRef, TaskIdentity
 from powercrud._coordinator.views import progress_view
 
 
@@ -28,6 +28,11 @@ class TestCoordinationFactories(SimpleTestCase):
         """The bound factory must control polling even when logical keys match."""
         self.first.update_progress("shared-key", "first location")
         self.second.update_progress("shared-key", "second location")
+        for manager, execution_id in ((self.first, "factory-first-exec"), (self.second, "factory-second-exec")):
+            manager.put_task_identity(TaskIdentity(
+                "shared-key", manager.get_manager_spec(), manager.get_coordination_config().to_snapshot(),
+                ExecutionRef(id=execution_id),
+            ))
         request = RequestFactory().post("/progress/", {"task_name": "shared-key"})
         for manager, expected in ((self.first, "first location"), (self.second, "second location")):
             with self.subTest(expected=expected):
@@ -62,6 +67,7 @@ class TestCoordinationFactories(SimpleTestCase):
             "pending",
             "C4 owns late active/progress registration after explicit synchronous execution.",
         )
+        self.assertEqual(self.second.get_task_status_cache_only(key), "success", "Terminal evidence must outrank C4's late pending progress write")
         self.assertIsNone(self.first.get_progress(key), "Worker progress must not leak into another location")
 
     def test_internal_launch_rejects_reserved_worker_metadata_conflicts(self):

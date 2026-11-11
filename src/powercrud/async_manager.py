@@ -38,6 +38,9 @@ def _powercrud_coordination_config():
             terminal_result_ttl=get_powercrud_setting(
                 "TERMINAL_RESULT_TTL", DEFAULTS["TERMINAL_RESULT_TTL"]
             ),
+            terminal_result_max_bytes=get_powercrud_setting(
+                "TERMINAL_RESULT_MAX_BYTES", DEFAULTS["TERMINAL_RESULT_MAX_BYTES"]
+            ),
         )
     except ImproperlyConfigured as exc:
         raise AsyncConfigurationError(str(exc)) from exc
@@ -102,6 +105,7 @@ class AsyncManager(CoordinatorAsyncManager):
         cached=False,
         broker=None,
         q_options=None,
+        ack_failure=None,
         **kwargs,
     ) -> str:
         """Launch using the established PowerCRUD signature and UUID convention."""
@@ -118,6 +122,11 @@ class AsyncManager(CoordinatorAsyncManager):
             "task_name": key,
             "q_options": q_options,
         }
+        if ack_failure is not None:
+            options["ack_failure"] = ack_failure
+        elif not (isinstance(q_options, Mapping) and "ack_failure" in q_options):
+            configured_ack = getattr(self.qcluster_settings, "get", lambda *_: None)("ack_failures")
+            options["ack_failure"] = True if configured_ack is None else configured_ack
         q_options_task_name = q_options.get("task_name") if isinstance(q_options, Mapping) else None
         aliases = [value for value in (task_name_alias, q_options_task_name) if value is not None]
         if key is not None and any(alias != key for alias in aliases):

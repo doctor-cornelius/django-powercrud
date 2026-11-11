@@ -57,38 +57,4 @@ function toggleDeleteButton() {
 {% else %}
     {% include "powercrud/packs/bootstrap5/partial/bulk_outcomes.html" with bulk_outcome="queued" %}
 {% endif %}
-<script>
-document.body.addEventListener('htmx:afterSwap', function(event) {
-    if (event.detail.target.id !== 'progress-display') {
-        return;
-    }
-    try {
-        const data = JSON.parse(event.detail.xhr.responseText);
-        const status = (data.status || '').toLowerCase();
-        const triggerElement = event.detail.elt;
-        const heading = document.getElementById('async-status-heading');
-        if (status === 'success' || status === 'completed') {
-            if (heading) heading.textContent = 'Bulk Operation Completed';
-            event.detail.target.innerHTML = `<div class="alert alert-success"><p>${data.progress || 'Completed successfully!'}</p></div>`;
-            triggerElement.removeAttribute('hx-trigger');
-            htmx.trigger(document.body, 'bulkEditSuccess', { taskName: data.task_name });
-            htmx.trigger(document.body, 'refreshTable', { taskName: data.task_name });
-        } else if (status === 'failed') {
-            if (heading) heading.textContent = 'Bulk Operation Failed';
-            event.detail.target.innerHTML = `<div class="alert alert-danger"><p>${data.progress || 'Failed!'}</p></div>`;
-            triggerElement.removeAttribute('hx-trigger');
-        } else if (status === 'pending') {
-            if (heading) heading.textContent = 'Bulk Operation Starting';
-            event.detail.target.innerHTML = `<div class="spinner-border" role="status"><span class="visually-hidden">Loading</span></div><p class="mt-2">${data.progress || 'Preparing asynchronous job...'}</p>`;
-        } else if (status === 'in_progress') {
-            event.detail.target.innerHTML = `<div class="progress mb-2"><div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar"></div></div><p>${data.progress || 'In progress...'}</p>`;
-            if (data.poll_interval && data.poll_interval !== 1000) {
-                triggerElement.setAttribute('hx-trigger', `every ${data.poll_interval}ms`);
-            }
-        }
-    } catch (error) {
-        event.detail.target.innerHTML = '<p class="text-danger">Error loading progress.</p>';
-    }
-});
-</script>
 {% endpartialdef async_queue_success %}

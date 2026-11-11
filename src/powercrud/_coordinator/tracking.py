@@ -5,6 +5,7 @@ from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, Mapping, MutableMapping, Optional
 
 from django.db import models
+from django.db import transaction
 
 from django.apps import apps
 from django.core.exceptions import ImproperlyConfigured
@@ -179,6 +180,22 @@ class ModelTrackingMixin:
             updated_fields.add(field_name)
 
     def async_task_lifecycle(self, event: str, task_name: str, **kwargs):
+        """Persist lifecycle data without allowing stale events to undo outcomes."""
+        try:
+            observation = self.get_task_observation(task_name, cache_only=True)
+        except Exception:
+            observation = {"terminal": False}
+        if observation.get("terminal"):
+            kwargs = dict(kwargs)
+            kwargs.update(
+                status=observation["status"],
+                result=observation["details"],
+                timestamp=observation["finished_at"],
+                canonical_terminal=True,
+            )
+            if event in {"create", "progress"}:
+                event = "terminal_repair"
+
         status_field = self._field("status", "status")
         message_field = self._field("message", "message")
         progress_field = self._field("progress", "progress_payload")
@@ -195,125 +212,87 @@ class ModelTrackingMixin:
         message = kwargs.get("message")
         timestamp = kwargs.get("timestamp")
 
-        defaults: Dict[str, Any] = {}
+        task_name_field = self._field("task_name", "task_name")
+        if not task_name_field:
+            raise ImproperlyConfigured("ModelTrackingAsyncManager requires a task_name field mapping.")
+        using = self._record_model.objects.db
+        lookup = {task_name_field: task_name}
+        defaults = dict(self._config.create_defaults)
         if status_field and incoming_status is not None:
-            defaults[status_field] = self._prepare_field_value(
-                status_field, incoming_status
-            )
-        if message_field and message:
-            defaults[message_field] = self._prepare_field_value(message_field, message)
-        if user_field:
-            user_val = kwargs.get("user")
-            if user_val is not None:
-                defaults[user_field] = self._prepare_field_value(
-                    user_field, self.format_user(user_val)
-                )
-        if affected_field:
-            affected_val = kwargs.get("affected_objects")
-            if affected_val is not None:
-                defaults[affected_field] = self._prepare_field_value(
-                    affected_field, self.format_affected(affected_val)
-                )
-        if kwargs_field:
-            kw_payload = kwargs.get("task_kwargs")
-            if kw_payload is not None:
-                defaults[kwargs_field] = self._prepare_field_value(
-                    kwargs_field, self.format_payload(kw_payload)
-                )
-        if args_field:
-            args_payload = kwargs.get("task_args")
-            if args_payload is not None:
-                defaults[args_field] = self._prepare_field_value(
-                    args_field, self.format_payload(args_payload)
-                )
+            defaults[status_field] = self._prepare_field_value(status_field, incoming_status)
 
-        record, created = self._get_or_create_record(task_name, defaults)
+        metadata = {}
+        if message_field and message and event != "progress":
+            metadata[message_field] = self._prepare_field_value(message_field, message)
+        if user_field and "user" in kwargs and (kwargs.get("user") is not None or event == "create"):
+            metadata[user_field] = self._prepare_field_value(user_field, self.format_user(kwargs.get("user")))
+        if affected_field and kwargs.get("affected_objects") is not None:
+            metadata[affected_field] = self._prepare_field_value(affected_field, self.format_affected(kwargs["affected_objects"]))
+        if kwargs_field and kwargs.get("task_kwargs") is not None:
+            metadata[kwargs_field] = self._prepare_field_value(kwargs_field, self.format_payload(kwargs["task_kwargs"]))
+        if args_field and kwargs.get("task_args") is not None:
+            metadata[args_field] = self._prepare_field_value(args_field, self.format_payload(kwargs["task_args"]))
+        defaults.update(metadata)
 
-        updated_fields: set[str] = set()
+        with transaction.atomic(using=using):
+            self._record_model.objects.using(using).get_or_create(defaults=defaults, **lookup)
+            record = self._record_model.objects.using(using).select_for_update().get(**lookup)
+            current_status = getattr(record, status_field, None) if status_field else None
+            terminal = current_status in {self.STATUSES.SUCCESS, self.STATUSES.FAILED}
+            updates = dict(metadata)
 
-        if not created:
-            if status_field and incoming_status is not None:
-                self._maybe_set(record, status_field, incoming_status, updated_fields)
-            if message_field and message and event != "progress":
-                self._maybe_set(record, message_field, message, updated_fields)
+            if event == "progress":
+                progress_payload = kwargs.get("progress_payload") or message
+                if progress_field and progress_payload is not None:
+                    updates[progress_field] = self._prepare_field_value(progress_field, progress_payload)
+                next_status = self.STATUSES.IN_PROGRESS
+            elif event == "create":
+                next_status = incoming_status
+            elif event in {"complete", "fail"}:
+                next_status = incoming_status or (self.STATUSES.SUCCESS if event == "complete" else self.STATUSES.FAILED)
+                if next_status not in {self.STATUSES.SUCCESS, self.STATUSES.FAILED}:
+                    next_status = self.STATUSES.UNKNOWN
+                if result_field and kwargs.get("result") is not None:
+                    updates[result_field] = self._prepare_field_value(result_field, self.format_payload(kwargs.get("result")))
+                terminal_time_field = completed_at_field if next_status == self.STATUSES.SUCCESS else failed_at_field
+                if terminal_time_field and timestamp:
+                    updates[terminal_time_field] = timestamp
+            elif event == "cleanup" and kwargs.get("canonical_terminal"):
+                next_status = incoming_status
+                if result_field and kwargs.get("result") is not None:
+                    updates[result_field] = self._prepare_field_value(result_field, self.format_payload(kwargs.get("result")))
+                terminal_time_field = completed_at_field if next_status == self.STATUSES.SUCCESS else failed_at_field
+                if terminal_time_field and timestamp:
+                    updates[terminal_time_field] = timestamp
+            elif event == "terminal_repair":
+                next_status = incoming_status
+                if result_field and kwargs.get("result") is not None:
+                    updates[result_field] = self._prepare_field_value(result_field, self.format_payload(kwargs.get("result")))
+                terminal_time_field = completed_at_field if next_status == self.STATUSES.SUCCESS else failed_at_field
+                if terminal_time_field and timestamp:
+                    updates[terminal_time_field] = timestamp
+            else:
+                next_status = incoming_status
 
-        if event == "create":
-            # ensure create preserves user + affected when record exists
-            if user_field:
-                self._maybe_set(
-                    record,
-                    user_field,
-                    self.format_user(kwargs.get("user")),
-                    updated_fields,
-                )
-            if affected_field:
-                self._maybe_set(
-                    record,
-                    affected_field,
-                    self.format_affected(kwargs.get("affected_objects")),
-                    updated_fields,
-                )
-            if kwargs_field:
-                self._maybe_set(
-                    record,
-                    kwargs_field,
-                    self.format_payload(kwargs.get("task_kwargs")),
-                    updated_fields,
-                )
-            if args_field:
-                self._maybe_set(
-                    record,
-                    args_field,
-                    self.format_payload(kwargs.get("task_args")),
-                    updated_fields,
-                )
+            if status_field and next_status is not None:
+                updates[status_field] = self._prepare_field_value(status_field, next_status)
+            if event == "cleanup" and cleaned_field:
+                updates[cleaned_field] = True
 
-        elif event == "progress":
-            if status_field:
-                setattr(record, status_field, self.STATUSES.IN_PROGRESS)
-                updated_fields.add(status_field)
-            progress_payload = kwargs.get("progress_payload") or message
-            if progress_field and progress_payload is not None:
-                setattr(record, progress_field, progress_payload)
-                updated_fields.add(progress_field)
-
-        elif event == "complete":
-            if status_field:
-                setattr(record, status_field, self.STATUSES.SUCCESS)
-                updated_fields.add(status_field)
-            if result_field:
-                self._maybe_set(
-                    record,
-                    result_field,
-                    self.format_payload(kwargs.get("result")),
-                    updated_fields,
-                )
-            if completed_at_field and timestamp:
-                self._maybe_set(record, completed_at_field, timestamp, updated_fields)
-
-        elif event == "fail":
-            if status_field:
-                setattr(record, status_field, self.STATUSES.FAILED)
-                updated_fields.add(status_field)
-            if result_field:
-                self._maybe_set(
-                    record,
-                    result_field,
-                    self.format_payload(kwargs.get("result")),
-                    updated_fields,
-                )
-            if failed_at_field and timestamp:
-                self._maybe_set(record, failed_at_field, timestamp, updated_fields)
-
-        elif event == "cleanup":
-            if cleaned_field:
-                self._maybe_set(record, cleaned_field, True, updated_fields)
-
-        if updated_fields:
-            record.save(update_fields=sorted(updated_fields))
-        elif created:
-            # Newly created records with no extra updates still need persistence.
-            record.save()
+            queryset = self._record_model.objects.using(using).filter(pk=record.pk)
+            if status_field and event != "cleanup":
+                queryset = queryset.exclude(**{f"{status_field}__in": [self.STATUSES.SUCCESS, self.STATUSES.FAILED]})
+            if terminal and event not in {"cleanup"}:
+                # Existing terminal rows accept harmless metadata only.
+                updates = {key: value for key, value in metadata.items() if key not in {status_field, result_field, completed_at_field, failed_at_field}}
+            elif terminal and event == "cleanup":
+                updates.pop(status_field, None)
+                if incoming_status != current_status:
+                    updates.pop(result_field, None)
+                    updates.pop(completed_at_field, None)
+                    updates.pop(failed_at_field, None)
+            if updates:
+                queryset.update(**updates)
 
 
 class ModelTrackingAsyncManager(ModelTrackingMixin, AsyncManager):

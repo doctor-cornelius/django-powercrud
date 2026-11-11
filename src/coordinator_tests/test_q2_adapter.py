@@ -13,7 +13,7 @@ from django.test import TestCase
 
 from powercrud._coordinator.q2 import Q2Adapter
 from powercrud._coordinator.config import CoordinatorConfig
-from powercrud._coordinator.types import ExecutionRef, ManagerSpec, TaskCall
+from powercrud._coordinator.types import BusinessOutcome, Completion, ExecutionRef, ManagerSpec, TaskCall, TaskIdentity
 from powercrud._coordinator.context import get_current_task
 from coordinator_tests.managers import CompletionRecordingManager
 
@@ -51,6 +51,41 @@ class TestQ2Adapter(TestCase):
             env=env,
         )
         self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_q2_successful_falsey_and_dictionary_returns_are_execution_success(self):
+        """Ordinary return values never imply application failure."""
+        adapter = Q2Adapter()
+        config = CoordinatorConfig().to_snapshot()
+        identity = TaskIdentity(
+            "ordinary-return",
+            ManagerSpec("coordinator_tests.managers.CoordinatorAsyncManager"),
+            config,
+            ExecutionRef(id="ordinary-return-exec", locator={"options": {"ack_failure": False}}),
+        )
+        for value in (False, None, {"success": False}):
+            completion = adapter.finalize_completion(
+                Completion("ordinary-return", identity.execution, success=True, result=value),
+                identity=identity,
+            )
+            self.assertTrue(completion.finality, "Any q2 successful callable return must be terminal")
+            self.assertTrue(completion.success, "Falsey or success-shaped data must not change execution success")
+
+    def test_explicit_business_failure_is_separate_from_q2_execution_success(self):
+        """The explicit outcome type is the only opt-in to business failure."""
+        adapter = Q2Adapter()
+        identity = TaskIdentity(
+            "business-failure",
+            ManagerSpec("coordinator_tests.managers.CoordinatorAsyncManager"),
+            CoordinatorConfig().to_snapshot(),
+            ExecutionRef(id="business-failure-exec", locator={"options": {"ack_failure": False}}),
+        )
+        outcome = BusinessOutcome(status="failed", processed_count=0, total_count=3, errors=["refused"])
+        completion = adapter.finalize_completion(
+            Completion("business-failure", identity.execution, success=True, result=outcome),
+            identity=identity,
+        )
+        self.assertTrue(completion.success, "Business failure must retain successful q2 execution")
+        self.assertTrue(completion.finality, "A returned business refusal is still a terminal execution")
 
     def test_q2_absence_in_isolated_import_environment(self):
         """Explicit async validation diagnoses q2 when its distribution is absent."""
@@ -435,7 +470,7 @@ assert not Q2Adapter.is_available()
     def test_q2_real_sync_signing_and_worker_keep_callable_arguments_unchanged(self):
         """Real q2 signing and inline worker signals retain identity without argument injection."""
         from django_q.tasks import fetch
-        from powercrud._coordinator.state import get_identity
+        from powercrud._coordinator.state import get_identity, get_terminal_record
         from coordinator_tests.managers import COORDINATOR_CONFIG, CoordinatorAsyncManager
 
         config = CoordinatorConfig(
@@ -468,6 +503,7 @@ assert not Q2Adapter.is_available()
         self.assertEqual(result.result, f"{task_key}:signed-payload", "The original worker arguments must execute under reconstructed context")
         self.assertEqual(get_identity(config, task_key).execution.id, reference.id, "The retained execution ID must match the real q2 result")
         self.assertIn("_coordinator_identity", result.kwargs, "Saved q2 result kwargs must carry transport identity for completion reconstruction")
+        self.assertEqual(get_terminal_record(config, get_identity(config, task_key))["status"], "success", "The actual q2 monitor path must retain a terminal success snapshot")
 
     def test_q2_real_cached_result_uses_the_recorded_lookup_route(self):
         """A real cached q2 result is found through its retained execution reference."""
@@ -504,6 +540,92 @@ assert not Q2Adapter.is_available()
         self.assertEqual(lookup.kind, "found", "Cached q2 results must use the retained route")
         self.assertEqual(lookup.completion.execution.id, reference.id, "Cached lookup must preserve the q2 execution ID")
         self.assertEqual(lookup.completion.result, f"{task_key}:cached-payload", "Cached lookup must return the original worker result")
+        from powercrud._coordinator.state import get_identity, get_terminal_record
+        self.assertEqual(get_terminal_record(config, get_identity(config, task_key))["status"], "success", "Cached completion must publish terminal state without an ORM hook")
+
+    def test_q2_real_save_false_still_retains_terminal_outcome(self):
+        """The monitor signal supplies completion when q2 skips ORM result storage."""
+        from coordinator_tests.managers import COORDINATOR_CONFIG, CoordinatorAsyncManager
+        from powercrud._coordinator.state import get_identity, get_terminal_record
+
+        config = CoordinatorConfig(**{**COORDINATOR_CONFIG.__dict__, "key_namespace": "real-q2-save-false"})
+        task_key = "real-q2-save-false-key"
+        call = TaskCall(
+            func="coordinator_tests.workers.signal_context_worker",
+            args=("unsaved-payload",),
+            kwargs={"task_key": task_key},
+            task_key=task_key,
+            manager=ManagerSpec(
+                f"{CoordinatorAsyncManager.__module__}.{CoordinatorAsyncManager.__qualname__}",
+                None,
+                "core",
+            ),
+            coordination=config.to_snapshot(),
+        )
+        reference = Q2Adapter().submit(
+            call, options={"sync": True, "save": False, "task_name": task_key}
+        )
+        identity = get_identity(config, task_key)
+        self.assertEqual(identity.execution.id, reference.id, "No-save mode must retain the actual q2 execution ID")
+        self.assertEqual(get_terminal_record(config, identity)["status"], "success", "The monitor fallback must retain completion without an ORM row")
+
+    def test_custom_q2_hook_is_not_replayed_by_monitor_fallback(self):
+        """The monitor handles completion without invoking the configured q2 hook twice."""
+        from coordinator_tests.managers import COORDINATOR_CONFIG, CoordinatorAsyncManager
+        from coordinator_tests.workers import CUSTOM_COMPLETION_HOOK_CALLS
+        from powercrud._coordinator.state import get_identity, get_terminal_record
+
+        CUSTOM_COMPLETION_HOOK_CALLS.clear()
+        config = CoordinatorConfig(**{**COORDINATOR_CONFIG.__dict__, "key_namespace": "real-q2-custom-hook"})
+        task_key = "real-q2-custom-hook-key"
+        call = TaskCall(
+            func="coordinator_tests.workers.signal_context_worker",
+            args=("hook-payload",),
+            kwargs={"task_key": task_key},
+            task_key=task_key,
+            manager=ManagerSpec(
+                f"{CoordinatorAsyncManager.__module__}.{CoordinatorAsyncManager.__qualname__}",
+                None,
+                "core",
+            ),
+            coordination=config.to_snapshot(),
+        )
+        reference = Q2Adapter().submit(
+            call,
+            options={
+                "sync": True,
+                "task_name": task_key,
+                "hook": "coordinator_tests.workers.custom_completion_hook",
+            },
+        )
+        self.assertEqual(CUSTOM_COMPLETION_HOOK_CALLS, [reference.id], "Only q2 should invoke the selected custom hook")
+        self.assertEqual(get_terminal_record(config, get_identity(config, task_key))["status"], "success", "Monitor fallback must retain terminal outcome with a custom hook")
+
+    def test_q2_real_sync_exception_is_retained_and_original_error_escapes(self):
+        """A real q2 synchronous worker exception is retained and re-raised."""
+        from coordinator_tests.managers import COORDINATOR_CONFIG, CoordinatorAsyncManager
+        from powercrud._coordinator.state import get_identity, get_terminal_record
+
+        config = CoordinatorConfig(**{**COORDINATOR_CONFIG.__dict__, "key_namespace": "real-q2-sync-error"})
+        task_key = "real-q2-sync-error-key"
+        call = TaskCall(
+            func="coordinator_tests.workers.raise_task_exception",
+            args=("sync business error",),
+            kwargs={"task_key": task_key},
+            task_key=task_key,
+            manager=ManagerSpec(
+                f"{CoordinatorAsyncManager.__module__}.{CoordinatorAsyncManager.__qualname__}",
+                None,
+                "core",
+            ),
+            coordination=config.to_snapshot(),
+        )
+        with self.assertRaisesRegex(RuntimeError, "sync business error"):
+            Q2Adapter().submit(call, options={"sync": True, "task_name": task_key})
+        identity = get_identity(config, task_key)
+        terminal = get_terminal_record(config, identity)
+        self.assertEqual(terminal["status"], "failed", "Synchronous business exceptions must retain a truthful failed outcome")
+        self.assertEqual(terminal["reason"], "synchronous_exception_observed", "The finish evidence must identify coordinator observation")
 
     @patch("powercrud._coordinator.q2.fetch")
     def test_lookup_reports_found_missing_and_unavailable(self, fetch):
