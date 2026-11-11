@@ -11,7 +11,7 @@
 
 ## Next
 
-- ✅ C2 is complete. Stop here; C3–C7 remain unstarted.
+- ✅ C3 is complete. Stop here; C4–C7 remain unstarted.
 
 ## C1: Validate explicit use and enforce launch enablement
 
@@ -29,11 +29,11 @@
 7. ✅ Make polling and cleanup reconstruct the originating manager/configuration and q2 execution/result route from retained identity in their selected location; missing identity remains unknown (issues 2, 12–13).
 8. ✅ Run focused regressions and both full server suites through `./runproj exec`; update C2 evidence and checklist, check links/anchors and `git diff --check`, and make semantic commits before stopping at C2 (issues 2, 10, 12–13).
 
-## C3: Report truthful outcomes and retain terminal state
+## ✅ C3: Report truthful outcomes and retain terminal state
 
-1. 🔳 Keep execution and explicit business outcomes distinct; missing/expired/unavailable evidence remains unknown across status, polling, tracking, and PowerCRUD consumers (issues 6–7).
-2. 🔳 Retain terminal snapshots with the agreed configurable 24-hour default; duplicate/late events and optional callback failures cannot rewrite the job outcome (issues 6–8).
-3. 🔳 Deliver completion across claimed q2 result/hook modes without adding automatic PowerCRUD retries (issues 6–7, 13).
+1. ✅ Keep execution and explicit business outcomes distinct; missing/expired/unavailable evidence remains unknown across status, polling, tracking, and PowerCRUD consumers (issues 6–7).
+2. ✅ Retain terminal snapshots with the agreed configurable 24-hour default; duplicate/late events and optional callback failures cannot rewrite the job outcome (issues 6–8).
+3. ✅ Deliver completion across tested q2 result/hook modes without adding automatic PowerCRUD retries (issues 6–7, 13). Broker delivery and synchronized concurrency remain evidence limits, recorded in the Phase C notes; no support guarantee is inferred from sync-mode tests.
 
 ## C4: Make submission and lifecycle ordering safe
 

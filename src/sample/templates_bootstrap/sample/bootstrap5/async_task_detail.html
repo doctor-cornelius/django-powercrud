@@ -10,7 +10,7 @@
         <div class="card-body">
             <h2 class="h4 card-title">Task {{ record.task_name }}</h2>
             <div id="task-progress" class="border rounded bg-body-tertiary p-3" hx-get="{{ progress_url }}"
-                hx-vals='{"task_name": "{{ record.task_name }}"}' hx-trigger="load, every 1s" hx-target="#task-progress" hx-swap="innerHTML">
+                hx-vals='{"task_name": "{{ record.task_name }}"}' hx-trigger="load, every 1s" hx-target="this" hx-swap="none" hx-request='{"timeout": 5000}' data-powercrud-async-progress="dashboard" data-powercrud-pack="bootstrap5">
                 <div class="d-flex justify-content-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading…</span></div></div>
                 <p class="mt-2 mb-0">{{ record.message|default:'Waiting for progress…' }}</p>
             </div>
@@ -32,36 +32,5 @@
             </dl>
         </div>
     </section>
-    <script>
-        document.body.addEventListener('htmx:afterSwap', function (event) {
-            if (!event.detail.target || event.detail.target.id !== 'task-progress') {
-                return;
-            }
-
-            try {
-                const data = JSON.parse(event.detail.xhr.responseText);
-                const trigger = event.detail.elt;
-                const progress = data.progress || 'In progress…';
-
-                if (['success', 'completed'].includes((data.status || '').toLowerCase())) {
-                    event.detail.target.innerHTML = `<div class="alert alert-success mb-0">${progress}</div>`;
-                    trigger.removeAttribute('hx-trigger');
-                } else if (data.status === 'failed') {
-                    event.detail.target.innerHTML = `<div class="alert alert-danger mb-0">${progress}</div>`;
-                    trigger.removeAttribute('hx-trigger');
-                } else if (data.status === 'pending') {
-                    event.detail.target.innerHTML = `<div class="d-flex justify-content-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading…</span></div></div><p class="mt-2 mb-0">${progress}</p>`;
-                } else {
-                    event.detail.target.innerHTML = `<p class="mb-0">${progress}</p>`;
-                }
-
-                if (data.poll_interval && data.poll_interval !== 1000) {
-                    trigger.setAttribute('hx-trigger', `every ${data.poll_interval}ms`);
-                }
-            } catch (error) {
-                console.error('Error parsing progress response', error);
-                event.detail.target.innerHTML = '<p class="text-danger mb-0">Error loading progress.</p>';
-            }
-        });
-    </script>
+    {% include "powercrud/async_progress_handler.html" %}
 {% endpartialdef %}

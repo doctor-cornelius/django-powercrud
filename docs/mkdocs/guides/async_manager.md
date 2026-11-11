@@ -75,6 +75,8 @@ def rebuild_project(project_id, *, task_key=None, manager_class=None, **kwargs):
 
 - Workers can be regular functions or dotted-path strings.
 - Always return a result payload (serialisable) so completion hooks can persist it.
+- Ordinary `False`, `None`, and dictionary returns count as successful function returns. To report business failure or partial completion, return `BusinessOutcome` from `powercrud.async_outcomes`; see the [async reference](../reference/async.md#progress--htmx-endpoint).
+- Unknown task status means the available evidence is insufficient. The built-in views explain why and stop polling after 30 seconds; refresh starts a new observation window.
 
 ---
 

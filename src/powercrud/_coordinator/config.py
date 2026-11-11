@@ -17,6 +17,7 @@ class CoordinatorConfig:
     cleanup_grace_period: int = 86400
     max_task_duration: int | None = 3600
     terminal_result_ttl: int = 86400
+    terminal_result_max_bytes: int = 16384
 
     def resolved_key_prefixes(self) -> dict[str, str]:
         """Return the effective cache-key prefixes, including legacy defaults."""
@@ -51,6 +52,7 @@ class CoordinatorConfig:
             "cleanup_grace_period",
             "max_task_duration",
             "terminal_result_ttl",
+            "terminal_result_max_bytes",
         }
         return cls(**{key: mapping[key] for key in fields if key in mapping})
 

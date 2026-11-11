@@ -5,10 +5,11 @@ import importlib
 import importlib.util
 import json
 import logging
+import sys
 import time
 import uuid
 from contextvars import ContextVar
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from collections.abc import Mapping
 from typing import Any, Callable
 
@@ -18,7 +19,7 @@ from django.core.exceptions import AppRegistryNotReady
 
 from .exceptions import AsyncConfigurationError
 
-from .types import Completion, ExecutionRef, ManagerSpec, ResultLookup, TaskCall, TaskIdentity
+from .types import BusinessOutcome, Completion, ExecutionRef, ManagerSpec, ResultLookup, TaskCall, TaskIdentity
 
 
 @dataclass
@@ -29,6 +30,7 @@ class _SubmissionBinding:
     call: TaskCall
     prepared: dict[str, Any]
     identity: TaskIdentity | None = None
+    sync_failure: Completion | None = None
 
 
 _submission_binding: ContextVar[_SubmissionBinding | None] = ContextVar(
@@ -40,6 +42,59 @@ _worker_binding: ContextVar[object | None] = ContextVar(
 _signal_receivers: list[Callable[..., Any]] = []
 
 log = logging.getLogger(__name__)
+
+
+def replace_completion(completion: Completion, **changes) -> Completion:
+    """Return an immutable completion with selected normalized evidence."""
+    return replace(completion, **changes)
+
+
+def _post_execute_monitor(sender, task=None, **kwargs):
+    """Repair result retention and callback dispatch from q2 monitor evidence."""
+    adapter = Q2Adapter()
+    try:
+        raw_task = task if task is not None else kwargs.get("task")
+        if isinstance(raw_task, Mapping):
+            parsed = dict(raw_task)
+            raw_kwargs = parsed.get("kwargs")
+            if isinstance(raw_kwargs, str):
+                parsed["kwargs"] = adapter.parse_task_kwargs(_TaskMapping(raw_task))
+            worker_kwargs = parsed.get("kwargs")
+            identity_mapping = worker_kwargs.get("_coordinator_identity") if isinstance(worker_kwargs, Mapping) else None
+            if identity_mapping is None:
+                return
+            identity = TaskIdentity.from_mapping(identity_mapping)
+            saved = None
+            try:
+                model = adapter._load_task_model()
+                candidate = model.objects.filter(id=identity.execution.id, name=identity.task_key).first()
+                if candidate is not None and getattr(candidate, "stopped", None) == parsed.get("stopped"):
+                    saved = candidate
+            except Exception:
+                log.debug("No matching saved q2 result for task %s", identity.task_key, exc_info=True)
+            if saved is not None:
+                raw_task = saved
+            else:
+                values = {
+                    key: value for key, value in parsed.items()
+                    if key in {field.attname for field in adapter._load_task_model()._meta.concrete_fields}
+                }
+                raw_task = adapter._load_task_model()(**values)
+                raw_task._state.adding = True
+                raw_task._state.db = None
+        adapter.dispatch_completion(raw_task)
+    except Exception:
+        log.exception("Coordinator monitor receiver failed; q2 result handling continues")
+
+
+class _TaskMapping:
+    """Small attribute view used to share the legacy q2 kwargs parser."""
+
+    def __init__(self, values):
+        self.values = values
+
+    def __getattr__(self, name):
+        return self.values.get(name)
 
 
 def _pre_enqueue(sender, task, **kwargs):
@@ -131,7 +186,8 @@ def _pre_execute(sender, task=None, func=None, **kwargs):
 
 
 def _post_execute_in_worker(sender, task=None, func=None, **kwargs):
-    """Reset worker context and add retained identity to q2 result metadata."""
+    """Retain worker evidence before q2 result storage or application hooks."""
+    active_exception = sys.exception()
     task = task if task is not None else kwargs.get("task")
     active = _worker_binding.get()
     if active is None:
@@ -142,14 +198,42 @@ def _post_execute_in_worker(sender, task=None, func=None, **kwargs):
             task_kwargs = task.get("kwargs")
             task["kwargs"] = dict(task_kwargs) if isinstance(task_kwargs, dict) else {}
             task["kwargs"]["_coordinator_identity"] = identity.to_mapping()
-            finished_at = task.get("stopped")
-            success = task.get("success")
-            ack_failure = task.get(
-                "ack_failure",
-                identity.execution.locator.get("options", {}).get("ack_failure", False),
-            )
-            if finished_at is not None and (success is True or (success is False and ack_failure is True)):
-                manager.mark_task_finished(identity, finished_at=finished_at)
+            completion = manager._q2_adapter.completion_from_mapping(task, identity=identity)
+            if (
+                active_exception is not None
+                and _submission_binding.get() is not None
+                and _submission_binding.get().identity == identity
+                and _submission_binding.get().prepared.get("sync") is True
+                and task.get("success") is None
+                and task.get("result") is None
+                and task.get("stopped") is None
+            ):
+                failure = Completion(
+                    task_key=identity.task_key,
+                    execution=identity.execution,
+                    success=False,
+                    result={
+                        "exception_type": f"{type(active_exception).__module__}.{type(active_exception).__qualname__}",
+                        "message": str(active_exception),
+                    },
+                    finished_at=manager._current_timestamp(),
+                    finality=True,
+                    finality_reason="synchronous_exception_observed",
+                )
+                _submission_binding.get().sync_failure = failure
+                manager._q2_adapter.retain_completion(identity, failure)
+            else:
+                completion = manager._q2_adapter.finalize_completion(completion, identity=identity)
+                if completion.finality:
+                    manager._q2_adapter.retain_completion(identity, completion)
+                elif completion.success is False:
+                    from .state import record_unresolved
+
+                    record_unresolved(
+                        manager.get_coordination_config(), identity,
+                        reason=completion.finality_reason or "failed_attempt_finality_uncertain",
+                        observed_at=manager._current_timestamp(),
+                    )
     except Exception:
         log.exception("Could not attach coordinator identity to q2 worker result metadata")
     finally:
@@ -176,7 +260,7 @@ def register_signals() -> None:
 
     if not all(
         hasattr(signals, signal_name)
-        for signal_name in ("pre_enqueue", "pre_execute", "post_execute_in_worker")
+        for signal_name in ("pre_enqueue", "pre_execute", "post_execute_in_worker", "post_execute")
     ):
         return
 
@@ -184,6 +268,7 @@ def register_signals() -> None:
         (signals.pre_enqueue, _pre_enqueue, "powercrud_coordinator_pre_enqueue_v1"),
         (signals.pre_execute, _pre_execute, "powercrud_coordinator_pre_execute_v1"),
         (signals.post_execute_in_worker, _post_execute_in_worker, "powercrud_coordinator_post_execute_worker_v1"),
+        (signals.post_execute, _post_execute_monitor, "powercrud_coordinator_post_execute_monitor_v1"),
     )
     for signal, callback, dispatch_uid in registrations:
         signal.connect(callback, dispatch_uid=dispatch_uid, weak=False)
@@ -488,6 +573,7 @@ class Q2Adapter:
                 call=call,
                 prepared={
                     "cached": effective_options.get("cached", False),
+                    "sync": effective_options.get("sync", False),
                     "cluster": effective_options.get("cluster"),
                     "q2_result_cache": cache_name,
                     "locator_options": locator_options,
@@ -496,6 +582,13 @@ class Q2Adapter:
             binding_token = _submission_binding.set(binding)
         try:
             task_id = async_task(call.func, *call.args, **async_task_kwargs)
+        except BaseException:
+            if binding is not None and binding.identity is not None and binding.sync_failure is not None:
+                try:
+                    self.dispatch_completion_evidence(binding.identity, binding.sync_failure)
+                except Exception:
+                    log.exception("Could not dispatch captured synchronous task failure")
+            raise
         finally:
             if binding_token is not None:
                 _restore_submission_worker_context(binding)
@@ -548,17 +641,127 @@ class Q2Adapter:
         self, raw_task: object, *, task_key: str | None = None
     ) -> Completion:
         """Translate a raw q2 task into plain completion data."""
-        key = task_key or str(getattr(raw_task, "name", None) or getattr(raw_task, "id", ""))
-        task_id = getattr(raw_task, "id", None)
+        if isinstance(raw_task, Mapping):
+            get = raw_task.get
+            saved = False
+        else:
+            get = lambda name, default=None: getattr(raw_task, name, default)
+            saved = not getattr(getattr(raw_task, "_state", None), "adding", True)
+        key = task_key or str(get("name") or get("id", ""))
+        task_id = get("id")
         execution = ExecutionRef(id=str(task_id) if task_id is not None else None)
         return Completion(
             task_key=key,
             execution=execution,
-            success=getattr(raw_task, "success", None),
-            result=getattr(raw_task, "result", None),
-            started_at=getattr(raw_task, "started", None),
-            finished_at=getattr(raw_task, "stopped", None),
+            success=get("success"),
+            result=get("result"),
+            started_at=get("started"),
+            finished_at=get("stopped"),
+            q2_attempt_count=get("attempt_count"),
+            q2_result_saved=saved,
         )
+
+    def completion_from_mapping(self, task: Mapping[str, Any], *, identity: TaskIdentity) -> Completion:
+        """Normalize a q2 worker mapping against its retained identity."""
+        return Completion(
+            task_key=identity.task_key,
+            execution=identity.execution,
+            success=task.get("success"),
+            result=task.get("result"),
+            started_at=task.get("started"),
+            finished_at=task.get("stopped"),
+            q2_attempt_count=task.get("attempt_count"),
+            q2_result_saved=False,
+        )
+
+    def finalize_completion(
+        self, completion: Completion, *, identity: TaskIdentity, raw_task=None
+    ) -> Completion:
+        """Apply only q2-backed finality evidence to normalized completion."""
+        if completion.success is True:
+            return replace_completion(completion, finality=True, finality_reason="q2_successful_return")
+        if completion.success is not False:
+            return replace_completion(completion, finality=False, finality_reason="q2_result_has_no_final_success_flag")
+        options = identity.execution.locator.get("options", {})
+        ack_failure = options.get("ack_failure", self._effective_cluster_settings().get("ack_failures", False))
+        if ack_failure is True:
+            return replace_completion(completion, finality=True, finality_reason="failure_acknowledgement_policy")
+        if (raw_task is not None and not isinstance(raw_task, Mapping)) or completion.q2_result_saved:
+            attempt_count = getattr(raw_task, "attempt_count", None) if raw_task is not None else completion.q2_attempt_count
+            saved = getattr(raw_task, "pk", None) is not None and not getattr(getattr(raw_task, "_state", None), "adding", True) if raw_task is not None else completion.q2_result_saved
+            try:
+                maximum = self._effective_cluster_settings().get("max_attempts", 0)
+            except Exception:
+                maximum = 0
+            if saved and type(attempt_count) is int and type(maximum) is int and maximum > 0 and attempt_count >= maximum:
+                return replace_completion(completion, finality=True, finality_reason="q2_saved_attempt_limit_reached")
+        return replace_completion(completion, finality=False, finality_reason="failed_attempt_may_be_retried")
+
+    def retain_completion(self, identity: TaskIdentity, completion: Completion):
+        """Publish terminal or unresolved execution evidence in the selected cache."""
+        from .config import CoordinatorConfig
+        from .state import publish_terminal, record_unresolved
+
+        config = CoordinatorConfig.from_snapshot(identity.coordination)
+        if completion.finality:
+            return publish_terminal(config, identity, completion)
+        if completion.success is False:
+            return record_unresolved(
+                config, identity,
+                reason=completion.finality_reason or "failed_attempt_finality_uncertain",
+                observed_at=completion.finished_at or __import__("django.utils.timezone", fromlist=["now"]).now(),
+            )
+        return None
+
+    def dispatch_completion_evidence(self, identity: TaskIdentity, completion: Completion):
+        """Dispatch captured completion evidence through the selected manager."""
+        from .config import CoordinatorConfig
+        from .reconstruction import construct_manager
+
+        manager = construct_manager(
+            identity.manager,
+            coordination_config=CoordinatorConfig.from_snapshot(identity.coordination),
+            executor=self,
+            legacy=False,
+            prepare_config=lambda manager_cls, value: manager_cls.prepare_manager_config(value),
+        )
+        try:
+            self.retain_completion(identity, completion)
+            if not completion.finality:
+                return
+            from django.utils import timezone
+            from .state import claim_completion_dispatch
+
+            if not claim_completion_dispatch(
+                CoordinatorConfig.from_snapshot(identity.coordination),
+                identity,
+                claimed_at=timezone.now(),
+            ):
+                return
+            if getattr(manager, "completion_style", "legacy") == "core":
+                manager.complete(completion)
+            else:
+                manager.handle_task_completion(self._unsaved_task(completion, identity), identity.task_key)
+        except Exception:
+            log.exception("Coordinator completion callback failed for task %s", identity.task_key)
+
+    def _unsaved_task(self, completion: Completion, identity: TaskIdentity):
+        """Build a genuine unsaved q2 Task for legacy completion overrides."""
+        model = self._load_task_model()
+        values = {
+            "id": identity.execution.id,
+            "name": identity.task_key,
+            "success": completion.success,
+            "result": completion.result,
+            "started": completion.started_at,
+            "stopped": completion.finished_at,
+            "kwargs": {"_coordinator_identity": identity.to_mapping()},
+        }
+        allowed = {field.attname for field in model._meta.concrete_fields}
+        instance = model(**{key: value for key, value in values.items() if key in allowed})
+        instance._state.adding = True
+        instance._state.db = None
+        return instance
 
     def lookup(
         self, ref: ExecutionRef, *, wait_ms: int = 0
@@ -650,7 +853,8 @@ class Q2Adapter:
         legacy_factory: Callable[[str | None, dict[str, Any] | None], object] | None = None,
     ) -> None:
         """Dispatch either snapshot-based core completion or a legacy raw task."""
-        task_key = str(getattr(raw_task, "name", None) or getattr(raw_task, "id", ""))
+        completion = self.to_completion(raw_task)
+        task_key = completion.task_key
         kwargs = self.parse_task_kwargs(raw_task)
         identity_mapping = kwargs.get("_coordinator_identity")
         if identity_mapping is not None:
@@ -665,9 +869,18 @@ class Q2Adapter:
             retained = get_identity(config, identity.task_key)
             if retained != identity:
                 raise AsyncConfigurationError("q2 completion identity is missing, expired, or mismatched.")
-            task_execution_id = getattr(raw_task, "id", None)
+            task_execution_id = completion.execution.id if completion.execution else None
             if task_execution_id is not None and str(task_execution_id) != identity.execution.id:
                 raise AsyncConfigurationError("q2 completion execution does not match retained identity.")
+            completion = self.finalize_completion(completion, identity=identity, raw_task=raw_task)
+            self.retain_completion(identity, completion)
+            if not completion.finality:
+                return
+            from django.utils import timezone
+            from .state import claim_completion_dispatch
+
+            if not claim_completion_dispatch(config, identity, claimed_at=timezone.now()):
+                return
             manager = construct_manager(
                 identity.manager,
                 coordination_config=config,
@@ -677,7 +890,7 @@ class Q2Adapter:
             )
             completion_style = getattr(manager, "completion_style", "legacy")
             if completion_style == "core":
-                manager.complete(self.to_completion(raw_task, task_key=identity.task_key))
+                manager.complete(replace_completion(completion, task_key=identity.task_key))
             else:
                 manager.handle_task_completion(raw_task, identity.task_key)
             return

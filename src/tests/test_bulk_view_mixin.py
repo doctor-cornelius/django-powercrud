@@ -789,18 +789,20 @@ def test_bulk_form_and_fields_components_preserve_script_free_contract(rf):
         ),
     ],
 )
-def test_bulk_outcomes_component_renders_script_free_modes(mode, context, expected):
-    """One focused outcome component should render every legacy feedback state."""
+def test_bulk_outcomes_component_renders_shared_async_progress_handler(mode, context, expected):
+    """Queued outcome markup should use the one shared progress response handler."""
     rendered = render_to_string(
         "powercrud/daisyUI/partial/bulk_outcomes.html",
         {"bulk_outcome": mode, **context},
     )
 
     assert expected in rendered, "The selected bulk outcome should render its supplied feedback."
-    assert "<script" not in rendered, "Focused bulk outcome copies should not contain functional scripts."
     if mode == "queued":
         assert 'hx-get="/progress/"' in rendered and '"task_name": "task-1"' in rendered, (
             "Queued outcomes should retain declarative progress polling context."
+        )
+        assert 'hx-swap="none"' in rendered and "PowerCRUDAsyncProgress" in rendered, (
+            "Queued outcomes should render JSON through the shared safe progress handler without swapping response text."
         )
 
 

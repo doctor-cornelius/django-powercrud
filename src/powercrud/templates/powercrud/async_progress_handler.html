@@ -1,0 +1,156 @@
+<script>
+(function () {
+    if (window.PowerCRUDAsyncProgress) return;
+    const states = new WeakMap();
+    const intervalMs = 1000;
+    const limitMs = 30000;
+
+    function stateFor(element) {
+        let state = states.get(element);
+        if (!state) {
+            state = { unknownSince: null, stopped: false, terminal: false, timer: null };
+            states.set(element, state);
+        }
+        return state;
+    }
+
+    function write(element, text, cssClass) {
+        element.replaceChildren();
+        const message = document.createElement('p');
+        message.className = cssClass || 'mb-0';
+        message.textContent = text;
+        element.append(message);
+    }
+
+    function reasonText(data) {
+        const reason = data.reason || 'No reliable task status is available.';
+        return `Status currently unavailable. ${reason}`;
+    }
+
+    function showUnknown(element, state, data) {
+        state.stopped = true;
+        if (state.timer) window.clearTimeout(state.timer);
+        element.removeAttribute('hx-trigger');
+        write(element, reasonText(data), 'mb-2');
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = element.dataset.powercrudPack === 'bootstrap5'
+            ? 'btn btn-outline-secondary btn-sm'
+            : 'btn btn-outline btn-sm';
+        button.textContent = 'Refresh status';
+        button.addEventListener('click', function () {
+            const replacement = element.cloneNode(false);
+            replacement.setAttribute('hx-trigger', 'load, every 1s');
+            element.replaceWith(replacement);
+            window.htmx.process(replacement);
+        });
+        element.append(button);
+    }
+
+    function detailText(data) {
+        const details = data.outcome || {};
+        const parts = [];
+        if (details.message) parts.push(details.message);
+        if (details.processed_count !== null && details.processed_count !== undefined) {
+            const total = details.total_count === null || details.total_count === undefined ? '' : ` of ${details.total_count}`;
+            parts.push(`${details.processed_count}${total} records processed`);
+        }
+        if (details.errors) parts.push(JSON.stringify(details.errors));
+        if (details.value !== null && details.value !== undefined) parts.push(JSON.stringify(details.value));
+        return parts.join(' — ') || data.progress || data.message || (data.status === 'success' ? 'Completed successfully.' : 'Task failed.');
+    }
+
+    function consume(element, data) {
+        const state = stateFor(element);
+        if (data.status === 'unknown') {
+            if (state.unknownSince === null) state.unknownSince = performance.now();
+            if (data.polling_stopped || performance.now() - state.unknownSince >= limitMs) {
+                showUnknown(element, state, data);
+            } else {
+                write(element, data.progress || 'Checking task status…');
+            }
+            return;
+        }
+        state.unknownSince = null;
+        state.stopped = false;
+        if (data.terminal && data.status === 'success') {
+            state.terminal = true;
+            write(element, detailText(data), 'alert alert-success mb-0');
+            const container = element.closest('[data-powercrud-bulk-outcome="queued"]');
+            if (container) {
+                const heading = container.querySelector('#async-status-heading');
+                if (heading) heading.textContent = 'Bulk Operation Completed';
+                window.htmx.trigger(document.body, 'bulkEditSuccess', { taskName: data.task_name });
+                window.htmx.trigger(document.body, 'refreshTable', { taskName: data.task_name });
+            }
+            return;
+        }
+        if (data.terminal && data.status === 'failed') {
+            state.terminal = true;
+            write(element, detailText(data), 'alert alert-danger mb-0');
+            const details = data.outcome || {};
+            if (details.business_status === 'partial' && details.processed_count > 0) {
+                window.htmx.trigger(document.body, 'refreshTable', { taskName: data.task_name });
+            }
+            const container = element.closest('[data-powercrud-bulk-outcome="queued"]');
+            if (container) {
+                const heading = container.querySelector('#async-status-heading');
+                if (heading) heading.textContent = 'Bulk Operation Failed';
+            }
+            return;
+        }
+        if (data.status === 'pending') {
+            state.terminal = false;
+            write(element, data.progress || 'Preparing asynchronous job…');
+            return;
+        }
+        write(element, data.progress || 'In progress…');
+        state.terminal = false;
+    }
+
+    function elapsed(state) {
+        return state.unknownSince === null ? 0 : Math.max(0, Math.floor(performance.now() - state.unknownSince));
+    }
+
+    document.body.addEventListener('htmx:configRequest', function (event) {
+        const element = event.detail.elt;
+        if (!element.matches('[data-powercrud-async-progress]')) return;
+        event.detail.parameters.unknown_elapsed_ms = elapsed(stateFor(element));
+    });
+
+    document.body.addEventListener('htmx:afterRequest', function (event) {
+        const element = event.detail.elt;
+        if (!element || !element.matches('[data-powercrud-async-progress]')) return;
+        try {
+            consume(element, JSON.parse(event.detail.xhr.responseText));
+        } catch (error) {
+            write(element, 'Could not read task status.');
+        }
+    });
+
+    ['htmx:sendError', 'htmx:timeout', 'htmx:responseError'].forEach(function (eventName) {
+        document.body.addEventListener(eventName, function (event) {
+            const element = event.detail.elt;
+            if (!element || !element.matches('[data-powercrud-async-progress]')) return;
+            const state = stateFor(element);
+            if (state.terminal) return;
+            if (event.detail.xhr && event.detail.xhr.status === 286) {
+                try {
+                    consume(element, JSON.parse(event.detail.xhr.responseText));
+                } catch (error) {
+                    showUnknown(element, state, { reason: 'The status endpoint stopped polling.' });
+                }
+                return;
+            }
+            if (state.unknownSince === null) state.unknownSince = performance.now();
+            const remaining = limitMs - elapsed(state);
+            if (remaining <= 0) showUnknown(element, state, { reason: 'The status endpoint did not respond.' });
+            else if (!state.timer) state.timer = window.setTimeout(function () {
+                showUnknown(element, state, { reason: 'The status endpoint did not respond.' });
+            }, remaining);
+        });
+    });
+
+    window.PowerCRUDAsyncProgress = true;
+}());
+</script>

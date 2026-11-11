@@ -335,6 +335,8 @@ class OperationMixin:
         except Exception as e:
             log.error(f"Error during bulk delete: {e}")
             errors.append((None, [str(e)]))
+            # The atomic block rolled back every deletion, so none are committed.
+            deleted_count = 0
 
         return {
             "success": len(errors) == 0,

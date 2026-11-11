@@ -9,6 +9,7 @@ from django.contrib.auth import get_user_model
 
 from powercrud.async_context import task_context
 from powercrud import tasks
+from powercrud.async_outcomes import BusinessOutcome
 from powercrud.bulk_persistence import BulkUpdateExecutionContext
 
 from sample.async_manager import SampleAsyncManager
@@ -595,10 +596,14 @@ class SamplePersistenceTutorialHelperTests(TestCase):
                 ),
             )
 
-        self.assertFalse(
-            result,
-            "bulk_update_task should report failure when the configured sample async backend returns a handled validation refusal.",
+        self.assertEqual(
+            result.status,
+            "failed",
+            "bulk_update_task should report a failed business outcome when the sample async backend returns a handled validation refusal.",
         )
+        self.assertIsInstance(result, BusinessOutcome, "The worker must opt into the explicit business outcome contract.")
+        self.assertEqual(result.processed_count, 0, "A rolled back sample batch must report zero committed updates.")
+        self.assertEqual(result.total_count, 1, "The outcome should preserve the submitted batch size.")
         manager.update_progress.assert_any_call(
             "sample-bulk-task",
             "starting update",

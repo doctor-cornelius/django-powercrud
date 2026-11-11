@@ -43,6 +43,7 @@ The built-in manager handles:
 
 - Creating/updating a dashboard record per task.
 - Persisting progress messages, results, timestamps.
+- A dashboard record is optional history, not the terminal source of truth. Late progress/create events cannot downgrade a retained terminal outcome; unknown polling does not update stored status.
 - Marking records cleaned up once locks are removed.
 
 ---

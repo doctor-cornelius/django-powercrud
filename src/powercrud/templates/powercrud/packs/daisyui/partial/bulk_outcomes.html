@@ -42,8 +42,11 @@
                  hx-get="{{ progress_url }}"
                  hx-vals='{"task_name": "{{ task_name }}"}'
                  hx-trigger="every 1s"
-                 hx-target="#progress-display"
-                 hx-swap="innerHTML"
+                 hx-target="this"
+                 hx-swap="none"
+                 hx-request='{"timeout": 5000}'
+                 data-powercrud-async-progress="bulk"
+                 data-powercrud-pack="daisyui"
                  class="mb-4 p-4 bg-base-200 rounded-box">
                 <div class="loading loading-spinner loading-lg mx-auto"></div>
                 <p class="mt-2">Starting...</p>
@@ -53,4 +56,5 @@
             Close
         </button>
     </div>
+    {% include "powercrud/async_progress_handler.html" %}
 {% endif %}

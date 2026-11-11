@@ -15,6 +15,7 @@ from .async_manager import AsyncManager
 from powercrud._coordinator.config import CoordinatorConfig
 from powercrud._coordinator.reconstruction import construction_scope
 from powercrud._coordinator.q2 import Q2Adapter
+from powercrud.async_outcomes import BusinessOutcome
 from powercrud._coordinator.context import (
     bind_task_context,
     get_current_task,
@@ -102,7 +103,21 @@ def bulk_delete_task(model_path, selected_ids, user_id, **kwargs):
                     task_name, f"failed delete: {result.get('errors')}"
                 )
 
-        return success
+        errors = result.get("errors") or []
+        if success:
+            outcome_status = "success"
+        elif processed:
+            outcome_status = "partial"
+        else:
+            outcome_status = "failed"
+        return BusinessOutcome(
+            status=outcome_status,
+            processed_count=processed,
+            total_count=len(selected_ids),
+            message=("Delete completed" if success else "Delete failed"),
+            errors=errors,
+            value={"operation": "delete"},
+        )
 
     except Exception as e:
         log.error(f"Bulk delete task failed: {e}", exc_info=True)
@@ -111,7 +126,14 @@ def bulk_delete_task(model_path, selected_ids, user_id, **kwargs):
                 manager.update_progress(task_name, f"failed delete: {e}")
         except Exception:
             pass
-        return False
+        return BusinessOutcome(
+            status="failed",
+            processed_count=None,
+            total_count=len(selected_ids),
+            message=f"Delete failed: {e}",
+            errors=[{"type": type(e).__name__, "message": str(e)}],
+            value={"operation": "delete"},
+        )
     finally:
         if context_token is not None:
             reset_task_context(context_token)
@@ -218,7 +240,21 @@ def bulk_update_task(
                     task_name, f"failed update: {result.get('errors')}"
                 )
 
-        return success
+        errors = result.get("errors") or []
+        if success:
+            outcome_status = "success"
+        elif processed:
+            outcome_status = "partial"
+        else:
+            outcome_status = "failed"
+        return BusinessOutcome(
+            status=outcome_status,
+            processed_count=processed,
+            total_count=len(selected_ids),
+            message=("Update completed" if success else "Update failed"),
+            errors=errors,
+            value={"operation": "update"},
+        )
 
     except Exception as e:
         log.error(f"Bulk update task failed: {e}", exc_info=True)
@@ -227,7 +263,14 @@ def bulk_update_task(
                 manager.update_progress(task_name, f"failed update: {e}")
         except Exception:
             pass
-        return False
+        return BusinessOutcome(
+            status="failed",
+            processed_count=None,
+            total_count=len(selected_ids),
+            message=f"Update failed: {e}",
+            errors=[{"type": type(e).__name__, "message": str(e)}],
+            value={"operation": "update"},
+        )
     finally:
         if context_token is not None:
             reset_task_context(context_token)

@@ -174,10 +174,8 @@ class TestAsyncCompatibility(TestCase):
         self.assertEqual(len(manager.received), 1)
         self.assertIs(manager.received[0][0], task)
         self.assertEqual(manager.received[0][1], "completion-key")
-        remove.assert_called_once_with("completion-key")
-        event_names = [call.kwargs["event"] for call in emit.call_args_list]
-        self.assertEqual(event_names.count("complete"), 1)
-        self.assertEqual(event_names.count("cleanup"), 1)
+        remove.assert_not_called()
+        emit.assert_not_called()
 
     def test_public_manager_translates_settings_and_preserves_falsey_values(self):
         """PowerCRUD settings remain the public source, including explicit falsey values."""

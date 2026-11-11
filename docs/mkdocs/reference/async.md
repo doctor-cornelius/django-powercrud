@@ -84,6 +84,8 @@ Always configure a **shared** cache (Redis, Memcached, DatabaseCache). LocMem/Du
 | `CACHE_NAME` | `'default'` | Cache alias used for locks/progress. |
 | `CONFLICT_TTL` | `3600` | TTL (seconds) for conflict lock entries. |
 | `PROGRESS_TTL` | `7200` | TTL (seconds) for progress entries. |
+| `TERMINAL_RESULT_TTL` | `86400` | Logical retention period (seconds) for terminal outcomes, measured from completion. |
+| `TERMINAL_RESULT_MAX_BYTES` | `16384` | Maximum serialized size of retained display details (minimum 1024 bytes). |
 | `CLEANUP_GRACE_PERIOD` | `86400` | Grace period before scheduled cleanup reclaims tasks. |
 | `MAX_TASK_DURATION` | `3600` | Consider tasks “stuck” after this duration (can trigger cleanup). |
 | `CLEANUP_SCHEDULE_INTERVAL` | `300` | Suggested interval (seconds) when scheduling cleanup via django-q2. |
@@ -122,15 +124,34 @@ manager.validate_async_system()    # cache + qcluster
 
 ## Progress & HTMX endpoint
 
-The polling endpoint uses `AsyncManager.as_view()` (exposed via `AsyncManager.get_url()` or the namespaced `get_urlpatterns()`). Polling stops when the manager returns HTTP 286 with a final status:
+The polling endpoint uses `AsyncManager.as_view()` (exposed via `AsyncManager.get_url()` or the namespaced `get_urlpatterns()`). Responses include `status`, `terminal`, `reason`, and bounded `outcome` details. Missing or uncertain evidence reports `unknown`; it is not interpreted as success. The built-in modal and dashboard views poll once per second and stop after 30 seconds of continuous uncertainty, offering a manual refresh. A terminal observation or exhausted viewing budget returns HTTP 286.
 
 ```json
 {
   "task_name": "...",
   "status": "success",
-  "progress": "Completed successfully!"
+  "terminal": true,
+  "reason": null,
+  "progress": "Completed successfully!",
+  "outcome": {"business_status": null, "message": null}
 }
 ```
+
+Worker return values retain ordinary Python semantics: `False`, `None`, and dictionaries are successful function returns. A worker that needs to report a business failure or partial result must return `BusinessOutcome` explicitly:
+
+```python
+from powercrud.async_outcomes import BusinessOutcome
+
+return BusinessOutcome(
+    status="partial",
+    processed_count=8,
+    total_count=10,
+    message="Two records could not be updated.",
+    errors=[{"record_id": 42, "message": "Permission denied"}],
+)
+```
+
+Execution failure and optional reporting/callback failure are recorded separately. PowerCRUD does not retry business operations automatically. The retained terminal snapshot is logically available for `TERMINAL_RESULT_TTL` from completion and is independent of progress expiry and dashboard history.
 
 If you need to integrate the progress API elsewhere, import the view and mount it under your own URL. The modal markup in PowerCRUD’s templates is an example you can copy.
 

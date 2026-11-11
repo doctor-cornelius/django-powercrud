@@ -6,6 +6,8 @@ django-q2 worker processes. Do not import app code at module load time to
 avoid circular imports; import lazily inside functions if needed.
 """
 
+CUSTOM_COMPLETION_HOOK_CALLS = []
+
 
 def simple_test_worker(message: str, task_key: str | None = None, **kwargs) -> str:
     """
@@ -57,6 +59,16 @@ def signal_context_worker(value: str, **kwargs) -> str:
     if "_coordinator_identity" in kwargs:
         raise RuntimeError("Coordinator transport identity leaked into callable kwargs")
     return f"{context.task_name}:{value}"
+
+
+def raise_task_exception(message="worker failed", **kwargs):
+    """Raise from the business callable to exercise q2 synchronous errors."""
+    raise RuntimeError(message)
+
+
+def custom_completion_hook(task):
+    """Record that q2, rather than the coordinator monitor, invoked the hook."""
+    CUSTOM_COMPLETION_HOOK_CALLS.append(getattr(task, "id", None))
 
 
 def run_q2_signal_process(task: dict, result_queue, cache_dir: str) -> None:

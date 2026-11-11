@@ -9,6 +9,7 @@ from django.test import override_settings
 
 from powercrud.bulk_persistence import BulkUpdatePersistenceBackend
 from powercrud import schedules, tasks, urls
+from powercrud.async_outcomes import BusinessOutcome
 from powercrud._coordinator.config import CoordinatorConfig
 from powercrud._coordinator.reconstruction import current_binding
 
@@ -141,8 +142,8 @@ def test_bulk_workers_reconstruct_manager_under_snapshot(monkeypatch):
         "sample.Book", [1], 1, [], [], [], task_key="update-key",
         _coordinator_config=snapshot,
     )
-    assert deleted is True, "Bulk delete should keep its existing successful result"
-    assert updated is True, "Bulk update should keep its existing successful result"
+    assert isinstance(deleted, BusinessOutcome) and deleted.status == "success", "Bulk delete should return an explicit successful business outcome"
+    assert updated.status == "success", "Bulk update should return an explicit successful business outcome"
     assert [config.cache_name for config, _executor in scopes] == [
         "worker-cache", "worker-cache"
     ], "Each worker must reconstruct the supplied coordinator cache configuration"
@@ -189,7 +190,7 @@ def test_crud_worker_actual_resolver_location_and_legacy_arguments(monkeypatch, 
     kwargs = {"task_key": "worker-location", "manager_class": path, "manager_config": application_config}
     if with_snapshot:
         kwargs["_coordinator_config"] = config.to_snapshot()
-    assert worker(*args, **kwargs) is True, "Both CRUD workers must retain their boolean operation result"
+    assert worker(*args, **kwargs).status == "success", "Both CRUD workers must report an explicit successful business outcome"
     assert len(resolved) == 1, "Each worker must resolve its manager exactly once"
     selected_path, selected_config, manager, binding = resolved[0]
     assert selected_path == path and selected_config is application_config, "Both worker modes must retain the legacy resolver argument shape"
@@ -247,7 +248,7 @@ def test_bulk_delete_task_happy_path(monkeypatch):
         task_key="task-123",
     )
 
-    assert result is True
+    assert result.status == "success"
     assert ("task-123", "starting delete") in dummy_manager.progress_updates
     assert ("task-123", "deleting: 1/1") in dummy_manager.progress_updates
     assert (
@@ -286,7 +287,7 @@ def test_bulk_delete_task_handles_errors(monkeypatch):
         user_id=99,
         task_name="human-friendly",
     )
-    assert result is False
+    assert isinstance(result, BusinessOutcome) and result.status == "failed"
     # Failure path still reports the error to the manager
     assert any(
         "failed delete" in message for _, message in dummy_manager.progress_updates
@@ -340,7 +341,7 @@ def test_bulk_update_task_success(monkeypatch):
         task_key="task-789",
     )
 
-    assert result is True, (
+    assert isinstance(result, BusinessOutcome) and result.status == "success", (
         "bulk_update_task should report success when the resolved bulk persistence backend returns a successful result."
     )
     assert ("task-789", "updating: 1/1") in dummy_manager.progress_updates, (
@@ -384,7 +385,7 @@ def test_bulk_update_task_uses_configured_persistence_backend(monkeypatch):
         bulk_update_persistence_backend_config={"workflow": "revalidate"},
     )
 
-    assert result is True, (
+    assert isinstance(result, BusinessOutcome) and result.status == "success", (
         "Async bulk update tasks should succeed when a configured persistence backend returns a successful result."
     )
     assert len(RecordingAsyncBulkBackend.calls) == 1, (
@@ -450,7 +451,7 @@ def test_bulk_update_task_reports_failure(monkeypatch):
             field_data=[],
             task_name="named-task",
         )
-        is False
+        .status == "failed"
     )
 
     assert any(
