@@ -1,8 +1,9 @@
 """PowerCRUD compatibility layer for the reusable async coordinator."""
 
-import importlib
 import logging
+import warnings
 import uuid
+from collections.abc import Mapping
 from typing import Callable
 
 from django.urls import include, path
@@ -33,6 +34,9 @@ def _powercrud_coordination_config():
             ),
             max_task_duration=get_powercrud_setting(
                 "MAX_TASK_DURATION", DEFAULTS["MAX_TASK_DURATION"]
+            ),
+            terminal_result_ttl=get_powercrud_setting(
+                "TERMINAL_RESULT_TTL", DEFAULTS["TERMINAL_RESULT_TTL"]
             ),
         )
     except ImproperlyConfigured as exc:
@@ -103,16 +107,59 @@ class AsyncManager(CoordinatorAsyncManager):
         """Launch using the established PowerCRUD signature and UUID convention."""
         worker_args = list(args)
         key = task_key
+        task_name_alias = kwargs.pop("task_name", None)
+        options = {
+            "hook": "powercrud.async_hooks.task_completion_hook",
+            "group": group,
+            "timeout": timeout,
+            "sync": sync,
+            "cached": cached,
+            "broker": broker,
+            "task_name": key,
+            "q_options": q_options,
+        }
+        q_options_task_name = q_options.get("task_name") if isinstance(q_options, Mapping) else None
+        aliases = [value for value in (task_name_alias, q_options_task_name) if value is not None]
+        if key is not None and any(alias != key for alias in aliases):
+            raise AsyncConfigurationError("task_key conflicts with task_name or q_options.task_name.")
+        if key is None and aliases:
+            if any(alias != aliases[0] for alias in aliases):
+                raise AsyncConfigurationError("task_name conflicts with q_options.task_name.")
+            key = aliases[0]
         if key is None and worker_args and isinstance(worker_args[-1], str):
             try:
                 uuid.UUID(worker_args[-1])
                 key = worker_args.pop()
+                warnings.warn(
+                    "Passing task_key as the final positional UUID is deprecated; use task_key=.",
+                    DeprecationWarning,
+                    stacklevel=2,
+                )
             except (ValueError, TypeError):
                 pass
         if key is None:
             key = self.generate_task_name()
+        if not isinstance(key, str) or not key.strip():
+            raise AsyncConfigurationError("task_key must be a non-empty string.")
+        manager_spec = self.get_manager_spec()
+        manager_path = manager_spec.class_path
+        manager_config = manager_spec.config
+        supplied_path = kwargs.pop("manager_class", manager_path)
+        supplied_config = kwargs.pop("manager_config", manager_config)
+        if supplied_path != manager_path or supplied_config != manager_config:
+            raise AsyncConfigurationError("Caller manager metadata conflicts with the selected manager instance.")
+        coordinator_snapshot = self.get_coordination_config().to_snapshot()
+        caller_snapshot = kwargs.pop("_coordinator_config", coordinator_snapshot)
+        if caller_snapshot != coordinator_snapshot:
+            raise AsyncConfigurationError("Caller coordinator metadata conflicts with the selected manager instance.")
         worker_kwargs = dict(kwargs)
-        worker_kwargs.setdefault("task_key", key)
+        worker_kwargs.update({
+            "task_key": key,
+            "manager_class": manager_path,
+            "manager_config": manager_config,
+            "_coordinator_config": coordinator_snapshot,
+        })
+        options["task_name"] = key
         return self._launch(
             TaskCall(
                 func=func,
@@ -122,47 +169,39 @@ class AsyncManager(CoordinatorAsyncManager):
                 conflict_ids=conflict_ids,
                 user=user,
                 affected_objects=affected_objects,
+                manager=manager_spec,
+                coordination=coordinator_snapshot,
+                execution_options=options,
             ),
-            options={
-                "hook": "powercrud.async_hooks.task_completion_hook",
-                "group": group,
-                "timeout": timeout,
-                "sync": sync,
-                "cached": cached,
-                "broker": broker,
-                "task_name": key,
-                "q_options": q_options,
-            },
+            options=options,
         )
 
     @classmethod
     def resolve_manager(cls, manager_class_path, config=None):
-        """Resolve a legacy manager with scoped coordination configuration."""
+        """Resolve an explicit manager path without hiding invalid metadata."""
         if not manager_class_path:
             return cls()
-        target_path = manager_class_path
+        binding = current_binding()
         try:
-            module_path, class_name = target_path.rsplit(".", 1)
-            manager_cls = getattr(importlib.import_module(module_path), class_name)
-            if not issubclass(manager_cls, AsyncManager):
-                raise TypeError(f"{target_path} is not an AsyncManager subclass")
             return construct_manager(
-                ManagerSpec(class_path=target_path, config=config, completion_style="legacy"),
-                coordination_config=(current_binding().config if current_binding() else _powercrud_coordination_config()),
+                ManagerSpec(class_path=manager_class_path, config=config, completion_style="legacy"),
+                coordination_config=(binding.config if binding else _powercrud_coordination_config()),
                 executor=(
-                    current_binding().executor
-                    if current_binding() and current_binding().executor is not None
+                    binding.executor
+                    if binding and binding.executor is not None
                     else Q2Adapter(probe_timeout_ms=get_powercrud_setting(
                         "QCLUSTER_PROBE_TIMEOUT_MS", DEFAULTS["QCLUSTER_PROBE_TIMEOUT_MS"]
                     ))
                 ),
-                legacy=True,
-                fallback_class_path=f"{cls.__module__}.{cls.__qualname__}",
+                legacy=False,
                 prepare_config=lambda target, value: cls._coerce_manager_config(target, value),
             )
+        except AsyncConfigurationError:
+            raise
         except Exception as exc:
-            log.warning("Failed to import manager '%s': %s. Falling back to AsyncManager", target_path, exc)
-            return cls()
+            raise AsyncConfigurationError(
+                f"Could not reconstruct explicitly selected manager '{manager_class_path}'."
+            ) from exc
 
     @staticmethod
     def _coerce_manager_config(manager_cls, config):
@@ -173,11 +212,10 @@ class AsyncManager(CoordinatorAsyncManager):
                     AsyncDashboardConfig,
                     ModelTrackingAsyncManager,
                 )
-
-                if issubclass(manager_cls, ModelTrackingAsyncManager):
-                    return AsyncDashboardConfig(**config)
-            except Exception:
+            except ImportError:
                 return config
+            if issubclass(manager_cls, ModelTrackingAsyncManager):
+                return AsyncDashboardConfig(**config)
         return config
 
     @classmethod

@@ -1,6 +1,7 @@
 """Focused contracts for the lazy q2 execution boundary."""
 
 import os
+import multiprocessing
 import tempfile
 from pathlib import Path
 import subprocess
@@ -12,7 +13,8 @@ from django.test import SimpleTestCase
 
 from powercrud._coordinator.q2 import Q2Adapter
 from powercrud._coordinator.config import CoordinatorConfig
-from powercrud._coordinator.types import ExecutionRef, TaskCall
+from powercrud._coordinator.types import ExecutionRef, ManagerSpec, TaskCall
+from powercrud._coordinator.context import get_current_task
 from coordinator_tests.managers import CompletionRecordingManager
 
 
@@ -213,6 +215,288 @@ assert not Q2Adapter.is_available()
         self.assertFalse(async_task.call_args.kwargs["cached"])
         self.assertTrue(ref.locator["cached"])
         self.assertEqual(ref.locator["options"]["task_name"], "logical")
+
+    @patch("powercrud._coordinator.q2.async_task")
+    def test_pre_enqueue_retains_identity_before_return_without_callable_kwargs(self, async_task):
+        """The real pre-enqueue boundary receives identity outside callable arguments."""
+        from powercrud._coordinator.q2 import _pre_enqueue
+        from powercrud._coordinator.state import get_identity
+        from coordinator_tests.managers import COORDINATOR_CONFIG, CoordinatorAsyncManager
+
+        config = CoordinatorConfig(
+            **{**COORDINATOR_CONFIG.__dict__, "key_namespace": "q2-capture-test"}
+        )
+        task_key = "capture-logical-key"
+        spec = ManagerSpec(
+            f"{CoordinatorAsyncManager.__module__}.{CoordinatorAsyncManager.__qualname__}",
+            {"app": (1, "two")},
+            "legacy",
+        )
+        call = TaskCall(
+            func="coordinator_tests.workers.sample_worker",
+            args=("payload",),
+            kwargs={"task_key": task_key},
+            task_key=task_key,
+            manager=spec,
+            coordination=config.to_snapshot(),
+        )
+        task_envelopes = []
+
+        def submit(func, *args, **kwargs):
+            """Simulate q2 preparing its dictionary and emitting pre_enqueue."""
+            q_options = kwargs.get("q_options", {})
+            task = {
+                "id": "q2-captured-id",
+                "name": task_key,
+                "args": args,
+                "kwargs": kwargs,
+                "cached": q_options.get("cached", kwargs.get("cached", False)),
+                "cluster": q_options.get("cluster", kwargs.get("cluster")),
+            }
+            _pre_enqueue(None, task)
+            task_envelopes.append(task)
+            return task["id"]
+
+        async_task.side_effect = submit
+        ref = Q2Adapter().submit(
+            call,
+            options={"task_name": task_key, "q_options": {"cached": 3600, "cluster": "blue"}},
+        )
+        self.assertEqual(ref.id, "q2-captured-id", "Adapter return must match the pre-enqueue reference")
+        self.assertEqual(get_identity(config, task_key).execution.id, ref.id, "Identity must be retained before q2 returns")
+        self.assertIn("_coordinator_identity", task_envelopes[0], "Identity must travel in q2's top-level task envelope")
+        self.assertNotIn("_coordinator_identity", async_task.call_args.kwargs, "Identity must not become a worker callable kwarg")
+        self.assertEqual(async_task.call_args.args, ("coordinator_tests.workers.sample_worker", "payload"), "The original callable and arguments must remain unchanged")
+        self.assertEqual(ref.locator["cluster"], "blue", "The effective q2 cluster route must be retained")
+        self.assertEqual(ref.locator["cached"], 3600, "The effective cached result mode must be retained")
+
+    def test_worker_signals_reconstruct_context_and_restore_it_after_execution(self):
+        """q2 worker signal handling binds manager identity and adds result metadata."""
+        from datetime import datetime, timezone
+        from powercrud._coordinator.q2 import _pre_execute, _post_execute_in_worker
+        from powercrud._coordinator.state import put_identity
+        from powercrud._coordinator.types import TaskIdentity
+        from coordinator_tests.managers import COORDINATOR_CONFIG, CoordinatorAsyncManager
+
+        config = CoordinatorConfig(
+            **{**COORDINATOR_CONFIG.__dict__, "key_namespace": "worker-signal-test"}
+        )
+        task_key = "worker-logical-key"
+        spec = ManagerSpec(
+            f"{CoordinatorAsyncManager.__module__}.{CoordinatorAsyncManager.__qualname__}",
+            {"app": ("native", 3)},
+            "legacy",
+        )
+        identity = TaskIdentity(
+            task_key, spec, config.to_snapshot(), ExecutionRef("q2", "worker-exec", {"cached": False})
+        )
+        put_identity(config, identity)
+        task = {"id": "worker-exec", "name": task_key, "kwargs": {"_coordinator_identity": identity.to_mapping()}}
+        _pre_execute(None, task)
+        active = get_current_task()
+        self.assertEqual(active.task_name, task_key, "Worker context must use the logical task key")
+        self.assertIsNotNone(active.manager, "Worker context must retain the reconstructed manager")
+        task.update({"stopped": datetime.now(timezone.utc), "success": True, "result": "done"})
+        _post_execute_in_worker(None, task)
+        self.assertIsNone(get_current_task(), "Worker signal cleanup must reset context")
+        self.assertEqual(task["kwargs"]["_coordinator_identity"], identity.to_mapping(), "Saved result kwargs must carry the identity envelope")
+
+    def test_failed_attempt_without_acknowledgement_retains_identity_without_terminal_marker(self):
+        """A q2 failure that may be redelivered cannot start identity expiry."""
+        from datetime import datetime, timezone
+        from powercrud._coordinator.q2 import _pre_execute, _post_execute_in_worker
+        from powercrud._coordinator.state import get_identity, is_finished, put_identity
+        from powercrud._coordinator.types import TaskIdentity
+        from coordinator_tests.managers import COORDINATOR_CONFIG, CoordinatorAsyncManager
+
+        config = CoordinatorConfig(
+            **{**COORDINATOR_CONFIG.__dict__, "key_namespace": "worker-redelivery-test"}
+        )
+        task_key = "redeliverable-key"
+        identity = TaskIdentity(
+            task_key,
+            ManagerSpec(
+                f"{CoordinatorAsyncManager.__module__}.{CoordinatorAsyncManager.__qualname__}",
+                None,
+                "legacy",
+            ),
+            config.to_snapshot(),
+            ExecutionRef("q2", "redeliverable-exec", {"options": {"ack_failure": False}}),
+        )
+        put_identity(config, identity)
+        task = {
+            "id": identity.execution.id,
+            "name": task_key,
+            "kwargs": {"_coordinator_identity": identity.to_mapping()},
+        }
+        _pre_execute(None, task)
+        task.update({"stopped": datetime.now(timezone.utc), "success": False})
+        _post_execute_in_worker(None, task)
+
+        self.assertIsNone(get_current_task(), "Failed attempts must still reset worker context")
+        self.assertEqual(get_identity(config, task_key), identity, "Unacknowledged failure must retain identity")
+        self.assertFalse(is_finished(config, identity), "Unacknowledged failure must not create terminal retention evidence")
+
+    def test_acknowledged_failure_records_terminal_retention_evidence(self):
+        """q2 failure acknowledgement makes the result terminal for identity retention."""
+        from datetime import datetime, timezone
+        from powercrud._coordinator.q2 import _pre_execute, _post_execute_in_worker
+        from powercrud._coordinator.state import is_finished, put_identity
+        from powercrud._coordinator.types import TaskIdentity
+        from coordinator_tests.managers import COORDINATOR_CONFIG, CoordinatorAsyncManager
+
+        config = CoordinatorConfig(
+            **{**COORDINATOR_CONFIG.__dict__, "key_namespace": "worker-ack-failure-test"}
+        )
+        task_key = "acknowledged-failure-key"
+        identity = TaskIdentity(
+            task_key,
+            ManagerSpec(
+                f"{CoordinatorAsyncManager.__module__}.{CoordinatorAsyncManager.__qualname__}",
+                None,
+                "legacy",
+            ),
+            config.to_snapshot(),
+            ExecutionRef("q2", "acknowledged-failure-exec", {"options": {"ack_failure": True}}),
+        )
+        put_identity(config, identity)
+        task = {
+            "id": identity.execution.id,
+            "name": task_key,
+            "kwargs": {"_coordinator_identity": identity.to_mapping()},
+        }
+        _pre_execute(None, task)
+        task.update({"stopped": datetime.now(timezone.utc), "success": False, "ack_failure": True})
+        _post_execute_in_worker(None, task)
+
+        self.assertIsNone(get_current_task(), "Acknowledged failure must reset worker context")
+        self.assertTrue(is_finished(config, identity), "Acknowledged failure must record terminal retention evidence")
+
+    def test_registered_signals_cross_a_separate_process_with_shared_file_cache(self):
+        """A spawned worker reconstructs identity through the suite-owned file cache."""
+        from django.conf import settings
+        from powercrud._coordinator.state import put_identity
+        from powercrud._coordinator.types import TaskIdentity
+        from coordinator_tests.managers import COORDINATOR_CONFIG, CoordinatorAsyncManager
+        from coordinator_tests.workers import run_q2_signal_process
+
+        config = CoordinatorConfig(
+            **{**COORDINATOR_CONFIG.__dict__, "key_namespace": "process-signal-test"}
+        )
+        task_key = "process-logical-key"
+        spec = ManagerSpec(
+            f"{CoordinatorAsyncManager.__module__}.{CoordinatorAsyncManager.__qualname__}",
+            None,
+            "legacy",
+        )
+        identity = TaskIdentity(
+            task_key, spec, config.to_snapshot(), ExecutionRef("q2", "process-exec", {"cached": False})
+        )
+        put_identity(config, identity)
+        task = {
+            "id": "process-exec",
+            "name": task_key,
+            "kwargs": {"task_key": task_key, "value": "payload"},
+            "_coordinator_identity": identity.to_mapping(),
+        }
+        context = multiprocessing.get_context("spawn")
+        result_queue = context.Queue()
+        process = context.Process(
+            target=run_q2_signal_process,
+            args=(task, result_queue, settings.TEST_CACHE_DIR),
+        )
+        previous_cache_dir = os.environ.get("POWERCRUD_COORDINATOR_CACHE_DIR")
+        os.environ["POWERCRUD_COORDINATOR_CACHE_DIR"] = settings.TEST_CACHE_DIR
+        try:
+            process.start()
+        finally:
+            if previous_cache_dir is None:
+                os.environ.pop("POWERCRUD_COORDINATOR_CACHE_DIR", None)
+            else:
+                os.environ["POWERCRUD_COORDINATOR_CACHE_DIR"] = previous_cache_dir
+        process.join(timeout=20)
+        if process.is_alive():
+            process.terminate()
+            process.join()
+            self.fail("Separate worker signal process exceeded the bounded 20 second limit")
+        self.assertEqual(process.exitcode, 0, "Separate process must initialize q2 signal handling successfully")
+        result, result_identity = result_queue.get(timeout=2)
+        self.assertEqual(result, f"{task_key}:payload", "Worker business code must see the reconstructed parent context")
+        self.assertEqual(result_identity, identity.to_mapping(), "Result kwargs must retain the identity across the process boundary")
+        self.assertEqual(get_identity(config, task_key), identity, "The shared file cache must retain the same task identity")
+
+    def test_q2_real_sync_signing_and_worker_keep_callable_arguments_unchanged(self):
+        """Real q2 signing and inline worker signals retain identity without argument injection."""
+        from django_q.tasks import fetch
+        from powercrud._coordinator.state import get_identity
+        from coordinator_tests.managers import COORDINATOR_CONFIG, CoordinatorAsyncManager
+
+        config = CoordinatorConfig(
+            **{**COORDINATOR_CONFIG.__dict__, "key_namespace": "real-q2-boundary-test"}
+        )
+        task_key = "real-q2-logical-key"
+        call = TaskCall(
+            func="coordinator_tests.workers.signal_context_worker",
+            args=("signed-payload",),
+            kwargs={"task_key": task_key},
+            task_key=task_key,
+            manager=ManagerSpec(
+                f"{CoordinatorAsyncManager.__module__}.{CoordinatorAsyncManager.__qualname__}",
+                None,
+                "legacy",
+            ),
+            coordination=config.to_snapshot(),
+        )
+        reference = Q2Adapter().submit(
+            call,
+            options={
+                "hook": "powercrud._coordinator.q2.task_completion_hook",
+                "sync": True,
+                "cached": False,
+                "task_name": task_key,
+            },
+        )
+        result = fetch(reference.id)
+        self.assertIsNotNone(result, "Real q2 sync execution must produce a saved result")
+        self.assertEqual(result.result, f"{task_key}:signed-payload", "The original worker arguments must execute under reconstructed context")
+        self.assertEqual(get_identity(config, task_key).execution.id, reference.id, "The retained execution ID must match the real q2 result")
+        self.assertIn("_coordinator_identity", result.kwargs, "Saved q2 result kwargs must carry transport identity for completion reconstruction")
+
+    def test_q2_real_cached_result_uses_the_recorded_lookup_route(self):
+        """A real cached q2 result is found through its retained execution reference."""
+        from coordinator_tests.managers import COORDINATOR_CONFIG, CoordinatorAsyncManager
+
+        config = CoordinatorConfig(
+            **{**COORDINATOR_CONFIG.__dict__, "key_namespace": "real-q2-cached-test"}
+        )
+        task_key = "real-q2-cached-key"
+        call = TaskCall(
+            func="coordinator_tests.workers.signal_context_worker",
+            args=("cached-payload",),
+            kwargs={"task_key": task_key},
+            task_key=task_key,
+            manager=ManagerSpec(
+                f"{CoordinatorAsyncManager.__module__}.{CoordinatorAsyncManager.__qualname__}",
+                None,
+                "legacy",
+            ),
+            coordination=config.to_snapshot(),
+        )
+        adapter = Q2Adapter()
+        reference = adapter.submit(
+            call,
+            options={
+                "hook": "powercrud._coordinator.q2.task_completion_hook",
+                "sync": True,
+                "cached": True,
+                "task_name": task_key,
+            },
+        )
+        lookup = adapter.lookup(reference)
+        self.assertEqual(reference.locator["result_cache"], "default", "Identity must record q2's effective result cache separately")
+        self.assertEqual(lookup.kind, "found", "Cached q2 results must use the retained route")
+        self.assertEqual(lookup.completion.execution.id, reference.id, "Cached lookup must preserve the q2 execution ID")
+        self.assertEqual(lookup.completion.result, f"{task_key}:cached-payload", "Cached lookup must return the original worker result")
 
     @patch("powercrud._coordinator.q2.fetch")
     def test_lookup_reports_found_missing_and_unavailable(self, fetch):

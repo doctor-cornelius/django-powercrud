@@ -1,8 +1,9 @@
 import json
+import inspect
 import logging
+import pickle
 import uuid
 from collections.abc import Mapping
-from datetime import timedelta
 from typing import Any, Callable, Dict, Hashable, Optional, Set
 
 from django.apps import apps
@@ -15,7 +16,13 @@ from .config import CoordinatorConfig
 from .exceptions import AsyncConfigurationError, AsyncDisabledError
 from .q2 import Q2Adapter
 from .reconstruction import current_binding
-from .types import Completion, ManagerSpec, TaskCall
+from .types import Completion, ManagerSpec, TaskCall, TaskIdentity
+from .state import (
+    get_identity as read_task_identity,
+    is_finished,
+    mark_finished,
+    put_identity as write_task_identity,
+)
 
 log = logging.getLogger(__name__)
 
@@ -78,6 +85,8 @@ class AsyncManager:
         self.progress_ttl = config.progress_ttl
         self.cleanup_grace_period = config.cleanup_grace_period
         self.max_task_duration = config.max_task_duration
+        if isinstance(config.terminal_result_ttl, bool) or not isinstance(config.terminal_result_ttl, int) or config.terminal_result_ttl <= 0:
+            raise AsyncConfigurationError("TERMINAL_RESULT_TTL must be a positive integer.")
         self.active_prefix = prefixes["active_prefix"]
         self.conflict_prefix = prefixes["conflict_prefix"]
         self.conflict_model_prefix = prefixes["conflict_model_prefix"]
@@ -114,6 +123,101 @@ class AsyncManager:
     def export_manager_config(self):
         """Return the application config retained by the construction factory."""
         return self._factory_manager_config
+
+    def get_manager_spec(self) -> ManagerSpec:
+        """Validate and describe this initialized manager for worker reconstruction."""
+        manager_config = self.export_manager_config()
+        manager_path = f"{type(self).__module__}.{type(self).__qualname__}"
+        completion_style = self.completion_style
+        if not isinstance(completion_style, str) or completion_style not in {
+            "core",
+            "legacy",
+        }:
+            raise AsyncConfigurationError(
+                "The selected manager completion_style must be 'core' or 'legacy'."
+            )
+        try:
+            from .reconstruction import import_string
+
+            if import_string(manager_path) is not type(self):
+                raise AsyncConfigurationError(
+                    "The selected manager class path does not resolve to the initialized manager class."
+                )
+            pickle.dumps(manager_config)
+            signature = inspect.signature(type(self).__init__)
+            config_parameter = signature.parameters.get("config")
+            accepts_config = (
+                config_parameter is not None
+                and config_parameter.kind != inspect.Parameter.POSITIONAL_ONLY
+            ) or any(
+                parameter.kind == inspect.Parameter.VAR_KEYWORD
+                for parameter in signature.parameters.values()
+            )
+            if manager_config is not None and not accepts_config:
+                raise AsyncConfigurationError(
+                    "The selected manager exports configuration but its constructor cannot accept config."
+                )
+            unresolved = [
+                parameter.name
+                for parameter in signature.parameters.values()
+                if parameter.name != "self"
+                and parameter.kind
+                not in {
+                    inspect.Parameter.VAR_POSITIONAL,
+                    inspect.Parameter.VAR_KEYWORD,
+                }
+                and parameter.default is inspect.Parameter.empty
+                and not (parameter.name == "config" and manager_config is not None and accepts_config)
+            ]
+            if unresolved:
+                raise AsyncConfigurationError(
+                    "The selected manager cannot be reconstructed without required constructor arguments: "
+                    + ", ".join(unresolved)
+                    + "."
+                )
+        except AsyncConfigurationError:
+            raise
+        except Exception as exc:
+            raise AsyncConfigurationError(
+                "The selected manager identity/configuration cannot cross the q2 serialization boundary."
+            ) from exc
+        return ManagerSpec(manager_path, manager_config, completion_style)
+
+    def get_task_identity(self, task_key: str) -> TaskIdentity | None:
+        """Read task identity from this manager's configured cache location."""
+        return read_task_identity(self.get_coordination_config(), task_key)
+
+    def reconstruct_task_manager(self, task_key: str):
+        """Reconstruct the retained manager while keeping lookup location bound."""
+        identity = self.get_task_identity(task_key)
+        if identity is None:
+            return None, None
+        config = CoordinatorConfig.from_snapshot(identity.coordination)
+        if (config.cache_name, config.key_namespace) != (
+            self.cache_name,
+            self._coordination_config.key_namespace,
+        ):
+            raise AsyncConfigurationError("Retained identity does not match the selected coordination location.")
+        from .reconstruction import construct_manager
+
+        manager = construct_manager(
+            identity.manager,
+            coordination_config=config,
+            executor=self._q2_adapter,
+            legacy=False,
+            prepare_config=lambda manager_cls, value: manager_cls.prepare_manager_config(value),
+        )
+        return identity, manager
+
+    def put_task_identity(self, identity: TaskIdentity) -> TaskIdentity:
+        """Create an immutable identity record in this manager's cache location."""
+        return write_task_identity(self.get_coordination_config(), identity)
+
+    def mark_task_finished(self, identity: TaskIdentity, *, finished_at) -> bool:
+        """Retain the first confirmed terminal timestamp for this execution."""
+        return mark_finished(
+            self.get_coordination_config(), identity, finished_at=finished_at
+        )
 
     @property
     def qcluster_settings(self):
@@ -384,24 +488,22 @@ class AsyncManager:
         if execution_options is not None and not isinstance(execution_options, Mapping):
             raise AsyncConfigurationError("execution_options must be a mapping when supplied.")
         task_name = task_key if task_key is not None else self.generate_task_name()
-        manager_config = self.export_manager_config()
+        manager_spec = self.get_manager_spec()
+        manager_config = manager_spec.config
+        manager_path = manager_spec.class_path
         worker_args = tuple(args)
         kwargs = dict(worker_kwargs or {})
         metadata = {
             "task_key": task_name,
-            "manager_class": f"{type(self).__module__}.{type(self).__qualname__}",
+            "manager_class": manager_path,
             "manager_config": manager_config,
             "_coordinator_config": self.get_coordination_config().to_snapshot(),
         }
         for key, value in metadata.items():
             if key in kwargs and kwargs[key] != value:
-                raise ValueError(f"worker_kwargs contains conflicting reserved value: {key}")
+                raise AsyncConfigurationError(f"worker_kwargs contains conflicting reserved value: {key}")
             kwargs.setdefault(key, value)
-        spec = ManagerSpec(
-            class_path=metadata["manager_class"],
-            config=manager_config,
-            completion_style=self.completion_style,
-        )
+        spec = manager_spec
         options = dict(execution_options or {})
         options.setdefault("hook", "powercrud._coordinator.q2.task_completion_hook")
         return self._launch(
@@ -490,12 +592,19 @@ class AsyncManager:
             This method blocks for up to 300 seconds. For UI/request paths,
             prefer get_task_status_nowait() instead.
         """
-        lookup = self._q2_adapter.lookup_legacy_name(
-            task_name, wait_ms=300, raise_errors=True
-        )
+        try:
+            identity, manager = self.reconstruct_task_manager(task_name)
+        except Exception as exc:
+            log.warning("Could not reconstruct task %s for status polling: %s", task_name, exc)
+            return self.STATUSES.UNKNOWN
+        if identity is None:
+            return self.STATUSES.UNKNOWN
+        lookup = manager._q2_adapter.lookup(identity.execution, wait_ms=300)
         if lookup.kind == "unavailable":
             raise RuntimeError(lookup.reason or "django-q2 result lookup failed")
         if lookup.completion:
+            if lookup.completion.execution and lookup.completion.execution.id != identity.execution.id:
+                return self.STATUSES.UNKNOWN
             success = lookup.completion.success
             if success is not None:
                 return "success" if success else "failed"
@@ -517,12 +626,19 @@ class AsyncManager:
         Note:
             This method returns immediately and is suitable for UI/request paths.
         """
-        lookup = self._q2_adapter.lookup_legacy_name(
-            task_name, wait_ms=0, raise_errors=True
-        )
+        try:
+            identity, manager = self.reconstruct_task_manager(task_name)
+        except Exception as exc:
+            log.warning("Could not reconstruct task %s for status polling: %s", task_name, exc)
+            return self.STATUSES.UNKNOWN
+        if identity is None:
+            return self.STATUSES.UNKNOWN
+        lookup = manager._q2_adapter.lookup(identity.execution, wait_ms=0)
         if lookup.kind == "unavailable":
             raise RuntimeError(lookup.reason or "django-q2 result lookup failed")
         if lookup.completion:
+            if lookup.completion.execution and lookup.completion.execution.id != identity.execution.id:
+                return self.STATUSES.UNKNOWN
             success = lookup.completion.success
             if success is not None:
                 return self.STATUSES.SUCCESS if success else self.STATUSES.FAILED
@@ -559,6 +675,13 @@ class AsyncManager:
         Returns:
             str: status indicator
         """
+        try:
+            identity = self.get_task_identity(task_name)
+        except Exception as exc:
+            log.warning("Could not read task %s identity for cache-only polling: %s", task_name, exc)
+            return self.STATUSES.UNKNOWN
+        if identity is None:
+            return self.STATUSES.UNKNOWN
         progress_data = self.get_progress(task_name)
         if progress_data == self.STATUSES.PENDING:
             return self.STATUSES.PENDING
@@ -567,7 +690,12 @@ class AsyncManager:
         # not pending but progress key has been cleaned up.
         # So either complete or unknown.
         # But if unknown, then progress key would not be cleared (ideally)
-        return "completed"
+        try:
+            config = CoordinatorConfig.from_snapshot(identity.coordination)
+            return "completed" if is_finished(config, identity) else self.STATUSES.UNKNOWN
+        except Exception as exc:
+            log.warning("Could not read task %s terminal marker: %s", task_name, exc)
+            return self.STATUSES.UNKNOWN
 
     def is_task_complete_cache_only(self, task_name: str) -> bool:
         """Returns boolean indicator as to whether task is completed or not.
@@ -669,16 +797,8 @@ class AsyncManager:
         return True
 
     def cleanup_active_tasks(self) -> None:
-        """Prune active tasks that django-q2 reports as completed recently.
-
-        Uses a grace period window to avoid racing recent writes.
-        """
-        cache_active_tasks = self.cache.get(self.active_prefix, set()) or set()
-
-        for task_name in cache_active_tasks:
-            self.remove_active_task(task_name)
-
-        self.clear_expired_progress_keys()
+        """Delegate cleanup to retained identity and execution evidence."""
+        self.cleanup_completed_tasks()
 
     def cleanup_completed_tasks(self) -> dict[str, Any]:
         """Remove stale artifacts (locks, progress, dashboard) for finished tasks."""
@@ -691,17 +811,16 @@ class AsyncManager:
         active_tasks = list(self.get_active_tasks())
         summary["active_tasks"] = len(active_tasks)
 
-        now = timezone.now()
-        max_duration = (
-            timedelta(seconds=self.max_task_duration)
-            if self.max_task_duration
-            else None
-        )
-
         for task_name in active_tasks:
-            lookup = self._q2_adapter.lookup_legacy_name(
-                task_name, orm_only=True
-            )
+            try:
+                identity, manager = self.reconstruct_task_manager(task_name)
+            except Exception as exc:
+                summary["skipped"][task_name] = f"task identity invalid: {exc}"
+                continue
+            if identity is None:
+                summary["skipped"][task_name] = "task identity missing or expired"
+                continue
+            lookup = manager._q2_adapter.lookup(identity.execution, wait_ms=0)
             if lookup.kind == "unavailable":
                 summary["skipped"][task_name] = (
                     f"task lookup failed: {lookup.reason}"
@@ -709,25 +828,23 @@ class AsyncManager:
                 continue
 
             if lookup.kind == "missing":
-                summary["cleaned"][task_name] = self._cleanup_task_artifacts(
-                    task_name,
-                    reason="django-q2 task missing",
-                    status=self.STATUSES.UNKNOWN,
-                )
+                summary["skipped"][task_name] = "q2 execution result missing"
                 continue
 
             completion = lookup.completion
+            if completion is None:
+                summary["skipped"][task_name] = "q2 result did not include completion evidence"
+                continue
+            if completion.execution and completion.execution.id != identity.execution.id:
+                summary["skipped"][task_name] = "q2 execution ID does not match retained identity"
+                continue
             success_flag = completion.success
-            if success_flag is None:
-                started = completion.started_at
-                if started and max_duration and (started + max_duration) < now:
-                    summary["cleaned"][task_name] = self._cleanup_task_artifacts(
-                        task_name,
-                        reason="max duration exceeded",
-                        status=self.STATUSES.UNKNOWN,
-                    )
-                else:
-                    summary["skipped"][task_name] = "task still running"
+            terminal_failure = (
+                success_flag is False
+                and identity.execution.locator.get("options", {}).get("ack_failure") is True
+            )
+            if completion.finished_at is None or not (success_flag is True or terminal_failure):
+                summary["skipped"][task_name] = "q2 execution is not confirmed terminal"
                 continue
 
             reason = (
@@ -736,7 +853,7 @@ class AsyncManager:
             status = self.STATUSES.SUCCESS if success_flag else self.STATUSES.FAILED
             result_payload = completion.result
 
-            summary["cleaned"][task_name] = self._cleanup_task_artifacts(
+            summary["cleaned"][task_name] = manager._cleanup_task_artifacts(
                 task_name,
                 reason=reason,
                 status=status,
@@ -1082,6 +1199,9 @@ class AsyncManager:
     def resolve_manager(
         cls, manager_class_path: str | None, config: dict | None = None
     ):
+        """Resolve explicit manager metadata strictly; default only when absent."""
+        if not manager_class_path:
+            return cls()
         try:
             from .reconstruction import construct_manager
 
@@ -1089,19 +1209,17 @@ class AsyncManager:
                 ManagerSpec(class_path=manager_class_path, config=config),
                 coordination_config=cls._default_coordination_config(),
                 executor=cls._default_executor(),
-                legacy=True,
-                fallback_class_path=f"{cls.__module__}.{cls.__qualname__}",
+                legacy=False,
                 prepare_config=lambda manager_cls, value: manager_cls.prepare_manager_config(value)
                 if hasattr(manager_cls, "prepare_manager_config")
                 else value,
             )
         except Exception as exc:
-            log.warning(
-                "Failed to import manager '%s': %s. Falling back to coordinator manager",
-                manager_class_path,
-                exc,
-            )
-            return cls()
+            if isinstance(exc, AsyncConfigurationError):
+                raise
+            raise AsyncConfigurationError(
+                f"Could not reconstruct explicitly selected manager '{manager_class_path}'."
+            ) from exc
 
     @classmethod
     def _default_coordination_config(cls):

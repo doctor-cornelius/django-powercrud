@@ -7,6 +7,7 @@ from powercrud._coordinator.context import (
     skip_nested_async,
     task_context,
 )
+from powercrud._coordinator.exceptions import DescendantConflictError
 
 
 def register_descendant_conflicts(model_path, ids):
@@ -28,4 +29,5 @@ __all__ = [
     "get_current_task",
     "skip_nested_async",
     "register_descendant_conflicts",
+    "DescendantConflictError",
 ]

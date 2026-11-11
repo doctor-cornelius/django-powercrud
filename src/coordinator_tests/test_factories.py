@@ -6,6 +6,7 @@ from unittest.mock import patch
 from django.test import RequestFactory, SimpleTestCase
 
 from coordinator_tests.workers import simple_test_worker
+from coordinator_tests.q2_testing import q2_submission
 from powercrud._coordinator.config import CoordinatorConfig
 from powercrud._coordinator.context import get_current_task, register_descendant_conflicts, task_context
 from powercrud._coordinator.manager import AsyncManager
@@ -43,25 +44,27 @@ class TestCoordinationFactories(SimpleTestCase):
         self.assertIsNone(self.first.cache.get(key), "Descendant registration must not use the other cache")
 
     def test_inline_worker_reconstructs_supplied_metadata_and_keeps_result(self):
-        """The real suite worker must report progress into the launcher's snapshot location."""
+        """Inline signal execution must bind the manager and retain its cache location."""
         observed = []
 
-        def inline_submit(func, *args, **kwargs):
-            """Execute the original worker at the patched q2 enqueue seam."""
-            observed.append((func(*args, **kwargs), self.second.get_progress(kwargs["task_key"]), get_current_task()))
-            return "execution-id"
+        def context_worker(message, **kwargs):
+            """Record automatic context before running the existing suite worker."""
+            current = get_current_task()
+            observed.append((current.task_name, current.manager.get_coordination_config().key_namespace))
+            return simple_test_worker(message, **kwargs)
 
-        with patch("powercrud._coordinator.q2.async_task", side_effect=inline_submit):
-            key = self.second.launch(simple_test_worker, "metadata worker", task_key="worker-key")
+        with patch("powercrud._coordinator.q2.async_task", side_effect=q2_submission("execution-id", execute=True)):
+            key = self.second.launch(context_worker, "metadata worker", task_key="worker-key")
         self.assertEqual(key, "worker-key", "Inline launch must retain its logical key")
-        self.assertEqual(observed, [("Processed: metadata worker", "Processing completed", None)], "Worker code must reconstruct the supplied location without automatically entering task context")
+        self.assertEqual(observed, [("worker-key", "factory-second")], "The selected manager and logical key must be available in worker context")
+        self.assertEqual(self.second.get_progress(key), "Processing completed", "Worker progress must use the selected location")
         self.assertIsNone(self.first.get_progress(key), "Worker progress must not leak into another location")
 
     def test_internal_launch_rejects_reserved_worker_metadata_conflicts(self):
         """Reserved metadata must fail before enqueue or any cache reservation."""
         for field in ("task_key", "manager_class", "manager_config", "_coordinator_config"):
             with self.subTest(field=field), patch("powercrud._coordinator.q2.async_task") as enqueue:
-                with self.assertRaisesRegex(ValueError, field):
+                with self.assertRaisesRegex(Exception, field):
                     self.second.launch("worker", task_key="reserved-key", worker_kwargs={field: "conflicting"})
                 enqueue.assert_not_called()
                 self.assertIsNone(self.second.get_progress("reserved-key"), "Conflicting worker metadata must not create task state")

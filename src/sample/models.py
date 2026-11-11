@@ -173,7 +173,7 @@ class Book(models.Model):
             if descendant_ids:
                 register_descendant_conflicts("sample.Genre", descendant_ids)
 
-            manager = AsyncManager()
+            manager = context.manager if context.manager is not None else AsyncManager()
             total = len(descendant_ids) if descendant_ids else 5
 
             for idx in range(1, total + 1):

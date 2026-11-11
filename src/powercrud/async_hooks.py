@@ -8,6 +8,8 @@ which can be overridden by downstream projects.
 
 from powercrud.logging import get_logger
 from powercrud._coordinator.q2 import Q2Adapter
+from powercrud._coordinator.context import get_current_task
+from functools import wraps
 
 log = get_logger(__name__)
 _q2_adapter = Q2Adapter()
@@ -72,15 +74,26 @@ def progress_update_decorator(func):
         This is prep work for Task 4 (Progress Tracking).
     """
 
+    @wraps(func)
     def wrapper(*args, **kwargs):
-        task_name = kwargs.get("task_name")
+        context = get_current_task()
+        task_name = (
+            context.task_name if context is not None else
+            kwargs.get("task_key") or kwargs.get("task_name")
+        )
 
         def progress_callback(message: str) -> None:
             if task_name:
                 try:
-                    from powercrud.async_manager import AsyncManager
+                    if context is not None and context.manager is not None:
+                        manager = context.manager
+                    else:
+                        from powercrud.async_manager import AsyncManager
 
-                    manager = AsyncManager()
+                        manager = AsyncManager.resolve_manager(
+                            kwargs.get("manager_class"),
+                            config=kwargs.get("manager_config"),
+                        )
                     manager.update_progress(task_name, message)
                 except Exception as e:
                     log.warning(f"Failed to update progress for task {task_name}: {e}")

@@ -164,33 +164,18 @@ class AsyncMixin:
     def _import_manager(self, dotted_path: str):
         from importlib import import_module
 
-        module_path, class_name = dotted_path.rsplit(".", 1)
-        module = import_module(module_path)
-        return getattr(module, class_name)
+        try:
+            module_path, class_name = dotted_path.rsplit(".", 1)
+            module = import_module(module_path)
+            return getattr(module, class_name)
+        except Exception as exc:
+            raise AsyncConfigurationError(
+                f"Could not import explicitly selected async manager '{dotted_path}'."
+            ) from exc
 
     def get_async_manager_class_path(self) -> str:
-        cfg = resolve_config(self)
-        path = getattr(self, "async_manager_class_path", None) or getattr(
-            cfg, "async_manager_class_path", None
-        )
-        if path:
-            return path
-
-        manager_class = getattr(self, "async_manager_class", None) or getattr(
-            cfg, "async_manager_class", None
-        )
-        if manager_class:
-            return f"{manager_class.__module__}.{manager_class.__name__}"
-
-        from powercrud.conf import get_powercrud_setting
-
-        default_cfg = get_powercrud_setting("ASYNC_MANAGER_DEFAULT", {}) or {}
-        default_path = default_cfg.get("manager_class")
-        if default_path:
-            return default_path
-
         manager_class = self.get_async_manager_class()
-        return f"{manager_class.__module__}.{manager_class.__name__}"
+        return f"{manager_class.__module__}.{manager_class.__qualname__}"
 
     def get_async_manager_config(self):
         cfg = resolve_config(self)
@@ -212,10 +197,22 @@ class AsyncMixin:
             coerced_config = self._coerce_manager_config(manager_class, config)
             if coerced_config is None:
                 return manager_class()
-            return manager_class(config=coerced_config)
-        except TypeError:
-            # Some manager classes may not accept config kwarg
-            return manager_class()
+            manager = manager_class(config=coerced_config)
+            # The mixin is the factory that selected and supplied this config.
+            # Preserve it for the base export hook; custom hooks still own their
+            # own export behavior and are not inferred from arbitrary attributes.
+            if (
+                hasattr(manager, "_factory_manager_config")
+                and type(manager).export_manager_config
+                is AsyncManager.export_manager_config
+            ):
+                manager._factory_manager_config = coerced_config
+            return manager
+        except TypeError as exc:
+            raise AsyncConfigurationError(
+                f"Selected async manager {manager_class.__module__}.{manager_class.__qualname__} "
+                "cannot accept its configured application manager settings."
+            ) from exc
 
     def _prepare_async_bulk_field_data(self, field_data):
         """Reduce display-oriented bulk metadata to q2-safe worker values."""
@@ -256,11 +253,10 @@ class AsyncMixin:
                     AsyncDashboardConfig,
                     ModelTrackingAsyncManager,
                 )
-
-                if issubclass(manager_class, ModelTrackingAsyncManager):
-                    return AsyncDashboardConfig(**config)
-            except Exception:
+            except ImportError:
                 return config
+            if issubclass(manager_class, ModelTrackingAsyncManager):
+                return AsyncDashboardConfig(**config)
 
         return config
 
@@ -474,13 +470,13 @@ class AsyncMixin:
                     model_path,  # positional arg 2
                     selected_ids,  # positional arg 3
                     user_id,  # positional arg 4
-                    task_name,  # positional arg 5 - THIS IS THE KEY!
+                    task_key=task_name,
                     # django-q2 specific params as kwargs
                     conflict_ids=conflict_ids,
                     user=user,
                     affected_objects=f"{len(selected_ids)} {self.model._meta.verbose_name_plural}",
-                    manager_class=self.get_async_manager_class_path(),
-                    manager_config=self.get_async_manager_config(),
+                    manager_class=f"{type(async_manager).__module__}.{type(async_manager).__qualname__}",
+                    manager_config=async_manager.export_manager_config(),
                 )
             else:
                 log.info(
@@ -495,13 +491,13 @@ class AsyncMixin:
                     bulk_fields,  # positional arg 5
                     fields_to_update,  # positional arg 6
                     worker_field_data,  # positional arg 7
-                    task_name,  # positional arg 8 - THIS IS THE KEY!
+                    task_key=task_name,
                     # django-q2 specific params as kwargs
                     conflict_ids=conflict_ids,
                     user=user,
                     affected_objects=f"{len(selected_ids)} {self.model._meta.verbose_name_plural}",
-                    manager_class=self.get_async_manager_class_path(),
-                    manager_config=self.get_async_manager_config(),
+                    manager_class=f"{type(async_manager).__module__}.{type(async_manager).__qualname__}",
+                    manager_config=async_manager.export_manager_config(),
                     bulk_update_persistence_backend_path=(
                         self.get_bulk_update_persistence_backend_path()
                         if hasattr(self, "get_bulk_update_persistence_backend_path")

@@ -36,7 +36,7 @@ class TestActiveTasks(AsyncManagerTestMixin, TestCase):
         self.assertNotIn(task_id, active_tasks, "Task should not be in active tasks after removal")
 
     def test_cleanup_active_tasks(self):
-        """Test cleanup of active tasks using patched django-q2 Task queryset."""
+        """Missing retained identity cannot authorize cleanup of active tasks."""
         task_id_1 = "test_task_1"
         task_id_2 = "test_task_2"
         self.async_manager.add_active_task(task_id_1, {"myapp.TestModel": {1, 2}})
@@ -47,11 +47,11 @@ class TestActiveTasks(AsyncManagerTestMixin, TestCase):
         self.assertIn(task_id_2, active_tasks)
 
         with patch("powercrud._coordinator.q2.task_model") as mock_task:
-            mock_task.objects.filter.return_value.values_list.return_value = [task_id_1, task_id_2]
             self.async_manager.cleanup_active_tasks()
+            mock_task.assert_not_called()
 
         active_tasks = self.async_manager.get_active_tasks()
-        self.assertEqual(len(active_tasks), 0, "All active tasks should be cleaned up")
+        self.assertEqual(active_tasks, {task_id_1, task_id_2}, "Tasks without identity evidence must remain active")
 
 
 class TestConflictDetection(AsyncManagerTestMixin, TestCase):

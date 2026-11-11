@@ -5,8 +5,9 @@ import tempfile
 
 
 BASE_DIR = os.path.dirname(__file__)
-TEST_CACHE_DIR = os.path.join(
-    tempfile.gettempdir(), f"powercrud-coordinator-cache-{os.getpid()}"
+TEST_CACHE_DIR = os.environ.get(
+    "POWERCRUD_COORDINATOR_CACHE_DIR",
+    os.path.join(tempfile.gettempdir(), f"powercrud-coordinator-cache-{os.getpid()}"),
 )
 SECRET_KEY = "coordinator-test-secret"
 DEBUG = True
@@ -20,6 +21,7 @@ INSTALLED_APPS = [
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django_q",
+    "powercrud._coordinator.apps.CoordinatorConfig",
     "coordinator_tests.testapp.apps.CoordinatorTestAppConfig",
 ]
 
