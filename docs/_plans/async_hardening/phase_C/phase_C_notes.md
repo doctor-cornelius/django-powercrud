@@ -1,6 +1,6 @@
 # Phase C notes: Configuration and lifecycle hardening
 
-Initial discussion draft prepared on 2026-11-07. The [phase plan](phase_C_plan.md) proposes reviewable increments. Sequence and C1 error-handling direction were agreed before implementation. C1 is complete; the shared-state/q2 feasibility checkpoint is next, before C2–C6.
+Initial discussion draft prepared on 2026-11-07. The [phase plan](phase_C_plan.md) proposes reviewable increments. Sequence and C1 error-handling direction were agreed before implementation. C1 is complete; C2.1 is the shared-state/q2 feasibility checkpoint, before C2–C6 implementation.
 
 ## Scope and sources of truth
 
@@ -22,7 +22,7 @@ Patched enqueue/fetch/hooks, inline workers, synchronous probes, sequential cach
 
 ## Proposed sequencing and dependencies
 
-Agreed sequence: C1 → shared-state/q2 feasibility checkpoint → C2 → C3 → C4 → C5 → C6 → C7. The checkpoint precedes C2–C6 implementation: C2 retention, C3 monotonic transitions, and C4 rollback all need the safe operations finalized in C5. C6 depends on those ownership/lifetime guarantees. Each implementation increment should pair a deliberate correction with behavioral coverage in its owning suite. Stage headings remain unchanged; they do not require deferring shared-state design until C5.
+Agreed sequence, made explicit in the C2 checklist on 2026-11-11: C1 → C2.1 feasibility checkpoint → C2.2 implementation plan → C2.3–C2.8 implementation and verification → C3 → C4 → C5 → C6 → C7. The checkpoint precedes C2–C6 implementation: C2 retention, C3 monotonic transitions, and C4 rollback all need the safe operations finalized in C5. C6 depends on those ownership/lifetime guarantees. Each implementation increment should pair a deliberate correction with behavioral coverage in its owning suite. Stage headings remain unchanged; they do not require deferring shared-state design until C5.
 
 No dependency changes or infrastructure actions were needed for C1. The shared issue register remains unchanged because its broader outcomes still require later-phase and runtime evidence.
 
@@ -55,6 +55,16 @@ Apply A1 contract C2 and B1 configuration ownership. Validate settings shape, in
 PowerCRUD maps `ASYNC_ENABLED` into permission for new launches. Core/below-threshold use stays synchronous; disabled or invalid above-threshold async use reports an actionable error. Existing work can still report progress, finish, reconcile, and clean up. Verify genuine dependency absence in an isolated environment/process rather than equating removal from `INSTALLED_APPS` with uninstalling q2. The agreed error-handling direction is recorded above; exact interfaces remain for design below.
 
 ### C2: Preserve identity, context, and execution evidence
+
+#### C2 sequencing and completion
+
+The numbered C2 checklist is sequential. C2.1 is investigation and feasibility design; C2.2 turns the findings into an implementation plan. Neither item authorizes production changes by itself. C2.3–C2.7 implement the agreed approach with focused tests as each behavior changes; C2.8 completes verification and delivery. Splitting the former two broad checklist items does not mark any C2 work complete.
+
+C2.1 must establish how the existing configured coordination location can safely retain and read versioned identity using `get_identity`, `put_identity`, and `attach_execution` at `{key_namespace}:async:task:{task_key}`. Record the available operations, update/attachment safety, live and terminal retention requirements, expiry and failure behavior, and q2 execution/result routing constraints. Investigate automatic worker/context integration against existing callable signatures. Assess the shared-state and q2 operations needed by later monotonic lifecycle, completion delivery, rollback, and ownership/lease work so C2 does not build on an incompatible assumption. Preserve existing backend and q2 support claims; a concrete blocker requiring a decision must be explained specifically. Do not introduce a backend, cross-cache discovery, database model, support reduction, or recovery guarantee.
+
+C2.2 must identify the affected paths, ordered implementation changes, regression scenarios for all seven wrinkles, and suite ownership. Preserve constructor signatures, overrides, `super()` behavior, and the single submission path. A worker wrapper or injected callable arguments require compatibility evidence. Record which lifecycle, completion-delivery, locking/lease, and reconciliation work remains assigned to C3–C6; identity reconstruction in C2 does not complete those stages.
+
+C2.3–C2.7 follow one coherent identity through capture, retention, worker/completion reconstruction, parent/descendant helpers, polling, and cleanup. Keep reusable tests in `src/coordinator_tests/` and PowerCRUD integration/compatibility tests in `src/tests/`. C2.8 records focused and full server-suite results, including the separate minimal-settings and Bootstrap selections, plus documentation checks and the semantic commit. Record real-worker/backend evidence separately from mocked or sequential tests. The shared issue register remains the sole completion record; C2 checklist completion and suite passes alone do not close issues 1–13. Stop after C2.
 
 Follow B1's [retained identity specification](../phase_B/phase_B_notes.md#4-task-identity-polling-and-cleanup-lookup) and [seven-wrinkle assignment](../phase_B/phase_B_notes.md#5-seven-identity-wrinkles-implementation-assignment). The required identity fields, versioned mapping, planned `{key_namespace}:async:task:{task_key}` key, and location-bound factories are already specified. Implement retention and failure semantics alongside lifecycle state; do not invent cross-cache discovery or require a dashboard model.
 
