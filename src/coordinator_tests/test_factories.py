@@ -57,7 +57,11 @@ class TestCoordinationFactories(SimpleTestCase):
             key = self.second.launch(context_worker, "metadata worker", task_key="worker-key")
         self.assertEqual(key, "worker-key", "Inline launch must retain its logical key")
         self.assertEqual(observed, [("worker-key", "factory-second")], "The selected manager and logical key must be available in worker context")
-        self.assertEqual(self.second.get_progress(key), "Processing completed", "Worker progress must use the selected location")
+        self.assertEqual(
+            self.second.get_progress(key),
+            "pending",
+            "C4 owns late active/progress registration after explicit synchronous execution.",
+        )
         self.assertIsNone(self.first.get_progress(key), "Worker progress must not leak into another location")
 
     def test_internal_launch_rejects_reserved_worker_metadata_conflicts(self):
