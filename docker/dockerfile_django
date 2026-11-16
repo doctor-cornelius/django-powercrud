@@ -5,7 +5,7 @@ ARG PROJECT_DIR=django_powercrud
 ARG USER=devuser
 ARG USERHOME=/home/${USER}
 # renovate: datasource=npm depName=npm versioning=semver
-ARG NPM_VERSION=11.21.1
+ARG NPM_VERSION=11.21.2
 # renovate: datasource=pypi depName=wheel versioning=pep440
 ARG WHEEL_VERSION=0.48.0
 # renovate: datasource=github-releases depName=astral-sh/uv versioning=semver
