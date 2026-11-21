@@ -13,7 +13,7 @@ from django.core.exceptions import ImproperlyConfigured
 from django.utils import timezone
 
 from .config import CoordinatorConfig
-from .exceptions import AsyncConfigurationError, AsyncDisabledError
+from .exceptions import AsyncConfigurationError, AsyncDisabledError, SubmissionRejected, SubmissionUncertain
 from .q2 import Q2Adapter
 from .reconstruction import current_binding
 from .types import Completion, ManagerSpec, TaskCall, TaskIdentity
@@ -25,6 +25,8 @@ from .state import (
     mark_finished,
     publish_terminal,
     put_identity as write_task_identity,
+    submission_key,
+    worker_started_key,
 )
 
 log = logging.getLogger(__name__)
@@ -536,12 +538,43 @@ class AsyncManager:
         conflict_ids = call.conflict_ids
         options = dict(options or call.execution_options)
         self.validate_async_configuration(call=call, options=options)
-        if conflict_ids and not self.add_conflict_ids(task_name, conflict_ids):
-            log.error("Conflict reservation failed for task %s", task_name)
-            raise Exception("Cannot launch task - conflicts detected with existing operations")
-        self.create_progress_key(task_name)
         worker_kwargs = dict(call.kwargs)
         worker_kwargs.setdefault("task_key", task_name)
+        prepared_identity = None
+
+        def register_before_delivery(identity):
+            """Publish initial launch state before q2 can deliver the task."""
+            nonlocal prepared_identity
+            if (
+                self.is_active_task(task_name)
+                or self.get_progress(task_name) is not None
+                or self.cache.get(f"{self.conflict_prefix}{task_name}") is not None
+            ):
+                raise SubmissionRejected(task_name, "The task key already has launch state.")
+            if conflict_ids and not self.add_conflict_ids(task_name, conflict_ids):
+                raise SubmissionRejected(
+                    task_name, "Cannot launch task - conflicts detected with existing operations"
+                )
+            prepared_identity = identity
+            try:
+                if not self.add_active_task(task_name, conflict_ids=None):
+                    log.warning("Failed to register task %s as active", task_name)
+            except Exception:
+                log.exception("Failed to register task %s as active", task_name)
+            lifecycle_kwargs = dict(worker_kwargs)
+            lifecycle_kwargs.pop("save", None)
+            self._emit_lifecycle(
+                event="create",
+                task_name=task_name,
+                status=self.STATUSES.PENDING,
+                message="Preparing background task",
+                user=call.user,
+                affected_objects=call.affected_objects,
+                django_q2_task_id=identity.execution.id,
+                task_kwargs=lifecycle_kwargs,
+                task_args=list(call.args),
+            )
+
         try:
             execution_ref = self._q2_adapter.submit(
                 TaskCall(
@@ -557,35 +590,25 @@ class AsyncManager:
                     execution_options=call.execution_options,
                 ),
                 options=options,
+                before_delivery=register_before_delivery,
             )
-            if not execution_ref.id:
-                raise Exception("django-q2 async_task returned falsy task_id")
-        except Exception as exc:
-            log.error("Failed to enqueue task_name %s: %s", task_name, exc)
-            if conflict_ids:
-                self.remove_conflict_ids(task_name)
-            self.remove_progress_key(task_name)
-            raise Exception(f"Failed to enqueue async task: {exc}")
-        try:
-            if not self.add_active_task(task_name, conflict_ids=None):
-                log.warning("Failed to register task %s as active - cleanup may be incomplete", task_name)
-        except Exception as exc:
-            log.error("Failed to register active task %s: %s", task_name, exc)
-        lifecycle_kwargs = dict(worker_kwargs)
-        lifecycle_kwargs.pop("save", None)
-        self._emit_lifecycle(
-            event="create",
-            task_name=task_name,
-            status=self.STATUSES.PENDING,
-            message="Task queued",
-            user=call.user,
-            affected_objects=call.affected_objects,
-            django_q2_task_id=execution_ref.id,
-            task_kwargs=lifecycle_kwargs,
-            task_args=list(call.args),
-        )
+            if prepared_identity is None or execution_ref.id != prepared_identity.execution.id:
+                raise SubmissionUncertain(task_name, "Background task submission could not be confirmed.")
+        except SubmissionUncertain:
+            log.warning("Could not confirm submission for task %s", task_name, exc_info=True)
+            if prepared_identity is not None:
+                self._record_submission_issue(task_name, "uncertain", prepared_identity.execution.id)
+            raise
         log.debug("Successfully launched task_name %s (q2 id: %s)", task_name, execution_ref.id)
         return task_name
+
+    def _record_submission_issue(self, task_key, issue, execution_id=None):
+        """Keep a bounded polling observation independent of execution outcomes."""
+        try:
+            config = self.get_coordination_config()
+            self.cache.add(submission_key(config, task_key, execution_id), issue, self.progress_ttl)
+        except Exception:
+            log.warning("Could not retain submission status for task %s", task_key, exc_info=True)
 
     def get_task_status(self, task_name: str) -> Optional[str]:
         """Fetch task execution status from django-q2 with blocking wait.
@@ -680,9 +703,14 @@ class AsyncManager:
             log.warning("Could not read task %s identity: %s", task_key, exc)
             base["reason"] = "identity_invalid_or_unavailable"
             return base
-        if identity is None:
-            return base
         try:
+            if identity is None:
+                issue = self.cache.get(submission_key(self.get_coordination_config(), task_key, None))
+                if issue == "rejected":
+                    base.update(reason="submission_rejected", message="The background task was not submitted.")
+                elif issue == "uncertain":
+                    base.update(reason="submission_uncertain", message="Submission could not be confirmed.")
+                return base
             config = CoordinatorConfig.from_snapshot(identity.coordination)
             terminal_record = get_terminal_record(config, identity)
             if terminal_record is not None:
@@ -705,19 +733,32 @@ class AsyncManager:
                 base["reason"] = unresolved["reason"]
                 base["finished_at"] = unresolved["observed_at"]
                 return base
+            issue = self.cache.get(submission_key(config, task_key, identity.execution.id))
+            if issue is None:
+                issue = self.cache.get(submission_key(config, task_key, None))
+            started = self.cache.get(worker_started_key(config, identity))
         except Exception as exc:
             log.warning("Could not read task %s retained outcome: %s", task_key, exc)
             base["reason"] = "coordination_state_unavailable_or_invalid"
             return base
 
         progress = self.get_progress(task_key)
-        if progress == self.STATUSES.PENDING:
-            base.update(status=self.STATUSES.PENDING, reason=None, progress=None, message="Task queued")
-            return base
-        if progress is not None:
+        if progress is not None and progress != self.STATUSES.PENDING:
             base.update(status=self.STATUSES.IN_PROGRESS, reason=None, progress=progress, message=progress)
             return base
-        base["reason"] = "progress_missing"
+        if started and (progress == self.STATUSES.PENDING or issue):
+            base.update(status=self.STATUSES.IN_PROGRESS, reason=None, message="Background task started.")
+            return base
+        if issue == "rejected":
+            base.update(reason="submission_rejected", message="The background task was not submitted.")
+            return base
+        if issue == "uncertain":
+            base.update(reason="submission_uncertain", message="Submission could not be confirmed.")
+        elif progress == self.STATUSES.PENDING:
+            base.update(status=self.STATUSES.PENDING, reason=None, message="Preparing background task.")
+            return base
+        else:
+            base["reason"] = "progress_missing"
         if not cache_only:
             lookup = self._q2_adapter.lookup(identity.execution, wait_ms=wait_ms)
             if lookup.kind == "unavailable":

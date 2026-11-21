@@ -22,6 +22,7 @@ def progress_view(*, manager_factory, template_name=None):
                 unknown_elapsed = 0
             unknown_elapsed = max(0, min(unknown_elapsed, 30_000))
             unknown_exhausted = observation["status"] == manager.STATUSES.UNKNOWN and unknown_elapsed >= 30_000
+            submission_rejected = observation["reason"] == "submission_rejected"
             response = {
                 "task_name": task_name,
                 "status": observation["status"],
@@ -35,8 +36,10 @@ def progress_view(*, manager_factory, template_name=None):
                 "finished_at": observation["finished_at"],
                 "expires_at": observation["expires_at"],
                 "poll_interval": 1000,
-                "polling_stopped": unknown_exhausted,
+                "polling_stopped": unknown_exhausted or submission_rejected,
             }
+            if submission_rejected:
+                return JsonResponse(response, status=286)
             if unknown_exhausted:
                 response["display_message"] = "Status currently unavailable"
                 return JsonResponse(response, status=286)

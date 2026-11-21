@@ -62,12 +62,8 @@ class TestCoordinationFactories(SimpleTestCase):
             key = self.second.launch(context_worker, "metadata worker", task_key="worker-key")
         self.assertEqual(key, "worker-key", "Inline launch must retain its logical key")
         self.assertEqual(observed, [("worker-key", "factory-second")], "The selected manager and logical key must be available in worker context")
-        self.assertEqual(
-            self.second.get_progress(key),
-            "pending",
-            "C4 owns late active/progress registration after explicit synchronous execution.",
-        )
-        self.assertEqual(self.second.get_task_status_cache_only(key), "success", "Terminal evidence must outrank C4's late pending progress write")
+        self.assertEqual(self.second.get_progress(key), "Processing completed", "The worker-only seam must preserve worker progress")
+        self.assertEqual(self.second.get_task_status_cache_only(key), "success", "Terminal evidence must survive launch return")
         self.assertIsNone(self.first.get_progress(key), "Worker progress must not leak into another location")
 
     def test_internal_launch_rejects_reserved_worker_metadata_conflicts(self):
@@ -80,27 +76,33 @@ class TestCoordinationFactories(SimpleTestCase):
                 self.assertIsNone(self.second.get_progress("reserved-key"), "Conflicting worker metadata must not create task state")
 
     def test_shared_launch_order_and_registration_failure_handling(self):
-        """Enqueued work still emits create when active registration fails."""
+        """Preparation still emits create when best-effort registration fails."""
         for raises in (False, True):
             with self.subTest(raises=raises):
                 events = []
 
                 def register(*args, **kwargs):
-                    """Represent both legacy failure forms after successful enqueue."""
+                    """Represent both legacy registration failure forms."""
                     events.append("register")
                     if raises:
                         raise RuntimeError("registration failed")
                     return False
 
+                def submit(*args, **kwargs):
+                    """Run real signal preparation before simulating broker delivery."""
+                    execution_id = q2_submission("exec")(*args, **kwargs)
+                    events.append("deliver")
+                    return execution_id
+
                 with (
                     patch.object(self.second, "add_conflict_ids", side_effect=lambda *a: events.append("reserve") or True),
-                    patch.object(self.second, "create_progress_key", side_effect=lambda *a: events.append("progress")),
-                    patch.object(self.second._q2_adapter, "submit", side_effect=lambda *a, **kw: events.append("submit") or ExecutionRef(id="exec")),
+                    patch("powercrud._coordinator.q2.async_task", side_effect=submit),
                     patch.object(self.second, "add_active_task", side_effect=register),
                     patch.object(self.second, "_emit_lifecycle", side_effect=lambda **kw: events.append(kw["event"])),
                     patch.object(self.second, "remove_conflict_ids") as rollback,
                 ):
-                    key = self.second.launch("worker", task_key="order-key", conflict_ids={"app.Model": {1}})
-                self.assertEqual(key, "order-key", "Successful enqueue must keep the logical return key after registration failure")
-                self.assertEqual(events, ["reserve", "progress", "submit", "register", "create"], "The shared launch sequence must retain the B1 ordering")
+                    task_key = f"order-key-{raises}"
+                    key = self.second.launch("worker", task_key=task_key, conflict_ids={"app.Model": {1}})
+                self.assertEqual(key, task_key, "Successful enqueue must keep the logical return key after registration failure")
+                self.assertEqual(events, ["reserve", "register", "create", "deliver"], "Initial launch state must precede delivery")
                 rollback.assert_not_called()

@@ -15,9 +15,10 @@ from typing import Any, Callable
 
 from django.apps import apps
 from django.conf import settings
+from django.core.cache import caches
 from django.core.exceptions import AppRegistryNotReady
 
-from .exceptions import AsyncConfigurationError
+from .exceptions import AsyncConfigurationError, SubmissionRejected, SubmissionUncertain
 
 from .types import BusinessOutcome, Completion, ExecutionRef, ManagerSpec, ResultLookup, TaskCall, TaskIdentity
 
@@ -31,6 +32,7 @@ class _SubmissionBinding:
     prepared: dict[str, Any]
     identity: TaskIdentity | None = None
     sync_failure: Completion | None = None
+    before_delivery: Callable[[TaskIdentity], None] | None = None
 
 
 _submission_binding: ContextVar[_SubmissionBinding | None] = ContextVar(
@@ -113,6 +115,16 @@ def _pre_enqueue(sender, task, **kwargs):
         return
     if task.get("name") not in (None, binding.call.task_key):
         return
+    try:
+        _prepare_delivery(binding, task, task_kwargs)
+    except SubmissionRejected:
+        raise
+    except Exception as exc:
+        raise SubmissionRejected(binding.call.task_key, str(exc)) from exc
+
+
+def _prepare_delivery(binding, task, task_kwargs):
+    """Bind a prepared q2 envelope before signing or delivery starts."""
     if "_coordinator_identity" in task_kwargs or "_coordinator_identity" in task:
         raise AsyncConfigurationError("_coordinator_identity is reserved for the coordinator.")
     task_id = task.get("id")
@@ -142,9 +154,11 @@ def _pre_enqueue(sender, task, **kwargs):
     from .state import put_identity
 
     config = CoordinatorConfig.from_snapshot(identity.coordination)
-    put_identity(config, identity)
+    put_identity(config, identity, require_new=binding.before_delivery is not None)
     binding.identity = identity
     task["_coordinator_identity"] = identity.to_mapping()
+    if binding.before_delivery is not None:
+        binding.before_delivery(identity)
 
 
 def _pre_execute(sender, task=None, func=None, **kwargs):
@@ -158,7 +172,7 @@ def _pre_execute(sender, task=None, func=None, **kwargs):
         from .config import CoordinatorConfig
         from .context import bind_task_context
         from .reconstruction import construct_manager
-        from .state import get_identity
+        from .state import get_identity, worker_started_key
 
         config = CoordinatorConfig.from_snapshot(identity.coordination)
         retained = get_identity(config, identity.task_key)
@@ -180,6 +194,12 @@ def _pre_execute(sender, task=None, func=None, **kwargs):
         )
         binding_record = [task_token, identity, manager, None]
         binding_record[3] = _worker_binding.set(binding_record)
+        try:
+            caches[config.cache_name].set(
+                worker_started_key(config, identity), True, timeout=config.progress_ttl
+            )
+        except Exception:
+            log.warning("Could not retain worker start for task %s", identity.task_key, exc_info=True)
     except Exception:
         log.exception("Could not reconstruct coordinator identity before q2 worker execution")
         raise
@@ -541,10 +561,14 @@ class Q2Adapter:
                     self._validate_option_value(name, source[name])
 
     def submit(
-        self, call: TaskCall, *, options: dict[str, Any] | None = None
+        self,
+        call: TaskCall,
+        *,
+        options: dict[str, Any] | None = None,
+        before_delivery: Callable[[TaskIdentity], None] | None = None,
     ) -> ExecutionRef:
         """Submit the original callable and arguments directly to q2."""
-        async_task_kwargs, q_options_clean, effective_options = self._prepared_submission(call, options)
+        async_task_kwargs, _, effective_options = self._prepared_submission(call, options)
 
         binding_token = None
         binding = None
@@ -578,21 +602,35 @@ class Q2Adapter:
                     "q2_result_cache": cache_name,
                     "locator_options": locator_options,
                 },
+                before_delivery=before_delivery,
             )
             binding_token = _submission_binding.set(binding)
         try:
             task_id = async_task(call.func, *call.args, **async_task_kwargs)
-        except BaseException:
+        except BaseException as exc:
             if binding is not None and binding.identity is not None and binding.sync_failure is not None:
                 try:
                     self.dispatch_completion_evidence(binding.identity, binding.sync_failure)
                 except Exception:
                     log.exception("Could not dispatch captured synchronous task failure")
+                raise
+            if binding is not None and isinstance(exc, Exception) and not isinstance(exc, SubmissionRejected):
+                raise SubmissionUncertain(call.task_key, "Background task submission could not be confirmed.") from exc
             raise
         finally:
             if binding_token is not None:
                 _restore_submission_worker_context(binding)
                 _submission_binding.reset(binding_token)
+        if binding is not None:
+            if binding.identity is None:
+                raise SubmissionUncertain(
+                    call.task_key, "q2 submission did not expose the task at pre_enqueue."
+                )
+            if not task_id or binding.identity.execution.id != str(task_id):
+                raise SubmissionUncertain(
+                    call.task_key, "q2 returned an execution identifier different from its pre_enqueue identity."
+                )
+            return binding.identity.execution
         # q2 applies q_options over individual values, while explicit task_name
         # remains authoritative. Preserve that effective route separately from
         # the original options dict passed unchanged into q2.
@@ -624,18 +662,7 @@ class Q2Adapter:
             "result_cache": self._effective_cluster_settings().get("cache", "default"),
             "options": locator_options,
         }
-        reference = ExecutionRef(id=str(task_id) if task_id else None, locator=locator)
-        if binding is not None:
-            if binding.identity is None:
-                raise AsyncConfigurationError(
-                    "q2 submission did not expose the task at pre_enqueue; identity was not retained."
-                )
-            if binding.identity.execution.id != reference.id:
-                raise AsyncConfigurationError(
-                    "q2 returned an execution identifier different from its pre_enqueue identity."
-                )
-            return binding.identity.execution
-        return reference
+        return ExecutionRef(id=str(task_id) if task_id else None, locator=locator)
 
     def to_completion(
         self, raw_task: object, *, task_key: str | None = None

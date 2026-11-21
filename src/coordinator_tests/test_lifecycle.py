@@ -11,6 +11,7 @@ from django.utils import timezone
 from coordinator_tests.managers import CoordinatorAsyncManager as AsyncManager
 from coordinator_tests.managers import CoordinatorTrackingManager as ModelTrackingAsyncManager
 from powercrud._coordinator.tracking import AsyncDashboardConfig
+from powercrud._coordinator.exceptions import SubmissionRejected, SubmissionUncertain
 from powercrud._coordinator.q2 import Q2Adapter
 from powercrud._coordinator.types import Completion, ExecutionRef, TaskIdentity
 from coordinator_tests.managers import coordinator_manager_factory
@@ -183,7 +184,7 @@ class TestTask3LaunchPattern(AsyncManagerTestMixin, TestCase):
             self.assertEqual(
                 lifecycle_kwargs["status"], self.async_manager.STATUSES.PENDING
             )
-            self.assertEqual(lifecycle_kwargs["message"], "Task queued")
+            self.assertEqual(lifecycle_kwargs["message"], "Preparing background task")
 
     def test_internal_launch_transports_snapshot_and_preserves_uuid_argument(self):
         """The core API carries reconstruction data without consuming worker args."""
@@ -270,8 +271,16 @@ class TestTask3LaunchPattern(AsyncManagerTestMixin, TestCase):
         # Test: Try to launch with overlapping conflict
         conflict_ids = {"myapp.Book": {1, 2, 4}}  # 2 conflicts with existing
 
-        with patch("powercrud._coordinator.q2.async_task") as mock_async_task:
-            with self.assertRaises(Exception) as cm:
+        deliver = Mock()
+
+        def prepare_then_deliver(*args, **kwargs):
+            """Represent the q2 boundary between preparation and delivery."""
+            execution_id = q2_submission("conflict-execution")(*args, **kwargs)
+            deliver()
+            return execution_id
+
+        with patch("powercrud._coordinator.q2.async_task", side_effect=prepare_then_deliver):
+            with self.assertRaises(SubmissionRejected) as cm:
                 self.async_manager.launch(
                     dummy_worker, conflict_ids=conflict_ids
                 )
@@ -279,8 +288,7 @@ class TestTask3LaunchPattern(AsyncManagerTestMixin, TestCase):
             # Verify exception message
             self.assertIn("conflicts detected", str(cm.exception))
 
-            # Verify async_task was NOT called (no enqueuing)
-            self.assertFalse(mock_async_task.called)
+            deliver.assert_not_called()
 
             # Verify no locks were created for the failed task
             lock_1 = self.async_manager.cache.get(
@@ -317,45 +325,66 @@ class TestTask3LaunchPattern(AsyncManagerTestMixin, TestCase):
         with self.assertRaisesRegex(AsyncConfigurationError, "explicitly selected manager"):
             AsyncManager.resolve_manager("non.existent.Manager")
 
-    def test_launch_rollback_on_enqueue_failure(self):
-        """Test cleanup when async_task() fails or returns falsy."""
+    def test_launch_distinguishes_rejection_from_uncertain_submission(self):
+        """A preparation rejection and an opaque q2 error leave different evidence."""
+        manager = self.async_manager
+        conflicts = {"myapp.Book": {10}}
+        lock_key = f"{manager.conflict_model_prefix}myapp.Book:10"
 
-        def dummy_worker():
-            return "should not run"
+        with patch("powercrud._coordinator.q2.async_task", side_effect=q2_submission(None)):
+            with self.assertRaisesRegex(SubmissionRejected, "did not prepare an execution identifier"):
+                manager.launch("worker", task_key="rejected", conflict_ids=conflicts)
+        self.assertIsNone(manager.cache.get(lock_key), "Rejection before preparation should acquire no lock")
 
-        conflict_ids = {"myapp.Book": {10, 11}}
+        with patch("powercrud._coordinator.q2.async_task", side_effect=RuntimeError("Opaque q2 error")):
+            with self.assertRaises(SubmissionUncertain) as raised:
+                manager.launch("worker", task_key="unobserved", conflict_ids=conflicts)
+        self.assertIsInstance(raised.exception.__cause__, RuntimeError, "Keep the original submission cause")
+        self.assertIsNone(manager.cache.get(lock_key), "Unobserved preparation should acquire no lock")
 
-        # Test 1: async_task raises exception
-        with patch("powercrud._coordinator.q2.async_task") as mock_async_task:
-            mock_async_task.side_effect = Exception("Enqueue failed!")
+    def test_uncertain_submission_preserves_reservations_and_prefers_worker_evidence(self):
+        """A failed acknowledgement cannot clean up work the broker might deliver."""
+        manager = self.async_manager
+        task_key = "uncertain-submit"
+        conflicts = {"myapp.Book": {10}}
+        prepare = q2_submission("uncertain-execution")
 
-            with self.assertRaises(Exception) as cm:
-                self.async_manager.launch(
-                    dummy_worker, conflict_ids=conflict_ids
-                )
+        def deliver_with_lost_ack(*args, **kwargs):
+            """Fire pre-enqueue then simulate an opaque broker exception."""
+            prepare(*args, **kwargs)
+            raise RuntimeError("Acknowledgement lost")
 
-            self.assertIn("Failed to enqueue async task", str(cm.exception))
+        with patch("powercrud._coordinator.q2.async_task", side_effect=deliver_with_lost_ack) as submit:
+            with self.assertRaises(SubmissionUncertain):
+                manager.launch("worker", task_key=task_key, conflict_ids=conflicts)
+        submit.assert_called_once()
+        self.assertTrue(manager.is_active_task(task_key), "Uncertain launches must remain tracked")
+        self.assertEqual(manager.check_conflict(conflicts), {10}, "Uncertain submission must retain its lock")
+        self.assertEqual(manager.get_task_observation(task_key)["reason"], "submission_uncertain")
+        manager.update_progress(task_key, "Worker reached")
+        self.assertEqual(manager.get_task_observation(task_key)["status"], "in_progress")
 
-            # Verify rollback: no conflict locks
-            lock_10 = self.async_manager.cache.get(
-                "powercrud:conflict:model:myapp.Book:10"
+        with patch("powercrud._coordinator.q2.async_task", side_effect=prepare):
+            with self.assertRaisesRegex(SubmissionRejected, "already has a retained identity"):
+                manager.launch("worker", task_key=task_key, conflict_ids={"myapp.Book": {11}})
+        self.assertEqual(manager.check_conflict({"myapp.Book": {10, 11}}), {10})
+        self.assertEqual(manager.get_progress(task_key), "Worker reached")
+
+    def test_sync_failure_remains_terminal_after_launch_raises(self):
+        """The full launch API must preserve the q2 worker exception and cleanup."""
+        manager = self.async_manager
+        task_key = "sync-launch-failure"
+        with self.assertRaisesRegex(RuntimeError, "sync launch business exception"):
+            manager.launch(
+                "coordinator_tests.workers.raise_task_exception",
+                "sync launch business exception",
+                task_key=task_key,
+                execution_options={"sync": True},
+                conflict_ids={"myapp.Book": {12}},
             )
-            lock_11 = self.async_manager.cache.get(
-                "powercrud:conflict:model:myapp.Book:11"
-            )
-            self.assertIsNone(lock_10)
-            self.assertIsNone(lock_11)
-
-        # Test 2: async_task returns falsy
-        with patch("powercrud._coordinator.q2.async_task") as mock_async_task:
-            mock_async_task.side_effect = q2_submission(None)  # Falsy return
-
-            with self.assertRaises(Exception) as cm:
-                self.async_manager.launch(
-                    dummy_worker, conflict_ids=conflict_ids
-                )
-
-            self.assertIn("did not prepare an execution identifier", str(cm.exception))
+        self.assertEqual(manager.get_task_observation(task_key)["status"], "failed")
+        self.assertFalse(manager.is_active_task(task_key), "Terminal cleanup must survive launch return")
+        self.assertEqual(manager.check_conflict({"myapp.Book": {12}}), set())
 
     def test_task_key_consistency(self):
         """Test task_key flows consistently through all phases."""
@@ -661,8 +690,8 @@ class TestTask3EndToEndIntegration(AsyncManagerTestMixin, TestCase):
         final_progress = progress_messages[-1]
         self.assertEqual(
             final_progress,
-            "pending",
-            "C4 owns late active/progress registration after explicit synchronous execution.",
+            "Processing completed",
+            "Late launch registration must preserve synchronous worker progress.",
         )
 
 class TestProgressPolling(AsyncManagerTestMixin, TestCase):

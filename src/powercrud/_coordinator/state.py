@@ -39,6 +39,16 @@ def dispatch_key(config: CoordinatorConfig, task_key: str, execution_id: str) ->
     return f"{identity_key(config, task_key)}:dispatch:{execution_id}"
 
 
+def submission_key(config: CoordinatorConfig, task_key: str, execution_id: str | None) -> str:
+    """Return a submission-only key scoped to the execution when available."""
+    return f"{identity_key(config, task_key)}:submission:{execution_id or ''}"
+
+
+def worker_started_key(config: CoordinatorConfig, identity: TaskIdentity) -> str:
+    """Return the key for evidence that the retained task reached the worker."""
+    return f"{identity_key(config, identity.task_key)}:started:{identity.execution.id}"
+
+
 def claim_completion_dispatch(
     config: CoordinatorConfig, identity: TaskIdentity, *, claimed_at: datetime
 ) -> bool:
@@ -79,7 +89,9 @@ def _read_retention(config: CoordinatorConfig, task_key: str, execution_id: str)
     return marker
 
 
-def put_identity(config: CoordinatorConfig, identity: TaskIdentity) -> TaskIdentity:
+def put_identity(
+    config: CoordinatorConfig, identity: TaskIdentity, *, require_new: bool = False
+) -> TaskIdentity:
     """Create a task identity once and reject conflicting retained values."""
     mapping = identity.to_mapping()
     TaskIdentity.from_mapping(mapping)
@@ -92,6 +104,8 @@ def put_identity(config: CoordinatorConfig, identity: TaskIdentity) -> TaskIdent
     cache = caches[config.cache_name]
     key = identity_key(config, identity.task_key)
     created = cache.add(key, mapping, timeout=None)
+    if require_new and not created:
+        raise RuntimeError(f"Task key {identity.task_key!r} already has a retained identity")
     existing = cache.get(key)
     if existing is None:
         raise RuntimeError(f"Task identity could not be retained at {key!r}")
