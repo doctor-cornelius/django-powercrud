@@ -385,16 +385,40 @@ class TestAsyncCompatibility(TestCase):
                 )
         enqueue.assert_not_called()
 
-    def test_all_falsey_enqueue_ids_roll_back_legacy_launch(self):
-        """Adapter translation must not turn an enqueue failure into a truthy ID."""
+    def test_falsey_preparation_ids_reject_legacy_launch_before_reserving(self):
+        """An invalid ID in a prepared q2 envelope fails before cache reservation."""
+        from powercrud._coordinator.exceptions import SubmissionRejected
+
         manager = AsyncManager()
         for execution_id in (None, "", False, 0):
             with self.subTest(execution_id=execution_id), patch("powercrud._coordinator.q2.async_task", side_effect=_capturing_q2_submit(execution_id)):
-                with self.assertRaisesRegex(Exception, "execution identifier|Failed to enqueue"):
+                with self.assertRaisesRegex(SubmissionRejected, "execution identifier"):
                     manager.launch_async_task("worker", task_key="rejected", conflict_ids={"sample.Book": {987654}})
                 self.assertIsNone(manager.get_progress("rejected"), "Failed enqueue must remove progress")
                 self.assertNotIn("rejected", manager.get_active_tasks(), "Failed enqueue must not register active work")
-                self.assertIsNone(manager.cache.get(f"{manager.conflict_model_prefix}sample.Book:987654"), "Failed enqueue must release its reservation")
+                self.assertIsNone(manager.cache.get(f"{manager.conflict_model_prefix}sample.Book:987654"), "Rejection must precede reservation")
+
+    def test_falsey_or_mismatched_return_preserves_legacy_launch_state(self):
+        """A valid prepared envelope may already have been delivered when q2 returns."""
+        from powercrud._coordinator.exceptions import SubmissionUncertain
+
+        manager = AsyncManager()
+        for index, returned in enumerate((None, "", False, 0, "different-id")):
+            task_key = manager.generate_task_name()
+            conflicts = {"sample.Book": {987660 + index}}
+            prepare = _capturing_q2_submit(f"prepared-{index}")
+
+            def submit(*args, **kwargs):
+                """Prepare the real envelope before substituting the q2 return value."""
+                prepare(*args, **kwargs)
+                return returned
+
+            with self.subTest(returned=returned), patch("powercrud._coordinator.q2.async_task", side_effect=submit):
+                with self.assertRaises(SubmissionUncertain):
+                    manager.launch_async_task("worker", task_key=task_key, conflict_ids=conflicts)
+                self.assertTrue(manager.is_active_task(task_key), "A possibly accepted task stays active")
+                self.assertEqual(manager.check_conflict(conflicts), conflicts["sample.Book"])
+                self.assertEqual(manager.get_task_observation(task_key)["reason"], "submission_uncertain")
 
     def test_qcluster_settings_are_lazy_and_assignment_stays_local(self):
         """Ordinary construction must defer queue settings and preserve assignment."""

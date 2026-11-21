@@ -1,5 +1,6 @@
 import json
 
+from django.db import router, transaction
 from django.core.exceptions import ImproperlyConfigured
 from django.http import HttpResponse, HttpResponseForbidden, HttpResponseServerError
 from typing import List, Tuple
@@ -9,6 +10,7 @@ from django.urls import reverse
 from ..async_manager import AsyncManager
 from ..async_manager import AsyncConfigurationError
 from ..async_manager import AsyncDisabledError
+from .._coordinator.exceptions import SubmissionRejected, SubmissionUncertain
 from powercrud.conf import DEFAULTS, get_powercrud_setting
 from .._coordinator.q2 import Q2Adapter
 from powercrud.logging import get_logger
@@ -447,102 +449,102 @@ class AsyncMixin:
         model_name = f"{self.model._meta.app_label}.{self.model._meta.model_name}"
         conflict_ids = {model_name: set(map(int, selected_ids))}
 
-        # Prepare task arguments
-        model_path = f"{self.model._meta.app_label}.{self.model.__name__}"
-        user_id = user.id if user else None
-        worker_field_data = (
-            []
-            if delete_selected
-            else self._prepare_async_bulk_field_data(field_data)
-        )
-
-        # Generate task_name BEFORE calling launch_async_task
         task_name = async_manager.generate_task_name()
+        selected_ids = list(selected_ids)
 
         try:
+            model_path = f"{self.model._meta.app_label}.{self.model.__name__}"
+            user_id = user.id if user else None
+            task_args = (model_path, selected_ids, user_id)
+            task_kwargs = {
+                "task_key": task_name,
+                "conflict_ids": conflict_ids,
+                "user": user,
+                "affected_objects": f"{len(selected_ids)} {self.model._meta.verbose_name_plural}",
+                "manager_class": f"{type(async_manager).__module__}.{type(async_manager).__qualname__}",
+                "manager_config": async_manager.export_manager_config(),
+            }
             if delete_selected:
-                log.info(
-                    f"Launching async bulk delete task for {len(selected_ids)} records"
-                )
-                # Launch delete task using new AsyncManager
-                async_manager.launch_async_task(
-                    "powercrud.tasks.bulk_delete_task",  # positional arg 1
-                    model_path,  # positional arg 2
-                    selected_ids,  # positional arg 3
-                    user_id,  # positional arg 4
-                    task_key=task_name,
-                    # django-q2 specific params as kwargs
-                    conflict_ids=conflict_ids,
-                    user=user,
-                    affected_objects=f"{len(selected_ids)} {self.model._meta.verbose_name_plural}",
-                    manager_class=f"{type(async_manager).__module__}.{type(async_manager).__qualname__}",
-                    manager_config=async_manager.export_manager_config(),
-                )
+                worker = "powercrud.tasks.bulk_delete_task"
             else:
-                log.info(
-                    f"Launching async bulk update task for {len(selected_ids)} records"
+                worker = "powercrud.tasks.bulk_update_task"
+                task_args += (
+                    list(bulk_fields),
+                    list(fields_to_update),
+                    self._prepare_async_bulk_field_data(field_data),
                 )
-                # Launch update task using new AsyncManager
-                async_manager.launch_async_task(
-                    "powercrud.tasks.bulk_update_task",  # positional arg 1
-                    model_path,  # positional arg 2
-                    selected_ids,  # positional arg 3
-                    user_id,  # positional arg 4
-                    bulk_fields,  # positional arg 5
-                    fields_to_update,  # positional arg 6
-                    worker_field_data,  # positional arg 7
-                    task_key=task_name,
-                    # django-q2 specific params as kwargs
-                    conflict_ids=conflict_ids,
-                    user=user,
-                    affected_objects=f"{len(selected_ids)} {self.model._meta.verbose_name_plural}",
-                    manager_class=f"{type(async_manager).__module__}.{type(async_manager).__qualname__}",
-                    manager_config=async_manager.export_manager_config(),
-                    bulk_update_persistence_backend_path=(
-                        self.get_bulk_update_persistence_backend_path()
-                        if hasattr(self, "get_bulk_update_persistence_backend_path")
-                        else getattr(self, "bulk_update_persistence_backend_path", None)
-                    ),
-                    bulk_update_persistence_backend_config=(
-                        self.get_bulk_update_persistence_backend_config()
-                        if hasattr(self, "get_bulk_update_persistence_backend_config")
-                        else getattr(
-                            self,
-                            "bulk_update_persistence_backend_config",
-                            None,
-                        )
-                    ),
-                )
-            # Success - return response with task_key for progress polling
-            return self.async_queue_success(request, task_name, selected_ids)
+                for option in (
+                    "bulk_update_persistence_backend_path",
+                    "bulk_update_persistence_backend_config",
+                ):
+                    getter = getattr(self, f"get_{option}", None)
+                    task_kwargs[option] = getter() if getter else getattr(self, option, None)
 
-        except Exception as e:
-            log.error(f"Failed to launch async task: {e}")
-            return self.async_queue_failure(request, error=e, selected_ids=selected_ids)
+            def submit_bulk_operation():
+                """Launch the prepared call on the original request thread."""
+                async_manager.launch_async_task(worker, *task_args, **task_kwargs)
 
-    def async_queue_success(
-        self, request, task_name: str, selected_ids: List[int]
-    ):  # pragma: no cover
-        """
-        Processes successful async task queueing using new AsyncManager system.
-        Clears selection and returns success response with task_name for progress polling.
+            def submit_after_commit():
+                """Report a callback failure through progress once the response exists."""
+                try:
+                    submit_bulk_operation()
+                except (SubmissionRejected, AsyncConfigurationError):
+                    log.exception("Deferred launch rejected for task %s", task_name)
+                    async_manager._record_submission_issue(task_name, "rejected")
+                except Exception:
+                    log.exception("Deferred launch could not be confirmed for task %s", task_name)
+                    async_manager._record_submission_issue(task_name, "uncertain")
 
-        Can be overridden to customize or extend success handling.
-        """
+            database_alias = router.db_for_read(self.model)
+            connection = transaction.get_connection(using=database_alias)
+            if connection.in_atomic_block:
+                response = self.async_queue_waiting_for_commit(request, task_name, selected_ids)
+                transaction.on_commit(submit_after_commit, using=database_alias)
+                return response
+            submit_bulk_operation()
+        except SubmissionUncertain:
+            async_manager._record_submission_issue(task_name, "uncertain")
+            return self._render_async_queue_progress(
+                request,
+                task_name,
+                selected_ids,
+                submission_message="Submission could not be confirmed. Check this task’s status before trying again.",
+            )
+        except Exception as exc:
+            return self.async_queue_failure(request, error=exc, selected_ids=selected_ids)
+
+        return self.async_queue_success(request, task_name, selected_ids)
+
+    def async_queue_success(self, request, task_name: str, selected_ids: List[int]):
+        """Clear selection and render progress for a confirmed submission."""
         self.clear_selection_from_session(request)
+        response = self._render_async_queue_progress(request, task_name, selected_ids)
+        response["HX-Trigger"] = json.dumps(
+            {
+                "bulkEditQueued": True,
+                "taskName": task_name,
+                "message": f"Processing {len(selected_ids)} records in background.",
+            }
+        )
+        return response
 
-        # Return async success response with task_name for progress polling
+    def async_queue_waiting_for_commit(self, request, task_name, selected_ids):
+        """Render progress before deferred submission."""
+        return self._render_async_queue_progress(
+            request,
+            task_name,
+            selected_ids,
+            submission_message="Waiting to submit after the database commits.",
+        )
+
+    def _render_async_queue_progress(self, request, task_name, selected_ids, *, submission_message=None):
+        """Render the existing progress component with the current submission message."""
         template = get_template_name(
             resolve_config(self), "bulk_edit_form.html#async_queue_success"
         )
-        progress_url = reverse("powercrud:async_progress")
         modal_context_getter = getattr(self, "get_modal_context", None)
-        modal_context = (
-            modal_context_getter() if callable(modal_context_getter) else {}
-        )
-        component_context_getter = getattr(
-            self, "get_bulk_form_component_context", None
-        )
+        modal_context = modal_context_getter() if callable(modal_context_getter) else {}
+        component_context_getter = getattr(self, "get_bulk_form_component_context", None)
         component_context = (
             component_context_getter() if callable(component_context_getter) else {}
         )
@@ -553,19 +555,13 @@ class AsyncMixin:
                 "task_name": task_name,
                 "selected_count": len(selected_ids),
                 "model_name_plural": self.model._meta.verbose_name_plural,
-                "progress_url": progress_url,
+                "progress_url": reverse("powercrud:async_progress"),
                 **component_context,
                 **modal_context,
+                "submission_message": submission_message,
             },
         )
         response["HX-ReTarget"] = self.get_modal_target()
-        response["HX-Trigger"] = json.dumps(
-            {
-                "bulkEditQueued": True,
-                "taskName": task_name,
-                "message": f"Processing {len(selected_ids)} records in background.",
-            }
-        )
         return response
 
     def async_queue_failure(

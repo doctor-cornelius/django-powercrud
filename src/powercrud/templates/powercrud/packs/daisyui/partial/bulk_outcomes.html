@@ -32,11 +32,13 @@
     </div>
 {% elif bulk_outcome == "queued" %}
     <div class="p-4 text-center" data-powercrud-bulk-outcome="queued">
-        <h2 id="async-status-heading" class="text-xl font-bold mb-4">Bulk Operation Queued</h2>
+        <h2 id="async-status-heading" class="text-xl font-bold mb-4">{% if submission_message %}Bulk Operation Status{% else %}Bulk Operation Queued{% endif %}</h2>
+        {% if not submission_message %}
         <p class="text-lg mb-4">{{ message }}</p>
         <p class="text-sm text-base-content/70 mb-4">
             Your bulk operation is being processed in the background.
         </p>
+        {% endif %}
         <div id="progress-container">
             <div id="progress-display"
                  hx-get="{{ progress_url }}"
@@ -49,7 +51,7 @@
                  data-powercrud-pack="daisyui"
                  class="mb-4 p-4 bg-base-200 rounded-box">
                 <div class="loading loading-spinner loading-lg mx-auto"></div>
-                <p class="mt-2">Starting...</p>
+                <p class="mt-2">{{ submission_message|default:"Starting..." }}</p>
             </div>
         </div>
         <button type="button" class="btn btn-outline" onclick="document.getElementById('{{ modal_id|default:'powercrudBaseModal' }}').close()">

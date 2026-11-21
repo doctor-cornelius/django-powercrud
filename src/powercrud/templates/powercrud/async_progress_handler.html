@@ -23,6 +23,7 @@
     }
 
     function reasonText(data) {
+        if (data.message) return data.message;
         const reason = data.reason || 'No reliable task status is available.';
         return `Status currently unavailable. ${reason}`;
     }
@@ -62,12 +63,18 @@
 
     function consume(element, data) {
         const state = stateFor(element);
+        if (data.reason === 'submission_rejected') {
+            state.stopped = true;
+            if (state.timer) window.clearTimeout(state.timer);
+            write(element, data.message, 'alert alert-danger mb-0');
+            return;
+        }
         if (data.status === 'unknown') {
             if (state.unknownSince === null) state.unknownSince = performance.now();
             if (data.polling_stopped || performance.now() - state.unknownSince >= limitMs) {
                 showUnknown(element, state, data);
             } else {
-                write(element, data.progress || 'Checking task status…');
+                write(element, data.message || data.progress || 'Checking task status…');
             }
             return;
         }
@@ -101,10 +108,10 @@
         }
         if (data.status === 'pending') {
             state.terminal = false;
-            write(element, data.progress || 'Preparing asynchronous job…');
+            write(element, data.message || data.progress || 'Preparing asynchronous job…');
             return;
         }
-        write(element, data.progress || 'In progress…');
+        write(element, data.progress || data.message || 'In progress…');
         state.terminal = false;
     }
 

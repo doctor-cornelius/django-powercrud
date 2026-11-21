@@ -2,16 +2,21 @@ from __future__ import annotations
 
 import json
 import pickle
+from concurrent.futures import ThreadPoolExecutor
 from datetime import date
 from types import SimpleNamespace
 
 import pytest
+from django.db import connections, transaction
 from django.contrib.sessions.middleware import SessionMiddleware
 from django.http import HttpResponse
 from django.template.loader import render_to_string
-from django.test import RequestFactory
+from django.test import RequestFactory, TestCase
 
 from powercrud.mixins.async_mixin import AsyncMixin
+from powercrud.async_manager import AsyncManager
+from powercrud._coordinator.exceptions import SubmissionRejected, SubmissionUncertain
+from powercrud._coordinator.views import progress_view
 from powercrud.mixins.bulk_mixin.metadata_mixin import MetadataMixin
 from powercrud.mixins.bulk_mixin.operation_mixin import OperationMixin
 from powercrud.mixins.bulk_mixin.selection_mixin import SelectionMixin
@@ -532,28 +537,29 @@ def test_async_bulk_update_submits_pickle_safe_field_metadata(rf, monkeypatch):
     monkeypatch.setattr(view, "get_bulk_async_backend", lambda: "q2")
     monkeypatch.setattr(view, "_check_for_conflicts", lambda selected_ids: False)
     monkeypatch.setattr(
-        view, "async_queue_success", lambda request, task_name, ids: "queued"
+        view, "async_queue_waiting_for_commit", lambda request, task_name, ids: "deferred"
     )
 
-    response = view._handle_async_bulk_operation(
-        request,
-        [book.pk],
-        delete_selected=False,
-        bulk_fields=["author"],
-        fields_to_update=["author"],
-        field_data=[
-            {
-                "field": "author",
-                "value": str(author.pk),
-                "info": field_info,
-                "m2m_action": None,
-                "m2m_values": [],
-            }
-        ],
-    )
+    with TestCase.captureOnCommitCallbacks(execute=True):
+        response = view._handle_async_bulk_operation(
+            request,
+            [book.pk],
+            delete_selected=False,
+            bulk_fields=["author"],
+            fields_to_update=["author"],
+            field_data=[
+                {
+                    "field": "author",
+                    "value": str(author.pk),
+                    "info": field_info,
+                    "m2m_action": None,
+                    "m2m_values": [],
+                }
+            ],
+        )
 
     worker_field_data = captured["args"][6]
-    assert response == "queued"
+    assert response == "deferred", "The launch response must acknowledge the open transaction."
     assert "control" in field_info, "The display metadata should include its BoundField."
     assert "control" not in worker_field_data[0]["info"], (
         "Async worker metadata must omit the BoundField and its template renderer."
@@ -573,6 +579,89 @@ def test_async_bulk_update_submits_pickle_safe_field_metadata(rf, monkeypatch):
     assert result["success"], "The sanitized worker metadata should still apply the update."
     assert book.author_id == author.pk, "Relation values should resolve from the model field."
 
+
+@pytest.mark.django_db(transaction=True)
+@pytest.mark.parametrize("delete_selected", [False, True])
+@pytest.mark.parametrize("outcome", ["commit", "rollback", "savepoint", "rejected", "uncertain"])
+def test_bulk_submission_runs_only_after_commit(rf, monkeypatch, delete_selected, outcome):
+    """Exercise real commit and savepoint boundaries with a separate reader connection."""
+    request = make_htmx_request(rf, method="post")
+    request.user = SimpleNamespace(id=1, is_anonymous=False)
+    view = HarnessView(request)
+    manager = AsyncManager()
+    task_key = manager.generate_task_name()
+    alias = Book.objects.db
+    observed = []
+    registered_aliases = []
+    on_commit = transaction.on_commit
+
+    def register(callback, *, using):
+        """Record the alias without replacing Django's real callback handling."""
+        registered_aliases.append(using)
+        on_commit(callback, using=using)
+
+    def read_title(pk):
+        """Use a separate database connection to model a worker's read."""
+        try:
+            return Book.objects.using(alias).get(pk=pk).title
+        finally:
+            connections[alias].close()
+
+    def submit(worker, model_path, selected_ids, *args, task_key, **kwargs):
+        """Capture committed input when the view actually calls the launch API."""
+        with ThreadPoolExecutor(max_workers=1) as pool:
+            title = pool.submit(read_title, selected_ids[0]).result(timeout=5)
+        observed.append((worker, title))
+        if outcome == "rejected":
+            raise SubmissionRejected(task_key, "Preparation refused")
+        if outcome == "uncertain":
+            raise SubmissionUncertain(task_key, "Acknowledgement lost")
+
+    monkeypatch.setattr(view, "get_async_manager", lambda: manager)
+    monkeypatch.setattr(view, "_validate_async_manager", lambda manager: None)
+    monkeypatch.setattr(manager, "launch_async_task", submit)
+    monkeypatch.setattr(manager, "generate_task_name", lambda: task_key)
+    monkeypatch.setattr(transaction, "on_commit", register)
+
+    with transaction.atomic(using=alias):
+        with transaction.atomic(using=alias):
+            author = Author.objects.create(name="Bulk commit author")
+            book = Book.objects.create(
+                title="Committed bulk input", author=author, published_date=date(2024, 1, 1),
+                isbn="4444444444444", pages=20,
+            )
+            response = view._handle_async_bulk_operation(
+                request, [book.pk], delete_selected, [], [], [],
+            )
+            assert b"Waiting to submit after the database commits." in response.content, (
+                "The response must acknowledge deferred submission."
+            )
+            assert b"Bulk Operation Queued" not in response.content, "A deferred launch is not yet queued."
+            assert "HX-Trigger" not in response, "Only a confirmed inline launch emits the queued event."
+            assert not observed, "The worker cannot receive the task before commit."
+            if outcome == "savepoint":
+                transaction.set_rollback(True, using=alias)
+        assert not observed, "A released savepoint is not an outer commit."
+        if outcome == "rollback":
+            transaction.set_rollback(True, using=alias)
+
+    assert registered_aliases == [alias], "Register the callback on the worker's data connection."
+    if outcome in {"rollback", "savepoint"}:
+        assert not observed, "Rollback must discard the launch callback."
+        assert manager.get_task_identity(task_key) is None, "Rollback leaves no execution identity."
+        assert manager.get_progress(task_key) is None, "Rollback leaves no progress entry."
+        return
+    worker = "bulk_delete_task" if delete_selected else "bulk_update_task"
+    assert observed == [(f"powercrud.tasks.{worker}", "Committed bulk input")], (
+        "The submission must run once and a separate reader must see the committed row."
+    )
+    if outcome in {"rejected", "uncertain"}:
+        poll = progress_view(manager_factory=lambda: manager)(rf.get("/", {"task_name": task_key}))
+        result = json.loads(poll.content)
+        assert result["reason"] == f"submission_{outcome}", "Deferred errors must reach progress."
+        assert result["terminal"] is False, "Submission evidence must not imply an execution outcome."
+        expected_status = 286 if outcome == "rejected" else 200
+        assert poll.status_code == expected_status, "Only definite rejection should stop polling immediately."
 
 @pytest.mark.django_db
 def test_bulk_edit_process_post_update_error(rf, fake_render):
@@ -787,6 +876,15 @@ def test_bulk_form_and_fields_components_preserve_script_free_contract(rf):
             {"task_name": "task-1", "progress_url": "/progress/", "modal_id": "bulkModal"},
             "Bulk Operation Queued",
         ),
+        (
+            "queued",
+            {
+                "task_name": "task-1",
+                "progress_url": "/progress/",
+                "submission_message": "Waiting to submit after the database commits.",
+            },
+            "Waiting to submit after the database commits.",
+        ),
     ],
 )
 def test_bulk_outcomes_component_renders_shared_async_progress_handler(mode, context, expected):
@@ -797,6 +895,8 @@ def test_bulk_outcomes_component_renders_shared_async_progress_handler(mode, con
     )
 
     assert expected in rendered, "The selected bulk outcome should render its supplied feedback."
+    if context.get("submission_message"):
+        assert "Bulk Operation Queued" not in rendered, "Unconfirmed submissions must use neutral wording."
     if mode == "queued":
         assert 'hx-get="/progress/"' in rendered and '"task_name": "task-1"' in rendered, (
             "Queued outcomes should retain declarative progress polling context."

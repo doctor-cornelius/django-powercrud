@@ -87,6 +87,22 @@ pytestmark = pytest.mark.skipif(
 )
 
 
+def test_bootstrap_bulk_progress_uses_neutral_submission_copy():
+    """A deferred launch uses the common progress component without claiming enqueue."""
+    rendered = render_to_string(
+        f"{BOOTSTRAP_NAMESPACE}/partial/bulk_outcomes.html",
+        {
+            "bulk_outcome": "queued",
+            "task_name": "waiting-task",
+            "progress_url": "/progress/",
+            "submission_message": "Waiting to submit after the database commits.",
+        },
+    )
+    assert "Waiting to submit after the database commits." in rendered, "Show the actual submission state."
+    assert "Bulk Operation Queued" not in rendered, "Defer any claim that the broker accepted the task."
+    assert 'hx-get="/progress/"' in rendered, "Keep polling the existing progress endpoint."
+
+
 def test_bootstrap_blocked_inline_cells_keep_their_cell_tooltips():
     """Blocked Bootstrap inline cells should use their own tooltip metadata."""
     rendered = render_to_string(
