@@ -364,11 +364,22 @@ class TestTask3LaunchPattern(AsyncManagerTestMixin, TestCase):
         manager.update_progress(task_key, "Worker reached")
         self.assertEqual(manager.get_task_observation(task_key)["status"], "in_progress")
 
-        with patch("powercrud._coordinator.q2.async_task", side_effect=prepare):
-            with self.assertRaisesRegex(SubmissionRejected, "already has a retained identity"):
+        with patch("powercrud._coordinator.q2.async_task", side_effect=prepare) as duplicate:
+            with self.assertRaisesRegex(SubmissionRejected, "already has launch state"):
                 manager.launch("worker", task_key=task_key, conflict_ids={"myapp.Book": {11}})
+        duplicate.assert_not_called()
         self.assertEqual(manager.check_conflict({"myapp.Book": {10, 11}}), {10})
         self.assertEqual(manager.get_progress(task_key), "Worker reached")
+
+    def test_duplicate_identity_is_rejected_even_without_live_state(self):
+        """Retained identity prevents reuse after live cache entries disappear."""
+        task_key = "retained-only"
+        identity = self._retain_identity(task_key, "existing-execution")
+        with patch("powercrud._coordinator.q2.async_task", side_effect=q2_submission("new-execution")):
+            with self.assertRaisesRegex(SubmissionRejected, "already has a retained identity"):
+                self.async_manager.launch("worker", task_key=task_key)
+        self.assertEqual(self.async_manager.get_task_identity(task_key), identity)
+        self.assertFalse(self.async_manager.is_active_task(task_key), "The rejected duplicate must leave no active entry")
 
     def test_sync_failure_remains_terminal_after_launch_raises(self):
         """The full launch API must preserve the q2 worker exception and cleanup."""
@@ -385,6 +396,22 @@ class TestTask3LaunchPattern(AsyncManagerTestMixin, TestCase):
         self.assertEqual(manager.get_task_observation(task_key)["status"], "failed")
         self.assertFalse(manager.is_active_task(task_key), "Terminal cleanup must survive launch return")
         self.assertEqual(manager.check_conflict({"myapp.Book": {12}}), set())
+
+    def test_sync_success_keeps_completion_cleanup(self):
+        """Run q2's inline worker and monitor before the launch API returns."""
+        manager = self.async_manager
+        task_key = "sync-launch-success"
+        returned = manager.launch(
+            "coordinator_tests.workers.signal_context_worker",
+            "completed",
+            task_key=task_key,
+            execution_options={"sync": True, "save": False},
+        )
+        self.assertEqual(returned, task_key, "The public API must still return its logical key")
+        observation = manager.get_task_observation(task_key)
+        self.assertEqual(observation["status"], "success", "Launch return must preserve the inline outcome")
+        self.assertFalse(manager.is_active_task(task_key), "Launch return must preserve monitor cleanup")
+        self.assertIsNone(manager.get_progress(task_key), "Launch return must not restore pending progress")
 
     def test_task_key_consistency(self):
         """Test task_key flows consistently through all phases."""

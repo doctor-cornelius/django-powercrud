@@ -538,6 +538,12 @@ class AsyncManager:
         conflict_ids = call.conflict_ids
         options = dict(options or call.execution_options)
         self.validate_async_configuration(call=call, options=options)
+        if (
+            self.is_active_task(task_name)
+            or self.get_progress(task_name) is not None
+            or self.cache.get(f"{self.conflict_prefix}{task_name}") is not None
+        ):
+            raise SubmissionRejected(task_name, "The task key already has launch state.")
         worker_kwargs = dict(call.kwargs)
         worker_kwargs.setdefault("task_key", task_name)
         prepared_identity = None
@@ -545,12 +551,6 @@ class AsyncManager:
         def register_before_delivery(identity):
             """Publish initial launch state before q2 can deliver the task."""
             nonlocal prepared_identity
-            if (
-                self.is_active_task(task_name)
-                or self.get_progress(task_name) is not None
-                or self.cache.get(f"{self.conflict_prefix}{task_name}") is not None
-            ):
-                raise SubmissionRejected(task_name, "The task key already has launch state.")
             if conflict_ids and not self.add_conflict_ids(task_name, conflict_ids):
                 raise SubmissionRejected(
                     task_name, "Cannot launch task - conflicts detected with existing operations"
