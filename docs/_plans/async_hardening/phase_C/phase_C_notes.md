@@ -1,6 +1,6 @@
 # Phase C notes: Configuration and lifecycle hardening
 
-Initial discussion draft prepared on 2026-11-07. The [phase plan](phase_C_plan.md) proposes reviewable increments. C1–C3 are complete. C2.1 static feasibility, C2.2 implementation planning, and C2.3–C2.8 implementation and verification were completed on 2026-11-11. C3 implementation and verification were completed on 2026-11-11. C4–C7 remain unstarted.
+Initial discussion draft prepared on 2026-11-07. The [phase plan](phase_C_plan.md) records the increments. C1–C4 are complete. C2.1 static feasibility, C2.2 implementation planning, and C2.3–C2.8 implementation and verification were completed on 2026-11-11. C3 implementation and verification were completed on 2026-11-11. C4 implementation and verification were completed on 2026-11-21. C5–C7 remain unstarted.
 
 ## Scope and sources of truth
 
@@ -184,6 +184,15 @@ Completion-path evidence covers actual q2 synchronous signing/worker/monitor beh
 Establish identity/reservations/initial lifecycle evidence before delivery can trigger worker progress or completion. Pending cannot claim accepted queue submission prematurely. Attaching a returned execution reference or emitting a late event must preserve an already observed terminal outcome. Exercise explicit sync success and exceptions after work starts, alongside fast separate-worker completion.
 
 Classify definitely rejected and uncertain submission honestly. Rollback may remove only reservations owned by that launch; uncertain submission must not cause blind retry or unsafe release. Inspect actual caller transactions and use `transaction.on_commit` where inputs need successful commit, with rollback-no-submit and saved-data visibility checks. Existing committed-input callers can submit immediately. No outbox, new public helper, or extra persistent status model is presumed necessary.
+
+#### C4 implementation and verification
+
+- Launch preparation now retains the execution identity and registers active state, initial progress, and the `create` event before q2 can deliver. That event describes preparation. A returned ID confirms the retained execution without rewriting progress or lifecycle state. Existing live cache entries and retained identities block task-key reuse. [C4 audit](c4_audit_results.md)
+- Explicit preparation failures report rejection. Opaque q2 errors and missing or mismatched return IDs report uncertainty, preserve coordination state, and trigger zero retries. Synchronous worker exceptions preserve their original exception and recorded execution outcome. The launcher performs no blanket cleanup by task key. If reservation fails after the identity is retained, the failed attempt can leave that identity behind for C6. C5 owns replacement-owner safety within the existing reservation routine.
+- Built-in bulk update and delete defer the entire launch on the worker model's read database alias when that connection is inside an atomic block. The response keeps selection and shows progress without announcing queue acceptance. Deferred rejection stops polling with a submission message. Uncertainty uses the existing bounded polling and manual refresh. Submission observations expire with the progress TTL and yield to worker-start, progress, or terminal evidence.
+- The isolated q2 test enqueues and dequeues a signed payload through the real ORM broker, hands it to q2's worker and monitor in a separate process, and waits for cleanup before returning the broker receipt. Sync success and the original sync exception are also exercised through the launch API. Bulk tests check outer and savepoint rollback, the callback's database alias, committed-row visibility on a separate connection, deferred error polling, and both template packs.
+- The full `./runproj exec "./runtests --pytest --suite all"` run passed. Coordinator had 184 passes. PowerCRUD had 1,099 passes, 24 skips, and 112 deselections. The separate minimal-settings and Bootstrap server runs within that command had 4 and 32 passes respectively.
+- The broker test controls delivery from the test and uses the suite's shared file cache. Normal cluster dispatch, other broker configurations, and synchronized races across Redis, Memcached, and DatabaseCache require separate evidence. The shared register remains open for issues 1–13.
 
 ### C5: Protect shared registries and resource ownership
 

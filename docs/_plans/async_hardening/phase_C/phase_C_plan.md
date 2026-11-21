@@ -11,7 +11,7 @@
 
 ## Next
 
-- ✅ C3 is complete. Stop here; C4–C7 remain unstarted.
+- 🔳 C5 is next. See the [C4 implementation and verification record](phase_C_notes.md#c4-implementation-and-verification).
 
 ## C1: Validate explicit use and enforce launch enablement
 
@@ -35,10 +35,10 @@
 2. ✅ Retain terminal snapshots with the agreed configurable 24-hour default; duplicate/late events and optional callback failures cannot rewrite the job outcome (issues 6–8).
 3. ✅ Deliver completion across tested q2 result/hook modes without adding automatic PowerCRUD retries (issues 6–7, 13). Broker delivery and synchronized concurrency remain evidence limits, recorded in the Phase C notes; no support guarantee is inferred from sync-mode tests.
 
-## C4: Make submission and lifecycle ordering safe
+## ✅ C4: Make submission and lifecycle ordering safe
 
-1. 🔳 Establish identity/state before worker events; fast and explicit synchronous execution cannot be reset by late registration or execution attachment (issue 8).
-2. 🔳 Distinguish definite rejection from uncertain submission; verify rollback ownership and commit-safe behavior at affected launch sites (issues 8, 10–13).
+1. ✅ Establish identity/state before worker events; fast and explicit synchronous execution cannot be reset by late registration or execution attachment (issue 8).
+2. ✅ Distinguish definite rejection from uncertain submission; verify C4's conservative rollback and commit-safe behavior at affected launch sites (issues 8, 10–13).
 
 ## C5: Protect shared registries and resource ownership
 
